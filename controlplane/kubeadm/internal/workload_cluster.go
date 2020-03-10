@@ -65,13 +65,13 @@ type WorkloadCluster interface {
 	EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 
 	// Behaviors necessary for upgrade
-
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error
 	ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error
 	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version string) error
 	UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string) error
 	UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
+	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error
 }
@@ -79,6 +79,7 @@ type WorkloadCluster interface {
 // Workload defines operations on workload clusters.
 type Workload struct {
 	Client              ctrlclient.Client
+	CoreDNSMigrator     coreDNSMigrator
 	etcdClientGenerator etcdClientFor
 }
 

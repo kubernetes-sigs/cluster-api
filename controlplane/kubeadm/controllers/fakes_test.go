@@ -71,3 +71,17 @@ func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *cluster
 func (f fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterStatus, error) {
 	return f.Status, nil
 }
+
+type fakeMigrator struct {
+	migrateCalled    bool
+	migrateErr       error
+	migratedCorefile string
+}
+
+func (m *fakeMigrator) Migrate(current, to, corefile string, deprecations bool) (string, error) {
+	m.migrateCalled = true
+	if m.migrateErr != nil {
+		return "", m.migrateErr
+	}
+	return m.migratedCorefile, nil
+}

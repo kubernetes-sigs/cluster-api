@@ -106,7 +106,8 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	}
 
 	return &Workload{
-		Client: c,
+		Client:          c,
+		CoreDNSMigrator: &CoreDNSMigrator{},
 		etcdClientGenerator: &etcdClientGenerator{
 			restConfig: restConfig,
 			tlsConfig:  cfg,

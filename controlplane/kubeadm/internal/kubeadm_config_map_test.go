@@ -23,6 +23,7 @@ import (
 	"github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -35,6 +36,8 @@ var (
 	HaveKeyWithValue = gomega.HaveKeyWithValue
 	WithTransform    = gomega.WithTransform
 	BeEmpty          = gomega.BeEmpty
+	Equal            = gomega.Equal
+	BeEquivalentTo   = gomega.BeEquivalentTo
 )
 
 func Test_kubeadmConfig_RemoveAPIEndpoint(t *testing.T) {
@@ -222,5 +225,98 @@ etcd:
 
 		})
 	}
+}
 
+func Test_kubeadmConfig_UpdateCoreDNSImageInfo(t *testing.T) {
+	cm := &corev1.ConfigMap{
+		Data: map[string]string{
+			"ClusterConfiguration": `apiServer:
+  extraArgs:
+    authorization-mode: Node,RBAC
+    cloud-provider: aws
+  timeoutForControlPlane: 4m0s
+apiVersion: kubeadm.k8s.io/v1beta2
+certificatesDir: /etc/kubernetes/pki
+clusterName: foobar
+controlPlaneEndpoint: foobar.us-east-2.elb.amazonaws.com
+controllerManager:
+  extraArgs:
+    cloud-provider: aws
+dns:
+  type: CoreDNS
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+imageRepository: k8s.gcr.io
+kind: ClusterConfiguration
+kubernetesVersion: v1.16.1
+networking:
+  dnsDomain: cluster.local
+  podSubnet: 192.168.0.0/16
+  serviceSubnet: 10.96.0.0/12
+scheduler: {}`,
+		},
+	}
+
+	badcm := &corev1.ConfigMap{
+		Data: map[string]string{
+			"ClusterConfiguration": `apiServer:
+  extraArgs:
+    authorization-mode: Node,RBAC
+	...`,
+		},
+	}
+
+	tests := []struct {
+		name      string
+		cm        *corev1.ConfigMap
+		expectErr bool
+	}{
+		{
+			name:      "sets the image repository and tag",
+			cm:        cm,
+			expectErr: false,
+		},
+		{
+			name:      "returns error if unable to convert yaml",
+			cm:        badcm,
+			expectErr: true,
+		},
+		{
+			name:      "returns error if cannot find cluster config key",
+			cm:        &corev1.ConfigMap{Data: map[string]string{}},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := gomega.NewWithT(t)
+			imageRepository := "gcr.io/example"
+			imageTag := "v1.0.1-sometag"
+			kc := kubeadmConfig{ConfigMap: tt.cm}
+
+			if tt.expectErr {
+				g.Expect(kc.UpdateCoreDNSImageInfo(imageRepository, imageTag)).ToNot(Succeed())
+				return
+			}
+			g.Expect(kc.UpdateCoreDNSImageInfo(imageRepository, imageTag)).To(Succeed())
+			g.Expect(kc.ConfigMap.Data).To(HaveKey(clusterConfigurationKey))
+
+			type dns struct {
+				Type            string `yaml:"type"`
+				ImageRepository string `yaml:"imageRepository"`
+				ImageTag        string `yaml:"imageTag"`
+			}
+			var actualClusterConfig struct {
+				DNS dns `yaml:"dns"`
+			}
+
+			g.Expect(yaml.Unmarshal([]byte(kc.ConfigMap.Data[clusterConfigurationKey]), &actualClusterConfig)).To(Succeed())
+			actualDNS := actualClusterConfig.DNS
+			g.Expect(actualDNS.Type).To(BeEquivalentTo(kubeadmv1.CoreDNS))
+			g.Expect(actualDNS.ImageRepository).To(Equal(imageRepository))
+			g.Expect(actualDNS.ImageTag).To(Equal(imageTag))
+		})
+	}
 }

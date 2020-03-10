@@ -18,9 +18,13 @@ package cloudinit
 
 import (
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestTemplateYAMLIndent(t *testing.T) {
+	g := NewWithT(t)
+
 	testcases := []struct {
 		name     string
 		input    string
@@ -44,10 +48,7 @@ func TestTemplateYAMLIndent(t *testing.T) {
 	for _, tc := range testcases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			out := templateYAMLIndent(tc.indent, tc.input)
-			if out != tc.expected {
-				t.Fatalf("\nout:\n%+q\nexpected:\n%+q\n", out, tc.expected)
-			}
+			g.Expect(templateYAMLIndent(tc.indent, tc.input)).To(Equal(tc.expected))
 		})
 	}
 }

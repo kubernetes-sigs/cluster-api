@@ -21,10 +21,14 @@ import (
 	"reflect"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/pkg/errors"
 )
 
 func TestMarshalJSON(t *testing.T) {
+	g := NewWithT(t)
+
 	var tests = []struct {
 		bts      BootstrapTokenString
 		expected string
@@ -36,21 +40,15 @@ func TestMarshalJSON(t *testing.T) {
 	for _, rt := range tests {
 		t.Run(rt.bts.ID, func(t *testing.T) {
 			b, err := json.Marshal(rt.bts)
-			if err != nil {
-				t.Fatalf("json.Marshal returned an unexpected error: %v", err)
-			}
-			if string(b) != rt.expected {
-				t.Errorf(
-					"failed BootstrapTokenString.MarshalJSON:\n\texpected: %s\n\t  actual: %s",
-					rt.expected,
-					string(b),
-				)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(b).To(BeEquivalentTo(rt.expected))
 		})
 	}
 }
 
 func TestUnmarshalJSON(t *testing.T) {
+	g := NewWithT(t)
+
 	var tests = []struct {
 		input         string
 		bts           *BootstrapTokenString
@@ -69,20 +67,19 @@ func TestUnmarshalJSON(t *testing.T) {
 		t.Run(rt.input, func(t *testing.T) {
 			newbts := &BootstrapTokenString{}
 			err := json.Unmarshal([]byte(rt.input), newbts)
-			if (err != nil) != rt.expectedError {
-				t.Errorf("failed BootstrapTokenString.UnmarshalJSON:\n\texpected error: %t\n\t  actual error: %v", rt.expectedError, err)
-			} else if !reflect.DeepEqual(rt.bts, newbts) {
-				t.Errorf(
-					"failed BootstrapTokenString.UnmarshalJSON:\n\texpected: %v\n\t  actual: %v",
-					rt.bts,
-					newbts,
-				)
+			if rt.expectedError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(newbts).To(Equal(rt.bts))
 		})
 	}
 }
 
 func TestJSONRoundtrip(t *testing.T) {
+	g := NewWithT(t)
+
 	var tests = []struct {
 		input string
 		bts   *BootstrapTokenString
@@ -92,9 +89,7 @@ func TestJSONRoundtrip(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.input, func(t *testing.T) {
-			if err := roundtrip(rt.input, rt.bts); err != nil {
-				t.Errorf("failed BootstrapTokenString JSON roundtrip with error: %v", err)
-			}
+			g.Expect(roundtrip(rt.input, rt.bts)).To(Succeed())
 		})
 	}
 }
@@ -137,6 +132,8 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 }
 
 func TestTokenFromIDAndSecret(t *testing.T) {
+	g := NewWithT(t)
+
 	var tests = []struct {
 		bts      BootstrapTokenString
 		expected string
@@ -147,19 +144,14 @@ func TestTokenFromIDAndSecret(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.bts.ID, func(t *testing.T) {
-			actual := rt.bts.String()
-			if actual != rt.expected {
-				t.Errorf(
-					"failed BootstrapTokenString.String():\n\texpected: %s\n\t  actual: %s",
-					rt.expected,
-					actual,
-				)
-			}
+			g.Expect(rt.bts.String()).To(Equal(rt.expected))
 		})
 	}
 }
 
 func TestNewBootstrapTokenString(t *testing.T) {
+	g := NewWithT(t)
+
 	var tests = []struct {
 		token         string
 		expectedError bool
@@ -185,26 +177,20 @@ func TestNewBootstrapTokenString(t *testing.T) {
 	for _, rt := range tests {
 		t.Run(rt.token, func(t *testing.T) {
 			actual, err := NewBootstrapTokenString(rt.token)
-			if (err != nil) != rt.expectedError {
-				t.Errorf(
-					"failed NewBootstrapTokenString for the token %q\n\texpected error: %t\n\t  actual error: %v",
-					rt.token,
-					rt.expectedError,
-					err,
-				)
-			} else if !reflect.DeepEqual(actual, rt.bts) {
-				t.Errorf(
-					"failed NewBootstrapTokenString for the token %q\n\texpected: %v\n\t  actual: %v",
-					rt.token,
-					rt.bts,
-					actual,
-				)
+			if rt.expectedError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(actual).To(Equal(rt.bts))
+
 		})
 	}
 }
 
 func TestNewBootstrapTokenStringFromIDAndSecret(t *testing.T) {
+	g := NewWithT(t)
+
 	var tests = []struct {
 		id, secret    string
 		expectedError bool
@@ -227,23 +213,12 @@ func TestNewBootstrapTokenStringFromIDAndSecret(t *testing.T) {
 	for _, rt := range tests {
 		t.Run(rt.id, func(t *testing.T) {
 			actual, err := NewBootstrapTokenStringFromIDAndSecret(rt.id, rt.secret)
-			if (err != nil) != rt.expectedError {
-				t.Errorf(
-					"failed NewBootstrapTokenStringFromIDAndSecret for the token with id %q and secret %q\n\texpected error: %t\n\t  actual error: %v",
-					rt.id,
-					rt.secret,
-					rt.expectedError,
-					err,
-				)
-			} else if !reflect.DeepEqual(actual, rt.bts) {
-				t.Errorf(
-					"failed NewBootstrapTokenStringFromIDAndSecret for the token with id %q and secret %q\n\texpected: %v\n\t  actual: %v",
-					rt.id,
-					rt.secret,
-					rt.bts,
-					actual,
-				)
+			if rt.expectedError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(actual).To(Equal(rt.bts))
 		})
 	}
 }

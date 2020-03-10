@@ -17,8 +17,9 @@ limitations under the License.
 package cloudinit
 
 import (
-	"bytes"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	infrav1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -26,6 +27,8 @@ import (
 )
 
 func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
+	g := NewWithT(t)
+
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
 			Header:              "test",
@@ -59,9 +62,8 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 	}
 
 	out, err := NewInitControlPlane(cpinput)
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+
 	expectedFiles := []string{
 		`-   path: /tmp/my-path
     encoding: "base64"
@@ -72,13 +74,13 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
       hi`,
 	}
 	for _, f := range expectedFiles {
-		if !bytes.Contains(out, []byte(f)) {
-			t.Errorf("%s\ndid not contain\n%s", out, f)
-		}
+		g.Expect(out).To(ContainSubstring(f))
 	}
 }
 
 func TestNewInitControlPlaneCommands(t *testing.T) {
+	g := NewWithT(t)
+
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
 			Header:              "test",
@@ -102,16 +104,13 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	}
 
 	out, err := NewInitControlPlane(cpinput)
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+
 	expectedCommands := []string{
 		`"\"echo $(date) ': hello world!'\""`,
 		`"echo $(date) ': hello world!'"`,
 	}
 	for _, f := range expectedCommands {
-		if !bytes.Contains(out, []byte(f)) {
-			t.Errorf("%s\ndid not contain\n%s", out, f)
-		}
+		g.Expect(out).To(ContainSubstring(f))
 	}
 }

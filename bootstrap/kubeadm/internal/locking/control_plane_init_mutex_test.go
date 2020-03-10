@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -47,13 +49,12 @@ func init() {
 }
 
 func TestControlPlaneInitMutex_Lock(t *testing.T) {
+	g := NewWithT(t)
+
 	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
-	if err := corev1.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
 	uid := types.UID("test-uid")
 
 	tests := []struct {
@@ -127,21 +128,17 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 				},
 			}
 
-			actual := l.Lock(context.Background(), cluster, machine)
-			if actual != tc.shouldAcquire {
-				t.Fatalf("acquired was %v, but it should be %v", actual, tc.shouldAcquire)
-			}
+			g.Expect(l.Lock(context.Background(), cluster, machine)).To(Equal(tc.shouldAcquire))
 		})
 	}
 }
 func TestControlPlaneInitMutex_UnLock(t *testing.T) {
+	g := NewWithT(t)
+
 	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
-	if err := corev1.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
 	uid := types.UID("test-uid")
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -208,29 +205,23 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 				},
 			}
 
-			released := l.Unlock(context.Background(), cluster)
-			if released != tc.shouldRelease {
-				t.Fatalf("released was %v, but it should be %v\n", released, tc.shouldRelease)
-			}
-
+			g.Expect(l.Unlock(context.Background(), cluster)).To(Equal(tc.shouldRelease))
 		})
 	}
 }
 
 func TestInfoLines_Lock(t *testing.T) {
+	g := NewWithT(t)
+
 	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
-	if err := corev1.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
 	uid := types.UID("test-uid")
 	info := information{MachineName: "my-control-plane"}
 	b, err := json.Marshal(info)
-	if err != nil {
-		t.Fatal("failed to marshal info")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+
 	c := &fakeClient{
 		Client: fake.NewFakeClientWithScheme(scheme, &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -261,21 +252,19 @@ func TestInfoLines_Lock(t *testing.T) {
 			Name: fmt.Sprintf("machine-%s", cluster.Name),
 		},
 	}
-	if l.Lock(context.Background(), cluster, machine) != false {
-		t.Fatal("acquired lock but did not expect to")
-	}
+
+	g.Expect(l.Lock(context.Background(), cluster, machine)).To(BeFalse())
+
 	foundLogLine := false
 	for _, line := range logtester.InfoLog {
-		fmt.Println(line)
 		for k, v := range line.data {
 			if k == "init-machine" && v.(string) == "my-control-plane" {
 				foundLogLine = true
 			}
 		}
 	}
-	if !foundLogLine {
-		t.Fatalf("Did not find the log line containing the name of the machine currently intializing")
-	}
+
+	g.Expect(foundLogLine).To(BeTrue())
 }
 
 type fakeClient struct {

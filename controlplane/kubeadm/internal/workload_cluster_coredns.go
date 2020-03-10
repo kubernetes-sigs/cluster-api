@@ -38,6 +38,7 @@ const (
 	corefileKey       = "Corefile"
 	corefileBackupKey = "Corefile-backup"
 	coreDNSKey        = "coredns"
+	coreDNSVolumeKey  = "config-volume"
 )
 
 type coreDNSMigrator interface {
@@ -110,8 +111,8 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 func (w *Workload) getCoreDNSInfo(ctx context.Context, dns *kubeadmv1.DNS) (*coreDNSInfo, error) {
 	// Get the coredns configmap and corefile.
 	key := ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
-	cm := &corev1.ConfigMap{}
-	if err := w.Client.Get(ctx, key, cm); err != nil {
+	cm, err := w.getConfigMap(ctx, key)
+	if err != nil {
 		return nil, errors.Wrapf(err, "error getting %v config map from target cluster", key)
 	}
 	corefile, ok := cm.Data[corefileKey]
@@ -212,10 +213,17 @@ func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context,
 // in version number. It also creates a corefile backup and patches the
 // deployment to point to the backup corefile before migrating.
 func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo) error {
+	// Run the CoreDNS migration tool first because if it cannot migrate the
+	// corefile, then there's no point in continuing further.
+	updatedCorefile, err := w.CoreDNSMigrator.Migrate(info.FromParsedVersion, info.ToParsedVersion, info.Corefile, false)
+	if err != nil {
+		return errors.Wrap(err, "unable to migrate CoreDNS corefile")
+	}
+
 	// First we backup the Corefile by backing it up.
 	if err := w.Client.Update(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coredns",
+			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
@@ -237,14 +245,9 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 		return err
 	}
 
-	// Run the CoreDNS migration tool.
-	updatedCorefile, err := w.CoreDNSMigrator.Migrate(info.FromParsedVersion, info.ToParsedVersion, info.Corefile, false)
-	if err != nil {
-		return errors.Wrap(err, "unable to migrate CoreDNS corefile")
-	}
 	if err := w.Client.Update(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coredns",
+			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
@@ -260,7 +263,7 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 
 func patchCoreDNSDeploymentVolume(deployment *appsv1.Deployment, fromKey, toKey string) {
 	for _, volume := range deployment.Spec.Template.Spec.Volumes {
-		if volume.Name == "config-volume" && volume.ConfigMap != nil && volume.ConfigMap.Name == "coredns" {
+		if volume.Name == coreDNSVolumeKey && volume.ConfigMap != nil && volume.ConfigMap.Name == coreDNSKey {
 			for i, item := range volume.ConfigMap.Items {
 				if item.Key == fromKey || item.Key == toKey {
 					volume.ConfigMap.Items[i].Key = toKey
@@ -273,7 +276,7 @@ func patchCoreDNSDeploymentVolume(deployment *appsv1.Deployment, fromKey, toKey 
 func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 	containers := deployment.Spec.Template.Spec.Containers
 	for idx, c := range containers {
-		if c.Name == "coredns" {
+		if c.Name == coreDNSKey {
 			containers[idx].Image = image
 		}
 	}

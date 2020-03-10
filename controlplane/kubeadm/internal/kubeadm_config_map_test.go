@@ -38,6 +38,9 @@ var (
 	BeEmpty          = gomega.BeEmpty
 	Equal            = gomega.Equal
 	BeEquivalentTo   = gomega.BeEquivalentTo
+	BeTrue           = gomega.BeTrue
+	ContainSubstring = gomega.ContainSubstring
+	ConsistOf        = gomega.ConsistOf
 )
 
 func Test_kubeadmConfig_RemoveAPIEndpoint(t *testing.T) {

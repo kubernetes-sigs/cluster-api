@@ -5,7 +5,6 @@
 [Concepts](./user/concepts.md)
 [Personas](./user/personas.md)
 - [Tasks](./tasks/index.md)
-    - [Installation](./tasks/installation.md)
     - [Certificate Management](./tasks/certs/index.md)
         - [Using Custom Certificates](./tasks/certs/using-custom-certificates.md)
         - [Generating a Kubeconfig](./tasks/certs/generate-kubeconfig.md)

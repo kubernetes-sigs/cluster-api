@@ -4,6 +4,7 @@ The `clusterctl` config file is located at `$HOME/.cluster-api/clusterctl.yaml` 
 
 - Customize the list of providers and provider repositories.
 - Provide configuration values to be used for variable substitution when installing providers or creating clusters.
+- Define image overrides for air-gapped environments.
 
 ## Provider repositories
 
@@ -48,3 +49,41 @@ AWS_B64ENCODED_CREDENTIALS: XXXXXXXX
 ```
 
 In case a variable is defined both in the config file and as an OS environment variable, the latter takes precedence.
+
+## Image overrides
+
+<aside class="note warning">
+
+<h1> Warning! </h1>
+
+Image override is an advanced feature and wrong configuration can easily lead to non-functional clusters.
+It's strongly recommended to test configurations on dev/test environments before using this functionality in production.
+
+</aside>
+
+When working in air-gapped environments, it's necessary to alter the manifests to be installed in order to pull
+images from a local/custom image repository instead of public ones (e.g. `gcr.io`, or `quay.io`).
+
+The `clusterctl` configuration file can be used to instruct `clusterctl` to override images automatically.
+
+This can be achieved by adding an `images` configuration entry as shown in the example:
+
+```yaml
+images:
+  all:
+    repository: myorg.io/local-repo
+```
+
+Please note that the image override feature allows for more fine-grained configuration, allowing to set image
+overrides for specific components, for example:
+
+```yaml
+images:
+  all:
+    repository: myorg.io/local-repo
+  cert-manager:
+    tag: v0.11.1 
+```
+
+In this example we are overriding the image repository for all the components and the image tag for
+all the images in the cert-manager component.

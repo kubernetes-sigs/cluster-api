@@ -5,7 +5,7 @@ The `clusterctl config cluster` command returns a YAML template for creating a w
 For example
 
 ```
-clusterctl config cluster my-cluster --kubernetes-version v1.16.3 > my-cluster.yaml
+clusterctl config cluster my-cluster --kubernetes-version v1.16.3 --control-plane-machine-count=3 --worker-machine-count=3 > my-cluster.yaml
 ```
 
 Creates a YAML file named `my-cluster.yaml` with a predefined list of Cluster API objects; Cluster, Machines,

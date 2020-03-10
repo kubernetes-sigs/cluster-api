@@ -25,8 +25,9 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -50,7 +51,7 @@ type Cluster struct {
 // Setup creates a Kind cluster
 func (c *Cluster) Setup() {
 	c.init()
-	fmt.Fprintf(ginkgo.GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
+	fmt.Fprintf(GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
 
 	cmd := exec.Command(
 		c.kindBinary,
@@ -81,9 +82,9 @@ func (c *Cluster) init() {
 	}
 	var err error
 	c.kindBinary, err = exec.LookPath("kind")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 	c.kubectlBinary, err = exec.LookPath("kubectl")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 }
 
 // Teardown attempts to delete the Kind cluster
@@ -99,7 +100,7 @@ func (c *Cluster) Teardown() {
 // LoadImage loads the specified image archive into the Kind cluster
 func (c *Cluster) LoadImage(image string) {
 	fmt.Fprintf(
-		ginkgo.GinkgoWriter,
+		GinkgoWriter,
 		"loading image %q into Kind node\n",
 		image)
 	c.run(exec.Command(
@@ -123,7 +124,7 @@ func (c *Cluster) ApplyYAML(manifestPath string) {
 // RestConfig returns a REST configuration pointed at the provisioned cluster
 func (c *Cluster) RestConfig() *restclient.Config {
 	cfg, err := clientcmd.BuildConfigFromFlags("", c.KubeconfigPath)
-	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(==.HaveOccurred())
 	return cfg
 }
 
@@ -131,7 +132,7 @@ func (c *Cluster) RestConfig() *restclient.Config {
 func (c *Cluster) KubeClient() kubernetes.Interface {
 	cfg := c.RestConfig()
 	client, err := kubernetes.NewForConfig(cfg)
-	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return client
 }
 
@@ -145,7 +146,7 @@ func (c *Cluster) runWithOutput(cmd *exec.Cmd) []byte {
 func (c *Cluster) run(cmd *exec.Cmd) {
 	var wg sync.WaitGroup
 	errPipe, err := cmd.StderrPipe()
-	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	cmd.Env = append(
 		cmd.Env,
@@ -162,14 +163,14 @@ func (c *Cluster) run(cmd *exec.Cmd) {
 	go captureOutput(&wg, errPipe, "stderr")
 	if cmd.Stdout == nil {
 		outPipe, err := cmd.StdoutPipe()
-		gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		wg.Add(1)
 		go captureOutput(&wg, outPipe, "stdout")
 	}
 
-	gomega.Expect(cmd.Start()).To(gomega.Succeed())
+	Expect(cmd.Start()).To(Succeed())
 	wg.Wait()
-	gomega.Expect(cmd.Wait()).To(gomega.Succeed())
+	Expect(cmd.Wait()).To(Succeed())
 }
 
 func captureOutput(wg *sync.WaitGroup, r io.Reader, label string) {
@@ -178,7 +179,7 @@ func captureOutput(wg *sync.WaitGroup, r io.Reader, label string) {
 
 	for {
 		line, err := reader.ReadString('\n')
-		fmt.Fprintf(ginkgo.GinkgoWriter, "[%s] %s", label, line)
+		fmt.Fprintf(GinkgoWriter, "[%s] %s", label, line)
 		if err != nil {
 			return
 		}

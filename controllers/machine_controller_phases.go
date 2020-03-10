@@ -229,6 +229,11 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		return nil
 	}
 
+	// Pull the failureDomain from the infrastructure provider if it is not already set.
+	if m.Spec.FailureDomain == nil {
+		m.Spec.FailureDomain = external.FailureDomain(infraConfig)
+	}
+
 	// Determine if the infrastructure provider is ready.
 	ready, err := external.IsReady(infraConfig)
 	if err != nil {

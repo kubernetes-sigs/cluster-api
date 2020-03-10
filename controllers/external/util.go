@@ -152,6 +152,19 @@ func FailuresFrom(obj *unstructured.Unstructured) (string, string, error) {
 	return failureReason, failureMessage, nil
 }
 
+// FailureDomain returns the FailureDomain from the external object spec.
+func FailureDomain(obj *unstructured.Unstructured) *string {
+	result, found, err := unstructured.NestedFieldNoCopy(obj.Object, "spec", "failureDomain")
+	if err != nil || !found {
+		return nil
+	}
+	failureDomain, ok := result.(*string)
+	if !ok {
+		return nil
+	}
+	return failureDomain
+}
+
 // IsReady returns true if the Status.Ready field on an external object is true.
 func IsReady(obj *unstructured.Unstructured) (bool, error) {
 	ready, found, err := unstructured.NestedBool(obj.Object, "status", "ready")

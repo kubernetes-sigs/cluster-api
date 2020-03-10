@@ -21,13 +21,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -300,4 +300,46 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 		ClusterName: testClusterName,
 	})
 	g.Expect(err).To(HaveOccurred())
+}
+
+func TestFailureDomain(t *testing.T) {
+	namespace := "test"
+	resourceName := "mauve"
+	resourceKind := "Mauve"
+	resourceAPIVersion := "mauve.io/v1"
+
+	tests := []struct {
+		name string
+		obj  *unstructured.Unstructured
+		want *string
+	}{
+		{
+			name: "unstructured resource does not have failure domain",
+			obj:  &unstructured.Unstructured{},
+			want: nil,
+		},
+		{
+			name: "unstructured resources does have failure domain",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"kind":       resourceKind,
+					"apiVersion": resourceAPIVersion,
+					"metadata": map[string]interface{}{
+						"name":      resourceName,
+						"namespace": namespace,
+					},
+					"spec": map[string]interface{}{
+						"failureDomain": pointer.StringPtr("test-1"),
+					},
+				},
+			},
+			want: pointer.StringPtr("test-1"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(FailureDomain(tt.obj)).To(Equal(tt.want))
+		})
+	}
 }

@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,6 +57,15 @@ var _ = Describe("Docker", func() {
 		})
 
 		AfterEach(func() {
+			// Dump cluster API and docker related resources to artifacts before deleting them.
+			Expect(framework.DumpResources(mgmt, resourcesPath, GinkgoWriter)).To(Succeed())
+			resources := map[string]runtime.Object{
+				"DockerCluster":         &infrav1.DockerClusterList{},
+				"DockerMachine":         &infrav1.DockerMachineList{},
+				"DockerMachineTemplate": &infrav1.DockerMachineTemplateList{},
+			}
+			Expect(framework.DumpProviderResources(mgmt, resources, resourcesPath, GinkgoWriter)).To(Succeed())
+
 			deleteClusterInput := framework.DeleteClusterInput{
 				Deleter: client,
 				Cluster: cluster,

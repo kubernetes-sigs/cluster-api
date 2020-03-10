@@ -113,18 +113,11 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	// Dump the logs of the providers before deleting them.
 	Expect(writeLogs(mgmt, "capi-system", "capi-controller-manager", logPath)).To(Succeed())
 	Expect(writeLogs(mgmt, "capi-kubeadm-bootstrap-system", "capi-kubeadm-bootstrap-controller-manager", logPath)).To(Succeed())
 	Expect(writeLogs(mgmt, "capi-kubeadm-control-plane-system", "capi-kubeadm-control-plane-controller-manager", logPath)).To(Succeed())
 	Expect(writeLogs(mgmt, "capd-system", "capd-controller-manager", logPath)).To(Succeed())
-
-	// Dump cluster API and docker related resources to artifacts
-	Expect(framework.DumpResources(mgmt, resourcesPath, GinkgoWriter)).To(Succeed())
-	resources := map[string]runtime.Object{
-		"DockerCluster": &infrav1.DockerClusterList{},
-		"DockerMachine": &infrav1.DockerMachineList{},
-	}
-	Expect(framework.DumpProviderResources(mgmt, resources, resourcesPath, GinkgoWriter)).To(Succeed())
 
 	By("Deleting the management cluster")
 	// If any part of teardown fails it will print what must be manually cleaned up

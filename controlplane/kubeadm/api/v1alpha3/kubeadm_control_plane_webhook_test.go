@@ -296,6 +296,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 	}
 
+	withoutClusterConfiguration := before.DeepCopy()
+	withoutClusterConfiguration.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -475,6 +478,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    beforeInvalidEtcdCluster,
 			kcp:       afterInvalidEtcdCluster,
+		},
+		{
+			name:      "should pass if ClusterConfiguration is nil",
+			expectErr: false,
+			before:    withoutClusterConfiguration,
+			kcp:       withoutClusterConfiguration,
 		},
 	}
 

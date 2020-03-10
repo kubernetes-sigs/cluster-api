@@ -230,6 +230,10 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 }
 
 func (in *KubeadmControlPlane) validateEtcd(prev *KubeadmControlPlane) (allErrs field.ErrorList) {
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
+		return allErrs
+	}
+
 	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
 		allErrs = append(
 			allErrs,

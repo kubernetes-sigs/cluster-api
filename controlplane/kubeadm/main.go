@@ -77,7 +77,7 @@ func main() {
 	flag.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
-	flag.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 1,
+	flag.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 10,
 		"Number of kubeadm control planes to process simultaneously")
 
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,

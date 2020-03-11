@@ -17,10 +17,11 @@ limitations under the License.
 package repository
 
 import (
-	"bytes"
+	// "bytes"
 	"fmt"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -28,6 +29,8 @@ import (
 )
 
 func Test_templates_Get(t *testing.T) {
+	g := NewWithT(t)
+
 	p1 := config.NewProvider("p1", "", clusterctlv1.BootstrapProviderType)
 
 	type fields struct {
@@ -158,36 +161,27 @@ func Test_templates_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := newTemplateClient(tt.fields.provider, tt.fields.version, tt.fields.repository, tt.fields.configVariablesClient)
 			got, err := f.Get(tt.args.flavor, tt.args.targetNamespace, tt.args.listVariablesOnly)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {
-				t.Errorf("got.Variables() = %v, want = %v ", got.Variables(), tt.want.variables)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if !reflect.DeepEqual(got.TargetNamespace(), tt.want.targetNamespace) {
-				t.Errorf("got.TargetNamespace() = %v, want = %v ", got.TargetNamespace(), tt.want.targetNamespace)
-			}
+			g.Expect(got.Variables()).To(ConsistOf(tt.want.variables))
+			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			// check variable replaced in yaml
 			yaml, err := got.Yaml()
-			if tt.wantErr {
-				t.Fatalf("got.Yaml error = %v", err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if !tt.args.listVariablesOnly && !bytes.Contains(yaml, []byte(fmt.Sprintf("variable: %s", variableValue))) {
-				t.Error("got.Yaml without variable substitution")
+			if tt.args.listVariablesOnly {
+				g.Expect(yaml).NotTo(ContainSubstring((fmt.Sprintf("variable: %s", variableValue))))
 			}
 
 			// check if target namespace is set
 			for _, o := range got.Objs() {
-				if o.GetNamespace() != tt.want.targetNamespace {
-					t.Errorf("got.Object[%s].Namespace = %v, want = %v ", o.GetName(), o.GetNamespace(), tt.want.targetNamespace)
-				}
+				g.Expect(o.GetNamespace()).To(Equal(tt.want.targetNamespace))
 			}
 		})
 	}

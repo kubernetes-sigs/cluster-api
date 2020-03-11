@@ -22,7 +22,10 @@ import (
 	"reflect"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/google/go-github/github"
+	"k8s.io/utils/pointer"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
@@ -35,6 +38,8 @@ import (
 //TODO: test getComponentsPath
 
 func Test_gitHubRepository_getVersions(t *testing.T) {
+	g := NewWithT(t)
+
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -72,28 +77,27 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
-			if err != nil {
-				t.Fatal(err)
-			}
-			g.injectClient = client
+			gitHub, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
+			g.Expect(err).NotTo(HaveOccurred())
 
-			got, err := g.getVersions()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
+			gitHub.injectClient = client
+
+			got, err := gitHub.getVersions()
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if len(got) != len(tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(HaveLen(len(tt.want)))
+			g.Expect(got).To(ConsistOf(tt.want))
 		})
 	}
 }
 
 func Test_gitHubRepository_getLatestRelease(t *testing.T) {
+	g := NewWithT(t)
+
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -144,28 +148,26 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
-			if err != nil {
-				t.Fatal(err)
-			}
-			g.injectClient = client
+			gRepo, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
+			g.Expect(err).NotTo(HaveOccurred())
 
-			got, err := g.getLatestRelease()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
+			gRepo.injectClient = client
+
+			got, err := gRepo.getLatestRelease()
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if got != tt.want {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
+	g := NewWithT(t)
+
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -185,7 +187,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        args
-		wantTagName string
+		wantTagName *string
 		wantErr     bool
 	}{
 		{
@@ -193,7 +195,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 			args: args{
 				tag: "foo",
 			},
-			wantTagName: "v0.4.1",
+			wantTagName: pointer.StringPtr("v0.4.1"),
 			wantErr:     false,
 		},
 		{
@@ -201,38 +203,31 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 			args: args{
 				tag: "bar",
 			},
-			wantTagName: "",
+			wantTagName: nil,
 			wantErr:     true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := newGitHubRepository(providerConfig, configVariablesClient)
-			if err != nil {
-				t.Fatal(err)
-			}
-			g.injectClient = client
+			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient)
+			g.Expect(err).NotTo(HaveOccurred())
 
-			got, err := g.getReleaseByTag(tt.args.tag)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
+			gRepo.injectClient = client
+
+			got, err := gRepo.getReleaseByTag(tt.args.tag)
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if tt.wantTagName == "" && got == nil {
+			g.Expect(err).NotTo(HaveOccurred())
+
+			if tt.wantTagName == nil {
+				g.Expect(got).To(BeNil())
 				return
 			}
 
-			if tt.wantTagName != "" && got != nil {
-				if *got.TagName != tt.wantTagName {
-					t.Errorf("got = %v, want %v", *got.TagName, tt.wantTagName)
-				}
-				return
-			}
-
-			t.Errorf("got = %v, want.TagName %v", got, tt.wantTagName)
+			g.Expect(got.TagName).To(Equal(tt.wantTagName))
 		})
 	}
 }

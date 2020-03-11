@@ -17,8 +17,9 @@ limitations under the License.
 package repository
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -35,6 +36,8 @@ var metadataYaml = []byte("apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\n" +
 	"")
 
 func Test_metadataClient_Get(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		provider   config.Provider
 		version    string
@@ -139,16 +142,13 @@ func Test_metadataClient_Get(t *testing.T) {
 				repository: tt.fields.repository,
 			}
 			got, err := f.Get()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

@@ -20,8 +20,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -29,6 +30,8 @@ import (
 )
 
 func Test_localRepository_newLocalRepository(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		provider              config.Provider
 		configVariablesClient config.VariablesClient
@@ -107,28 +110,18 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
-
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			if got.basepath != tt.want.basepath {
-				t.Errorf("got.basepath = %v, want = %v ", got.basepath, tt.want.basepath)
-			}
-			if got.providerLabel != tt.want.providerLabel {
-				t.Errorf("got.providerLabel = %v, want = %v ", got.providerLabel, tt.want.providerLabel)
-			}
-			if got.DefaultVersion() != tt.want.defaultVersion {
-				t.Errorf("got.DefaultVersion() = %v, want = %v ", got.DefaultVersion(), tt.want.defaultVersion)
-			}
-			if got.RootPath() != tt.want.rootPath {
-				t.Errorf("got.RootPath() = %v, want = %v ", got.RootPath(), tt.want.rootPath)
-			}
-			if got.ComponentsPath() != tt.want.componentsPath {
-				t.Errorf("got.ComponentsPath() = %v, want = %v ", got.ComponentsPath(), tt.want.componentsPath)
-			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+
+			g.Expect(got.basepath).To(Equal(tt.want.basepath))
+			g.Expect(got.providerLabel).To(Equal(tt.want.providerLabel))
+			g.Expect(got.DefaultVersion()).To(Equal(tt.want.defaultVersion))
+			g.Expect(got.RootPath()).To(Equal(tt.want.rootPath))
+			g.Expect(got.ComponentsPath()).To(Equal(tt.want.componentsPath))
 		})
 	}
 }
@@ -142,19 +135,19 @@ func createTempDir(t *testing.T) string {
 }
 
 func createLocalTestProviderFile(t *testing.T, tmpDir, path, msg string) string {
+	g := NewWithT(t)
+
 	dst := filepath.Join(tmpDir, path)
 	// Create all directories in the standard layout
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	g.Expect(os.MkdirAll(filepath.Dir(dst), 0755)).To(Succeed())
+	g.Expect(ioutil.WriteFile(dst, []byte(msg), 0644)).To(Succeed())
 
-	if err := ioutil.WriteFile(dst, []byte(msg), 0644); err != nil {
-		t.Fatalf("err: %s", err)
-	}
 	return dst
 }
 
 func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
+	g := NewWithT(t)
+
 	tmpDir := createTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -170,29 +163,18 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 	p2 := config.NewProvider("foo", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
 
 	got, err := newLocalRepository(p2, test.NewFakeVariableClient())
-	if err != nil {
-		t.Fatalf("got error %v when none was expected", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
-	if got.basepath != tmpDir {
-		t.Errorf("got.basepath = %v, want = %v ", got.basepath, tmpDir)
-	}
-	if got.providerLabel != "bootstrap-foo" {
-		t.Errorf("got.providerLabel = %v, want = provider-2 ", got.providerLabel)
-	}
-	if got.DefaultVersion() != "v1.0.1" {
-		t.Errorf("got.DefaultVersion() = %v, want = v1.0.1 ", got.DefaultVersion())
-	}
-	if got.RootPath() != "" {
-		t.Errorf("got.RootPath() = %v, want = \"\" ", got.RootPath())
-	}
-	if got.ComponentsPath() != "bootstrap-components.yaml" {
-		t.Errorf("got.ComponentsPath() = %v, want = bootstrap-components.yaml ", got.ComponentsPath())
-	}
-
+	g.Expect(got.basepath).To(Equal(tmpDir))
+	g.Expect(got.providerLabel).To(Equal("bootstrap-foo"))
+	g.Expect(got.DefaultVersion()).To(Equal("v1.0.1"))
+	g.Expect(got.RootPath()).To(BeEmpty())
+	g.Expect(got.ComponentsPath()).To(Equal("bootstrap-components.yaml"))
 }
 
 func Test_localRepository_GetFile(t *testing.T) {
+	g := NewWithT(t)
+
 	tmpDir := createTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -276,24 +258,23 @@ func Test_localRepository_GetFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+
 			got, err := r.GetFile(tt.args.version, tt.args.fileName)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			if string(got) != tt.want.contents {
-				t.Errorf("got %s expected %s", got, tt.want.contents)
-			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(string(got)).To(Equal(tt.want.contents))
 		})
 	}
 }
 
 func Test_localRepository_GetVersions(t *testing.T) {
+	g := NewWithT(t)
+
 	tmpDir := createTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -352,28 +333,17 @@ func Test_localRepository_GetVersions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-				return
-			}
-			got, err := r.GetVersions()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if tt.wantErr {
-				return
-			}
-			if len(got) != len(tt.want.versions) {
-				t.Fatalf("got %v, expected %v versions", len(got), len(tt.want.versions))
-			}
-			sort.Strings(tt.want.versions)
-			sort.Strings(got)
-			for i := range got {
-				if got[i] != tt.want.versions[i] {
-					t.Errorf("got %s expected %s", got, tt.want.versions)
-				}
+			g.Expect(err).NotTo(HaveOccurred())
 
+			got, err := r.GetVersions()
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
 			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(HaveLen(len(tt.want.versions)))
+			g.Expect(got).To(ConsistOf(tt.want.versions))
 		})
 	}
 }

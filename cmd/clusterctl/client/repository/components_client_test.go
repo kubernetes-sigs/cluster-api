@@ -17,10 +17,10 @@ limitations under the License.
 package repository
 
 import (
-	"bytes"
 	"fmt"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -59,12 +59,12 @@ var configMapYaml = []byte("apiVersion: v1\n" +
 	"  name: manager")
 
 func Test_componentsClient_Get(t *testing.T) {
+	g := NewWithT(t)
+
 	p1 := config.NewProvider("p1", "", clusterctlv1.BootstrapProviderType)
 
 	configClient, err := config.New("", config.InjectReader(test.NewFakeReader().WithVar(variableName, variableValue)))
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	type fields struct {
 		provider   config.Provider
@@ -233,36 +233,19 @@ func Test_componentsClient_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := newComponentsClient(tt.fields.provider, tt.fields.repository, configClient)
 			got, err := f.Get(tt.args.version, tt.args.targetNamespace, tt.args.watchingNamespace)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if got.Name() != tt.want.provider.Name() {
-				t.Errorf("got.Name() = %v, want = %v ", got.Name(), tt.want.provider.Name())
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if got.Type() != tt.want.provider.Type() {
-				t.Errorf("got.Type() = %v, want = %v ", got.Type(), tt.want.provider.Type())
-			}
-
-			if got.Version() != tt.want.version {
-				t.Errorf("got.Version() = %v, want = %v ", got.Version(), tt.want.version)
-			}
-
-			if got.TargetNamespace() != tt.want.targetNamespace {
-				t.Errorf("got.TargetNamespace() = %v, want = %v ", got.TargetNamespace(), tt.want.targetNamespace)
-			}
-
-			if got.WatchingNamespace() != tt.want.watchingNamespace {
-				t.Errorf("got.WatchingNamespace() = %v, want = %v ", got.WatchingNamespace(), tt.want.watchingNamespace)
-			}
-
-			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {
-				t.Errorf("got.Variables() = %v, want = %v ", got.WatchingNamespace(), tt.want.watchingNamespace)
-			}
+			g.Expect(got.Name()).To(Equal(tt.want.provider.Name()))
+			g.Expect(got.Type()).To(Equal(tt.want.provider.Type()))
+			g.Expect(got.Version()).To(Equal(tt.want.version))
+			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
+			g.Expect(got.WatchingNamespace()).To(Equal(tt.want.watchingNamespace))
+			g.Expect(got.Variables()).To(Equal(tt.want.variables))
 
 			yaml, err := got.Yaml()
 			if err != nil {
@@ -270,27 +253,21 @@ func Test_componentsClient_Get(t *testing.T) {
 				return
 			}
 
-			if len(tt.want.variables) > 0 && !bytes.Contains(yaml, []byte(variableValue)) {
-				t.Errorf("got.Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
-			}
-
-			if len(tt.want.variables) > 0 && !bytes.Contains(yaml, []byte(variableValue)) {
-				t.Errorf("got.Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
+			if len(tt.want.variables) > 0 {
+				g.Expect(yaml).To(ContainSubstring(variableValue))
 			}
 
 			for _, o := range got.InstanceObjs() {
 				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName} {
-					if _, ok := o.GetLabels()[v]; !ok {
-						t.Errorf("got.InstanceObjs() object %s does not contains %s label", o.GetName(), v)
-					}
+					_, ok := o.GetLabels()[v]
+					g.Expect(ok).To(BeTrue())
 				}
 			}
 
 			for _, o := range got.SharedObjs() {
 				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName, clusterctlv1.ClusterctlResourceLifecyleLabelName} {
-					if _, ok := o.GetLabels()[v]; !ok {
-						t.Errorf("got.SharedObjs() object %s does not contains %s label", o.GetName(), v)
-					}
+					_, ok := o.GetLabels()[v]
+					g.Expect(ok).To(BeTrue())
 				}
 			}
 		})

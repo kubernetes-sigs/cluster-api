@@ -206,6 +206,11 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 			value:     intstr.Parse("abcdef"),
 			expectErr: true,
 		},
+		{
+			name:      "when the value stringified integer",
+			value:     intstr.FromString("10"),
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {

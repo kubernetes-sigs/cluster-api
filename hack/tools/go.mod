@@ -9,7 +9,7 @@ require (
 	github.com/raviqqe/liche v0.0.0-20200229003944-f57a5d1c5be4
 	golang.org/x/tools v0.0.0-20200204192400-7124308813f3
 	k8s.io/code-generator v0.18.0-alpha.2.0.20200130061103-7dfd5e9157ef
-	sigs.k8s.io/controller-tools v0.2.6-0.20200226180227-d6efdcdd90e2
+	sigs.k8s.io/controller-tools v0.2.6
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20200226075303-ed8438ec10a4
 	sigs.k8s.io/kustomize/kustomize/v3 v3.5.4
 	sigs.k8s.io/testing_frameworks v0.1.2

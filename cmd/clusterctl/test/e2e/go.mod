@@ -11,7 +11,7 @@ require (
 	k8s.io/client-go v0.17.2
 	sigs.k8s.io/cluster-api v0.3.0-rc.2.0.20200302175844-3011d8c2580c
 	sigs.k8s.io/cluster-api/test/infrastructure/docker v0.3.0-rc.2.0.20200302175844-3011d8c2580c
-	sigs.k8s.io/controller-runtime v0.5.0
+	sigs.k8s.io/controller-runtime v0.5.1
 	sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802
 )
 

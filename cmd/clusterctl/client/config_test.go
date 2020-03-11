@@ -21,8 +21,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +32,8 @@ import (
 )
 
 func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
+	g := NewWithT(t)
+
 	customProviderConfig := config.NewProvider("custom", "url", clusterctlv1.BootstrapProviderType)
 
 	type field struct {
@@ -81,30 +84,25 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.field.client.GetProvidersConfig()
-			if tt.wantErr != (err != nil) {
-				t.Fatalf("error = %v, wantErr = %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if len(got) != len(tt.wantProviders) {
-				t.Errorf("got = %v items, want %v items", len(got), len(tt.wantProviders))
-				return
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(HaveLen(len(tt.wantProviders)))
 
-			for i, g := range got {
+			for i, gotProvider := range got {
 				w := tt.wantProviders[i]
-
-				if g.Name() != w {
-					t.Errorf("Item[%d].Name() got = %v, want = %v ", i, g.Name(), w)
-				}
+				g.Expect(gotProvider.Name()).To(Equal(w))
 			}
 		})
 	}
 }
 
 func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
+	g := NewWithT(t)
+
 	config1 := newFakeConfig().
 		WithProvider(capiProviderConfig)
 
@@ -157,25 +155,21 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := client.GetProviderComponents(tt.args.provider, capiProviderConfig.Type(), tt.args.targetNameSpace, tt.args.watchingNamespace)
-			if tt.wantErr != (err != nil) {
-				t.Fatalf("error = %v, wantErr = %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if got.Name() != tt.want.provider.Name() {
-				t.Errorf("got.Name() = %v, want = %v ", got.Name(), tt.want.provider.Name())
-			}
-
-			if got.Version() != tt.want.version {
-				t.Errorf("got.Version() = %v, want = %v ", got.Version(), tt.want.version)
-			}
+			g.Expect(got.Name()).To(Equal(tt.want.provider.Name()))
+			g.Expect(got.Version()).To(Equal(tt.want.version))
 		})
 	}
 }
 
 func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		options GetClusterTemplateOptions
 	}
@@ -290,40 +284,33 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 				configClient: config,
 			}
 			err := c.templateOptionsToVariables(tt.args.options)
-			if tt.wantErr != (err != nil) {
-				t.Fatalf("error = %v, wantErr = %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			for name, wantValue := range tt.wantVars {
 				gotValue, err := config.Variables().Get(name)
-				if err != nil {
-					t.Fatalf("variable %s is not definied in config variables", name)
-				}
-				if gotValue != wantValue {
-					t.Errorf("variable %s, got = %v, want %v", name, gotValue, wantValue)
-				}
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(gotValue).To(Equal(wantValue))
 			}
 		})
 	}
 }
 
 func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
+	g := NewWithT(t)
+
 	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
 
 	// Template on a file
 	tmpDir, err := ioutil.TempDir("", "cc")
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(tmpDir)
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	if err := ioutil.WriteFile(path, rawTemplate, 0644); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	g.Expect(ioutil.WriteFile(path, rawTemplate, 0644)).To(Succeed())
 
 	// Template on a repository & in a ConfigMap
 	configMap := &corev1.ConfigMap{
@@ -476,27 +463,18 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := client.GetClusterTemplate(tt.args.options)
-			if tt.wantErr != (err != nil) {
-				t.Fatalf("error = %v, wantErr = %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {
-				t.Errorf("Variables() got = %v, want %v", got.Variables(), tt.want.variables)
-			}
-			if got.TargetNamespace() != tt.want.targetNamespace {
-				t.Errorf("TargetNamespace() got = %v, want %v", got.TargetNamespace(), tt.want.targetNamespace)
-			}
+			g.Expect(got.Variables()).To(Equal(tt.want.variables))
+			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			gotYaml, err := got.Yaml()
-			if err != nil {
-				t.Fatalf("Yaml() error = %v, wantErr nil", err)
-			}
-			if !reflect.DeepEqual(gotYaml, tt.want.yaml) {
-				t.Errorf("Yaml() got = %v, want %v", gotYaml, tt.want.yaml)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(gotYaml).To(Equal(tt.want.yaml))
 		})
 	}
 }

@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
@@ -27,6 +29,8 @@ import (
 )
 
 func Test_clusterctlClient_Init(t *testing.T) {
+	g := NewWithT(t)
+
 	type field struct {
 		client *fakeClient
 		hasCRD bool
@@ -323,9 +327,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			if tt.field.hasCRD {
-				if err := tt.field.client.clusters["kubeconfig"].ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-					t.Fatalf("EnsureMetadata() error = %v", err)
-				}
+				g.Expect(tt.field.client.clusters["kubeconfig"].ProviderInventory().EnsureCustomResourceDefinitions()).To(Succeed())
 			}
 
 			got, err := tt.field.client.Init(InitOptions{
@@ -337,41 +339,20 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				TargetNamespace:         tt.args.targetNameSpace,
 				WatchingNamespace:       tt.args.watchingNamespace,
 			})
-
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if len(got) != len(tt.want) {
-				t.Errorf("got = %v items, want %v items", len(got), len(tt.want))
-				return
-			}
-
-			for i, g := range got {
+			g.Expect(got).To(HaveLen(len(tt.want)))
+			for i, gItem := range got {
 				w := tt.want[i]
-
-				if g.Name() != w.provider.Name() {
-					t.Errorf("Item[%d].Name() got = %v, want = %v ", i, g.Name(), w.provider.Name())
-				}
-
-				if g.Type() != w.provider.Type() {
-					t.Errorf("Item[%d].Type() got = %v, want = %v ", i, g.Type(), w.provider.Type())
-				}
-
-				if g.Version() != w.version {
-					t.Errorf("Item[%d].Version() got = %v, want = %v ", i, g.Version(), w.version)
-				}
-
-				if g.TargetNamespace() != w.targetNamespace {
-					t.Errorf("Item[%d].TargetNamespace() got = %v, want = %v ", i, g.TargetNamespace(), w.targetNamespace)
-				}
-
-				if g.WatchingNamespace() != w.watchingNamespace {
-					t.Errorf("Item[%d].WatchingNamespace() got = %v, want = %v ", i, g.WatchingNamespace(), w.watchingNamespace)
-				}
+				g.Expect(gItem.Name()).To(Equal(w.provider.Name()))
+				g.Expect(gItem.Type()).To(Equal(w.provider.Type()))
+				g.Expect(gItem.Version()).To(Equal(w.version))
+				g.Expect(gItem.TargetNamespace()).To(Equal(w.targetNamespace))
+				g.Expect(gItem.WatchingNamespace()).To(Equal(w.watchingNamespace))
 			}
 		})
 	}

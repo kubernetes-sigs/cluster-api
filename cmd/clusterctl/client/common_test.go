@@ -16,9 +16,15 @@ limitations under the License.
 
 package client
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/onsi/gomega"
+)
 
 func Test_parseProviderName(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		provider string
 	}
@@ -51,15 +57,14 @@ func Test_parseProviderName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotName, gotVersion, err := parseProviderName(tt.args.provider)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
-			if gotName != tt.wantName {
-				t.Errorf("gotName = %v, want %v", gotName, tt.wantName)
-			}
-			if gotVersion != tt.wantVersion {
-				t.Errorf("gotVersion = %v, want %v", gotVersion, tt.wantVersion)
-			}
+			g.Expect(gotName).To(Equal(tt.wantName))
+
+			g.Expect(gotVersion).To(Equal(tt.wantVersion))
 		})
 	}
 }

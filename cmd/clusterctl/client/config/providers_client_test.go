@@ -18,15 +18,18 @@ package config
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_providers_List(t *testing.T) {
+	g := NewWithT(t)
+
 	reader := test.NewFakeReader()
 
 	p := &providersClient{
@@ -121,21 +124,20 @@ func Test_providers_List(t *testing.T) {
 				reader: tt.fields.configGetter,
 			}
 			got, err := p.List()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_validateProvider(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		r Provider
 	}
@@ -217,8 +219,11 @@ func Test_validateProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateProvider(tt.args.r); (err != nil) != tt.wantErr {
-				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+			err := validateProvider(tt.args.r)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -227,6 +232,8 @@ func Test_validateProvider(t *testing.T) {
 // check if Defaults returns valid provider repository configurations
 // this is a safeguard for catching changes leading to formally invalid default configurations
 func Test_providers_Defaults(t *testing.T) {
+	g := NewWithT(t)
+
 	reader := test.NewFakeReader()
 
 	p := &providersClient{
@@ -237,13 +244,13 @@ func Test_providers_Defaults(t *testing.T) {
 
 	for _, d := range defaults {
 		err := validateProvider(d)
-		if err != nil {
-			t.Errorf("error = %v, want %v", err, nil)
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 	}
 }
 
 func Test_providers_Get(t *testing.T) {
+	g := NewWithT(t)
+
 	reader := test.NewFakeReader()
 
 	p := &providersClient{
@@ -314,16 +321,13 @@ func Test_providers_Get(t *testing.T) {
 				reader: reader,
 			}
 			got, err := p.Get(tt.args.name, tt.args.providerType)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

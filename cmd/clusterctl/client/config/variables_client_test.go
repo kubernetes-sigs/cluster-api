@@ -19,10 +19,14 @@ package config
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_variables_Get(t *testing.T) {
+	g := NewWithT(t)
+
 	reader := test.NewFakeReader().WithVar("foo", "bar")
 
 	type args struct {
@@ -57,16 +61,13 @@ func Test_variables_Get(t *testing.T) {
 				reader: reader,
 			}
 			got, err := p.Get(tt.args.key)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if got != tt.want {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

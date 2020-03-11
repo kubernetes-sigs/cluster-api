@@ -52,7 +52,7 @@ func (c *Cluster) Setup() {
 	c.init()
 	fmt.Fprintf(GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
 
-	cmd := exec.Command(
+	cmd := exec.Command( //nolint:gosec
 		c.kindBinary,
 		"create", "cluster",
 		"--name", c.Name,
@@ -88,7 +88,7 @@ func (c *Cluster) init() {
 
 // Teardown attempts to delete the Kind cluster
 func (c *Cluster) Teardown() {
-	c.run(exec.Command(
+	c.run(exec.Command( //nolint:gosec
 		c.kindBinary,
 		"delete", "cluster",
 		"--name", c.Name,
@@ -102,7 +102,7 @@ func (c *Cluster) LoadImage(image string) {
 		GinkgoWriter,
 		"loading image %q into Kind node\n",
 		image)
-	c.run(exec.Command(
+	c.run(exec.Command( //nolint:gosec
 		c.kindBinary,
 		"load", "docker-image",
 		"--name", c.Name,
@@ -112,7 +112,7 @@ func (c *Cluster) LoadImage(image string) {
 
 // ApplyYAML applies the provided manifest to the Kind cluster
 func (c *Cluster) ApplyYAML(manifestPath string) {
-	c.run(exec.Command(
+	c.run(exec.Command( //nolint:gosec
 		c.kubectlBinary,
 		"apply",
 		"--kubeconfig", c.KubeconfigPath,

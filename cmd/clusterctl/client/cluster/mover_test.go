@@ -17,9 +17,9 @@ limitations under the License.
 package cluster
 
 import (
-	"reflect"
-	"sort"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -360,6 +360,7 @@ var moveTests = []struct {
 }
 
 func Test_getMoveSequence(t *testing.T) {
+	g := NewWithT(t)
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	for _, tt := range moveTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -368,19 +369,14 @@ func Test_getMoveSequence(t *testing.T) {
 
 			// Get all the types to be considered for discovery
 			discoveryTypes, err := getFakeDiscoveryTypes(graph)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			// trigger discovery the content of the source cluster
-			if err := graph.Discovery("ns1", discoveryTypes); err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(graph.Discovery("ns1", discoveryTypes)).To(Succeed())
 
 			moveSequence := getMoveSequence(graph)
-			if len(moveSequence.groups) != len(tt.wantMoveGroups) {
-				t.Fatalf("got = %d groups, want %d", len(moveSequence.groups), len(tt.wantMoveGroups))
-			}
+			g.Expect(moveSequence.groups).To(HaveLen(len(tt.wantMoveGroups)))
+
 			for i, gotGroup := range moveSequence.groups {
 				wantGroup := tt.wantMoveGroups[i]
 				gotNodes := []string{}
@@ -388,18 +384,14 @@ func Test_getMoveSequence(t *testing.T) {
 					gotNodes = append(gotNodes, string(node.identity.UID))
 				}
 
-				sort.Strings(gotNodes)
-				sort.Strings(wantGroup)
-
-				if !reflect.DeepEqual(gotNodes, wantGroup) {
-					t.Errorf("group[%d], got = %s, expected = %s", i, gotNodes, wantGroup)
-				}
+				g.Expect(gotNodes).To(ConsistOf(wantGroup))
 			}
 		})
 	}
 }
 
 func Test_objectMover_move(t *testing.T) {
+	g := NewWithT(t)
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	for _, tt := range moveTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -408,14 +400,10 @@ func Test_objectMover_move(t *testing.T) {
 
 			// Get all the types to be considered for discovery
 			discoveryTypes, err := getFakeDiscoveryTypes(graph)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			// trigger discovery the content of the source cluster
-			if err := graph.Discovery("ns1", discoveryTypes); err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(graph.Discovery("ns1", discoveryTypes)).To(Succeed())
 
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
@@ -426,22 +414,19 @@ func Test_objectMover_move(t *testing.T) {
 			}
 
 			err = mover.move(graph, toProxy)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
+			g.Expect(err).NotTo(HaveOccurred())
+
 			// check that the objects are removed from the source cluster and are created in the target cluster
 			csFrom, err := graph.proxy.NewClient()
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+
 			csTo, err := toProxy.NewClient()
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			for _, node := range graph.uidToNode {
 				key := client.ObjectKey{
@@ -479,6 +464,8 @@ func Test_objectMover_move(t *testing.T) {
 }
 
 func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		objs []runtime.Object
 	}
@@ -653,26 +640,27 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 
 			// Get all the types to be considered for discovery
 			discoveryTypes, err := getFakeDiscoveryTypes(graph)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			// trigger discovery the content of the source cluster
-			if err := graph.Discovery("ns1", discoveryTypes); err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(graph.Discovery("ns1", discoveryTypes)).To(Succeed())
 
 			o := &objectMover{
 				fromProxy: graph.proxy,
 			}
-			if err := o.checkProvisioningCompleted(graph); (err != nil) != tt.wantErr {
-				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+			err = o.checkProvisioningCompleted(graph)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
 }
 
 func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		fromProxy Proxy
 	}
@@ -790,8 +778,11 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 			o := &objectMover{
 				fromProviderInventory: newInventoryClient(tt.fields.fromProxy, nil),
 			}
-			if err := o.checkTargetProviders(tt.args.namespace, newInventoryClient(tt.args.toProxy, nil)); (err != nil) != tt.wantErr {
-				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+			err := o.checkTargetProviders(tt.args.namespace, newInventoryClient(tt.args.toProxy, nil))
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}

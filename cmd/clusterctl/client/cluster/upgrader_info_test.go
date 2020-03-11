@@ -17,8 +17,9 @@ limitations under the License.
 package cluster
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -29,6 +30,8 @@ import (
 )
 
 func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		reader     config.Reader
 		repository repository.Repository
@@ -157,17 +160,19 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 				},
 			}
 			got, err := u.getUpgradeInfo(tt.args.provider)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
+	g := NewWithT(t)
+
 	type field struct {
 		currentVersion string
 		metadata       *clusterctlv1.Metadata
@@ -231,15 +236,14 @@ func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
 			upgradeInfo := newUpgradeInfo(tt.field.metadata, version.MustParseSemantic(tt.field.currentVersion), nil)
 
 			got := upgradeInfo.getContractsForUpgrade()
-
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
+	g := NewWithT(t)
+
 	type field struct {
 		currentVersion string
 		nextVersions   []string
@@ -328,10 +332,7 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 			upgradeInfo := newUpgradeInfo(tt.field.metadata, version.MustParseSemantic(tt.field.currentVersion), toSemanticVersions(tt.field.nextVersions))
 
 			got := upgradeInfo.getLatestNextVersion(tt.args.contract)
-
-			if versionTag(got) != tt.want {
-				t.Errorf("got = %v, want %v", versionTag(got), tt.want)
-			}
+			g.Expect(versionTag(got)).To(Equal(tt.want))
 		})
 	}
 }

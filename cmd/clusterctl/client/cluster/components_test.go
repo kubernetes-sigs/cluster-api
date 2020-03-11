@@ -19,6 +19,8 @@ package cluster
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +35,8 @@ import (
 )
 
 func Test_providerComponents_Delete(t *testing.T) {
+	g := NewWithT(t)
+
 	labels := map[string]string{
 		clusterv1.ProviderLabelName: "infrastructure-infra",
 	}
@@ -253,17 +257,16 @@ func Test_providerComponents_Delete(t *testing.T) {
 				IncludeNamespace: tt.args.includeNamespace,
 				IncludeCRDs:      tt.args.includeCRD,
 			})
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
+			g.Expect(err).NotTo(HaveOccurred())
+
 			cs, err := proxy.NewClient()
-			if err != nil {
-				t.Fatalf("NewClient() error = %v", err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+
 			for _, want := range tt.wantDiff {
 				obj := &unstructured.Unstructured{}
 				obj.SetAPIVersion(want.object.APIVersion)

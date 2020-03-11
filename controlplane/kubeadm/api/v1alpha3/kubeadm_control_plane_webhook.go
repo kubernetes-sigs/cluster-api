@@ -231,7 +231,7 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 
 	_, err := semver.ParseTolerant(in.Spec.Version)
 	if err != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), in.Spec.Version, "failed to parse kubernetes version "))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), in.Spec.Version, "must be a valid semantic version"))
 	}
 
 	return allErrs

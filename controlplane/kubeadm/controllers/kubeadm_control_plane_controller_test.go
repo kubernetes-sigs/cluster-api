@@ -163,6 +163,9 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 			Name:      "foo",
 			Namespace: "test",
 		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
+		},
 	}
 	clusterName := client.ObjectKey{Namespace: "test", Name: "foo"}
 
@@ -190,6 +193,9 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
 		},
 	}
 	clusterName := client.ObjectKey{Namespace: "test", Name: "foo"}
@@ -226,6 +232,9 @@ func TestReconcileKubeconfigSecretAlreadyExists(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
 		},
 	}
 	clusterName := util.ObjectKey(cluster)
@@ -272,6 +281,9 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
 		},
 	}
 	clusterName := util.ObjectKey(cluster)
@@ -348,6 +360,9 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 			Namespace: "test",
 			Name:      "foo",
 		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
+		},
 	}
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
@@ -384,6 +399,9 @@ func TestReconcileNoCluster(t *testing.T) {
 					Name:       "foo",
 				},
 			},
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
 		},
 	}
 	kcp.Default()
@@ -430,6 +448,9 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 					Name:       cluster.Name,
 				},
 			},
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
 		},
 	}
 	kcp.Default()
@@ -517,7 +538,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Replicas: nil,
-			Version:  "",
+			Version:  "v1.16.6",
 			InfrastructureTemplate: corev1.ObjectReference{
 				Kind:       genericMachineTemplate.GetKind(),
 				APIVersion: genericMachineTemplate.GetAPIVersion(),
@@ -657,7 +678,7 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 			Namespace: cluster.Namespace,
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "my-version",
+			Version: "v1.16.6",
 		},
 	}
 
@@ -767,6 +788,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 			Namespace: cluster.Namespace,
 			Name:      "foo",
 		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
+		},
 	}
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
@@ -850,6 +874,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 			Namespace: cluster.Namespace,
 			Name:      "foo",
 		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
+		},
 	}
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
@@ -912,6 +939,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 			Namespace: cluster.Namespace,
 			Name:      "foo",
 		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
+		},
 	}
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
@@ -970,6 +1000,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      "foo",
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
 		},
 	}
 	kcp.Default()
@@ -1032,7 +1065,7 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Replicas: nil,
-			Version:  "",
+			Version:  "v1.16.6",
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
 					DNS: kubeadmv1.DNS{
@@ -1300,6 +1333,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 				Name:       genericMachineTemplate.GetName(),
 				Namespace:  cluster.Namespace,
 			},
+			Version: "v1.16.6",
 		},
 	}
 
@@ -1366,6 +1400,7 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 				Name:       "infra-foo",
 				APIVersion: "generic.io/v1",
 			},
+			Version: "v1.16.6",
 		},
 	}
 

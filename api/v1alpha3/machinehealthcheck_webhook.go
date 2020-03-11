@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -117,6 +118,13 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 				allErrs,
 				field.Invalid(field.NewPath("spec", "maxUnhealthy"), m.Spec.MaxUnhealthy, "must be either an int or a percentage"),
 			)
+		} else if m.Spec.MaxUnhealthy.Type == intstr.String {
+			if len(validation.IsValidPercent(m.Spec.MaxUnhealthy.StrVal)) != 0 {
+				allErrs = append(
+					allErrs,
+					field.Invalid(field.NewPath("spec", "maxUnhealthy"), m.Spec.MaxUnhealthy, "must be either an int or a percentage"),
+				)
+			}
 		}
 	}
 

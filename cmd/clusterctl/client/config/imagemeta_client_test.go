@@ -19,10 +19,14 @@ package config
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_imageMetaClient_AlterImage(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		reader Reader
 	}
@@ -131,16 +135,13 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			p := newImageMetaClient(tt.fields.reader)
 
 			got, err := p.AlterImage(tt.args.component, tt.args.image)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if got != tt.want {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

@@ -21,22 +21,21 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func Test_viperReader_Get(t *testing.T) {
+	g := NewWithT(t)
+
 	dir, err := ioutil.TempDir("", "clusterctl")
-	if err != nil {
-		t.Fatalf("ioutil.TempDir() error = %v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(dir)
 
 	os.Setenv("FOO", "foo")
 
 	configFile := filepath.Join(dir, ".clusterctl.yaml")
-
-	if err := ioutil.WriteFile(configFile, []byte("bar: bar"), 0640); err != nil {
-		t.Fatalf("ioutil.WriteFile() error = %v", err)
-	}
+	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
 
 	type args struct {
 		key string
@@ -76,40 +75,32 @@ func Test_viperReader_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			v := &viperReader{}
 
-			err := v.Init(configFile)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(v.Init(configFile)).To(Succeed())
 
 			got, err := v.Get(tt.args.key)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if got != tt.want {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_viperReader_Set(t *testing.T) {
+	g := NewWithT(t)
+
 	dir, err := ioutil.TempDir("", "clusterctl")
-	if err != nil {
-		t.Fatalf("ioutil.TempDir() error = %v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(dir)
 
 	os.Setenv("FOO", "foo")
 
 	configFile := filepath.Join(dir, ".clusterctl.yaml")
 
-	if err := ioutil.WriteFile(configFile, []byte("bar: bar"), 0640); err != nil {
-		t.Fatalf("ioutil.WriteFile() error = %v", err)
-	}
+	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
 
 	type args struct {
 		key   string
@@ -133,21 +124,13 @@ func Test_viperReader_Set(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			v := &viperReader{}
 
-			err := v.Init(configFile)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(v.Init(configFile)).To(Succeed())
 
 			v.Set(tt.args.key, tt.args.value)
 
 			got, err := v.Get(tt.args.key)
-			if err != nil {
-				t.Fatalf("error = %v", err)
-			}
-
-			if got != tt.want {
-				t.Errorf("got = %v, want %v (Set() did not worked)", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

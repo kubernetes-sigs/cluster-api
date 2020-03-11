@@ -54,7 +54,7 @@ Once the management cluster is ready, you can create the first workload cluster.
 
 ### Preparing the Workload cluster configuration
 
-The `clusterctl create config` command returns a YAML template for creating a [workload cluster].
+The `clusterctl config cluster` command returns a YAML template for creating a [workload cluster].
 
 <aside class="note">
 

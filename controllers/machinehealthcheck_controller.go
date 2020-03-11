@@ -31,8 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -68,11 +66,11 @@ type MachineHealthCheckReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	controller               controller.Controller
-	recorder                 record.EventRecorder
-	scheme                   *runtime.Scheme
-	clusterNodeInformers     map[client.ObjectKey]cache.Informer
-	clusterNodeInformersLock sync.RWMutex
+	controller        controller.Controller
+	recorder          record.EventRecorder
+	scheme            *runtime.Scheme
+	clusterCaches     map[client.ObjectKey]cache.Cache
+	clusterCachesLock sync.RWMutex
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -112,8 +110,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	r.scheme = mgr.GetScheme()
-	r.clusterNodeInformers = make(map[client.ObjectKey]cache.Informer)
-	r.clusterNodeInformersLock = sync.RWMutex{}
+	r.clusterCaches = make(map[client.ObjectKey]cache.Cache)
 	return nil
 }
 
@@ -374,28 +371,28 @@ func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clu
 
 func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
 	key := util.ObjectKey(cluster)
-	if _, ok := r.getClusterNodeInformer(key); ok {
+	if _, ok := r.getClusterCache(key); ok {
 		// watch was already set up for this cluster
 		return nil
 	}
 
-	return r.createClusterNodeInformer(ctx, c, key)
+	return r.createClusterCache(ctx, c, key)
 }
 
-func (r *MachineHealthCheckReconciler) getClusterNodeInformer(key client.ObjectKey) (cache.Informer, bool) {
-	r.clusterNodeInformersLock.RLock()
-	defer r.clusterNodeInformersLock.RUnlock()
+func (r *MachineHealthCheckReconciler) getClusterCache(key client.ObjectKey) (cache.Cache, bool) {
+	r.clusterCachesLock.RLock()
+	defer r.clusterCachesLock.RUnlock()
 
-	informer, ok := r.clusterNodeInformers[key]
-	return informer, ok
+	c, ok := r.clusterCaches[key]
+	return c, ok
 }
 
-func (r *MachineHealthCheckReconciler) createClusterNodeInformer(ctx context.Context, c client.Client, key client.ObjectKey) error {
-	r.clusterNodeInformersLock.Lock()
-	defer r.clusterNodeInformersLock.Unlock()
+func (r *MachineHealthCheckReconciler) createClusterCache(ctx context.Context, c client.Client, key client.ObjectKey) error {
+	r.clusterCachesLock.Lock()
+	defer r.clusterCachesLock.Unlock()
 
 	// Double check the key still doesn't exist under write lock
-	if _, ok := r.clusterNodeInformers[key]; ok {
+	if _, ok := r.clusterCaches[key]; ok {
 		// An informer was created while waiting for the lock
 		return nil
 	}
@@ -405,25 +402,21 @@ func (r *MachineHealthCheckReconciler) createClusterNodeInformer(ctx context.Con
 		return errors.Wrap(err, "error fetching remote cluster config")
 	}
 
-	k8sClient, err := kubernetes.NewForConfig(config)
+	clusterCache, err := cache.New(config, cache.Options{})
 	if err != nil {
-		return errors.Wrap(err, "error constructing remote cluster client")
+		return errors.Wrap(err, "error creating cache for remote cluster")
 	}
-
-	// TODO(JoelSpeed): See if we use the resync period from the manager instead of 0
-	factory := informers.NewSharedInformerFactory(k8sClient, 0)
-	nodeInformer := factory.Core().V1().Nodes().Informer()
-	go nodeInformer.Run(ctx.Done())
+	go clusterCache.Start(ctx.Done())
 
 	err = r.controller.Watch(
-		&source.Informer{Informer: nodeInformer},
+		source.NewKindWithCache(&corev1.Node{}, clusterCache),
 		&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.nodeToMachineHealthCheck)},
 	)
 	if err != nil {
 		return errors.Wrap(err, "error watching nodes on target cluster")
 	}
 
-	r.clusterNodeInformers[key] = nodeInformer
+	r.clusterCaches[key] = clusterCache
 	return nil
 }
 

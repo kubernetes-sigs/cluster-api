@@ -23,6 +23,7 @@ import (
 	"github.com/blang/semver"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -39,7 +40,7 @@ func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ client.O
 	return f.Workload, nil
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n client.ObjectKey, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
+func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n client.ObjectKey, filters ...machinefilters.Func) (internal.FilterableMachineCollection, error) {
 	if f.Management != nil {
 		return f.Management.GetMachinesForCluster(c, n, filters...)
 	}

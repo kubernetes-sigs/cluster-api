@@ -31,6 +31,7 @@ import (
 	"sort"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -90,7 +91,7 @@ func (s FilterableMachineCollection) Len() int {
 	return len(s)
 }
 
-func newFilteredMachineCollection(filter MachineFilter, machines ...*clusterv1.Machine) FilterableMachineCollection {
+func newFilteredMachineCollection(filter machinefilters.Func, machines ...*clusterv1.Machine) FilterableMachineCollection {
 	ss := make(FilterableMachineCollection, len(machines))
 	for i := range machines {
 		m := machines[i]
@@ -102,13 +103,13 @@ func newFilteredMachineCollection(filter MachineFilter, machines ...*clusterv1.M
 }
 
 // Filter returns a FilterableMachineCollection containing only the Machines that match all of the given MachineFilters
-func (s FilterableMachineCollection) Filter(filters ...MachineFilter) FilterableMachineCollection {
-	return newFilteredMachineCollection(And(filters...), s.unsortedList()...)
+func (s FilterableMachineCollection) Filter(filters ...machinefilters.Func) FilterableMachineCollection {
+	return newFilteredMachineCollection(machinefilters.And(filters...), s.unsortedList()...)
 }
 
 // AnyFilter returns a FilterableMachineCollection containing only the Machines that match any of the given MachineFilters
-func (s FilterableMachineCollection) AnyFilter(filters ...MachineFilter) FilterableMachineCollection {
-	return newFilteredMachineCollection(Or(filters...), s.unsortedList()...)
+func (s FilterableMachineCollection) AnyFilter(filters ...machinefilters.Func) FilterableMachineCollection {
+	return newFilteredMachineCollection(machinefilters.Or(filters...), s.unsortedList()...)
 }
 
 // Oldest returns the Machine with the oldest CreationTimestamp

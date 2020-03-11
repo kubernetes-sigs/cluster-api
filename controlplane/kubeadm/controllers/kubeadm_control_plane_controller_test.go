@@ -2130,3 +2130,42 @@ func TestKubeadmControlPlaneReconciler_failureDomainForScaleUp(t *testing.T) {
 		})
 	}
 }
+
+func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
+	kcp.Spec.Version = "v1.17.3"
+	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
+
+	fakeClient := newFakeClient(g, cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:   fakeClient,
+		Log:      log.Log,
+		recorder: record.NewFakeRecorder(32),
+		managementCluster: &fakeManagementCluster{
+			Management: &internal.Management{Client: fakeClient},
+			Workload:   fakeWorkloadCluster{},
+		},
+	}
+
+	result, err := r.initializeControlPlane(context.Background(), cluster, kcp)
+	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+	g.Expect(err).NotTo(HaveOccurred())
+
+	machineList := &clusterv1.MachineList{}
+	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
+	g.Expect(machineList.Items).NotTo(BeEmpty())
+	g.Expect(machineList.Items).To(HaveLen(1))
+
+	machineCollection := internal.NewFilterableMachineCollection(&machineList.Items[0])
+	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, machineCollection, machineCollection)
+
+	g.Expect(machineList.Items[0].Annotations).To(HaveKey(controlplanev1.SelectedForUpgradeAnnotation))
+
+	// TODO flesh out the rest of this test - this is currently least-effort to confirm a fix for an NPE when updating
+	// the etcd version
+	g.Expect(result).To(Equal(ctrl.Result{}))
+	g.Expect(err).To(Equal(&capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}))
+}

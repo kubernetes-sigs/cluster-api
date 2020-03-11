@@ -18,7 +18,6 @@ package kind
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -134,13 +133,6 @@ func (c *Cluster) KubeClient() kubernetes.Interface {
 	client, err := kubernetes.NewForConfig(cfg)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return client
-}
-
-func (c *Cluster) runWithOutput(cmd *exec.Cmd) []byte {
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	c.run(cmd)
-	return stdout.Bytes()
 }
 
 func (c *Cluster) run(cmd *exec.Cmd) {

@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -33,17 +34,25 @@ import (
 // path to the components yaml on the local filesystem.
 // To support different versions, the directories containing provider
 // specific data must adhere to the following layout:
-// {basepath}/{provider-label}/{version}/{components.yaml}
+// [file://]{basepath}/{provider-label}/{version}/{components.yaml}
 //
 // (1): {provider-label} must match the value returned by Provider.ManifestLabel()
 // (2): {version} must obey the syntax and semantics of the "Semantic Versioning"
 // specification (http://semver.org/); however, "latest" is also an acceptable value.
 //
-// Concrete example:
+// Concrete example (linux):
 // /home/user/go/src/sigs.k8s.io/infrastructure-aws/v0.4.7/infrastructure-components.yaml
 // basepath: /home/user/go/src/sigs.k8s.io
 // provider-label: infrastructure-aws
 // version: v0.4.7
+// components.yaml: infrastructure-components.yaml
+//
+// Concrete example (windows):
+// NB. the input is an URI specification, not a windows path. see https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/ for more details
+// /C:/cluster-api/out/repo/infrastructure-docker/latest/infrastructure-components.yaml
+// basepath: C:\cluster-api\out\repo
+// provider-label: infrastructure-docker
+// version: v0.3.0 (whatever latest resolve to)
 // components.yaml: infrastructure-components.yaml
 type localRepository struct {
 	providerConfig        config.Provider
@@ -131,17 +140,26 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid url")
 	}
-	absPath := url.EscapedPath()
-	if !filepath.IsAbs(absPath) {
+
+	// gets the path part of the url and check it is an absolute path
+	// in case of windows, we should take care of removing the additional / which is required by the URI standard
+	// for windows local paths. see https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/ for more details
+	path := url.EscapedPath()
+	if runtime.GOOS == "windows" {
+		path = strings.TrimPrefix(path, "/")
+		path = filepath.FromSlash(path)
+	}
+	if !filepath.IsAbs(path) {
 		return nil, errors.Errorf("invalid path: path %q must be an absolute path", providerConfig.URL())
 	}
 
-	urlSplit := strings.Split(providerConfig.URL(), "/")
-	// {basepath}/{provider-name}/{version}/{components.yaml}
+	// Extracts provider-name, version, componentsPath from the url
+	// NB. format is {basepath}/{provider-name}/{version}/{components.yaml}
+	urlSplit := strings.Split(path, string(os.PathSeparator))
 	if len(urlSplit) < 3 {
 		return nil, errors.Errorf("invalid path: path should be in the form {basepath}/{provider-name}/{version}/{components.yaml}")
 	}
-	// We work our way backwards with {components.yaml} being the last part of the path
+
 	componentsPath := urlSplit[len(urlSplit)-1]
 	defaultVersion := urlSplit[len(urlSplit)-2]
 	if defaultVersion != "latest" {
@@ -154,11 +172,11 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 	if providerID != providerConfig.ManifestLabel() {
 		return nil, errors.Errorf("invalid path: path %q must contain provider %q in the format {basepath}/{provider-label}/{version}/{components.yaml}", providerConfig.URL(), providerConfig.ManifestLabel())
 	}
+
+	// Get the base path, by trimming the last parts which are treated as a separated fields
 	var basePath string
-	if len(urlSplit) > 3 {
-		basePath = filepath.Join(urlSplit[:len(urlSplit)-3]...)
-	}
-	basePath = filepath.Clean("/" + basePath) // ensure basePath starts with "/"
+	basePath = strings.TrimSuffix(path, filepath.Join(providerID, defaultVersion, componentsPath))
+	basePath = filepath.Clean(basePath)
 
 	repo := &localRepository{
 		providerConfig:        providerConfig,

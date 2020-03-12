@@ -18,6 +18,20 @@ FROM golang:1.13.8 as builder
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
 
+WORKDIR /workspace
+COPY go.mod go.mod
+COPY go.sum go.sum
+
+# Essentially, change directories into CAPD
+WORKDIR /workspace/test/infrastructure/docker
+# Copy the Go Modules manifests
+COPY test/infrastructure/docker/go.mod go.mod
+COPY test/infrastructure/docker/go.sum go.sum
+
+# Cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN go mod download
+
 # This needs to build with the entire Cluster API context
 WORKDIR /workspace
 # Copy in cluster-api (which includes the test/infrastructure/docker subdirectory)

@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -165,7 +166,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	}
 
 	// Test the OwnedControlPlaneMachines works
-	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, OwnedControlPlaneMachines("my-control-plane"))
+	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.OwnedControlPlaneMachines("my-control-plane"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +178,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	nameFilter := func(cluster *clusterv1.Machine) bool {
 		return cluster.Name == "first-machine"
 	}
-	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, OwnedControlPlaneMachines("my-control-plane"), nameFilter)
+	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.OwnedControlPlaneMachines("my-control-plane"), nameFilter)
 	if err != nil {
 		t.Fatal(err)
 	}

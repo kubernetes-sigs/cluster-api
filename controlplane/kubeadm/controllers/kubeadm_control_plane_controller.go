@@ -47,6 +47,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -228,7 +229,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// TODO: handle proper adoption of Machines
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), machinefilters.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		logger.Error(err, "failed to retrieve control plane machines for cluster")
 		return ctrl.Result{}, err
@@ -238,12 +239,12 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	var requireUpgrade internal.FilterableMachineCollection
 	if kcp.Spec.UpgradeAfter != nil && kcp.Spec.UpgradeAfter.Before(&now) {
 		requireUpgrade = ownedMachines.AnyFilter(
-			internal.Not(internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec))),
-			internal.OlderThan(kcp.Spec.UpgradeAfter),
+			machinefilters.Not(machinefilters.MatchesConfigurationHash(hash.Compute(&kcp.Spec))),
+			machinefilters.OlderThan(kcp.Spec.UpgradeAfter),
 		)
 	} else {
 		requireUpgrade = ownedMachines.Filter(
-			internal.Not(internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec))),
+			machinefilters.Not(machinefilters.MatchesConfigurationHash(hash.Compute(&kcp.Spec))),
 		)
 	}
 
@@ -306,12 +307,12 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// This is necessary for CRDs including scale subresources.
 	kcp.Status.Selector = selector.String()
 
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), machinefilters.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}
 
-	currentMachines := ownedMachines.Filter(internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec)))
+	currentMachines := ownedMachines.Filter(machinefilters.MatchesConfigurationHash(hash.Compute(&kcp.Spec)))
 	kcp.Status.UpdatedReplicas = int32(len(currentMachines))
 
 	replicas := int32(len(ownedMachines))
@@ -385,7 +386,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 	}
 
 	// If there is not already a Machine that is marked for upgrade, find one and mark it
-	selectedForUpgrade := requireUpgrade.Filter(internal.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation))
+	selectedForUpgrade := requireUpgrade.Filter(machinefilters.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation))
 	if len(selectedForUpgrade) == 0 {
 		selectedMachine, err := r.selectMachineForUpgrade(ctx, cluster, requireUpgrade)
 		if err != nil {
@@ -395,7 +396,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 		selectedForUpgrade = selectedForUpgrade.Insert(selectedMachine)
 	}
 
-	replacementCreated := selectedForUpgrade.Filter(internal.HasAnnotationKey(controlplanev1.UpgradeReplacementCreatedAnnotation))
+	replacementCreated := selectedForUpgrade.Filter(machinefilters.HasAnnotationKey(controlplanev1.UpgradeReplacementCreatedAnnotation))
 	if len(replacementCreated) == 0 {
 		// TODO: should we also add a check here to ensure that current machines not > kcp.spec.replicas+1?
 		// We haven't created a replacement machine for the cluster yet
@@ -436,7 +437,7 @@ func (r *KubeadmControlPlaneReconciler) markWithAnnotationKey(ctx context.Contex
 func (r *KubeadmControlPlaneReconciler) selectMachineForUpgrade(ctx context.Context, cluster *clusterv1.Cluster, requireUpgrade internal.FilterableMachineCollection) (*clusterv1.Machine, error) {
 	failureDomain := r.failureDomainForScaleDown(cluster, requireUpgrade)
 
-	inFailureDomain := requireUpgrade.Filter(internal.InFailureDomains(failureDomain))
+	inFailureDomain := requireUpgrade.Filter(machinefilters.InFailureDomains(failureDomain))
 	selected := inFailureDomain.Oldest()
 
 	if err := r.markWithAnnotationKey(ctx, selected, controlplanev1.SelectedForUpgradeAnnotation); err != nil {
@@ -505,14 +506,14 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 	// We don't want to health check at the beginning of this method to avoid blocking re-entrancy
 
 	// Wait for any delete in progress to complete before deleting another Machine
-	if len(machines.Filter(internal.HasDeletionTimestamp)) > 0 {
+	if len(machines.Filter(machinefilters.HasDeletionTimestamp)) > 0 {
 		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
 	}
 
-	markedForDeletion := machines.Filter(internal.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
+	markedForDeletion := machines.Filter(machinefilters.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
 	if len(markedForDeletion) == 0 {
 		fd := r.failureDomainForScaleDown(cluster, machines)
-		machinesInFailureDomain := machines.Filter(internal.InFailureDomains(fd))
+		machinesInFailureDomain := machines.Filter(machinefilters.InFailureDomains(fd))
 		machineToMark := machinesInFailureDomain.Oldest()
 		if machineToMark == nil {
 			logger.Info("failed to pick control plane Machine to mark for deletion")
@@ -530,7 +531,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
 	}
 
-	if !internal.HasAnnotationKey(controlplanev1.ScaleDownEtcdMemberRemovedAnnotation)(machineToDelete) {
+	if !machinefilters.HasAnnotationKey(controlplanev1.ScaleDownEtcdMemberRemovedAnnotation)(machineToDelete) {
 		// Ensure etcd is healthy prior to attempting to remove the member
 		if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 			logger.Error(err, "waiting for control plane to pass etcd health check before removing a control plane machine")
@@ -546,7 +547,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 		}
 	}
 
-	if !internal.HasAnnotationKey(controlplanev1.ScaleDownConfigMapEntryRemovedAnnotation)(machineToDelete) {
+	if !machinefilters.HasAnnotationKey(controlplanev1.ScaleDownConfigMapEntryRemovedAnnotation)(machineToDelete) {
 		if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 			logger.Error(err, "waiting for control plane to pass control plane health check before removing a control plane machine")
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
@@ -686,7 +687,9 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 
 func (r *KubeadmControlPlaneReconciler) failureDomainForScaleDown(cluster *clusterv1.Cluster, machines internal.FilterableMachineCollection) *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
-	notInFailureDomains := machines.Filter(internal.Not(internal.InFailureDomains(cluster.Status.FailureDomains.FilterControlPlane().GetIDs()...)))
+	notInFailureDomains := machines.Filter(
+		machinefilters.Not(machinefilters.InFailureDomains(cluster.Status.FailureDomains.FilterControlPlane().GetIDs()...)),
+	)
 	if len(notInFailureDomains) > 0 {
 		// return the failure domain for the oldest Machine not in the current list of failure domains
 		// this could be either nil (no failure domain defined) or a failure domain that is no longer defined
@@ -745,7 +748,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 		logger.Error(err, "failed to retrieve machines for cluster")
 		return ctrl.Result{}, err
 	}
-	ownedMachines := allMachines.Filter(internal.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines := allMachines.Filter(machinefilters.OwnedControlPlaneMachines(kcp.Name))
 
 	// If no control plane machines remain, remove the finalizer
 	if len(ownedMachines) == 0 {
@@ -760,7 +763,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	}
 
 	// Delete control plane machines in parallel
-	machinesToDelete := ownedMachines.Filter(internal.Not(internal.HasDeletionTimestamp))
+	machinesToDelete := ownedMachines.Filter(machinefilters.Not(machinefilters.HasDeletionTimestamp))
 	var errs []error
 	for i := range machinesToDelete {
 		m := machinesToDelete[i]

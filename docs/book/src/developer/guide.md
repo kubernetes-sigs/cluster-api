@@ -27,7 +27,7 @@ You'll need the [docker daemon][docker] available.
 ### A Cluster
 
 You'll likely want an existing cluster as your [management cluster][mcluster].
-The easiest way to do this is with [kind], as explained in the [installation instructions][install].
+The easiest way to do this is with [kind], as explained in the quick start.
 
 Make sure your cluster is set as the default for `kubectl`.
 If it's not, you will need to modify subsequent `kubectl` commands below.
@@ -36,7 +36,6 @@ If it's not, you will need to modify subsequent `kubectl` commands below.
 [pivot]: https://cluster-api.sigs.k8s.io/reference/glossary.html#pivot
 [mcluster]: https://cluster-api.sigs.k8s.io/reference/glossary.html#management-cluster
 [kind]: https://github.com/kubernetes-sigs/kind
-[install]: https://cluster-api.sigs.k8s.io/tasks/installation.html#setup-management-cluster
 
 ### A container registry
 

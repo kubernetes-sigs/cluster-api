@@ -30,7 +30,7 @@ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/<ver
 
 Before you can deploy the infrastructure controller, you'll need to deploy Cluster API itself.
 
-You can [use a precompiled manifest][install], or clone [`cluster-api`][capi] and apply its manifests using `kustomize`.
+You can use a precompilaed manifest from the release page, or clone [`cluster-api`][capi] and apply its manifests using `kustomize`.
 
 ``` shell
 cd cluster-api
@@ -50,7 +50,6 @@ Conditions:
 ```
 
 
-[install]: https://cluster-api.sigs.k8s.io/tasks/installation.html#install-cluster-api
 [capi]: https://github.com/kubernetes-sigs/cluster-api
 
 ### Your provider

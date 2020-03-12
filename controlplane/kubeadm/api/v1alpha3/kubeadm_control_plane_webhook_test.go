@@ -56,6 +56,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 				Name:      "infraTemplate",
 			},
 			Replicas: pointer.Int32Ptr(1),
+			Version:  "v1.16.6",
 		},
 	}
 	invalidNamespace := valid.DeepCopy()
@@ -78,6 +79,15 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			},
 		},
 	}
+
+	validVersion1 := valid.DeepCopy()
+	validVersion1.Spec.Version = "v1.16.6"
+
+	validVersion2 := valid.DeepCopy()
+	validVersion2.Spec.Version = "1.16.6"
+
+	invalidVersion := valid.DeepCopy()
+	invalidVersion.Spec.Version = "vv1.16.6"
 
 	tests := []struct {
 		name      string
@@ -113,6 +123,21 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name:      "should allow even replicas when using external etcd",
 			expectErr: false,
 			kcp:       evenReplicasExternalEtcd,
+		},
+		{
+			name:      "should succeed when given a valid semantic version with prepended 'v'",
+			expectErr: false,
+			kcp:       validVersion1,
+		},
+		{
+			name:      "should succeed when given a valid semantic version without 'v'",
+			expectErr: false,
+			kcp:       validVersion2,
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			expectErr: true,
+			kcp:       invalidVersion,
 		},
 	}
 
@@ -157,6 +182,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					},
 				},
 			},
+			Version: "v1.16.6",
 		},
 	}
 

@@ -169,7 +169,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			c := &Workload{
 				Client: fakeClient,
 			}
-			err := c.UpdateKubeProxyImageInfo(ctx, &v1alpha3.KubeadmControlPlane{Spec: v1alpha3.KubeadmControlPlaneSpec{Version: "1.16.3"}})
+			err := c.UpdateKubeProxyImageInfo(ctx, &v1alpha3.KubeadmControlPlane{Spec: v1alpha3.KubeadmControlPlaneSpec{Version: "v1.16.3"}})
 			if err != nil && !tt.expectErr {
 				t.Fatalf("expected no error, got %s", err)
 			}

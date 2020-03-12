@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	"encoding/json"
 
+	"github.com/blang/semver"
 	jsonpatch "github.com/evanphx/json-patch"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -226,6 +227,11 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 				"must match metadata.namespace",
 			),
 		)
+	}
+
+	_, err := semver.ParseTolerant(in.Spec.Version)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), in.Spec.Version, "must be a valid semantic version"))
 	}
 
 	return allErrs

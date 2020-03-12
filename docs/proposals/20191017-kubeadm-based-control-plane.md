@@ -94,7 +94,7 @@ for the default implementation would not preclude the use of alternative control
 - To enable declarative orchestrated control plane upgrades
 - To provide a default machine-based implementation using kubeadm
 - To provide a kubeadm-based implementation that is infrastructure provider agnostic
-- To enable declarative orchestrated replacement of control plane machines, such as to rollout an OS-level CVE fix.
+- To enable declarative orchestrated replacement of control plane machines, such as to roll out an OS-level CVE fix.
 - To manage a kubeadm-based, "stacked etcd" control plane
 - To enable scaling of the number of control plane nodes
 - To support pre-existing, user-managed, external etcd clusters
@@ -114,7 +114,7 @@ Non-Goals listed in this document are intended to scope bound the current v1alph
 - To manage CA certificates outside of what is provided by Kubeadm bootstrapping
 - To manage etcd clusters in any topology other than stacked etcd (externally managed etcd clusters can still be leveraged).
 - To address disaster recovery constraints, e.g. restoring a control plane from 0 replicas using a filesystem or volume snapshot copy of data persisted in etcd.
-- To support rollbacks, as there is no datastore rollback guarantee for Kubernetes. Consumers should perform backups of the cluster prior to performing potentially destructive operations.
+- To support rollbacks, as there is no data store rollback guarantee for Kubernetes. Consumers should perform backups of the cluster prior to performing potentially destructive operations.
 - To mutate the configuration of live, running clusters (e.g. changing api-server flags), as this is the responsibility of the [component configuration working group](https://github.com/kubernetes/community/tree/master/wg-component-standard).
 - To support auto remediation. Using such a mechanism to automatically replace machines may lead to unintended behaviours and we want to have real world feedback on the health indicators chosen and remediation strategies developed prior to attempting automated remediation.
 - To provide configuration of external cloud providers (i.e. the [cloud-controller-manager](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/)).This is deferred to kubeadm.
@@ -132,7 +132,7 @@ Non-Goals listed in this document are intended to scope bound the current v1alph
 2. As a developer, I want to be able to deploy the smallest possible cluster, e.g. to meet my organization’s cost requirements.
 3. As a cluster operator, I want to be able to scale up my control plane to meet the increased demand that workloads are placing on my cluster.
 4. As a cluster operator, I want to be able to remove a control plane replica that I have determined is faulty and should be replaced.
-5. As a cluster operator, I want my cluster architecture to be always consistent with best practices, in order to have reliable cluster provisioning without having to understand the details of underlying datastores, replication etc…
+5. As a cluster operator, I want my cluster architecture to be always consistent with best practices, in order to have reliable cluster provisioning without having to understand the details of underlying data stores, replication etc…
 6. As a cluster operator, I want to know if my cluster’s control plane is healthy in order to understand if I am meeting my SLOs with my end users.
 7. As a cluster operator, I want to be able to quickly respond to a Kubernetes CVE by upgrading my clusters in an automated fashion.
 8. As a cluster operator, I want to be able to quickly respond to a non-Kubernetes CVE that affects my base image or Kubernetes dependencies by upgrading my clusters in an automated fashion.
@@ -454,26 +454,33 @@ spec:
   [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).
 - However, allow a control plane using an external etcd cluster to scale up to other numbers such as 2 or 4.
 - Scale up operations must not be done in conjunction with an upgrade operation, this should be enforced using a validation webhook.
-- Scale up operations *could* be blocked based on the Health status
-  - for stacked etcd quorum must be considered
-  - for external etcd only availability of etcd should be considered.
-  - Health status is described below.
+- Scale up operations are blocked based on Etcd and control plane health checks.
+  - See [Health checks](#Health checks) below.
 
 ![controlplane-init-6](images/controlplane/controlplane-init-6.png)
 
 ##### Scale Down
 
+The annotation steps are required to make scale down re-entrant.
+
 - Scale down a stacked control plane
-  - For each replica being deleted:
-    - Remove the replica’s etcd member from the etcd cluster
-    - Update the kubeadm generated config map
+  - Wait for deletes to finish before scaling down
+  - Find the oldest machine, or machine marked for removal and target that as the replica to remove
+  - Apply an annotation to the machine marked for removal
+  - Require Etcd to be healthy
+  - Remove the replica’s etcd member from the etcd cluster
+  - Apply an annotation to the machine that has had the etcd member removed from the etcd cluster
+  - Require Control plane to be healthy
+  - Update the kubeadm generated config map
+  - Apply an annotation to the machine that the kubeadm config map has been updated
+  - Require the annotations that the etcd member has been removed and the kubeadm config map updated
+  - Remove the Machine
 - Scale down a control plane with an external etcd
   - Same as above minus etcd management
 - Scale down operations must not be done in conjunction with an upgrade operation, this should not impact manual operations for recovery. This should also be enforced using a validation webhook.
-- Scale down operations *could* be blocked based on the Health status
-  - for stacked etcd quorum must be considered
-  - for external etcd only availability of etcd should be considered.
-  - Health status is described below.
+- Scale down operations are blocked based on Etcd and control plane health checks
+  - Etcd health is not required if a machine has already been selected for scale down
+  - See [Health checks](#Health checks) below.
 - Scale to 0 must be rejected for the initial support, see below for deletion workflows.
 
 ![controlplane-init-7](images/controlplane/controlplane-init-7.png)
@@ -487,24 +494,28 @@ spec:
 
 ##### Cluster upgrade (using create-swap-and-delete)
 
-- Triggered on any changes to Version or the InfrastructureTemplate used (the KubeadmConfiguration is treated and validated as immutable).
+- Triggered on any changes to Version or the InfrastructureTemplate
+  - The KubeadmConfiguration, for the first iteration, is treated and validated as immutable and changes to it do not trigger an upgrade
   - Must be able to trigger an upgrade for the underlying machine image (e.g. nothing in the above list has changed but an upgrade is required)
-    - Possible implementations include (not necessary to hammer out exact implementation right now):
-      - Manually bumping a Generation field on the KubeadmControlPlane object
-      - Adding a field that is not the Generation field for users to manually bump to trigger an upgrade
-      - Adding a timestamp field, something like `nextUpgrade` which can be set to a specific time in the future (far future if no upgrades are desired) and an upgrade will run when that timestamp is passed. Good for scheduling upgrades/SLOs & quickly modifying to NOW or yesterday if an upgrade is required immediately. Would potentially update the field value to some interval (2 months from now?)
-- An upgrade will look like this:
-  - Serially go through each control plane replica not at the current config hash
-    - Check health of any replicas for the current config hash
-    - Uniquely mark the existing replica machine through setting a label and persisting the change (cluster.x-k8s.io/control-plane/selected-for-upgrade)
-    - Check cluster health
-    - Provision a new machine at the correct version
-    - Poll on health of replicas with the current config hash
-    - Poll on cluster health with the correct replica number
-    - Remove the replica’s etcd member from the etcd cluster
-    - Update the kubeadm generated config map
-    - Delete the marked controlplane machine
-- Determining if a Machine is "up to date" will be done through the use of an annotation (controlplane.cluster.x-k8s.io/configuration-hash) that is placed on the Machine at creation time. The value of this annotation is generated by computing the Hash of the KubeadmControlPlaneSpec (minus the replicas field). This would allow triggering an Upgrade based on any changes to Version, InfrastructureTemplate, or the KubeadmConfiguration used (when a new configuration is referenced in a new InfrastructureTemplate).
+      - By adding a timestamp field, `upgradeAfter`, which can be set to a specific time in the future
+        - Set to `nil` or the zero value of `time.Time` if no upgrades are desired
+        - An upgrade will run when that timestamp is passed
+        - Good for scheduling upgrades/SLOs
+        - Set `upgradeAfter` to now (in RFC3339 form) if an upgrade is required immediately
+
+- Upgrade operations rely on scale up and scale down which are be blocked based on Etcd and control plane health checks
+  - See [Health checks](#Health checks) below.
+
+- The upgrade algorithm is as follows:
+  - Find Machines that need upgrading
+    - Configuration hash doesn't match
+    - `upgradeAfter` field is before now
+  - Mark machine as selected for upgrade
+  - Scale up control plane
+  - Mark machine as having a replacement
+  - Scale down control plane by removing a machine that has been marked for removal and has a replacement already created
+
+- Determining if a Machine is "up to date" will be done through the use of a label (controlplane.cluster.x-k8s.io/hash) that is placed on the Machine at creation time. The value of this label is generated by computing the Hash of the KubeadmControlPlaneSpec (minus the replicas field). This would allow triggering an Upgrade based on any changes to Version, InfrastructureTemplate, or the KubeadmConfiguration used (when a new configuration is referenced in a new InfrastructureTemplate).
   - For example, a CVE is patched in containerd and updated images are available. Note that the Kubernetes version is not changed. To trigger an upgrade, the user updates the image in the InfrastructureTemplate (as in the Acme cluster example above, the image is stored in InfrastructureTemplate.Spec.OSImage.ID).
 - The controller should tolerate the manual removal of a replica during the upgrade process. A replica that fails during the upgrade may block the completion of the upgrade. Removal or other remedial action may be necessary to allow the upgrade to complete.
 
@@ -515,20 +526,36 @@ spec:
 * Infrastructure templates are expected to be immutable, so infrastructure template contents do not have to hashed in order to detect
   changes.
 
-##### Control plane healthcheck
+##### Health checks
 
 - Will be used during scaling and upgrade operations.
-- There will also be a signal to indicate a healthcheck that could not be made, e.g. due to a network partition.
+
+###### Etcd (external)
+
+Etcd connectivity is the only metric used to assert etcd cluster health.
+
+###### Etcd (stacked)
+
+Etcd is considered healthy if:
+- There are an equal number of control plane Machines and members in the etcd cluster.
+  - This ensures there are no members that are unaccounted for.
+- Each member reports the same list of members.
+  - This ensures that there is only one etcd cluster.
+- Each member does not have any active alarms.
+  - This ensures there is nothing wrong with the individual member.
+
+The KubeadmControlPlane controller uses port-forwarding to get to a specific etcd member.
+
+###### Kubernetes Control Plane
+
 - For stacked control planes, we will present etcd quorum status within the `KubeadmControlPlane.Status.Ready` field, and also report the number of active cluster members through `KubeadmControlPlane.Status.ReadyReplicas`.
-- The addition of status fields will be done conservatively to prevent them being relied upon even as we choose to deprecate them in the future.
-- Unlike previous lifecycle managers (see Alternatives), ComponentStatus will be not be used as it is deprecated.
-- Examples of specific checks we may perform include:
-  - Checking the managed cluster has a kubeadm-config configmap, which will mark the cluster as Initialized
-  - Checking the managed cluster has a kubelet-$version-configmap matching the desired
-     version to check the state of upgrades
-  - Checking the status of all pods marked with the system-cluster-critical priorityClass within the managed cluster, and providing a count of ready vs total.
-  - Running PodExec etcdctl, or port-forwarding to etcd to get etcd cluster health information
-  - Checking the status of pods marked with the app=kube-dns label as a proxy for information about the health of CNI.
+
+- There are an equal number of control plane Machines and api server pods checked.
+  - This ensures that Cluster API is tracking all control plane machines.
+- Each control plane node has an api server pod that has the Ready condition.
+  - This ensures that the API server can contact etcd and is ready to accept requests.
+- Each control plane node has a controller manager pod that has the Ready condition.
+  - This ensures the control plane can manage default Kubernetes resources.
 
 ##### Adoption of pre-v1alpha3 Control Plane Machines
 
@@ -547,8 +574,8 @@ The types introduced in this proposal will live in the `cluster.x-k8s.io` API gr
 #### etcd membership
 
 - If the leader is selected for deletion during a replacement for upgrade or scale down, the etcd cluster will be unavailable during that period as leader election takes place. Small time periods of unavailability should not significantly impact the running of the managed cluster’s API server.
-- Replication of the etcd log, if done for a sufficiently large datastore and saturates the network, machines may fail leader election, bringing down the cluster. To mitigate this, the control plane provider will only create machines serially, ensuring cluster health before moving onto operations for the next machine.
-- When performing a scaling operation, or an upgrade using create-swap-delete, there are periods when there are an even number of nodes. Any network partitions or host failures that occur at this point will cause the etcd cluster to split brain. Etcd 3.4 is under consideration for Kubernetes 1.17, which brings non-voting cluster members, which can be used to safely add new machines without affecting quorum. [Changes to kubeadm](https://github.com/kubernetes/kubeadm/issues/1793) will be required to support this and is out of scope for the timeframe of v1alpha3.
+- Replication of the etcd log, if done for a sufficiently large data store and saturates the network, machines may fail leader election, bringing down the cluster. To mitigate this, the control plane provider will only create machines serially, ensuring cluster health before moving onto operations for the next machine.
+- When performing a scaling operation, or an upgrade using create-swap-delete, there are periods when there are an even number of nodes. Any network partitions or host failures that occur at this point will cause the etcd cluster to split brain. Etcd 3.4 is under consideration for Kubernetes 1.17, which brings non-voting cluster members, which can be used to safely add new machines without affecting quorum. [Changes to kubeadm](https://github.com/kubernetes/kubeadm/issues/1793) will be required to support this and is out of scope for the time frame of v1alpha3.
 
 #### Upgrade where changes needed to KubeadmConfig are not currently possible
 

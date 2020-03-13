@@ -64,8 +64,8 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 			repoClient, err := newRepositoryClient(tt.fields.provider, configClient)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			_, ok := repoClient.repository.(*localRepository)
-			g.Expect(ok).To(BeTrue())
+			var expected *localRepository
+			g.Expect(repoClient.repository).To(BeAssignableToTypeOf(expected))
 		})
 	}
 }

@@ -237,7 +237,6 @@ func Test_componentsClient_Get(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
 
 			g.Expect(got.Name()).To(Equal(tt.want.provider.Name()))
@@ -259,15 +258,13 @@ func Test_componentsClient_Get(t *testing.T) {
 
 			for _, o := range got.InstanceObjs() {
 				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName} {
-					_, ok := o.GetLabels()[v]
-					g.Expect(ok).To(BeTrue())
+					g.Expect(o.GetLabels()).To(HaveKey(v))
 				}
 			}
 
 			for _, o := range got.SharedObjs() {
 				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName, clusterctlv1.ClusterctlResourceLifecyleLabelName} {
-					_, ok := o.GetLabels()[v]
-					g.Expect(ok).To(BeTrue())
+					g.Expect(o.GetLabels()).To(HaveKey(v))
 				}
 			}
 		})

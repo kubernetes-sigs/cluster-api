@@ -87,9 +87,8 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(got).To(HaveLen(len(tt.want)))
+
 			g.Expect(got).To(ConsistOf(tt.want))
 		})
 	}
@@ -158,8 +157,8 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
+
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -219,7 +218,6 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
 
 			if tt.wantTagName == nil {

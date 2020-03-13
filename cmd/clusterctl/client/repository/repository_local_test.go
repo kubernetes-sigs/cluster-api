@@ -114,7 +114,6 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
 
 			g.Expect(got.basepath).To(Equal(tt.want.basepath))
@@ -340,9 +339,8 @@ func Test_localRepository_GetVersions(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(got).To(HaveLen(len(tt.want.versions)))
+
 			g.Expect(got).To(ConsistOf(tt.want.versions))
 		})
 	}

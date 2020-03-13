@@ -19,6 +19,8 @@ package controllers
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -26,6 +28,8 @@ import (
 )
 
 func TestMachineDeploymentSyncStatus(t *testing.T) {
+	g := NewWithT(t)
+
 	msStatusError := capierrors.MachineSetStatusError("some failure")
 
 	var tests = map[string]struct {
@@ -212,10 +216,7 @@ func TestMachineDeploymentSyncStatus(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			actualStatus := calculateStatus(test.machineSets, test.newMachineSet, test.deployment)
-			if actualStatus != test.expectedStatus {
-				t.Errorf("Expected %+v but got %+v", test.expectedStatus, actualStatus)
-			}
+			g.Expect(actualStatus).To(Equal(test.expectedStatus))
 		})
-
 	}
 }

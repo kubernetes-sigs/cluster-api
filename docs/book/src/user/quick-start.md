@@ -277,7 +277,7 @@ discover the list of variables required by a cluster templates.
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before configuring a cluster with Cluster API.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.

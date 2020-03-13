@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	manifests "sigs.k8s.io/cluster-api/cmd/clusterctl/config"
@@ -118,7 +117,7 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	}
 
 	// installs the web-hook
-	createCertManagerBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
+	createCertManagerBackoff := newBackoff()
 	objs = sortResourcesForCreate(objs)
 	for i := range objs {
 		o := objs[i]

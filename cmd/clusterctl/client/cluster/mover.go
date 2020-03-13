@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +28,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
-	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -391,7 +389,7 @@ func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error 
 
 // createGroup creates all the Kubernetes objects into the target management cluster corresponding to the object graph nodes in a moveGroup.
 func (o *objectMover) createGroup(group moveGroup, toProxy Proxy) error {
-	createTargetObjectBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
+	createTargetObjectBackoff := newBackoff()
 	errList := []error{}
 	for i := range group {
 		nodeToCreate := group[i]
@@ -507,7 +505,7 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 
 // deleteGroup deletes all the Kubernetes objects from the source management cluster corresponding to the object graph nodes in a moveGroup.
 func (o *objectMover) deleteGroup(group moveGroup) error {
-	deleteSourceObjectBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
+	deleteSourceObjectBackoff := newBackoff()
 	errList := []error{}
 	for i := range group {
 		nodeToDelete := group[i]

@@ -196,6 +196,7 @@ type Proxy interface {
 
 var _ Proxy = &test.FakeProxy{}
 
+// retryWithExponentialBackoff repeats an operation until it passes or the exponential backoff times out.
 func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) error { //nolint:unparam
 	log := logf.Log
 
@@ -215,4 +216,17 @@ func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) erro
 		return errors.Wrapf(err, "action failed after %d attempts", i)
 	}
 	return nil
+}
+
+// newBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl operations.
+func newBackoff() wait.Backoff {
+	// Return a exponential backoff configuration which returns durations for a total time of ~40s.
+	// Example: 0, .5s, 1.2s, 2.3s, 4s, 6s, 10s, 16s, 24s, 37s
+	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
+	return wait.Backoff{
+		Duration: 500 * time.Millisecond,
+		Factor:   1.5,
+		Steps:    10,
+		Jitter:   0.4,
+	}
 }

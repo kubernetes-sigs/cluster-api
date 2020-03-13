@@ -25,7 +25,6 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
@@ -121,7 +120,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	}
 
 	// Install the CRDs.
-	createInventoryObjectBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
+	createInventoryObjectBackoff := newBackoff()
 	for i := range objs {
 		o := objs[i]
 		log.V(5).Info("Creating", logf.UnstructuredToValues(o)...)

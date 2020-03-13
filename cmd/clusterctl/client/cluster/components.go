@@ -19,14 +19,12 @@ package cluster
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -59,7 +57,7 @@ type providerComponents struct {
 }
 
 func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
-	createComponentObjectBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
+	createComponentObjectBackoff := newBackoff()
 	for i := range objs {
 		obj := objs[i]
 

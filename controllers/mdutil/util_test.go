@@ -19,11 +19,11 @@ package mdutil
 import (
 	"fmt"
 	"math/rand"
-	"reflect"
-	"sort"
 	"strconv"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,6 +100,8 @@ func generateMachineTemplateSpec(name string, annotations, labels map[string]str
 }
 
 func TestEqualMachineTemplate(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		Name           string
 		former, latter clusterv1.MachineTemplateSpec
@@ -252,19 +254,11 @@ func TestEqualMachineTemplate(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec, reversed bool) {
-				reverseString := ""
-				if reversed {
-					reverseString = " (reverse order)"
-				}
 				// Run
 				equal := EqualMachineTemplate(t1, t2)
-				if equal != test.expected {
-					t.Errorf("%q%s: expected %v", test.Name, reverseString, test.expected)
-					return
-				}
-				if t1.Labels == nil || t2.Labels == nil {
-					t.Errorf("%q%s: unexpected labels becomes nil", test.Name, reverseString)
-				}
+				g.Expect(equal).To(Equal(test.expected))
+				g.Expect(t1.Labels).NotTo(BeNil())
+				g.Expect(t2.Labels).NotTo(BeNil())
 			}
 
 			runTest(&test.former, &test.latter, false)
@@ -275,6 +269,8 @@ func TestEqualMachineTemplate(t *testing.T) {
 }
 
 func TestFindNewMachineSet(t *testing.T) {
+	g := NewWithT(t)
+
 	now := metav1.Now()
 	later := metav1.Time{Time: now.Add(time.Minute)}
 
@@ -320,14 +316,15 @@ func TestFindNewMachineSet(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			if ms := FindNewMachineSet(&test.deployment, test.msList); !reflect.DeepEqual(ms, test.expected) {
-				t.Errorf("In test case %q, expected %#v, got %#v", test.Name, test.expected, ms)
-			}
+			ms := FindNewMachineSet(&test.deployment, test.msList)
+			g.Expect(ms).To(Equal(test.expected))
 		})
 	}
 }
 
 func TestFindOldMachineSets(t *testing.T) {
+	g := NewWithT(t)
+
 	now := metav1.Now()
 	later := metav1.Time{Time: now.Add(time.Minute)}
 	before := metav1.Time{Time: now.Add(-time.Minute)}
@@ -402,20 +399,16 @@ func TestFindOldMachineSets(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			requireMS, allMS := FindOldMachineSets(&test.deployment, test.msList)
-			sort.Sort(MachineSetsByCreationTimestamp(allMS))
-			sort.Sort(MachineSetsByCreationTimestamp(test.expected))
-			if !reflect.DeepEqual(allMS, test.expected) {
-				t.Errorf("In test case %q, expected %#v, got %#v", test.Name, test.expected, allMS)
-			}
+			g.Expect(allMS).To(Equal(test.expected))
 			// MSs are getting filtered correctly by ms.spec.replicas
-			if !reflect.DeepEqual(requireMS, test.expectedRequire) {
-				t.Errorf("In test case %q, expected %#v, got %#v", test.Name, test.expectedRequire, requireMS)
-			}
+			g.Expect(requireMS).To(Equal(test.expectedRequire))
 		})
 	}
 }
 
 func TestGetReplicaCountForMachineSets(t *testing.T) {
+	g := NewWithT(t)
+
 	ms1 := generateMS(generateDeployment("foo"))
 	*(ms1.Spec.Replicas) = 1
 	ms1.Status.Replicas = 2
@@ -445,19 +438,15 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			ms := GetReplicaCountForMachineSets(test.sets)
-			if ms != test.expectedCount {
-				t.Errorf("In test case %s, expectedCount %+v, got %+v", test.Name, test.expectedCount, ms)
-			}
-			ms = GetActualReplicaCountForMachineSets(test.sets)
-			if ms != test.expectedActual {
-				t.Errorf("In test case %s, expectedActual %+v, got %+v", test.Name, test.expectedActual, ms)
-			}
+			g.Expect(GetReplicaCountForMachineSets(test.sets)).To(Equal(test.expectedCount))
+			g.Expect(GetActualReplicaCountForMachineSets(test.sets)).To(Equal(test.expectedActual))
 		})
 	}
 }
 
 func TestResolveFenceposts(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		maxSurge          string
 		maxUnavailable    string
@@ -505,20 +494,20 @@ func TestResolveFenceposts(t *testing.T) {
 			maxSurge := intstr.FromString(test.maxSurge)
 			maxUnavail := intstr.FromString(test.maxUnavailable)
 			surge, unavail, err := ResolveFenceposts(&maxSurge, &maxUnavail, test.desired)
-			if err != nil && !test.expectError {
-				t.Errorf("unexpected error %v", err)
+			if test.expectError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
-			if err == nil && test.expectError {
-				t.Error("expected error")
-			}
-			if surge != test.expectSurge || unavail != test.expectUnavailable {
-				t.Errorf("got %v:%v, want %v:%v", surge, unavail, test.expectSurge, test.expectUnavailable)
-			}
+			g.Expect(surge).To(Equal(test.expectSurge))
+			g.Expect(unavail).To(Equal(test.expectUnavailable))
 		})
 	}
 }
 
 func TestNewMSNewReplicas(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		Name          string
 		strategyType  clusterv1.MachineDeploymentStrategyType
@@ -559,17 +548,15 @@ func TestNewMSNewReplicas(t *testing.T) {
 			}
 			*(newRC.Spec.Replicas) = test.newMSReplicas
 			ms, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&rs5}, &newRC)
-			if err != nil {
-				t.Errorf("In test case %s, got unexpected error %v", test.Name, err)
-			}
-			if ms != test.expected {
-				t.Errorf("In test case %s, expected %+v, got %+v", test.Name, test.expected, ms)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(ms).To(Equal(test.expected))
 		})
 	}
 }
 
 func TestDeploymentComplete(t *testing.T) {
+	g := NewWithT(t)
+
 	deployment := func(desired, current, updated, available, maxUnavailable, maxSurge int32) *clusterv1.MachineDeployment {
 		return &clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
@@ -639,14 +626,14 @@ func TestDeploymentComplete(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got, exp := DeploymentComplete(test.d, &test.d.Status), test.expected; got != exp {
-				t.Errorf("expected complete: %t, got: %t", exp, got)
-			}
+			g.Expect(DeploymentComplete(test.d, &test.d.Status)).To(Equal(test.expected))
 		})
 	}
 }
 
 func TestMaxUnavailable(t *testing.T) {
+	g := NewWithT(t)
+
 	deployment := func(replicas int32, maxUnavailable intstr.IntOrString) clusterv1.MachineDeployment {
 		return clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
@@ -705,16 +692,14 @@ func TestMaxUnavailable(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			maxUnavailable := MaxUnavailable(test.deployment)
-			if test.expected != maxUnavailable {
-				t.Fatalf("expected:%v, got:%v", test.expected, maxUnavailable)
-			}
+			g.Expect(MaxUnavailable(test.deployment)).To(Equal(test.expected))
 		})
 	}
 }
 
 //Set of simple tests for annotation related util functions
 func TestAnnotationUtils(t *testing.T) {
+	g := NewWithT(t)
 
 	//Setup
 	tDeployment := generateDeployment("nginx")
@@ -730,32 +715,21 @@ func TestAnnotationUtils(t *testing.T) {
 			nextRevision := fmt.Sprintf("%d", i+1)
 			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true, logger)
 			//Now the MachineSets Revision Annotation should be i+1
-
-			if tMS.Annotations[clusterv1.RevisionAnnotation] != nextRevision {
-				t.Errorf("Revision Expected=%s Obtained=%s", nextRevision, tMS.Annotations[clusterv1.RevisionAnnotation])
-			}
+			g.Expect(tMS.Annotations[clusterv1.RevisionAnnotation]).To(Equal(nextRevision))
 		}
 	})
 
 	//Test Case 2:  Check if annotations are set properly
 	t.Run("SetReplicasAnnotations", func(t *testing.T) {
-		updated := SetReplicasAnnotations(&tMS, 10, 11)
-		if !updated {
-			t.Errorf("SetReplicasAnnotations() failed")
-		}
+		g.Expect(SetReplicasAnnotations(&tMS, 10, 11)).To(BeTrue())
+
 		value, ok := tMS.Annotations[clusterv1.DesiredReplicasAnnotation]
-		if !ok {
-			t.Errorf("SetReplicasAnnotations did not set DesiredReplicasAnnotation")
-		}
-		if value != "10" {
-			t.Errorf("SetReplicasAnnotations did not set DesiredReplicasAnnotation correctly value=%s", value)
-		}
-		if value, ok = tMS.Annotations[clusterv1.MaxReplicasAnnotation]; !ok {
-			t.Errorf("SetReplicasAnnotations did not set DesiredReplicasAnnotation")
-		}
-		if value != "11" {
-			t.Errorf("SetReplicasAnnotations did not set MaxReplicasAnnotation correctly value=%s", value)
-		}
+		g.Expect(ok).To(BeTrue())
+		g.Expect(value).To(Equal("10"))
+
+		value, ok = tMS.Annotations[clusterv1.MaxReplicasAnnotation]
+		g.Expect(ok).To(BeTrue())
+		g.Expect(value).To(Equal("11"))
 	})
 
 	//Test Case 3:  Check if annotations reflect deployments state
@@ -765,15 +739,13 @@ func TestAnnotationUtils(t *testing.T) {
 	*tMS.Spec.Replicas = 1
 
 	t.Run("IsSaturated", func(t *testing.T) {
-		saturated := IsSaturated(&tDeployment, &tMS)
-		if !saturated {
-			t.Errorf("SetReplicasAnnotations Expected=true Obtained=false")
-		}
+		g.Expect(IsSaturated(&tDeployment, &tMS)).To(BeTrue())
 	})
 	//Tear Down
 }
 
 func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
+	g := NewWithT(t)
 
 	desiredReplicas := fmt.Sprintf("%d", int32(10))
 	maxReplicas := fmt.Sprintf("%d", int32(20))
@@ -839,10 +811,7 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result := ReplicasAnnotationsNeedUpdate(test.machineSet, 10, 20)
-			if result != test.expected {
-				t.Errorf("Expected %v, Got: %v", test.expected, result)
-			}
+			g.Expect(ReplicasAnnotationsNeedUpdate(test.machineSet, 10, 20)).To(Equal(test.expected))
 		})
 	}
 }

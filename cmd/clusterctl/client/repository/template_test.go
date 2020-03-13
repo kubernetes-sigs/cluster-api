@@ -90,10 +90,9 @@ func Test_newTemplate(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
 
-			g.Expect(got.Variables()).To(ConsistOf(tt.want.variables))
+			g.Expect(got.Variables()).To(Equal(tt.want.variables))
 			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			if tt.args.listVariablesOnly {

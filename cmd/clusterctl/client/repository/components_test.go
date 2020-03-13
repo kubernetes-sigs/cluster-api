@@ -64,7 +64,7 @@ func Test_inspectVariables(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g.Expect(inspectVariables([]byte(tt.args.data))).To(ConsistOf(tt.want))
+			g.Expect(inspectVariables([]byte(tt.args.data))).To(Equal(tt.want))
 		})
 	}
 }
@@ -112,9 +112,9 @@ func Test_replaceVariables(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(got).To(ConsistOf(tt.want))
+
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
@@ -187,8 +187,8 @@ func Test_inspectTargetNamespace(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
+
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -587,8 +587,8 @@ func Test_fixRBAC(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
+
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -676,8 +676,8 @@ func Test_inspectWatchNamespace(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
+
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -733,7 +733,6 @@ func Test_fixWatchNamespace(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
 
 			wgot, err := inspectWatchNamespace(got)
@@ -786,7 +785,8 @@ func Test_addCommonLabels(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g.Expect(addCommonLabels(tt.args.objs, config.NewProvider(tt.args.name, "", tt.args.providerType))).To(Equal(tt.want))
+			got := addCommonLabels(tt.args.objs, config.NewProvider(tt.args.name, "", tt.args.providerType))
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

@@ -20,12 +20,16 @@ import (
 	"os"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
+	g := NewWithT(t)
+
 	tmpDir := createTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -33,9 +37,7 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	dst2 := createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.0/bootstrap-components.yaml", "")
 
 	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	type fields struct {
 		provider config.Provider
@@ -60,12 +62,10 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repoClient, err := newRepositoryClient(tt.fields.provider, configClient)
-			if err != nil {
-				t.Fatalf("got error %v when none was expected", err)
-			}
-			if _, ok := repoClient.repository.(*localRepository); !ok {
-				t.Fatalf("got repository of type %T when *repository.localRepository was expected", repoClient.repository)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+
+			_, ok := repoClient.repository.(*localRepository)
+			g.Expect(ok).To(BeTrue())
 		})
 	}
 }

@@ -18,8 +18,9 @@ package repository
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -29,6 +30,8 @@ import (
 )
 
 func Test_inspectVariables(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		data string
 	}
@@ -61,14 +64,14 @@ func Test_inspectVariables(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := inspectVariables([]byte(tt.args.data)); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("inspectVariables() = %v, want %v", got, tt.want)
-			}
+			g.Expect(inspectVariables([]byte(tt.args.data))).To(ConsistOf(tt.want))
 		})
 	}
 }
 
 func Test_replaceVariables(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		yaml                  []byte
 		variables             []string
@@ -105,21 +108,20 @@ func Test_replaceVariables(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := replaceVariables(tt.args.yaml, tt.args.variables, tt.args.configVariablesClient)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(ConsistOf(tt.want))
 		})
 	}
 }
 
 func Test_inspectTargetNamespace(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		objs []unstructured.Unstructured
 	}
@@ -181,21 +183,20 @@ func Test_inspectTargetNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := inspectTargetNamespace(tt.args.objs)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if got != tt.want {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_fixTargetNamespace(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		objs            []unstructured.Unstructured
 		targetNamespace string
@@ -278,14 +279,15 @@ func Test_fixTargetNamespace(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := fixTargetNamespace(tt.args.objs, tt.args.targetNamespace); !reflect.DeepEqual(got[0], tt.want[0]) { //skipping from test the automatically added namespace Object
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			got := fixTargetNamespace(tt.args.objs, tt.args.targetNamespace)
+			g.Expect(got).To(ContainElements(tt.want)) //skipping from test the automatically added namespace Object
 		})
 	}
 }
 
 func Test_addNamespaceIfMissing(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		objs            []unstructured.Unstructured
 		targetNamespace string
@@ -323,18 +325,15 @@ func Test_addNamespaceIfMissing(t *testing.T) {
 			got := addNamespaceIfMissing(tt.args.objs, tt.args.targetNamespace)
 
 			wgot, err := inspectTargetNamespace(got)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if wgot != tt.args.targetNamespace {
-				t.Errorf("got.targetNamespace = %v, want %v", wgot, tt.args.targetNamespace)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(wgot).To(Equal(tt.args.targetNamespace))
 		})
 	}
 }
 
 func Test_fixRBAC(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		objs            []unstructured.Unstructured
 		targetNamespace string
@@ -584,16 +583,13 @@ func Test_fixRBAC(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := fixRBAC(tt.args.objs, tt.args.targetNamespace)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
@@ -624,6 +620,8 @@ func fakeDeployment(watchNamespace string) unstructured.Unstructured {
 }
 
 func Test_inspectWatchNamespace(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		objs []unstructured.Unstructured
 	}
@@ -674,21 +672,20 @@ func Test_inspectWatchNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := inspectWatchNamespace(tt.args.objs)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if got != tt.want {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_fixWatchNamespace(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		objs              []unstructured.Unstructured
 		watchingNamespace string
@@ -732,26 +729,23 @@ func Test_fixWatchNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := fixWatchNamespace(tt.args.objs, tt.args.watchingNamespace)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			wgot, err := inspectWatchNamespace(got)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if wgot != tt.args.watchingNamespace {
-				t.Errorf("got.watchingNamespace  = %v, want %v", wgot, tt.args.watchingNamespace)
-			}
+			wgot, err := inspectWatchNamespace(got)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(wgot).To(Equal(tt.args.watchingNamespace))
 		})
 	}
 }
 
 func Test_addCommonLabels(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		objs         []unstructured.Unstructured
 		name         string
@@ -792,14 +786,14 @@ func Test_addCommonLabels(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := addCommonLabels(tt.args.objs, config.NewProvider(tt.args.name, "", tt.args.providerType)); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(addCommonLabels(tt.args.objs, config.NewProvider(tt.args.name, "", tt.args.providerType))).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_splitInstanceAndSharedResources(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		objs []unstructured.Unstructured
 	}
@@ -942,12 +936,8 @@ func Test_splitInstanceAndSharedResources(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotInstanceObjs, gotWebHookObjs := splitInstanceAndSharedResources(tt.args.objs)
-			if !reflect.DeepEqual(gotInstanceObjs, tt.wantInstanceObjs) {
-				t.Errorf("splitInstanceAndSharedResources() gotInstanceObjs = %v, want %v", gotInstanceObjs, tt.wantInstanceObjs)
-			}
-			if !reflect.DeepEqual(gotWebHookObjs, tt.wantSharedObjs) {
-				t.Errorf("splitInstanceAndSharedResources() gotWebHookObjs = %v, want %v", gotWebHookObjs, tt.wantSharedObjs)
-			}
+			g.Expect(gotInstanceObjs).To(ConsistOf(tt.wantInstanceObjs))
+			g.Expect(gotWebHookObjs).To(ConsistOf(tt.wantSharedObjs))
 		})
 	}
 }

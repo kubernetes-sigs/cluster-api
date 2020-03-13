@@ -17,10 +17,10 @@ limitations under the License.
 package repository
 
 import (
-	"bytes"
 	"fmt"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
@@ -36,6 +36,8 @@ var templateMapYaml = []byte("apiVersion: v1\n" +
 	"  name: manager")
 
 func Test_newTemplate(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		rawYaml               []byte
 		configVariablesClient config.VariablesClient
@@ -84,20 +86,15 @@ func Test_newTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewTemplate(tt.args.rawYaml, tt.args.configVariablesClient, tt.args.targetNamespace, tt.args.listVariablesOnly)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {
-				t.Errorf("got.Variables() = %v, want = %v ", got.Variables(), tt.want.variables)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if !reflect.DeepEqual(got.TargetNamespace(), tt.want.targetNamespace) {
-				t.Errorf("got.TargetNamespace() = %v, want = %v ", got.TargetNamespace(), tt.want.targetNamespace)
-			}
+			g.Expect(got.Variables()).To(ConsistOf(tt.want.variables))
+			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			if tt.args.listVariablesOnly {
 				return
@@ -105,13 +102,8 @@ func Test_newTemplate(t *testing.T) {
 
 			// check variable replaced in components
 			yaml, err := got.Yaml()
-			if err != nil {
-				t.Fatalf("got.Yaml error = %v", err)
-			}
-
-			if !bytes.Contains(yaml, []byte(fmt.Sprintf("variable: %s", variableValue))) {
-				t.Error("got.Yaml without variable substitution")
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(yaml).To(ContainSubstring((fmt.Sprintf("variable: %s", variableValue))))
 		})
 	}
 }

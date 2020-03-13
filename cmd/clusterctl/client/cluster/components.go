@@ -26,17 +26,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-const (
-	retryCreateComponentObject   = 3
-	retryIntervalComponentObject = 1 * time.Second
 )
 
 type DeleteOptions struct {
@@ -63,12 +59,13 @@ type providerComponents struct {
 }
 
 func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
+	createComponentObjectBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
 	for i := range objs {
 		obj := objs[i]
 
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make Create more resilient to unexpected conditions.
-		if err := retry(retryCreateComponentObject, retryIntervalComponentObject, func() error {
+		if err := retryWithExponentialBackoff(createComponentObjectBackoff, func() error {
 			return p.createObj(obj)
 		}); err != nil {
 			return err

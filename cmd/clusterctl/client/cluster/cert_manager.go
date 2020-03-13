@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	manifests "sigs.k8s.io/cluster-api/cmd/clusterctl/config"
@@ -35,9 +36,6 @@ const (
 
 	waitCertManagerInterval = 1 * time.Second
 	waitCertManagerTimeout  = 10 * time.Minute
-
-	retryCreateCertManagerObject         = 3
-	retryIntervalCreateCertManagerObject = 1 * time.Second
 
 	certManagerImageComponent = "cert-manager"
 )
@@ -120,6 +118,7 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	}
 
 	// installs the web-hook
+	createCertManagerBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
 	objs = sortResourcesForCreate(objs)
 	for i := range objs {
 		o := objs[i]
@@ -127,7 +126,7 @@ func (cm *certManagerClient) EnsureWebhook() error {
 
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make ensureCerts more resilient to unexpected conditions.
-		if err := retry(retryCreateCertManagerObject, retryIntervalCreateCertManagerObject, func() error {
+		if err := retryWithExponentialBackoff(createCertManagerBackoff, func() error {
 			return cm.createObj(o)
 		}); err != nil {
 			return err

@@ -20,11 +20,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -193,3 +195,24 @@ type Proxy interface {
 }
 
 var _ Proxy = &test.FakeProxy{}
+
+func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) error { //nolint:unparam
+	log := logf.Log
+
+	i := 0
+	err := wait.ExponentialBackoff(opts, func() (bool, error) {
+		i++
+		if err := operation(); err != nil {
+			if i < opts.Steps {
+				log.V(5).Info("Operation failed, retry", "Error", err)
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "action failed after %d attempts", i)
+	}
+	return nil
+}

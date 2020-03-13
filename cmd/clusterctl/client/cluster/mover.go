@@ -389,20 +389,16 @@ func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error 
 	return nil
 }
 
-const (
-	retryCreateTargetObject         = 3
-	retryIntervalCreateTargetObject = 1 * time.Second
-)
-
 // createGroup creates all the Kubernetes objects into the target management cluster corresponding to the object graph nodes in a moveGroup.
 func (o *objectMover) createGroup(group moveGroup, toProxy Proxy) error {
+	createTargetObjectBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
 	errList := []error{}
 	for i := range group {
 		nodeToCreate := group[i]
 
 		// Creates the Kubernetes object corresponding to the nodeToCreate.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-		err := retry(retryCreateTargetObject, retryIntervalCreateTargetObject, func() error {
+		err := retryWithExponentialBackoff(createTargetObjectBackoff, func() error {
 			return o.createTargetObject(nodeToCreate, toProxy)
 		})
 		if err != nil {
@@ -509,20 +505,16 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 	return nil
 }
 
-const (
-	retryDeleteSourceObject         = 3
-	retryIntervalDeleteSourceObject = 1 * time.Second
-)
-
 // deleteGroup deletes all the Kubernetes objects from the source management cluster corresponding to the object graph nodes in a moveGroup.
 func (o *objectMover) deleteGroup(group moveGroup) error {
+	deleteSourceObjectBackoff := wait.Backoff{Duration: 500 * time.Millisecond, Factor: 1.5, Steps: 10}
 	errList := []error{}
 	for i := range group {
 		nodeToDelete := group[i]
 
 		// Delete the Kubernetes object corresponding to the current node.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-		err := retry(retryDeleteSourceObject, retryIntervalDeleteSourceObject, func() error {
+		err := retryWithExponentialBackoff(deleteSourceObjectBackoff, func() error {
 			return o.deleteSourceObject(nodeToDelete)
 		})
 
@@ -581,24 +573,6 @@ func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
 	}
 
 	return nil
-}
-
-func retry(attempts int, interval time.Duration, action func() error) error { //nolint:unparam
-	log := logf.Log
-
-	var errorToReturn error
-	for i := 0; i < attempts; i++ {
-		if err := action(); err != nil {
-			errorToReturn = err
-
-			log.V(5).Info("Operation failed, retry", "Error", err)
-			pause := wait.Jitter(interval, 1)
-			time.Sleep(pause)
-			continue
-		}
-		return nil
-	}
-	return errors.Wrapf(errorToReturn, "action failed after %d attempts", attempts)
 }
 
 // checkTargetProviders checks that all the providers installed in the source cluster exists in the target cluster as well (with a version >= of the current version).

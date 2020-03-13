@@ -113,6 +113,30 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	deleteClusterInput := framework.DeleteClusterInput{
+		Deleter: mgmtClient,
+		Cluster: cluster,
+	}
+	framework.DeleteCluster(ctx, deleteClusterInput)
+
+	waitForClusterDeletedInput := framework.WaitForClusterDeletedInput{
+		Getter:  mgmtClient,
+		Cluster: cluster,
+	}
+	framework.WaitForClusterDeleted(ctx, waitForClusterDeletedInput)
+
+	assertAllClusterAPIResourcesAreGoneInput := framework.AssertAllClusterAPIResourcesAreGoneInput{
+		Lister:  mgmtClient,
+		Cluster: cluster,
+	}
+	framework.AssertAllClusterAPIResourcesAreGone(ctx, assertAllClusterAPIResourcesAreGoneInput)
+
+	ensureDockerDeletedInput := ensureDockerArtifactsDeletedInput{
+		Lister:  mgmtClient,
+		Cluster: cluster,
+	}
+	ensureDockerArtifactsDeleted(ensureDockerDeletedInput)
+
 	// Dump the logs of the providers before deleting them.
 	Expect(writeLogs(mgmt, "capi-system", "capi-controller-manager", logPath)).To(Succeed())
 	Expect(writeLogs(mgmt, "capi-kubeadm-bootstrap-system", "capi-kubeadm-bootstrap-controller-manager", logPath)).To(Succeed())

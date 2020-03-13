@@ -41,13 +41,14 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var mgmtClient ctrlclient.Client
+var cluster *clusterv1.Cluster
+
 var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
 		var (
 			namespace  string
-			client     ctrlclient.Client
 			clusterGen = &ClusterGenerator{}
-			cluster    *clusterv1.Cluster
 		)
 		SetDefaultEventuallyTimeout(3 * time.Minute)
 		SetDefaultEventuallyPollingInterval(10 * time.Second)
@@ -65,30 +66,6 @@ var _ = Describe("Docker", func() {
 				"DockerMachineTemplate": &infrav1.DockerMachineTemplateList{},
 			}
 			Expect(framework.DumpProviderResources(mgmt, resources, resourcesPath, GinkgoWriter)).To(Succeed())
-
-			deleteClusterInput := framework.DeleteClusterInput{
-				Deleter: client,
-				Cluster: cluster,
-			}
-			framework.DeleteCluster(ctx, deleteClusterInput)
-
-			waitForClusterDeletedInput := framework.WaitForClusterDeletedInput{
-				Getter:  client,
-				Cluster: cluster,
-			}
-			framework.WaitForClusterDeleted(ctx, waitForClusterDeletedInput)
-
-			assertAllClusterAPIResourcesAreGoneInput := framework.AssertAllClusterAPIResourcesAreGoneInput{
-				Lister:  client,
-				Cluster: cluster,
-			}
-			framework.AssertAllClusterAPIResourcesAreGone(ctx, assertAllClusterAPIResourcesAreGoneInput)
-
-			ensureDockerDeletedInput := ensureDockerArtifactsDeletedInput{
-				Lister:  client,
-				Cluster: cluster,
-			}
-			ensureDockerArtifactsDeleted(ensureDockerDeletedInput)
 		})
 
 		Describe("Multi-node controlplane cluster", func() {
@@ -113,12 +90,12 @@ var _ = Describe("Docker", func() {
 				md, infraTemplate, bootstrapTemplate := GenerateMachineDeployment(cluster, 1)
 
 				// Set up the client to the management cluster
-				client, err = mgmt.GetClient()
+				mgmtClient, err = mgmt.GetClient()
 				Expect(err).NotTo(HaveOccurred())
 
 				// Set up the cluster object
 				createClusterInput := framework.CreateClusterInput{
-					Creator:      client,
+					Creator:      mgmtClient,
 					Cluster:      cluster,
 					InfraCluster: infraCluster,
 				}
@@ -126,7 +103,7 @@ var _ = Describe("Docker", func() {
 
 				// Set up the KubeadmControlPlane
 				createKubeadmControlPlaneInput := framework.CreateKubeadmControlPlaneInput{
-					Creator:         client,
+					Creator:         mgmtClient,
 					ControlPlane:    controlPlane,
 					MachineTemplate: template,
 				}
@@ -134,14 +111,14 @@ var _ = Describe("Docker", func() {
 
 				// Wait for the cluster to provision.
 				assertClusterProvisionsInput := framework.WaitForClusterToProvisionInput{
-					Getter:  client,
+					Getter:  mgmtClient,
 					Cluster: cluster,
 				}
 				framework.WaitForClusterToProvision(ctx, assertClusterProvisionsInput)
 
 				// Wait for at least one control plane node to be ready
 				waitForOneKubeadmControlPlaneMachineToExistInput := framework.WaitForOneKubeadmControlPlaneMachineToExistInput{
-					Lister:       client,
+					Lister:       mgmtClient,
 					Cluster:      cluster,
 					ControlPlane: controlPlane,
 				}
@@ -160,7 +137,7 @@ var _ = Describe("Docker", func() {
 
 				// Wait for the controlplane nodes to exist
 				assertKubeadmControlPlaneNodesExistInput := framework.WaitForKubeadmControlPlaneMachinesToExistInput{
-					Lister:       client,
+					Lister:       mgmtClient,
 					Cluster:      cluster,
 					ControlPlane: controlPlane,
 				}
@@ -168,7 +145,7 @@ var _ = Describe("Docker", func() {
 
 				// Create the workload nodes
 				createMachineDeploymentinput := framework.CreateMachineDeploymentInput{
-					Creator:                 client,
+					Creator:                 mgmtClient,
 					MachineDeployment:       md,
 					BootstrapConfigTemplate: bootstrapTemplate,
 					InfraMachineTemplate:    infraTemplate,
@@ -177,7 +154,7 @@ var _ = Describe("Docker", func() {
 
 				// Wait for the workload nodes to exist
 				waitForMachineDeploymentNodesToExistInput := framework.WaitForMachineDeploymentNodesToExistInput{
-					Lister:            client,
+					Lister:            mgmtClient,
 					Cluster:           cluster,
 					MachineDeployment: md,
 				}
@@ -185,14 +162,14 @@ var _ = Describe("Docker", func() {
 
 				// Wait for the control plane to be ready
 				waitForControlPlaneToBeReadyInput := framework.WaitForControlPlaneToBeReadyInput{
-					Getter:       client,
+					Getter:       mgmtClient,
 					ControlPlane: controlPlane,
 				}
 				framework.WaitForControlPlaneToBeReady(ctx, waitForControlPlaneToBeReadyInput)
 
 				// Assert failure domain is working as expected
 				assertControlPlaneFailureDomainInput := framework.AssertControlPlaneFailureDomainsInput{
-					GetLister:  client,
+					GetLister:  mgmtClient,
 					ClusterKey: util.ObjectKey(cluster),
 					ExpectedFailureDomains: map[string]int{
 						"domain-one":   1,
@@ -202,11 +179,12 @@ var _ = Describe("Docker", func() {
 					},
 				}
 				framework.AssertControlPlaneFailureDomains(ctx, assertControlPlaneFailureDomainInput)
+
 			})
 
 			Specify("Full upgrade", func() {
 				By("upgrading the control plane object to a new version")
-				patchHelper, err := patch.NewHelper(controlPlane, client)
+				patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
 				Expect(err).ToNot(HaveOccurred())
 				controlPlane.Spec.Version = "1.17.2"
 				Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
@@ -220,7 +198,7 @@ var _ = Describe("Docker", func() {
 
 				Eventually(func() (int, error) {
 					machineList := &clusterv1.MachineList{}
-					if err := client.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
+					if err := mgmtClient.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
 						fmt.Println(err)
 						return 0, err
 					}

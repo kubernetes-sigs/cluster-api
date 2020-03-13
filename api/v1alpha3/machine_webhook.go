@@ -18,7 +18,9 @@ package v1alpha3
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/blang/semver"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -112,6 +114,12 @@ func (m *Machine) validate(old *Machine) error {
 			allErrs,
 			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
 		)
+	}
+
+	if m.Spec.Version != nil {
+		if _, err := semver.Parse(strings.TrimPrefix(strings.TrimSpace(*m.Spec.Version), "v")); err != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), *m.Spec.Version, "must be a valid semantic version"))
+		}
 	}
 
 	if len(allErrs) == 0 {

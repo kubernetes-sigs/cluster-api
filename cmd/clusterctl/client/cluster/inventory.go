@@ -35,9 +35,6 @@ import (
 const (
 	embeddedCustomResourceDefinitionPath = "cmd/clusterctl/config/manifest/clusterctl-api.yaml"
 
-	retryCreateInventoryObject         = 3
-	retryIntervalCreateInventoryObject = 1 * time.Second
-
 	waitInventoryCRDInterval = 250 * time.Millisecond
 	waitInventoryCRDTimeout  = 1 * time.Minute
 )
@@ -123,13 +120,14 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	}
 
 	// Install the CRDs.
+	createInventoryObjectBackoff := newBackoff()
 	for i := range objs {
 		o := objs[i]
 		log.V(5).Info("Creating", logf.UnstructuredToValues(o)...)
 
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make EnsureCustomResourceDefinitions more resilient to unexpected conditions.
-		if err := retry(retryCreateInventoryObject, retryIntervalCreateInventoryObject, func() error {
+		if err := retryWithExponentialBackoff(createInventoryObjectBackoff, func() error {
 			return p.createObj(o)
 		}); err != nil {
 			return err

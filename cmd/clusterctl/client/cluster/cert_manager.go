@@ -36,9 +36,6 @@ const (
 	waitCertManagerInterval = 1 * time.Second
 	waitCertManagerTimeout  = 10 * time.Minute
 
-	retryCreateCertManagerObject         = 3
-	retryIntervalCreateCertManagerObject = 1 * time.Second
-
 	certManagerImageComponent = "cert-manager"
 )
 
@@ -120,6 +117,7 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	}
 
 	// installs the web-hook
+	createCertManagerBackoff := newBackoff()
 	objs = sortResourcesForCreate(objs)
 	for i := range objs {
 		o := objs[i]
@@ -127,7 +125,7 @@ func (cm *certManagerClient) EnsureWebhook() error {
 
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make ensureCerts more resilient to unexpected conditions.
-		if err := retry(retryCreateCertManagerObject, retryIntervalCreateCertManagerObject, func() error {
+		if err := retryWithExponentialBackoff(createCertManagerBackoff, func() error {
 			return cm.createObj(o)
 		}); err != nil {
 			return err

@@ -104,78 +104,78 @@ func TestEqualMachineTemplate(t *testing.T) {
 
 	tests := []struct {
 		Name           string
-		former, latter clusterv1.MachineTemplateSpec
-		expected       bool
+		Former, Latter clusterv1.MachineTemplateSpec
+		Expected       bool
 	}{
 		{
-			"Same spec, same labels",
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			true,
+			Name:     "Same spec, same labels",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			Expected: true,
 		},
 		{
-			"Same spec, only machine-template-hash label value is different",
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
-			true,
+			Name:     "Same spec, only machine-template-hash label value is different",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			Expected: true,
 		},
 		{
-			"Same spec, the former doesn't have machine-template-hash label",
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
-			true,
+			Name:     "Same spec, the former doesn't have machine-template-hash label",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			Expected: true,
 		},
 		{
-			"Same spec, the former doesn't have machine-template-hash label",
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
-			true,
+			Name:     "Same spec, the former doesn't have machine-template-hash label",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			Expected: true,
 		},
 		{
-			"Same spec, the label is different, the former doesn't have machine-template-hash label, same number of labels",
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2"}),
-			false,
+			Name:     "Same spec, the label is different, the former doesn't have machine-template-hash label, same number of labels",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2"}),
+			Expected: false,
 		},
 		{
-			"Same spec, the label is different, the latter doesn't have machine-template-hash label, same number of labels",
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1"}),
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
-			false,
+			Name:     "Same spec, the label is different, the latter doesn't have machine-template-hash label, same number of labels",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
+			Expected: false,
 		},
 		{
-			"Same spec, the label is different, and the machine-template-hash label value is the same",
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1"}),
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			false,
+			Name:     "Same spec, the label is different, and the machine-template-hash label value is the same",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			Expected: false,
 		},
 		{
-			"Different spec, same labels",
-			generateMachineTemplateSpec("foo", map[string]string{"former": "value"}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			generateMachineTemplateSpec("foo", map[string]string{"latter": "value"}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			false,
+			Name:     "Different spec, same labels",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{"former": "value"}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{"latter": "value"}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			Expected: false,
 		},
 		{
-			"Different spec, different machine-template-hash label value",
-			generateMachineTemplateSpec("foo-1", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			generateMachineTemplateSpec("foo-2", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
-			false,
+			Name:     "Different spec, different machine-template-hash label value",
+			Former:   generateMachineTemplateSpec("foo-1", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo-2", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			Expected: false,
 		},
 		{
-			"Different spec, the former doesn't have machine-template-hash label",
-			generateMachineTemplateSpec("foo-1", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo-2", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
-			false,
+			Name:     "Different spec, the former doesn't have machine-template-hash label",
+			Former:   generateMachineTemplateSpec("foo-1", map[string]string{}, map[string]string{"something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo-2", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			Expected: false,
 		},
 		{
-			"Different spec, different labels",
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"nothing": "else"}),
-			false,
+			Name:     "Different spec, different labels",
+			Former:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
+			Latter:   generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"nothing": "else"}),
+			Expected: false,
 		},
 		{
-			"Same spec, except for references versions",
-			clusterv1.MachineTemplateSpec{
+			Name: "Same spec, except for references versions",
+			Former: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{},
 				},
@@ -192,7 +192,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 					},
 				},
 			},
-			clusterv1.MachineTemplateSpec{
+			Latter: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{},
 				},
@@ -209,11 +209,11 @@ func TestEqualMachineTemplate(t *testing.T) {
 					},
 				},
 			},
-			true,
+			Expected: true,
 		},
 		{
-			"Same spec, bootstrap references are different kinds",
-			clusterv1.MachineTemplateSpec{
+			Name: "Same spec, bootstrap references are different kinds",
+			Former: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{},
 				},
@@ -230,7 +230,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 					},
 				},
 			},
-			clusterv1.MachineTemplateSpec{
+			Latter: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{},
 				},
@@ -247,7 +247,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 					},
 				},
 			},
-			false,
+			Expected: false,
 		},
 	}
 
@@ -256,14 +256,14 @@ func TestEqualMachineTemplate(t *testing.T) {
 			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec, reversed bool) {
 				// Run
 				equal := EqualMachineTemplate(t1, t2)
-				g.Expect(equal).To(Equal(test.expected))
+				g.Expect(equal).To(Equal(test.Expected))
 				g.Expect(t1.Labels).NotTo(BeNil())
 				g.Expect(t2.Labels).NotTo(BeNil())
 			}
 
-			runTest(&test.former, &test.latter, false)
+			runTest(&test.Former, &test.Latter, false)
 			// Test the same case in reverse order
-			runTest(&test.latter, &test.former, true)
+			runTest(&test.Latter, &test.Former, true)
 		})
 	}
 }
@@ -399,9 +399,9 @@ func TestFindOldMachineSets(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			requireMS, allMS := FindOldMachineSets(&test.deployment, test.msList)
-			g.Expect(allMS).To(Equal(test.expected))
+			g.Expect(allMS).To(ConsistOf(test.expected))
 			// MSs are getting filtered correctly by ms.spec.replicas
-			g.Expect(requireMS).To(Equal(test.expectedRequire))
+			g.Expect(requireMS).To(ConsistOf(test.expectedRequire))
 		})
 	}
 }
@@ -418,28 +418,28 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 
 	tests := []struct {
 		Name           string
-		sets           []*clusterv1.MachineSet
-		expectedCount  int32
-		expectedActual int32
+		Sets           []*clusterv1.MachineSet
+		ExpectedCount  int32
+		ExpectedActual int32
 	}{
 		{
-			"1:2 Replicas",
-			[]*clusterv1.MachineSet{&ms1},
-			1,
-			2,
+			Name:           "1:2 Replicas",
+			Sets:           []*clusterv1.MachineSet{&ms1},
+			ExpectedCount:  1,
+			ExpectedActual: 2,
 		},
 		{
-			"3:5 Replicas",
-			[]*clusterv1.MachineSet{&ms1, &ms2},
-			3,
-			5,
+			Name:           "3:5 Replicas",
+			Sets:           []*clusterv1.MachineSet{&ms1, &ms2},
+			ExpectedCount:  3,
+			ExpectedActual: 5,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			g.Expect(GetReplicaCountForMachineSets(test.sets)).To(Equal(test.expectedCount))
-			g.Expect(GetActualReplicaCountForMachineSets(test.sets)).To(Equal(test.expectedActual))
+			g.Expect(GetReplicaCountForMachineSets(test.Sets)).To(Equal(test.ExpectedCount))
+			g.Expect(GetActualReplicaCountForMachineSets(test.Sets)).To(Equal(test.ExpectedActual))
 		})
 	}
 }
@@ -715,21 +715,15 @@ func TestAnnotationUtils(t *testing.T) {
 			nextRevision := fmt.Sprintf("%d", i+1)
 			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true, logger)
 			//Now the MachineSets Revision Annotation should be i+1
-			g.Expect(tMS.Annotations[clusterv1.RevisionAnnotation]).To(Equal(nextRevision))
+			g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.RevisionAnnotation, nextRevision))
 		}
 	})
 
 	//Test Case 2:  Check if annotations are set properly
 	t.Run("SetReplicasAnnotations", func(t *testing.T) {
 		g.Expect(SetReplicasAnnotations(&tMS, 10, 11)).To(BeTrue())
-
-		value, ok := tMS.Annotations[clusterv1.DesiredReplicasAnnotation]
-		g.Expect(ok).To(BeTrue())
-		g.Expect(value).To(Equal("10"))
-
-		value, ok = tMS.Annotations[clusterv1.MaxReplicasAnnotation]
-		g.Expect(ok).To(BeTrue())
-		g.Expect(value).To(Equal("11"))
+		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, "10"))
+		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, "11"))
 	})
 
 	//Test Case 3:  Check if annotations reflect deployments state

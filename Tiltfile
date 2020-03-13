@@ -118,7 +118,7 @@ FROM gcr.io/distroless/base:debug as tilt
 WORKDIR /
 COPY --from=tilt-helper /start.sh .
 COPY --from=tilt-helper /restart.sh .
-COPY .tiltbuild/manager .
+COPY manager .
 """
 
 # Configures a provider by doing the following:
@@ -160,11 +160,11 @@ def enable_provider(name):
     # build into the container.
     docker_build(
         ref = p.get("image"),
-        context = context,
+        context = context + "/.tiltbuild/",
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
         entrypoint = ["sh", "/start.sh", "/manager"],
-        only = ".tiltbuild/manager",
+        only = "manager",
         live_update = [
             sync(context + "/.tiltbuild/manager", "/manager"),
             run("sh /restart.sh"),

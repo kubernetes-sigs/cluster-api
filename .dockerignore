@@ -11,4 +11,7 @@ scripts/
 tilt-settings.json
 tilt.d/
 Tiltfile
+**/.tiltbuild
+test/infrastructure/docker/e2e/logs/**
+**/config/**/*.yaml
 _artifacts

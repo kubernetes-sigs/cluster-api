@@ -282,8 +282,13 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
+	}
+
 	// Update kube-proxy daemonset.
-	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, kcp); err != nil {
+	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, parsedVersion); err != nil {
 		logger.Error(err, "failed to update kube-proxy daemonset")
 		return ctrl.Result{}, err
 	}

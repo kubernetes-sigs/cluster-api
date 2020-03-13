@@ -27,7 +27,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -159,6 +158,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	parsedVersion, _ := semver.ParseTolerant("v1.16.3")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -169,7 +169,8 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			c := &Workload{
 				Client: fakeClient,
 			}
-			err := c.UpdateKubeProxyImageInfo(ctx, &v1alpha3.KubeadmControlPlane{Spec: v1alpha3.KubeadmControlPlaneSpec{Version: "v1.16.3"}})
+
+			err := c.UpdateKubeProxyImageInfo(ctx, parsedVersion)
 			if err != nil && !tt.expectErr {
 				t.Fatalf("expected no error, got %s", err)
 			}

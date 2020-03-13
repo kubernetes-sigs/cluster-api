@@ -70,7 +70,7 @@ type WorkloadCluster interface {
 	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error
 	UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string) error
 	UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error
-	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
+	UpdateKubeProxyImageInfo(ctx context.Context, version semver.Version) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error
@@ -575,7 +575,7 @@ func firstNodeNotMatchingName(name string, nodes []corev1.Node) *corev1.Node {
 }
 
 // UpdateKubeProxyImageInfo updates kube-proxy image in the kube-proxy DaemonSet.
-func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
+func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, version semver.Version) error {
 	ds := &appsv1.DaemonSet{}
 
 	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyDaemonSetName, Namespace: metav1.NamespaceSystem}, ds); err != nil {
@@ -589,7 +589,7 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 	if len(ds.Spec.Template.Spec.Containers) == 0 {
 		return nil
 	}
-	newImageName, err := util.ModifyImageTag(ds.Spec.Template.Spec.Containers[0].Image, kcp.Spec.Version)
+	newImageName, err := util.ModifyImageTag(ds.Spec.Template.Spec.Containers[0].Image, fmt.Sprintf("v%s", version))
 	if err != nil {
 		return err
 	}

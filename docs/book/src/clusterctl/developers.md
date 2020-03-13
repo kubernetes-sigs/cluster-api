@@ -57,6 +57,9 @@ in order to use them, please run:
 clusterctl init  --core cluster-api:v0.3.0 --bootstrap kubeadm:v0.3.0 --infrastructure aws:v0.5.0
 ```
 
+See [Overrides Layer](configuration.md#overrides-layer) for more information
+on the purpose of overrides.
+
 ## Available providers
 
 The following providers are currently defined in the script:
@@ -94,10 +97,10 @@ Before running the local-overrides hack:
 - Run `make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-capi-docker` to build the docker provider image
   using a specific REGISTRY (you can choose your own).
 
-- Run `make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-capi-docker` to generate 
+- Run `make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-capi-docker` to generate
   the docker provider manifest using the above registry/Image.
 
-Run the local-overrides hack and save the `clusterctl init` command provided in the command output to be used later. 
+Run the local-overrides hack and save the `clusterctl init` command provided in the command output to be used later.
 
 Edit the clusterctl config file located at `~/.cluster-api/clusterctl.yaml` and configure the docker provider
 by adding the following lines (replace $HOME with your home path):
@@ -130,7 +133,7 @@ EOF
 - Run `kind create cluster --config ./kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
 
 - Run `kind load docker-image gcr.io/k8s-staging-capi-docker/capd-manager-amd64:dev` to make the docker provider image available
-  for the kubelet in the management cluster.  
+  for the kubelet in the management cluster.
 
 Run `clusterctl init` command provided as output of the local-overrides hack.
 
@@ -157,7 +160,7 @@ sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./c
 
 ### Known issues
 
-A [known issue](https://github.com/kubernetes-sigs/kind/issues/891) affects Calico with the Docker provider v0.2.0. 
+A [known issue](https://github.com/kubernetes-sigs/kind/issues/891) affects Calico with the Docker provider v0.2.0.
 After you deploy Calico, apply this patch to work around the issue:
 
 ```bash

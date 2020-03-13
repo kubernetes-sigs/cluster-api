@@ -10,7 +10,7 @@ The `clusterctl` config file is located at `$HOME/.cluster-api/clusterctl.yaml` 
 
 The `clusterctl` CLI is designed to work with providers implementing the [clusterctl Provider Contract](provider-contract.md).
 
-Each provider is expected to define a provider repository, a well-known place where release assets are published. 
+Each provider is expected to define a provider repository, a well-known place where release assets are published.
 
 By default, `clusterctl` ships with providers sponsored by SIG Cluster
 Lifecycle. Use `clusterctl config repositories` to get a list of supported
@@ -35,9 +35,9 @@ See [provider contract](provider-contract.md) for instructions about how to set 
 ## Variables
 
 When installing a provider `clusterctl` reads a YAML file that is published in the provider repository; while executing
-this operation, `clusterctl` can substitute certain variables with the ones provided by the user.   
+this operation, `clusterctl` can substitute certain variables with the ones provided by the user.
 
-The same mechanism also applies when `clusterctl` reads the cluster templates YAML published in the repository, e.g. 
+The same mechanism also applies when `clusterctl` reads the cluster templates YAML published in the repository, e.g.
 when injecting the Kubernetes version to use, or the number of worker machines to create.
 
 The user can provide values using OS environment variables, but it is also possible to add
@@ -49,6 +49,73 @@ AWS_B64ENCODED_CREDENTIALS: XXXXXXXX
 ```
 
 In case a variable is defined both in the config file and as an OS environment variable, the latter takes precedence.
+
+## Overrides Layer
+
+`clusterctl` uses an overrides layer to read in injected provider components,
+cluster templates and metadata. By default, it reads the files from
+`$HOME/.cluster-api/overrides`.
+
+The directory structure under the `overrides` directory should follow the
+template
+```
+<providerType-providerName>/<version>/<fileName>
+```
+For example,
+```
+├── bootstrap-kubeadm
+│   └── v0.3.0
+│       └── bootstrap-components.yaml
+├── cluster-api
+│   └── v0.3.0
+│       └── core-components.yaml
+├── control-plane-kubeadm
+│   └── v0.3.0
+│       └── control-plane-components.yaml
+└── infrastructure-aws
+    └── v0.5.0
+            ├── cluster-template-dev.yaml
+            └── infrastructure-components.yaml
+```
+
+For developers who want to generate the overrides layer, see [Run the
+local-overrides hack!](developers.md#run-the-local-overrides-hack).
+
+Once these overrides are specified, `clusterctl` will use them instead of
+getting the values from the default or specified providers.
+
+One example usage of the overrides layer is that it allows you to deploy
+clusters with custom templates that may not be available from the official
+provider repositories.
+For example, you can now do
+```bash
+clusterctl config cluster mycluster --flavor dev --infrastructure aws:v0.5.0 -v5
+```
+
+The `-v5` provides verbose logging which will confirm the usage of the
+override file.
+```bash
+Using Override="cluster-template-dev.yaml" Provider="infrastructure-aws" Version="v0.5.0"
+```
+
+Another example, if you would like to deploy a custom version of CAPA, you can
+make changes to `infrastructure-components.yaml` in the overrides folder and
+run,
+```bash
+clusterctl init --infrastructure aws:v0.5.0 -v5
+...
+Using Override="infrastructure-components.yaml" Provider="infrastructure-aws" Version="v0.5.0"
+...
+```
+
+
+If you prefer to have the overrides directory at a different location (e.g.
+`/Users/foobar/workspace/dev-releases`) you can specify the overrides
+directory in the clusterctl config file as
+
+```yaml
+overridesFolder: /Users/foobar/workspace/dev-releases
+```
 
 ## Image overrides
 
@@ -82,7 +149,7 @@ images:
   all:
     repository: myorg.io/local-repo
   cert-manager:
-    tag: v0.11.1 
+    tag: v0.11.1
 ```
 
 In this example we are overriding the image repository for all the components and the image tag for

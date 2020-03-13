@@ -46,21 +46,23 @@ cat <<EOF > "clusterctl-settings.json"
 EOF
 
 # Create a local filesystem repository for the docker provider and update clusterctl.yaml
-LOCAL_CAPD_REPO_PATH="${ARTIFACTS}/testdata/docker"
+LOCAL_CAPD_REPO_PATH="${ARTIFACTS}/testdata/infrastructure-docker"
 mkdir -p "${LOCAL_CAPD_REPO_PATH}"
 cp -r "${REPO_ROOT_ABS}/cmd/clusterctl/test/testdata/docker/${CAPD_VERSION}" "${LOCAL_CAPD_REPO_PATH}"
 # We build the infrastructure-components.yaml from the capd folder and put in local repo folder
 kustomize build "${REPO_ROOT_ABS}/test/infrastructure/docker/config/default/" > "${LOCAL_CAPD_REPO_PATH}/${CAPD_VERSION}/infrastructure-components.yaml"
-export CLUSTERCTL_CONFIG="${ARTIFACTS}/testdata/clusterctl.yaml" 
+export CLUSTERCTL_CONFIG="${ARTIFACTS}/testdata/clusterctl.yaml"
 cat <<EOF > "${CLUSTERCTL_CONFIG}"
 providers:
 - name: docker
   url:  ${LOCAL_CAPD_REPO_PATH}/${CAPD_VERSION}/infrastructure-components.yaml
   type: InfrastructureProvider
 
+overridesFolder:${ARTIFACTS}/testdata
+
 DOCKER_SERVICE_DOMAIN: "cluster.local"
-DOCKER_SERVICE_CIDRS: "10.128.0.0/12" 
-DOCKER_POD_CIDRS: "192.168.0.0/16" 
+DOCKER_SERVICE_CIDRS: "10.128.0.0/12"
+DOCKER_POD_CIDRS: "192.168.0.0/16"
 EOF
 
 export KIND_CONFIG_FILE="${ARTIFACTS}/kind-cluster-with-extramounts.yaml"

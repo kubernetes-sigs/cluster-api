@@ -23,7 +23,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"math/big"
-	"reflect"
 	"testing"
 	"time"
 
@@ -85,19 +84,17 @@ func setupScheme() *runtime.Scheme {
 }
 
 func TestGetKubeConfigSecret(t *testing.T) {
+	g := NewWithT(t)
+
 	clusterKey := client.ObjectKey{
 		Name:      "test1",
 		Namespace: "test",
 	}
 	client := fake.NewFakeClientWithScheme(setupScheme(), validSecret)
-	found, err := FromSecret(context.Background(), client, clusterKey)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
 
-	if !reflect.DeepEqual(validSecret.Data[secret.KubeconfigDataName], found) {
-		t.Fatalf("Expected found secret to be equal to input")
-	}
+	found, err := FromSecret(context.Background(), client, clusterKey)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(found).To(Equal(validSecret.Data[secret.KubeconfigDataName]))
 }
 
 func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
@@ -132,6 +129,8 @@ func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 }
 
 func TestNew(t *testing.T) {
+	g := NewWithT(t)
+
 	testCases := []struct {
 		cluster        string
 		endpoint       string
@@ -161,47 +160,25 @@ func TestNew(t *testing.T) {
 
 	for _, tc := range testCases {
 		caKey, err := certs.NewPrivateKey()
-		if err != nil {
-			t.Fatalf("Failed to generate private key for ca cert, %v", err)
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 
 		caCert, err := getTestCACert(caKey)
-		if err != nil {
-			t.Fatalf("Failed to generate test ca cert, %v", err)
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 
 		actualConfig, actualError := New(tc.cluster, tc.endpoint, caCert, caKey)
 		if tc.expectError {
-			if actualError == nil {
-				t.Fatalf("Expected error but go nil error")
-			} else {
-				continue
-			}
+			g.Expect(actualError).To(HaveOccurred())
+			continue
 		}
 
-		if len(actualConfig.Clusters) != len(tc.expectedConfig.Clusters) {
-			t.Fatalf("Unexpected number of clusters in generated kubeconfig, Want: %d, Got: %d",
-				len(tc.expectedConfig.Clusters), len(actualConfig.Clusters))
-		}
-		if len(actualConfig.Contexts) != len(tc.expectedConfig.Contexts) {
-			t.Fatalf("Unexpected number of contexts in generated kubeconfig, Want: %d, Got: %d",
-				len(tc.expectedConfig.Contexts), len(actualConfig.Contexts))
-		}
-		if _, found := actualConfig.Clusters[tc.cluster]; !found {
-			t.Fatalf("Cluster %q not found in generated kubeconfig", tc.cluster)
-		}
-		if _, found := actualConfig.Contexts[tc.expectedConfig.CurrentContext]; !found {
-			t.Fatalf("Context %q not found in generated kubeconfig", tc.expectedConfig.CurrentContext)
-		}
-		if actualConfig.CurrentContext != tc.expectedConfig.CurrentContext {
-			t.Fatalf("Unexpected value for current config in generated kubeconfig, Want: %q, Got :%q",
-				tc.expectedConfig.CurrentContext, actualConfig.CurrentContext)
-		}
-		if actualConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo != tc.expectedConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo {
-			t.Fatalf("Unexpected AuthInfo in context for cluter %q in generated kubeconfig, Want: %q, Got: %q",
-				tc.cluster, tc.expectedConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo,
-				actualConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo)
-		}
+		g.Expect(actualConfig.Clusters).To(HaveLen(len(tc.expectedConfig.Clusters)))
+		g.Expect(actualConfig.Contexts).To(HaveLen(len(tc.expectedConfig.Contexts)))
+
+		g.Expect(actualConfig.Clusters[tc.cluster]).NotTo(BeNil())
+		g.Expect(actualConfig.Contexts[tc.expectedConfig.CurrentContext]).NotTo(BeNil())
+		g.Expect(actualConfig.CurrentContext).To(Equal(tc.expectedConfig.CurrentContext))
+		g.Expect(actualConfig.Contexts).To(Equal(tc.expectedConfig.Contexts))
+
 	}
 }
 

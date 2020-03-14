@@ -19,14 +19,15 @@ package framework_test
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 func TestTypeToKind(t *testing.T) {
+	g := NewWithT(t)
+
 	type hello struct{}
 
-	out := framework.TypeToKind(&hello{})
-	if out != "hello" {
-		t.Fatalf("Expected %q from pointer input but got %q", "hello", out)
-	}
+	g.Expect(framework.TypeToKind(&hello{})).To(Equal("hello"))
 }

@@ -19,6 +19,8 @@ package controllers
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,6 +48,8 @@ func setupScheme() *runtime.Scheme {
 }
 
 func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
+	g := NewWithT(t)
+
 	clusterName := "my-cluster"
 	dockerCluster := newDockerCluster(clusterName, "my-docker-cluster")
 	dockerMachine1 := newDockerMachine("my-docker-machine-0")
@@ -71,23 +75,8 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 	for i := range out {
 		machineNames[i] = out[i].Name
 	}
-	if len(out) != 2 {
-		t.Fatal("expected 2 docker machines to reconcile but got", len(out))
-	}
-	for _, expectedName := range []string{"my-machine-0", "my-machine-1"} {
-		if !contains(machineNames, expectedName) {
-			t.Fatalf("expected %q in slice %v", expectedName, machineNames)
-		}
-	}
-}
-
-func contains(haystack []string, needle string) bool {
-	for _, straw := range haystack {
-		if straw == needle {
-			return true
-		}
-	}
-	return false
+	g.Expect(out).To(HaveLen(2))
+	g.Expect(machineNames).To(ConsistOf("my-machine-0", "my-machine-1"))
 }
 
 func newCluster(clusterName string) *clusterv1.Cluster {

@@ -17,37 +17,33 @@ limitations under the License.
 package cloudinit
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestRunCmdUnmarshal(t *testing.T) {
+	g := NewWithT(t)
+
 	cloudData := `
 runcmd:
 - [ ls, -l, / ]
 - "ls -l /"`
 	r := runCmd{}
 	err := r.Unmarshal([]byte(cloudData))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(r.Cmds) != 2 {
-		t.Errorf("Expected 2 commands, found %d", len(r.Cmds))
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(r.Cmds).To(HaveLen(2))
 
 	expected0 := Cmd{Cmd: "ls", Args: []string{"-l", "/"}}
-	if !reflect.DeepEqual(r.Cmds[0], expected0) {
-		t.Errorf("Expected %+v commands, found %+v", expected0, r.Cmds[0])
-	}
+	g.Expect(r.Cmds[0]).To(Equal(expected0))
 
 	expected1 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "ls -l /"}}
-	if !reflect.DeepEqual(r.Cmds[1], expected1) {
-		t.Errorf("Expected %+v commands, found %+v", expected1, r.Cmds[1])
-	}
+	g.Expect(r.Cmds[1]).To(Equal(expected1))
 }
 
 func TestRunCmdRun(t *testing.T) {
+	g := NewWithT(t)
+
 	var useCases = []struct {
 		name         string
 		r            runCmd
@@ -82,43 +78,31 @@ func TestRunCmdRun(t *testing.T) {
 	for _, rt := range useCases {
 		t.Run(rt.name, func(t *testing.T) {
 			commands, err := rt.r.Commands()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if !reflect.DeepEqual(rt.expectedCmds, commands) {
-				t.Errorf("expected %s, got %s", rt.expectedCmds, commands)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(rt.expectedCmds).To(Equal(commands))
 		})
 	}
 }
 
 func TestHackKubeadmIgnoreErrors(t *testing.T) {
+	g := NewWithT(t)
+
 	cloudData := `
 runcmd:
 - kubeadm init --config=/tmp/kubeadm.yaml
 - [ kubeadm, join, --config=/tmp/kubeadm-controlplane-join-config.yaml ]`
 	r := runCmd{}
 	err := r.Unmarshal([]byte(cloudData))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(r.Cmds) != 2 {
-		t.Errorf("Expected 2 commands, found %d", len(r.Cmds))
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(r.Cmds).To(HaveLen(2))
 
 	r.Cmds[0] = hackKubeadmIgnoreErrors(r.Cmds[0])
 
 	expected0 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config=/tmp/kubeadm.yaml --ignore-preflight-errors=all"}}
-	if !reflect.DeepEqual(r.Cmds[0], expected0) {
-		t.Errorf("Expected %+v commands, found %+v", expected0, r.Cmds[0])
-	}
+	g.Expect(r.Cmds[0]).To(Equal(expected0))
 
 	r.Cmds[1] = hackKubeadmIgnoreErrors(r.Cmds[1])
 
 	expected1 := Cmd{Cmd: "kubeadm", Args: []string{"join", "--config=/tmp/kubeadm-controlplane-join-config.yaml", "--ignore-preflight-errors=all"}}
-	if !reflect.DeepEqual(r.Cmds[1], expected1) {
-		t.Errorf("Expected %+v commands, found %+v", expected1, r.Cmds[1])
-	}
+	g.Expect(r.Cmds[1]).To(Equal(expected1))
 }

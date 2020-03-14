@@ -19,11 +19,14 @@ package cloudinit
 import (
 	"bytes"
 	"compress/gzip"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestWriteFiles(t *testing.T) {
+	g := NewWithT(t)
+
 	var useCases = []struct {
 		name         string
 		w            writeFilesAction
@@ -87,18 +90,15 @@ func TestWriteFiles(t *testing.T) {
 	for _, rt := range useCases {
 		t.Run(rt.name, func(t *testing.T) {
 			cmds, err := rt.w.Commands()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if !reflect.DeepEqual(rt.expectedCmds, cmds) {
-				t.Errorf("Expected %s, got %s", rt.expectedCmds, cmds)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(rt.expectedCmds).To(Equal(cmds))
 		})
 	}
 }
 
 func TestFixContent(t *testing.T) {
+	g := NewWithT(t)
+
 	v := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	gv, _ := gZipData([]byte(v))
 	var useCases = []struct {
@@ -131,28 +131,24 @@ func TestFixContent(t *testing.T) {
 		t.Run(rt.name, func(t *testing.T) {
 			encoding := fixEncoding(rt.encoding)
 			c, err := fixContent(rt.content, encoding)
-
-			if err == nil && rt.expectedError {
-				t.Error("Expected error, got nil")
-			}
-			if err != nil && !rt.expectedError {
-				t.Errorf("Expected nil, got error %v", err)
+			if rt.expectedError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 
-			if rt.expectedContent != c {
-				t.Errorf("Expected %s, got %s", rt.expectedContent, c)
-			}
+			g.Expect(rt.expectedContent).To(Equal(c))
 		})
 	}
 }
 
 func TestUnzipData(t *testing.T) {
+	g := NewWithT(t)
+
 	value := []byte("foobarbazquxfoobarbazquxfoobarbazquxfoobarbazquxfoobarbazquxfoobarbazquxfoobarbazquxfoobarbazquxfoobarbazqux")
 	gvalue, _ := gZipData(value)
 	dvalue, _ := gUnzipData(gvalue)
-	if !bytes.Equal(value, dvalue) {
-		t.Errorf("ss")
-	}
+	g.Expect(value).To(Equal(dvalue))
 }
 
 func gZipData(data []byte) ([]byte, error) {

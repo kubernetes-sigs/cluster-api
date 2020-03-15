@@ -210,7 +210,10 @@ project][vSphere getting started guide].
 {{#/tab }}
 {{#tab OpenStack}}
 
-Please visit the [OpenStack project][OpenStack getting started guide].
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure openstack
+```
 
 {{#/tab }}
 {{#tab Metal3}}
@@ -371,7 +374,24 @@ For more information about prerequisites, credentials management, or permissions
 {{#/tab }}
 {{#tab OpenStack}}
 
-Please visit the [OpenStack getting started guide].
+A ClusterAPI compatible image must be available in your OpenStack. For instructions on how to build a compatible image 
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html). 
+Depending on your OpenStack and underlying hypervisor the following options might be of interest:
+* [image-builder (qemu)](https://github.com/kubernetes-sigs/image-builder/pull/169)
+* [image-builder (vSphere)](https://image-builder.sigs.k8s.io/capi/providers/vsphere.html)
+
+To see all required OpenStack environment variables execute:
+```bash
+clusterctl config cluster --infrastructure openstack --list-variables capi-quickstart
+```
+
+The following script can be used to export some of them:
+```bash
+wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-openstack/master/templates/env.rc -O /tmp/env.rc
+source /tmp/env.rc <path/to/clouds.yaml> <cloud>
+```
+
+A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/configuration.md).
 
 {{#/tab }}
 {{#tab Metal3}}
@@ -489,7 +509,6 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/
-[OpenStack getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/
 [provider components]: ../reference/glossary.md#provider-components
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/
 [workload cluster]: ../reference/glossary.md#workload-cluster

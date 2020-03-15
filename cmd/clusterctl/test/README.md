@@ -8,7 +8,7 @@ Currently, overrides are needed for the cluster-api, kubeadm-bootstrap and kubea
 	rm -rf $HOME/.cluster-api/overrides/docker
 
 The entire test suite can be run using the script:
-	
+
 	./run-e2e.sh
 
 To run specific tests, use the `GINKGO_FOCUS`
@@ -21,6 +21,6 @@ By default, the a local capd image will be built and loaded into kind. This can 
 
 	SKIP_DOCKER_BUILD=1 ./run-e2e.sh
 
-You can also specifiy a pre-build image and skip the build:
+You can also specify a pre-build image and skip the build:
 
 	SKIP_DOCKER_BUILD=1 MANAGER_IMAGE=gcr.io/my-project-name/docker-provider-manager-amd64:dev ./run-e2e.sh

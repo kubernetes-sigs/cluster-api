@@ -2,7 +2,7 @@ Minimalistic Machines API
 =========================
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
- 
+
 
 - [Capabilities](#capabilities)
 - [Proposal](#proposal)
@@ -14,7 +14,7 @@ Minimalistic Machines API
 - [Types](#types)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
- 
+
 This proposal is for a minimalistic start to a new Machines API, as part of the
 overall Cluster API project. It is intended to live outside of core Kubernetes
 and add optional machine management features to Kubernetes clusters.
@@ -135,7 +135,7 @@ endpoint into any hosts it provisions.
 Brian Grant (@bgrant0607) and Eric Tune (@erictune) have indicated that the API pattern of having
 "Conditions" lists in object statuses is soon to be deprecated. These have
 generally been used as a timeline of state transitions for the object's
-reconcilation, and difficult to consume for clients that just want a meaningful
+reconciliation, and difficult to consume for clients that just want a meaningful
 representation of the object's current state. There are no existing examples of
 the new pattern to follow instead, just the guidance that we should use
 top-level fields in the status to reprensent meaningful information. We can

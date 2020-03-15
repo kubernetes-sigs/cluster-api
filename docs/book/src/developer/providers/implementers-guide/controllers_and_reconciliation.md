@@ -4,14 +4,14 @@ From the [kubebuilder book][controller]:
 
 > Controllers are the core of Kubernetes, and of any operator.
 >
-> It’s a controller’s job to ensure that, for any given object, the actual state of the world (both the cluster state, and potentially external state like running containers for Kubelet or loadbalancers for a cloud provider) matches the desired state in the object. 
+> It’s a controller’s job to ensure that, for any given object, the actual state of the world (both the cluster state, and potentially external state like running containers for Kubelet or loadbalancers for a cloud provider) matches the desired state in the object.
 > Each controller focuses on one root Kind, but may interact with other Kinds.
 >
 > We call this process reconciling.
 
 [controller]: https://book.kubebuilder.io/cronjob-tutorial/controller-overview.html#whats-in-a-controller
 
-Right now, we can create objects in our API but we won't do anything about it. Let's fix that. 
+Right now, we can create objects in our API but we won't do anything about it. Let's fix that.
 
 # Let's see the Code
 
@@ -39,7 +39,7 @@ func (r *MailgunClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 
 ## RBAC Roles
 
-Those `// +kubebuilder...` lines tell kubebuilder to generate [RBAC] roles so the manager we're writing can access its own managed resources. 
+Those `// +kubebuilder...` lines tell kubebuilder to generate [RBAC] roles so the manager we're writing can access its own managed resources.
 We also need to add roles that will let it retrieve (but not modify) Cluster API objects.
 So we'll add another annotation for that:
 
@@ -62,7 +62,7 @@ make manifests
 
 ## State
 
-Let's focus on that `struct` first. 
+Let's focus on that `struct` first.
 First, a word of warning: no guarantees are made about parallel access, both on one machine or multiple machines.
 That means you should not store any important state in memory: if you need it, write it into a Kubernetes object and store it.
 
@@ -114,8 +114,8 @@ if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
 ```
 
 Now, if this were any old `kubebuilder` project we'd be done, but in our case we have one more object to retrieve.
-Cluster API splits a cluster into two objects: the [`Cluster` defined by Cluster API itself][cluster]. 
-We'll want to retrieve that as well. 
+Cluster API splits a cluster into two objects: the [`Cluster` defined by Cluster API itself][cluster].
+We'll want to retrieve that as well.
 Luckily, cluster API [provides a helper for us][getowner].
 
 ```go
@@ -145,7 +145,7 @@ _More Documentation: [The Kubebuilder Book][book] has some excellent documentati
 [book]: https://book.kubebuilder.io/
 [implement]: https://book.kubebuilder.io/cronjob-tutorial/controller-implementation.html
 
-Now that we have our objects, it's time to do something with them! 
+Now that we have our objects, it's time to do something with them!
 This is where your provider really comes into it's own.
 In our case, let's try sending some mail:
 
@@ -162,7 +162,7 @@ if err != nil {
 
 ## Idempotency
 
-But wait, this isn't quite right. 
+But wait, this isn't quite right.
 `Reconcile()` gets called periodically for updates, and any time any updates are made.
 That would mean we're potentially sending an email every few minutes!
 This is an important thing about controllers: they need to be [*idempotent*][idempotent].
@@ -171,7 +171,7 @@ So in our case, we'll store the result of sending a message, and then check to s
 
 ```
 if mgCluster.Status.MessageID != nil {
-    // We already sent a message, so skip reconcilation
+    // We already sent a message, so skip reconciliation
     return ctrl.Result{}, nil
 }
 
@@ -205,8 +205,8 @@ return ctrl.Result{}, nil
 
 Usually, the `Status` field should only be fields that can be _computed from existing state_.
 Things like whether a machine is running can be retrieved from an API, and cluster status can be queried by a healthcheck.
-The message ID is ephemeral, so it should properly go in the `Spec` part of the object. 
-Anything that can't be recreated, either with some sort of deterministic generation method or by querying/observing actual state, needs to be in Spec. 
+The message ID is ephemeral, so it should properly go in the `Spec` part of the object.
+Anything that can't be recreated, either with some sort of deterministic generation method or by querying/observing actual state, needs to be in Spec.
 This is to support proper disaster recovery of resources.
 If you have a backup of your cluster and you want to restore it, Kubernetes doesn't let you restore both spec & status together.
 
@@ -229,7 +229,7 @@ if err = (&controllers.MailgunClusterReconciler{
 }
 ```
 
-Let's add our configuration. 
+Let's add our configuration.
 We're going to use environment variables for this:
 
 ```go

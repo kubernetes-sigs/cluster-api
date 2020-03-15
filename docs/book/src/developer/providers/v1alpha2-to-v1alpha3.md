@@ -421,7 +421,7 @@ to
 spec/conversion/webhook/clientConfig/service/name
 ```
 
-- Make the same change of changing `v1beta` to `v1` verison in the `config/crd/patches`
+- Make the same change of changing `v1beta` to `v1` version in the `config/crd/patches`
 - In the `config/crd/patches/webhook_in_******.yaml` file, add the `conversionReviewVersions` property to the CRD
 
 ```yaml
@@ -475,7 +475,7 @@ spec:
 
 ## clusterctl
 
-`clusterctl` is now bundled with Cluster API, provider-agnostic and can be reused across providers. 
+`clusterctl` is now bundled with Cluster API, provider-agnostic and can be reused across providers.
 It is the recommended way to setup a management cluster and it implements best practices to avoid common mis-configurations
 and for managing the life-cycle of deployed providers, e.g. upgrades.
 

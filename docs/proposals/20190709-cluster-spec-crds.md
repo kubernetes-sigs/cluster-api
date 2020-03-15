@@ -219,7 +219,7 @@ TODO
 
 ## Implementation History
 
-- [x] 03/20/2019 [Issue Opened](https://github.com/kubernetes-sigs/cluster-api/issues/833) proposing the externalization of embeded provider objects as CRDs
+- [x] 03/20/2019 [Issue Opened](https://github.com/kubernetes-sigs/cluster-api/issues/833) proposing the externalization of embedded provider objects as CRDs
 - [x] 06/19/2009 [Discussed](https://github.com/kubernetes-sigs/cluster-api/issues/833#issuecomment-501380522) the inclusion in the scope of v1alpha2.
 - [x] 07/09/2019 initial version of the proposal created
 - [X] 07/11/2019 Presentation of proposal to the community

@@ -29,7 +29,7 @@ note over "KubeadmControlPlane Controller": - ✅ KubeadmControlPlane.OwnerRefer
 
 note over "KubeadmControlPlane Controller": - ✅ Cluster.Status.InfrastructureReady is true\n- ✅ KubeadmControlPlane instance is valid
 
-"KubeadmControlPlane Controller"->"API Server": Get Machines maching label selector
+"KubeadmControlPlane Controller"->"API Server": Get Machines matching label selector
 "KubeadmControlPlane Controller"<<--"API Server": Response
 
 opt KubeadmControlPlane.Spec.Replicas >= 1, 1 or more existing Machines found that is "Ready"

@@ -20,7 +20,7 @@ go: creating new go.mod: module github.com/liztio/cluster-api-provider-mailgun
 kubebuilder init --domain cluster.x-k8s.io
 ```
 
-`kubebuilder init` will create the basic repository layout, including a simple containerized manager. 
+`kubebuilder init` will create the basic repository layout, including a simple containerized manager.
 It will also initialize the external go libraries that will be required to build your project.
 
 Commit your changes so far:
@@ -48,11 +48,11 @@ y
 
 ### Add Status subresource
 
-The [status subresource][status] lets Spec and Status requests for custom resources be addressed seperately so requests don't conflict with each other. 
+The [status subresource][status] lets Spec and Status requests for custom resources be addressed separately so requests don't conflict with each other.
 It also lets you split RBAC rules between Spec and Status.
 It's stable in Kubernetes as of [v1.16][rbac], but you will have to [manually enable it in Kubebuilder][kbstatus].
 
-Add the `subresource:status` annotation to your `<provider>cluster_types.go` `<provider>machine_types.go` 
+Add the `subresource:status` annotation to your `<provider>cluster_types.go` `<provider>machine_types.go`
 
 ```go
 // +kubebuilder:subresource:status
@@ -70,7 +70,7 @@ type MailgunCluster struct {
 type MailgunMachine struct {
 ```
 
-And regenerate the CRDs: 
+And regenerate the CRDs:
 ```shell
 make manifests
 ```

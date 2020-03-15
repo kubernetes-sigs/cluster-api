@@ -61,7 +61,7 @@ patchesStrategicMerge
 ## Our configuration
 
 There's many ways to manage configuration in production.
-The convention many Cluster-API projects use is enviroment variables.
+The convention many Cluster-API projects use is environment variables.
 
 `config/manager/configuration.yaml`
 
@@ -141,7 +141,7 @@ index e9352ce..29008db 100644
 
 ## EnvSubst
 
-_A tool like [direnv](https://direnv.net/) can be used to help manage enviroment variables._
+_A tool like [direnv](https://direnv.net/) can be used to help manage environment variables._
 
 
 `kustomize` does not handle replacing those `${VARIABLES}` with actual values.

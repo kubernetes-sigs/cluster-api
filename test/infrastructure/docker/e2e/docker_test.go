@@ -311,7 +311,7 @@ type ClusterGenerator struct {
 func (c *ClusterGenerator) GenerateCluster(namespace string, replicas int32) (*clusterv1.Cluster, *infrav1.DockerCluster, *controlplanev1.KubeadmControlPlane, *infrav1.DockerMachineTemplate) {
 	generatedName := fmt.Sprintf("test-%d", c.counter)
 	c.counter++
-	version := "1.16.3"
+	version := "v1.16.3"
 
 	infraCluster := &infrav1.DockerCluster{
 		ObjectMeta: metav1.ObjectMeta{

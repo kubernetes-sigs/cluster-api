@@ -21,6 +21,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"os"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 const validCluster = `
@@ -164,15 +166,17 @@ metadata:
 `
 
 func TestParseInvalidFile(t *testing.T) {
+	g := NewWithT(t)
+
 	_, err := Parse(ParseInput{
 		File: "filedoesnotexist",
 	})
-	if err == nil {
-		t.Fatal("Was able to parse a file that does not exist")
-	}
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestParseClusterYaml(t *testing.T) {
+	g := NewWithT(t)
+
 	var testcases = []struct {
 		name         string
 		contents     string
@@ -208,29 +212,25 @@ func TestParseClusterYaml(t *testing.T) {
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
 			file, err := createTempFile(testcase.contents)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(file)
 
 			c, err := Parse(ParseInput{File: file})
-			if (testcase.expectErr && err == nil) || (!testcase.expectErr && err != nil) {
-				t.Fatalf("Unexpected returned error. Got: %+v, Want Err: %v", err, testcase.expectErr)
-			}
-			if err != nil {
+			if testcase.expectErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			if len(c.Clusters) == 0 {
-				t.Fatalf("No cluster returned in success case.")
-			}
-			if c.Clusters[0].Name != testcase.expectedName {
-				t.Fatalf("Unexpected name. Got: %v, Want:%v", c.Clusters[0].Name, testcase.expectedName)
-			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(c.Clusters).NotTo(HaveLen(0))
+			g.Expect(c.Clusters[0].Name).To(Equal(testcase.expectedName))
 		})
 	}
 }
 
 func TestParseMachineYaml(t *testing.T) {
+	g := NewWithT(t)
+
 	var testcases = []struct {
 		name                 string
 		contents             string
@@ -286,24 +286,17 @@ func TestParseMachineYaml(t *testing.T) {
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
 			file, err := createTempFile(testcase.contents)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(file)
 
 			out, err := Parse(ParseInput{File: file})
-			if (testcase.expectErr && err == nil) || (!testcase.expectErr && err != nil) {
-				t.Fatalf("Unexpected returned error. Got: %v, Want Err: %v", err, testcase.expectErr)
-			}
-			if err != nil {
+			if testcase.expectErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			if len(out.Machines) == 0 {
-				t.Fatalf("No machines returned in success case.")
-			}
-			if len(out.Machines) != testcase.expectedMachineCount {
-				t.Fatalf("Unexpected machine count. Got: %v, Want: %v", len(out.Machines), testcase.expectedMachineCount)
-			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(out.Machines).To(HaveLen(testcase.expectedMachineCount))
 		})
 	}
 }

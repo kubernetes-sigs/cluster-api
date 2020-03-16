@@ -18,7 +18,6 @@ package util
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -36,6 +35,8 @@ import (
 )
 
 func TestMachineToInfrastructureMapFunc(t *testing.T) {
+	g := NewWithT(t)
+
 	var testcases = []struct {
 		name    string
 		input   schema.GroupVersionKind
@@ -103,14 +104,14 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fn := MachineToInfrastructureMapFunc(tc.input)
 			out := fn(tc.request)
-			if !reflect.DeepEqual(out, tc.output) {
-				t.Fatalf("Unexpected output. Got: %v, Want: %v", out, tc.output)
-			}
+			g.Expect(out).To(Equal(tc.output))
 		})
 	}
 }
 
 func TestClusterToInfrastructureMapFunc(t *testing.T) {
+	g := NewWithT(t)
+
 	var testcases = []struct {
 		name    string
 		input   schema.GroupVersionKind
@@ -178,14 +179,14 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fn := ClusterToInfrastructureMapFunc(tc.input)
 			out := fn(tc.request)
-			if !reflect.DeepEqual(out, tc.output) {
-				t.Fatalf("Unexpected output. Got: %v, Want: %v", out, tc.output)
-			}
+			g.Expect(out).To(Equal(tc.output))
 		})
 	}
 }
 
 func TestHasOwner(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		name     string
 		refList  []metav1.OwnerReference
@@ -254,14 +255,14 @@ func TestHasOwner(t *testing.T) {
 				clusterv1.GroupVersion.String(),
 				[]string{"MachineDeployment", "Cluster"},
 			)
-			if test.expected != result {
-				t.Errorf("expected hasOwner to be %v, got %v", test.expected, result)
-			}
+			g.Expect(result).To(Equal(test.expected))
 		})
 	}
 }
 
 func TestPointsTo(t *testing.T) {
+	g := NewWithT(t)
+
 	targetID := "fri3ndsh1p"
 
 	meta := metav1.ObjectMeta{
@@ -306,19 +307,16 @@ func TestPointsTo(t *testing.T) {
 				})
 			}
 
-			result := PointsTo(pointer.OwnerReferences, &meta)
-			if result != test.expected {
-				t.Errorf("expected %v, got %v", test.expected, result)
-			}
+			g.Expect(PointsTo(pointer.OwnerReferences, &meta)).To(Equal(test.expected))
 		})
 	}
 }
 
 func TestGetOwnerClusterSuccessByName(t *testing.T) {
+	g := NewWithT(t)
+
 	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal("failed to register cluster api objects to scheme")
-	}
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 	myCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -340,19 +338,15 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 		Name:      "my-resource-owned-by-cluster",
 	}
 	cluster, err := GetOwnerCluster(context.TODO(), c, objm)
-	if err != nil {
-		t.Fatalf("did not expect an error but found one: %v", err)
-	}
-	if cluster == nil {
-		t.Fatal("expected a cluster but got nil")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(cluster).NotTo(BeNil())
 }
 
 func TestGetOwnerMachineSuccessByName(t *testing.T) {
+	g := NewWithT(t)
+
 	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal("failed to register cluster api objects to scheme")
-	}
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 	myMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -374,19 +368,15 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 		Name:      "my-resource-owned-by-machine",
 	}
 	machine, err := GetOwnerMachine(context.TODO(), c, objm)
-	if err != nil {
-		t.Fatalf("did not expect an error but found one: %v", err)
-	}
-	if machine == nil {
-		t.Fatal("expected a machine but got nil")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(machine).NotTo(BeNil())
 }
 
 func TestGetMachinesForCluster(t *testing.T) {
+	g := NewWithT(t)
+
 	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal("failed to register cluster api objects to scheme")
-	}
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -433,15 +423,9 @@ func TestGetMachinesForCluster(t *testing.T) {
 	)
 
 	machines, err := GetMachinesForCluster(context.Background(), c, cluster)
-	if err != nil {
-		t.Fatalf("failed to get machines for cluster: %s", err)
-	}
-	if len(machines.Items) != 1 {
-		t.Fatalf("expected list to have one machine, found %d", len(machines.Items))
-	}
-	if machines.Items[0].Labels[clusterv1.ClusterLabelName] != cluster.Name {
-		t.Fatalf("expected list to have machine %v, found %v", machine, machines.Items[0])
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(machines.Items).To(HaveLen(1))
+	g.Expect(machines.Items[0].Labels[clusterv1.ClusterLabelName]).To(Equal(cluster.Name))
 }
 
 func TestEnsureOwnerRef(t *testing.T) {

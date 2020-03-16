@@ -19,19 +19,23 @@ package secret_test
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 func TestNewCertificatesForControlPlane_Stacked(t *testing.T) {
+	g := NewWithT(t)
+
 	config := &v1beta1.ClusterConfiguration{}
 	certs := secret.NewCertificatesForInitialControlPlane(config)
-	if certs.GetByPurpose(secret.EtcdCA).KeyFile == "" {
-		t.Fatal("stacked control planes must define etcd CA key file")
-	}
+	g.Expect(certs.GetByPurpose(secret.EtcdCA).KeyFile).NotTo(BeEmpty())
 }
 
 func TestNewCertificatesForControlPlane_External(t *testing.T) {
+	g := NewWithT(t)
+
 	config := &v1beta1.ClusterConfiguration{
 		Etcd: v1beta1.Etcd{
 			External: &v1beta1.ExternalEtcd{},
@@ -39,7 +43,5 @@ func TestNewCertificatesForControlPlane_External(t *testing.T) {
 	}
 
 	certs := secret.NewCertificatesForInitialControlPlane(config)
-	if certs.GetByPurpose(secret.EtcdCA).KeyFile != "" {
-		t.Fatal("control planes with external etcd must *not* define the etcd key file")
-	}
+	g.Expect(certs.GetByPurpose(secret.EtcdCA).KeyFile).To(BeEmpty())
 }

@@ -17,34 +17,29 @@ limitations under the License.
 package cloudinit
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestUnknown_Run(t *testing.T) {
+	g := NewWithT(t)
+
 	u := &unknown{
 		lines: []string{},
 	}
 	lines, err := u.Commands()
-	if err != nil {
-		t.Fatal("err should always be nil")
-	}
-	if len(lines) != 0 {
-		t.Fatalf("return exactly what was parsed. did not expect anything here but got: %v", lines)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(lines).To(HaveLen(0))
 }
 
 func TestUnknown_Unmarshal(t *testing.T) {
+	g := NewWithT(t)
+
 	u := &unknown{}
 	expected := []string{"test 1", "test 2", "test 3"}
 	input := `["test 1", "test 2", "test 3"]`
-	if err := u.Unmarshal([]byte(input)); err != nil {
-		t.Fatalf("should not return an error but got: %v", err)
-	}
-	if len(u.lines) != len(expected) {
-		t.Fatalf("expected exactly %v lines but got %v", 3, u.lines)
-	}
-	if !reflect.DeepEqual(u.lines, expected) {
-		t.Fatalf("lines should be %v but it is %v", expected, u.lines)
-	}
+
+	g.Expect(u.Unmarshal([]byte(input))).To(Succeed())
+	g.Expect(u.lines).To(Equal(expected))
 }

@@ -17,11 +17,14 @@ limitations under the License.
 package cloudinit
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestRealUseCase(t *testing.T) {
+	g := NewWithT(t)
+
 	cloudData := []byte(`
 #cloud-config
 
@@ -137,19 +140,12 @@ write_files:
 	}
 
 	commands, err := Commands(cloudData)
-	if err != nil {
-		t.Fatalf("Run returned unexpected errors %v", err)
-	}
-	if len(commands) != len(expectedCmds) {
-		t.Fatal("commands and expected commands should be the same length")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(commands).To(HaveLen(len(expectedCmds)))
+
 	for i, cmd := range commands {
 		expected := expectedCmds[i]
-		if cmd.Cmd != expected.Cmd {
-			t.Fatalf("commands should be the same: %s vs %s", cmd.Cmd, expected.Cmd)
-		}
-		if !reflect.DeepEqual(cmd.Args, expected.Args) {
-			t.Fatalf("command args should be the same: %v vs %v", cmd.Args, expected.Cmd)
-		}
+		g.Expect(cmd.Cmd).To(Equal(expected.Cmd))
+		g.Expect(cmd.Args).To(ConsistOf(expected.Args))
 	}
 }

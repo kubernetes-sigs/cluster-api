@@ -113,8 +113,9 @@ spec:
                               and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
                             type: string
                           certificatesDir:
-                            description: CertificatesDir specifies where to store
-                              or look for all required certificates.
+                            description: 'CertificatesDir specifies where to store
+                              or look for all required certificates. NB: if not provided,
+                              this will default to `/etc/kubernetes/pki`'
                             type: string
                           clusterName:
                             description: The cluster name
@@ -201,7 +202,8 @@ spec:
                                 type: string
                             type: object
                           etcd:
-                            description: Etcd holds configuration for etcd.
+                            description: 'Etcd holds configuration for etcd. NB: This
+                              value defaults to a Local (stacked) etcd'
                             properties:
                               external:
                                 description: External describes how to connect to
@@ -314,13 +316,17 @@ spec:
                                 type: string
                               podSubnet:
                                 description: PodSubnet is the subnet used by pods.
+                                  If unset, the API server will not allocate CIDR
+                                  ranges for every node. Defaults to the first element
+                                  of the Cluster object's spec.clusterNetwork.services.cidrBlocks
+                                  if that is set
                                 type: string
                               serviceSubnet:
                                 description: ServiceSubnet is the subnet used by k8s
-                                  services. Defaults to "10.96.0.0/12".
+                                  services. Defaults to the first element of the Cluster
+                                  object's spec.clusterNetwork.pods.cidrBlocks field,
+                                  or to "10.96.0.0/12" if that's unset.
                                 type: string
-                            required:
-                            - podSubnet
                             type: object
                           scheduler:
                             description: Scheduler contains extra settings for the
@@ -764,8 +770,6 @@ spec:
                                   type: object
                                 type: array
                             type: object
-                        required:
-                        - nodeRegistration
                         type: object
                       ntp:
                         description: NTP specifies NTP configuration
@@ -947,8 +951,9 @@ spec:
                               and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
                             type: string
                           certificatesDir:
-                            description: CertificatesDir specifies where to store
-                              or look for all required certificates.
+                            description: 'CertificatesDir specifies where to store
+                              or look for all required certificates. NB: if not provided,
+                              this will default to `/etc/kubernetes/pki`'
                             type: string
                           clusterName:
                             description: The cluster name
@@ -1035,7 +1040,8 @@ spec:
                                 type: string
                             type: object
                           etcd:
-                            description: Etcd holds configuration for etcd.
+                            description: 'Etcd holds configuration for etcd. NB: This
+                              value defaults to a Local (stacked) etcd'
                             properties:
                               external:
                                 description: External describes how to connect to
@@ -1148,13 +1154,17 @@ spec:
                                 type: string
                               podSubnet:
                                 description: PodSubnet is the subnet used by pods.
+                                  If unset, the API server will not allocate CIDR
+                                  ranges for every node. Defaults to the first element
+                                  of the Cluster object's spec.clusterNetwork.services.cidrBlocks
+                                  if that is set
                                 type: string
                               serviceSubnet:
                                 description: ServiceSubnet is the subnet used by k8s
-                                  services. Defaults to "10.96.0.0/12".
+                                  services. Defaults to the first element of the Cluster
+                                  object's spec.clusterNetwork.pods.cidrBlocks field,
+                                  or to "10.96.0.0/12" if that's unset.
                                 type: string
-                            required:
-                            - podSubnet
                             type: object
                           scheduler:
                             description: Scheduler contains extra settings for the
@@ -1598,8 +1608,6 @@ spec:
                                   type: object
                                 type: array
                             type: object
-                        required:
-                        - nodeRegistration
                         type: object
                       ntp:
                         description: NTP specifies NTP configuration

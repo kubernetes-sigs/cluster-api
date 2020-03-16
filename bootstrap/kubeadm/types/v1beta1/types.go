@@ -30,9 +30,11 @@ type InitConfiguration struct {
 
 	// BootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
 	// This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
+	// +optional
 	BootstrapTokens []BootstrapToken `json:"bootstrapTokens,omitempty"`
 
 	// NodeRegistration holds fields that relate to registering the new control-plane node to the cluster
+	// +optional
 	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 
 	// LocalAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
@@ -41,6 +43,7 @@ type InitConfiguration struct {
 	// configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
 	// on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
 	// fails you may set the desired value here.
+	// +optional
 	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
 }
 
@@ -51,18 +54,19 @@ type ClusterConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// Etcd holds configuration for etcd.
+	// NB: This value defaults to a Local (stacked) etcd
 	// +optional
-	Etcd Etcd `json:"etcd"`
+	Etcd Etcd `json:"etcd,omitempty"`
 
 	// Networking holds configuration for the networking topology of the cluster.
 	// NB: This value defaults to the Cluster object spec.clusterNetwork.
 	// +optional
-	Networking Networking `json:"networking"`
+	Networking Networking `json:"networking,omitempty"`
 
 	// KubernetesVersion is the target version of the control plane.
 	// NB: This value defaults to the Machine object spec.kuberentesVersion
 	// +optional
-	KubernetesVersion string `json:"kubernetesVersion"`
+	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 
 	// ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
 	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
@@ -77,36 +81,42 @@ type ClusterConfiguration struct {
 	// could be used for assigning a stable DNS to the control plane.
 	// NB: This value defaults to the first value in the Cluster object status.apiEndpoints array.
 	// +optional
-	ControlPlaneEndpoint string `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint string `json:"controlPlaneEndpoint,omitempty"`
 
 	// APIServer contains extra settings for the API server control plane component
+	// +optional
 	APIServer APIServer `json:"apiServer,omitempty"`
 
 	// ControllerManager contains extra settings for the controller manager control plane component
+	// +optional
 	ControllerManager ControlPlaneComponent `json:"controllerManager,omitempty"`
 
 	// Scheduler contains extra settings for the scheduler control plane component
+	// +optional
 	Scheduler ControlPlaneComponent `json:"scheduler,omitempty"`
 
 	// DNS defines the options for the DNS add-on installed in the cluster.
 	// +optional
-	DNS DNS `json:"dns"`
+	DNS DNS `json:"dns,omitempty"`
 
 	// CertificatesDir specifies where to store or look for all required certificates.
+	// NB: if not provided, this will default to `/etc/kubernetes/pki`
 	// +optional
-	CertificatesDir string `json:"certificatesDir"`
+	CertificatesDir string `json:"certificatesDir,omitempty"`
 
 	// ImageRepository sets the container registry to pull images from.
 	// If empty, `k8s.gcr.io` will be used by default; in case of kubernetes version is a CI build (kubernetes version starts with `ci/` or `ci-cross/`)
 	// `gcr.io/kubernetes-ci-images` will be used as a default for control plane components and for kube-proxy, while `k8s.gcr.io`
 	// will be used for all the other images.
 	// +optional
-	ImageRepository string `json:"imageRepository"`
+	ImageRepository string `json:"imageRepository,omitempty"`
 
 	// UseHyperKubeImage controls if hyperkube should be used for Kubernetes components instead of their respective separate images
+	// +optional
 	UseHyperKubeImage bool `json:"useHyperKubeImage,omitempty"`
 
 	// FeatureGates enabled by the user.
+	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
 
 	// The cluster name
@@ -199,29 +209,38 @@ type NodeRegistrationOptions struct {
 	// Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
 	// This field is also used in the CommonName field of the kubelet's client certificate to the API server.
 	// Defaults to the hostname of the node if not provided.
+	// +optional
 	Name string `json:"name,omitempty"`
 
 	// CRISocket is used to retrieve container runtime info. This information will be annotated to the Node API object, for later re-use
+	// +optional
 	CRISocket string `json:"criSocket,omitempty"`
 
 	// Taints specifies the taints the Node API object should be registered with. If this field is unset, i.e. nil, in the `kubeadm init` process
 	// it will be defaulted to []v1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
 	// empty slice, i.e. `taints: {}` in the YAML file. This field is solely used for Node registration.
+	// +optional
 	Taints []v1.Taint `json:"taints,omitempty"`
 
 	// KubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
 	// kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
 	// Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
+	// +optional
 	KubeletExtraArgs map[string]string `json:"kubeletExtraArgs,omitempty"`
 }
 
 // Networking contains elements describing cluster's networking configuration
 type Networking struct {
-	// ServiceSubnet is the subnet used by k8s services. Defaults to "10.96.0.0/12".
+	// ServiceSubnet is the subnet used by k8s services.
+	// Defaults to the first element of the Cluster object's spec.clusterNetwork.pods.cidrBlocks field, or
+	// to "10.96.0.0/12" if that's unset.
 	// +optional
 	ServiceSubnet string `json:"serviceSubnet,omitempty"`
 	// PodSubnet is the subnet used by pods.
-	PodSubnet string `json:"podSubnet"`
+	// If unset, the API server will not allocate CIDR ranges for every node.
+	// Defaults to the first element of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
+	// +optional
+	PodSubnet string `json:"podSubnet,omitempty"`
 	// DNSDomain is the dns domain used by k8s services. Defaults to "cluster.local".
 	// +optional
 	DNSDomain string `json:"dnsDomain,omitempty"`
@@ -307,7 +326,8 @@ type JoinConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// NodeRegistration holds fields that relate to registering the new control-plane node to the cluster
-	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration"`
+	// +optional
+	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 
 	// CACertPath is the path to the SSL certificate authority used to
 	// secure comunications between node and control-plane.
@@ -323,6 +343,7 @@ type JoinConfiguration struct {
 
 	// ControlPlane defines the additional control plane instance to be deployed on the joining node.
 	// If nil, no additional control plane instance will be deployed.
+	// +optional
 	ControlPlane *JoinControlPlane `json:"controlPlane,omitempty"`
 }
 

@@ -18,14 +18,17 @@ package client
 
 import (
 	"context"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
 func Test_clusterctlClient_Delete(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		client *fakeClient
 	}
@@ -105,33 +108,26 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.fields.client.Delete(tt.args.options); (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := tt.fields.client.Delete(tt.args.options)
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			proxy := tt.fields.client.clusters["kubeconfig"].Proxy()
 			gotProviders := &clusterctlv1.ProviderList{}
 
 			c, err := proxy.NewClient()
-			if err != nil {
-				t.Fatalf("failed to create client %v", err)
-			}
-
-			if err := c.List(context.TODO(), gotProviders); err != nil {
-				t.Fatalf("failed to read providers %v", err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(c.List(context.Background(), gotProviders)).To(Succeed())
 
 			gotProvidersSet := sets.NewString()
 			for _, gotProvider := range gotProviders.Items {
 				gotProvidersSet.Insert(gotProvider.Name)
 			}
 
-			if !reflect.DeepEqual(gotProvidersSet, tt.wantProviders) {
-				t.Errorf("got = %v providers, want %v", len(gotProviders.Items), len(tt.wantProviders))
-			}
+			g.Expect(gotProvidersSet).To(Equal(tt.wantProviders))
 		})
 	}
 }

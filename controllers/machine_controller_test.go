@@ -785,3 +785,169 @@ func Test_clusterToActiveMachines(t *testing.T) {
 		g.Expect(got).To(Equal(tt.want))
 	}
 }
+
+func TestIsDeleteNodeAllowed(t *testing.T) {
+	testCases := []struct {
+		name          string
+		machine       *clusterv1.Machine
+		expectedError error
+	}{
+		{
+			name: "machine without nodeRef",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "created",
+					Namespace:  "default",
+					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			expectedError: errNilNodeRef,
+		},
+		{
+			name: "no control plane members",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "created",
+					Namespace:  "default",
+					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
+			expectedError: errNoControlPlaneNodes,
+		},
+		{
+			name: "is last control plane members",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "created",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName:             "test",
+						clusterv1.MachineControlPlaneLabelName: "",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
+			expectedError: errLastControlPlaneNode,
+		},
+		{
+			name: "has nodeRef and control plane is healthy",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "created",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "test",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
+			expectedError: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			m1 := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cp1",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "test",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test1",
+					},
+				},
+			}
+			m2 := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cp2",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "test",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test2",
+					},
+				},
+			}
+			// For isDeleteNodeAllowed to be true we assume a healthy control plane.
+			if tc.expectedError == nil {
+				m1.Labels[clusterv1.MachineControlPlaneLabelName] = ""
+				m2.Labels[clusterv1.MachineControlPlaneLabelName] = ""
+			}
+
+			mr := &MachineReconciler{
+				Client: fake.NewFakeClientWithScheme(
+					scheme.Scheme,
+					tc.machine,
+					m1,
+					m2,
+				),
+				Log:    log.Log,
+				scheme: scheme.Scheme,
+			}
+
+			err := mr.isDeleteNodeAllowed(context.TODO(), tc.machine)
+			if tc.expectedError == nil {
+				g.Expect(err).To(BeNil())
+			} else {
+				g.Expect(err).To(Equal(tc.expectedError))
+			}
+		})
+	}
+}

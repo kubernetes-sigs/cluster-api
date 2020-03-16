@@ -129,6 +129,28 @@ test-capd-e2e: ## Rebuild the docker provider and run the capd-e2e tests
 	$(MAKE) -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-capi-docker
 	$(MAKE) -C test/infrastructure/docker run-e2e
 
+.PHONY: unit-all
+unit-all: ## Run all clusterctl unit tests
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs
+	go test -v ./cmd/clusterctl/...
+
+.PHONY: unit-all-cover
+unit-all-cover: ## Run all clusterctl unit tests with coverage
+		source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs
+		go test -coverprofile=cover.out ./cmd/clusterctl/...
+		go tool cover -func=cover.out
+
+.PHONY: unit-all-cover-html
+unit-all-cover-html: ## Run all clusterctl unit tests with coverage, results to browser
+		source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs
+		go test -coverprofile=cover.out ./cmd/clusterctl/...
+		go tool cover -html=cover.out
+
+.PHONY: unit-set
+unit-set: ## Run clusterctl unit tests matching string pattern, 'make TCNAME=<tc_string_pattern> unit-set'
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs
+	go test -v ./cmd/clusterctl/... -run $(TCNAME)
+
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------

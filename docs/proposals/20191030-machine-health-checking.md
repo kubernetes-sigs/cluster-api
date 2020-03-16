@@ -68,7 +68,7 @@ Enable opt in automated health checking and remediation of unhealthy nodes backe
 
 ### Non-Goals/Future Work
 - Record long-term stable history of all health-check failures or remediations.
-- Provide a mechanisim to guarantee that application quorum for N members is maintained at any time.
+- Provide a mechanism to guarantee that application quorum for N members is maintained at any time.
 
 ## Proposal
 The machine health checker (MHC) does a best effort to keep nodes healthy in the cluster, by removing machines backing unhealthy Nodes.

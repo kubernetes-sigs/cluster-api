@@ -18,12 +18,14 @@ package v1alpha3
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/blang/semver"
 	jsonpatch "github.com/evanphx/json-patch"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -55,6 +57,7 @@ func (in *KubeadmControlPlane) Default() {
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (in *KubeadmControlPlane) ValidateCreate() error {
 	allErrs := in.validateCommon()
+	allErrs = append(allErrs, in.validateEtcd(nil)...)
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
 	}
@@ -87,8 +90,6 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs := in.validateCommon()
 
 	prev := old.(*KubeadmControlPlane)
-
-	allErrs = append(allErrs, in.validateEtcd(prev)...)
 
 	originalJSON, err := json.Marshal(prev)
 	if err != nil {
@@ -123,6 +124,8 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath(path[0], path[1:]...), "cannot be modified"))
 		}
 	}
+
+	allErrs = append(allErrs, in.validateEtcd(prev)...)
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
@@ -234,6 +237,25 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), in.Spec.Version, "must be a valid semantic version"))
 	}
 
+	allErrs = append(allErrs, in.validateCoreDNS()...)
+
+	return allErrs
+}
+
+func (in *KubeadmControlPlane) validateCoreDNS() (allErrs field.ErrorList) {
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
+		return allErrs
+	}
+	// TODO: Remove when kubeadm types include OpenAPI validation
+	if !util.ImageTagIsValid(in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
+				fmt.Sprintf("tag %s is invalid", in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag),
+			),
+		)
+	}
 	return allErrs
 }
 
@@ -242,24 +264,48 @@ func (in *KubeadmControlPlane) validateEtcd(prev *KubeadmControlPlane) (allErrs 
 		return allErrs
 	}
 
-	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
+	// TODO: Remove when kubeadm types include OpenAPI validation
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && !util.ImageTagIsValid(in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
-				field.NewPath("spec", "kubeadmConfigSpec", "initConfiguration", "etcd", "external"),
-				"cannot have both local and external etcd at the same time",
+				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "etcd", "local", "imageTag"),
+				fmt.Sprintf("tag %s is invalid", in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag),
 			),
 		)
 	}
 
-	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
-				field.NewPath("spec", "kubeadmConfigSpec", "initConfiguration", "etcd", "local"),
-				"cannot have both local and external etcd at the same time",
+				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "etcd", "local"),
+				"cannot have both external and local etcd",
 			),
 		)
+	}
+
+	// update validations
+	if prev != nil {
+		if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
+			allErrs = append(
+				allErrs,
+				field.Forbidden(
+					field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "etcd", "external"),
+					"cannot change between external and local etcd",
+				),
+			)
+		}
+
+		if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
+			allErrs = append(
+				allErrs,
+				field.Forbidden(
+					field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "etcd", "local"),
+					"cannot change between external and local etcd",
+				),
+			)
+		}
 	}
 
 	return allErrs

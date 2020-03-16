@@ -221,6 +221,21 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			ImageTag: "v9.1.1",
 		},
 	}
+
+	etcdLocalImageBuildTag := before.DeepCopy()
+	etcdLocalImageBuildTag.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
+		ImageMeta: kubeadmv1beta1.ImageMeta{
+			ImageTag: "v9.1.1_validBuild1",
+		},
+	}
+
+	etcdLocalImageInvalidTag := before.DeepCopy()
+	etcdLocalImageInvalidTag.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
+		ImageMeta: kubeadmv1beta1.ImageMeta{
+			ImageTag: "v9.1.1+invalidBuild1",
+		},
+	}
+
 	unsetEtcd := etcdLocalImageTag.DeepCopy()
 	unsetEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = nil
 
@@ -253,6 +268,22 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ImageMeta: kubeadmv1beta1.ImageMeta{
 			ImageRepository: "gcr.io/capi-test",
 			ImageTag:        "v0.20.0",
+		},
+	}
+
+	dnsBuildTag := before.DeepCopy()
+	dnsBuildTag.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
+		ImageMeta: kubeadmv1beta1.ImageMeta{
+			ImageRepository: "gcr.io/capi-test",
+			ImageTag:        "v0.20.0_build1",
+		},
+	}
+
+	dnsInvalidTag := before.DeepCopy()
+	dnsInvalidTag.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
+		ImageMeta: kubeadmv1beta1.ImageMeta{
+			ImageRepository: "gcr.io/capi-test",
+			ImageTag:        "v0.20.0+invalidBuild1",
 		},
 	}
 
@@ -393,6 +424,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       etcdLocalImageTag,
 		},
 		{
+			name:      "should succeed when making a change to the local etcd image tag",
+			expectErr: false,
+			before:    before,
+			kcp:       etcdLocalImageBuildTag,
+		},
+		{
+			name:      "should fail when using an invalid etcd image tag",
+			expectErr: true,
+			before:    before,
+			kcp:       etcdLocalImageInvalidTag,
+		},
+		{
 			name:      "should fail when making a change to the cluster config's networking struct",
 			expectErr: true,
 			before:    before,
@@ -429,10 +472,22 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       scheduler,
 		},
 		{
-			name:      "should fail when making a change to the cluster config's dns",
+			name:      "should succeed when making a change to the cluster config's dns",
 			expectErr: false,
 			before:    before,
 			kcp:       dns,
+		},
+		{
+			name:      "should succeed when using an valid DNS build",
+			expectErr: false,
+			before:    before,
+			kcp:       dnsBuildTag,
+		},
+		{
+			name:      "should fail when using an invalid DNS build",
+			expectErr: true,
+			before:    before,
+			kcp:       dnsInvalidTag,
 		},
 		{
 			name:      "should fail when making a change to the cluster config's certificatesDir",

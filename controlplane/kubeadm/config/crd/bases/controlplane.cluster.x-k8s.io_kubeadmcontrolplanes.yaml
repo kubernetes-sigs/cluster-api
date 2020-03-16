@@ -912,7 +912,8 @@ spec:
                 type: string
               version:
                 description: Version defines the desired Kubernetes version.
-                minLength: 1
+                minLength: 2
+                pattern: ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$
                 type: string
             required:
             - infrastructureTemplate

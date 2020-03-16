@@ -40,12 +40,12 @@ import (
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	kubeProxyDaemonSetName = "kube-proxy"
+	kubeProxyKey = "kube-proxy"
 )
 
 var (
@@ -578,28 +578,50 @@ func firstNodeNotMatchingName(name string, nodes []corev1.Node) *corev1.Node {
 func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
 	ds := &appsv1.DaemonSet{}
 
-	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyDaemonSetName, Namespace: metav1.NamespaceSystem}, ds); err != nil {
+	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
 		if apierrors.IsNotFound(err) {
 			// if kube-proxy is missing, return without errors
 			return nil
 		}
-		return errors.Wrapf(err, "failed to determine if %s daemonset already exists", kubeProxyDaemonSetName)
+		return errors.Wrapf(err, "failed to determine if %s daemonset already exists", kubeProxyKey)
 	}
 
-	if len(ds.Spec.Template.Spec.Containers) == 0 {
+	container := findKubeProxyContainer(ds)
+	if container == nil {
 		return nil
 	}
-	newImageName, err := util.ModifyImageTag(ds.Spec.Template.Spec.Containers[0].Image, kcp.Spec.Version)
+
+	newImageName, err := util.ModifyImageTag(container.Image, kcp.Spec.Version)
 	if err != nil {
 		return err
 	}
 
-	if ds.Spec.Template.Spec.Containers[0].Image != newImageName {
-		patch := client.MergeFrom(ds.DeepCopy())
-		ds.Spec.Template.Spec.Containers[0].Image = newImageName
-		if err := w.Client.Patch(ctx, ds, patch); err != nil {
-			return errors.Wrap(err, "error patching kube-proxy DaemonSet")
+	if container.Image != newImageName {
+		helper, err := patch.NewHelper(ds, w.Client)
+		if err != nil {
+			return err
+		}
+		patchKubeProxyImage(ds, newImageName)
+		return helper.Patch(ctx, ds)
+	}
+	return nil
+}
+
+func findKubeProxyContainer(ds *appsv1.DaemonSet) *corev1.Container {
+	containers := ds.Spec.Template.Spec.Containers
+	for idx := range containers {
+		if containers[idx].Name == kubeProxyKey {
+			return &containers[idx]
 		}
 	}
 	return nil
+}
+
+func patchKubeProxyImage(ds *appsv1.DaemonSet, image string) {
+	containers := ds.Spec.Template.Spec.Containers
+	for idx := range containers {
+		if containers[idx].Name == kubeProxyKey {
+			containers[idx].Image = image
+		}
+	}
 }

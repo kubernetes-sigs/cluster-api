@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/blang/semver"
 	jsonpatch "github.com/evanphx/json-patch"
@@ -232,8 +233,7 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 		)
 	}
 
-	_, err := semver.ParseTolerant(in.Spec.Version)
-	if err != nil {
+	if _, err := semver.Parse(strings.TrimPrefix(strings.TrimSpace(in.Spec.Version), "v")); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), in.Spec.Version, "must be a valid semantic version"))
 	}
 

@@ -428,6 +428,17 @@ func TestGetMachinesForCluster(t *testing.T) {
 	g.Expect(machines.Items[0].Labels[clusterv1.ClusterLabelName]).To(Equal(cluster.Name))
 }
 
+func TestModifyImageTag(t *testing.T) {
+	g := NewGomegaWithT(t)
+	t.Run("should ensure image is a docker compatible tag", func(t *testing.T) {
+		testTag := "v1.17.4+build1"
+		image := "example.com/image:1.17.3"
+		res, err := ModifyImageTag(image, testTag)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res).To(Equal("example.com/image:v1.17.4_build1"))
+	})
+}
+
 func TestEnsureOwnerRef(t *testing.T) {
 	g := NewGomegaWithT(t)
 

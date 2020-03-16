@@ -286,7 +286,7 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", value)))
 
 	for _, cluster := range clusters {
-		log.V(5).Info("Set Cluster.Spec.Paused", value, "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
+		log.V(5).Info("Set Cluster.Spec.Paused", "Paused", value, "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
 
 		cFrom, err := proxy.NewClient()
 		if err != nil {

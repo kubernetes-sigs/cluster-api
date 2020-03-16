@@ -17,15 +17,18 @@ limitations under the License.
 package noderefutil
 
 import (
-	"reflect"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestIsNodeAvaialble(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		name              string
 		node              *corev1.Node
@@ -140,15 +143,14 @@ func TestIsNodeAvaialble(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			isAvailable := IsNodeAvailable(test.node, test.minReadySeconds, metav1.Now())
-			if isAvailable != test.expectedAvailable {
-				t.Fatalf("got %v available, expected %v available", isAvailable, test.expectedAvailable)
-			}
+			g.Expect(IsNodeAvailable(test.node, test.minReadySeconds, metav1.Now())).To(Equal(test.expectedAvailable))
 		})
 	}
 }
 
 func TestGetReadyCondition(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		name              string
 		nodeStatus        *corev1.NodeStatus
@@ -221,15 +223,14 @@ func TestGetReadyCondition(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := GetReadyCondition(test.nodeStatus)
-			if !reflect.DeepEqual(c, test.expectedCondition) {
-				t.Fatalf("got %v condition, expected %v condition", c, test.expectedCondition)
-			}
+			g.Expect(GetReadyCondition(test.nodeStatus)).To(Equal(test.expectedCondition))
 		})
 	}
 }
 
 func TestIsNodeReady(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		name          string
 		node          *corev1.Node
@@ -301,10 +302,7 @@ func TestIsNodeReady(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			isReady := IsNodeReady(test.node)
-			if isReady != test.expectedReady {
-				t.Fatalf("got %v ready, expected %v ready", isReady, test.expectedReady)
-			}
+			g.Expect(IsNodeReady(test.node)).To(Equal(test.expectedReady))
 		})
 	}
 }

@@ -18,11 +18,15 @@ package noderefutil
 
 import (
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 const aws = "aws"
 
 func TestNewProviderID(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		name       string
 		input      string
@@ -53,23 +57,16 @@ func TestNewProviderID(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			id, err := NewProviderID(tc.input)
-			if err != nil {
-				t.Fatalf("Expected no errors, got %v", err)
-			}
-
-			if id.CloudProvider() != aws {
-				t.Errorf("Unexpected cloud provider: %q", id.CloudProvider())
-			}
-
-			if e, a := tc.expectedID, id.ID(); e != a {
-				t.Errorf("Expected %q, got %q", e, a)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(id.CloudProvider()).To(Equal(aws))
+			g.Expect(id.ID()).To(Equal(tc.expectedID))
 		})
 	}
-
 }
 
 func TestInvalidProviderID(t *testing.T) {
+	g := NewWithT(t)
+
 	testCases := []struct {
 		name  string
 		input string
@@ -110,52 +107,28 @@ func TestInvalidProviderID(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			_, err := NewProviderID(test.input)
-			if test.err != err {
-				t.Fatalf("Expected error %v, got %v", test.err, err)
-			}
+			g.Expect(err).To(MatchError(test.err))
 		})
-
 	}
 }
 
 func TestProviderIDEquals(t *testing.T) {
+	g := NewWithT(t)
+
 	input1 := "aws:////instance-id1"
 	parsed1, err := NewProviderID(input1)
-	if err != nil {
-		t.Fatalf("Expected no errors, got %v", err)
-	}
-
-	if parsed1.String() != input1 {
-		t.Fatalf("Expected String output to match original input %q, got %q", input1, parsed1.String())
-	}
-
-	if parsed1.ID() != "instance-id1" {
-		t.Fatalf("Expected valid ID, got %v", parsed1.ID())
-	}
-
-	if parsed1.CloudProvider() != aws {
-		t.Fatalf("Expected valid CloudProvider, got %v", parsed1.CloudProvider())
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsed1.String()).To(Equal(input1))
+	g.Expect(parsed1.ID()).To(Equal("instance-id1"))
+	g.Expect(parsed1.CloudProvider()).To(Equal(aws))
 
 	input2 := "aws:///us-west-1/instance-id1"
 	parsed2, err := NewProviderID(input2)
-	if err != nil {
-		t.Fatalf("Expected no errors, got %v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsed2.String()).To(Equal(input2))
+	g.Expect(parsed2.ID()).To(Equal("instance-id1"))
+	g.Expect(parsed2.CloudProvider()).To(Equal(aws))
 
-	if parsed2.String() != input2 {
-		t.Fatalf("Expected String output to match original input %q, got %q", input1, parsed1.String())
-	}
+	g.Expect(parsed1.Equals(parsed2)).To(BeTrue())
 
-	if parsed2.ID() != "instance-id1" {
-		t.Fatalf("Expected valid ID, got %v", parsed2.ID())
-	}
-
-	if parsed2.CloudProvider() != aws {
-		t.Fatalf("Expected valid CloudProvider, got %v", parsed2.CloudProvider())
-	}
-
-	if !parsed1.Equals(parsed2) {
-		t.Fatal("Expected ProviderIDs to be equal")
-	}
 }

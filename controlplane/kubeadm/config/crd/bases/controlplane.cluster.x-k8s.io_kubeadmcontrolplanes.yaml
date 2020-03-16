@@ -664,6 +664,8 @@ spec:
                             - advertiseAddress
                             - bindPort
                             type: object
+                        required:
+                        - localAPIEndpoint
                         type: object
                       discovery:
                         description: 'Discovery specifies the options for the kubelet
@@ -809,8 +811,6 @@ spec:
                               type: object
                             type: array
                         type: object
-                    required:
-                    - nodeRegistration
                     type: object
                   ntp:
                     description: NTP specifies NTP configuration

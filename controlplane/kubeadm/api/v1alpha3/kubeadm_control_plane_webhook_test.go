@@ -17,15 +17,25 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
+	"gomodules.xyz/jsonpatch/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/controller-runtime/pkg/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func TestKubeadmControlPlaneDefault(t *testing.T) {
@@ -42,6 +52,93 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 	kcp.Default()
 
 	g.Expect(kcp.Spec.InfrastructureTemplate.Namespace).To(Equal(kcp.Namespace))
+}
+
+func TestKubeadmControlPlaneDefault_integration(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme, err := (&scheme.Builder{GroupVersion: GroupVersion}).Register(&KubeadmControlPlane{}).Build()
+	g.Expect(err).NotTo(HaveOccurred())
+
+	wh := admission.DefaultingWebhookFor(&KubeadmControlPlane{})
+	g.Expect(wh.InjectLogger(log.Log)).To(Succeed())
+	g.Expect(wh.InjectScheme(scheme)).To(Succeed())
+	svr := &webhook.Server{}
+	g.Expect(svr.InjectFunc(func(i interface{}) error { return nil })).To(Succeed())
+	svr.Register("/test", wh)
+
+	stopCh := make(chan struct{})
+	close(stopCh)
+	err = svr.Start(stopCh)
+	if err != nil && !os.IsNotExist(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+
+	reader := strings.NewReader(`{
+   "kind":"AdmissionReview",
+   "apiVersion":"admission.k8s.io/v1beta1",
+   "request":{
+      "uid":"3fab8e81-1a82-41ad-8824-d84eca7f46b1",
+      "kind":{
+         "group":"",
+         "version":"v1alpha3",
+         "kind":"KubeadmControlPlane"
+      },
+      "resource":{
+         "group":"",
+         "version":"v1",
+         "resource":"testdefaulter"
+      },
+      "namespace":"default",
+      "operation":"CREATE",
+      "object":{
+         "spec":{
+            "kubeadmConfigSpec":{
+               "clusterConfiguration":{},
+               "initConfiguration":{},
+               "joinConfiguration":{}
+            }
+         }
+      },
+      "oldObject":null
+   }
+}`)
+
+	req := httptest.NewRequest("POST", "http://svc-name.svc-ns.svc/test", reader)
+	req.Header.Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
+	w := httptest.NewRecorder()
+	svr.WebhookMux.ServeHTTP(w, req)
+	g.Expect(w.Code).To(Equal(http.StatusOK))
+
+	var resp struct {
+		Response struct {
+			Allowed   bool
+			PatchType string
+			Patch     []byte
+			Status    struct {
+				Code    int
+				Message string
+			}
+		}
+	}
+	g.Expect(json.NewDecoder(w.Body).Decode(&resp)).To(Succeed())
+
+	g.Expect(resp.Response.Status.Code).To(Equal(200), "got error response from webhook: %v", resp.Response.Status.Message)
+	g.Expect(resp.Response.Allowed).To(Equal(true))
+	g.Expect(resp.Response.PatchType).To(Equal("JSONPatch"))
+
+	var ops []jsonpatch.Operation
+	g.Expect(json.Unmarshal(resp.Response.Patch, &ops)).To(Succeed())
+
+	opPath := func(op jsonpatch.Operation) string {
+		return op.Path
+	}
+	g.Expect(ops).To(ContainElement(WithTransform(opPath, Equal("/spec/replicas"))))
+	g.Expect(ops).To(ContainElement(WithTransform(opPath, Equal("/spec/infrastructureTemplate"))))
+
+	g.Expect(ops).ToNot(ContainElement(WithTransform(opPath, ContainSubstring("/spec/kubeadmConfigSpec/clusterConfiguration"))))
+	g.Expect(ops).ToNot(ContainElement(WithTransform(opPath, ContainSubstring("/spec/kubeadmConfigSpec/initConfiguration"))))
+	g.Expect(ops).ToNot(ContainElement(WithTransform(opPath, ContainSubstring("/spec/kubeadmConfigSpec/joinConfiguration"))))
 }
 
 func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
@@ -74,7 +171,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	evenReplicasExternalEtcd := evenReplicas.DeepCopy()
 	evenReplicasExternalEtcd.Spec.KubeadmConfigSpec = bootstrapv1.KubeadmConfigSpec{
 		ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
-			Etcd: kubeadmv1beta1.Etcd{
+			Etcd: &kubeadmv1beta1.Etcd{
 				External: &kubeadmv1beta1.ExternalEtcd{},
 			},
 		},
@@ -168,7 +265,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			Replicas: pointer.Int32Ptr(1),
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				InitConfiguration: &kubeadmv1beta1.InitConfiguration{
-					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
+					LocalAPIEndpoint: &kubeadmv1beta1.APIEndpoint{
 						AdvertiseAddress: "127.0.0.1",
 						BindPort:         int32(443),
 					},
@@ -177,7 +274,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					ClusterName: "test",
 				},
 				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					NodeRegistration: &kubeadmv1beta1.NodeRegistrationOptions{
 						Name: "test",
 					},
 				},
@@ -216,16 +313,20 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	missingReplicas.Spec.Replicas = nil
 
 	etcdLocalImageTag := before.DeepCopy()
-	etcdLocalImageTag.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
-		ImageMeta: kubeadmv1beta1.ImageMeta{
-			ImageTag: "v9.1.1",
+	etcdLocalImageTag.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = &kubeadmv1beta1.Etcd{
+		Local: &kubeadmv1beta1.LocalEtcd{
+			ImageMeta: kubeadmv1beta1.ImageMeta{
+				ImageTag: "v9.1.1",
+			},
 		},
 	}
 	unsetEtcd := etcdLocalImageTag.DeepCopy()
 	unsetEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = nil
 
 	networking := before.DeepCopy()
-	networking.Spec.KubeadmConfigSpec.ClusterConfiguration.Networking.DNSDomain = "some dns domain"
+	networking.Spec.KubeadmConfigSpec.ClusterConfiguration.Networking = &kubeadmv1beta1.Networking{
+		DNSDomain: "some dns domain",
+	}
 
 	kubernetesVersion := before.DeepCopy()
 	kubernetesVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.KubernetesVersion = "some kubernetes version"
@@ -234,22 +335,22 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	controlPlaneEndpoint.Spec.KubeadmConfigSpec.ClusterConfiguration.ControlPlaneEndpoint = "some control plane endpoint"
 
 	apiServer := before.DeepCopy()
-	apiServer.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer = kubeadmv1beta1.APIServer{
+	apiServer.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer = &kubeadmv1beta1.APIServer{
 		TimeoutForControlPlane: &metav1.Duration{Duration: 5 * time.Minute},
 	}
 
 	controllerManager := before.DeepCopy()
-	controllerManager.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager = kubeadmv1beta1.ControlPlaneComponent{
+	controllerManager.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager = &kubeadmv1beta1.ControlPlaneComponent{
 		ExtraArgs: map[string]string{"controller manager field": "controller manager value"},
 	}
 
 	scheduler := before.DeepCopy()
-	scheduler.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler = kubeadmv1beta1.ControlPlaneComponent{
+	scheduler.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler = &kubeadmv1beta1.ControlPlaneComponent{
 		ExtraArgs: map[string]string{"scheduler field": "scheduler value"},
 	}
 
 	dns := before.DeepCopy()
-	dns.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
+	dns.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = &kubeadmv1beta1.DNS{
 		ImageMeta: kubeadmv1beta1.ImageMeta{
 			ImageRepository: "gcr.io/capi-test",
 			ImageTag:        "v0.20.0",
@@ -269,35 +370,45 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	featureGates.Spec.KubeadmConfigSpec.ClusterConfiguration.FeatureGates = map[string]bool{"a feature gate": true}
 
 	externalEtcd := before.DeepCopy()
-	externalEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External = &kubeadmv1beta1.ExternalEtcd{
-		KeyFile: "some key file",
+	externalEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = &kubeadmv1beta1.Etcd{
+		External: &kubeadmv1beta1.ExternalEtcd{
+			KeyFile: "some key file",
+		},
 	}
 
 	localDataDir := before.DeepCopy()
-	localDataDir.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
-		DataDir: "some local data dir",
+	localDataDir.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = &kubeadmv1beta1.Etcd{
+		Local: &kubeadmv1beta1.LocalEtcd{
+			DataDir: "some local data dir",
+		},
 	}
 	modifyLocalDataDir := localDataDir.DeepCopy()
 	modifyLocalDataDir.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.DataDir = "a different local data dir"
 
 	localPeerCertSANs := before.DeepCopy()
-	localPeerCertSANs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
-		PeerCertSANs: []string{"a cert"},
+	localPeerCertSANs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = &kubeadmv1beta1.Etcd{
+		Local: &kubeadmv1beta1.LocalEtcd{
+			PeerCertSANs: []string{"a cert"},
+		},
 	}
 
 	localServerCertSANs := before.DeepCopy()
-	localServerCertSANs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
-		ServerCertSANs: []string{"a cert"},
+	localServerCertSANs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = &kubeadmv1beta1.Etcd{
+		Local: &kubeadmv1beta1.LocalEtcd{
+			ServerCertSANs: []string{"a cert"},
+		},
 	}
 
 	localExtraArgs := before.DeepCopy()
-	localExtraArgs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
-		ExtraArgs: map[string]string{"an arg": "a value"},
+	localExtraArgs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = &kubeadmv1beta1.Etcd{
+		Local: &kubeadmv1beta1.LocalEtcd{
+			ExtraArgs: map[string]string{"an arg": "a value"},
+		},
 	}
 
 	beforeExternalEtcdCluster := before.DeepCopy()
 	beforeExternalEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{
-		Etcd: kubeadmv1beta1.Etcd{
+		Etcd: &kubeadmv1beta1.Etcd{
 			External: &kubeadmv1beta1.ExternalEtcd{
 				Endpoints: []string{"127.0.0.1"},
 			},
@@ -307,7 +418,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	scaleToEvenExternalEtcdCluster.Spec.Replicas = pointer.Int32Ptr(2)
 
 	beforeInvalidEtcdCluster := before.DeepCopy()
-	beforeInvalidEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = kubeadmv1beta1.Etcd{
+	beforeInvalidEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = &kubeadmv1beta1.Etcd{
 		Local: &kubeadmv1beta1.LocalEtcd{
 			ImageMeta: kubeadmv1beta1.ImageMeta{
 				ImageRepository: "image-repository",
@@ -317,7 +428,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	}
 
 	afterInvalidEtcdCluster := beforeInvalidEtcdCluster.DeepCopy()
-	afterInvalidEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = kubeadmv1beta1.Etcd{
+	afterInvalidEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = &kubeadmv1beta1.Etcd{
 		External: &kubeadmv1beta1.ExternalEtcd{
 			Endpoints: []string{"127.0.0.1"},
 		},

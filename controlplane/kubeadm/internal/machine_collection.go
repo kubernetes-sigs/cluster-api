@@ -120,6 +120,14 @@ func (s FilterableMachineCollection) Oldest() *clusterv1.Machine {
 	return s.list()[0]
 }
 
+// Newest returns the Machine with the most recent CreationTimestamp
+func (s FilterableMachineCollection) Newest() *clusterv1.Machine {
+	if len(s) == 0 {
+		return nil
+	}
+	return s.list()[len(s)-1]
+}
+
 // DeepCopy returns a deep copy
 func (s FilterableMachineCollection) DeepCopy() FilterableMachineCollection {
 	result := make(FilterableMachineCollection, len(s))

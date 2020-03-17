@@ -538,6 +538,11 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
 			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 		}
+		// If etcd leadership is on machine that is about to be deleted, move it to first follower
+		if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete); err != nil {
+			logger.Error(err, "failed to move leadership to another machine")
+			return ctrl.Result{}, err
+		}
 		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToDelete); err != nil {
 			logger.Error(err, "failed to remove etcd member for machine")
 			return ctrl.Result{}, err
@@ -743,6 +748,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 // https://github.com/kubernetes-sigs/cluster-api/issues/2064
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (_ ctrl.Result, reterr error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
+
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		logger.Error(err, "failed to retrieve machines for cluster")

@@ -40,12 +40,14 @@ type etcd interface {
 	MemberRemove(ctx context.Context, id uint64) (*clientv3.MemberRemoveResponse, error)
 	MemberUpdate(ctx context.Context, id uint64, peerURLs []string) (*clientv3.MemberUpdateResponse, error)
 	MoveLeader(ctx context.Context, id uint64) (*clientv3.MoveLeaderResponse, error)
+	Status(ctx context.Context, endpoint string) (*clientv3.StatusResponse, error)
 }
 
 // Client wraps an etcd client formatting its output to something more consumable.
 type Client struct {
 	EtcdClient etcd
 	Endpoint   string
+	LeaderID   uint64
 }
 
 // MemberAlarm represents an alarm type association with a cluster member.
@@ -128,13 +130,21 @@ func NewEtcdClient(endpoint string, dialer GRPCDial, tlsConfig *tls.Config) (*cl
 }
 
 // NewClientWithEtcd configures our response formatter (Client) with an etcd client and endpoint.
-func NewClientWithEtcd(etcdClient etcd) (*Client, error) {
-	if len(etcdClient.Endpoints()) == 0 {
+func NewClientWithEtcd(ctx context.Context, etcdClient etcd) (*Client, error) {
+	endpoints := etcdClient.Endpoints()
+	if len(endpoints) == 0 {
 		return nil, errors.New("etcd client was not configured with any endpoints")
 	}
+
+	status, err := etcdClient.Status(ctx, endpoints[0])
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
-		Endpoint:   etcdClient.Endpoints()[0],
+		Endpoint:   endpoints[0],
 		EtcdClient: etcdClient,
+		LeaderID:   status.Leader,
 	}, nil
 }
 

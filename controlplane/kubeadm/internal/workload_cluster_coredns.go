@@ -151,7 +151,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, dns *kubeadmv1.DNS) (*cor
 	// Handle imageRepository.
 	toImageRepository := fmt.Sprintf("%s/%s", reference.Domain(parsedImage), reference.Path(parsedImage))
 	if dns.ImageRepository != "" {
-		toImageRepository = dns.ImageRepository
+		toImageRepository = fmt.Sprintf("%s/%s", dns.ImageRepository, reference.Path(parsedImage))
 	}
 
 	// Handle imageTag.

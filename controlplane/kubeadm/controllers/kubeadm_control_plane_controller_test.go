@@ -1071,7 +1071,7 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 					DNS: kubeadmv1.DNS{
 						Type: kubeadmv1.CoreDNS,
 						ImageMeta: kubeadmv1.ImageMeta{
-							ImageRepository: "k8s.gcr.io/coredns",
+							ImageRepository: "k8s.gcr.io",
 							ImageTag:        "1.7.2",
 						},
 					},

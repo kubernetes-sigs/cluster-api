@@ -22,9 +22,11 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -53,7 +55,34 @@ var (
 	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 	ociTagAllowedChars           = regexp.MustCompile(`[^-a-zA-Z0-9_\.]`)
+	kubeSemver                   = regexp.MustCompile(`^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
 )
+
+// ParseMajorMinorPatch returns a semver.Version from the string provided
+// by looking only at major.minor.patch and stripping everything else out.
+func ParseMajorMinorPatch(version string) (semver.Version, error) {
+	groups := kubeSemver.FindStringSubmatch(version)
+	if len(groups) < 4 {
+		return semver.Version{}, errors.Errorf("failed to parse major.minor.patch from %q", version)
+	}
+	major, err := strconv.ParseUint(groups[1], 10, 64)
+	if err != nil {
+		return semver.Version{}, errors.Wrapf(err, "failed to parse major version from %q", version)
+	}
+	minor, err := strconv.ParseUint(groups[2], 10, 64)
+	if err != nil {
+		return semver.Version{}, errors.Wrapf(err, "failed to parse minor version from %q", version)
+	}
+	patch, err := strconv.ParseUint(groups[3], 10, 64)
+	if err != nil {
+		return semver.Version{}, errors.Wrapf(err, "failed to parse patch version from %q", version)
+	}
+	return semver.Version{
+		Major: major,
+		Minor: minor,
+		Patch: patch,
+	}, nil
+}
 
 // RandomString returns a random alphanumeric string.
 func RandomString(n int) string {

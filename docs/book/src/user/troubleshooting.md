@@ -13,3 +13,9 @@ Assigning such labels to Nodes must be done after the bootstrap process has comp
 ```
 kubectl label nodes <name> node-role.kubernetes.io/worker=""
 ```
+
+For convenience, here is an example one-liner to do this post installation 
+
+```
+kubectl get nodes --no-headers -l '!node-role.kubernetes.io/master' -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | xargs -I{} kubectl label node {} node-role.kubernetes.io/worker=''
+```

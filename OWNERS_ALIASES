@@ -30,6 +30,7 @@ aliases:
   cluster-api-reviewers:
   - CecileRobertMichon
   - vincepri
+  - JoelSpeed
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for docs/book

@@ -272,7 +272,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// We are scaling down
 	case numMachines > desiredReplicas:
 		logger.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
-		return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines)
+		return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines, ownedMachines)
 	}
 
 	// Get the workload cluster client.
@@ -411,7 +411,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 		return result, nil
 	}
 
-	return r.scaleDownControlPlane(ctx, cluster, kcp, replacementCreated)
+	return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines, replacementCreated)
 }
 
 func (r *KubeadmControlPlaneReconciler) markWithAnnotationKey(ctx context.Context, machine *clusterv1.Machine, annotationKey string) error {
@@ -494,7 +494,7 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines internal.FilterableMachineCollection) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines internal.FilterableMachineCollection, selectedMachines internal.FilterableMachineCollection) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
@@ -506,14 +506,14 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 	// We don't want to health check at the beginning of this method to avoid blocking re-entrancy
 
 	// Wait for any delete in progress to complete before deleting another Machine
-	if len(machines.Filter(machinefilters.HasDeletionTimestamp)) > 0 {
+	if len(selectedMachines.Filter(machinefilters.HasDeletionTimestamp)) > 0 {
 		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
 	}
 
-	markedForDeletion := machines.Filter(machinefilters.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
+	markedForDeletion := selectedMachines.Filter(machinefilters.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
 	if len(markedForDeletion) == 0 {
-		fd := r.failureDomainForScaleDown(cluster, machines)
-		machinesInFailureDomain := machines.Filter(machinefilters.InFailureDomains(fd))
+		fd := r.failureDomainForScaleDown(cluster, selectedMachines)
+		machinesInFailureDomain := selectedMachines.Filter(machinefilters.InFailureDomains(fd))
 		machineToMark := machinesInFailureDomain.Oldest()
 		if machineToMark == nil {
 			logger.Info("failed to pick control plane Machine to mark for deletion")
@@ -538,8 +538,9 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
 			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 		}
-		// If etcd leadership is on machine that is about to be deleted, move it to first follower
-		if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete); err != nil {
+		// If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
+		etcdLeaderCandidate := ownedMachines.Newest()
+		if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate); err != nil {
 			logger.Error(err, "failed to move leadership to another machine")
 			return ctrl.Result{}, err
 		}

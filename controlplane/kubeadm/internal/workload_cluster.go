@@ -74,7 +74,7 @@ type WorkloadCluster interface {
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error
-	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine) error
+	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error
 }
 
 // Workload defines operations on workload clusters.
@@ -490,7 +490,7 @@ func (w *Workload) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
 }
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower
-func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine) error {
+func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
 	if machine == nil || machine.Status.NodeRef == nil {
 		// Nothing to do, no node for Machine
 		return nil
@@ -508,22 +508,34 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 	}
 
 	currentMember := etcdutil.MemberForName(members, machine.Status.NodeRef.Name)
-
+	if currentMember == nil {
+		return errors.Errorf("failed to get etcd member from node %q", machine.Status.NodeRef.Name)
+	}
 	if currentMember.ID != etcdClient.LeaderID {
 		return nil
 	}
 
-	// If current member is leader, move leadship to first follower
-	for _, member := range members {
-		if member.ID != currentMember.ID {
-			err := etcdClient.MoveLeader(ctx, member.ID)
-			if err != nil {
-				return errors.Wrapf(err, "failed to move leader")
+	// If we don't have a leader candidate, move the leader to the next available machine.
+	if leaderCandidate == nil || leaderCandidate.Status.NodeRef == nil {
+		for _, member := range members {
+			if member.ID != currentMember.ID {
+				if err := etcdClient.MoveLeader(ctx, member.ID); err != nil {
+					return errors.Wrapf(err, "failed to move leader")
+				}
+				break
 			}
-			break
 		}
+		return nil
 	}
 
+	// Move the leader to the provided candidate.
+	nextLeader := etcdutil.MemberForName(members, leaderCandidate.Status.NodeRef.Name)
+	if nextLeader == nil {
+		return errors.Errorf("failed to get etcd member from node %q", leaderCandidate.Status.NodeRef.Name)
+	}
+	if err := etcdClient.MoveLeader(ctx, nextLeader.ID); err != nil {
+		return errors.Wrapf(err, "failed to move leader")
+	}
 	return nil
 }
 

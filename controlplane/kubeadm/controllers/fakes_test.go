@@ -66,7 +66,7 @@ type fakeWorkloadCluster struct {
 	Status internal.ClusterStatus
 }
 
-func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine) error {
+func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, _ *clusterv1.Machine) error {
 	return nil
 }
 

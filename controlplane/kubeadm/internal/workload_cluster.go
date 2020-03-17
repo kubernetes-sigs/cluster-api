@@ -496,7 +496,14 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 		return nil
 	}
 
-	etcdClient, err := w.etcdClientGenerator.forNode(ctx, machine.Status.NodeRef.Name)
+	// TODO we'd probably prefer to pass in all the known nodes and let grpc handle retrying connections across them
+	clientMachineName := machine.Status.NodeRef.Name
+	if leaderCandidate != nil && leaderCandidate.Status.NodeRef == nil {
+		// connect to the new leader candidate, in case machine's etcd membership has already been removed
+		clientMachineName = leaderCandidate.Status.NodeRef.Name
+	}
+
+	etcdClient, err := w.etcdClientGenerator.forNode(ctx, clientMachineName)
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd Client")
 	}

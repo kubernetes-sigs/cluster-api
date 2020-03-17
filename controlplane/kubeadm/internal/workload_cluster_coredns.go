@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/blang/semver"
 	"github.com/coredns/corefile-migration/migration"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
@@ -30,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -52,12 +52,17 @@ func (c *CoreDNSMigrator) Migrate(fromCoreDNSVersion, toCoreDNSVersion, corefile
 }
 
 type coreDNSInfo struct {
-	Corefile          string
-	Deployment        *appsv1.Deployment
-	FromParsedVersion string
-	ToParsedVersion   string
-	FromImage         string
-	ToImage           string
+	Corefile   string
+	Deployment *appsv1.Deployment
+
+	FromImageTag string
+	ToImageTag   string
+
+	CurrentMajorMinorPatch string
+	TargetMajorMinorPatch  string
+
+	FromImage string
+	ToImage   string
 }
 
 // UpdateCoreDNS updates the kubeadm configmap, coredns corefile and coredns
@@ -90,7 +95,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	}
 
 	// Validate the image tag.
-	if err := validateCoreDNSImageTag(info.FromParsedVersion, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag); err != nil {
+	if err := validateCoreDNSImageTag(info.FromImageTag, info.ToImageTag); err != nil {
 		return errors.Wrapf(err, "failed to validate CoreDNS")
 	}
 
@@ -154,7 +159,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, dns *kubeadmv1.DNS) (*cor
 	if !ok {
 		return nil, errors.Errorf("failed to update coredns deployment: does not have a valid image tag: %q", container.Image)
 	}
-	fromParsedVersion, err := extractImageVersion(imageRefTag.Tag())
+	currentMajorMinorPatch, err := extractImageVersion(imageRefTag.Tag())
 	if err != nil {
 		return nil, err
 	}
@@ -162,18 +167,20 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, dns *kubeadmv1.DNS) (*cor
 	if dns.ImageTag != "" {
 		toImageTag = dns.ImageTag
 	}
-	toParsedVersion, err := extractImageVersion(toImageTag)
+	targetMajorMinorPatch, err := extractImageVersion(toImageTag)
 	if err != nil {
 		return nil, err
 	}
 
 	return &coreDNSInfo{
-		Corefile:          corefile,
-		Deployment:        deployment,
-		FromParsedVersion: fromParsedVersion,
-		ToParsedVersion:   toParsedVersion,
-		FromImage:         container.Image,
-		ToImage:           fmt.Sprintf("%s:%s", toImageRepository, toImageTag),
+		Corefile:               corefile,
+		Deployment:             deployment,
+		CurrentMajorMinorPatch: currentMajorMinorPatch,
+		TargetMajorMinorPatch:  targetMajorMinorPatch,
+		FromImageTag:           imageRefTag.Tag(),
+		ToImageTag:             toImageTag,
+		FromImage:              container.Image,
+		ToImage:                fmt.Sprintf("%s:%s", toImageRepository, toImageTag),
 	}, nil
 }
 
@@ -215,7 +222,7 @@ func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context,
 func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo) error {
 	// Run the CoreDNS migration tool first because if it cannot migrate the
 	// corefile, then there's no point in continuing further.
-	updatedCorefile, err := w.CoreDNSMigrator.Migrate(info.FromParsedVersion, info.ToParsedVersion, info.Corefile, false)
+	updatedCorefile, err := w.CoreDNSMigrator.Migrate(info.CurrentMajorMinorPatch, info.TargetMajorMinorPatch, info.Corefile, false)
 	if err != nil {
 		return errors.Wrap(err, "unable to migrate CoreDNS corefile")
 	}
@@ -283,7 +290,7 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 }
 
 func extractImageVersion(tag string) (string, error) {
-	ver, err := semver.Parse(tag)
+	ver, err := util.ParseMajorMinorPatch(tag)
 	if err != nil {
 		return "", err
 	}
@@ -293,19 +300,20 @@ func extractImageVersion(tag string) (string, error) {
 // validateCoreDNSImageTag returns error if the versions don't meet requirements.
 // Some of the checks come from
 // https://github.com/coredns/corefile-migration/blob/v1.0.6/migration/migrate.go#L414
-func validateCoreDNSImageTag(fromVersion, toVersion string) error {
-	from, err := semver.Parse(fromVersion)
+func validateCoreDNSImageTag(fromTag, toTag string) error {
+	from, err := util.ParseMajorMinorPatch(fromTag)
 	if err != nil {
-		return errors.Wrapf(err, "failed to semver parse %q", fromVersion)
+		return errors.Wrapf(err, "failed to parse CoreDNS current version %q", fromTag)
 	}
-	to, err := semver.Parse(toVersion)
+	to, err := util.ParseMajorMinorPatch(toTag)
 	if err != nil {
-		return errors.Wrapf(err, "failed to semver parse %q", toVersion)
+		return errors.Wrapf(err, "failed to parse CoreDNS target version %q", toTag)
 	}
-	if from.Compare(to) >= 0 {
-		return fmt.Errorf("toVersion %q must be greater than fromVersion %q", to.String(), from.String())
+	// make sure that the version we're upgrading to is greater than the current one,
+	// or if they're the same version, the raw tags should be different (e.g. allow from `v1.17.4-somevendor.0` to `v1.17.4-somevendor.1`).
+	if x := from.Compare(to); x > 0 || (x == 0 && fromTag == toTag) {
+		return fmt.Errorf("toVersion %q must be greater than fromVersion %q", toTag, fromTag)
 	}
-
 	// check if the from version is even in the list of coredns versions
 	if _, ok := migration.Versions[fmt.Sprintf("%d.%d.%d", from.Major, from.Minor, from.Patch)]; !ok {
 		return fmt.Errorf("fromVersion %q is not a compatible coredns version", from.String())

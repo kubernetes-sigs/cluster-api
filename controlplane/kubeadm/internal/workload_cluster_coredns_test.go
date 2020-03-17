@@ -53,33 +53,42 @@ func TestValidateCoreDNSImageTag(t *testing.T) {
 			expectErrSubStr: "not a compatible coredns version",
 		},
 		{
-			name:            "toVer is not a valid coredns version format",
-			fromVer:         "1.6.1",
-			toVer:           "v1.6.2",
-			expectErrSubStr: "failed to semver parse",
-		},
-		{
 			name:            "toVer is not a valid semver",
 			fromVer:         "1.5.1",
 			toVer:           "foobar",
-			expectErrSubStr: "failed to semver parse",
+			expectErrSubStr: "failed to parse CoreDNS target version",
 		},
 		{
 			name:            "fromVer is not a valid semver",
 			fromVer:         "foobar",
 			toVer:           "1.6.1",
-			expectErrSubStr: "failed to semver parse",
+			expectErrSubStr: "failed to parse CoreDNS current version",
 		},
 		{
-			name:            "fromVer is equal to toVer, return false because there's no need to upgrade",
-			fromVer:         "1.6.5",
-			toVer:           "1.6.5",
-			expectErrSubStr: "must be greater than",
+			name:    "fromVer is equal to toVer, but different patch versions",
+			fromVer: "1.6.5_foobar.1",
+			toVer:   "1.6.5_foobar.2",
+		},
+		{
+			name:            "fromVer is equal to toVer",
+			fromVer:         "1.6.5_foobar.1",
+			toVer:           "1.6.5_foobar.1",
+			expectErrSubStr: "must be greater",
 		},
 		{
 			name:    "fromVer is lower but has meta",
 			fromVer: "1.6.5-foobar.1",
 			toVer:   "1.7.5",
+		},
+		{
+			name:    "fromVer is lower and has meta and leading v",
+			fromVer: "v1.6.5-foobar.1",
+			toVer:   "1.7.5",
+		},
+		{
+			name:    "fromVer is lower, toVer has meta and leading v",
+			fromVer: "1.6.5-foobar.1",
+			toVer:   "v1.7.5_foobar.1",
 		},
 	}
 
@@ -156,10 +165,10 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		}
 
 		info := &coreDNSInfo{
-			Corefile:          "updated-core-file",
-			Deployment:        depl,
-			FromParsedVersion: "1.6.2",
-			ToParsedVersion:   "1.7.2",
+			Corefile:               "updated-core-file",
+			Deployment:             depl,
+			CurrentMajorMinorPatch: "1.6.2",
+			TargetMajorMinorPatch:  "1.7.2",
 		}
 
 		err := w.updateCoreDNSCorefile(context.TODO(), info)
@@ -188,10 +197,10 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		}
 
 		info := &coreDNSInfo{
-			Corefile:          originalCorefile,
-			Deployment:        depl,
-			FromParsedVersion: currentImageTag,
-			ToParsedVersion:   "1.7.2",
+			Corefile:               originalCorefile,
+			Deployment:             depl,
+			CurrentMajorMinorPatch: currentImageTag,
+			TargetMajorMinorPatch:  "1.7.2",
 		}
 
 		err := w.updateCoreDNSCorefile(context.TODO(), info)
@@ -218,10 +227,10 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		}
 
 		info := &coreDNSInfo{
-			Corefile:          originalCorefile,
-			Deployment:        depl,
-			FromParsedVersion: currentImageTag,
-			ToParsedVersion:   "1.7.2",
+			Corefile:               originalCorefile,
+			Deployment:             depl,
+			CurrentMajorMinorPatch: currentImageTag,
+			TargetMajorMinorPatch:  "1.7.2",
 		}
 
 		err := w.updateCoreDNSCorefile(context.TODO(), info)
@@ -305,7 +314,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 		noTagContainerDepl.Spec.Template.Spec.Containers[0].Image = "k8s.gcr.io/coredns"
 
 		badSemverContainerDepl := depl.DeepCopy()
-		badSemverContainerDepl.Spec.Template.Spec.Containers[0].Image = "k8s.gcr.io/coredns:v1.6.2"
+		badSemverContainerDepl.Spec.Template.Spec.Containers[0].Image = "k8s.gcr.io/coredns:v1X6.2"
 
 		dns := &kubeadmv1.DNS{
 			ImageMeta: kubeadmv1.ImageMeta{
@@ -314,7 +323,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			},
 		}
 		badImgTagDNS := dns.DeepCopy()
-		badImgTagDNS.ImageTag = "v1.7.2-foobar.1"
+		badImgTagDNS.ImageTag = "v1X6.2-foobar.1"
 
 		tests := []struct {
 			name      string
@@ -399,12 +408,14 @@ func TestGetCoreDNSInfo(t *testing.T) {
 				}
 				g.Expect(err).ToNot(HaveOccurred())
 				expectedInfo := &coreDNSInfo{
-					Corefile:          expectedCorefile,
-					Deployment:        actualDepl,
-					FromParsedVersion: "1.6.2",
-					ToParsedVersion:   "1.7.2",
-					FromImage:         expectedImage,
-					ToImage:           "myrepo/coredns:1.7.2-foobar.1",
+					Corefile:               expectedCorefile,
+					Deployment:             actualDepl,
+					CurrentMajorMinorPatch: "1.6.2",
+					TargetMajorMinorPatch:  "1.7.2",
+					FromImage:              expectedImage,
+					ToImage:                "myrepo/coredns:1.7.2-foobar.1",
+					FromImageTag:           "1.6.2",
+					ToImageTag:             "1.7.2-foobar.1",
 				}
 
 				g.Expect(actualInfo).To(Equal(expectedInfo))
@@ -553,36 +564,36 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 			name: "patches coredns deployment successfully",
 			objs: []runtime.Object{depl},
 			info: &coreDNSInfo{
-				Deployment:        depl.DeepCopy(),
-				Corefile:          "updated-core-file",
-				FromImage:         "k8s.gcr.io/coredns:1.6.2",
-				ToImage:           "myrepo/mycoredns:1.7.2-foobar.1",
-				FromParsedVersion: "1.6.2",
-				ToParsedVersion:   "1.7.2",
+				Deployment:             depl.DeepCopy(),
+				Corefile:               "updated-core-file",
+				FromImage:              "k8s.gcr.io/coredns:1.6.2",
+				ToImage:                "myrepo/mycoredns:1.7.2-foobar.1",
+				CurrentMajorMinorPatch: "1.6.2",
+				TargetMajorMinorPatch:  "1.7.2",
 			},
 		},
 		{
 			name: "returns error if patch fails",
 			objs: []runtime.Object{},
 			info: &coreDNSInfo{
-				Deployment:        depl.DeepCopy(),
-				Corefile:          "updated-core-file",
-				FromImage:         "k8s.gcr.io/coredns:1.6.2",
-				ToImage:           "myrepo/mycoredns:1.7.2-foobar.1",
-				FromParsedVersion: "1.6.2",
-				ToParsedVersion:   "1.7.2",
+				Deployment:             depl.DeepCopy(),
+				Corefile:               "updated-core-file",
+				FromImage:              "k8s.gcr.io/coredns:1.6.2",
+				ToImage:                "myrepo/mycoredns:1.7.2-foobar.1",
+				CurrentMajorMinorPatch: "1.6.2",
+				TargetMajorMinorPatch:  "1.7.2",
 			},
 			expectErr: true,
 		},
 		{
 			name: "deployment is nil for some reason",
 			info: &coreDNSInfo{
-				Deployment:        nil,
-				Corefile:          "updated-core-file",
-				FromImage:         "k8s.gcr.io/coredns:1.6.2",
-				ToImage:           "myrepo/mycoredns:1.7.2-foobar.1",
-				FromParsedVersion: "1.6.2",
-				ToParsedVersion:   "1.7.2",
+				Deployment:             nil,
+				Corefile:               "updated-core-file",
+				FromImage:              "k8s.gcr.io/coredns:1.6.2",
+				ToImage:                "myrepo/mycoredns:1.7.2-foobar.1",
+				CurrentMajorMinorPatch: "1.6.2",
+				TargetMajorMinorPatch:  "1.7.2",
 			},
 			expectErr: true,
 		},

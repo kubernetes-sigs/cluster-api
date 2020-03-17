@@ -318,7 +318,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 
 		dns := &kubeadmv1.DNS{
 			ImageMeta: kubeadmv1.ImageMeta{
-				ImageRepository: "myrepo/coredns",
+				ImageRepository: "myrepo",
 				ImageTag:        "1.7.2-foobar.1",
 			},
 		}

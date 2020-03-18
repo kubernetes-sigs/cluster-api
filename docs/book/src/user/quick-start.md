@@ -132,14 +132,14 @@ before getting started with Cluster API.
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
 
 ```bash
-$ export AWS_REGION=us-east-1 # This is used to help encode your environment variables
+export AWS_REGION=us-east-1 # This is used to help encode your environment variables
 # Create the base64 encoded credentials using clusterawsadm.
 # This command uses your environment variables and encodes
 # them in a value to be stored in a Kubernetes Secret.
-$ export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-credentials)
+export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-credentials)
 
 # Finally, initialize the management cluster
-$ clusterctl init --infrastructure aws
+clusterctl init --infrastructure aws
 ```
 
 See the [AWS provider prerequisites] document for more details.
@@ -150,13 +150,13 @@ See the [AWS provider prerequisites] document for more details.
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure provider prerequisites] document.
 
 ```bash
-$ export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
-$ export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
-$ export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
-$ export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
+export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
+export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
 
 # Finally, initialize the management cluster
-$ clusterctl init --infrastructure azure
+clusterctl init --infrastructure azure
 ```
 
 {{#/tab }}
@@ -172,10 +172,10 @@ steps described in the [developer instruction][docker-provider] page.
 # Create the base64 encoded credentials by catting your credentials json.
 # This command uses your environment variables and encodes
 # them in a value to be stored in a Kubernetes Secret.
-$ export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 | tr -d '\n' )
+export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 | tr -d '\n' )
 
 # Finally, initialize the management cluster
-$ clusterctl init --infrastructure gcp
+clusterctl init --infrastructure gcp
 ```
 
 {{#/tab }}
@@ -183,14 +183,14 @@ $ clusterctl init --infrastructure gcp
 
 ```bash
 # The username used to access the remote vSphere endpoint
-$ export VSPHERE_USERNAME="vi-admin@vsphere.local"
+export VSPHERE_USERNAME="vi-admin@vsphere.local"
 # The password used to access the remote vSphere endpoint
 # You may want to set this in ~/.cluster-api/clusterctl.yaml so your password is not in
 # bash history
-$ export VSPHERE_PASSWORD="admin!23"
+export VSPHERE_PASSWORD="admin!23"
 
 # Finally, initialize the management cluster
-$ clusterctl init --infrastructure vsphere
+clusterctl init --infrastructure vsphere
 ```
 
 For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started
@@ -271,7 +271,6 @@ discover the list of variables required by a cluster templates.
 
 </aside>
 
-
 #### Required configuration for common providers
 
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
@@ -282,15 +281,13 @@ before configuring a cluster with Cluster API.
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
 
-
 ```bash
-$ export AWS_REGION=us-east-1
-$ export AWS_SSH_KEY_NAME=default
+export AWS_REGION=us-east-1
+export AWS_SSH_KEY_NAME=default
 # Select instance types
-$ export AWS_CONTROL_PLANE_MACHINE_TYPE=t3.large
-$ export AWS_NODE_MACHINE_TYPE=t3.large
+export AWS_CONTROL_PLANE_MACHINE_TYPE=t3.large
+export AWS_NODE_MACHINE_TYPE=t3.large
 ```
-
 
 See the [AWS provider prerequisites] document for more details.
 
@@ -298,21 +295,26 @@ See the [AWS provider prerequisites] document for more details.
 {{#tab Azure}}
 
 ```bash
+export CLUSTER_NAME="capi-quickstart"
+# Name of the virtual network in which to provision the cluster.
+export AZURE_VNET_NAME=${CLUSTER_NAME}-vnet
 # Name of the resource group to provision into
-$ export AZURE_RESOURCE_GROUP="kubernetesResourceGroup"
+export AZURE_RESOURCE_GROUP=${CLUSTER_NAME}
 # Name of the Azure datacenter location
-$ export AZURE_LOCATION="centralus"
-# Name of the virtual network in which to provision the cluster
-$ export AZURE_VNET_NAME="kubernetesNetwork"
+export AZURE_LOCATION="centralus"
 # Select machine types
-$ export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D4a_v4"
-$ export AZURE_NODE_MACHINE_TYPE="Standard_D4a_v4"
-# A SSH key to use for break-glass access
-$ export AZURE_SSH_PUBLIC_KEY="ssh-rsa AAAAB3N..."
+export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"
+export AZURE_NODE_MACHINE_TYPE="Standard_D2s_v3"
+# Generate SSH key.
+# If you want to provide your own key, skip this step and set AZURE_SSH_PUBLIC_KEY to your existing public key.
+SSH_KEY_FILE=.sshkey
+rm -f "${SSH_KEY_FILE}" 2>/dev/null
+ssh-keygen -t rsa -b 2048 -f "${SSH_KEY_FILE}" -N '' 1>/dev/null
+echo "Machine SSH key generated in ${SSH_KEY_FILE}"
+export AZURE_SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
 ```
 
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure provider prerequisites] document.
-
 
 {{#/tab }}
 {{#tab Docker}}
@@ -332,25 +334,25 @@ It is required to use an official CAPV machine images for your vSphere VM templa
 
 ```bash
 # The vCenter server IP or FQDN
-$ export VSPHERE_SERVER="10.0.0.1"
+export VSPHERE_SERVER="10.0.0.1"
 # The vSphere datacenter to deploy the management cluster on
-$ export VSPHERE_DATACENTER="SDDC-Datacenter"
+export VSPHERE_DATACENTER="SDDC-Datacenter"
 # The vSphere datastore to deploy the management cluster on
-$ export VSPHERE_DATASTORE="vsanDatastore"
+export VSPHERE_DATASTORE="vsanDatastore"
 # The VM network to deploy the management cluster on
-$ export VSPHERE_NETWORK="VM Network"
- # The vSphere resource pool for your VMs
-$ export VSPHERE_RESOURCE_POOL="*/Resources"
+export VSPHERE_NETWORK="VM Network"
+# The vSphere resource pool for your VMs
+export VSPHERE_RESOURCE_POOL="*/Resources"
 # The VM folder for your VMs. Set to "" to use the root vSphere folder
-$ export VSPHERE_FOLDER: "vm"
- # The VM template to use for your
-$ export VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.17.3"                 m
+export VSPHERE_FOLDER: "vm"
+# The VM template to use for your
+export VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.17.3"                 m
 # The VM template to use for the HAProxy load balanceranagement cluster.
-$ export VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.0-rc.2"
-   # The public ssh authorized key on all machines
-$ export VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."
+export VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.0-rc.2"
+# The public ssh authorized key on all machines
+export VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."
 
-$ clusterctl init --infrastructure vsphere
+clusterctl init --infrastructure vsphere
 ```
 
 For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started guide].

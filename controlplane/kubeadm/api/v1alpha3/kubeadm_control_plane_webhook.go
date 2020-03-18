@@ -19,6 +19,8 @@ package v1alpha3
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/coredns/corefile-migration/migration"
+	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"strings"
 
 	"github.com/blang/semver"
@@ -127,6 +129,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	}
 
 	allErrs = append(allErrs, in.validateEtcd(prev)...)
+	allErrs = append(allErrs, in.validateCoreDNSVersion(prev)...)
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
@@ -237,12 +240,12 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), in.Spec.Version, "must be a valid semantic version"))
 	}
 
-	allErrs = append(allErrs, in.validateCoreDNS()...)
+	allErrs = append(allErrs, in.validateCoreDNSImage()...)
 
 	return allErrs
 }
 
-func (in *KubeadmControlPlane) validateCoreDNS() (allErrs field.ErrorList) {
+func (in *KubeadmControlPlane) validateCoreDNSImage() (allErrs field.ErrorList) {
 	if in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 		return allErrs
 	}
@@ -256,6 +259,33 @@ func (in *KubeadmControlPlane) validateCoreDNS() (allErrs field.ErrorList) {
 			),
 		)
 	}
+	return allErrs
+}
+
+func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane) (allErrs field.ErrorList) {
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || prev.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
+		return allErrs
+	}
+	if prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" {
+		return allErrs
+	}
+	dns := &in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
+	//return if the type is anything other than empty (default), or CoreDNS.
+	if dns.Type != "" && dns.Type != kubeadmv1.CoreDNS {
+		return allErrs
+	}
+
+	fromVersion := prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag
+	if err := migration.ValidUpMigration(fromVersion, dns.ImageTag); err != nil {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
+				fmt.Sprintf("cannot migrate CoreDNS up to '%v' from '%v'", dns.ImageTag, fromVersion),
+			),
+		)
+	}
+
 	return allErrs
 }
 

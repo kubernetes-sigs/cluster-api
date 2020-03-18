@@ -561,7 +561,7 @@ verify-docker-provider:
 .PHONY: verify-book-links
 verify-book-links: $(LINK_CHECKER)
 	 # Ignore localhost links and set concurrency to a reasonable number
-	$(LINK_CHECKER) -r docs/book -x "^https?://localhost($|[:/].*)" -c 10
+	$(LINK_CHECKER) -r docs/book -x "^https?://" -c 10
 ## --------------------------------------
 ## Others / Utilities
 ## --------------------------------------

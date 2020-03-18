@@ -1452,8 +1452,11 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			managementCluster: &fakeManagementCluster{
 				ControlPlaneHealthy: true,
 				EtcdHealthy:         true,
-				Management:          &internal.Management{Client: fakeClient},
-				Workload:            fakeWorkloadCluster{},
+				Management: &internal.Management{
+					Client:     fakeClient,
+					ClusterKey: util.ObjectKey(cluster),
+				},
+				Workload: fakeWorkloadCluster{},
 			},
 			Log:      log.Log,
 			recorder: record.NewFakeRecorder(32),
@@ -1503,8 +1506,11 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			managementCluster: &fakeManagementCluster{
 				ControlPlaneHealthy: true,
 				EtcdHealthy:         true,
-				Management:          &internal.Management{Client: fakeClient},
-				Workload:            fakeWorkloadCluster{},
+				Management: &internal.Management{
+					Client:     fakeClient,
+					ClusterKey: util.ObjectKey(cluster),
+				},
+				Workload: fakeWorkloadCluster{},
 			},
 			Log:      log.Log,
 			recorder: record.NewFakeRecorder(32),

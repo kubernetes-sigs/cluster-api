@@ -36,25 +36,29 @@ type fakeManagementCluster struct {
 	Workload            fakeWorkloadCluster
 }
 
-func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ client.ObjectKey) (internal.WorkloadCluster, error) {
+func (f *fakeManagementCluster) SetClusterKeyIfEmpty(key client.ObjectKey) {
+	f.Management.SetClusterKeyIfEmpty(key)
+}
+
+func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context) (internal.WorkloadCluster, error) {
 	return f.Workload, nil
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n client.ObjectKey, filters ...machinefilters.Func) (internal.FilterableMachineCollection, error) {
+func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, filters ...machinefilters.Func) (internal.FilterableMachineCollection, error) {
 	if f.Management != nil {
-		return f.Management.GetMachinesForCluster(c, n, filters...)
+		return f.Management.GetMachinesForCluster(c, filters...)
 	}
 	return f.Machines, nil
 }
 
-func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(_ context.Context, _ client.ObjectKey, _ string) error {
+func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(_ context.Context, _ string) error {
 	if !f.ControlPlaneHealthy {
 		return errors.New("control plane is not healthy")
 	}
 	return nil
 }
 
-func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ client.ObjectKey, _ string) error {
+func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ string) error {
 	if !f.EtcdHealthy {
 		return errors.New("etcd is not healthy")
 	}
@@ -74,23 +78,23 @@ func (f fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterS
 	return f.Status, nil
 }
 
-func (f fakeWorkloadCluster) ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error {
+func (f fakeWorkloadCluster) ReconcileKubeletRBACRole(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error {
+func (f fakeWorkloadCluster) ReconcileKubeletRBACBinding(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error {
+func (f fakeWorkloadCluster) UpdateKubernetesVersionInKubeadmConfigMap(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string) error {
+func (f fakeWorkloadCluster) UpdateEtcdVersionInKubeadmConfigMap(_ context.Context, _, _ string) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error {
+func (f fakeWorkloadCluster) UpdateKubeletConfigMap(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
@@ -100,7 +104,7 @@ type fakeMigrator struct {
 	migratedCorefile string
 }
 
-func (m *fakeMigrator) Migrate(current, to, corefile string, deprecations bool) (string, error) {
+func (m *fakeMigrator) Migrate(_, _, _ string, _ bool) (string, error) {
 	m.migrateCalled = true
 	if m.migrateErr != nil {
 		return "", m.migrateErr

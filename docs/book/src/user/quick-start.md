@@ -193,18 +193,18 @@ $ export VSPHERE_PASSWORD="admin!23"
 $ clusterctl init --infrastructure vsphere
 ```
 
-For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started
-guide].
+For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere
+project][vSphere getting started guide].
 
 {{#/tab }}
 {{#tab OpenStack}}
 
-Please visit the [OpenStack getting started guide].
+Please visit the [OpenStack project][OpenStack getting started guide].
 
 {{#/tab }}
 {{#tab Metal3}}
 
-Please visit the [Metal3 getting started guide].
+Please visit the [Metal3 project][Metal3 getting started guide].
 
 {{#/tab }}
 {{#/tabs }}
@@ -461,8 +461,8 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [KubeadmControlPlane]: ../developer/architecture/controllers/control-plane.md
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [management cluster]: ../reference/glossary.md#management-cluster
-[Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
-[OpenStack getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/getting-started.md
+[Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[OpenStack getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/
 [provider components]: ../reference/glossary.md#provider-components
-[vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md
+[vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/
 [workload cluster]: ../reference/glossary.md#workload-cluster

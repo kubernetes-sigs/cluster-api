@@ -1,9 +1,9 @@
 ## Provider Implementations
 
 The code in this repository is independent of any specific deployment environment.
-Provider specific code is being developed in separate repositories](some of which
+Provider specific code is being developed in separate repositories, some of which
 are also sponsored by SIG Cluster Lifecycle. Providers marked in bold are known to
-support v1alpha2 API types.
+support v1alpha3 API types.
 
 ## Bootstrap
 - [**Kubeadm**](https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm)
@@ -12,9 +12,9 @@ support v1alpha2 API types.
 
 ## Infrastructure
 - [**AWS**](https://github.com/kubernetes-sigs/cluster-api-provider-aws)
-- [Azure](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
+- [**Azure**](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
 - [Baidu Cloud](https://github.com/baidu/cluster-api-provider-baiducloud)
-- [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
+- [**Metal3**](https://github.com/metal3-io/cluster-api-provider-metal3)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
 - [Exoscale](https://github.com/exoscale/cluster-api-provider-exoscale)
 - [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)

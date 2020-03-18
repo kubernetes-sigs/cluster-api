@@ -130,9 +130,8 @@ func (w *Workload) ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult
 			Namespace: metav1.NamespaceSystem,
 			Name:      staticPodName("kube-apiserver", name),
 		}
-
-		apiServerPod := &corev1.Pod{}
-		if err := w.Client.Get(ctx, apiServerPodKey, apiServerPod); err != nil {
+		apiServerPod := corev1.Pod{}
+		if err := w.Client.Get(ctx, apiServerPodKey, &apiServerPod); err != nil {
 			response[name] = err
 			continue
 		}
@@ -142,8 +141,8 @@ func (w *Workload) ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult
 			Namespace: metav1.NamespaceSystem,
 			Name:      staticPodName("kube-controller-manager", name),
 		}
-		controllerManagerPod := &corev1.Pod{}
-		if err := w.Client.Get(ctx, controllerManagerPodKey, controllerManagerPod); err != nil {
+		controllerManagerPod := corev1.Pod{}
+		if err := w.Client.Get(ctx, controllerManagerPodKey, &controllerManagerPod); err != nil {
 			response[name] = err
 			continue
 		}
@@ -207,6 +206,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 		return nil, err
 	}
 
+	expectedMembers := 0
 	response := make(map[string]error)
 	for _, node := range controlPlaneNodes.Items {
 		name := node.Name
@@ -215,6 +215,26 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 			response[name] = errors.New("empty provider ID")
 			continue
 		}
+
+		// Check to see if the pod is ready
+		etcdPodKey := ctrlclient.ObjectKey{
+			Namespace: metav1.NamespaceSystem,
+			Name:      staticPodName("etcd", name),
+		}
+		pod := corev1.Pod{}
+		if err := w.Client.Get(ctx, etcdPodKey, &pod); err != nil {
+			response[name] = errors.Wrap(err, "failed to get etcd pod")
+			continue
+		}
+		if err := checkStaticPodReadyCondition(pod); err != nil {
+			// Nothing wrong here, etcd on this node is just not running.
+			// If it's a true failure the healthcheck will fail since it won't have checked enough members.
+			continue
+		}
+		// Only expect a member reports healthy if its pod is ready.
+		// This fixes the known state where the control plane has a crash-looping etcd pod that is not part of the
+		// etcd cluster.
+		expectedMembers++
 
 		// Create the etcd Client for the etcd Pod scheduled on the Node
 		etcdClient, err := w.etcdClientGenerator.forNode(ctx, name)
@@ -259,10 +279,12 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 		}
 	}
 
-	// Check that there is exactly one etcd member for every control plane machine.
-	// There should be no etcd members added "out of band.""
-	if len(controlPlaneNodes.Items) != len(knownMemberIDSet) {
-		return response, errors.Errorf("there are %d control plane nodes, but %d etcd members", len(controlPlaneNodes.Items), len(knownMemberIDSet))
+	// TODO: ensure that each pod is owned by a node that we're managing. That would ensure there are no out-of-band etcd members
+
+	// Check that there is exactly one etcd member for every healthy pod.
+	// This allows us to handle the expected case where there is a failing pod but it's been removed from the member list.
+	if expectedMembers != len(knownMemberIDSet) {
+		return response, errors.Errorf("there are %d healthy etcd pods, but %d etcd members", expectedMembers, len(knownMemberIDSet))
 	}
 
 	return response, nil
@@ -598,7 +620,7 @@ func staticPodName(component, nodeName string) string {
 	return fmt.Sprintf("%s-%s", component, nodeName)
 }
 
-func checkStaticPodReadyCondition(pod *corev1.Pod) error {
+func checkStaticPodReadyCondition(pod corev1.Pod) error {
 	found := false
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == corev1.PodReady {

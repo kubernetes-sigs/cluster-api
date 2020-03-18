@@ -117,6 +117,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 
 func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, reterr error) {
 	logger := r.Log.WithValues("namespace", req.Namespace, "kubeadmControlPlane", req.Name)
+	logger.Info("Reconcile KubeadmControlPlane")
 	ctx := context.Background()
 
 	// Fetch the KubeadmControlPlane instance.

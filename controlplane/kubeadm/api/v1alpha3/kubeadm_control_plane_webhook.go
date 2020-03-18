@@ -275,13 +275,35 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 		return allErrs
 	}
 
-	fromVersion := prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag
-	if err := migration.ValidUpMigration(fromVersion, dns.ImageTag); err != nil {
+	fromVersion, err := util.ParseMajorMinorPatch(prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)
+	if err != nil {
+		allErrs = append(allErrs,
+			field.InternalError(
+				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
+				fmt.Errorf("failed to parse CoreDNS current version: %v", prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag),
+			),
+		)
+		return allErrs
+	}
+
+	toVersion, err := util.ParseMajorMinorPatch(dns.ImageTag)
+	if err != nil {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
+				dns.ImageTag,
+				fmt.Sprintf("failed to parse CoreDNS target version: %v", dns.ImageTag),
+			),
+		)
+		return allErrs
+	}
+
+	if err := migration.ValidUpMigration(fromVersion.String(), toVersion.String()); err != nil {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
 				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
-				fmt.Sprintf("cannot migrate CoreDNS up to '%v' from '%v'", dns.ImageTag, fromVersion),
+				fmt.Sprintf("cannot migrate CoreDNS up to '%v' from '%v'", toVersion, fromVersion),
 			),
 		)
 	}

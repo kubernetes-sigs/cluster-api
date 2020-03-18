@@ -273,7 +273,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	dns.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
 		ImageMeta: kubeadmv1beta1.ImageMeta{
 			ImageRepository: "gcr.io/capi-test",
-			ImageTag:        "1.6.6",
+			ImageTag:        "v1.6.6_foobar.1",
 		},
 	}
 
@@ -293,11 +293,19 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 	}
 
-	dnsInvalidCoreDNSVersion := before.DeepCopy()
-	dnsInvalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
+	dnsInvalidCoreDNSToVersion := dns.DeepCopy()
+	dnsInvalidCoreDNSToVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
 		ImageMeta: kubeadmv1beta1.ImageMeta{
 			ImageRepository: "gcr.io/capi-test",
-			ImageTag:        "a.b.c",
+			ImageTag:        "1.6.5",
+		},
+	}
+
+	validCoreDNSCustomToVersion := dns.DeepCopy()
+	validCoreDNSCustomToVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
+		ImageMeta: kubeadmv1beta1.ImageMeta{
+			ImageRepository: "gcr.io/capi-test",
+			ImageTag:        "v1.6.6_foobar.2",
 		},
 	}
 
@@ -492,6 +500,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       dns,
 		},
 		{
+			name:      "should succeed when changing to a valid custom CoreDNS version",
+			expectErr: false,
+			before:    dns,
+			kcp:       validCoreDNSCustomToVersion,
+		},
+		{
 			name:      "should succeed when using an valid DNS build",
 			expectErr: false,
 			before:    before,
@@ -507,7 +521,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			name:      "should fail when using an invalid CoreDNS version",
 			expectErr: true,
 			before:    dns,
-			kcp:       dnsInvalidCoreDNSVersion,
+			kcp:       dnsInvalidCoreDNSToVersion,
 		},
 		{
 			name:      "should fail when making a change to the cluster config's certificatesDir",

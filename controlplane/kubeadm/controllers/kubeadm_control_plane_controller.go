@@ -170,6 +170,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 				reterr = nil
 			}
 		}
+
 		// Always attempt to update status.
 		if err := r.updateStatus(ctx, kcp, cluster); err != nil {
 			logger.Error(err, "Failed to update KubeadmControlPlane Status")
@@ -181,6 +182,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 			logger.Error(err, "Failed to patch KubeadmControlPlane")
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
+
 	}()
 
 	if !kcp.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -322,6 +324,11 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	kcp.Status.Replicas = replicas
 	kcp.Status.ReadyReplicas = 0
 	kcp.Status.UnavailableReplicas = replicas
+
+	// Return early if the deletion timestamp is set, we don't want to try to connect to the workload cluster.
+	if !kcp.DeletionTimestamp.IsZero() {
+		return nil
+	}
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {

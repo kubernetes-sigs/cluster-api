@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -66,18 +67,19 @@ func (m *Management) GetMachinesForCluster(ctx context.Context, cluster client.O
 // GetWorkloadCluster builds a cluster object.
 // The cluster comes with an etcd client generator to connect to any etcd pod living on a managed machine.
 func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error) {
-	// TODO(chuckha): Unroll remote.NewClusterClient if we are unhappy with getting a restConfig twice.
 	// TODO(chuckha): Inject this dependency.
 	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
 	restConfig, err := remote.RESTConfig(ctx, m.Client, clusterKey)
+	restConfig.Timeout = 30 * time.Second
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := remote.NewClusterClient(ctx, m.Client, clusterKey, scheme.Scheme)
+	c, err := client.New(restConfig, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create client for workload cluster %v", clusterKey)
 	}
+
 	etcdCASecret := &corev1.Secret{}
 	etcdCAObjectKey := ctrlclient.ObjectKey{
 		Namespace: clusterKey.Namespace,

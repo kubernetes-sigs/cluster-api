@@ -59,13 +59,16 @@ func init() {
 }
 
 var (
-	metricsAddr              string
-	enableLeaderElection     bool
-	watchNamespace           string
-	profilerAddress          string
-	kubeadmConfigConcurrency int
-	syncPeriod               time.Duration
-	webhookPort              int
+	metricsAddr                 string
+	enableLeaderElection        bool
+	leaderElectionLeaseDuration time.Duration
+	leaderElectionRenewDeadline time.Duration
+	leaderElectionRetryPeriod   time.Duration
+	watchNamespace              string
+	profilerAddress             string
+	kubeadmConfigConcurrency    int
+	syncPeriod                  time.Duration
+	webhookPort                 int
 )
 
 func InitFlags(fs *pflag.FlagSet) {
@@ -74,6 +77,15 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+
+	fs.DurationVar(&leaderElectionLeaseDuration, "leader-election-lease-duration", 15*time.Second,
+		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)")
+
+	fs.DurationVar(&leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second,
+		"Duration that the acting master will retry refreshing leadership before giving up (duration string)")
+
+	fs.DurationVar(&leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second,
+		"Duration the LeaderElector clients should wait between tries of actions (duration string)")
 
 	fs.StringVar(&watchNamespace, "namespace", "",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
@@ -115,6 +127,9 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "kubeadm-bootstrap-manager-leader-election-capi",
+		LeaseDuration:      &leaderElectionLeaseDuration,
+		RenewDeadline:      &leaderElectionRenewDeadline,
+		RetryPeriod:        &leaderElectionRetryPeriod,
 		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,
 		NewClient:          newClientFunc,

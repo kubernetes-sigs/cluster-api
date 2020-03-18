@@ -532,26 +532,21 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
 	}
 
-	if !machinefilters.HasAnnotationKey(controlplanev1.ScaleDownEtcdMemberRemovedAnnotation)(machineToDelete) {
-		// Ensure etcd is healthy prior to attempting to remove the member
-		if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-			logger.Error(err, "waiting for control plane to pass etcd health check before removing a control plane machine")
-			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
-			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
-		}
-		// If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
-		etcdLeaderCandidate := ownedMachines.Newest()
-		if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate); err != nil {
-			logger.Error(err, "failed to move leadership to another machine")
-			return ctrl.Result{}, err
-		}
-		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToDelete); err != nil {
-			logger.Error(err, "failed to remove etcd member for machine")
-			return ctrl.Result{}, err
-		}
-		if err := r.markWithAnnotationKey(ctx, machineToDelete, controlplanev1.ScaleDownEtcdMemberRemovedAnnotation); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to mark machine %s as having etcd membership removed", machineToDelete.Name)
-		}
+	// Ensure etcd is healthy prior to attempting to remove the member
+	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
+		logger.Error(err, "waiting for control plane to pass etcd health check before removing a control plane machine")
+		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
+	}
+	// If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
+	etcdLeaderCandidate := ownedMachines.Newest()
+	if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate); err != nil {
+		logger.Error(err, "failed to move leadership to another machine")
+		return ctrl.Result{}, err
+	}
+	if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToDelete); err != nil {
+		logger.Error(err, "failed to remove etcd member for machine")
+		return ctrl.Result{}, err
 	}
 
 	if !machinefilters.HasAnnotationKey(controlplanev1.ScaleDownConfigMapEntryRemovedAnnotation)(machineToDelete) {

@@ -208,7 +208,7 @@ var _ = Describe("Docker", func() {
 				By("upgrading the control plane object to a new version")
 				patchHelper, err := patch.NewHelper(controlPlane, client)
 				Expect(err).ToNot(HaveOccurred())
-				controlPlane.Spec.Version = "1.17.2"
+				controlPlane.Spec.Version = "v1.17.2"
 				Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
 				By("waiting for all control plane nodes to exist")
 				inClustersNamespaceListOption := ctrlclient.InNamespace(cluster.Namespace)

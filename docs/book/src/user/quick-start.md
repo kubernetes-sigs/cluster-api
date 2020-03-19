@@ -374,7 +374,7 @@ Please visit the [Metal3 getting started guide].
 
 For the purpose of this tutorial, we’ll name our cluster capi-quickstart.
 
-```
+```bash
 clusterctl config cluster capi-quickstart --kubernetes-version v1.17.3 --control-plane-machine-count=3 --worker-machine-count=3 > capi-quickstart.yaml
 ```
 
@@ -389,13 +389,13 @@ See `[clusterctl config cluster]` for more details.
 
 When ready, run the following command to apply the cluster manifest.
 
-```
+```bash
 kubectl apply -f capi-quickstart.yaml
 ```
 
 The output is similar to this:
 
-```
+```bash
 cluster.cluster.x-k8s.io/capi-quickstart created
 awscluster.infrastructure.cluster.x-k8s.io/capi-quickstart created
 kubeadmcontrolplane.controlplane.cluster.x-k8s.io/capi-quickstart-control-plane created
@@ -407,19 +407,34 @@ kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io/capi-quickstart-md-0 created
 
 #### Accessing the workload cluster
 
-To verify the control plane is up, check if the control plane is ready.
+The cluster will now start provisioning. You check status with:
+
+```bash
+kubectl get cluster --all-namespaces
 ```
+
+To verify the first control plane is up:
+
+```bash
 kubectl get kubeadmcontrolplane --all-namespaces
 ```
 
-If the control plane is deployed using a control plane provider, such as
-[KubeadmControlPlane] ensure the control plane is
-ready.
-```
-kubectl get clusters --output jsonpath="{range .items[*]} [{.metadata.name} {.status.ControlPlaneInitialized} {.status.ControlPlaneReady}] {end}"
+You should see an output is similar to this:
+
+```bash
+NAME                              READY   INITIALIZED   REPLICAS   READY REPLICAS   UPDATED REPLICAS   UNAVAILABLE REPLICAS
+capi-quickstart-control-plane             true          3                           3                  3
 ```
 
-After the control plane node is up and ready, we can retrieve the [workload cluster] Kubeconfig:
+<aside class="note warning">
+
+<h1> Warning </h1>
+
+The control planes won't be `Ready` until we install a CNI in the next step.
+
+</aside>
+
+After the first control plane node is up and running, we can retrieve the [workload cluster] Kubeconfig:
 
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o jsonpath={.data.value} \
@@ -430,7 +445,6 @@ kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o jsonpath={.
 ### Deploy a CNI solution
 
 Calico is used here as an example.
-
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \

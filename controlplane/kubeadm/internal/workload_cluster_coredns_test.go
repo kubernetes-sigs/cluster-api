@@ -20,7 +20,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -94,7 +94,7 @@ func TestValidateCoreDNSImageTag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			err := validateCoreDNSImageTag(tt.fromVer, tt.toVer)
 			if tt.expectErrSubStr != "" {
 				g.Expect(err.Error()).To(ContainSubstring(tt.expectErrSubStr))
@@ -152,7 +152,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 	}
 
 	t.Run("returns error if migrate failed to update corefile", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		objs := []runtime.Object{depl, cm}
 		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
 		fakeMigrator := &fakeMigrator{
@@ -182,7 +182,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 	})
 
 	t.Run("creates a backup of the corefile", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		// Not including the deployment so as to fail early and verify that
 		// the intermediate config map update occurred
 		objs := []runtime.Object{cm}
@@ -214,7 +214,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 	})
 
 	t.Run("patches the core dns deployment to point to the backup corefile before migration", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		objs := []runtime.Object{depl, cm}
 		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
 		fakeMigrator := &fakeMigrator{
@@ -387,7 +387,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				g := gomega.NewWithT(t)
+				g := NewWithT(t)
 				fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tt.objs...)
 				w := &Workload{
 					Client: fakeClient,
@@ -497,7 +497,7 @@ scheduler: {}`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tt.objs...)
 			w := &Workload{
 				Client: fakeClient,
@@ -601,7 +601,7 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tt.objs...)
 
 			w := &Workload{

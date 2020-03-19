@@ -309,6 +309,14 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 	}
 
+	unsetCoreDNSToVersion := dns.DeepCopy()
+	unsetCoreDNSToVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
+		ImageMeta: kubeadmv1beta1.ImageMeta{
+			ImageRepository: "",
+			ImageTag:        "",
+		},
+	}
+
 	certificatesDir := before.DeepCopy()
 	certificatesDir.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificatesDir = "a new certificates directory"
 
@@ -504,6 +512,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    dns,
 			kcp:       validCoreDNSCustomToVersion,
+		},
+		{
+			name:      "should succeed when CoreDNS ImageTag is unset",
+			expectErr: false,
+			before:    dns,
+			kcp:       unsetCoreDNSToVersion,
 		},
 		{
 			name:      "should succeed when using an valid DNS build",

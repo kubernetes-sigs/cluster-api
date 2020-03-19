@@ -145,7 +145,7 @@ var _ = Describe("Docker", func() {
 					Cluster:      cluster,
 					ControlPlane: controlPlane,
 				}
-				framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput)
+				framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "5m")
 
 				// Insatll a networking solution on the workload cluster
 				workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)

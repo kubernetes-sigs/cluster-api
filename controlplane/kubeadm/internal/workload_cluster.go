@@ -541,6 +541,12 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 		return nil
 	}
 
+	// Move the etcd client to the current leader, which in this case is the machine we're about to delete.
+	etcdClient, err = w.etcdClientGenerator.forNode(ctx, machine.Status.NodeRef.Name)
+	if err != nil {
+		return errors.Wrap(err, "failed to create etcd Client")
+	}
+
 	// If we don't have a leader candidate, move the leader to the next available machine.
 	if leaderCandidate == nil || leaderCandidate.Status.NodeRef == nil {
 		for _, member := range members {

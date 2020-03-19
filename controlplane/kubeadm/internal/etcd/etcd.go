@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"
 	"go.etcd.io/etcd/etcdserver/etcdserverpb"
 	"google.golang.org/grpc"
 )
@@ -184,6 +185,12 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 // MoveLeader moves the leader to the provided member ID.
 func (c *Client) MoveLeader(ctx context.Context, newLeaderID uint64) error {
 	_, err := c.EtcdClient.MoveLeader(ctx, newLeaderID)
+	// When this function is called, there is a best effort attempt at connecting to the leader. Sometimes the leader
+	// changes after the leader is identified (thanks distributed system) and then this function call changes since
+	// MoveLeader has to be called on the leader node. In that case, this particular error means everything is good.
+	if err == rpctypes.ErrNotLeader {
+		return nil
+	}
 	return errors.Wrapf(err, "failed to move etcd leader: %v", newLeaderID)
 }
 

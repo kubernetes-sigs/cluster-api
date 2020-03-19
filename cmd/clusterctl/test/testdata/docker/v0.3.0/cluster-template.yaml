@@ -81,7 +81,7 @@ metadata:
   name: worker-0
   namespace: default
 spec:
-  version: "v1.14.2"
+  version: ${ KUBERNETES_VERSION }
   clusterName: ${ CLUSTER_NAME }
   bootstrap:
     configRef:

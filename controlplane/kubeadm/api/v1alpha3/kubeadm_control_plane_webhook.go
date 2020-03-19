@@ -266,12 +266,13 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 	if in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || prev.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 		return allErrs
 	}
-	if prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" {
+	//return if either current or target versions is empty
+	if prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" || in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" {
 		return allErrs
 	}
-	dns := &in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
+	targetDNS := &in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
 	//return if the type is anything other than empty (default), or CoreDNS.
-	if dns.Type != "" && dns.Type != kubeadmv1.CoreDNS {
+	if targetDNS.Type != "" && targetDNS.Type != kubeadmv1.CoreDNS {
 		return allErrs
 	}
 
@@ -286,13 +287,13 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 		return allErrs
 	}
 
-	toVersion, err := util.ParseMajorMinorPatch(dns.ImageTag)
+	toVersion, err := util.ParseMajorMinorPatch(targetDNS.ImageTag)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
-				dns.ImageTag,
-				fmt.Sprintf("failed to parse CoreDNS target version: %v", dns.ImageTag),
+				targetDNS.ImageTag,
+				fmt.Sprintf("failed to parse CoreDNS target version: %v", targetDNS.ImageTag),
 			),
 		)
 		return allErrs

@@ -20,31 +20,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
-var (
-	HaveOccurred     = gomega.HaveOccurred
-	Succeed          = gomega.Succeed
-	SatisfyAll       = gomega.SatisfyAll
-	HaveLen          = gomega.HaveLen
-	HaveKey          = gomega.HaveKey
-	HaveKeyWithValue = gomega.HaveKeyWithValue
-	WithTransform    = gomega.WithTransform
-	BeEmpty          = gomega.BeEmpty
-	Equal            = gomega.Equal
-	BeEquivalentTo   = gomega.BeEquivalentTo
-	BeTrue           = gomega.BeTrue
-	ContainSubstring = gomega.ContainSubstring
-	ConsistOf        = gomega.ConsistOf
-)
-
 func Test_kubeadmConfig_RemoveAPIEndpoint(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 	original := &corev1.ConfigMap{
 		Data: map[string]string{
 			"ClusterStatus": `apiEndpoints:
@@ -198,7 +182,7 @@ etcd:
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 
 			kconfig := &kubeadmConfig{
 				ConfigMap: &corev1.ConfigMap{
@@ -213,16 +197,16 @@ etcd:
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).To(gomega.ContainSubstring(test.expectErr.Error()))
+				g.Expect(err.Error()).To(ContainSubstring(test.expectErr.Error()))
 			}
 
-			g.Expect(changed).To(gomega.Equal(test.expectChanged))
+			g.Expect(changed).To(Equal(test.expectChanged))
 			if changed {
 				if test.imageRepository != "" {
-					g.Expect(kconfig.ConfigMap.Data[clusterConfigurationKey]).To(gomega.ContainSubstring(test.imageRepository))
+					g.Expect(kconfig.ConfigMap.Data[clusterConfigurationKey]).To(ContainSubstring(test.imageRepository))
 				}
 				if test.imageTag != "" {
-					g.Expect(kconfig.ConfigMap.Data[clusterConfigurationKey]).To(gomega.ContainSubstring(test.imageTag))
+					g.Expect(kconfig.ConfigMap.Data[clusterConfigurationKey]).To(ContainSubstring(test.imageTag))
 				}
 			}
 
@@ -294,7 +278,7 @@ scheduler: {}`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			imageRepository := "gcr.io/example"
 			imageTag := "v1.0.1-sometag"
 			kc := kubeadmConfig{ConfigMap: tt.cm}

@@ -67,8 +67,8 @@ func (s FilterableMachineCollection) Insert(machines ...*clusterv1.Machine) Filt
 	return s
 }
 
-// list returns the contents as a sorted Machine slice.
-func (s FilterableMachineCollection) list() []*clusterv1.Machine {
+// SortedByCreationTimestamp returns the machines sorted by creation timestamp
+func (s FilterableMachineCollection) SortedByCreationTimestamp() []*clusterv1.Machine {
 	res := make(util.MachinesByCreationTimestamp, 0, len(s))
 	for _, value := range s {
 		res = append(res, value)
@@ -117,7 +117,7 @@ func (s FilterableMachineCollection) Oldest() *clusterv1.Machine {
 	if len(s) == 0 {
 		return nil
 	}
-	return s.list()[0]
+	return s.SortedByCreationTimestamp()[0]
 }
 
 // Newest returns the Machine with the most recent CreationTimestamp
@@ -125,7 +125,7 @@ func (s FilterableMachineCollection) Newest() *clusterv1.Machine {
 	if len(s) == 0 {
 		return nil
 	}
-	return s.list()[len(s)-1]
+	return s.SortedByCreationTimestamp()[len(s)-1]
 }
 
 // DeepCopy returns a deep copy

@@ -19,7 +19,7 @@ package internal
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 
 	"k8s.io/utils/pointer"
 
@@ -84,13 +84,13 @@ func TestNewFailureDomainPicker(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		t.Run(tc.name, func(t *testing.T) {
 			fd := PickFewest(tc.fds, tc.machines)
 			if tc.expected == nil {
-				g.Expect(fd).To(gomega.BeNil())
+				g.Expect(fd).To(BeNil())
 			} else {
-				g.Expect(fd).To(gomega.BeElementOf(tc.expected))
+				g.Expect(fd).To(BeElementOf(tc.expected))
 			}
 		})
 	}
@@ -155,13 +155,13 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 
 			fd := PickMost(tc.fds, tc.machines)
 			if tc.expected == nil {
-				g.Expect(fd).To(gomega.BeNil())
+				g.Expect(fd).To(BeNil())
 			} else {
-				g.Expect(fd).To(gomega.BeElementOf(tc.expected))
+				g.Expect(fd).To(BeElementOf(tc.expected))
 			}
 		})
 	}

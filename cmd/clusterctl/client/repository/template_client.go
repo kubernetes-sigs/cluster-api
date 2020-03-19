@@ -85,7 +85,12 @@ func (c *templateClient) Get(flavor, targetNamespace string, listVariablesOnly b
 	name = fmt.Sprintf("%s.yaml", name)
 
 	// read the component YAML, reading the local override file if it exists, otherwise read from the provider repository
-	rawYaml, err := getLocalOverride(c.provider, version, name)
+	rawYaml, err := getLocalOverride(&newOverrideInput{
+		configVariablesClient: c.configVariablesClient,
+		provider:              c.provider,
+		version:               version,
+		filePath:              name,
+	})
 	if err != nil {
 		return nil, err
 	}

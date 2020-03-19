@@ -47,11 +47,10 @@ func Test_variables_Get(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Returns error if the variable does exists",
+			name: "Returns error if the variable does not exist",
 			args: args{
 				key: "baz",
 			},
-			want:    "",
 			wantErr: true,
 		},
 	}

@@ -137,9 +137,10 @@ func Test_metadataClient_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &metadataClient{
-				provider:   tt.fields.provider,
-				version:    tt.fields.version,
-				repository: tt.fields.repository,
+				configVarClient: test.NewFakeVariableClient(),
+				provider:        tt.fields.provider,
+				version:         tt.fields.version,
+				repository:      tt.fields.repository,
 			}
 			got, err := f.Get()
 			if tt.wantErr {

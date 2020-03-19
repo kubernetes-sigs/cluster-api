@@ -59,7 +59,12 @@ func (f *componentsClient) Get(version, targetNamespace, watchingNamespace strin
 	path := f.repository.ComponentsPath()
 
 	// read the component YAML, reading the local override file if it exists, otherwise read from the provider repository
-	file, err := getLocalOverride(f.provider, version, path)
+	file, err := getLocalOverride(&newOverrideInput{
+		configVariablesClient: f.configClient.Variables(),
+		provider:              f.provider,
+		version:               version,
+		filePath:              path,
+	})
 	if err != nil {
 		return nil, err
 	}

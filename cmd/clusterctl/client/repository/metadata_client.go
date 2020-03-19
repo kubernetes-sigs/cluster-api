@@ -36,20 +36,22 @@ type MetadataClient interface {
 
 // metadataClient implements MetadataClient.
 type metadataClient struct {
-	provider   config.Provider
-	version    string
-	repository Repository
+	configVarClient config.VariablesClient
+	provider        config.Provider
+	version         string
+	repository      Repository
 }
 
 // ensure metadataClient implements MetadataClient.
 var _ MetadataClient = &metadataClient{}
 
 // newMetadataClient returns a metadataClient.
-func newMetadataClient(provider config.Provider, version string, repository Repository) *metadataClient {
+func newMetadataClient(provider config.Provider, version string, repository Repository, config config.VariablesClient) *metadataClient {
 	return &metadataClient{
-		provider:   provider,
-		version:    version,
-		repository: repository,
+		configVarClient: config,
+		provider:        provider,
+		version:         version,
+		repository:      repository,
 	}
 }
 
@@ -60,7 +62,12 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 	version := f.version
 	name := "metadata.yaml"
 
-	file, err := getLocalOverride(f.provider, version, name)
+	file, err := getLocalOverride(&newOverrideInput{
+		configVariablesClient: f.configVarClient,
+		provider:              f.provider,
+		version:               version,
+		filePath:              name,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -17,13 +17,9 @@ limitations under the License.
 package repository
 
 import (
-	"io/ioutil"
 	"net/url"
-	"os"
-	"path/filepath"
 
 	"github.com/pkg/errors"
-	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
@@ -72,7 +68,7 @@ func (c *repositoryClient) Templates(version string) TemplateClient {
 }
 
 func (c *repositoryClient) Metadata(version string) MetadataClient {
-	return newMetadataClient(c.Provider, version, c.repository)
+	return newMetadataClient(c.Provider, version, c.repository, c.configClient.Variables())
 }
 
 // Option is a configuration option supplied to New
@@ -167,32 +163,4 @@ func repositoryFactory(providerConfig config.Provider, configVariablesClient con
 	}
 
 	return nil, errors.Errorf("invalid provider url. there are no provider implementation for %q schema", rURL.Scheme)
-}
-
-const overrideFolder = "overrides"
-
-// getLocalOverride return local override file from the config folder, if it exists.
-// This is required for development purposes, but it can be used also in production as a workaround for problems on the official repositories
-func getLocalOverride(provider config.Provider, version, path string) ([]byte, error) {
-	// local override files are searched at $home/.cluster-api/overrides/<provider-label>/<version>/<path>
-	homeFolder := filepath.Join(homedir.HomeDir(), config.ConfigFolder)
-	overridePath := filepath.Join(homeFolder, overrideFolder, provider.ManifestLabel(), version, path)
-
-	// it the local override exists, use it
-	_, err := os.Stat(overridePath)
-	if err == nil {
-		content, err := ioutil.ReadFile(overridePath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read local override for %s/%s/%s", provider.ManifestLabel(), version, path)
-		}
-		return content, nil
-	}
-
-	// it the local override does not exists, return (so files from the provider's repository could be used)
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
-
-	// blocks for any other error
-	return nil, err
 }

@@ -71,7 +71,7 @@ func (f *componentsClient) Get(version, targetNamespace, watchingNamespace strin
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())
 		}
 	} else {
-		log.V(1).Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", version)
+		log.Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", version)
 	}
 
 	return NewComponents(f.provider, version, file, f.configClient, targetNamespace, watchingNamespace)

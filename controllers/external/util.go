@@ -81,11 +81,55 @@ func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectR
 	if err != nil {
 		return nil, err
 	}
-	template, found, err := unstructured.NestedMap(from.Object, "spec", "template")
+	generateTemplateInput := &GenerateTemplateInput{
+		Template:    from,
+		Namespace:   in.Namespace,
+		ClusterName: in.ClusterName,
+		OwnerRef:    in.OwnerRef,
+		Labels:      in.Labels,
+	}
+	to, err := GenerateTemplate(generateTemplateInput)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the external clone.
+	if err := in.Client.Create(context.Background(), to); err != nil {
+		return nil, err
+	}
+
+	return GetObjectReference(to), nil
+}
+
+// GenerateTemplate input is everything needed to generate a new template.
+type GenerateTemplateInput struct {
+	// Template is the TemplateRef turned into an unstructured.
+	// +required
+	Template *unstructured.Unstructured
+
+	// Namespace is the Kuberentes namespace the cloned object should be created into.
+	// +required
+	Namespace string
+
+	// ClusterName is the cluster this object is linked to.
+	// +required
+	ClusterName string
+
+	// OwnerRef is an optional OwnerReference to attach to the cloned object.
+	// +optional
+	OwnerRef *metav1.OwnerReference
+
+	// Labels is an optional map of labels to be added to the object.
+	// +optional
+	Labels map[string]string
+}
+
+func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, error) {
+	template, found, err := unstructured.NestedMap(in.Template.Object, "spec", "template")
 	if !found {
-		return nil, errors.Errorf("missing Spec.Template on %v %q", from.GroupVersionKind(), from.GetName())
+		return nil, errors.Errorf("missing Spec.Template on %v %q", in.Template.GroupVersionKind(), in.Template.GetName())
 	} else if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve Spec.Template map on %v %q", from.GroupVersionKind(), from.GetName())
+		return nil, errors.Wrapf(err, "failed to retrieve Spec.Template map on %v %q", in.Template.GroupVersionKind(), in.Template.GetName())
 	}
 
 	// Create the unstructured object from the template.
@@ -94,7 +138,7 @@ func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectR
 	to.SetFinalizers(nil)
 	to.SetUID("")
 	to.SetSelfLink("")
-	to.SetName(names.SimpleNameGenerator.GenerateName(from.GetName() + "-"))
+	to.SetName(names.SimpleNameGenerator.GenerateName(in.Template.GetName() + "-"))
 	to.SetNamespace(in.Namespace)
 
 	// Set labels.
@@ -115,26 +159,25 @@ func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectR
 
 	// Set the object APIVersion.
 	if to.GetAPIVersion() == "" {
-		to.SetAPIVersion(in.TemplateRef.APIVersion)
+		to.SetAPIVersion(in.Template.GetAPIVersion())
 	}
 
 	// Set the object Kind and strip the word "Template" if it's a suffix.
 	if to.GetKind() == "" {
-		to.SetKind(strings.TrimSuffix(in.TemplateRef.Kind, TemplateSuffix))
+		to.SetKind(strings.TrimSuffix(in.Template.GetKind(), TemplateSuffix))
 	}
+	return to, nil
+}
 
-	// Create the external clone.
-	if err := in.Client.Create(context.Background(), to); err != nil {
-		return nil, err
-	}
-
+// GetObjectReference converts an unstructured into object reference.
+func GetObjectReference(obj *unstructured.Unstructured) *corev1.ObjectReference {
 	return &corev1.ObjectReference{
-		APIVersion: to.GetAPIVersion(),
-		Kind:       to.GetKind(),
-		Name:       to.GetName(),
-		Namespace:  to.GetNamespace(),
-		UID:        to.GetUID(),
-	}, nil
+		APIVersion: obj.GetAPIVersion(),
+		Kind:       obj.GetKind(),
+		Name:       obj.GetName(),
+		Namespace:  obj.GetNamespace(),
+		UID:        obj.GetUID(),
+	}
 }
 
 // FailuresFrom returns the FailureReason and FailureMessage fields from the external object status.

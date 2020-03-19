@@ -21,6 +21,8 @@ import (
 	"errors"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/blang/semver"
 	"go.etcd.io/etcd/clientv3"
 	pb "go.etcd.io/etcd/etcdserver/etcdserverpb"
@@ -39,6 +41,8 @@ import (
 )
 
 func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		name   string
 		client ctrlclient.Client
@@ -70,17 +74,15 @@ func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
 			c := &Workload{
 				Client: tt.client,
 			}
-			if err := c.ReconcileKubeletRBACBinding(ctx, semver.MustParse("1.12.3")); err != nil {
-				t.Fatalf("did not expect error: %v", err)
-			}
-			if err := c.ReconcileKubeletRBACRole(ctx, semver.MustParse("1.13.3")); err != nil {
-				t.Fatalf("did not expect error: %v", err)
-			}
+			g.Expect(c.ReconcileKubeletRBACBinding(ctx, semver.MustParse("1.12.3"))).To(Succeed())
+			g.Expect(c.ReconcileKubeletRBACRole(ctx, semver.MustParse("1.13.3"))).To(Succeed())
 		})
 	}
 }
 
 func TestCluster_ReconcileKubeletRBACBinding_Error(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		name   string
 		client ctrlclient.Client
@@ -105,12 +107,8 @@ func TestCluster_ReconcileKubeletRBACBinding_Error(t *testing.T) {
 			c := &Workload{
 				Client: tt.client,
 			}
-			if err := c.ReconcileKubeletRBACBinding(ctx, semver.MustParse("1.12.3")); err == nil {
-				t.Fatalf("expected an error but did not get one")
-			}
-			if err := c.ReconcileKubeletRBACRole(ctx, semver.MustParse("1.13.3")); err == nil {
-				t.Fatalf("expected an error but did not get one")
-			}
+			g.Expect(c.ReconcileKubeletRBACBinding(ctx, semver.MustParse("1.12.3"))).NotTo(Succeed())
+			g.Expect(c.ReconcileKubeletRBACRole(ctx, semver.MustParse("1.13.3"))).NotTo(Succeed())
 		})
 	}
 }
@@ -143,6 +141,7 @@ func newKubeProxyDSWithImage(image string) appsv1.DaemonSet {
 }
 
 func TestUpdateKubeProxyImageInfo(t *testing.T) {
+	g := NewWithT(t)
 
 	scheme := runtime.NewScheme()
 	if err := appsv1.AddToScheme(scheme); err != nil {
@@ -199,19 +198,15 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				Client: fakeClient,
 			}
 			err := w.UpdateKubeProxyImageInfo(ctx, tt.KCP)
-			if err != nil && !tt.expectErr {
-				t.Fatalf("expected no error, got %s", err)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
-			if err == nil && tt.expectErr {
-				t.Fatal("expected error but got none")
-			}
+
 			proxyImage, err := getProxyImageInfo(ctx, w.Client)
-			if err != nil {
-				t.Fatalf("expected no error, got %s", err)
-			}
-			if proxyImage != tt.expectImage {
-				t.Fatalf("expected proxy image %s, got %s", tt.expectImage, proxyImage)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(proxyImage).To(Equal(tt.expectImage))
 		})
 	}
 }
@@ -233,6 +228,8 @@ func getProxyImageInfo(ctx context.Context, client ctrlclient.Client) (string, e
 }
 
 func TestWorkload_EtcdIsHealthy(t *testing.T) {
+	g := NewWithT(t)
+
 	workload := &Workload{
 		Client: &fakeClient{
 			get: map[string]interface{}{
@@ -270,13 +267,10 @@ func TestWorkload_EtcdIsHealthy(t *testing.T) {
 	}
 	ctx := context.Background()
 	health, err := workload.EtcdIsHealthy(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for node, err := range health {
-		if err != nil {
-			t.Fatalf("node %s: %v", node, err)
-		}
+	g.Expect(err).NotTo(HaveOccurred())
+
+	for _, err := range health {
+		g.Expect(err).NotTo(HaveOccurred())
 	}
 }
 

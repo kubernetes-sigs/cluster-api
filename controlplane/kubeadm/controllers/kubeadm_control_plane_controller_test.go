@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -328,8 +327,12 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
+	controlPlane := &internal.ControlPlane{
+		Cluster: cluster,
+		KCP:     kcp,
+	}
 
-	result, err := r.initializeControlPlane(context.Background(), cluster, kcp)
+	result, err := r.initializeControlPlane(context.Background(), cluster, kcp, controlPlane)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -1578,8 +1581,13 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			Log:               log.Log,
 			recorder:          record.NewFakeRecorder(32),
 		}
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: fmc.Machines,
+		}
 
-		result, err := r.scaleUpControlPlane(context.Background(), cluster, kcp, fmc.Machines.DeepCopy())
+		result, err := r.scaleUpControlPlane(context.Background(), cluster, kcp, fmc.Machines.DeepCopy(), controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -1628,9 +1636,14 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 				Log:               log.Log,
 				recorder:          record.NewFakeRecorder(32),
 			}
+			controlPlane := &internal.ControlPlane{
+				KCP:      kcp,
+				Cluster:  cluster,
+				Machines: beforeMachines,
+			}
 
 			ownedMachines := fmc.Machines.DeepCopy()
-			_, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), ownedMachines)
+			_, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), ownedMachines, controlPlane)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}))
 
@@ -1664,8 +1677,15 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			ControlPlaneHealthy: true,
 		},
 	}
+	cluster := &clusterv1.Cluster{}
+	kcp := &controlplanev1.KubeadmControlPlane{}
+	controlPlane := &internal.ControlPlane{
+		KCP:      kcp,
+		Cluster:  cluster,
+		Machines: machines,
+	}
 
-	_, err := r.scaleDownControlPlane(context.Background(), &clusterv1.Cluster{}, &controlplanev1.KubeadmControlPlane{}, machines, machines)
+	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, machines, machines, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
 }
 
@@ -1675,494 +1695,6 @@ func machine(name string) *clusterv1.Machine {
 			Namespace: "default",
 			Name:      name,
 		},
-	}
-}
-
-func TestKubeadmControlPlaneReconciler_failureDomainForScaleDown(t *testing.T) {
-	tests := []struct {
-		name     string
-		cluster  *clusterv1.Cluster
-		machines internal.FilterableMachineCollection
-		want     *string
-	}{
-		{
-			name:    "No failure domains defined in cluster, no failure domains defined on machines should return nil",
-			cluster: &clusterv1.Cluster{},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine1",
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine2",
-					},
-				},
-			},
-			want: nil,
-		},
-		{
-			name:    "No failure domains defined in cluster, failure domains defined on machines should return failure domain of oldest machine",
-			cluster: &clusterv1.Cluster{},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine1",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("a"),
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine2",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(1 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine3": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine3",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(2 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-			},
-			want: utilpointer.StringPtr("a"),
-		},
-		{
-			name: "failure domains defined in cluster, no failure domains defined on machines should return nil",
-			cluster: &clusterv1.Cluster{
-				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"a": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-						"b": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-					},
-				},
-			},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine1",
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine2",
-					},
-				},
-			},
-			want: nil,
-		},
-		{
-			name: "Failure domains defined in cluster, failure domains defined on machines should return failure domain with most machines",
-			cluster: &clusterv1.Cluster{
-				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"a": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-						"b": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-					},
-				},
-			},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine1",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("a"),
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine2",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(1 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine3": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine3",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(2 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-			},
-			want: utilpointer.StringPtr("b"),
-		},
-		{
-			name: "Failure domains defined in cluster, failure domains defined on machines should return failure domain that doesn't exist in cluster",
-			cluster: &clusterv1.Cluster{
-				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"a": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-						"b": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-					},
-				},
-			},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine1",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(1 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("a"),
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine2",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine3": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine3",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(2 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine4": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine4",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(3 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("d"),
-					},
-				},
-			},
-			want: utilpointer.StringPtr("d"),
-		},
-		{
-			name: "Failure domains defined in cluster, failure domains defined on machines should return oldest failure domain that doesn't exist in cluster",
-			cluster: &clusterv1.Cluster{
-				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"a": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-						"b": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-					},
-				},
-			},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine1",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("a"),
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine2",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine3": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine3",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine4": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine4",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(2 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("d"),
-					},
-				},
-				"machine5": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine5",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(1 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("e"),
-					},
-				},
-			},
-			want: utilpointer.StringPtr("e"),
-		},
-		{
-			name: "Failure domains defined in cluster, failure domains defined on some machines should return nil when oldest machine doesn't have a failure domain",
-			cluster: &clusterv1.Cluster{
-				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"a": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-						"b": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-					},
-				},
-			},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine1",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("a"),
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine2",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine3": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine3",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine4": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine4",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(3 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("d"),
-					},
-				},
-				"machine5": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine5",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(2 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("e"),
-					},
-				},
-				"machine6": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine6",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(1 * time.Hour)),
-					},
-				},
-			},
-			want: nil,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			r := &KubeadmControlPlaneReconciler{
-				Client: newFakeClient(g),
-				managementCluster: &fakeManagementCluster{
-					Machines: tt.machines.DeepCopy(),
-				},
-				Log:      log.Log,
-				recorder: record.NewFakeRecorder(32),
-			}
-			g.Expect(r.failureDomainForScaleDown(tt.cluster, tt.machines)).To(Equal(tt.want))
-		})
-	}
-}
-
-func TestKubeadmControlPlaneReconciler_failureDomainForScaleUp(t *testing.T) {
-	tests := []struct {
-		name     string
-		cluster  *clusterv1.Cluster
-		machines internal.FilterableMachineCollection
-		expected []*string
-	}{
-		{
-			name:    "No failure domains defined in cluster, no failure domains defined on machines should return nil",
-			cluster: &clusterv1.Cluster{},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine1",
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine2",
-					},
-				},
-			},
-			expected: nil,
-		},
-		{
-			name:    "No failure domains defined in cluster, failure domains defined on machines should return nil",
-			cluster: &clusterv1.Cluster{},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine1",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("a"),
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine2",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(1 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine3": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine3",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(2 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-			},
-			expected: nil,
-		},
-		{
-			name: "failure domains defined in cluster, no failure domains defined on machines should return a valid failure domain",
-			cluster: &clusterv1.Cluster{
-				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"a": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-						"b": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-					},
-				},
-			},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine1",
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine2",
-					},
-				},
-			},
-			expected: []*string{utilpointer.StringPtr("a"), utilpointer.StringPtr("b")},
-		},
-		{
-			name: "Failure domains defined in cluster, failure domains defined on machines should return failure domain with least machines",
-			cluster: &clusterv1.Cluster{
-				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"a": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-						"b": clusterv1.FailureDomainSpec{
-							ControlPlane: true,
-						},
-					},
-				},
-			},
-			machines: internal.FilterableMachineCollection{
-				"machine1": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine1",
-						CreationTimestamp: metav1.Now(),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("a"),
-					},
-				},
-				"machine2": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine2",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(1 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-				"machine3": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine3",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(2 * time.Hour)),
-					},
-					Spec: clusterv1.MachineSpec{
-						FailureDomain: utilpointer.StringPtr("b"),
-					},
-				},
-			},
-			expected: []*string{utilpointer.StringPtr("a")},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			r := &KubeadmControlPlaneReconciler{
-				Client: newFakeClient(g),
-				managementCluster: &fakeManagementCluster{
-					Machines: tt.machines.DeepCopy(),
-				},
-				Log:      log.Log,
-				recorder: record.NewFakeRecorder(32),
-			}
-			fd := r.failureDomainForScaleUp(tt.cluster, tt.machines)
-			if tt.expected == nil {
-				g.Expect(fd).To(BeNil())
-			} else {
-				g.Expect(fd).To(BeElementOf(tt.expected))
-			}
-
-		})
 	}
 }
 
@@ -2184,8 +1716,13 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 			Workload:   fakeWorkloadCluster{},
 		},
 	}
+	controlPlane := &internal.ControlPlane{
+		KCP:      kcp,
+		Cluster:  cluster,
+		Machines: nil,
+	}
 
-	result, err := r.initializeControlPlane(context.Background(), cluster, kcp)
+	result, err := r.initializeControlPlane(context.Background(), cluster, kcp, controlPlane)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -2195,7 +1732,7 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	g.Expect(machineList.Items).To(HaveLen(1))
 
 	machineCollection := internal.NewFilterableMachineCollection(&machineList.Items[0])
-	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, machineCollection, machineCollection)
+	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, machineCollection, machineCollection, controlPlane)
 
 	g.Expect(machineList.Items[0].Annotations).To(HaveKey(controlplanev1.SelectedForUpgradeAnnotation))
 

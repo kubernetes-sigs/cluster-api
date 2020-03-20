@@ -157,7 +157,7 @@ outside of the existing module.
   ```go
   // Return early if the object or Cluster is paused.
   if util.IsPaused(cluster, <object>) {
-    logger.V(3).Info("reconciliation is paused for this object")
+    logger.Info("Reconciliation is paused for this object")
     return ctrl.Result{}, nil
   }
   ```

@@ -125,7 +125,7 @@ func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	// Return early if the object or Cluster is paused.
 	if util.IsPaused(cluster, machineSet) {
-		logger.V(3).Info("reconciliation is paused for this object")
+		logger.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
 

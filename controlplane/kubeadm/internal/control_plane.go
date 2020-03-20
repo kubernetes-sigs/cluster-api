@@ -60,8 +60,8 @@ func (c *ControlPlane) InfrastructureTemplate() *corev1.ObjectReference {
 	return &c.KCP.Spec.InfrastructureTemplate
 }
 
-// ConfigurationHash returns the hash of the KubeadmControlPlane spec.
-func (c *ControlPlane) ConfigurationHash() string {
+// SpecHash returns the hash of the KubeadmControlPlane spec.
+func (c *ControlPlane) SpecHash() string {
 	return hash.Compute(&c.KCP.Spec)
 }
 
@@ -87,23 +87,21 @@ func (c *ControlPlane) EtcdImageData() (string, string) {
 // MachinesNeedingUpgrade return a list of machines that need to be upgraded.
 func (c *ControlPlane) MachinesNeedingUpgrade() FilterableMachineCollection {
 	now := metav1.Now()
-	var requireUpgrade FilterableMachineCollection
 	if c.KCP.Spec.UpgradeAfter != nil && c.KCP.Spec.UpgradeAfter.Before(&now) {
-		requireUpgrade = c.Machines.AnyFilter(
-			machinefilters.Not(machinefilters.MatchesConfigurationHash(hash.Compute(&c.KCP.Spec))),
+		return c.Machines.AnyFilter(
+			machinefilters.Not(machinefilters.MatchesConfigurationHash(c.SpecHash())),
 			machinefilters.OlderThan(c.KCP.Spec.UpgradeAfter),
 		)
-	} else {
-		requireUpgrade = c.Machines.Filter(
-			machinefilters.Not(machinefilters.MatchesConfigurationHash(hash.Compute(&c.KCP.Spec))),
-		)
 	}
-	return requireUpgrade
+
+	return c.Machines.Filter(
+		machinefilters.Not(machinefilters.MatchesConfigurationHash(c.SpecHash())),
+	)
 }
 
-// FailureDomainWithMost returns the failure domain with the most number of machines.
+// FailureDomainWithMostMachines returns the failure domain with the most number of machines.
 // Used when scaling down.
-func (c *ControlPlane) FailureDomainWithMost() *string {
+func (c *ControlPlane) FailureDomainWithMostMachines() *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := c.Machines.Filter(
 		machinefilters.Not(machinefilters.InFailureDomains(c.Cluster.Status.FailureDomains.FilterControlPlane().GetIDs()...)),
@@ -119,9 +117,9 @@ func (c *ControlPlane) FailureDomainWithMost() *string {
 	return PickMost(c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines)
 }
 
-// FailureDomainWithFewest returns the failure domain with the fewest number of machines.
+// FailureDomainWithFewestMachines returns the failure domain with the fewest number of machines.
 // Used when scaling up.
-func (c *ControlPlane) FailureDomainWithFewest() *string {
+func (c *ControlPlane) FailureDomainWithFewestMachines() *string {
 	if len(c.Cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
 		return nil
 	}
@@ -157,7 +155,7 @@ func (c *ControlPlane) GenerateKubeadmConfig(spec *bootstrapv1.KubeadmConfigSpec
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            names.SimpleNameGenerator.GenerateName(c.KCP.Name + "-"),
 			Namespace:       c.KCP.Namespace,
-			Labels:          ControlPlaneLabelsForClusterWithHash(c.Cluster.Name, c.ConfigurationHash()),
+			Labels:          ControlPlaneLabelsForClusterWithHash(c.Cluster.Name, c.SpecHash()),
 			OwnerReferences: []metav1.OwnerReference{owner},
 		},
 		Spec: *spec,
@@ -171,7 +169,7 @@ func (c *ControlPlane) NewMachine(infraRef, bootstrapRef *corev1.ObjectReference
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      names.SimpleNameGenerator.GenerateName(c.KCP.Name + "-"),
 			Namespace: c.KCP.Namespace,
-			Labels:    ControlPlaneLabelsForClusterWithHash(c.Cluster.Name, c.ConfigurationHash()),
+			Labels:    ControlPlaneLabelsForClusterWithHash(c.Cluster.Name, c.SpecHash()),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(c.KCP, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},

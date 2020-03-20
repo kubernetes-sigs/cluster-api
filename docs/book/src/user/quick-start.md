@@ -131,8 +131,19 @@ before getting started with Cluster API.
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
 
+The clusterawsadm command line utility assists with identity and access management (IAM) for Cluster API Provider AWS.
+
 ```bash
 export AWS_REGION=us-east-1 # This is used to help encode your environment variables
+export AWS_ACCESS_KEY_ID=<your-access-key>
+export AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
+export AWS_SESSION_TOKEN=<session-token> # If you are using Multi-Factor Auth.
+
+# The clusterawsadm utility takes the credentials that you set as environment
+# variables and uses them to create a CloudFormation stack in your AWS account
+# with the correct IAM resources.
+clusterawsadm alpha bootstrap create-stack
+
 # Create the base64 encoded credentials using clusterawsadm.
 # This command uses your environment variables and encodes
 # them in a value to be stored in a Kubernetes Secret.

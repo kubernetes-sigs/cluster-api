@@ -75,7 +75,7 @@ type MachineSetReconciler struct {
 }
 
 func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	err := ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineSet{}).
 		Owns(&clusterv1.Machine{}).
 		Watches(
@@ -83,10 +83,19 @@ func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.MachineToMachineSets)},
 		).
 		WithOptions(options).
-		Complete(r)
+		Build(r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
+	// Add a watch on clusterv1.Cluster object for paused notifications.
+	clusterToMachineSets, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineSetList{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+	if err := util.WatchOnClusterPaused(controller, clusterToMachineSets); err != nil {
+		return err
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")

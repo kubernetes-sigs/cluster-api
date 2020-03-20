@@ -153,7 +153,27 @@ outside of the existing module.
 
 - A new annotation `cluster.x-k8s.io/paused` provides the ability to pause reconciliation on specific objects.
 - A new field `Cluster.Spec.Paused` provides the ability to pause reconciliation on a Cluster and all associated objects.
-- A helper function `util.IsPaused` can be used on any Kubernetes object associated with a Cluster.
+- A helper function `util.IsPaused` can be used on any Kubernetes object associated with a Cluster and can be used during a Reconcile loop:
+  ```go
+  // Return early if the object or Cluster is paused.
+  if util.IsPaused(cluster, <object>) {
+    logger.V(3).Info("reconciliation is paused for this object")
+    return ctrl.Result{}, nil
+  }
+  ```
+- Unless your controller is already watching Clusters, add a Watch to get notifications when Cluster.Spec.Paused field changes.
+  In most cases, `util.WatchOnClusterPaused` and `util.ClusterToObjectsMapper` can be used like in the example below:
+  ```go
+  // Add a watch on clusterv1.Cluster object for paused notifications.
+  clusterToObjectFunc, err := util.ClusterToObjectsMapper(mgr.GetClient(), <List object here>, mgr.GetScheme())
+  if err != nil {
+    return err
+  }
+  if err := util.WatchOnClusterPaused(controller, clusterToObjectFunc); err != nil {
+    return err
+  }
+  ```
+  NB: You need to have `cluster.x-k8s.io/cluster-name` applied to all your objects for the mapper to function.
 
 ## [OPTIONAL] Support failure domains.
 

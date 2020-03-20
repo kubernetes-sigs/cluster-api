@@ -19,7 +19,6 @@ package repository
 import (
 	"fmt"
 	"net/http"
-	"reflect"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -231,6 +230,8 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 }
 
 func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
+	g := NewWithT(t)
+
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -313,23 +314,19 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := newGitHubRepository(providerConfig, configVariablesClient)
-			if err != nil {
-				t.Fatal(err)
-			}
-			g.injectClient = client
+			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient)
+			g.Expect(err).NotTo(HaveOccurred())
 
-			got, err := g.downloadFilesFromRelease(tt.args.release, tt.args.fileName)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
+			gRepo.injectClient = client
+
+			got, err := gRepo.downloadFilesFromRelease(tt.args.release, tt.args.fileName)
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

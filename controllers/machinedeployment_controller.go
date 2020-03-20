@@ -58,7 +58,7 @@ type MachineDeploymentReconciler struct {
 }
 
 func (r *MachineDeploymentReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	err := ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{}).
 		Owns(&clusterv1.MachineSet{}).
 		Watches(
@@ -66,10 +66,19 @@ func (r *MachineDeploymentReconciler) SetupWithManager(mgr ctrl.Manager, options
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.MachineSetToDeployments)},
 		).
 		WithOptions(options).
-		Complete(r)
+		Build(r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
+	// Add a watch on clusterv1.Cluster object for paused notifications.
+	clusterToMachineDeployments, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineDeploymentList{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+	if err := util.WatchOnClusterPaused(controller, clusterToMachineDeployments); err != nil {
+		return err
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")

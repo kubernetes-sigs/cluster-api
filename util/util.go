@@ -34,12 +34,19 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -412,12 +419,16 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 }
 
 // IsPaused returns true if the Cluster is paused or the object has the `paused` annotation.
-func IsPaused(cluster *clusterv1.Cluster, v metav1.Object) bool {
+func IsPaused(cluster *clusterv1.Cluster, o metav1.Object) bool {
 	if cluster.Spec.Paused {
 		return true
 	}
+	return HasPausedAnnotation(o)
+}
 
-	annotations := v.GetAnnotations()
+// HasPausedAnnotation returns true if the object has the `paused` annotation.
+func HasPausedAnnotation(o metav1.Object) bool {
+	annotations := o.GetAnnotations()
 	if annotations == nil {
 		return false
 	}
@@ -474,4 +485,59 @@ func (o MachinesByCreationTimestamp) Less(i, j int) bool {
 		return o[i].Name < o[j].Name
 	}
 	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+}
+
+// WatchOnClusterPaused adds a conditional watch to the controlled given as input
+// that sends watch notifications on any create or delete, and only updates
+// that toggle Cluster.Spec.Cluster.
+func WatchOnClusterPaused(c controller.Controller, mapFunc handler.Mapper) error {
+	return c.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: mapFunc,
+		},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+		},
+	)
+}
+
+// ClusterToObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
+// and returns a list of requests.
+// NB: The objects are required to have `clusterv1.ClusterLabelName` applied.
+func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.Scheme) (handler.Mapper, error) {
+	if _, ok := ro.(metav1.ListInterface); !ok {
+		return nil, errors.Errorf("expected a metav1.ListInterface, got %T instead", ro)
+	}
+
+	gvk, err := apiutil.GVKForObject(ro, scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	return handler.ToRequestsFunc(func(o handler.MapObject) []ctrl.Request {
+		cluster, ok := o.Object.(*clusterv1.Cluster)
+		if !ok {
+			return nil
+		}
+
+		list := &unstructured.UnstructuredList{}
+		list.SetGroupVersionKind(gvk)
+		if err := c.List(context.Background(), list, client.MatchingLabels{clusterv1.ClusterLabelName: cluster.Name}); err != nil {
+			return nil
+		}
+
+		results := []ctrl.Request{}
+		for _, obj := range list.Items {
+			results = append(results, ctrl.Request{
+				NamespacedName: client.ObjectKey{Namespace: obj.GetNamespace(), Name: obj.GetName()},
+			})
+		}
+		return results
+
+	}), nil
 }

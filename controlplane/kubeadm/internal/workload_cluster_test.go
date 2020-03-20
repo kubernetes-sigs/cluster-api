@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 	"github.com/blang/semver"
 	"go.etcd.io/etcd/clientv3"
@@ -39,6 +40,33 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+func TestWorkload_RemoveMachineFromKubeadmConfigMap(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	fc := &fakeClient{
+		get: map[string]interface{}{
+			"kube-system/kubeadm-config": &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "kube-system",
+					Name:      "kubeadm-config",
+				},
+				Data: map[string]string{
+					ClusterStatusKey: `{kind: Test, apiEndpoints: {"node-1": 1, "node-2": 2, "node-3": 3}}`,
+				},
+			},
+		},
+	}
+	cluster := &Workload{
+		Client: fc,
+	}
+	m := machine("machine-1", withNamespace("default"))
+	g.Expect(cluster.RemoveMachineFromKubeadmConfigMap(ctx, m)).To(Succeed())
+	m = machine("machine-1", withNamespace("default"), withNodeRef("node-1"))
+	g.Expect(cluster.RemoveMachineFromKubeadmConfigMap(ctx, m)).To(Succeed())
+	// make sure calling it twice doesn't error
+	g.Expect(cluster.RemoveMachineFromKubeadmConfigMap(ctx, m)).To(Succeed())
+}
 
 func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
 	g := NewWithT(t)
@@ -309,4 +337,19 @@ type fakeEtcdClientGenerator struct {
 
 func (c *fakeEtcdClientGenerator) forNode(_ context.Context, _ string) (*etcd.Client, error) {
 	return c.client, nil
+}
+
+func withNodeRef(nodeName string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Status.NodeRef = &corev1.ObjectReference{
+			Kind: "Node",
+			Name: nodeName,
+		}
+	}
+}
+
+func withNamespace(namespace string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Namespace = namespace
+	}
 }

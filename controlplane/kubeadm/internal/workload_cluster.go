@@ -380,13 +380,17 @@ func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machin
 	}
 
 	configMapKey := ctrlclient.ObjectKey{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
-	kubeadmConfigMap, err := w.getConfigMap(ctx, configMapKey)
-	if err != nil {
-		return err
+	original := &corev1.ConfigMap{}
+	if err := w.Client.Get(ctx, configMapKey, original); err != nil {
+		return errors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMapKey.Namespace, configMapKey.Name)
 	}
-	config := &kubeadmConfig{ConfigMap: kubeadmConfigMap}
+	config := &kubeadmConfig{ConfigMap: original.DeepCopy()}
 	if err := config.RemoveAPIEndpoint(machine.Status.NodeRef.Name); err != nil {
 		return err
+	}
+	// See if anything changed
+	if original.Data[ClusterStatusKey] == config.ConfigMap.Data[ClusterStatusKey] {
+		return nil
 	}
 	if err := w.Client.Update(ctx, config.ConfigMap); err != nil {
 		return errors.Wrap(err, "error updating kubeadm ConfigMap")

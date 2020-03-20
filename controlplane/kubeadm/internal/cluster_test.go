@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api/util"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -278,10 +279,16 @@ func (f *fakeClient) Patch(_ context.Context, _ runtime.Object, _ client.Patch, 
 	return nil
 }
 
-func (f *fakeClient) Update(_ context.Context, _ runtime.Object, _ ...client.UpdateOption) error {
+func (f *fakeClient) Update(_ context.Context, obj runtime.Object, _ ...client.UpdateOption) error {
 	f.updateCalled = true
 	if f.updateErr != nil {
 		return f.updateErr
+	}
+	switch item := obj.(type) {
+	case *corev1.ConfigMap:
+		f.get[util.ObjectKey(item).String()] = obj.DeepCopyObject()
+	default:
+		return fmt.Errorf("unknown type: %s", item)
 	}
 	return nil
 }

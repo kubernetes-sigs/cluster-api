@@ -1685,7 +1685,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		Machines: machines,
 	}
 
-	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, machines, machines, controlPlane)
+	_, err := r.scaleDownControlPlane(context.Background(), controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
 }
 
@@ -1730,14 +1730,4 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(machineList.Items).NotTo(BeEmpty())
 	g.Expect(machineList.Items).To(HaveLen(1))
-
-	machineCollection := internal.NewFilterableMachineCollection(&machineList.Items[0])
-	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, machineCollection, machineCollection, controlPlane)
-
-	g.Expect(machineList.Items[0].Annotations).To(HaveKey(controlplanev1.SelectedForUpgradeAnnotation))
-
-	// TODO flesh out the rest of this test - this is currently least-effort to confirm a fix for an NPE when updating
-	// the etcd version
-	g.Expect(result).To(Equal(ctrl.Result{}))
-	g.Expect(err).To(Equal(&capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}))
 }

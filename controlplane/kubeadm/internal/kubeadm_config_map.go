@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	clusterStatusKey        = "ClusterStatus"
+	ClusterStatusKey        = "ClusterStatus"
 	clusterConfigurationKey = "ClusterConfiguration"
 	statusAPIEndpointsKey   = "apiEndpoints"
 	configVersionKey        = "kubernetesVersion"
@@ -42,9 +42,9 @@ type kubeadmConfig struct {
 
 // RemoveAPIEndpoint removes an APIEndpoint fromt he kubeadm config cluster status config map
 func (k *kubeadmConfig) RemoveAPIEndpoint(endpoint string) error {
-	data, ok := k.ConfigMap.Data[clusterStatusKey]
+	data, ok := k.ConfigMap.Data[ClusterStatusKey]
 	if !ok {
-		return errors.Errorf("could not find key %q in kubeadm config", clusterStatusKey)
+		return errors.Errorf("could not find key %q in kubeadm config", ClusterStatusKey)
 	}
 	status, err := yamlToUnstructured([]byte(data))
 	if err != nil {
@@ -62,7 +62,7 @@ func (k *kubeadmConfig) RemoveAPIEndpoint(endpoint string) error {
 	if err != nil {
 		return errors.Wrap(err, "error encoding kubeadm ClusterStatus object")
 	}
-	k.ConfigMap.Data[clusterStatusKey] = string(updated)
+	k.ConfigMap.Data[ClusterStatusKey] = string(updated)
 	return nil
 }
 

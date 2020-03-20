@@ -243,7 +243,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// Upgrade takes precedence over other operations
 	if len(requireUpgrade) > 0 {
 		logger.Info("Upgrading Control Plane")
-		return r.upgradeControlPlane(ctx, cluster, kcp, ownedMachines, requireUpgrade, controlPlane)
+		return r.upgradeControlPlane(ctx, controlPlane)
 	}
 
 	// If we've made it this far, we can assume that all ownedMachines are up to date
@@ -264,7 +264,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// We are scaling down
 	case numMachines > desiredReplicas:
 		logger.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
-		return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines, ownedMachines, controlPlane)
+		return r.scaleDownControlPlane(ctx, controlPlane)
 	}
 
 	// Get the workload cluster client.
@@ -342,27 +342,20 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
-	ctx context.Context,
-	cluster *clusterv1.Cluster,
-	kcp *controlplanev1.KubeadmControlPlane,
-	ownedMachines internal.FilterableMachineCollection,
-	requireUpgrade internal.FilterableMachineCollection,
-	controlPlane *internal.ControlPlane,
-) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
 	// TODO: handle reconciliation of etcd members and kubeadm config in case they get out of sync with cluster
 
-	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(controlPlane.Cluster))
 	if err != nil {
-		logger.Error(err, "failed to get remote client for workload cluster", "cluster key", util.ObjectKey(cluster))
+		logger.Error(err, "failed to get remote client for workload cluster", "cluster key", util.ObjectKey(controlPlane.Cluster))
 		return ctrl.Result{}, err
 	}
 
-	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
+	parsedVersion, err := semver.ParseTolerant(controlPlane.Version())
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.Version())
 	}
 
 	if err := workloadCluster.ReconcileKubeletRBACRole(ctx, parsedVersion); err != nil {
@@ -377,9 +370,10 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return ctrl.Result{}, errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
 	}
 
-	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil && kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
-		meta := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta
-		if err := workloadCluster.UpdateEtcdVersionInKubeadmConfigMap(ctx, meta.ImageRepository, meta.ImageTag); err != nil {
+	// Update etcd in the kubeadm config map if the user wants a specific repository/tag.
+	etcdImageRepository, etcdImageTag := controlPlane.EtcdImageData()
+	if etcdImageRepository != "" || etcdImageTag != "" {
+		if err := workloadCluster.UpdateEtcdVersionInKubeadmConfigMap(ctx, etcdImageRepository, etcdImageTag); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update the etcd version in the kubeadm config map")
 		}
 	}
@@ -389,9 +383,9 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	}
 
 	// If there is not already a Machine that is marked for upgrade, find one and mark it
-	selectedForUpgrade := requireUpgrade.Filter(machinefilters.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation))
+	selectedForUpgrade := controlPlane.MachinesNeedingUpgrade().Filter(machinefilters.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation))
 	if len(selectedForUpgrade) == 0 {
-		selectedMachine, err := r.selectMachineForUpgrade(ctx, cluster, requireUpgrade, controlPlane)
+		selectedMachine, err := r.selectMachineForUpgrade(ctx, controlPlane.Cluster, controlPlane.MachinesNeedingUpgrade(), controlPlane)
 		if err != nil {
 			logger.Error(err, "failed to select machine for upgrade")
 			return ctrl.Result{}, err
@@ -404,7 +398,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		// TODO: should we also add a check here to ensure that current machines not > kcp.spec.replicas+1?
 		// We haven't created a replacement machine for the cluster yet
 		// return here to avoid blocking while waiting for the new control plane Machine to come up
-		result, err := r.scaleUpControlPlane(ctx, cluster, kcp, ownedMachines, controlPlane)
+		result, err := r.scaleUpControlPlane(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -414,7 +408,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return result, nil
 	}
 
-	return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines, replacementCreated, controlPlane)
+	return r.scaleDownControlPlane(ctx, controlPlane)
 }
 
 func (r *KubeadmControlPlaneReconciler) markWithAnnotationKey(ctx context.Context, machine *clusterv1.Machine, annotationKey string) error {
@@ -492,17 +486,10 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
-	ctx context.Context,
-	cluster *clusterv1.Cluster,
-	kcp *controlplanev1.KubeadmControlPlane,
-	ownedMachines internal.FilterableMachineCollection,
-	selectedMachines internal.FilterableMachineCollection,
-	controlPlane *internal.ControlPlane,
-) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
-	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(controlPlane.Cluster))
 	if err != nil {
 		logger.Error(err, "failed to create client to workload cluster")
 		return ctrl.Result{}, errors.New("failed to create client to workload cluster")
@@ -515,35 +502,17 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
 	}
 
-	markedForDeletion := selectedMachines.Filter(machinefilters.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
-	if len(markedForDeletion) == 0 {
-		fd := controlPlane.FailureDomainWithMostMachines()
-		machinesInFailureDomain := selectedMachines.Filter(machinefilters.InFailureDomains(fd))
-		machineToMark := machinesInFailureDomain.Oldest()
-		if machineToMark == nil {
-			logger.Info("failed to pick control plane Machine to mark for deletion")
-			return ctrl.Result{}, errors.New("failed to pick control plane Machine to mark for deletion")
-		}
-		if err := r.markWithAnnotationKey(ctx, machineToMark, controlplanev1.DeleteForScaleDownAnnotation); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to mark machine %s for deletion", machineToMark.Name)
-		}
-		markedForDeletion.Insert(machinesInFailureDomain.Oldest())
-	}
-
-	machineToDelete := markedForDeletion.Oldest()
-	if machineToDelete == nil {
-		logger.Info("failed to pick control plane Machine to delete")
-		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
-	}
-
 	// Ensure etcd is healthy prior to attempting to remove the member
-	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
+	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(controlPlane.Cluster), controlPlane.KCP.Name); err != nil {
 		logger.Error(err, "waiting for control plane to pass etcd health check before removing a control plane machine")
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
+		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
 		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 	}
+
+	machineToDelete := controlPlane.Machines.Oldest()
+
 	// If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
-	etcdLeaderCandidate := ownedMachines.Newest()
+	etcdLeaderCandidate := controlPlane.EtcdLeaderCandidate()
 	if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate); err != nil {
 		logger.Error(err, "failed to move leadership to another machine")
 		return ctrl.Result{}, err
@@ -553,32 +522,27 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		return ctrl.Result{}, err
 	}
 
-	if !machinefilters.HasAnnotationKey(controlplanev1.ScaleDownConfigMapEntryRemovedAnnotation)(machineToDelete) {
-		if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-			logger.Error(err, "waiting for control plane to pass control plane health check before removing a control plane machine")
-			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
-			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
+	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(controlPlane.Cluster), controlPlane.KCP.Name); err != nil {
+		logger.Error(err, "waiting for control plane to pass control plane health check before removing a control plane machine")
+		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 
-		}
-		if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToDelete); err != nil {
-			logger.Error(err, "failed to remove machine from kubeadm ConfigMap")
-			return ctrl.Result{}, err
-		}
-		if err := r.markWithAnnotationKey(ctx, machineToDelete, controlplanev1.ScaleDownConfigMapEntryRemovedAnnotation); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to mark machine %s as having config map entry removed", machineToDelete.Name)
-		}
+	}
+	if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToDelete); err != nil {
+		logger.Error(err, "failed to remove machine from kubeadm ConfigMap")
+		return ctrl.Result{}, err
 	}
 
 	// Do a final health check of the Control Plane components prior to actually deleting the machine
-	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
+	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(controlPlane.Cluster), controlPlane.KCP.Name); err != nil {
 		logger.Error(err, "waiting for control plane to pass control plane health check before removing a control plane machine")
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
+		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
 		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 	}
 	logger = logger.WithValues("machine", machineToDelete)
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 		logger.Error(err, "failed to delete control plane machine")
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedScaleDown", "Failed to delete control plane Machine %s for cluster %s/%s control plane: %v", machineToDelete.Name, cluster.Namespace, cluster.Name, err)
+		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedScaleDown", "Failed to delete control plane Machine %s for cluster %s/%s control plane: %v", machineToDelete.Name, controlPlane.Cluster.Namespace, controlPlane.Cluster.Name, err)
 		return ctrl.Result{}, err
 	}
 

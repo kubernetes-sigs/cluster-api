@@ -51,8 +51,8 @@ func (c *ControlPlane) Logger() logr.Logger {
 }
 
 // Version returns the KubeadmControlPlane's version.
-func (c *ControlPlane) Version() *string {
-	return &c.KCP.Spec.Version
+func (c *ControlPlane) Version() string {
+	return c.KCP.Spec.Version
 }
 
 // InfrastructureTemplate returns the KubeadmControlPlane's infrastructure template.
@@ -176,7 +176,7 @@ func (c *ControlPlane) NewMachine(infraRef, bootstrapRef *corev1.ObjectReference
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       c.Cluster.Name,
-			Version:           c.Version(),
+			Version:           &c.KCP.Spec.Version,
 			InfrastructureRef: *infraRef,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef,
@@ -199,4 +199,17 @@ func (c *ControlPlane) NeedsReplacementNode() bool {
 // HasDeletingMachine returns true if any machine in the control plane is in the process of being deleted.
 func (c *ControlPlane) HasDeletingMachine() bool {
 	return len(c.Machines.Filter(machinefilters.HasDeletionTimestamp)) > 0
+}
+
+// EtcdLeaderCandidate will return the second oldest node as the etcd leader candidate.
+// The newest node is unsuitable as during upgrades it will not be ready yet.
+// Nil if there is one or zero nodes. Nothing can be done if there is only one machine.
+func (c *ControlPlane) EtcdLeaderCandidate() *clusterv1.Machine {
+	machines := c.Machines.SortedByCreationTimestamp()
+	switch len(machines) {
+	case 0, 1:
+		return nil
+	default:
+		return machines[1]
+	}
 }

@@ -50,6 +50,13 @@ func (c *ControlPlane) Logger() logr.Logger {
 	return Log.WithValues("namespace", c.KCP.Namespace, "name", c.KCP.Name, "cluster-nanme", c.Cluster.Name)
 }
 
+func (c *ControlPlane) FailureDomains() clusterv1.FailureDomains {
+	if c.Cluster.Status.FailureDomains == nil {
+		return clusterv1.FailureDomains{}
+	}
+	return c.Cluster.Status.FailureDomains
+}
+
 // Version returns the KubeadmControlPlane's version.
 func (c *ControlPlane) Version() *string {
 	return &c.KCP.Spec.Version
@@ -106,7 +113,7 @@ func (c *ControlPlane) MachinesNeedingUpgrade() FilterableMachineCollection {
 func (c *ControlPlane) FailureDomainWithMost() *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := c.Machines.Filter(
-		machinefilters.Not(machinefilters.InFailureDomains(c.Cluster.Status.FailureDomains.FilterControlPlane().GetIDs()...)),
+		machinefilters.Not(machinefilters.InFailureDomains(c.FailureDomains().FilterControlPlane().GetIDs()...)),
 	)
 	if len(notInFailureDomains) > 0 {
 		// return the failure domain for the oldest Machine not in the current list of failure domains
@@ -125,7 +132,7 @@ func (c *ControlPlane) FailureDomainWithFewest() *string {
 	if len(c.Cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
 		return nil
 	}
-	return PickFewest(c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines)
+	return PickFewest(c.FailureDomains().FilterControlPlane(), c.Machines)
 }
 
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.

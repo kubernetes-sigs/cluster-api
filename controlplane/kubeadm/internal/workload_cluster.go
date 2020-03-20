@@ -45,7 +45,8 @@ import (
 )
 
 const (
-	kubeProxyKey = "kube-proxy"
+	kubeProxyKey        = "kube-proxy"
+	labelNodeRoleMaster = "node-role.kubernetes.io/master"
 )
 
 var (
@@ -58,13 +59,12 @@ type etcdClientFor interface {
 
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster
 type WorkloadCluster interface {
-	// Basic health and status behaviors
-
+	// Basic health and status checks.
 	ClusterStatus(ctx context.Context) (ClusterStatus, error)
 	ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult, error)
 	EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 
-	// Behaviors necessary for upgrade
+	// Upgrade related tasks.
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error
 	ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error
 	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error
@@ -87,7 +87,7 @@ type Workload struct {
 func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
 	nodes := &corev1.NodeList{}
 	labels := map[string]string{
-		"node-role.kubernetes.io/master": "",
+		labelNodeRoleMaster: "",
 	}
 
 	if err := w.Client.List(ctx, nodes, ctrlclient.MatchingLabels(labels)); err != nil {

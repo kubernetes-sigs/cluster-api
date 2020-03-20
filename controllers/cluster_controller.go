@@ -110,7 +110,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 	// Return early if the object or Cluster is paused.
 	if util.IsPaused(cluster, cluster) {
-		logger.V(3).Info("reconciliation is paused for this object")
+		logger.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
 

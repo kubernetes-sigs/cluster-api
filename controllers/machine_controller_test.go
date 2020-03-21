@@ -787,13 +787,17 @@ func Test_clusterToActiveMachines(t *testing.T) {
 }
 
 func TestIsDeleteNodeAllowed(t *testing.T) {
+	deletionts := metav1.Now()
+
 	testCases := []struct {
 		name          string
+		cluster       *clusterv1.Cluster
 		machine       *clusterv1.Machine
 		expectedError error
 	}{
 		{
-			name: "machine without nodeRef",
+			name:    "machine without nodeRef",
+			cluster: &clusterv1.Cluster{},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "created",
@@ -810,7 +814,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			expectedError: errNilNodeRef,
 		},
 		{
-			name: "no control plane members",
+			name:    "no control plane members",
+			cluster: &clusterv1.Cluster{},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "created",
@@ -831,7 +836,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			expectedError: errNoControlPlaneNodes,
 		},
 		{
-			name: "is last control plane members",
+			name:    "is last control plane members",
+			cluster: &clusterv1.Cluster{},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
@@ -856,7 +862,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			expectedError: errLastControlPlaneNode,
 		},
 		{
-			name: "has nodeRef and control plane is healthy",
+			name:    "has nodeRef and control plane is healthy",
+			cluster: &clusterv1.Cluster{},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
@@ -878,6 +885,16 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 			},
 			expectedError: nil,
+		},
+		{
+			name: "has nodeRef and control plane is healthy",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					DeletionTimestamp: &deletionts,
+				},
+			},
+			machine:       &clusterv1.Machine{},
+			expectedError: errClusterIsBeingDeleted,
 		},
 	}
 
@@ -934,6 +951,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			mr := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
+					tc.cluster,
 					tc.machine,
 					m1,
 					m2,
@@ -942,7 +960,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				scheme: scheme.Scheme,
 			}
 
-			err := mr.isDeleteNodeAllowed(context.TODO(), tc.machine)
+			err := mr.isDeleteNodeAllowed(context.TODO(), tc.cluster, tc.machine)
 			if tc.expectedError == nil {
 				g.Expect(err).To(BeNil())
 			} else {

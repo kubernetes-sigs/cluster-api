@@ -52,9 +52,10 @@ import (
 )
 
 var (
-	errNilNodeRef           = errors.New("noderef is nil")
-	errLastControlPlaneNode = errors.New("last control plane member")
-	errNoControlPlaneNodes  = errors.New("no control plane members")
+	errNilNodeRef            = errors.New("noderef is nil")
+	errLastControlPlaneNode  = errors.New("last control plane member")
+	errNoControlPlaneNodes   = errors.New("no control plane members")
+	errClusterIsBeingDeleted = errors.New("cluster is being deleted")
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -243,22 +244,19 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
 	logger = logger.WithValues("cluster", cluster.Name)
 
-	err := r.isDeleteNodeAllowed(ctx, m)
+	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil
 	if err != nil {
 		switch err {
-		case errNilNodeRef:
-			logger.Error(err, "Deleting node is not allowed")
-		case errNoControlPlaneNodes, errLastControlPlaneNode:
-			logger.Error(err, "Deleting node is not allowed", "node", m.Status.NodeRef.Name)
+		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted:
+			logger.Info("Deleting Kubernetes Node associated with Machine is not allowed", "node", m.Status.NodeRef, "cause", err)
 		default:
-			logger.Error(err, "IsDeleteNodeAllowed check failed")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.Wrapf(err, "failed to check if Kubernetes Node deletion is allowed")
 		}
 	}
 
 	if isDeleteNodeAllowed {
-		// Drain node before deletion
+		// Drain node before deletion.
 		if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; !exists {
 			logger.Info("Draining node", "node", m.Status.NodeRef.Name)
 			if err := r.drainNode(ctx, cluster, m.Status.NodeRef.Name, m.Name); err != nil {
@@ -299,7 +297,12 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
 // and if the Machine is not the last control plane node in the cluster.
-func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, machine *clusterv1.Machine) error {
+func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	// Return early if the cluster is being deleted.
+	if !cluster.DeletionTimestamp.IsZero() {
+		return errClusterIsBeingDeleted
+	}
+
 	// Cannot delete something that doesn't exist.
 	if machine.Status.NodeRef == nil {
 		return errNilNodeRef
@@ -392,7 +395,7 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		return &capierrors.RequeueAfterError{RequeueAfter: 20 * time.Second}
 	}
 
-	logger.Info("Drain successful")
+	logger.Info("Drain successful", "")
 	return nil
 }
 

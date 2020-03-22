@@ -1,0 +1,14 @@
+bases:
+- ../../../../../../controlplane/kubeadm/config
+resources:
+- capi-kubeadm-control-plane-docker-cluster-role.yaml
+patchesJSON6902:
+- target:
+    group: rbac.authorization.k8s.io
+    version: v1
+    kind: ClusterRole
+    name: capi-kubeadm-control-plane-manager-role
+  patch: |-
+    - op: replace
+      path: /rules/0/apiGroups
+      value: ["bootstrap.cluster.x-k8s.io", "controlplane.cluster.x-k8s.io"]

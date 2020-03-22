@@ -355,13 +355,13 @@ export VSPHERE_NETWORK="VM Network"
 # The vSphere resource pool for your VMs
 export VSPHERE_RESOURCE_POOL="*/Resources"
 # The VM folder for your VMs. Set to "" to use the root vSphere folder
-export VSPHERE_FOLDER: "vm"
+export VSPHERE_FOLDER="vm"
 # The VM template to use for your
-export VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.17.3"                 m
+export VSPHERE_TEMPLATE="ubuntu-1804-kube-v1.17.3"                 m
 # The VM template to use for the HAProxy load balanceranagement cluster.
-export VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.0-rc.2"
+export VSPHERE_HAPROXY_TEMPLATE="capv-haproxy-v0.6.0-rc.2"
 # The public ssh authorized key on all machines
-export VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."
+export VSPHERE_SSH_AUTHORIZED_KEY="ssh-rsa AAAAB3N..."
 
 clusterctl init --infrastructure vsphere
 ```

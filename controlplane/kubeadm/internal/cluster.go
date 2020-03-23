@@ -70,10 +70,10 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	// TODO(chuckha): Inject this dependency.
 	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
 	restConfig, err := remote.RESTConfig(ctx, m.Client, clusterKey)
-	restConfig.Timeout = 30 * time.Second
 	if err != nil {
 		return nil, err
 	}
+	restConfig.Timeout = 30 * time.Second
 
 	c, err := client.New(restConfig, client.Options{Scheme: scheme.Scheme})
 	if err != nil {

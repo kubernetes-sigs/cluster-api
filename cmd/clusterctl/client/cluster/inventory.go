@@ -189,36 +189,41 @@ func (p *inventoryClient) createObj(o unstructured.Unstructured) error {
 }
 
 func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
-	cl, err := p.proxy.NewClient()
-	if err != nil {
-		return err
-	}
-
-	currentProvider := &clusterctlv1.Provider{}
-	key := client.ObjectKey{
-		Namespace: m.Namespace,
-		Name:      m.Name,
-	}
-	if err := cl.Get(ctx, key, currentProvider); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get current provider object")
+	// Create the Kubernetes object.
+	// Nb. The operation is wrapped in a retry loop to make Create more resilient to unexpected conditions.
+	createInventoryObjectBackoff := newBackoff()
+	return retryWithExponentialBackoff(createInventoryObjectBackoff, func() error {
+		cl, err := p.proxy.NewClient()
+		if err != nil {
+			return err
 		}
 
-		//if it does not exists, create the provider object
-		if err := cl.Create(ctx, &m); err != nil {
-			return errors.Wrapf(err, "failed to create provider object")
+		currentProvider := &clusterctlv1.Provider{}
+		key := client.ObjectKey{
+			Namespace: m.Namespace,
+			Name:      m.Name,
 		}
+		if err := cl.Get(ctx, key, currentProvider); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to get current provider object")
+			}
+
+			//if it does not exists, create the provider object
+			if err := cl.Create(ctx, &m); err != nil {
+				return errors.Wrapf(err, "failed to create provider object")
+			}
+			return nil
+		}
+
+		// otherwise patch the provider object
+		// NB. we are using client.Merge PatchOption so the new objects gets compared with the current one server side
+		m.SetResourceVersion(currentProvider.GetResourceVersion())
+		if err := cl.Patch(ctx, &m, client.Merge); err != nil {
+			return errors.Wrapf(err, "failed to patch provider object")
+		}
+
 		return nil
-	}
-
-	// otherwise patch the provider object
-	// NB. we are using client.Merge PatchOption so the new objects gets compared with the current one server side
-	m.SetResourceVersion(currentProvider.GetResourceVersion())
-	if err := cl.Patch(ctx, &m, client.Merge); err != nil {
-		return errors.Wrapf(err, "failed to patch provider object")
-	}
-
-	return nil
+	})
 }
 
 func (p *inventoryClient) List() (*clusterctlv1.ProviderList, error) {

@@ -29,11 +29,11 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 )
 
-func falseFilter(machine *clusterv1.Machine) bool {
+func falseFilter(_ *clusterv1.Machine) bool {
 	return false
 }
 
-func trueFilter(machine *clusterv1.Machine) bool {
+func trueFilter(_ *clusterv1.Machine) bool {
 	return true
 }
 
@@ -163,6 +163,10 @@ func TestHashAnnotationKey(t *testing.T) {
 }
 
 func TestInFailureDomain(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(machinefilters.InFailureDomains(pointer.StringPtr("test"))(nil)).To(BeFalse())
+	})
 	t.Run("machine with given failure domain returns true", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.StringPtr("test")}}
@@ -171,7 +175,12 @@ func TestInFailureDomain(t *testing.T) {
 	t.Run("machine with a different failure domain returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.StringPtr("notTest")}}
-		g.Expect(machinefilters.InFailureDomains(pointer.StringPtr("test"), pointer.StringPtr("foo"))(m)).To(BeFalse())
+		g.Expect(machinefilters.InFailureDomains(
+			pointer.StringPtr("test"),
+			pointer.StringPtr("test2"),
+			pointer.StringPtr("test3"),
+			nil,
+			pointer.StringPtr("foo"))(m)).To(BeFalse())
 	})
 	t.Run("machine without failure domain returns false", func(t *testing.T) {
 		g := NewWithT(t)

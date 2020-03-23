@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/yaml"
 )
 
@@ -57,6 +58,7 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 	var ret []unstructured.Unstructured //nolint
 
 	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(rawyaml)))
+	count := 1
 	for {
 		// Read one YAML document at a time, until io.EOF is returned
 		b, err := reader.Read()
@@ -72,7 +74,7 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 
 		var m map[string]interface{}
 		if err := yaml.Unmarshal(b, &m); err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal yaml fragment: %q", string(b))
+			return nil, errors.Wrapf(err, "failed to unmarshal the %s yaml document: %q", util.Ordinalize(count), string(b))
 		}
 
 		var u unstructured.Unstructured
@@ -85,6 +87,7 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 		}
 
 		ret = append(ret, u)
+		count++
 	}
 
 	return ret, nil

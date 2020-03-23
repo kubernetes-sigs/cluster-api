@@ -17,8 +17,9 @@ limitations under the License.
 package util
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestToUnstructured(t *testing.T) {
@@ -30,6 +31,7 @@ func TestToUnstructured(t *testing.T) {
 		args          args
 		wantObjsCount int
 		wantErr       bool
+		err           string
 	}{
 		{
 			name: "single object",
@@ -90,21 +92,66 @@ func TestToUnstructured(t *testing.T) {
 			wantObjsCount: 2,
 			wantErr:       false,
 		},
+		{
+			name: "returns error for invalid yaml",
+			args: args{
+				rawyaml: []byte("apiVersion: v1\n" +
+					"kind: ConfigMap\n" +
+					"---\n" +
+					"apiVersion: v1\n" +
+					"foobar\n" +
+					"kind: Secret\n"),
+			},
+			wantErr: true,
+			err:     "failed to unmarshal the 2nd yaml document",
+		},
+		{
+			name: "returns error for invalid yaml",
+			args: args{
+				rawyaml: []byte("apiVersion: v1\n" +
+					"kind: ConfigMap\n" +
+					"---\n" +
+					"apiVersion: v1\n" +
+					"kind: Pod\n" +
+					"---\n" +
+					"apiVersion: v1\n" +
+					"kind: Deployment\n" +
+					"---\n" +
+					"apiVersion: v1\n" +
+					"foobar\n" +
+					"kind: ConfigMap\n"),
+			},
+			wantErr: true,
+			err:     "failed to unmarshal the 4th yaml document",
+		},
+		{
+			name: "returns error for invalid yaml",
+			args: args{
+				rawyaml: []byte("apiVersion: v1\n" +
+					"foobar\n" +
+					"kind: ConfigMap\n" +
+					"---\n" +
+					"apiVersion: v1\n" +
+					"kind: Secret\n"),
+			},
+			wantErr: true,
+			err:     "failed to unmarshal the 1st yaml document",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ToUnstructured(tt.args.rawyaml)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErr {
-				return
-			}
+			g := NewWithT(t)
 
-			if !reflect.DeepEqual(len(got), tt.wantObjsCount) {
-				t.Errorf("got = %v object, want %v", len(got), tt.wantObjsCount)
+			got, err := ToUnstructured(tt.args.rawyaml)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				if len(tt.err) != 0 {
+					g.Expect(err.Error()).To(ContainSubstring(tt.err))
+				}
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(got).To(HaveLen(tt.wantObjsCount))
 		})
 	}
 }

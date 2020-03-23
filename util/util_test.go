@@ -18,6 +18,7 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/blang/semver"
@@ -479,7 +480,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 }
 
 func TestModifyImageTag(t *testing.T) {
-	g := NewGomegaWithT(t)
+	g := NewWithT(t)
 	t.Run("should ensure image is a docker compatible tag", func(t *testing.T) {
 		testTag := "v1.17.4+build1"
 		image := "example.com/image:1.17.3"
@@ -490,7 +491,7 @@ func TestModifyImageTag(t *testing.T) {
 }
 
 func TestEnsureOwnerRef(t *testing.T) {
-	g := NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	t.Run("should set ownerRef on an empty list", func(t *testing.T) {
 		obj := &clusterv1.Machine{}
@@ -553,7 +554,7 @@ func TestEnsureOwnerRef(t *testing.T) {
 }
 
 func TestClusterToObjectsMapper(t *testing.T) {
-	g := NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
@@ -646,4 +647,30 @@ func TestClusterToObjectsMapper(t *testing.T) {
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
 		g.Expect(f.Map(handler.MapObject{Object: cluster})).To(ConsistOf(tc.output))
 	}
+}
+
+func TestOrdinalize(t *testing.T) {
+	tests := []struct {
+		input    int
+		expected string
+	}{
+		{0, "0th"},
+		{1, "1st"},
+		{2, "2nd"},
+		{43, "43rd"},
+		{5, "5th"},
+		{6, "6th"},
+		{207, "207th"},
+		{1008, "1008th"},
+		{-109, "-109th"},
+		{-0, "0th"},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("ordinalize %d", tt.input), func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(Ordinalize(tt.input)).To(Equal(tt.expected))
+		})
+	}
+
 }

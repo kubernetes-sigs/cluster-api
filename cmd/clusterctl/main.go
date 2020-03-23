@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 

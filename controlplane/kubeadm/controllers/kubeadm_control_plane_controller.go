@@ -67,6 +67,10 @@ const (
 	// DependentCertRequeueAfter is how long to wait before checking again to see if
 	// dependent certificates have been created.
 	DependentCertRequeueAfter = 30 * time.Second
+
+	// DependentInfraTemplateRequeueAfter is how long to wait before checking again to see if
+	// dependent InfraTemplate have been created.
+	DependentInfraTemplateRequeueAfter = 30 * time.Second
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -150,6 +154,11 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
+	// Make sure to reconcile the external infrastructure reference.
+	if err := r.reconcileExternalReference(ctx, cluster, kcp.Spec.InfrastructureTemplate); err != nil {
+		return ctrl.Result{RequeueAfter: DependentInfraTemplateRequeueAfter}, err
+	}
+
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(kcp, r.Client)
 	if err != nil {
@@ -195,11 +204,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 
 	// If object doesn't have a finalizer, add one.
 	controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
-
-	// Make sure to reconcile the external infrastructure reference.
-	if err := r.reconcileExternalReference(ctx, cluster, kcp.Spec.InfrastructureTemplate); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	// Generate Cluster Certificates if needed
 	config := kcp.Spec.KubeadmConfigSpec.DeepCopy()

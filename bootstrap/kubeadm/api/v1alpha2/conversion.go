@@ -119,7 +119,6 @@ func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in *ku
 	return nil
 }
 
-
 // Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec converts this KubeadmConfigSpec to the Hub version (v1alpha3).
 func Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *KubeadmConfigSpec, out *kubeadmbootstrapv1alpha3.KubeadmConfigSpec, s apiconversion.Scope) error {
 	return autoConvert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)

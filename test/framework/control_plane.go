@@ -314,6 +314,9 @@ func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
 	if options.SkipResourceCleanup {
 		return
 	}
+	if input.Cluster == nil {
+		return
+	}
 	By(fmt.Sprintf("deleting cluster %s", input.Cluster.GetName()))
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }

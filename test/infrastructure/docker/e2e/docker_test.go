@@ -41,21 +41,14 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var mgmtClient ctrlclient.Client
-var cluster *clusterv1.Cluster
-
 var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
 		var (
-			namespace  string
+			namespace  = "default"
 			clusterGen = &ClusterGenerator{}
 		)
-		SetDefaultEventuallyTimeout(3 * time.Minute)
+		SetDefaultEventuallyTimeout(5 * time.Minute)
 		SetDefaultEventuallyPollingInterval(10 * time.Second)
-
-		BeforeEach(func() {
-			namespace = "default"
-		})
 
 		AfterEach(func() {
 			// Dump cluster API and docker related resources to artifacts before deleting them.
@@ -71,7 +64,8 @@ var _ = Describe("Docker", func() {
 		Describe("Multi-node controlplane cluster", func() {
 			var controlPlane *controlplanev1.KubeadmControlPlane
 
-			Specify("Basic create", func() {
+			BeforeEach(func() {
+				// Create a multi-node cluster with failure domains config
 				replicas := 3
 				var (
 					infraCluster *infrav1.DockerCluster
@@ -79,13 +73,13 @@ var _ = Describe("Docker", func() {
 					err          error
 				)
 				cluster, infraCluster, controlPlane, template = clusterGen.GenerateCluster(namespace, int32(replicas))
-				// Set failure domains here
-				infraCluster.Spec.FailureDomains = clusterv1.FailureDomains{
-					"domain-one":   {ControlPlane: true},
-					"domain-two":   {ControlPlane: true},
-					"domain-three": {ControlPlane: true},
-					"domain-four":  {ControlPlane: false},
-				}
+				// // Set failure domains here
+				// infraCluster.Spec.FailureDomains = clusterv1.FailureDomains{
+				// 	"domain-one":   {ControlPlane: true},
+				// 	"domain-two":   {ControlPlane: true},
+				// 	"domain-three": {ControlPlane: true},
+				// 	"domain-four":  {ControlPlane: false},
+				// }
 
 				md, infraTemplate, bootstrapTemplate := GenerateMachineDeployment(cluster, 1)
 
@@ -166,7 +160,9 @@ var _ = Describe("Docker", func() {
 					ControlPlane: controlPlane,
 				}
 				framework.WaitForControlPlaneToBeReady(ctx, waitForControlPlaneToBeReadyInput)
+			})
 
+			Specify("failure domains are correct", func() {
 				// Assert failure domain is working as expected
 				assertControlPlaneFailureDomainInput := framework.AssertControlPlaneFailureDomainsInput{
 					GetLister:  mgmtClient,
@@ -179,10 +175,9 @@ var _ = Describe("Docker", func() {
 					},
 				}
 				framework.AssertControlPlaneFailureDomains(ctx, assertControlPlaneFailureDomainInput)
-
 			})
 
-			Specify("Full upgrade", func() {
+			Specify("Full upgrade - Kubernetes, kube-proxy, etcd, coredns", func() {
 				By("upgrading the control plane object to a new version")
 				patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
 				Expect(err).ToNot(HaveOccurred())
@@ -213,6 +208,7 @@ var _ = Describe("Docker", func() {
 					}
 					return upgraded, nil
 				}, "10m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
+				// TODO: (wfernandes) Add upgraded etcd assertions here.
 			})
 		})
 	})

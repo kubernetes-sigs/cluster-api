@@ -115,7 +115,7 @@ var _ = Describe("Control Plane", func() {
 						"machine-1": machine("machine-1",
 							withCreationTimestamp(metav1.Time{Time: time.Date(year-1, 0, 0, 0, 0, 0, 0, time.UTC)}),
 							withHash(controlPlane.SpecHash())),
-						"machine-2": machine("machine-3",
+						"machine-2": machine("machine-2",
 							withCreationTimestamp(metav1.Time{Time: time.Date(year, 0, 0, 0, 0, 0, 0, time.UTC)}),
 							withHash(controlPlane.SpecHash())),
 						"machine-3": machine("machine-3",
@@ -155,7 +155,9 @@ var _ = Describe("Control Plane", func() {
 							JustBeforeEach(func() {
 								controlPlane.KCP.Spec.UpgradeAfter = &metav1.Time{Time: time.Date(year, 1, 0, 0, 0, 0, 0, time.UTC)}
 							})
-							It("should return all machines older than this date machines", func() {})
+							It("should return all machines older than this date machines", func() {
+								Expect(controlPlane.MachinesNeedingUpgrade()).To(HaveLen(2))
+							})
 						})
 					})
 				})

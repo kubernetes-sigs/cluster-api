@@ -50,6 +50,7 @@ func (c *ControlPlane) Logger() logr.Logger {
 	return Log.WithValues("namespace", c.KCP.Namespace, "name", c.KCP.Name, "cluster-nanme", c.Cluster.Name)
 }
 
+// FailureDomains returns a slice of failure domain objects synced from the infrastructure provider into Cluster.Status.
 func (c *ControlPlane) FailureDomains() clusterv1.FailureDomains {
 	if c.Cluster.Status.FailureDomains == nil {
 		return clusterv1.FailureDomains{}

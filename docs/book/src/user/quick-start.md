@@ -377,7 +377,7 @@ For more information about prerequisites, credentials management, or permissions
 A ClusterAPI compatible image must be available in your OpenStack. For instructions on how to build a compatible image 
 see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html). 
 Depending on your OpenStack and underlying hypervisor the following options might be of interest:
-* [image-builder (qemu)](https://github.com/kubernetes-sigs/image-builder/pull/169)
+* [image-builder (OpenStack)](https://image-builder.sigs.k8s.io/capi/providers/openstack.html)
 * [image-builder (vSphere)](https://image-builder.sigs.k8s.io/capi/providers/vsphere.html)
 
 To see all required OpenStack environment variables execute:

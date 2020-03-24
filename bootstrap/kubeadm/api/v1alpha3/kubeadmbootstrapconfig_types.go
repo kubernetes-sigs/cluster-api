@@ -73,6 +73,19 @@ type KubeadmConfigSpec struct {
 	// It overrides the `--v` flag in kubeadm commands.
 	// +optional
 	Verbosity *int32 `json:"verbosity,omitempty"`
+
+	// UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
+	// script with retries for joins.
+	//
+	// This is meant to be an experimental temporary workaround on some environments
+	// where joins fail due to timing (and other issues). The long term goal is to add retries to
+	// kubeadm proper and use that functionality.
+	//
+	// This will add about 40KB to userdata
+	//
+	// For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
+	// +optional
+	UseExperimentalRetryJoin bool `json:"useExperimentalRetryJoin,omitempty"`
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig

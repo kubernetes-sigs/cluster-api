@@ -275,6 +275,7 @@ func autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in *v1
 	out.NTP = (*NTP)(unsafe.Pointer(in.NTP))
 	out.Format = Format(in.Format)
 	// WARNING: in.Verbosity requires manual conversion: does not exist in peer-type
+	// WARNING: in.UseExperimentalRetryJoin requires manual conversion: does not exist in peer-type
 	return nil
 }
 

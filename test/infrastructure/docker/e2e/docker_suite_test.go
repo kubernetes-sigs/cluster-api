@@ -39,10 +39,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestDocker(t *testing.T) {
@@ -58,6 +60,8 @@ func TestDocker(t *testing.T) {
 
 var (
 	mgmt          *CAPDCluster
+	mgmtClient    ctrlclient.Client
+	cluster       *clusterv1.Cluster
 	ctx           = context.Background()
 	config        *framework.Config
 	configPath    string

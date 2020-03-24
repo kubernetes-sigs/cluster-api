@@ -1463,7 +1463,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		}
 
 		_, err := r.reconcileDelete(context.Background(), cluster, kcp)
-		g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}))
+		g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 		controlPlaneMachines := clusterv1.MachineList{}
@@ -1514,7 +1514,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		}
 
 		_, err := r.reconcileDelete(context.Background(), cluster, kcp)
-		g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}))
+		g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}))
 
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
@@ -1645,7 +1645,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			ownedMachines := fmc.Machines.DeepCopy()
 			_, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), ownedMachines, controlPlane)
 			g.Expect(err).To(HaveOccurred())
-			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}))
+			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
 
 			controlPlaneMachines := &clusterv1.MachineList{}
 			g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())
@@ -1739,5 +1739,5 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	// TODO flesh out the rest of this test - this is currently least-effort to confirm a fix for an NPE when updating
 	// the etcd version
 	g.Expect(result).To(Equal(ctrl.Result{}))
-	g.Expect(err).To(Equal(&capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}))
+	g.Expect(err).To(Equal(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
 }

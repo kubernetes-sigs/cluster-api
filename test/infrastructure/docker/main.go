@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"os"
 	"time"
 
@@ -55,6 +56,8 @@ func init() {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	klog.InitFlags(nil)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.IntVar(&concurrency, "concurrency", 10, "The number of docker machines to process simultaneously")

@@ -18,7 +18,9 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"os"
+	"time"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
@@ -30,6 +32,8 @@ import (
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	klog.InitFlags(nil)
 	var enableLeaderElection bool
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,

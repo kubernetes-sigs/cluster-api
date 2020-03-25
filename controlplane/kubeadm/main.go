@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -101,6 +102,8 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 }
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()

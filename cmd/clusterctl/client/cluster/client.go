@@ -205,7 +205,7 @@ func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) erro
 		i++
 		if err := operation(); err != nil {
 			if i < opts.Steps {
-				log.V(5).Info("Operation failed, retry", "Error", err)
+				log.V(5).Info("Operation failed, retrying with backoff", "Cause", err.Error())
 				return false, nil
 			}
 			return false, err
@@ -218,8 +218,8 @@ func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) erro
 	return nil
 }
 
-// newBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl operations.
-func newBackoff() wait.Backoff {
+// newWriteBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl write operations.
+func newWriteBackoff() wait.Backoff {
 	// Return a exponential backoff configuration which returns durations for a total time of ~40s.
 	// Example: 0, .5s, 1.2s, 2.3s, 4s, 6s, 10s, 16s, 24s, 37s
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
@@ -228,5 +228,31 @@ func newBackoff() wait.Backoff {
 		Factor:   1.5,
 		Steps:    10,
 		Jitter:   0.4,
+	}
+}
+
+// newConnectBackoff creates a new API Machinery backoff parameter set suitable for use when clusterctl connect to a cluster.
+func newConnectBackoff() wait.Backoff {
+	// Return a exponential backoff configuration which returns durations for a total time of ~15s.
+	// Example: 0, .25s, .6s, 1.2, 2.1s, 3.4s, 5.5s, 8s, 12s
+	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
+	return wait.Backoff{
+		Duration: 250 * time.Millisecond,
+		Factor:   1.5,
+		Steps:    9,
+		Jitter:   0.1,
+	}
+}
+
+// newReadBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl read operations.
+func newReadBackoff() wait.Backoff {
+	// Return a exponential backoff configuration which returns durations for a total time of ~15s.
+	// Example: 0, .25s, .6s, 1.2, 2.1s, 3.4s, 5.5s, 8s, 12s
+	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
+	return wait.Backoff{
+		Duration: 250 * time.Millisecond,
+		Factor:   1.5,
+		Steps:    9,
+		Jitter:   0.1,
 	}
 }

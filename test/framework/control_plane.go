@@ -286,8 +286,6 @@ type WaitForControlPlaneToBeReadyInput struct {
 }
 
 // WaitForControlPlaneToBeReady will wait for a control plane to be ready.
-// TODO(chuckha): Once we implement control plane Ready, then we should update this to wait actually wait for ready.
-// TODO(chuckha): In the meantime this uses initialized as a placeholder for Ready.
 func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...interface{}) {
 	By("waiting for the control plane to be ready")
 	Eventually(func() (bool, error) {

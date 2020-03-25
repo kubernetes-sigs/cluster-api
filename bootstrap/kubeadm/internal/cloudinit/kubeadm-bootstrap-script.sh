@@ -22,10 +22,12 @@ log::error_exit() {
   local code="${2}"
 
   log::error "${message}"
+  # {{ if .ControlPlane }}
   log::info "Removing member from cluster status"
   kubeadm reset -f update-cluster-status || true
   log::info "Removing etcd member"
   kubeadm reset -f remove-etcd-member || true
+  # {{ end }}
   log::info "Resetting kubeadm"
   kubeadm reset -f || true
   log::error "cluster.x-k8s.io kubeadm bootstrap script $0 exiting with status ${code}"
@@ -86,7 +88,7 @@ function retry-command() {
   until [ $n -ge 5 ]; do
     log::info "running '$*'"
     # shellcheck disable=SC1083
-    "$@" --config /tmp/kubeadm-controlplane-join-config.yaml {{.KubeadmVerbosity}}
+    "$@" --config /tmp/kubeadm-join-config.yaml {{.KubeadmVerbosity}}
     kubeadm_return=$?
     check_kubeadm_command "'$*'" "${kubeadm_return}"
     if [ ${kubeadm_return} -eq 0 ]; then
@@ -104,26 +106,32 @@ function retry-command() {
   fi
 }
 
+# {{ if .ControlPlane }}
 function try-or-die-command() {
   local kubeadm_return
   log::info "running '$*'"
   # shellcheck disable=SC1083
-  "$@" --config /tmp/kubeadm-controlplane-join-config.yaml {{.KubeadmVerbosity}}
+  "$@" --config /tmp/kubeadm-join-config.yaml {{.KubeadmVerbosity}}
   kubeadm_return=$?
   check_kubeadm_command "'$*'" "${kubeadm_return}"
   if [ ${kubeadm_return} -ne 0 ]; then
     log::error_exit "fatal error, exiting"
   fi
 }
+# {{ end }}
 
 retry-command kubeadm join phase preflight
+# {{ if .ControlPlane }}
 retry-command kubeadm join phase control-plane-prepare download-certs
 retry-command kubeadm join phase control-plane-prepare certs
 retry-command kubeadm join phase control-plane-prepare kubeconfig
 retry-command kubeadm join phase control-plane-prepare control-plane
+# {{ end }}
 retry-command kubeadm join phase kubelet-start
+# {{ if .ControlPlane }}
 try-or-die-command kubeadm join phase control-plane-join etcd
 retry-command kubeadm join phase control-plane-join update-status
 retry-command kubeadm join phase control-plane-join mark-control-plane
+# {{ end }}
 
 log::success_exit

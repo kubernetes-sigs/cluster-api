@@ -17,22 +17,14 @@ limitations under the License.
 package cloudinit
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 const (
-	standardJoinCommand            = "kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml %s"
-	retriableJoinScriptName        = "/usr/local/bin/kubeadm-bootstrap-script"
-	retriableJoinScriptOwner       = "root"
-	retriableJoinScriptPermissions = "0755"
-
 	controlPlaneJoinCloudInit = `{{.Header}}
 {{template "files" .WriteFiles}}
--   path: /tmp/kubeadm-controlplane-join-config.yaml
+-   path: /tmp/kubeadm-join-config.yaml
     owner: root:root
     permissions: '0640'
     content: |
@@ -50,24 +42,17 @@ runcmd:
 type ControlPlaneJoinInput struct {
 	BaseUserData
 	secret.Certificates
-	UseExperimentalRetry bool
-	KubeadmCommand       string
-	BootstrapToken       string
-	JoinConfiguration    string
+	BootstrapToken    string
+	JoinConfiguration string
 }
 
 // NewJoinControlPlane returns the user data string to be used on a new control plane instance.
 func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
-	input.Header = cloudConfigHeader
 	// TODO: Consider validating that the correct certificates exist. It is different for external/stacked etcd
 	input.WriteFiles = input.Certificates.AsFiles()
-	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
-	input.KubeadmCommand = fmt.Sprintf(standardJoinCommand, input.KubeadmVerbosity)
-	if input.UseExperimentalRetry {
-		err := input.useBootstrapScript()
-		if err != nil {
-			return nil, err
-		}
+	input.ControlPlane = true
+	if err := input.prepare(); err != nil {
+		return nil, err
 	}
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)
 	if err != nil {
@@ -75,24 +60,4 @@ func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
 	}
 
 	return userData, err
-}
-
-func (input *ControlPlaneJoinInput) useBootstrapScript() error {
-	scriptBytes, err := bootstrapKubeadmInternalCloudinitKubeadmBootstrapScriptShBytes()
-	if err != nil {
-		return errors.Wrap(err, "couldn't read bootstrap script")
-	}
-	joinScript, err := generate("JoinControlplaneScript", string(scriptBytes), input)
-	if err != nil {
-		return errors.Wrap(err, "failed to generate user data for machine joining control plane")
-	}
-	joinScriptFile := bootstrapv1.File{
-		Path:        retriableJoinScriptName,
-		Owner:       retriableJoinScriptOwner,
-		Permissions: retriableJoinScriptPermissions,
-		Content:     string(joinScript),
-	}
-	input.WriteFiles = append(input.WriteFiles, joinScriptFile)
-	input.KubeadmCommand = retriableJoinScriptName
-	return nil
 }

@@ -422,12 +422,13 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 
 	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:     scope.Config.Spec.Files,
-			NTP:                 scope.Config.Spec.NTP,
-			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
-			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
-			Users:               scope.Config.Spec.Users,
-			KubeadmVerbosity:    verbosityFlag,
+			AdditionalFiles:      scope.Config.Spec.Files,
+			NTP:                  scope.Config.Spec.NTP,
+			PreKubeadmCommands:   scope.Config.Spec.PreKubeadmCommands,
+			PostKubeadmCommands:  scope.Config.Spec.PostKubeadmCommands,
+			Users:                scope.Config.Spec.Users,
+			KubeadmVerbosity:     verbosityFlag,
+			UseExperimentalRetry: scope.Config.Spec.UseExperimentalRetryJoin,
 		},
 		JoinConfiguration: joinData,
 	})
@@ -489,16 +490,16 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	}
 
 	cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
-		JoinConfiguration:    joinData,
-		Certificates:         certificates,
-		UseExperimentalRetry: scope.Config.Spec.UseExperimentalRetryJoin,
+		JoinConfiguration: joinData,
+		Certificates:      certificates,
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:     scope.Config.Spec.Files,
-			NTP:                 scope.Config.Spec.NTP,
-			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
-			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
-			Users:               scope.Config.Spec.Users,
-			KubeadmVerbosity:    verbosityFlag,
+			AdditionalFiles:      scope.Config.Spec.Files,
+			NTP:                  scope.Config.Spec.NTP,
+			PreKubeadmCommands:   scope.Config.Spec.PreKubeadmCommands,
+			PostKubeadmCommands:  scope.Config.Spec.PostKubeadmCommands,
+			Users:                scope.Config.Spec.Users,
+			KubeadmVerbosity:     verbosityFlag,
+			UseExperimentalRetry: scope.Config.Spec.UseExperimentalRetryJoin,
 		},
 	})
 	if err != nil {

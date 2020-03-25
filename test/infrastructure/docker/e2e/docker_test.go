@@ -50,7 +50,7 @@ var _ = Describe("Docker", func() {
 			namespace  string
 			clusterGen = &ClusterGenerator{}
 		)
-		SetDefaultEventuallyTimeout(3 * time.Minute)
+		SetDefaultEventuallyTimeout(10 * time.Minute)
 		SetDefaultEventuallyPollingInterval(10 * time.Second)
 
 		BeforeEach(func() {
@@ -79,6 +79,7 @@ var _ = Describe("Docker", func() {
 					err          error
 				)
 				cluster, infraCluster, controlPlane, template = clusterGen.GenerateCluster(namespace, int32(replicas))
+				controlPlane.Spec.KubeadmConfigSpec.UseExperimentalRetryJoin = true
 				// Set failure domains here
 				infraCluster.Spec.FailureDomains = clusterv1.FailureDomains{
 					"domain-one":   {ControlPlane: true},
@@ -87,8 +88,13 @@ var _ = Describe("Docker", func() {
 					"domain-four":  {ControlPlane: false},
 				}
 
-				md, infraTemplate, bootstrapTemplate := GenerateMachineDeployment(cluster, 1)
-
+				md, infraTemplate, bootstrapTemplate := GenerateMachineDeployment(cluster, 3)
+				bootstrapTemplate.Spec.Template.Spec.UseExperimentalRetryJoin = true
+				md.Spec.Template.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
+					APIVersion: bootstrapTemplate.APIVersion,
+					Kind:       bootstrapTemplate.Kind,
+					Name:       bootstrapTemplate.Name,
+				}
 				// Set up the client to the management cluster
 				mgmtClient, err = mgmt.GetClient()
 				Expect(err).NotTo(HaveOccurred())
@@ -122,7 +128,7 @@ var _ = Describe("Docker", func() {
 					Cluster:      cluster,
 					ControlPlane: controlPlane,
 				}
-				framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "5m")
+				framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "10m")
 
 				// Insatll a networking solution on the workload cluster
 				workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)

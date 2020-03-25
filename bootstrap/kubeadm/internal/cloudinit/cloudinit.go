@@ -18,6 +18,7 @@ package cloudinit
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -25,21 +26,43 @@ import (
 )
 
 const (
-	cloudConfigHeader = `## template: jinja
+	standardJoinCommand            = "kubeadm join --config /tmp/kubeadm-join-config.yaml %s"
+	retriableJoinScriptName        = "/usr/local/bin/kubeadm-bootstrap-script"
+	retriableJoinScriptOwner       = "root"
+	retriableJoinScriptPermissions = "0755"
+	cloudConfigHeader              = `## template: jinja
 #cloud-config
 `
 )
 
 // BaseUserData is shared across all the various types of files written to disk.
 type BaseUserData struct {
-	Header              string
-	PreKubeadmCommands  []string
-	PostKubeadmCommands []string
-	AdditionalFiles     []bootstrapv1.File
-	WriteFiles          []bootstrapv1.File
-	Users               []bootstrapv1.User
-	NTP                 *bootstrapv1.NTP
-	KubeadmVerbosity    string
+	Header               string
+	PreKubeadmCommands   []string
+	PostKubeadmCommands  []string
+	AdditionalFiles      []bootstrapv1.File
+	WriteFiles           []bootstrapv1.File
+	Users                []bootstrapv1.User
+	NTP                  *bootstrapv1.NTP
+	ControlPlane         bool
+	UseExperimentalRetry bool
+	KubeadmCommand       string
+	KubeadmVerbosity     string
+}
+
+func (input *BaseUserData) prepare() error {
+	input.Header = cloudConfigHeader
+	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
+	input.KubeadmCommand = fmt.Sprintf(standardJoinCommand, input.KubeadmVerbosity)
+	if input.UseExperimentalRetry {
+		input.KubeadmCommand = retriableJoinScriptName
+		joinScriptFile, err := generateBootstrapScript(input)
+		if err != nil {
+			return errors.Wrap(err, "failed to generate user data for machine joining control plane")
+		}
+		input.WriteFiles = append(input.WriteFiles, *joinScriptFile)
+	}
+	return nil
 }
 
 func generate(kind string, tpl string, data interface{}) ([]byte, error) {
@@ -71,4 +94,21 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	}
 
 	return out.Bytes(), nil
+}
+
+func generateBootstrapScript(input interface{}) (*bootstrapv1.File, error) {
+	scriptBytes, err := bootstrapKubeadmInternalCloudinitKubeadmBootstrapScriptShBytes()
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't read bootstrap script")
+	}
+	joinScript, err := generate("JoinScript", string(scriptBytes), input)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to bootstrap script for machine joins")
+	}
+	return &bootstrapv1.File{
+		Path:        retriableJoinScriptName,
+		Owner:       retriableJoinScriptOwner,
+		Permissions: retriableJoinScriptPermissions,
+		Content:     string(joinScript),
+	}, nil
 }

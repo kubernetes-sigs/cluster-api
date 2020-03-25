@@ -19,7 +19,7 @@ package cloudinit
 const (
 	nodeCloudInit = `{{.Header}}
 {{template "files" .WriteFiles}}
--   path: /tmp/kubeadm-node.yaml
+-   path: /tmp/kubeadm-join-config.yaml
     owner: root:root
     permissions: '0640'
     content: |
@@ -27,7 +27,7 @@ const (
 {{.JoinConfiguration | Indent 6}}
 runcmd:
 {{- template "commands" .PreKubeadmCommands }}
-  - 'kubeadm join --config /tmp/kubeadm-node.yaml {{.KubeadmVerbosity}}'
+  - {{ .KubeadmCommand }}
 {{- template "commands" .PostKubeadmCommands }}
 {{- template "ntp" .NTP }}
 {{- template "users" .Users }}
@@ -37,12 +37,14 @@ runcmd:
 // NodeInput defines the context to generate a node user data.
 type NodeInput struct {
 	BaseUserData
-
 	JoinConfiguration string
 }
 
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) ([]byte, error) {
+	if err := input.prepare(); err != nil {
+		return nil, err
+	}
 	input.Header = cloudConfigHeader
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	return generate("Node", nodeCloudInit, input)

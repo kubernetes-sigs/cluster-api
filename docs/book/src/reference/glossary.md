@@ -26,6 +26,9 @@ A temporary cluster that is used to provision a Target Management cluster.
 # C
 ---
 
+### CAEP
+Cluster API Enhancement Proposal - patterned after [KEP](https://github.com/kubernetes/enhancements/blob/master/keps/README.md). See [template](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/YYYYMMDD-template.md)
+
 ### CAPI
 Core Cluster API
 

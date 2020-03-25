@@ -171,14 +171,12 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 func (o *objectGraph) getDiscoveryTypes() ([]metav1.TypeMeta, error) {
 	discoveredTypes := []metav1.TypeMeta{}
 
-	c, err := o.proxy.NewClient()
-	if err != nil {
-		return nil, err
-	}
-
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
-	if err := c.List(ctx, crdList, client.MatchingLabels{clusterctlv1.ClusterctlLabelName: ""}); err != nil {
-		return nil, errors.Wrap(err, "failed to get the list of CRDs required for the move discovery phase")
+	getDiscoveryTypesBackoff := newReadBackoff()
+	if err := retryWithExponentialBackoff(getDiscoveryTypesBackoff, func() error {
+		return getCRDList(o.proxy, crdList)
+	}); err != nil {
+		return nil, err
 	}
 
 	for _, crd := range crdList.Items {
@@ -203,32 +201,42 @@ func (o *objectGraph) getDiscoveryTypes() ([]metav1.TypeMeta, error) {
 	return discoveredTypes, nil
 }
 
+func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionList) error {
+	c, err := proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	if err := c.List(ctx, crdList, client.HasLabels{clusterctlv1.ClusterctlLabelName}); err != nil {
+		return errors.Wrap(err, "failed to get the list of CRDs required for the move discovery phase")
+	}
+	return nil
+}
+
 // Discovery reads all the Kubernetes objects existing in a namespace (or in all namespaces if empty) for the types received in input, and then adds
 // everything to the objects graph.
 func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error {
 	log := logf.Log
 	log.Info("Discovering Cluster API objects")
 
-	c, err := o.proxy.NewClient()
-	if err != nil {
-		return err
-	}
-
 	selectors := []client.ListOption{}
 	if namespace != "" {
 		selectors = append(selectors, client.InNamespace(namespace))
 	}
 
-	for _, typeMeta := range types {
+	discoveryBackoff := newReadBackoff()
+	for i := range types {
+		typeMeta := types[i]
 		objList := new(unstructured.UnstructuredList)
-		objList.SetAPIVersion(typeMeta.APIVersion)
-		objList.SetKind(typeMeta.Kind)
 
-		if err := c.List(ctx, objList, selectors...); err != nil {
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-			return errors.Wrapf(err, "failed to list %q resources", objList.GroupVersionKind())
+		if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
+			return getObjList(o.proxy, typeMeta, selectors, objList)
+		}); err != nil {
+			return err
+		}
+
+		if len(objList.Items) == 0 {
+			continue
 		}
 
 		log.V(5).Info(typeMeta.Kind, "Count", len(objList.Items))
@@ -247,6 +255,24 @@ func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error
 	// Completes the graph by setting for each node the list of Clusters the node belong to.
 	o.setClusterTenants()
 
+	return nil
+}
+
+func getObjList(proxy Proxy, typeMeta metav1.TypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
+	c, err := proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	objList.SetAPIVersion(typeMeta.APIVersion)
+	objList.SetKind(typeMeta.Kind)
+
+	if err := c.List(ctx, objList, selectors...); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to list %q resources", objList.GroupVersionKind())
+	}
 	return nil
 }
 

@@ -57,7 +57,7 @@ type providerComponents struct {
 }
 
 func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
-	createComponentObjectBackoff := newBackoff()
+	createComponentObjectBackoff := newWriteBackoff()
 	for i := range objs {
 		obj := objs[i]
 

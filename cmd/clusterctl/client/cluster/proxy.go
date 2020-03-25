@@ -70,8 +70,17 @@ func (k *proxy) NewClient() (client.Client, error) {
 		return nil, err
 	}
 
-	c, err := client.New(config, client.Options{Scheme: Scheme})
-	if err != nil {
+	var c client.Client
+	// Nb. The operation is wrapped in a retry loop to make newClientSet more resilient to temporary connection problems.
+	connectBackoff := newConnectBackoff()
+	if err := retryWithExponentialBackoff(connectBackoff, func() error {
+		var err error
+		c, err = client.New(config, client.Options{Scheme: Scheme})
+		if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return nil, errors.Wrap(err, "failed to connect to the management cluster")
 	}
 
@@ -179,8 +188,17 @@ func (k *proxy) newClientSet() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 
-	cs, err := kubernetes.NewForConfig(config)
-	if err != nil {
+	var cs *kubernetes.Clientset
+	// Nb. The operation is wrapped in a retry loop to make newClientSet more resilient to temporary connection problems.
+	connectBackoff := newConnectBackoff()
+	if err := retryWithExponentialBackoff(connectBackoff, func() error {
+		var err error
+		cs, err = kubernetes.NewForConfig(config)
+		if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return nil, errors.Wrap(err, "failed to create the client-go client")
 	}
 

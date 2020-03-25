@@ -59,7 +59,7 @@ var _ = Describe("Control Plane", func() {
 		Describe("With most machines", func() {
 			Context("With all machines in known failure domains", func() {
 				It("should return the failure domain that has the most number of machines", func() {
-					Expect(*controlPlane.FailureDomainWithMostMachines()).To(Equal("two"))
+					Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("two"))
 				})
 			})
 			Context("With some machines in non-defined failure domains", func() {
@@ -67,7 +67,7 @@ var _ = Describe("Control Plane", func() {
 					controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
 				})
 				It("should return machines in non-defined failure domains first", func() {
-					Expect(*controlPlane.FailureDomainWithMostMachines()).To(Equal("unknown"))
+					Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("unknown"))
 				})
 			})
 		})

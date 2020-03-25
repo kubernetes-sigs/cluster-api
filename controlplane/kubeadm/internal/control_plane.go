@@ -109,9 +109,9 @@ func (c *ControlPlane) MachinesNeedingUpgrade() FilterableMachineCollection {
 
 // FailureDomainWithMostMachines returns the failure domain with the most number of machines.
 // Used when scaling down.
-func (c *ControlPlane) FailureDomainWithMostMachines() *string {
+func (c *ControlPlane) FailureDomainWithMostMachines(machines FilterableMachineCollection) *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
-	notInFailureDomains := c.Machines.Filter(
+	notInFailureDomains := machines.Filter(
 		machinefilters.Not(machinefilters.InFailureDomains(c.FailureDomains().FilterControlPlane().GetIDs()...)),
 	)
 	if len(notInFailureDomains) > 0 {
@@ -122,7 +122,7 @@ func (c *ControlPlane) FailureDomainWithMostMachines() *string {
 	}
 
 	// Otherwise pick the currently known failure domain with the most Machines
-	return PickMost(c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines)
+	return PickMost(c.Cluster.Status.FailureDomains.FilterControlPlane(), machines)
 }
 
 // FailureDomainWithFewestMachines returns the failure domain with the fewest number of machines.

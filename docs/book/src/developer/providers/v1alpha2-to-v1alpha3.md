@@ -376,11 +376,11 @@ After all the changes above are performed, `kustomize build` MUST target `config
 
 In addition, often the `Makefile` contains a sed-replacement for `manager_image_patch.yaml`, this file has been moved from `config/default` to `config/manager`. Using your favorite editor, search for `manager_image_patch` in your repository and change the paths accordingly.
 
-# Apply the contract version label `cluster.x-k8s.io/<version>: version1,version2,version3` to your CRDs
+# Apply the contract version label `cluster.x-k8s.io/<version>: version1_version2_version3` to your CRDs
 
 - Providers MUST set `cluster.x-k8s.io/<version>` labels on all Custom Resource Definitions related to Cluster API starting with v1alpha3.
 - The label is a map from an API Version of Cluster API (contract) to your Custom Resource Definition versions.
-  - The value is a comma-delimited list of versions.
+  - The value is a underscore-delimited (`_`) list of versions.
   - Each value MUST point to an available version in your CRD Spec.
 - The label allows Cluster API controllers to perform automatic conversions for object references, the controllers will
   pick the last available version in the list if multiple versions are found.
@@ -392,7 +392,7 @@ In this example we show how to map a particular Cluster API contract version to 
 commonLabels:
   cluster.x-k8s.io/v1alpha2: v1alpha1
   cluster.x-k8s.io/v1alpha3: v1alpha2
-  cluster.x-k8s.io/v1beta1: v1alphaX,v1beta1
+  cluster.x-k8s.io/v1beta1: v1alphaX_v1beta1
 ```
 
 # Upgrade to CRD v1

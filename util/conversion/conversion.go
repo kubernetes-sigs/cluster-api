@@ -68,7 +68,7 @@ func ConvertReferenceAPIContract(ctx context.Context, c client.Client, ref *core
 	}
 
 	// Pick the latest version in the slice and validate it.
-	kubeVersions := util.KubeAwareAPIVersions(strings.Split(supportedVersions, ","))
+	kubeVersions := util.KubeAwareAPIVersions(strings.Split(supportedVersions, "_"))
 	sort.Sort(kubeVersions)
 	chosen := kubeVersions[len(kubeVersions)-1]
 

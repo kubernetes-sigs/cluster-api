@@ -1661,12 +1661,19 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 	})
 }
 
-func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.T) {
+func TestKubeadmControlPlaneReconciler_scaleDownControlPlane(t *testing.T) {
 	g := NewWithT(t)
 
 	machines := map[string]*clusterv1.Machine{
-		"one": machine("one"),
+		"one":   machine("one"),
+		"two":   machine("two"),
+		"three": machine("three"),
 	}
+	fd1 := "a"
+	fd2 := "b"
+	machines["one"].Spec.FailureDomain = &fd2
+	machines["two"].Spec.FailureDomain = &fd1
+	machines["three"].Spec.FailureDomain = &fd2
 
 	r := &KubeadmControlPlaneReconciler{
 		Log:      log.Log,
@@ -1685,8 +1692,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		Machines: machines,
 	}
 
-	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, machines, machines, controlPlane)
-	g.Expect(err).ToNot(HaveOccurred())
+	ml := clusterv1.MachineList{}
+	ml.Items = []clusterv1.Machine{*machines["two"]}
+	mll := internal.NewFilterableMachineCollectionFromMachineList(&ml)
+	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, machines, mll, controlPlane)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func machine(name string) *clusterv1.Machine {

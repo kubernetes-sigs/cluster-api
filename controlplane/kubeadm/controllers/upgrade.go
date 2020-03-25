@@ -105,7 +105,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 }
 
 func (r *KubeadmControlPlaneReconciler) selectMachineForUpgrade(ctx context.Context, _ *clusterv1.Cluster, requireUpgrade internal.FilterableMachineCollection, controlPlane *internal.ControlPlane) (*clusterv1.Machine, error) {
-	failureDomain := controlPlane.FailureDomainWithMostMachines()
+	failureDomain := controlPlane.FailureDomainWithMostMachines(requireUpgrade)
 
 	inFailureDomain := requireUpgrade.Filter(machinefilters.InFailureDomains(failureDomain))
 	selected := inFailureDomain.Oldest()

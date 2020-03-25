@@ -99,7 +99,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 
 	markedForDeletion := selectedMachines.Filter(machinefilters.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
 	if len(markedForDeletion) == 0 {
-		fd := controlPlane.FailureDomainWithMostMachines()
+		fd := controlPlane.FailureDomainWithMostMachines(selectedMachines)
 		machinesInFailureDomain := selectedMachines.Filter(machinefilters.InFailureDomains(fd))
 		machineToMark := machinesInFailureDomain.Oldest()
 		if machineToMark == nil {

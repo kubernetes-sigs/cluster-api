@@ -489,8 +489,9 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	}
 
 	cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
-		JoinConfiguration: joinData,
-		Certificates:      certificates,
+		JoinConfiguration:    joinData,
+		Certificates:         certificates,
+		UseExperimentalRetry: scope.Config.Spec.UseExperimentalRetryJoin,
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles:     scope.Config.Spec.Files,
 			NTP:                 scope.Config.Spec.NTP,

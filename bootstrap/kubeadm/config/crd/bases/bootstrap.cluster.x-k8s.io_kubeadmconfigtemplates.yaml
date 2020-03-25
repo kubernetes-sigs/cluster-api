@@ -1633,6 +1633,15 @@ spec:
                         items:
                           type: string
                         type: array
+                      useExperimentalRetryJoin:
+                        description: "UseExperimentalRetryJoin replaces a basic kubeadm
+                          command with a shell script with retries for joins. \n This
+                          is meant to be an experimental temporary workaround on some
+                          environments where joins fail due to timing (and other issues).
+                          The long term goal is to add retries to kubeadm proper and
+                          use that functionality. \n This will add about 40KB to userdata
+                          \n For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055."
+                        type: boolean
                       users:
                         description: Users specifies extra users to add
                         items:

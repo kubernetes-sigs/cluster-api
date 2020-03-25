@@ -39,6 +39,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -181,6 +182,36 @@ var _ = Describe("Docker", func() {
 					},
 				}
 				framework.AssertControlPlaneFailureDomains(ctx, assertControlPlaneFailureDomainInput)
+			})
+
+			Specify("upgrades etcd", func() {
+				patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
+				Expect(err).ToNot(HaveOccurred())
+				// This is the etcd version meant for k8s 1.17.x
+				// k8s 1.16.x clusters ususally get deployed with etcd 3.3.x
+				By("patching KubeadmConfigSpec etcd image tag")
+				controlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = v1beta1.Etcd{
+					Local: &v1beta1.LocalEtcd{
+						ImageMeta: v1beta1.ImageMeta{
+							ImageTag: "3.4.3-0",
+						},
+					},
+				}
+				Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
+				// Get the etcd pods from the workload cluster and then verify
+				// the image of those pods are correct.
+				workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("waiting for etcd pods to have the expected image tag")
+				waitForPodConditionInput := framework.WaitForPodConditionInput{
+					Lister: workloadClient,
+					ListOptions: []client.ListOption{
+						client.MatchingLabels(map[string]string{"component": "etcd"}),
+					},
+					Condition: framework.EtcdImageTagCondition("3.4.3-0"),
+				}
+				framework.WaitForPodCondition(ctx, waitForPodConditionInput, "10m", "30s")
 
 			})
 

@@ -317,73 +317,104 @@ func TestGetCoreDNSInfo(t *testing.T) {
 		badSemverContainerDepl := depl.DeepCopy()
 		badSemverContainerDepl.Spec.Template.Spec.Containers[0].Image = "k8s.gcr.io/coredns:v1X6.2"
 
-		dns := &kubeadmv1.DNS{
-			ImageMeta: kubeadmv1.ImageMeta{
-				ImageRepository: "myrepo",
-				ImageTag:        "1.7.2-foobar.1",
+		clusterConfig := &kubeadmv1.ClusterConfiguration{
+			DNS: kubeadmv1.DNS{
+				ImageMeta: kubeadmv1.ImageMeta{
+					ImageRepository: "myrepo",
+					ImageTag:        "1.7.2-foobar.1",
+				},
 			},
 		}
-		badImgTagDNS := dns.DeepCopy()
-		badImgTagDNS.ImageTag = "v1X6.2-foobar.1"
+		badImgTagDNS := clusterConfig.DeepCopy()
+		badImgTagDNS.DNS.ImageTag = "v1X6.2-foobar.1"
 
 		tests := []struct {
-			name      string
-			expectErr bool
-			objs      []runtime.Object
-			dns       *kubeadmv1.DNS
+			name          string
+			expectErr     bool
+			objs          []runtime.Object
+			clusterConfig *kubeadmv1.ClusterConfiguration
+			toImage       string
 		}{
 			{
-				name: "returns core dns info",
+				name:          "returns core dns info",
+				objs:          []runtime.Object{depl, cm},
+				clusterConfig: clusterConfig,
+				toImage:       "myrepo/coredns:1.7.2-foobar.1",
+			},
+			{
+				name: "uses global config ImageRepository if DNS ImageRepository is not set",
 				objs: []runtime.Object{depl, cm},
-				dns:  dns,
+				clusterConfig: &kubeadmv1.ClusterConfiguration{
+					ImageRepository: "globalRepo",
+					DNS: kubeadmv1.DNS{
+						ImageMeta: kubeadmv1.ImageMeta{
+							ImageTag: "1.7.2-foobar.1",
+						},
+					},
+				},
+				toImage: "globalRepo/coredns:1.7.2-foobar.1",
 			},
 			{
-				name:      "returns error if unable to find coredns config map",
-				objs:      []runtime.Object{depl},
-				dns:       dns,
-				expectErr: true,
+				name: "uses DNS ImageRepository config if both global and DNS-level are set",
+				objs: []runtime.Object{depl, cm},
+				clusterConfig: &kubeadmv1.ClusterConfiguration{
+					ImageRepository: "globalRepo",
+					DNS: kubeadmv1.DNS{
+						ImageMeta: kubeadmv1.ImageMeta{
+							ImageRepository: "dnsRepo",
+							ImageTag:        "1.7.2-foobar.1",
+						},
+					},
+				},
+				toImage: "dnsRepo/coredns:1.7.2-foobar.1",
 			},
 			{
-				name:      "returns error if unable to find coredns deployment",
-				objs:      []runtime.Object{cm},
-				dns:       dns,
-				expectErr: true,
+				name:          "returns error if unable to find coredns config map",
+				objs:          []runtime.Object{depl},
+				clusterConfig: clusterConfig,
+				expectErr:     true,
 			},
 			{
-				name:      "returns error if coredns deployment doesn't have coredns container",
-				objs:      []runtime.Object{emptyDepl, cm},
-				dns:       dns,
-				expectErr: true,
+				name:          "returns error if unable to find coredns deployment",
+				objs:          []runtime.Object{cm},
+				clusterConfig: clusterConfig,
+				expectErr:     true,
 			},
 			{
-				name:      "returns error if unable to find coredns corefile",
-				objs:      []runtime.Object{depl, emptycm},
-				dns:       dns,
-				expectErr: true,
+				name:          "returns error if coredns deployment doesn't have coredns container",
+				objs:          []runtime.Object{emptyDepl, cm},
+				clusterConfig: clusterConfig,
+				expectErr:     true,
 			},
 			{
-				name:      "returns error if unable to parse the container image",
-				objs:      []runtime.Object{badContainerDepl, cm},
-				dns:       dns,
-				expectErr: true,
+				name:          "returns error if unable to find coredns corefile",
+				objs:          []runtime.Object{depl, emptycm},
+				clusterConfig: clusterConfig,
+				expectErr:     true,
 			},
 			{
-				name:      "returns error if container image has not tag",
-				objs:      []runtime.Object{noTagContainerDepl, cm},
-				dns:       dns,
-				expectErr: true,
+				name:          "returns error if unable to parse the container image",
+				objs:          []runtime.Object{badContainerDepl, cm},
+				clusterConfig: clusterConfig,
+				expectErr:     true,
 			},
 			{
-				name:      "returns error if unable to semver parse container image",
-				objs:      []runtime.Object{badSemverContainerDepl, cm},
-				dns:       dns,
-				expectErr: true,
+				name:          "returns error if container image has not tag",
+				objs:          []runtime.Object{noTagContainerDepl, cm},
+				clusterConfig: clusterConfig,
+				expectErr:     true,
 			},
 			{
-				name:      "returns error if unable to semver parse dns image tag",
-				objs:      []runtime.Object{depl, cm},
-				dns:       badImgTagDNS,
-				expectErr: true,
+				name:          "returns error if unable to semver parse container image",
+				objs:          []runtime.Object{badSemverContainerDepl, cm},
+				clusterConfig: clusterConfig,
+				expectErr:     true,
+			},
+			{
+				name:          "returns error if unable to semver parse dns image tag",
+				objs:          []runtime.Object{depl, cm},
+				clusterConfig: badImgTagDNS,
+				expectErr:     true,
 			},
 		}
 		for _, tt := range tests {
@@ -402,7 +433,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 					}
 				}
 
-				actualInfo, err := w.getCoreDNSInfo(context.TODO(), tt.dns)
+				actualInfo, err := w.getCoreDNSInfo(context.TODO(), tt.clusterConfig)
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -414,7 +445,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 					CurrentMajorMinorPatch: "1.6.2",
 					TargetMajorMinorPatch:  "1.7.2",
 					FromImage:              expectedImage,
-					ToImage:                "myrepo/coredns:1.7.2-foobar.1",
+					ToImage:                tt.toImage,
 					FromImageTag:           "1.6.2",
 					ToImageTag:             "1.7.2-foobar.1",
 				}

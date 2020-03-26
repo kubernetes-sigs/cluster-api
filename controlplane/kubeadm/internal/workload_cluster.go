@@ -678,6 +678,13 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 	if err != nil {
 		return err
 	}
+	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil &&
+		kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository != "" {
+		newImageName, err = util.ModifyImageRepository(newImageName, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository)
+		if err != nil {
+			return err
+		}
+	}
 
 	if container.Image != newImageName {
 		helper, err := patch.NewHelper(ds, w.Client)

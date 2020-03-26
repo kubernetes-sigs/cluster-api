@@ -33,6 +33,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	fake2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
@@ -184,6 +186,50 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			expectErr: true,
 			KCP:       &v1alpha3.KubeadmControlPlane{Spec: v1alpha3.KubeadmControlPlaneSpec{Version: "v1.16.3"}},
 		},
+		{
+			name:        "updates image repository if one has been set on the control plane",
+			ds:          newKubeProxyDS(),
+			expectErr:   false,
+			expectImage: "foo.bar.example/baz/qux/kube-proxy:v1.16.3",
+			KCP: &v1alpha3.KubeadmControlPlane{
+				Spec: v1alpha3.KubeadmControlPlaneSpec{
+					Version: "v1.16.3",
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+							ImageRepository: "foo.bar.example/baz/qux",
+						},
+					},
+				}},
+		},
+		{
+			name:        "does not update image repository if it is blank",
+			ds:          newKubeProxyDS(),
+			expectErr:   false,
+			expectImage: "k8s.gcr.io/kube-proxy:v1.16.3",
+			KCP: &v1alpha3.KubeadmControlPlane{
+				Spec: v1alpha3.KubeadmControlPlaneSpec{
+					Version: "v1.16.3",
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+							ImageRepository: "",
+						},
+					},
+				}},
+		},
+		{
+			name:      "returns error if image repository is invalid",
+			ds:        newKubeProxyDS(),
+			expectErr: true,
+			KCP: &v1alpha3.KubeadmControlPlane{
+				Spec: v1alpha3.KubeadmControlPlaneSpec{
+					Version: "v1.16.3",
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+							ImageRepository: "%%%",
+						},
+					},
+				}},
+		},
 	}
 
 	ctx := context.Background()
@@ -206,7 +252,9 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 
 			proxyImage, err := getProxyImageInfo(ctx, w.Client)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(proxyImage).To(Equal(tt.expectImage))
+			if tt.expectImage != "" {
+				g.Expect(proxyImage).To(Equal(tt.expectImage))
+			}
 		})
 	}
 }

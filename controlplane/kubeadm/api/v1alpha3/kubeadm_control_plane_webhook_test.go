@@ -546,7 +546,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 		{
 			name:      "should fail when making a change to the cluster config's imageRepository",
-			expectErr: true,
+			expectErr: false,
 			before:    before,
 			kcp:       imageRepository,
 		},

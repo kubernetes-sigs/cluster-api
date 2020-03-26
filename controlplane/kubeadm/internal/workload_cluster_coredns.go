@@ -72,14 +72,14 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 		return nil
 	}
-	dns := &kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
+	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 	// Return early if the type is anything other than empty (default), or CoreDNS.
-	if dns.Type != "" && dns.Type != kubeadmv1.CoreDNS {
+	if clusterConfig.DNS.Type != "" && clusterConfig.DNS.Type != kubeadmv1.CoreDNS {
 		return nil
 	}
 
 	// Get the CoreDNS info needed for the upgrade.
-	info, err := w.getCoreDNSInfo(ctx, dns)
+	info, err := w.getCoreDNSInfo(ctx, clusterConfig)
 	if err != nil {
 		// Return early if we get a not found error, this can happen if any of the CoreDNS components
 		// cannot be found, e.g. configmap, deployment.
@@ -100,7 +100,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	}
 
 	// Perform the upgrade.
-	if err := w.updateCoreDNSImageInfoInKubeadmConfigMap(ctx, dns); err != nil {
+	if err := w.updateCoreDNSImageInfoInKubeadmConfigMap(ctx, &clusterConfig.DNS); err != nil {
 		return err
 	}
 	if err := w.updateCoreDNSCorefile(ctx, info); err != nil {
@@ -113,7 +113,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 }
 
 // getCoreDNSInfo returns all necessary coredns based information.
-func (w *Workload) getCoreDNSInfo(ctx context.Context, dns *kubeadmv1.DNS) (*coreDNSInfo, error) {
+func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *kubeadmv1.ClusterConfiguration) (*coreDNSInfo, error) {
 	// Get the coredns configmap and corefile.
 	key := ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
 	cm, err := w.getConfigMap(ctx, key)
@@ -150,8 +150,11 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, dns *kubeadmv1.DNS) (*cor
 
 	// Handle imageRepository.
 	toImageRepository := fmt.Sprintf("%s/%s", reference.Domain(parsedImage), reference.Path(parsedImage))
-	if dns.ImageRepository != "" {
-		toImageRepository = fmt.Sprintf("%s/%s", dns.ImageRepository, reference.Path(parsedImage))
+	if clusterConfig.ImageRepository != "" {
+		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.ImageRepository, reference.Path(parsedImage))
+	}
+	if clusterConfig.DNS.ImageRepository != "" {
+		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.DNS.ImageRepository, reference.Path(parsedImage))
 	}
 
 	// Handle imageTag.
@@ -164,8 +167,8 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, dns *kubeadmv1.DNS) (*cor
 		return nil, err
 	}
 	toImageTag := imageRefTag.Tag()
-	if dns.ImageTag != "" {
-		toImageTag = dns.ImageTag
+	if clusterConfig.DNS.ImageTag != "" {
+		toImageTag = clusterConfig.DNS.ImageTag
 	}
 	targetMajorMinorPatch, err := extractImageVersion(toImageTag)
 	if err != nil {

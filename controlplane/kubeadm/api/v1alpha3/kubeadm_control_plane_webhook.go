@@ -19,9 +19,10 @@ package v1alpha3
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/coredns/corefile-migration/migration"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
-	"strings"
 
 	"github.com/blang/semver"
 	jsonpatch "github.com/evanphx/json-patch"
@@ -84,6 +85,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageTag"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageTag"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "imageRepository"},
 		{spec, "infrastructureTemplate", "name"},
 		{spec, "replicas"},
 		{spec, "version"},

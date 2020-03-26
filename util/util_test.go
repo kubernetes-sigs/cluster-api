@@ -19,11 +19,13 @@ package util
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
 
+	"github.com/docker/distribution/reference"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -487,6 +489,40 @@ func TestModifyImageTag(t *testing.T) {
 		res, err := ModifyImageTag(image, testTag)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(res).To(Equal("example.com/image:v1.17.4_build1"))
+	})
+}
+
+func TestModifyImageRepository(t *testing.T) {
+	const testRepository = "example.com/new"
+	g := NewGomegaWithT(t)
+	t.Run("updates the repository of the image", func(t *testing.T) {
+		image := "example.com/subpaths/are/okay/image:1.17.3"
+		res, err := ModifyImageRepository(image, testRepository)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res).To(Equal("example.com/new/image:1.17.3"))
+	})
+
+	t.Run("errors if the repository name is too long", func(t *testing.T) {
+		testRepository := strings.Repeat("a", 255)
+		image := "example.com/image:1.17.3"
+		_, err := ModifyImageRepository(image, testRepository)
+		g.Expect(err).To(MatchError(ContainSubstring(reference.ErrNameTooLong.Error())))
+	})
+
+	t.Run("errors if the image name is not canonical", func(t *testing.T) {
+		image := "image:1.17.3"
+		_, err := ModifyImageRepository(image, testRepository)
+		g.Expect(err).To(MatchError(ContainSubstring(reference.ErrNameNotCanonical.Error())))
+	})
+	t.Run("errors if the image name is not tagged", func(t *testing.T) {
+		image := "example.com/image"
+		_, err := ModifyImageRepository(image, testRepository)
+		g.Expect(err).To(MatchError(ContainSubstring("image must be tagged")))
+	})
+	t.Run("errors if the image name is not valid", func(t *testing.T) {
+		image := "example.com/image:$@$(*"
+		_, err := ModifyImageRepository(image, testRepository)
+		g.Expect(err).To(MatchError(ContainSubstring("failed to parse image name")))
 	})
 }
 

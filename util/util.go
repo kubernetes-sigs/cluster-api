@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -124,14 +125,13 @@ func Ordinalize(n int) string {
 	return fmt.Sprintf("%d%s", n, m[an%10])
 }
 
-// ModifyImageTag takes an imageName (e.g., registry/repo:tag), and returns an image name with updated tag
+// ModifyImageTag takes an imageName (e.g., repository/image:tag), and returns an image name with updated tag
 func ModifyImageTag(imageName, tagName string) (string, error) {
 	normalisedTagName := SemverToOCIImageTag(tagName)
 
 	namedRef, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to parse image name")
-
 	}
 	// return error if images use digest as version instead of tag
 	if _, isCanonical := namedRef.(reference.Canonical); isCanonical {
@@ -145,6 +145,29 @@ func ModifyImageTag(imageName, tagName string) (string, error) {
 	}
 
 	return reference.FamiliarString(reference.TagNameOnly(namedTagged)), nil
+}
+
+// ModifyImageRepository takes an imageName (e.g., repository/image:tag), and returns an image name with updated repository
+func ModifyImageRepository(imageName, repositoryName string) (string, error) {
+	namedRef, err := reference.ParseNamed(imageName)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse image name")
+	}
+	_, nameOnly := path.Split(reference.Path(namedRef))
+	nameUpdated, err := reference.WithName(path.Join(repositoryName, nameOnly))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to update repository name")
+	}
+	if tagged, ok := namedRef.(reference.NamedTagged); ok {
+		retagged, err := reference.WithTag(nameUpdated, tagged.Tag())
+		if err != nil {
+			// this shouldn't be possible since we parsed it already above
+			return "", errors.Wrap(err, "failed to parse image tag")
+		}
+		return reference.FamiliarString(retagged), nil
+	} else {
+		return "", errors.New("image must be tagged")
+	}
 }
 
 // ImageTagIsValid ensures that a given image tag is compliant with the OCI spec

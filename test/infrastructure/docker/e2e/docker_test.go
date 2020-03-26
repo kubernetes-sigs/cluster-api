@@ -26,6 +26,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -185,34 +187,129 @@ var _ = Describe("Docker", func() {
 			})
 
 			Specify("upgrades etcd", func() {
+				replicas := 3
+				var (
+					infraCluster *infrav1.DockerCluster
+					template     *infrav1.DockerMachineTemplate
+					err          error
+				)
+				cluster, infraCluster, controlPlane, template = clusterGen.GenerateCluster(namespace, int32(replicas))
+				md, infraTemplate, bootstrapTemplate := GenerateMachineDeployment(cluster, 1)
+
+				// Set up the client to the management cluster
+				mgmtClient, err = mgmt.GetClient()
+				Expect(err).NotTo(HaveOccurred())
+
+				// Set up the cluster object
+				createClusterInput := framework.CreateClusterInput{
+					Creator:      mgmtClient,
+					Cluster:      cluster,
+					InfraCluster: infraCluster,
+				}
+				framework.CreateCluster(ctx, createClusterInput)
+
+				// Set up the KubeadmControlPlane
+				createKubeadmControlPlaneInput := framework.CreateKubeadmControlPlaneInput{
+					Creator:         mgmtClient,
+					ControlPlane:    controlPlane,
+					MachineTemplate: template,
+				}
+				framework.CreateKubeadmControlPlane(ctx, createKubeadmControlPlaneInput)
+
+				// Wait for the cluster to provision.
+				assertClusterProvisionsInput := framework.WaitForClusterToProvisionInput{
+					Getter:  mgmtClient,
+					Cluster: cluster,
+				}
+				framework.WaitForClusterToProvision(ctx, assertClusterProvisionsInput)
+
+				// Wait for at least one control plane node to be ready
+				waitForOneKubeadmControlPlaneMachineToExistInput := framework.WaitForOneKubeadmControlPlaneMachineToExistInput{
+					Lister:       mgmtClient,
+					Cluster:      cluster,
+					ControlPlane: controlPlane,
+				}
+				framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "5m")
+
+				// Insatll a networking solution on the workload cluster
+				workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
+				Expect(err).ToNot(HaveOccurred())
+				applyYAMLURLInput := framework.ApplyYAMLURLInput{
+					Client:        workloadClient,
+					HTTPGetter:    http.DefaultClient,
+					NetworkingURL: "https://docs.projectcalico.org/manifests/calico.yaml",
+					Scheme:        mgmt.Scheme,
+				}
+				framework.ApplyYAMLURL(ctx, applyYAMLURLInput)
+
+				// Wait for the controlplane nodes to exist
+				assertKubeadmControlPlaneNodesExistInput := framework.WaitForKubeadmControlPlaneMachinesToExistInput{
+					Lister:       mgmtClient,
+					Cluster:      cluster,
+					ControlPlane: controlPlane,
+				}
+				framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput, "10m", "10s")
+
+				// Create the workload nodes
+				createMachineDeploymentinput := framework.CreateMachineDeploymentInput{
+					Creator:                 mgmtClient,
+					MachineDeployment:       md,
+					BootstrapConfigTemplate: bootstrapTemplate,
+					InfraMachineTemplate:    infraTemplate,
+				}
+				framework.CreateMachineDeployment(ctx, createMachineDeploymentinput)
+
+				// Wait for the workload nodes to exist
+				waitForMachineDeploymentNodesToExistInput := framework.WaitForMachineDeploymentNodesToExistInput{
+					Lister:            mgmtClient,
+					Cluster:           cluster,
+					MachineDeployment: md,
+				}
+				framework.WaitForMachineDeploymentNodesToExist(ctx, waitForMachineDeploymentNodesToExistInput)
+
+				// Wait for the control plane to be ready
+				waitForControlPlaneToBeReadyInput := framework.WaitForControlPlaneToBeReadyInput{
+					Getter:       mgmtClient,
+					ControlPlane: controlPlane,
+				}
+				framework.WaitForControlPlaneToBeReady(ctx, waitForControlPlaneToBeReadyInput)
+
+				// Before patching ensure all pods are ready in workload
+				// cluster
+				By("waiting for workload cluster pods to be Running")
+				waitForPodListConditionInput := framework.WaitForPodListConditionInput{
+					Lister:      workloadClient,
+					ListOptions: &client.ListOptions{Namespace: metav1.NamespaceSystem},
+					Condition:   framework.PhasePodCondition(corev1.PodRunning),
+				}
+				framework.WaitForPodListCondition(ctx, waitForPodListConditionInput)
+
+				By("patching KubeadmConfigSpec etcd image tag in the kubeadmControlPlane")
 				patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
 				Expect(err).ToNot(HaveOccurred())
-				// This is the etcd version meant for k8s 1.17.x
-				// k8s 1.16.x clusters ususally get deployed with etcd 3.3.x
-				By("patching KubeadmConfigSpec etcd image tag")
 				controlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = v1beta1.Etcd{
 					Local: &v1beta1.LocalEtcd{
 						ImageMeta: v1beta1.ImageMeta{
+							// TODO: Ensure that the current version of etcd
+							// is not 3.4.3-0 or that k8s version is 1.16
+							// 3.4.3-0 is the etcd version meant for k8s 1.17.x
+							// k8s 1.16.x clusters ususally get deployed with etcd 3.3.x
 							ImageTag: "3.4.3-0",
 						},
 					},
 				}
 				Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
-				// Get the etcd pods from the workload cluster and then verify
-				// the image of those pods are correct.
-				workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
-				Expect(err).ToNot(HaveOccurred())
 
 				By("waiting for etcd pods to have the expected image tag")
-				waitForPodConditionInput := framework.WaitForPodConditionInput{
-					Lister: workloadClient,
-					ListOptions: []client.ListOption{
-						client.MatchingLabels(map[string]string{"component": "etcd"}),
-					},
-					Condition: framework.EtcdImageTagCondition("3.4.3-0"),
+				lblSelector, err := labels.Parse("component=etcd")
+				Expect(err).ToNot(HaveOccurred())
+				opt := &client.ListOptions{LabelSelector: lblSelector}
+				waitForPodListConditionInput = framework.WaitForPodListConditionInput{
+					Lister:      workloadClient,
+					ListOptions: opt,
+					Condition:   framework.EtcdImageTagCondition("3.4.3-0", replicas),
 				}
-				framework.WaitForPodCondition(ctx, waitForPodConditionInput, "10m", "30s")
-
+				framework.WaitForPodListCondition(ctx, waitForPodListConditionInput)
 			})
 
 			Specify("Full upgrade", func() {

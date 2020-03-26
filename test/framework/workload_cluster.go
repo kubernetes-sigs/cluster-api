@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -27,47 +28,72 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// podCondition is a type that operates a condition on a Pod
-type podCondition func(p *corev1.Pod) error
+// podListCondition is a type that operates a condition on a Pod
+type podListCondition func(p *corev1.PodList) error
 
-// WaitForPodConditionInput is the input args for WaitForPodCondition
-type WaitForPodConditionInput struct {
+// WaitForPodListConditionInput is the input args for WaitForPodListCondition
+type WaitForPodListConditionInput struct {
 	Lister      Lister
-	ListOptions []client.ListOption
-	Condition   func(p *corev1.Pod) error
+	ListOptions *client.ListOptions
+	Condition   podListCondition
 }
 
-// WaitForPodCondition waits for the specified condition to be true for all
+// WaitForPodListCondition waits for the specified condition to be true for all
 // pods returned from the list filter.
-func WaitForPodCondition(ctx context.Context, input WaitForPodConditionInput, intervals ...interface{}) {
-	By("waiting for pod condition")
+func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionInput, intervals ...interface{}) {
 	Eventually(func() (bool, error) {
 		podList := &corev1.PodList{}
-		if err := input.Lister.List(
-			ctx,
-			podList,
-			input.ListOptions...,
-		); err != nil {
+		if err := input.Lister.List(ctx, podList, input.ListOptions); err != nil {
 			return false, err
 		}
-		satisfied := 0
-		for _, pod := range podList.Items {
-			if input.Condition(&pod) == nil {
-				satisfied++
-			}
-		}
+		Expect(len(podList.Items)).ToNot(BeZero())
+
 		// all pods in the list should satisfy the condition
-		return satisfied == len(podList.Items), nil
+		err := input.Condition(podList)
+		if err != nil {
+			// DEBUG:
+			fmt.Println("---", err.Error())
+			return false, err
+		}
+		return true, nil
 	}, intervals...).Should(BeTrue())
+	By("pod condition satisfied")
 }
 
-// EtcdImageTagCondition returns a podCondition that ensures the pod image
+// EtcdImageTagCondition returns a podListCondition that ensures the pod image
 // contains the specified image tag
-func EtcdImageTagCondition(expectedTag string) podCondition {
-	return func(p *corev1.Pod) error {
-		// TODO: veriy container first
-		if !strings.Contains(p.Spec.Containers[0].Image, expectedTag) {
-			return errors.Errorf("pod %s/%s image does not contain the expectedTag %s", p.Namespace, p.Name, expectedTag)
+func EtcdImageTagCondition(expectedTag string, expectedCount int) podListCondition {
+	return func(pl *corev1.PodList) error {
+		countWithCorrectTag := 0
+		for _, pod := range pl.Items {
+			if strings.Contains(pod.Spec.Containers[0].Image, expectedTag) {
+				countWithCorrectTag++
+			}
+		}
+		if countWithCorrectTag != expectedCount {
+			return errors.Errorf("expected %d pods to have image tag %q, got %d", expectedCount, expectedTag, countWithCorrectTag)
+		}
+
+		// This check is to ensure that if there are three controlplane nodes,
+		// then there are only three etcd pods running. Currently, we create a
+		// new etcd pod before deleting the previous one. So we can have a
+		// case where there are three etcd pods with the correct tag and one
+		// left over that has yet to be deleted.
+		if len(pl.Items) != expectedCount {
+			return errors.Errorf("expected %d pods, got %d", expectedCount, len(pl.Items))
+		}
+		return nil
+	}
+}
+
+// PhasePodCondition is a podListCondition ensuring that pods are in the expected
+// pod phase
+func PhasePodCondition(expectedPhase corev1.PodPhase) podListCondition {
+	return func(pl *corev1.PodList) error {
+		for _, pod := range pl.Items {
+			if pod.Status.Phase != expectedPhase {
+				return errors.Errorf("pod %q is not %s", pod.Name, expectedPhase)
+			}
 		}
 		return nil
 	}

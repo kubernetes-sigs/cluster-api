@@ -30,15 +30,203 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-//TODO: test newGitHubRepository
+func Test_githubRepository_newGitHubRepository(t *testing.T) {
+	type field struct {
+		providerConfig config.Provider
+		variableClient config.VariablesClient
+	}
+	tests := []struct {
+		name    string
+		field   field
+		want    *gitHubRepository
+		wantErr bool
+	}{
+		{
+			name: "can create a new GitHub repo",
+			field: field{
+				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want: &gitHubRepository{
+				providerConfig:           config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				configVariablesClient:    test.NewFakeVariableClient(),
+				authenticatingHTTPClient: nil,
+				owner:                    "o",
+				repository:               "r1",
+				defaultVersion:           "v0.4.1",
+				rootPath:                 ".",
+				componentsPath:           "path",
+				injectClient:             nil,
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing variableClient",
+			field: field{
+				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				variableClient: nil,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "provider url is not valid",
+			field: field{
+				providerConfig: config.NewProvider("test", "%gh&%ij", clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "provider url should be in https",
+			field: field{
+				providerConfig: config.NewProvider("test", "http://github.com/blabla", clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "provider url should be in github",
+			field: field{
+				providerConfig: config.NewProvider("test", "http://gitlab.com/blabla", clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want:    &gitHubRepository{},
+			wantErr: true,
+		},
+		{
+			name: "provider url should be in https://github.com/{owner}/{Repository}/%s/{latest|version-tag}/{componentsClient.yaml} format",
+			field: field{
+				providerConfig: config.NewProvider("test", "https://github.com/dd/", clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
 
-//TODO: test GetFile
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 
-//TODO: test getComponentsPath
+			gitHub, err := newGitHubRepository(tt.field.providerConfig, tt.field.variableClient)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(gitHub).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_githubRepository_getComponentsPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		rootPath string
+		want     string
+	}{
+		{
+			name:     "get the file name",
+			path:     "github.com/o/r/releases/v0.4.1/file.yaml",
+			rootPath: "github.com/o/r/releases/v0.4.1/",
+			want:     "file.yaml",
+		},
+		{
+			name:     "trim github.com",
+			path:     "github.com/o/r/releases/v0.4.1/file.yaml",
+			rootPath: "github.com",
+			want:     "o/r/releases/v0.4.1/file.yaml",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(getComponentsPath(tt.path, tt.rootPath)).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_githubRepository_getFile(t *testing.T) {
+	client, mux, teardown := test.NewFakeGitHub()
+	defer teardown()
+
+	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType)
+
+	// test.NewFakeGitHub and handler for returning a fake release
+	mux.HandleFunc("/repos/o/r/releases/tags/v0.4.1", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"id":13, "tag_name": "v0.4.1", "assets": [{"id": 1, "name": "file.yaml"}] }`)
+	})
+
+	// test.NewFakeGitHub an handler for returning a fake release asset
+	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Disposition", "attachment; filename=file.yaml")
+		fmt.Fprint(w, "content")
+	})
+
+	configVariablesClient := test.NewFakeVariableClient()
+
+	tests := []struct {
+		name     string
+		release  string
+		fileName string
+		want     []byte
+		wantErr  bool
+	}{
+		{
+			name:     "Release and file exist",
+			release:  "v0.4.1",
+			fileName: "file.yaml",
+			want:     []byte("content"),
+			wantErr:  false,
+		},
+		{
+			name:     "Release does not exist",
+			release:  "not-a-release",
+			fileName: "file.yaml",
+			want:     nil,
+			wantErr:  true,
+		},
+		{
+			name:     "File does not exist",
+			release:  "v0.4.1",
+			fileName: "404.file",
+			want:     nil,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			gitHub, err := newGitHubRepository(providerConfig, configVariablesClient)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gitHub.injectClient = client
+
+			got, err := gitHub.GetFile(tt.release, tt.fileName)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
 
 func Test_gitHubRepository_getVersions(t *testing.T) {
-	g := NewWithT(t)
-
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -76,6 +264,8 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			gitHub, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
 			g.Expect(err).NotTo(HaveOccurred())
 
@@ -94,8 +284,6 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 }
 
 func Test_gitHubRepository_getLatestRelease(t *testing.T) {
-	g := NewWithT(t)
-
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -146,6 +334,8 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			gRepo, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
 			g.Expect(err).NotTo(HaveOccurred())
 
@@ -164,8 +354,6 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 }
 
 func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
-	g := NewWithT(t)
-
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -207,6 +395,8 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient)
 			g.Expect(err).NotTo(HaveOccurred())
 
@@ -230,8 +420,6 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 }
 
 func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
-	g := NewWithT(t)
-
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -314,6 +502,8 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient)
 			g.Expect(err).NotTo(HaveOccurred())
 

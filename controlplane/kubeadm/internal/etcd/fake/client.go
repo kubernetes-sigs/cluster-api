@@ -31,13 +31,15 @@ type FakeEtcdClient struct {
 	MoveLeaderResponse   *clientv3.MoveLeaderResponse
 	StatusResponse       *clientv3.StatusResponse
 	ErrorResponse        error
+	MovedLeader          uint64
 }
 
 func (c *FakeEtcdClient) Endpoints() []string {
 	return c.EtcdEndpoints
 }
 
-func (c *FakeEtcdClient) MoveLeader(_ context.Context, _ uint64) (*clientv3.MoveLeaderResponse, error) {
+func (c *FakeEtcdClient) MoveLeader(_ context.Context, i uint64) (*clientv3.MoveLeaderResponse, error) {
+	c.MovedLeader = i
 	return c.MoveLeaderResponse, c.ErrorResponse
 }
 

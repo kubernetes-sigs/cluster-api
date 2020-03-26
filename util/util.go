@@ -291,10 +291,10 @@ func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 		if c.Spec.InfrastructureRef == nil {
 			return nil
 		}
-
-		// Return early if the GroupVersionKind doesn't match what we expect.
-		infraGVK := c.Spec.InfrastructureRef.GroupVersionKind()
-		if gvk != infraGVK {
+		gk := gvk.GroupKind()
+		// Return early if the GroupKind doesn't match what we expect.
+		infraGK := c.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
+		if gk != infraGK {
 			return nil
 		}
 
@@ -338,9 +338,10 @@ func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 			return nil
 		}
 
-		// Return early if the GroupVersionKind doesn't match what we expect.
-		infraGVK := m.Spec.InfrastructureRef.GroupVersionKind()
-		if gvk != infraGVK {
+		gk := gvk.GroupKind()
+		// Return early if the GroupKind doesn't match what we expect.
+		infraGK := m.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
+		if gk != infraGK {
 			return nil
 		}
 

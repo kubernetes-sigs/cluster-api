@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"regexp"
 	"strconv"
@@ -98,6 +99,29 @@ func RandomString(n int) string {
 		result[i] = CharSet[rnd.Intn(len(CharSet))]
 	}
 	return string(result)
+}
+
+// Ordinalize takes an int and returns the ordinalized version of it.
+// Eg. 1 --> 1st, 103 --> 103rd
+func Ordinalize(n int) string {
+	m := map[int]string{
+		0: "th",
+		1: "st",
+		2: "nd",
+		3: "rd",
+		4: "th",
+		5: "th",
+		6: "th",
+		7: "th",
+		8: "th",
+		9: "th",
+	}
+
+	an := int(math.Abs(float64(n)))
+	if an < 10 {
+		return fmt.Sprintf("%d%s", n, m[an])
+	}
+	return fmt.Sprintf("%d%s", n, m[an%10])
 }
 
 // ModifyImageTag takes an imageName (e.g., registry/repo:tag), and returns an image name with updated tag

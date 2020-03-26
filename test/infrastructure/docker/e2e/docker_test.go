@@ -26,10 +26,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/runtime"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -47,8 +48,9 @@ var cluster *clusterv1.Cluster
 var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
 		var (
-			namespace  string
-			clusterGen = &ClusterGenerator{}
+			namespace      string
+			clusterGen     = &ClusterGenerator{}
+			workloadClient ctrlclient.Client
 		)
 		SetDefaultEventuallyTimeout(10 * time.Minute)
 		SetDefaultEventuallyPollingInterval(10 * time.Second)
@@ -125,7 +127,7 @@ var _ = Describe("Docker", func() {
 				framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "5m")
 
 				// Insatll a networking solution on the workload cluster
-				workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
+				workloadClient, err = mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
 				Expect(err).ToNot(HaveOccurred())
 				applyYAMLURLInput := framework.ApplyYAMLURLInput{
 					Client:        workloadClient,
@@ -213,6 +215,19 @@ var _ = Describe("Docker", func() {
 					}
 					return upgraded, nil
 				}, "10m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
+				Eventually(func() (bool, error) {
+					ds := &appsv1.DaemonSet{}
+
+					if err := workloadClient.Get(ctx, ctrlclient.ObjectKey{Name: "kube-proxy", Namespace: metav1.NamespaceSystem}, ds); err != nil {
+						return false, err
+					}
+					if ds.Spec.Template.Spec.Containers[0].Image == "k8s.gcr.io/kube-proxy:v1.17.2" {
+						return true, nil
+					}
+
+					return false, nil
+				}, "10m", "30s").Should(BeTrue())
+
 			})
 		})
 	})

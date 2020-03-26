@@ -50,7 +50,7 @@ var _ = Describe("Docker", func() {
 			namespace  string
 			clusterGen = &ClusterGenerator{}
 		)
-		SetDefaultEventuallyTimeout(3 * time.Minute)
+		SetDefaultEventuallyTimeout(10 * time.Minute)
 		SetDefaultEventuallyPollingInterval(10 * time.Second)
 
 		BeforeEach(func() {

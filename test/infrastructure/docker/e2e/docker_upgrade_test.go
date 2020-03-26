@@ -19,11 +19,14 @@ limitations under the License.
 package e2e
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -176,22 +179,11 @@ var _ = Describe("Docker Upgrade", func() {
 		Expect(framework.DumpProviderResources(mgmt, resources, resourcesPath, GinkgoWriter)).To(Succeed())
 	})
 
-	It("upgrades etcd", func() {
-		// Before patching ensure all pods are ready in workload
-		// cluster
-		workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
-		Expect(err).ToNot(HaveOccurred())
-		By("waiting for workload cluster pods to be Running")
-		waitForPodListConditionInput := framework.WaitForPodListConditionInput{
-			Lister:      workloadClient,
-			ListOptions: &client.ListOptions{Namespace: metav1.NamespaceSystem},
-			Condition:   framework.PhasePodCondition(corev1.PodRunning),
-		}
-		framework.WaitForPodListCondition(ctx, waitForPodListConditionInput)
-
-		By("patching KubeadmConfigSpec etcd image tag in the kubeadmControlPlane")
+	It("upgrades kubernetes, kube-proxy and etcd", func() {
+		By("upgrading kubernetes version and etcd image tag")
 		patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
+		controlPlane.Spec.Version = "v1.17.2"
 		controlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = v1beta1.Etcd{
 			Local: &v1beta1.LocalEtcd{
 				ImageMeta: v1beta1.ImageMeta{
@@ -206,7 +198,60 @@ var _ = Describe("Docker Upgrade", func() {
 		}
 		Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
 
-		By("waiting for etcd pods to have the expected image tag")
+		inClustersNamespaceListOption := ctrlclient.InNamespace(cluster.Namespace)
+		// ControlPlane labels
+		matchClusterListOption := ctrlclient.MatchingLabels{
+			clusterv1.MachineControlPlaneLabelName: "",
+			clusterv1.ClusterLabelName:             cluster.Name,
+		}
+
+		By("ensuring all machines have upgraded kubernetes")
+		Eventually(func() (int, error) {
+			machineList := &clusterv1.MachineList{}
+			if err := mgmtClient.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
+				fmt.Println(err)
+				return 0, err
+			}
+			upgraded := 0
+			for _, machine := range machineList.Items {
+				if *machine.Spec.Version == controlPlane.Spec.Version {
+					upgraded++
+				}
+			}
+			if len(machineList.Items) > upgraded {
+				return 0, errors.New("old nodes remain")
+			}
+			return upgraded, nil
+		}, "10m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
+
+		workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("ensuring kube-proxy has the correct image")
+		Eventually(func() (bool, error) {
+			ds := &appsv1.DaemonSet{}
+
+			if err := workloadClient.Get(ctx, ctrlclient.ObjectKey{Name: "kube-proxy", Namespace: metav1.NamespaceSystem}, ds); err != nil {
+				return false, err
+			}
+			if ds.Spec.Template.Spec.Containers[0].Image == "k8s.gcr.io/kube-proxy:v1.17.2" {
+				return true, nil
+			}
+
+			return false, nil
+		}, "10m", "30s").Should(BeTrue())
+
+		// Before patching ensure all pods are ready in workload cluster
+		// Might not need this step any more.
+		By("waiting for workload cluster pods to be Running")
+		waitForPodListConditionInput := framework.WaitForPodListConditionInput{
+			Lister:      workloadClient,
+			ListOptions: &client.ListOptions{Namespace: metav1.NamespaceSystem},
+			Condition:   framework.PhasePodCondition(corev1.PodRunning),
+		}
+		framework.WaitForPodListCondition(ctx, waitForPodListConditionInput)
+
+		By("ensuring etcd pods have the correct image tag")
 		lblSelector, err := labels.Parse("component=etcd")
 		Expect(err).ToNot(HaveOccurred())
 		opt := &client.ListOptions{LabelSelector: lblSelector}

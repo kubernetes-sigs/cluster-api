@@ -52,7 +52,7 @@ func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionI
 		err := input.Condition(podList)
 		if err != nil {
 			// DEBUG:
-			fmt.Println("---", err.Error())
+			fmt.Println(err.Error())
 			return false, err
 		}
 		return true, nil
@@ -71,7 +71,7 @@ func EtcdImageTagCondition(expectedTag string, expectedCount int) podListConditi
 			}
 		}
 		if countWithCorrectTag != expectedCount {
-			return errors.Errorf("expected %d pods to have image tag %q, got %d", expectedCount, expectedTag, countWithCorrectTag)
+			return errors.Errorf("etcdImageTagCondition: expected %d pods to have image tag %q, got %d", expectedCount, expectedTag, countWithCorrectTag)
 		}
 
 		// This check is to ensure that if there are three controlplane nodes,
@@ -80,7 +80,7 @@ func EtcdImageTagCondition(expectedTag string, expectedCount int) podListConditi
 		// case where there are three etcd pods with the correct tag and one
 		// left over that has yet to be deleted.
 		if len(pl.Items) != expectedCount {
-			return errors.Errorf("expected %d pods, got %d", expectedCount, len(pl.Items))
+			return errors.Errorf("etcdImageTagCondition: expected %d pods, got %d", expectedCount, len(pl.Items))
 		}
 		return nil
 	}

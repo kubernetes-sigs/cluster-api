@@ -45,15 +45,14 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var mgmtClient ctrlclient.Client
-var cluster *clusterv1.Cluster
-
 var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
 		var (
 			namespace      string
 			clusterGen     = &ClusterGenerator{}
 			workloadClient ctrlclient.Client
+			mgmtClient     ctrlclient.Client
+			cluster        *clusterv1.Cluster
 		)
 		SetDefaultEventuallyTimeout(10 * time.Minute)
 		SetDefaultEventuallyPollingInterval(10 * time.Second)
@@ -63,6 +62,31 @@ var _ = Describe("Docker", func() {
 		})
 
 		AfterEach(func() {
+			// Delete the workload cluster
+			deleteClusterInput := framework.DeleteClusterInput{
+				Deleter: mgmtClient,
+				Cluster: cluster,
+			}
+			framework.DeleteCluster(ctx, deleteClusterInput)
+
+			waitForClusterDeletedInput := framework.WaitForClusterDeletedInput{
+				Getter:  mgmtClient,
+				Cluster: cluster,
+			}
+			framework.WaitForClusterDeleted(ctx, waitForClusterDeletedInput)
+
+			assertAllClusterAPIResourcesAreGoneInput := framework.AssertAllClusterAPIResourcesAreGoneInput{
+				Lister:  mgmtClient,
+				Cluster: cluster,
+			}
+			framework.AssertAllClusterAPIResourcesAreGone(ctx, assertAllClusterAPIResourcesAreGoneInput)
+
+			ensureDockerDeletedInput := ensureDockerArtifactsDeletedInput{
+				Lister:  mgmtClient,
+				Cluster: cluster,
+			}
+			ensureDockerArtifactsDeleted(ensureDockerDeletedInput)
+
 			// Dump cluster API and docker related resources to artifacts before deleting them.
 			Expect(framework.DumpResources(mgmt, resourcesPath, GinkgoWriter)).To(Succeed())
 			resources := map[string]runtime.Object{

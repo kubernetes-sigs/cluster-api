@@ -90,8 +90,11 @@ func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 	return nil
 }
 
-// UpdateImageRepository changes the kubernetes version found in the kubeadm config map
+// UpdateImageRepository changes the image repository found in the kubeadm config map
 func (k *kubeadmConfig) UpdateImageRepository(imageRepository string) error {
+	if imageRepository == "" {
+		return nil
+	}
 	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
 	if !ok {
 		return errors.Errorf("unable to find %q key in kubeadm ConfigMap", clusterConfigurationKey)
@@ -101,7 +104,7 @@ func (k *kubeadmConfig) UpdateImageRepository(imageRepository string) error {
 		return errors.Wrapf(err, "unable to decode kubeadm ConfigMap's %q to Unstructured object", clusterConfigurationKey)
 	}
 	if err := unstructured.SetNestedField(configuration.UnstructuredContent(), imageRepository, configImageRepositoryKey); err != nil {
-		return errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap's %q", configVersionKey, clusterConfigurationKey)
+		return errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap's %q", imageRepository, clusterConfigurationKey)
 	}
 	updated, err := yaml.Marshal(configuration)
 	if err != nil {

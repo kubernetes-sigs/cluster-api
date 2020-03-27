@@ -48,7 +48,6 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	}
 
 	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
-	parsedImageRepository := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
 	}
@@ -65,8 +64,11 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return ctrl.Result{}, errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
 	}
 
-	if err := workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(ctx, parsedImageRepository); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
+	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
+		imageRepository := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository
+		if err := workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(ctx, imageRepository); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to update the image repository in the kubeadm config map")
+		}
 	}
 
 	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil && kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {

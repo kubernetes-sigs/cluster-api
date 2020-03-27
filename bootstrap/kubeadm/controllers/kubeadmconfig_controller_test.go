@@ -362,8 +362,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 
 // If the control plane isn't initialized then there is no cluster for either a worker or control plane node to join.
 func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotInitialized(t *testing.T) {
-	g := NewWithT(t)
-
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
@@ -409,6 +407,8 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			myclient := fake.NewFakeClientWithScheme(setupScheme(), tc.objects...)
 
 			k := &KubeadmConfigReconciler{
@@ -552,8 +552,6 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 }
 
 func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
-	g := NewWithT(t)
-
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
@@ -596,6 +594,8 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	for _, rt := range useCases {
 		rt := rt // pin!
 		t.Run(rt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			config := rt.configBuilder(rt.machine, rt.configName)
 
 			objects := []runtime.Object{
@@ -638,8 +638,6 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 }
 
 func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
-	g := NewWithT(t)
-
 	_ = feature.MutableGates.Set("MachinePool=true")
 
 	cluster := newCluster("cluster")
@@ -672,6 +670,8 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 	for _, rt := range useCases {
 		rt := rt // pin!
 		t.Run(rt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			config := rt.configBuilder(rt.machinePool, rt.configName)
 
 			objects := []runtime.Object{
@@ -862,9 +862,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 }
 
 // Ensure the discovery portion of the JoinConfiguration gets generated correctly.
-func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testing.T) {
-	g := NewWithT(t)
-
+func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testing.T) {
 	k := &KubeadmConfigReconciler{
 		Log:                log.Log,
 		Client:             fake.NewFakeClientWithScheme(setupScheme()),
@@ -890,7 +888,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 		name              string
 		cluster           *clusterv1.Cluster
 		config            *bootstrapv1.KubeadmConfig
-		validateDiscovery func(*bootstrapv1.KubeadmConfig) error
+		validateDiscovery func(*WithT, *bootstrapv1.KubeadmConfig) error
 	}{
 		{
 			name:    "Automatically generate token if discovery not specified",
@@ -902,7 +900,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 					},
 				},
 			},
-			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
+			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken).NotTo(BeNil())
 				g.Expect(d.BootstrapToken.Token).NotTo(Equal(""))
@@ -923,7 +921,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 					},
 				},
 			},
-			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
+			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken).To(BeNil())
 				return nil
@@ -944,7 +942,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 					},
 				},
 			},
-			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
+			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken.APIServerEndpoint).To(Equal("bar.com:6443"))
 				return nil
@@ -965,7 +963,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 					},
 				},
 			},
-			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
+			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken.Token).To(Equal("abcdef.0123456789abcdef"))
 				return nil
@@ -985,7 +983,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 					},
 				},
 			},
-			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
+			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(reflect.DeepEqual(d.BootstrapToken.CACertHashes, dummyCAHash)).To(BeTrue())
 				return nil
@@ -995,10 +993,12 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
 			g.Expect(err).NotTo(HaveOccurred())
 
-			err = tc.validateDiscovery(tc.config)
+			err = tc.validateDiscovery(g, tc.config)
 			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
@@ -1006,8 +1006,6 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 
 // Test failure cases for the discovery reconcile function.
 func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t *testing.T) {
-	g := NewWithT(t)
-
 	k := &KubeadmConfigReconciler{
 		Log:    log.Log,
 		Client: nil,
@@ -1037,6 +1035,8 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
 			g.Expect(err).To(HaveOccurred())
 		})
@@ -1045,8 +1045,6 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 
 // Set cluster configuration defaults based on dynamic values from the cluster object.
 func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguration(t *testing.T) {
-	g := NewWithT(t)
-
 	k := &KubeadmConfigReconciler{
 		Log:    log.Log,
 		Client: nil,
@@ -1123,6 +1121,8 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			k.reconcileTopLevelObjectSettings(tc.cluster, tc.machine, tc.config)
 
 			g.Expect(tc.config.Spec.ClusterConfiguration.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
@@ -1137,8 +1137,6 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 
 // Allow users to skip CA Verification if they *really* want to.
 func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessRequestedToSkip(t *testing.T) {
-	g := NewWithT(t)
-
 	// Setup work for an initialized cluster
 	clusterName := "my-cluster"
 	cluster := newCluster(clusterName)
@@ -1194,6 +1192,8 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 			reconciler := KubeadmConfigReconciler{
 				Client:             myclient,

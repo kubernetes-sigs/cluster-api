@@ -30,8 +30,6 @@ import (
 )
 
 func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		reader     config.Reader
 		repository repository.Repository
@@ -151,6 +149,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{
@@ -171,8 +171,6 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 }
 
 func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
-	g := NewWithT(t)
-
 	type field struct {
 		currentVersion string
 		metadata       *clusterctlv1.Metadata
@@ -233,6 +231,8 @@ func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			upgradeInfo := newUpgradeInfo(tt.field.metadata, version.MustParseSemantic(tt.field.currentVersion), nil)
 
 			got := upgradeInfo.getContractsForUpgrade()
@@ -242,8 +242,6 @@ func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
 }
 
 func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
-	g := NewWithT(t)
-
 	type field struct {
 		currentVersion string
 		nextVersions   []string
@@ -329,6 +327,8 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			upgradeInfo := newUpgradeInfo(tt.field.metadata, version.MustParseSemantic(tt.field.currentVersion), toSemanticVersions(tt.field.nextVersions))
 
 			got := upgradeInfo.getLatestNextVersion(tt.args.contract)

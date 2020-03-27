@@ -231,20 +231,22 @@ func Test_componentsClient_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
 			f := newComponentsClient(tt.fields.provider, tt.fields.repository, configClient)
 			got, err := f.Get(tt.args.version, tt.args.targetNamespace, tt.args.watchingNamespace)
 			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
+				gs.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).NotTo(HaveOccurred())
 
-			g.Expect(got.Name()).To(Equal(tt.want.provider.Name()))
-			g.Expect(got.Type()).To(Equal(tt.want.provider.Type()))
-			g.Expect(got.Version()).To(Equal(tt.want.version))
-			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
-			g.Expect(got.WatchingNamespace()).To(Equal(tt.want.watchingNamespace))
-			g.Expect(got.Variables()).To(Equal(tt.want.variables))
+			gs.Expect(got.Name()).To(Equal(tt.want.provider.Name()))
+			gs.Expect(got.Type()).To(Equal(tt.want.provider.Type()))
+			gs.Expect(got.Version()).To(Equal(tt.want.version))
+			gs.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
+			gs.Expect(got.WatchingNamespace()).To(Equal(tt.want.watchingNamespace))
+			gs.Expect(got.Variables()).To(Equal(tt.want.variables))
 
 			yaml, err := got.Yaml()
 			if err != nil {
@@ -253,18 +255,18 @@ func Test_componentsClient_Get(t *testing.T) {
 			}
 
 			if len(tt.want.variables) > 0 {
-				g.Expect(yaml).To(ContainSubstring(variableValue))
+				gs.Expect(yaml).To(ContainSubstring(variableValue))
 			}
 
 			for _, o := range got.InstanceObjs() {
 				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName} {
-					g.Expect(o.GetLabels()).To(HaveKey(v))
+					gs.Expect(o.GetLabels()).To(HaveKey(v))
 				}
 			}
 
 			for _, o := range got.SharedObjs() {
 				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName, clusterctlv1.ClusterctlResourceLifecyleLabelName} {
-					g.Expect(o.GetLabels()).To(HaveKey(v))
+					gs.Expect(o.GetLabels()).To(HaveKey(v))
 				}
 			}
 		})

@@ -42,10 +42,10 @@ func TestFuzzyConversion(t *testing.T) {
 }
 
 func TestConvertCluster(t *testing.T) {
-	g := NewWithT(t)
-
 	t.Run("to hub", func(t *testing.T) {
 		t.Run("should convert the first value in Status.APIEndpoints to Spec.ControlPlaneEndpoint", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &Cluster{
 				Status: ClusterStatus{
 					APIEndpoints: []APIEndpoint{
@@ -66,6 +66,8 @@ func TestConvertCluster(t *testing.T) {
 
 	t.Run("from hub", func(t *testing.T) {
 		t.Run("preserves fields from hub version", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &v1alpha3.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hub",
@@ -92,6 +94,8 @@ func TestConvertCluster(t *testing.T) {
 		})
 
 		t.Run("should convert Spec.ControlPlaneEndpoint to Status.APIEndpoints[0]", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &v1alpha3.Cluster{
 				Spec: v1alpha3.ClusterSpec{
 					ControlPlaneEndpoint: v1alpha3.APIEndpoint{
@@ -110,10 +114,10 @@ func TestConvertCluster(t *testing.T) {
 }
 
 func TestConvertMachine(t *testing.T) {
-	g := NewWithT(t)
-
 	t.Run("to hub", func(t *testing.T) {
 		t.Run("should convert the Spec.ClusterName from label", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -130,6 +134,8 @@ func TestConvertMachine(t *testing.T) {
 
 	t.Run("from hub", func(t *testing.T) {
 		t.Run("preserves fields from hub version", func(t *testing.T) {
+			g := NewWithT(t)
+
 			failureDomain := "my failure domain"
 			src := &v1alpha3.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -159,10 +165,10 @@ func TestConvertMachine(t *testing.T) {
 }
 
 func TestConvertMachineSet(t *testing.T) {
-	g := NewWithT(t)
-
 	t.Run("to hub", func(t *testing.T) {
 		t.Run("should convert the Spec.ClusterName from label", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -180,6 +186,8 @@ func TestConvertMachineSet(t *testing.T) {
 
 	t.Run("from hub", func(t *testing.T) {
 		t.Run("preserves field from hub version", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &v1alpha3.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hub",
@@ -208,10 +216,10 @@ func TestConvertMachineSet(t *testing.T) {
 }
 
 func TestConvertMachineDeployment(t *testing.T) {
-	g := NewWithT(t)
-
 	t.Run("to hub", func(t *testing.T) {
 		t.Run("should convert the Spec.ClusterName from label", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -227,6 +235,8 @@ func TestConvertMachineDeployment(t *testing.T) {
 		})
 
 		t.Run("should convert the annotations", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -249,6 +259,8 @@ func TestConvertMachineDeployment(t *testing.T) {
 
 	t.Run("from hub", func(t *testing.T) {
 		t.Run("preserves fields from hub version", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &v1alpha3.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hub",
@@ -278,6 +290,8 @@ func TestConvertMachineDeployment(t *testing.T) {
 		})
 
 		t.Run("should convert the annotations", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &v1alpha3.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{

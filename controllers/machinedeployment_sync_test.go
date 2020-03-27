@@ -28,8 +28,6 @@ import (
 )
 
 func TestMachineDeploymentSyncStatus(t *testing.T) {
-	g := NewWithT(t)
-
 	msStatusError := capierrors.MachineSetStatusError("some failure")
 
 	var tests = map[string]struct {
@@ -215,6 +213,8 @@ func TestMachineDeploymentSyncStatus(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			actualStatus := calculateStatus(test.machineSets, test.newMachineSet, test.deployment)
 			g.Expect(actualStatus).To(Equal(test.expectedStatus))
 		})

@@ -84,8 +84,9 @@ func TestNewFailureDomainPicker(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		g := NewWithT(t)
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			fd := PickFewest(tc.fds, tc.machines)
 			if tc.expected == nil {
 				g.Expect(fd).To(BeNil())

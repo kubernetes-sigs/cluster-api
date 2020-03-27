@@ -25,8 +25,6 @@ import (
 )
 
 func Test_imageMetaClient_AlterImage(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		reader Reader
 	}
@@ -132,6 +130,8 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := newImageMetaClient(tt.fields.reader)
 
 			got, err := p.AlterImage(tt.args.component, tt.args.image)

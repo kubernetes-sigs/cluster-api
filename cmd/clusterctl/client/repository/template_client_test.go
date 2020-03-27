@@ -28,8 +28,6 @@ import (
 )
 
 func Test_templates_Get(t *testing.T) {
-	g := NewWithT(t)
-
 	p1 := config.NewProvider("p1", "", clusterctlv1.BootstrapProviderType)
 
 	type fields struct {
@@ -158,6 +156,8 @@ func Test_templates_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			f := newTemplateClient(tt.fields.provider, tt.fields.version, tt.fields.repository, tt.fields.configVariablesClient)
 			got, err := f.Get(tt.args.flavor, tt.args.targetNamespace, tt.args.listVariablesOnly)
 			if tt.wantErr {

@@ -27,8 +27,6 @@ import (
 )
 
 func TestIsNodeAvaialble(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name              string
 		node              *corev1.Node
@@ -143,14 +141,14 @@ func TestIsNodeAvaialble(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(IsNodeAvailable(test.node, test.minReadySeconds, metav1.Now())).To(Equal(test.expectedAvailable))
 		})
 	}
 }
 
 func TestGetReadyCondition(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name              string
 		nodeStatus        *corev1.NodeStatus
@@ -223,14 +221,14 @@ func TestGetReadyCondition(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(GetReadyCondition(test.nodeStatus)).To(Equal(test.expectedCondition))
 		})
 	}
 }
 
 func TestIsNodeReady(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name          string
 		node          *corev1.Node
@@ -302,6 +300,8 @@ func TestIsNodeReady(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(IsNodeReady(test.node)).To(Equal(test.expectedReady))
 		})
 	}

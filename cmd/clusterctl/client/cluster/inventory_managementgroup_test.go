@@ -28,8 +28,6 @@ import (
 )
 
 func Test_inventoryClient_GetManagementGroups(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		proxy Proxy
 	}
@@ -146,6 +144,8 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := &inventoryClient{
 				proxy: tt.fields.proxy,
 			}

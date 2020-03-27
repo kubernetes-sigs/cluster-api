@@ -25,8 +25,6 @@ import (
 const aws = "aws"
 
 func TestNewProviderID(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name       string
 		input      string
@@ -56,6 +54,8 @@ func TestNewProviderID(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			id, err := NewProviderID(tc.input)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(id.CloudProvider()).To(Equal(aws))
@@ -65,8 +65,6 @@ func TestNewProviderID(t *testing.T) {
 }
 
 func TestInvalidProviderID(t *testing.T) {
-	g := NewWithT(t)
-
 	testCases := []struct {
 		name  string
 		input string
@@ -106,6 +104,8 @@ func TestInvalidProviderID(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			_, err := NewProviderID(test.input)
 			g.Expect(err).To(MatchError(test.err))
 		})

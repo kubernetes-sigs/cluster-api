@@ -33,8 +33,6 @@ import (
 )
 
 func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		proxy Proxy
 	}
@@ -64,6 +62,8 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			graph := newObjectGraph(tt.fields.proxy)
 			got, err := graph.getDiscoveryTypes()
 			if tt.wantErr {
@@ -867,10 +867,11 @@ func getDetachedObjectGraphWihObjs(objs []runtime.Object) (*objectGraph, error) 
 }
 
 func TestObjectGraph_addObj_WithFakeObjects(t *testing.T) {
-	g := NewWithT(t)
 	// NB. we are testing the graph is properly built starting from objects (this test) or from the same objects read from the cluster (TestGraphBuilder_Discovery)
 	for _, tt := range objectGraphsTests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			graph, err := getDetachedObjectGraphWihObjs(tt.args.objs)
 			g.Expect(err).NotTo(HaveOccurred())
 
@@ -914,10 +915,11 @@ func getFakeDiscoveryTypes(graph *objectGraph) ([]metav1.TypeMeta, error) {
 }
 
 func TestObjectGraph_Discovery(t *testing.T) {
-	g := NewWithT(t)
 	// NB. we are testing the graph is properly built starting from objects (TestGraphBuilder_addObj_WithFakeObjects) or from the same objects read from the cluster (this test).
 	for _, tt := range objectGraphsTests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			// Create an objectGraph bound to a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.args.objs)
 
@@ -939,8 +941,6 @@ func TestObjectGraph_Discovery(t *testing.T) {
 }
 
 func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
-	g := NewWithT(t)
-
 	type args struct {
 		namespace string
 		objs      []runtime.Object
@@ -1035,6 +1035,8 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			// Create an objectGraph bound to a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.args.objs)
 
@@ -1056,8 +1058,6 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 }
 
 func Test_objectGraph_setSoftOwnership(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		objs []runtime.Object
 	}
@@ -1081,6 +1081,8 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			graph, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
 			g.Expect(err).NotTo(HaveOccurred())
 
@@ -1105,8 +1107,6 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 }
 
 func Test_objectGraph_setClusterTenants(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		objs []runtime.Object
 	}
@@ -1236,6 +1236,8 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			gb, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
 			g.Expect(err).NotTo(HaveOccurred())
 

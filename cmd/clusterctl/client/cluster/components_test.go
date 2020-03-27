@@ -35,8 +35,6 @@ import (
 )
 
 func Test_providerComponents_Delete(t *testing.T) {
-	g := NewWithT(t)
-
 	labels := map[string]string{
 		clusterv1.ProviderLabelName: "infrastructure-infra",
 	}
@@ -250,6 +248,8 @@ func Test_providerComponents_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			proxy := test.NewFakeProxy().WithObjs(initObjs...)
 			c := newComponentsClient(proxy)
 			err := c.Delete(DeleteOptions{

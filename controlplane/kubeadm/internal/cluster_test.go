@@ -49,8 +49,6 @@ type checkStaticPodReadyConditionTest struct {
 }
 
 func TestCheckStaticPodReadyCondition(t *testing.T) {
-	g := NewWithT(t)
-
 	table := []checkStaticPodReadyConditionTest{
 		{
 			name:       "pod is ready",
@@ -59,6 +57,8 @@ func TestCheckStaticPodReadyCondition(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			pod := corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-pod",
@@ -72,8 +72,6 @@ func TestCheckStaticPodReadyCondition(t *testing.T) {
 }
 
 func TestCheckStaticPodNotReadyCondition(t *testing.T) {
-	g := NewWithT(t)
-
 	table := []checkStaticPodReadyConditionTest{
 		{
 			name: "no pod status",
@@ -85,6 +83,8 @@ func TestCheckStaticPodNotReadyCondition(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			pod := corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-pod",
@@ -287,8 +287,6 @@ func (f *fakeClient) Update(_ context.Context, _ runtime.Object, _ ...client.Upd
 }
 
 func TestManagementCluster_healthCheck_NoError(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name             string
 		machineList      *clusterv1.MachineList
@@ -318,6 +316,8 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			ctx := context.Background()
 			m := &Management{
 				Client: &fakeClient{list: tt.machineList},
@@ -328,8 +328,6 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 }
 
 func TestManagementCluster_healthCheck_Errors(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name             string
 		machineList      *clusterv1.MachineList
@@ -426,6 +424,8 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			ctx := context.Background()
 			clusterKey := client.ObjectKey{Namespace: "default", Name: "cluster-name"}
 			controlPlaneName := "control-plane-name"
@@ -472,9 +472,9 @@ func nilNodeRef(machine clusterv1.Machine) clusterv1.Machine {
 }
 
 func TestRemoveMemberForNode_ErrControlPlaneMinNodes(t *testing.T) {
-	g := NewWithT(t)
-
 	t.Run("do not remove the etcd member if the cluster has fewer than 2 control plane nodes", func(t *testing.T) {
+		g := NewWithT(t)
+
 		expectedErr := ErrControlPlaneMinNodes
 
 		workloadCluster := &Workload{

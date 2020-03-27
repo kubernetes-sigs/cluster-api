@@ -28,8 +28,6 @@ import (
 )
 
 func Test_providers_List(t *testing.T) {
-	g := NewWithT(t)
-
 	reader := test.NewFakeReader()
 
 	p := &providersClient{
@@ -120,6 +118,8 @@ func Test_providers_List(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := &providersClient{
 				reader: tt.fields.configGetter,
 			}
@@ -136,8 +136,6 @@ func Test_providers_List(t *testing.T) {
 }
 
 func Test_validateProvider(t *testing.T) {
-	g := NewWithT(t)
-
 	type args struct {
 		r Provider
 	}
@@ -219,6 +217,8 @@ func Test_validateProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			err := validateProvider(tt.args.r)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -249,8 +249,6 @@ func Test_providers_Defaults(t *testing.T) {
 }
 
 func Test_providers_Get(t *testing.T) {
-	g := NewWithT(t)
-
 	reader := test.NewFakeReader()
 
 	p := &providersClient{
@@ -317,6 +315,8 @@ func Test_providers_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := &providersClient{
 				reader: reader,
 			}

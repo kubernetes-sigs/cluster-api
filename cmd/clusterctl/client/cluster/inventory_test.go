@@ -34,8 +34,6 @@ func fakePollImmediateWaiter(interval, timeout time.Duration, condition wait.Con
 }
 
 func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		alreadyHasCRD bool
 	}
@@ -61,6 +59,8 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := newInventoryClient(test.NewFakeProxy(), fakePollImmediateWaiter)
 			if tt.fields.alreadyHasCRD {
 				//forcing creation of metadata before test
@@ -80,8 +80,6 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1"}}
 
 func Test_inventoryClient_List(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		initObjs []runtime.Object
 	}
@@ -106,6 +104,8 @@ func Test_inventoryClient_List(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
 			got, err := p.List()
 			if tt.wantErr {
@@ -120,8 +120,6 @@ func Test_inventoryClient_List(t *testing.T) {
 }
 
 func Test_inventoryClient_Create(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		proxy Proxy
 	}
@@ -167,6 +165,8 @@ func Test_inventoryClient_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := &inventoryClient{
 				proxy: tt.fields.proxy,
 			}

@@ -25,8 +25,6 @@ import (
 )
 
 func TestWriteFiles(t *testing.T) {
-	g := NewWithT(t)
-
 	var useCases = []struct {
 		name         string
 		w            writeFilesAction
@@ -89,6 +87,8 @@ func TestWriteFiles(t *testing.T) {
 
 	for _, rt := range useCases {
 		t.Run(rt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			cmds, err := rt.w.Commands()
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(rt.expectedCmds).To(Equal(cmds))
@@ -97,8 +97,6 @@ func TestWriteFiles(t *testing.T) {
 }
 
 func TestFixContent(t *testing.T) {
-	g := NewWithT(t)
-
 	v := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	gv, _ := gZipData([]byte(v))
 	var useCases = []struct {
@@ -129,6 +127,8 @@ func TestFixContent(t *testing.T) {
 
 	for _, rt := range useCases {
 		t.Run(rt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			encoding := fixEncoding(rt.encoding)
 			c, err := fixContent(rt.content, encoding)
 			if rt.expectedError {

@@ -131,6 +131,8 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			tc := &templateClient{
 				proxy:        tt.fields.proxy,
 				configClient: tt.fields.configClient,
@@ -199,6 +201,8 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			c := &templateClient{
 				configClient: configClient,
 				gitHubClientFactory: func(configVariablesClient config.VariablesClient) (*github.Client, error) {
@@ -256,6 +260,8 @@ func Test_templateClient_getLocalFileContent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			c := &templateClient{}
 			got, err := c.getLocalFileContent(tt.args.rURL)
 			if tt.wantErr {
@@ -332,6 +338,8 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			c := &templateClient{
 				configClient: configClient,
 				gitHubClientFactory: func(configVariablesClient config.VariablesClient) (*github.Client, error) {

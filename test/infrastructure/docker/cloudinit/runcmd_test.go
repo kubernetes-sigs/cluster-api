@@ -42,8 +42,6 @@ runcmd:
 }
 
 func TestRunCmdRun(t *testing.T) {
-	g := NewWithT(t)
-
 	var useCases = []struct {
 		name         string
 		r            runCmd
@@ -77,6 +75,8 @@ func TestRunCmdRun(t *testing.T) {
 
 	for _, rt := range useCases {
 		t.Run(rt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			commands, err := rt.r.Commands()
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(rt.expectedCmds).To(Equal(commands))

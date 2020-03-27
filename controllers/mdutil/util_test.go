@@ -100,8 +100,6 @@ func generateMachineTemplateSpec(name string, annotations, labels map[string]str
 }
 
 func TestEqualMachineTemplate(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		Name           string
 		Former, Latter clusterv1.MachineTemplateSpec
@@ -253,6 +251,8 @@ func TestEqualMachineTemplate(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec, reversed bool) {
 				// Run
 				equal := EqualMachineTemplate(t1, t2)
@@ -269,8 +269,6 @@ func TestEqualMachineTemplate(t *testing.T) {
 }
 
 func TestFindNewMachineSet(t *testing.T) {
-	g := NewWithT(t)
-
 	now := metav1.Now()
 	later := metav1.Time{Time: now.Add(time.Minute)}
 
@@ -316,6 +314,8 @@ func TestFindNewMachineSet(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			ms := FindNewMachineSet(&test.deployment, test.msList)
 			g.Expect(ms).To(Equal(test.expected))
 		})
@@ -323,8 +323,6 @@ func TestFindNewMachineSet(t *testing.T) {
 }
 
 func TestFindOldMachineSets(t *testing.T) {
-	g := NewWithT(t)
-
 	now := metav1.Now()
 	later := metav1.Time{Time: now.Add(time.Minute)}
 	before := metav1.Time{Time: now.Add(-time.Minute)}
@@ -398,6 +396,8 @@ func TestFindOldMachineSets(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			requireMS, allMS := FindOldMachineSets(&test.deployment, test.msList)
 			g.Expect(allMS).To(ConsistOf(test.expected))
 			// MSs are getting filtered correctly by ms.spec.replicas
@@ -407,8 +407,6 @@ func TestFindOldMachineSets(t *testing.T) {
 }
 
 func TestGetReplicaCountForMachineSets(t *testing.T) {
-	g := NewWithT(t)
-
 	ms1 := generateMS(generateDeployment("foo"))
 	*(ms1.Spec.Replicas) = 1
 	ms1.Status.Replicas = 2
@@ -438,6 +436,8 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(GetReplicaCountForMachineSets(test.Sets)).To(Equal(test.ExpectedCount))
 			g.Expect(GetActualReplicaCountForMachineSets(test.Sets)).To(Equal(test.ExpectedActual))
 		})
@@ -445,8 +445,6 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 }
 
 func TestResolveFenceposts(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		maxSurge          string
 		maxUnavailable    string
@@ -491,6 +489,8 @@ func TestResolveFenceposts(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run("maxSurge="+test.maxSurge, func(t *testing.T) {
+			g := NewWithT(t)
+
 			maxSurge := intstr.FromString(test.maxSurge)
 			maxUnavail := intstr.FromString(test.maxUnavailable)
 			surge, unavail, err := ResolveFenceposts(&maxSurge, &maxUnavail, test.desired)
@@ -506,8 +506,6 @@ func TestResolveFenceposts(t *testing.T) {
 }
 
 func TestNewMSNewReplicas(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		Name          string
 		strategyType  clusterv1.MachineDeploymentStrategyType
@@ -534,6 +532,8 @@ func TestNewMSNewReplicas(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			*(newDeployment.Spec.Replicas) = test.depReplicas
 			newDeployment.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{Type: test.strategyType}
 			newDeployment.Spec.Strategy.RollingUpdate = &clusterv1.MachineRollingUpdateDeployment{
@@ -555,8 +555,6 @@ func TestNewMSNewReplicas(t *testing.T) {
 }
 
 func TestDeploymentComplete(t *testing.T) {
-	g := NewWithT(t)
-
 	deployment := func(desired, current, updated, available, maxUnavailable, maxSurge int32) *clusterv1.MachineDeployment {
 		return &clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
@@ -626,14 +624,14 @@ func TestDeploymentComplete(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(DeploymentComplete(test.d, &test.d.Status)).To(Equal(test.expected))
 		})
 	}
 }
 
 func TestMaxUnavailable(t *testing.T) {
-	g := NewWithT(t)
-
 	deployment := func(replicas int32, maxUnavailable intstr.IntOrString) clusterv1.MachineDeployment {
 		return clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
@@ -692,6 +690,8 @@ func TestMaxUnavailable(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(MaxUnavailable(test.deployment)).To(Equal(test.expected))
 		})
 	}
@@ -699,8 +699,6 @@ func TestMaxUnavailable(t *testing.T) {
 
 //Set of simple tests for annotation related util functions
 func TestAnnotationUtils(t *testing.T) {
-	g := NewWithT(t)
-
 	//Setup
 	tDeployment := generateDeployment("nginx")
 	tMS := generateMS(tDeployment)
@@ -709,6 +707,8 @@ func TestAnnotationUtils(t *testing.T) {
 
 	//Test Case 1: Check if anotations are copied properly from deployment to MS
 	t.Run("SetNewMachineSetAnnotations", func(t *testing.T) {
+		g := NewWithT(t)
+
 		//Try to set the increment revision from 1 through 20
 		for i := 0; i < 20; i++ {
 
@@ -721,6 +721,8 @@ func TestAnnotationUtils(t *testing.T) {
 
 	//Test Case 2:  Check if annotations are set properly
 	t.Run("SetReplicasAnnotations", func(t *testing.T) {
+		g := NewWithT(t)
+
 		g.Expect(SetReplicasAnnotations(&tMS, 10, 11)).To(BeTrue())
 		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, "10"))
 		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, "11"))
@@ -733,14 +735,14 @@ func TestAnnotationUtils(t *testing.T) {
 	*tMS.Spec.Replicas = 1
 
 	t.Run("IsSaturated", func(t *testing.T) {
+		g := NewWithT(t)
+
 		g.Expect(IsSaturated(&tDeployment, &tMS)).To(BeTrue())
 	})
 	//Tear Down
 }
 
 func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
-	g := NewWithT(t)
-
 	desiredReplicas := fmt.Sprintf("%d", int32(10))
 	maxReplicas := fmt.Sprintf("%d", int32(20))
 
@@ -805,6 +807,8 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(ReplicasAnnotationsNeedUpdate(test.machineSet, 10, 20)).To(Equal(test.expected))
 		})
 	}

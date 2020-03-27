@@ -73,18 +73,20 @@ func Test_viperReader_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
 			v := &viperReader{}
 
-			g.Expect(v.Init(configFile)).To(Succeed())
+			gs.Expect(v.Init(configFile)).To(Succeed())
 
 			got, err := v.Get(tt.args.key)
 			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
+				gs.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want))
+			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
@@ -122,15 +124,17 @@ func Test_viperReader_Set(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
 			v := &viperReader{}
 
-			g.Expect(v.Init(configFile)).To(Succeed())
+			gs.Expect(v.Init(configFile)).To(Succeed())
 
 			v.Set(tt.args.key, tt.args.value)
 
 			got, err := v.Get(tt.args.key)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want))
+			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

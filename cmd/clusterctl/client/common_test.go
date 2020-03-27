@@ -23,8 +23,6 @@ import (
 )
 
 func Test_parseProviderName(t *testing.T) {
-	g := NewWithT(t)
-
 	type args struct {
 		provider string
 	}
@@ -56,6 +54,8 @@ func Test_parseProviderName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			gotName, gotVersion, err := parseProviderName(tt.args.provider)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

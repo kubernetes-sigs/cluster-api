@@ -19,6 +19,8 @@ package log
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/pkg/errors"
 )
 
@@ -91,18 +93,15 @@ func TestFlatten(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := flatten(logEntry{
 				Prefix: tt.args.prefix,
 				Level:  0,
 				Values: tt.args.kvList,
 			})
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if got != tt.want {
-				t.Errorf("Flatten() = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

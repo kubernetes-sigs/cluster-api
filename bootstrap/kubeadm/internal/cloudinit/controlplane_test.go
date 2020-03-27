@@ -23,8 +23,6 @@ import (
 )
 
 func TestTemplateYAMLIndent(t *testing.T) {
-	g := NewWithT(t)
-
 	testcases := []struct {
 		name     string
 		input    string
@@ -48,6 +46,8 @@ func TestTemplateYAMLIndent(t *testing.T) {
 	for _, tc := range testcases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(templateYAMLIndent(tc.indent, tc.input)).To(Equal(tc.expected))
 		})
 	}

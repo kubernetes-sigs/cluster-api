@@ -28,8 +28,6 @@ import (
 )
 
 func Test_providerUpgrader_Plan(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		reader     config.Reader
 		repository map[string]repository.Repository
@@ -483,6 +481,8 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{
@@ -505,8 +505,6 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 }
 
 func Test_providerUpgrader_createCustomPlan(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		reader     config.Reader
 		repository map[string]repository.Repository
@@ -772,6 +770,8 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{

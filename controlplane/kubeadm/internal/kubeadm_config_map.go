@@ -27,14 +27,15 @@ import (
 )
 
 const (
-	clusterStatusKey        = "ClusterStatus"
-	clusterConfigurationKey = "ClusterConfiguration"
-	statusAPIEndpointsKey   = "apiEndpoints"
-	configVersionKey        = "kubernetesVersion"
-	dnsKey                  = "dns"
-	dnsTypeKey              = "type"
-	dnsImageRepositoryKey   = "imageRepository"
-	dnsImageTagKey          = "imageTag"
+	clusterStatusKey         = "ClusterStatus"
+	clusterConfigurationKey  = "ClusterConfiguration"
+	statusAPIEndpointsKey    = "apiEndpoints"
+	configVersionKey         = "kubernetesVersion"
+	dnsKey                   = "dns"
+	dnsTypeKey               = "type"
+	dnsImageRepositoryKey    = "imageRepository"
+	dnsImageTagKey           = "imageTag"
+	configImageRepositoryKey = "imageRepository"
 )
 
 // kubeadmConfig wraps up interactions necessary for modifying the kubeadm config during an upgrade.
@@ -79,6 +80,27 @@ func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 		return errors.Wrapf(err, "unable to decode kubeadm ConfigMap's %q to Unstructured object", clusterConfigurationKey)
 	}
 	if err := unstructured.SetNestedField(configuration.UnstructuredContent(), version, configVersionKey); err != nil {
+		return errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap's %q", configVersionKey, clusterConfigurationKey)
+	}
+	updated, err := yaml.Marshal(configuration)
+	if err != nil {
+		return errors.Wrapf(err, "unable to encode kubeadm ConfigMap's %q to YAML", clusterConfigurationKey)
+	}
+	k.ConfigMap.Data[clusterConfigurationKey] = string(updated)
+	return nil
+}
+
+// UpdateImageRepository changes the kubernetes version found in the kubeadm config map
+func (k *kubeadmConfig) UpdateImageRepository(imageRepository string) error {
+	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
+	if !ok {
+		return errors.Errorf("unable to find %q key in kubeadm ConfigMap", clusterConfigurationKey)
+	}
+	configuration, err := yamlToUnstructured([]byte(data))
+	if err != nil {
+		return errors.Wrapf(err, "unable to decode kubeadm ConfigMap's %q to Unstructured object", clusterConfigurationKey)
+	}
+	if err := unstructured.SetNestedField(configuration.UnstructuredContent(), imageRepository, configImageRepositoryKey); err != nil {
 		return errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap's %q", configVersionKey, clusterConfigurationKey)
 	}
 	updated, err := yaml.Marshal(configuration)

@@ -22,8 +22,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
 
@@ -164,6 +168,36 @@ var _ = Describe("Control Plane", func() {
 			})
 		})
 	})
+
+	Describe("Generating components", func() {
+		Context("That is after machine creation time", func() {
+			BeforeEach(func() {
+				controlPlane.KCP = &controlplanev1.KubeadmControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cp",
+						UID:  types.UID("test-uid"),
+					},
+				}
+				controlPlane.Cluster = &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-cluster",
+					},
+				}
+			})
+			It("should generate kubeadmconfig without controller reference", func() {
+				spec := &bootstrapv1.KubeadmConfigSpec{}
+				kubeadmConfig := controlPlane.GenerateKubeadmConfig(spec)
+				Expect(kubeadmConfig.Labels["cluster.x-k8s.io/cluster-name"]).To(Equal("test-cluster"))
+				Expect(kubeadmConfig.Labels["kubeadm.controlplane.cluster.x-k8s.io/hash"]).ToNot(BeEmpty())
+				Expect(kubeadmConfig.OwnerReferences[0].Controller).To(BeNil())
+			})
+			It("should generate new machine with controller reference", func() {
+				machine := controlPlane.NewMachine(&corev1.ObjectReference{Namespace: "foobar"}, &corev1.ObjectReference{Namespace: "foobar"}, pointer.StringPtr("failureDomain"))
+				Expect(machine.OwnerReferences[0].Controller).ToNot(BeNil())
+			})
+		})
+	})
+
 })
 
 func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {

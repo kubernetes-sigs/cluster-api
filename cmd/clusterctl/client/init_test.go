@@ -29,8 +29,6 @@ import (
 )
 
 func Test_clusterctlClient_Init(t *testing.T) {
-	g := NewWithT(t)
-
 	type field struct {
 		client *fakeClient
 		hasCRD bool
@@ -325,6 +323,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 
 			if tt.field.hasCRD {
 				g.Expect(tt.field.client.clusters["kubeconfig"].ProviderInventory().EnsureCustomResourceDefinitions()).To(Succeed())

@@ -61,11 +61,13 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
 			repoClient, err := newRepositoryClient(tt.fields.provider, configClient)
-			g.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).NotTo(HaveOccurred())
 
 			var expected *localRepository
-			g.Expect(repoClient.repository).To(BeAssignableToTypeOf(expected))
+			gs.Expect(repoClient.repository).To(BeAssignableToTypeOf(expected))
 		})
 	}
 }

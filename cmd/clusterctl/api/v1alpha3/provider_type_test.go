@@ -23,8 +23,6 @@ import (
 )
 
 func Test_Provider_ManifestLabel(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		provider     string
 		providerType ProviderType
@@ -85,6 +83,8 @@ func Test_Provider_ManifestLabel(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := &Provider{
 				ProviderName: tt.fields.provider,
 				Type:         string(tt.fields.providerType),

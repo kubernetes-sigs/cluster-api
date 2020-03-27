@@ -18,8 +18,9 @@ package util
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -128,17 +129,16 @@ func Test_inspectImages(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := InspectImages(tt.args.objs)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
@@ -191,22 +191,19 @@ func TestFixImages(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := FixImages(tt.args.objs, tt.args.alterImageFunc)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			gotImages, err := InspectImages(got)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if !reflect.DeepEqual(gotImages, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			gotImages, err := InspectImages(got)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(gotImages).To(Equal(tt.want))
 		})
 	}
 }

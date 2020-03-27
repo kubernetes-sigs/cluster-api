@@ -110,6 +110,8 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
 			l := &ControlPlaneInitMutex{
 				log:    log.Log,
 				client: tc.client,
@@ -128,7 +130,7 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 				},
 			}
 
-			g.Expect(l.Lock(context.Background(), cluster, machine)).To(Equal(tc.shouldAcquire))
+			gs.Expect(l.Lock(context.Background(), cluster, machine)).To(Equal(tc.shouldAcquire))
 		})
 	}
 }
@@ -192,6 +194,8 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
 			l := &ControlPlaneInitMutex{
 				log:    log.Log,
 				client: tc.client,
@@ -205,7 +209,7 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 				},
 			}
 
-			g.Expect(l.Unlock(context.Background(), cluster)).To(Equal(tc.shouldRelease))
+			gs.Expect(l.Unlock(context.Background(), cluster)).To(Equal(tc.shouldRelease))
 		})
 	}
 }

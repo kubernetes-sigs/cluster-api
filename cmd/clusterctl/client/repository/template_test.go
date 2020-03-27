@@ -36,8 +36,6 @@ var templateMapYaml = []byte("apiVersion: v1\n" +
 	"  name: manager")
 
 func Test_newTemplate(t *testing.T) {
-	g := NewWithT(t)
-
 	type args struct {
 		rawYaml               []byte
 		configVariablesClient config.VariablesClient
@@ -85,6 +83,8 @@ func Test_newTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := NewTemplate(tt.args.rawYaml, tt.args.configVariablesClient, tt.args.targetNamespace, tt.args.listVariablesOnly)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

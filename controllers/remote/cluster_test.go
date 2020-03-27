@@ -94,28 +94,33 @@ func TestNewClusterClient(t *testing.T) {
 	g.Expect(scheme.AddToScheme(testScheme)).To(Succeed())
 	ctx := context.Background()
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
+		gs := NewWithT(t)
+
 		client := fake.NewFakeClientWithScheme(testScheme, validSecret)
 		_, err := NewClusterClient(ctx, client, clusterWithValidKubeConfig, testScheme)
 		// Since we do not have a remote server to connect to, we should expect to get
 		// an error to that effect for the purpose of this test.
-		g.Expect(err).To(MatchError(ContainSubstring("no such host")))
+		gs.Expect(err).To(MatchError(ContainSubstring("no such host")))
 
 		restConfig, err := RESTConfig(ctx, client, clusterWithValidKubeConfig)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(restConfig.Host).To(Equal("https://test-cluster-api:6443"))
+		gs.Expect(err).NotTo(HaveOccurred())
+		gs.Expect(restConfig.Host).To(Equal("https://test-cluster-api:6443"))
 	})
 
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
+		gs := NewWithT(t)
+
 		client := fake.NewFakeClientWithScheme(testScheme)
 		_, err := NewClusterClient(ctx, client, clusterWithNoKubeConfig, testScheme)
-		g.Expect(err).To(MatchError(ContainSubstring("not found")))
+		gs.Expect(err).To(MatchError(ContainSubstring("not found")))
 	})
 
 	t.Run("cluster with invalid kubeconfig", func(t *testing.T) {
+		gs := NewWithT(t)
+
 		client := fake.NewFakeClientWithScheme(testScheme, invalidSecret)
 		_, err := NewClusterClient(ctx, client, clusterWithInvalidKubeConfig, testScheme)
-		g.Expect(err).To(HaveOccurred())
-		g.Expect(apierrors.IsNotFound(err)).To(BeFalse())
+		gs.Expect(err).To(HaveOccurred())
+		gs.Expect(apierrors.IsNotFound(err)).To(BeFalse())
 	})
-
 }

@@ -30,8 +30,6 @@ import (
 )
 
 func Test_localRepository_newLocalRepository(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		provider              config.Provider
 		configVariablesClient config.VariablesClient
@@ -109,6 +107,8 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -172,8 +172,6 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 }
 
 func Test_localRepository_GetFile(t *testing.T) {
-	g := NewWithT(t)
-
 	tmpDir := createTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -256,6 +254,8 @@ func Test_localRepository_GetFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			r, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
 			g.Expect(err).NotTo(HaveOccurred())
 
@@ -272,8 +272,6 @@ func Test_localRepository_GetFile(t *testing.T) {
 }
 
 func Test_localRepository_GetVersions(t *testing.T) {
-	g := NewWithT(t)
-
 	tmpDir := createTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -331,6 +329,8 @@ func Test_localRepository_GetVersions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			r, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
 			g.Expect(err).NotTo(HaveOccurred())
 

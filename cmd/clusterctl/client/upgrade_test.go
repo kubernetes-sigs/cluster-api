@@ -31,8 +31,6 @@ import (
 )
 
 func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		client *fakeClient
 	}
@@ -165,6 +163,8 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			err := tt.fields.client.ApplyUpgrade(tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -260,8 +260,6 @@ func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, 
 }
 
 func Test_parseUpgradeItem(t *testing.T) {
-	g := NewWithT(t)
-
 	type args struct {
 		provider string
 	}
@@ -326,6 +324,8 @@ func Test_parseUpgradeItem(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := parseUpgradeItem(tt.args.provider, clusterctlv1.CoreProviderType)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

@@ -29,8 +29,6 @@ import (
 )
 
 func Test_providerInstaller_Validate(t *testing.T) {
-	g := NewWithT(t)
-
 	fakeReader := test.NewFakeReader().
 		WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 		WithProvider("infra1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com").
@@ -196,6 +194,8 @@ func Test_providerInstaller_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			configClient, _ := config.New("", config.InjectReader(fakeReader))
 
 			i := &providerInstaller{
@@ -268,8 +268,6 @@ func newFakeComponents(name string, providerType clusterctlv1.ProviderType, vers
 }
 
 func Test_shouldInstallSharedComponents(t *testing.T) {
-	g := NewWithT(t)
-
 	type args struct {
 		providerList *clusterctlv1.ProviderList
 		provider     clusterctlv1.Provider
@@ -325,6 +323,8 @@ func Test_shouldInstallSharedComponents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := shouldInstallSharedComponents(tt.args.providerList, tt.args.provider)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

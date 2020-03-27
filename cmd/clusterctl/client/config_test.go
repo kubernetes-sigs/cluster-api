@@ -32,8 +32,6 @@ import (
 )
 
 func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
-	g := NewWithT(t)
-
 	customProviderConfig := config.NewProvider("custom", "url", clusterctlv1.BootstrapProviderType)
 
 	type field struct {
@@ -83,6 +81,8 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := tt.field.client.GetProvidersConfig()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -101,8 +101,6 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 }
 
 func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
-	g := NewWithT(t)
-
 	config1 := newFakeConfig().
 		WithProvider(capiProviderConfig)
 
@@ -154,6 +152,8 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			got, err := client.GetProviderComponents(tt.args.provider, capiProviderConfig.Type(), tt.args.targetNameSpace, tt.args.watchingNamespace)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -168,8 +168,6 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 }
 
 func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
-	g := NewWithT(t)
-
 	type args struct {
 		options GetClusterTemplateOptions
 	}
@@ -277,6 +275,8 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			config := newFakeConfig().
 				WithVar("KUBERNETES_VERSION", "v3.4.5") // with this line we are simulating an env var
 
@@ -462,19 +462,21 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
 			got, err := client.GetClusterTemplate(tt.args.options)
 			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
+				gs.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).NotTo(HaveOccurred())
 
-			g.Expect(got.Variables()).To(Equal(tt.want.variables))
-			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
+			gs.Expect(got.Variables()).To(Equal(tt.want.variables))
+			gs.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			gotYaml, err := got.Yaml()
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(gotYaml).To(Equal(tt.want.yaml))
+			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(gotYaml).To(Equal(tt.want.yaml))
 		})
 	}
 }

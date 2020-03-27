@@ -25,8 +25,6 @@ import (
 )
 
 func Test_variables_Get(t *testing.T) {
-	g := NewWithT(t)
-
 	reader := test.NewFakeReader().WithVar("foo", "bar")
 
 	type args struct {
@@ -56,6 +54,8 @@ func Test_variables_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			p := &variablesClient{
 				reader: reader,
 			}

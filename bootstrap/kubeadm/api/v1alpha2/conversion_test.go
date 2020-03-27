@@ -27,10 +27,10 @@ import (
 )
 
 func TestConvertKubeadmConfig(t *testing.T) {
-	g := NewWithT(t)
-
 	t.Run("from hub", func(t *testing.T) {
 		t.Run("preserves fields from hub version", func(t *testing.T) {
+			g := NewWithT(t)
+
 			src := &v1alpha3.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hub",
@@ -52,6 +52,5 @@ func TestConvertKubeadmConfig(t *testing.T) {
 			g.Expect(restored.Status.Ready).To(Equal(src.Status.Ready))
 			g.Expect(restored.Status.DataSecretName).To(Equal(src.Status.DataSecretName))
 		})
-
 	})
 }

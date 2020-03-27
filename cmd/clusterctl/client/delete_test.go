@@ -27,8 +27,6 @@ import (
 )
 
 func Test_clusterctlClient_Delete(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		client *fakeClient
 	}
@@ -108,6 +106,8 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			err := tt.fields.client.Delete(tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

@@ -27,8 +27,6 @@ import (
 )
 
 func TestMarshalJSON(t *testing.T) {
-	g := NewWithT(t)
-
 	var tests = []struct {
 		bts      BootstrapTokenString
 		expected string
@@ -39,6 +37,8 @@ func TestMarshalJSON(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.bts.ID, func(t *testing.T) {
+			g := NewWithT(t)
+
 			b, err := json.Marshal(rt.bts)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(string(b)).To(Equal(rt.expected))
@@ -47,8 +47,6 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestUnmarshalJSON(t *testing.T) {
-	g := NewWithT(t)
-
 	var tests = []struct {
 		input         string
 		bts           *BootstrapTokenString
@@ -65,6 +63,8 @@ func TestUnmarshalJSON(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.input, func(t *testing.T) {
+			g := NewWithT(t)
+
 			newbts := &BootstrapTokenString{}
 			err := json.Unmarshal([]byte(rt.input), newbts)
 			if rt.expectedError {
@@ -78,8 +78,6 @@ func TestUnmarshalJSON(t *testing.T) {
 }
 
 func TestJSONRoundtrip(t *testing.T) {
-	g := NewWithT(t)
-
 	var tests = []struct {
 		input string
 		bts   *BootstrapTokenString
@@ -89,6 +87,8 @@ func TestJSONRoundtrip(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.input, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(roundtrip(rt.input, rt.bts)).To(Succeed())
 		})
 	}
@@ -132,8 +132,6 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 }
 
 func TestTokenFromIDAndSecret(t *testing.T) {
-	g := NewWithT(t)
-
 	var tests = []struct {
 		bts      BootstrapTokenString
 		expected string
@@ -144,14 +142,14 @@ func TestTokenFromIDAndSecret(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.bts.ID, func(t *testing.T) {
+			g := NewWithT(t)
+
 			g.Expect(rt.bts.String()).To(Equal(rt.expected))
 		})
 	}
 }
 
 func TestNewBootstrapTokenString(t *testing.T) {
-	g := NewWithT(t)
-
 	var tests = []struct {
 		token         string
 		expectedError bool
@@ -176,6 +174,8 @@ func TestNewBootstrapTokenString(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.token, func(t *testing.T) {
+			g := NewWithT(t)
+
 			actual, err := NewBootstrapTokenString(rt.token)
 			if rt.expectedError {
 				g.Expect(err).To(HaveOccurred())
@@ -188,8 +188,6 @@ func TestNewBootstrapTokenString(t *testing.T) {
 }
 
 func TestNewBootstrapTokenStringFromIDAndSecret(t *testing.T) {
-	g := NewWithT(t)
-
 	var tests = []struct {
 		id, secret    string
 		expectedError bool
@@ -211,6 +209,8 @@ func TestNewBootstrapTokenStringFromIDAndSecret(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.id, func(t *testing.T) {
+			g := NewWithT(t)
+
 			actual, err := NewBootstrapTokenStringFromIDAndSecret(rt.id, rt.secret)
 			if rt.expectedError {
 				g.Expect(err).To(HaveOccurred())

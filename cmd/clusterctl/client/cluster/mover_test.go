@@ -359,10 +359,11 @@ var moveTests = []struct {
 }
 
 func Test_getMoveSequence(t *testing.T) {
-	g := NewWithT(t)
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	for _, tt := range moveTests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
@@ -390,10 +391,11 @@ func Test_getMoveSequence(t *testing.T) {
 }
 
 func Test_objectMover_move(t *testing.T) {
-	g := NewWithT(t)
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	for _, tt := range moveTests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
@@ -463,8 +465,6 @@ func Test_objectMover_move(t *testing.T) {
 }
 
 func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		objs []runtime.Object
 	}
@@ -634,6 +634,8 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
@@ -658,8 +660,6 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 }
 
 func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
-	g := NewWithT(t)
-
 	type fields struct {
 		fromProxy Proxy
 	}
@@ -774,6 +774,8 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			o := &objectMover{
 				fromProviderInventory: newInventoryClient(tt.fields.fromProxy, nil),
 			}

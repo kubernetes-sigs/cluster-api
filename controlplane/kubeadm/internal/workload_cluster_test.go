@@ -43,8 +43,6 @@ import (
 )
 
 func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name   string
 		client ctrlclient.Client
@@ -73,6 +71,8 @@ func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			c := &Workload{
 				Client: tt.client,
 			}
@@ -83,8 +83,6 @@ func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
 }
 
 func TestCluster_ReconcileKubeletRBACBinding_Error(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name   string
 		client ctrlclient.Client
@@ -106,6 +104,8 @@ func TestCluster_ReconcileKubeletRBACBinding_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			c := &Workload{
 				Client: tt.client,
 			}
@@ -146,9 +146,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 	g := NewWithT(t)
 
 	scheme := runtime.NewScheme()
-	if err := appsv1.AddToScheme(scheme); err != nil {
-		t.Fatalf("unable to setup scheme: %s", err)
-	}
+	g.Expect(appsv1.AddToScheme(scheme)).To(Succeed())
 
 	tests := []struct {
 		name        string
@@ -236,6 +234,8 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
 			objects := []runtime.Object{
 				&tt.ds,
 			}
@@ -245,15 +245,15 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			}
 			err := w.UpdateKubeProxyImageInfo(ctx, tt.KCP)
 			if tt.expectErr {
-				g.Expect(err).To(HaveOccurred())
+				gs.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				gs.Expect(err).NotTo(HaveOccurred())
 			}
 
 			proxyImage, err := getProxyImageInfo(ctx, w.Client)
-			g.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).NotTo(HaveOccurred())
 			if tt.expectImage != "" {
-				g.Expect(proxyImage).To(Equal(tt.expectImage))
+				gs.Expect(proxyImage).To(Equal(tt.expectImage))
 			}
 		})
 	}

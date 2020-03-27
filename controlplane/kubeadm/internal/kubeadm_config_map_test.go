@@ -307,3 +307,67 @@ scheduler: {}`,
 		})
 	}
 }
+
+func TestUpdateImageRepository(t *testing.T) {
+
+	tests := []struct {
+		name                      string
+		clusterConfigurationValue string
+		imageRepository           string
+		expected                  string
+		expectErr                 error
+	}{
+		{
+			name: "it should set the values, if they were empty",
+			clusterConfigurationValue: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+imageRepository: k8s.gcr.io
+`,
+			imageRepository: "example.com/k8s",
+			expected:        "example.com/k8s",
+		},
+		{
+			name: "it shouldn't write empty strings",
+			clusterConfigurationValue: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+imageRepository: k8s.gcr.io
+`,
+			imageRepository: "",
+			expected:        "k8s.gcr.io",
+		},
+		{
+			name: "it should error if it's not a valid k8s object",
+			clusterConfigurationValue: `
+imageRepository: "cool"
+`,
+			imageRepository: "example.com/k8s",
+			expectErr:       errors.New("Object 'Kind' is missing"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			kconfig := &kubeadmConfig{
+				ConfigMap: &corev1.ConfigMap{
+					Data: map[string]string{
+						clusterConfigurationKey: test.clusterConfigurationValue,
+					},
+				},
+			}
+
+			err := kconfig.UpdateImageRepository(test.imageRepository)
+			if test.expectErr == nil {
+				g.Expect(err).ToNot(HaveOccurred())
+			} else {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring(test.expectErr.Error()))
+			}
+
+			g.Expect(kconfig.ConfigMap.Data[clusterConfigurationKey]).To(ContainSubstring(test.expected))
+		})
+	}
+}

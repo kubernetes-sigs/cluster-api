@@ -179,8 +179,8 @@ var _ = Describe("Docker Upgrade", func() {
 		Expect(framework.DumpProviderResources(mgmt, resources, resourcesPath, GinkgoWriter)).To(Succeed())
 	})
 
-	It("upgrades kubernetes, kube-proxy and etcd", func() {
-		By("upgrading kubernetes version and etcd image tag")
+	It("upgrades kubernetes, kube-proxy, etcd and CoreDNS", func() {
+		By("upgrading kubernetes version, etcd and CoreDNS image tags")
 		patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 		controlPlane.Spec.Version = "v1.17.2"
@@ -194,6 +194,12 @@ var _ = Describe("Docker Upgrade", func() {
 					// k8s 1.16.x clusters ususally get deployed with etcd 3.3.x
 					ImageTag: "3.4.3-0",
 				},
+			},
+		}
+		controlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = v1beta1.DNS{
+			ImageMeta: v1beta1.ImageMeta{
+				//Valid image when upgrading from v1.16 to v1.17.2
+				ImageTag: "1.6.6",
 			},
 		}
 		Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
@@ -235,6 +241,20 @@ var _ = Describe("Docker Upgrade", func() {
 				return false, err
 			}
 			if ds.Spec.Template.Spec.Containers[0].Image == "k8s.gcr.io/kube-proxy:v1.17.2" {
+				return true, nil
+			}
+
+			return false, nil
+		}, "10m", "30s").Should(BeTrue())
+
+		By("ensuring CoreDNS has the correct image")
+		Eventually(func() (bool, error) {
+			d := &appsv1.Deployment{}
+
+			if err := workloadClient.Get(ctx, ctrlclient.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, d); err != nil {
+				return false, err
+			}
+			if d.Spec.Template.Spec.Containers[0].Image == "k8s.gcr.io/coredns:1.6.6" {
 				return true, nil
 			}
 

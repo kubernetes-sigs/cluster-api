@@ -1,0 +1,6 @@
+apiVersion: v2
+name: alpha3-capi-components
+description: v1alpha3 capi components
+type: application
+version: 0.0.1
+appVersion: 0.3.3

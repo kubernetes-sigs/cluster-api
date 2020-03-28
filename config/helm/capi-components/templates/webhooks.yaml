@@ -1,0 +1,215 @@
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: capi-webhook-system/capi-kubeadm-control-plane-serving-cert
+  creationTimestamp: null
+  labels:
+    cluster.x-k8s.io/provider: control-plane-kubeadm
+  name: capi-kubeadm-control-plane-mutating-webhook-configuration
+webhooks:
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-kubeadm-control-plane-webhook-service
+      namespace: capi-webhook-system
+      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - kubeadmcontrolplanes
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: capi-webhook-system/capi-serving-cert
+  creationTimestamp: null
+  labels:
+    cluster.x-k8s.io/provider: cluster-api
+  name: capi-validating-webhook-configuration
+webhooks:
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-webhook-service
+      namespace: capi-webhook-system
+      path: /validate-cluster-x-k8s-io-v1alpha3-cluster
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.cluster.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-webhook-service
+      namespace: capi-webhook-system
+      path: /validate-cluster-x-k8s-io-v1alpha3-machine
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.machine.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machines
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-webhook-service
+      namespace: capi-webhook-system
+      path: /validate-cluster-x-k8s-io-v1alpha3-machinedeployment
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.machinedeployment.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machinedeployments
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-webhook-service
+      namespace: capi-webhook-system
+      path: /validate-cluster-x-k8s-io-v1alpha3-machinehealthcheck
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.machinehealthcheck.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machinehealthchecks
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-webhook-service
+      namespace: capi-webhook-system
+      path: /validate-cluster-x-k8s-io-v1alpha3-machineset
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.machineset.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machinesets
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-webhook-service
+      namespace: capi-webhook-system
+      path: /validate-exp-cluster-x-k8s-io-v1alpha3-machinepool
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.exp.machinepool.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - exp.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machinepools
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: capi-webhook-system/capi-kubeadm-control-plane-serving-cert
+  creationTimestamp: null
+  labels:
+    cluster.x-k8s.io/provider: control-plane-kubeadm
+  name: capi-kubeadm-control-plane-mutating-webhook-configuration
+webhooks:
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-kubeadm-control-plane-webhook-service
+      namespace: capi-webhook-system
+      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - kubeadmcontrolplanes
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: capi-webhook-system/capi-kubeadm-control-plane-serving-cert
+  creationTimestamp: null
+  labels:
+    cluster.x-k8s.io/provider: control-plane-kubeadm
+  name: capi-kubeadm-control-plane-validating-webhook-configuration
+webhooks:
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: capi-kubeadm-control-plane-webhook-service
+      namespace: capi-webhook-system
+      path: /validate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - kubeadmcontrolplanes

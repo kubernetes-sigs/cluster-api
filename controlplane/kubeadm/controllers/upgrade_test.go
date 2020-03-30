@@ -19,9 +19,12 @@ package controllers
 import (
 	"context"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -76,5 +79,117 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	g.Expect(err).To(Equal(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
 }
 
-// TODO
-func TestSelectMachineForUpgrade(t *testing.T) {}
+func TestSelectMachineForUpgrade(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
+	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
+
+	m1 := machine("machine-1", withFailureDomain("one"))
+	m2 := machine("machine-2", withFailureDomain("two"), withTimestamp(metav1.Time{Time: time.Date(1, 0, 0, 0, 0, 0, 0, time.UTC)}))
+	m3 := machine("machine-3", withFailureDomain("two"), withTimestamp(metav1.Time{Time: time.Date(2, 0, 0, 0, 0, 0, 0, time.UTC)}))
+
+	mc1 := internal.FilterableMachineCollection{
+		"machine-1": m1,
+		"machine-2": m2,
+		"machine-3": m3,
+	}
+	fd1 := clusterv1.FailureDomains{
+		"one":   failureDomain(true),
+		"two":   failureDomain(true),
+		"three": failureDomain(true),
+		"four":  failureDomain(false),
+	}
+
+	controlPlane := &internal.ControlPlane{
+		KCP:      &controlplanev1.KubeadmControlPlane{},
+		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd1}},
+		Machines: mc1,
+	}
+
+	fakeClient := newFakeClient(
+		g,
+		cluster.DeepCopy(),
+		kcp.DeepCopy(),
+		genericMachineTemplate.DeepCopy(),
+		m2.DeepCopy(),
+	)
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:   fakeClient,
+		Log:      log.Log,
+		recorder: record.NewFakeRecorder(32),
+		managementCluster: &fakeManagementCluster{
+			Management: &internal.Management{Client: fakeClient},
+			Workload:   fakeWorkloadCluster{},
+		},
+	}
+
+	testCases := []struct {
+		name            string
+		upgradeMachines internal.FilterableMachineCollection
+		cpMachines      internal.FilterableMachineCollection
+		expectErr       bool
+		expectedMachine clusterv1.Machine
+	}{
+		{
+			name:            "matching controlplane machines and upgrade machines",
+			upgradeMachines: mc1,
+			cpMachines:      controlPlane.Machines,
+			expectErr:       false,
+			expectedMachine: clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-2"}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+			selectedMachine, err := r.selectMachineForUpgrade(context.Background(), cluster, controlPlane.Machines, controlPlane)
+
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(selectedMachine.Name).To(Equal(tc.expectedMachine.Name))
+		})
+	}
+
+}
+
+func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
+	return clusterv1.FailureDomainSpec{
+		ControlPlane: controlPlane,
+	}
+}
+
+type machineOpt func(*clusterv1.Machine)
+
+func withFailureDomain(fd string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Spec.FailureDomain = &fd
+	}
+}
+
+func withTimestamp(t metav1.Time) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.CreationTimestamp = t
+	}
+}
+
+func machine(name string, opts ...machineOpt) *clusterv1.Machine {
+	m := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}

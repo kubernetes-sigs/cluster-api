@@ -23,10 +23,77 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
+func TestUpdateKubernetesVersion(t *testing.T) {
+	kconf := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubeadmconfig",
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			clusterConfigurationKey: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+kubernetesVersion: v1.16.1
+`,
+		},
+	}
+
+	kubeadmConfigNoKey := kconf.DeepCopy()
+	delete(kubeadmConfigNoKey.Data, clusterConfigurationKey)
+
+	kubeadmConfigBadData := kconf.DeepCopy()
+	kubeadmConfigBadData.Data[clusterConfigurationKey] = `foobar`
+
+	tests := []struct {
+		name      string
+		version   string
+		config    *corev1.ConfigMap
+		expectErr bool
+	}{
+		{
+			name:      "updates the config map",
+			version:   "v1.17.2",
+			config:    kconf,
+			expectErr: false,
+		},
+		{
+			name:      "returns error if cannot find config map",
+			expectErr: true,
+		},
+		{
+			name:      "returns error if config has bad data",
+			config:    kubeadmConfigBadData,
+			expectErr: true,
+		},
+		{
+			name:      "returns error if config doesn't have cluster config key",
+			config:    kubeadmConfigNoKey,
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			conf := tt.config.DeepCopy()
+			k := kubeadmConfig{
+				ConfigMap: conf,
+			}
+			err := k.UpdateKubernetesVersion(tt.version)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(conf.Data[clusterConfigurationKey]).To(ContainSubstring("kubernetesVersion: v1.17.2"))
+		})
+	}
+}
 func Test_kubeadmConfig_RemoveAPIEndpoint(t *testing.T) {
 	g := NewWithT(t)
 	original := &corev1.ConfigMap{

@@ -71,6 +71,9 @@ func (k *kubeadmConfig) RemoveAPIEndpoint(endpoint string) error {
 
 // UpdateKubernetesVersion changes the kubernetes version found in the kubeadm config map
 func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
+	if k.ConfigMap == nil {
+		return errors.New("unable to operate on a nil config map")
+	}
 	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
 	if !ok {
 		return errors.Errorf("unable to find %q key in kubeadm ConfigMap", clusterConfigurationKey)

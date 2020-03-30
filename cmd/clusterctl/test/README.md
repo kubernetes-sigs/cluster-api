@@ -1,26 +1,24 @@
-# Running the tests
+# Clusterctl E2E tests
 
-NOTE: the e2e tests may not work on a Mac; they should however work just fine on any Linux distro. Mac support will be added in a follow-up PR.
-
-Currently, overrides are needed for the cluster-api, kubeadm-bootstrap and kubeadm-control-plane providers. The override for the infra provider docker must be removed as it is generated locally by the e2e test script:
-
-	cmd/clusterctl/hack/local-overrides.py
-	rm -rf $HOME/.cluster-api/overrides/docker
+The e2e test framework is driven by a config file, so you can easily switch images/manifests from dev/ci or prod,
+ switch the infrastructure provider, use different workload cluster templates.
 
 The entire test suite can be run using the script:
 
-	./run-e2e.sh
+	make -C cmd/clusterctl/test/e2e/ test-e2e
 
-To run specific tests, use the `GINKGO_FOCUS`
+To run specific suite/spec, use the `GINKGO_FOCUS` os variable:
 
-	GINKGO_FOCUS="clusterctl create cluster" ./run-e2e.sh
+	make -C cmd/clusterctl/test/e2e/ test-e2e GINKGO_FOCUS="init"
 
-## Skip local build of CAPD
+To select a specific test configuration, use the `E2E_CONF_FILE` os variable:
 
-By default, the a local capd image will be built and loaded into kind. This can be skipped as so:
+	cmd/clusterctl/test/run-e2e.sh E2E_CONF_FILE=~/my-e2e.conf
 
-	SKIP_DOCKER_BUILD=1 ./run-e2e.sh
+To specify where test artifacts should be stored, use the `ARTIFACTS` os variable:
 
-You can also specify a pre-build image and skip the build:
+	make -C cmd/clusterctl/test/e2e/ test-e2e ARTIFACTS=~/_artifacts
 
-	SKIP_DOCKER_BUILD=1 MANAGER_IMAGE=gcr.io/my-project-name/docker-provider-manager-amd64:dev ./run-e2e.sh
+To skip resource cleanup, use the `SKIP_RESOURCE_CLEANUP` os variable:
+
+    make -C cmd/clusterctl/test/e2e/ test-e2e SKIP_RESOURCE_CLEANUP=true

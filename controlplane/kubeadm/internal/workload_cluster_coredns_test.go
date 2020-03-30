@@ -459,7 +459,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "kubeadm-config",
+			Name:      kubeadmConfigKey,
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
@@ -543,7 +543,7 @@ scheduler: {}`,
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var expectedConfigMap corev1.ConfigMap
-			g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+			g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 			g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("1.0.1-somever.1")))
 			g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("gcr.io/example")))
 		})

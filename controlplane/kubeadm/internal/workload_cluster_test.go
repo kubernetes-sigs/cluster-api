@@ -24,8 +24,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/blang/semver"
-	"go.etcd.io/etcd/clientv3"
-	pb "go.etcd.io/etcd/etcdserver/etcdserverpb"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -33,11 +31,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
-	fake2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -113,33 +110,6 @@ func TestCluster_ReconcileKubeletRBACBinding_Error(t *testing.T) {
 			g.Expect(c.ReconcileKubeletRBACRole(ctx, semver.MustParse("1.13.3"))).NotTo(Succeed())
 		})
 	}
-}
-
-func newKubeProxyDS() appsv1.DaemonSet {
-	return appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kubeProxyKey,
-			Namespace: metav1.NamespaceSystem,
-		},
-		Spec: appsv1.DaemonSetSpec{
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Image: "k8s.gcr.io/kube-proxy:v1.16.2",
-							Name:  "kube-proxy",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func newKubeProxyDSWithImage(image string) appsv1.DaemonSet {
-	ds := newKubeProxyDS()
-	ds.Spec.Template.Spec.Containers[0].Image = image
-	return ds
 }
 
 func TestUpdateKubeProxyImageInfo(t *testing.T) {
@@ -259,6 +229,333 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 	}
 }
 
+func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
+	machine := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "ip-10-0-0-1.ec2.internal",
+			},
+		},
+	}
+	kubeadmConfig := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kubeadmConfigKey,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			clusterStatusKey: `apiEndpoints:
+  ip-10-0-0-1.ec2.internal:
+    advertiseAddress: 10.0.0.1
+    bindPort: 6443
+  ip-10-0-0-2.ec2.internal:
+    advertiseAddress: 10.0.0.2
+    bindPort: 6443
+    someFieldThatIsAddedInTheFuture: bar
+apiVersion: kubeadm.k8s.io/vNbetaM
+kind: ClusterStatus`,
+		},
+		BinaryData: map[string][]byte{
+			"": nil,
+		},
+	}
+	kconfWithoutKey := kubeadmConfig.DeepCopy()
+	delete(kconfWithoutKey.Data, clusterStatusKey)
+
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	tests := []struct {
+		name              string
+		machine           *clusterv1.Machine
+		objs              []runtime.Object
+		expectErr         bool
+		expectedEndpoints string
+	}{
+		{
+			name:      "does not panic if machine is nil",
+			expectErr: false,
+		},
+		{
+			name: "does not panic if machine noderef is nil",
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					NodeRef: nil,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:      "returns error if unable to find kubeadm-config",
+			machine:   machine,
+			expectErr: true,
+		},
+		{
+			name:      "returns error if unable to remove api endpoint",
+			machine:   machine,
+			objs:      []runtime.Object{kconfWithoutKey},
+			expectErr: true,
+		},
+		{
+			name:      "removes the machine node ref from kubeadm config",
+			machine:   machine,
+			objs:      []runtime.Object{kubeadmConfig},
+			expectErr: false,
+			expectedEndpoints: `apiEndpoints:
+  ip-10-0-0-2.ec2.internal:
+    advertiseAddress: 10.0.0.2
+    bindPort: 6443
+    someFieldThatIsAddedInTheFuture: bar
+apiVersion: kubeadm.k8s.io/vNbetaM
+kind: ClusterStatus
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			w := &Workload{
+				Client: fakeClient,
+			}
+			ctx := context.TODO()
+			err := w.RemoveMachineFromKubeadmConfigMap(ctx, tt.machine)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			if tt.expectedEndpoints != "" {
+				var actualConfig corev1.ConfigMap
+				g.Expect(w.Client.Get(
+					ctx,
+					ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+					&actualConfig,
+				)).To(Succeed())
+				g.Expect(actualConfig.Data[clusterStatusKey]).To(Equal(tt.expectedEndpoints))
+			}
+		})
+	}
+}
+
+func TestUpdateKubeletConfigMap(t *testing.T) {
+	kubeletConfig := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "kubelet-config-1.1",
+			Namespace:       metav1.NamespaceSystem,
+			ResourceVersion: "some-resource-version",
+		},
+	}
+
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	tests := []struct {
+		name      string
+		version   semver.Version
+		objs      []runtime.Object
+		expectErr bool
+	}{
+		{
+			name:      "create new config map",
+			version:   semver.Version{Major: 1, Minor: 2},
+			objs:      []runtime.Object{kubeletConfig},
+			expectErr: false,
+		},
+		{
+			name:      "returns error if cannot find previous config map",
+			version:   semver.Version{Major: 1, Minor: 2},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			w := &Workload{
+				Client: fakeClient,
+			}
+			ctx := context.TODO()
+			err := w.UpdateKubeletConfigMap(ctx, tt.version)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			var actualConfig corev1.ConfigMap
+			g.Expect(w.Client.Get(
+				ctx,
+				ctrlclient.ObjectKey{Name: "kubelet-config-1.2", Namespace: metav1.NamespaceSystem},
+				&actualConfig,
+			)).To(Succeed())
+			g.Expect(actualConfig.ResourceVersion).ToNot(Equal(kubeletConfig.ResourceVersion))
+		})
+	}
+}
+
+func TestUpdateKubernetesVersionInKubeadmConfigMap(t *testing.T) {
+	kubeadmConfig := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kubeadmConfigKey,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			clusterConfigurationKey: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+kubernetesVersion: v1.16.1
+`,
+		},
+	}
+
+	kubeadmConfigNoKey := kubeadmConfig.DeepCopy()
+	delete(kubeadmConfigNoKey.Data, clusterConfigurationKey)
+
+	kubeadmConfigBadData := kubeadmConfig.DeepCopy()
+	kubeadmConfigBadData.Data[clusterConfigurationKey] = `foobar`
+
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	tests := []struct {
+		name      string
+		version   semver.Version
+		objs      []runtime.Object
+		expectErr bool
+	}{
+		{
+			name:      "updates the config map",
+			version:   semver.Version{Major: 1, Minor: 17, Patch: 2},
+			objs:      []runtime.Object{kubeadmConfig},
+			expectErr: false,
+		},
+		{
+			name:      "returns error if cannot find config map",
+			version:   semver.Version{Major: 1, Minor: 2},
+			expectErr: true,
+		},
+		{
+			name:      "returns error if config has bad data",
+			version:   semver.Version{Major: 1, Minor: 2},
+			objs:      []runtime.Object{kubeadmConfigBadData},
+			expectErr: true,
+		},
+		{
+			name:      "returns error if config doesn't have cluster config key",
+			version:   semver.Version{Major: 1, Minor: 2},
+			objs:      []runtime.Object{kubeadmConfigNoKey},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			w := &Workload{
+				Client: fakeClient,
+			}
+			ctx := context.TODO()
+			err := w.UpdateKubernetesVersionInKubeadmConfigMap(ctx, tt.version)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			var actualConfig corev1.ConfigMap
+			g.Expect(w.Client.Get(
+				ctx,
+				ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+				&actualConfig,
+			)).To(Succeed())
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring("kubernetesVersion: v1.17.2"))
+		})
+	}
+}
+
+func TestClusterStatus(t *testing.T) {
+	node1 := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node1",
+			Labels: map[string]string{
+				labelNodeRoleMaster: "",
+			},
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{{
+				Type:   corev1.NodeReady,
+				Status: corev1.ConditionTrue,
+			}},
+		},
+	}
+	node2 := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node2",
+			Labels: map[string]string{
+				labelNodeRoleMaster: "",
+			},
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{{
+				Type:   corev1.NodeReady,
+				Status: corev1.ConditionFalse,
+			}},
+		},
+	}
+	kconf := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kubeadmConfigKey,
+			Namespace: metav1.NamespaceSystem,
+		},
+	}
+	tests := []struct {
+		name          string
+		objs          []runtime.Object
+		expectErr     bool
+		expectHasConf bool
+	}{
+		{
+			name:          "returns cluster status",
+			objs:          []runtime.Object{node1, node2},
+			expectErr:     false,
+			expectHasConf: false,
+		},
+		{
+			name:          "returns cluster status with kubeadm config",
+			objs:          []runtime.Object{node1, node2, kconf},
+			expectErr:     false,
+			expectHasConf: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			scheme := runtime.NewScheme()
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			w := &Workload{
+				Client: fakeClient,
+			}
+			ctx := context.TODO()
+			status, err := w.ClusterStatus(ctx)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(status.Nodes).To(BeEquivalentTo(2))
+			g.Expect(status.ReadyNodes).To(BeEquivalentTo(1))
+			if tt.expectHasConf {
+				g.Expect(status.HasKubeadmConfig).To(BeTrue())
+				return
+			}
+			g.Expect(status.HasKubeadmConfig).To(BeFalse())
+		})
+	}
+}
+
 func getProxyImageInfo(ctx context.Context, client ctrlclient.Client) (string, error) {
 	ds := &appsv1.DaemonSet{}
 
@@ -275,86 +572,29 @@ func getProxyImageInfo(ctx context.Context, client ctrlclient.Client) (string, e
 	return container.Image, nil
 }
 
-func TestWorkload_EtcdIsHealthy(t *testing.T) {
-	g := NewWithT(t)
-
-	workload := &Workload{
-		Client: &fakeClient{
-			get: map[string]interface{}{
-				"kube-system/etcd-test-1": etcdPod("etcd-test-1", withReadyOption),
-				"kube-system/etcd-test-2": etcdPod("etcd-test-2", withReadyOption),
-				"kube-system/etcd-test-3": etcdPod("etcd-test-3", withReadyOption),
-				"kube-system/etcd-test-4": etcdPod("etcd-test-4"),
-			},
-			list: &corev1.NodeList{
-				Items: []corev1.Node{
-					nodeNamed("test-1", withProviderID("my-provider-id-1")),
-					nodeNamed("test-2", withProviderID("my-provider-id-2")),
-					nodeNamed("test-3", withProviderID("my-provider-id-3")),
-					nodeNamed("test-4", withProviderID("my-provider-id-4")),
-				},
-			},
-		},
-		etcdClientGenerator: &fakeEtcdClientGenerator{
-			client: &etcd.Client{
-				EtcdClient: &fake2.FakeEtcdClient{
-					EtcdEndpoints: []string{},
-					MemberListResponse: &clientv3.MemberListResponse{
-						Members: []*pb.Member{
-							{Name: "test-1", ID: uint64(1)},
-							{Name: "test-2", ID: uint64(2)},
-							{Name: "test-3", ID: uint64(3)},
-						},
-					},
-					AlarmResponse: &clientv3.AlarmResponse{
-						Alarms: []*pb.AlarmMember{},
-					},
-				},
-			},
-		},
-	}
-	ctx := context.Background()
-	health, err := workload.EtcdIsHealthy(ctx)
-	g.Expect(err).NotTo(HaveOccurred())
-
-	for _, err := range health {
-		g.Expect(err).NotTo(HaveOccurred())
-	}
-}
-
-type podOption func(*corev1.Pod)
-
-func etcdPod(name string, options ...podOption) *corev1.Pod {
-	p := &corev1.Pod{
+func newKubeProxyDS() appsv1.DaemonSet {
+	return appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      kubeProxyKey,
 			Namespace: metav1.NamespaceSystem,
 		},
-	}
-	for _, opt := range options {
-		opt(p)
-	}
-	return p
-}
-func withReadyOption(pod *corev1.Pod) {
-	readyCondition := corev1.PodCondition{
-		Type:   corev1.PodReady,
-		Status: corev1.ConditionTrue,
-	}
-	pod.Status.Conditions = append(pod.Status.Conditions, readyCondition)
-}
-
-func withProviderID(pi string) func(corev1.Node) corev1.Node {
-	return func(node corev1.Node) corev1.Node {
-		node.Spec.ProviderID = pi
-		return node
+		Spec: appsv1.DaemonSetSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image: "k8s.gcr.io/kube-proxy:v1.16.2",
+							Name:  "kube-proxy",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
-type fakeEtcdClientGenerator struct {
-	client *etcd.Client
-}
-
-func (c *fakeEtcdClientGenerator) forNode(_ context.Context, _ string) (*etcd.Client, error) {
-	return c.client, nil
+func newKubeProxyDSWithImage(image string) appsv1.DaemonSet {
+	ds := newKubeProxyDS()
+	ds.Spec.Template.Spec.Containers[0].Image = image
+	return ds
 }

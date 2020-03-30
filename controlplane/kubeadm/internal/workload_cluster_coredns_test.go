@@ -266,7 +266,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 
 func TestGetCoreDNSInfo(t *testing.T) {
 	t.Run("get coredns info", func(t *testing.T) {
-		expectedImage := "k8s.gcr.io/coredns:1.6.2"
+		expectedImage := "k8s.gcr.io/some-folder/coredns:1.6.2"
 		depl := &appsv1.Deployment{
 			TypeMeta: v1.TypeMeta{
 				Kind:       "Deployment",
@@ -345,14 +345,14 @@ func TestGetCoreDNSInfo(t *testing.T) {
 				name: "uses global config ImageRepository if DNS ImageRepository is not set",
 				objs: []runtime.Object{depl, cm},
 				clusterConfig: &kubeadmv1.ClusterConfiguration{
-					ImageRepository: "globalRepo",
+					ImageRepository: "globalRepo/sub-path",
 					DNS: kubeadmv1.DNS{
 						ImageMeta: kubeadmv1.ImageMeta{
 							ImageTag: "1.7.2-foobar.1",
 						},
 					},
 				},
-				toImage: "globalRepo/coredns:1.7.2-foobar.1",
+				toImage: "globalRepo/sub-path/coredns:1.7.2-foobar.1",
 			},
 			{
 				name: "uses DNS ImageRepository config if both global and DNS-level are set",

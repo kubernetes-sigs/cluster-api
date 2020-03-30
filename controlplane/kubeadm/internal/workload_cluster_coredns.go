@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/coredns/corefile-migration/migration"
 	"github.com/docker/distribution/reference"
@@ -148,13 +149,21 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *kubeadmv1.
 		return nil, errors.Wrapf(err, "unable to parse %q deployment image", container.Image)
 	}
 
+	imageName := parsedImage.Name()
+	//handles cases where the repository has subpaths
+	//for ex: container.Image = k8s.gcr.io/some-subpath/coredns:1.6.6
+	//parsedImage.Name() will be some-subpath/coredns:1.6.6
+	imageNameIndex := strings.LastIndex(imageName, "/")
+	if imageNameIndex != -1 {
+		imageName = strings.TrimPrefix(imageName[imageNameIndex+1:], "/")
+	}
 	// Handle imageRepository.
 	toImageRepository := fmt.Sprintf("%s/%s", reference.Domain(parsedImage), reference.Path(parsedImage))
 	if clusterConfig.ImageRepository != "" {
-		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.ImageRepository, reference.Path(parsedImage))
+		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.ImageRepository, imageName)
 	}
 	if clusterConfig.DNS.ImageRepository != "" {
-		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.DNS.ImageRepository, reference.Path(parsedImage))
+		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.DNS.ImageRepository, imageName)
 	}
 
 	// Handle imageTag.

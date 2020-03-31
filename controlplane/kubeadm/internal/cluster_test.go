@@ -471,27 +471,6 @@ func nilNodeRef(machine clusterv1.Machine) clusterv1.Machine {
 	return machine
 }
 
-func TestRemoveMemberForNode_ErrControlPlaneMinNodes(t *testing.T) {
-	t.Run("do not remove the etcd member if the cluster has fewer than 2 control plane nodes", func(t *testing.T) {
-		g := NewWithT(t)
-
-		expectedErr := ErrControlPlaneMinNodes
-
-		workloadCluster := &Workload{
-			Client: &fakeClient{
-				list: &corev1.NodeList{
-					Items: []corev1.Node{
-						nodeNamed("first-control-plane"),
-					},
-				},
-			},
-		}
-
-		err := workloadCluster.removeMemberForNode(context.Background(), "first-control-plane")
-		g.Expect(err).To(MatchError(expectedErr))
-	})
-}
-
 func TestPickFirstNodeNotMatching(t *testing.T) {
 	g := NewWithT(t)
 

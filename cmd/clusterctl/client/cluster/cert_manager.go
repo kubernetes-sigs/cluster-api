@@ -33,10 +33,11 @@ import (
 const (
 	embeddedCertManagerManifestPath = "cmd/clusterctl/config/manifest/cert-manager.yaml"
 
-	waitCertManagerInterval = 1 * time.Second
-	waitCertManagerTimeout  = 10 * time.Minute
+	waitCertManagerInterval       = 1 * time.Second
+	waitCertManagerDefaultTimeout = 10 * time.Minute
 
 	certManagerImageComponent = "cert-manager"
+	timeoutConfigKey          = "cert-manager-timeout"
 )
 
 // CertManagerClient has methods to work with cert-manager components in the cluster.
@@ -134,7 +135,7 @@ func (cm *certManagerClient) EnsureWebhook() error {
 
 	// Waits for for the cert-manager web-hook to be available.
 	log.Info("Waiting for cert-manager to be available...")
-	if err := cm.pollImmediateWaiter(waitCertManagerInterval, waitCertManagerTimeout, func() (bool, error) {
+	if err := cm.pollImmediateWaiter(waitCertManagerInterval, cm.getWaitTimeout(), func() (bool, error) {
 		webhook, err := cm.getWebhook()
 		if err != nil {
 			//Nb. we are ignoring the error so the pollImmediateWaiter will execute another retry
@@ -155,6 +156,21 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	}
 
 	return nil
+}
+
+func (cm *certManagerClient) getWaitTimeout() time.Duration {
+	log := logf.Log
+
+	timeout, err := cm.configClient.Variables().Get(timeoutConfigKey)
+	if err != nil {
+		return waitCertManagerDefaultTimeout
+	}
+	timeoutDuration, err := time.ParseDuration(timeout)
+	if err != nil {
+		log.Info("Invalid value set for ", timeoutConfigKey, timeout)
+		return waitCertManagerDefaultTimeout
+	}
+	return timeoutDuration
 }
 
 // getManifestObjs gets the cert-manager manifest, convert to unstructured objects, and fix images

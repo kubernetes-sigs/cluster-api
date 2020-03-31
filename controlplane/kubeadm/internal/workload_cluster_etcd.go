@@ -30,6 +30,7 @@ import (
 
 type etcdClientFor interface {
 	forNode(ctx context.Context, name string) (*etcd.Client, error)
+	forLeader(ctx context.Context, nodes *corev1.NodeList) (*etcd.Client, error)
 }
 
 // EtcdIsHealthy runs checks for every etcd member in the cluster to satisfy our definition of healthy.

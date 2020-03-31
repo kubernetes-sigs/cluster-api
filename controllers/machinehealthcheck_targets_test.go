@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -339,8 +340,8 @@ func TestRemediate(t *testing.T) {
 	clusterName := "test-cluster"
 	labels := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 
-	machineSetORs := []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "MachineSet"}}
-	kubeadmControlPlaneORs := []metav1.OwnerReference{{APIVersion: controlplanev1.GroupVersion.String(), Kind: "KubeadmControlPlane"}}
+	machineSetORs := []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "MachineSet", Controller: pointer.BoolPtr(true)}}
+	kubeadmControlPlaneORs := []metav1.OwnerReference{{APIVersion: controlplanev1.GroupVersion.String(), Kind: "KubeadmControlPlane", Controller: pointer.BoolPtr(true)}}
 
 	workerNode := newTestNode("worker-node")
 	workerMachine := newTestMachine("worker-machine", namespace, clusterName, workerNode.Name, labels)
@@ -389,16 +390,16 @@ func TestRemediate(t *testing.T) {
 			node:          controlPlaneNode,
 			machine:       controlPlaneMachine,
 			expectErr:     false,
-			expectDeleted: false,
-			expectEvents:  []string{},
+			expectDeleted: true,
+			expectEvents:  []string{EventMachineDeleted},
 		},
 		{
 			name:          "when the machine is a control plane machine",
 			node:          nil,
 			machine:       controlPlaneMachine,
 			expectErr:     false,
-			expectDeleted: false,
-			expectEvents:  []string{},
+			expectDeleted: true,
+			expectEvents:  []string{EventMachineDeleted},
 		},
 	}
 
@@ -419,7 +420,7 @@ func TestRemediate(t *testing.T) {
 				gs.Expect(k8sClient.Create(context.Background(), target.Node)).To(Succeed())
 			}
 
-			// Run rememdiation
+			// Run remediation
 			err := target.remediate(context.Background(), log.Log, k8sClient, fakeRecorder)
 			gs.Expect(err != nil).To(Equal(tc.expectErr))
 
@@ -448,25 +449,41 @@ func TestRemediate(t *testing.T) {
 	}
 }
 
-func TestHasMachineSetOwner(t *testing.T) {
+func TestHasControllerOwner(t *testing.T) {
 	machineSetOR := metav1.OwnerReference{
 		Kind:       "MachineSet",
 		APIVersion: clusterv1.GroupVersion.String(),
+		Controller: pointer.BoolPtr(true),
 	}
 
 	machineDeploymentOR := metav1.OwnerReference{
 		Kind:       "MachineDeployment",
 		APIVersion: clusterv1.GroupVersion.String(),
+		Controller: pointer.BoolPtr(true),
+	}
+
+	controlPlaneOR := metav1.OwnerReference{
+		Kind:       "KubeadmControlPlane",
+		APIVersion: controlplanev1.GroupVersion.String(),
+		Controller: pointer.BoolPtr(true),
 	}
 
 	differentGroupOR := metav1.OwnerReference{
 		Kind:       "MachineSet",
 		APIVersion: "different-group/v1",
+		Controller: pointer.BoolPtr(true),
 	}
 
 	invalidGroupOR := metav1.OwnerReference{
 		Kind:       "MachineSet",
 		APIVersion: "invalid/group/",
+		Controller: pointer.BoolPtr(true),
+	}
+
+	noControllerOwner := metav1.OwnerReference{
+		Kind:       "noControllerOwner",
+		APIVersion: clusterv1.GroupVersion.String(),
+		Controller: pointer.BoolPtr(false),
 	}
 
 	testCases := []struct {
@@ -484,7 +501,7 @@ func TestHasMachineSetOwner(t *testing.T) {
 		{
 			name:            "with a MachineDeployment owner reference",
 			ownerReferences: []metav1.OwnerReference{machineDeploymentOR},
-			hasOwner:        false,
+			hasOwner:        true,
 			expectErr:       false,
 		},
 		{
@@ -517,6 +534,18 @@ func TestHasMachineSetOwner(t *testing.T) {
 			hasOwner:        true,
 			expectErr:       false,
 		},
+		{
+			name:            "with a control plane controller",
+			ownerReferences: []metav1.OwnerReference{controlPlaneOR},
+			hasOwner:        true,
+			expectErr:       false,
+		},
+		{
+			name:            "with an owner which is not a controller",
+			ownerReferences: []metav1.OwnerReference{noControllerOwner},
+			hasOwner:        false,
+			expectErr:       false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -530,111 +559,9 @@ func TestHasMachineSetOwner(t *testing.T) {
 				Machine: machine,
 			}
 
-			hasOwner, err := target.hasMachineSetOwner()
+			hasControllerOwner, err := target.hasControllerOwner()
 			gs.Expect(err != nil).To(Equal(tc.expectErr))
-			gs.Expect(hasOwner).To(Equal(tc.hasOwner))
-		})
-	}
-}
-
-func TestIsControlPlane(t *testing.T) {
-	namespace := "test-mhc"
-	clusterName := "test-cluster"
-	labels := map[string]string{"cluster": clusterName, "machine-group": "foo"}
-
-	workerNode := newTestNode("worker-node")
-	workerMachine := newTestMachine("worker-machine", namespace, clusterName, workerNode.Name, labels)
-
-	controlPlaneNode1 := newTestNode("control-plane-node")
-	if controlPlaneNode1.Labels == nil {
-		controlPlaneNode1.Labels = make(map[string]string)
-	}
-	controlPlaneNode1.Labels[nodeControlPlaneLabel] = ""
-
-	controlPlaneMachine1 := newTestMachine("control-plane-machine", namespace, clusterName, controlPlaneNode1.Name, labels)
-	if controlPlaneMachine1.Labels == nil {
-		controlPlaneMachine1.Labels = make(map[string]string)
-	}
-	controlPlaneMachine1.Labels[clusterv1.MachineControlPlaneLabelName] = ""
-
-	controlPlaneNode2 := newTestNode("control-plane-node")
-	if controlPlaneNode2.Labels == nil {
-		controlPlaneNode2.Labels = make(map[string]string)
-	}
-	controlPlaneNode2.Labels[nodeControlPlaneLabel] = "abcdef"
-
-	controlPlaneMachine2 := newTestMachine("control-plane-machine", namespace, clusterName, controlPlaneNode2.Name, labels)
-	if controlPlaneMachine2.Labels == nil {
-		controlPlaneMachine2.Labels = make(map[string]string)
-	}
-	controlPlaneMachine2.Labels[clusterv1.MachineControlPlaneLabelName] = "abcdef"
-
-	testCases := []struct {
-		name           string
-		node           *corev1.Node
-		machine        *clusterv1.Machine
-		isControlPlane bool
-	}{
-		{
-			name:           "when the node and machine are nil",
-			node:           nil,
-			machine:        nil,
-			isControlPlane: false,
-		},
-		{
-			name:           "when the node is not a control plane node",
-			node:           workerNode,
-			machine:        workerMachine,
-			isControlPlane: false,
-		},
-		{
-			name:           "when the node is missing and the machine is not a control plane machine",
-			node:           nil,
-			machine:        workerMachine,
-			isControlPlane: false,
-		},
-		{
-			name:           "when the node is a control plane node",
-			node:           controlPlaneNode1,
-			machine:        controlPlaneMachine1,
-			isControlPlane: true,
-		},
-		{
-			name:           "when the node is missing and the machine is a control plane machine",
-			node:           nil,
-			machine:        controlPlaneMachine1,
-			isControlPlane: true,
-		},
-		{
-			name:           "when the node control plane label has a value",
-			node:           controlPlaneNode2,
-			machine:        controlPlaneMachine2,
-			isControlPlane: true,
-		},
-		{
-			name:           "when the machine control plane label has a value",
-			node:           nil,
-			machine:        controlPlaneMachine2,
-			isControlPlane: true,
-		},
-		{
-			name:           "when the node is not a control plane node, but the machine is a control plane machine",
-			node:           workerNode,
-			machine:        controlPlaneMachine1,
-			isControlPlane: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			gs := NewGomegaWithT(t)
-
-			target := &healthCheckTarget{
-				Node:    tc.node,
-				Machine: tc.machine,
-			}
-
-			gs.Expect(target.isControlPlane()).To(Equal(tc.isControlPlane))
+			gs.Expect(hasControllerOwner).To(Equal(tc.hasOwner))
 		})
 	}
 }

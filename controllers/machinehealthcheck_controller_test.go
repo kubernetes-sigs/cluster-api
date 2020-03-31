@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -232,8 +232,8 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 
 		var labels = map[string]string{"cluster": clusterName, "nodepool": "foo"}
 		var controlPlaneLabels = map[string]string{"cluster": clusterName, "nodepool": "foo", clusterv1.MachineControlPlaneLabelName: ""}
-		var machineSetOR = metav1.OwnerReference{APIVersion: clusterv1.GroupVersion.String(), Kind: "MachineSet", Name: "machineset", UID: "machinset"}
-		var controlPlaneOR = metav1.OwnerReference{APIVersion: controlplanev1.GroupVersion.String(), Kind: "KubeadmControlPlane", Name: "controlplane", UID: "controlplane"}
+		var machineSetOR = metav1.OwnerReference{APIVersion: clusterv1.GroupVersion.String(), Kind: "MachineSet", Name: "machineset", UID: "machinset", Controller: pointer.BoolPtr(true)}
+		var controlPlaneOR = metav1.OwnerReference{APIVersion: controlplanev1.GroupVersion.String(), Kind: "KubeadmControlPlane", Name: "controlplane", UID: "controlplane", Controller: pointer.BoolPtr(true)}
 		var healthyNodeCondition = corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionTrue}
 		var unhealthyNodeCondition = corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionUnknown, LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute))}
 
@@ -426,16 +426,14 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 			Entry("with an unhealthy control plane Machine", &reconcileTestCase{
 				mhc: func() *clusterv1.MachineHealthCheck { return testMHC },
 				nodes: func() []*corev1.Node {
-					return []*corev1.Node{healthyNode1, healthyNode2, controlPlaneNode1, unhealthyControlPlaneNode1}
+					return []*corev1.Node{healthyNode1, healthyNode2, unhealthyControlPlaneNode1}
 				},
 				machines: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1, unhealthyControlPlaneMachine1}
+					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, unhealthyControlPlaneMachine1}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1, unhealthyControlPlaneMachine1}
-				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 4, CurrentHealthy: 3},
+				expectRemediated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{unhealthyControlPlaneMachine1} },
+				expectNotRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
 			}),
 			Entry("when no Machines are matched by the selector", &reconcileTestCase{
 				mhc:                 func() *clusterv1.MachineHealthCheck { return testMHC },

@@ -264,7 +264,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Context, scope *Scope) (_ ctrl.Result, reterr error) {
 	// if it's NOT a control plane machine, requeue
 	if !scope.ConfigOwner.IsControlPlaneMachine() {
-		scope.Info(fmt.Sprintf("ConfigOwner is not a control plane Machine. If it should be a control plane, add the label `%s: \"\"` to the Machine", clusterv1.MachineControlPlaneLabelName))
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 

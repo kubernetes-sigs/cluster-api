@@ -204,11 +204,12 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 		expectErr           bool
 	}{
 		{
-			name:      "does not panic if machine is nil",
+			name:      "does nothing if the machine is nil",
+			machine:   nil,
 			expectErr: false,
 		},
 		{
-			name: "does not panic if machine noderef is nil",
+			name: "does nothing if the machine has no node",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
 					NodeRef: nil,
@@ -217,13 +218,13 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:      "returns error if there are less than 2 control plane nodes",
+			name:      "returns an error if there are less than 2 control plane nodes",
 			machine:   machine,
 			objs:      []runtime.Object{cp1},
 			expectErr: true,
 		},
 		{
-			name: "returns error if nodes match node ref name",
+			name: "returns an error if it can't find a node with a different name",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -235,14 +236,14 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:                "returns error if it failed to create etcdClient",
+			name:                "returns an error if it failed to create the etcd client",
 			machine:             machine,
 			objs:                []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{err: errors.New("no client")},
 			expectErr:           true,
 		},
 		{
-			name:    "returns error if it failed to get etcd members",
+			name:    "returns an error if the client errors getting etcd members",
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
@@ -255,7 +256,7 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:    "returns error if it failed to remove etcd member",
+			name:    "returns an error if the client errors removing the etcd member",
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
@@ -278,7 +279,7 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:    "removes member from etcd",
+			name:    "removes the member from etcd",
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{

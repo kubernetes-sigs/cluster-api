@@ -102,8 +102,8 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 	b := pointer.StringPtr("us-west-1b")
 
 	fds := clusterv1.FailureDomains{
-		*a: clusterv1.FailureDomainSpec{},
-		*b: clusterv1.FailureDomainSpec{},
+		*a: clusterv1.FailureDomainSpec{ControlPlane: true},
+		*b: clusterv1.FailureDomainSpec{ControlPlane: true},
 	}
 	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: a}}
 	machineb := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: b}}
@@ -120,11 +120,11 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "no machines",
+			name: "no machines should return nil",
 			fds: clusterv1.FailureDomains{
 				*a: clusterv1.FailureDomainSpec{},
 			},
-			expected: []*string{a},
+			expected: nil,
 		},
 		{
 			name:     "one machine in a failure domain",
@@ -135,30 +135,40 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 		{
 			name: "no failure domain specified on machine",
 			fds: clusterv1.FailureDomains{
-				*a: clusterv1.FailureDomainSpec{},
+				*a: clusterv1.FailureDomainSpec{ControlPlane: true},
 			},
 			machines: NewFilterableMachineCollection(machinenil.DeepCopy()),
-			expected: []*string{a},
+			expected: nil,
 		},
 		{
-			name: "mismatched failure domain on machine",
+			name: "mismatched failure domain on machine should return nil",
 			fds: clusterv1.FailureDomains{
-				*a: clusterv1.FailureDomainSpec{},
+				*a: clusterv1.FailureDomainSpec{ControlPlane: true},
 			},
 			machines: NewFilterableMachineCollection(machineb.DeepCopy()),
-			expected: []*string{a},
+			expected: nil,
 		},
 		{
-			name:     "failure domains and no machines should return a valid failure domain",
+			name:     "failure domains and no machines should return nil",
 			fds:      fds,
-			expected: []*string{a, b},
+			expected: nil,
+		},
+		{
+			name:     "nil failure domains with machines",
+			machines: NewFilterableMachineCollection(machineb.DeepCopy()),
+			expected: nil,
+		},
+		{
+			name:     "nil failure domains with no machines",
+			expected: nil,
 		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fd := PickMost(tc.fds, tc.machines)
+			fd := PickMost(&ControlPlane{Machines: tc.machines,
+				Cluster: &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: tc.fds}}}, tc.machines)
 			if tc.expected == nil {
 				g.Expect(fd).To(BeNil())
 			} else {

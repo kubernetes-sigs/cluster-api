@@ -27,6 +27,7 @@ import (
 
 type configClusterOptions struct {
 	kubeconfig             string
+	kubeconfigContext      string
 	flavor                 string
 	infrastructureProvider string
 
@@ -94,6 +95,8 @@ var configClusterClusterCmd = &cobra.Command{
 func init() {
 	configClusterClusterCmd.Flags().StringVar(&cc.kubeconfig, "kubeconfig", "",
 		"Path to a kubeconfig file to use for the management cluster. If empty, default discovery rules apply.")
+	configClusterClusterCmd.Flags().StringVar(&cc.kubeconfigContext, "kubeconfig-context", "",
+		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 
 	// flags for the template variables
 	configClusterClusterCmd.Flags().StringVarP(&cc.targetNamespace, "target-namespace", "n", "",
@@ -137,7 +140,7 @@ func runGetClusterTemplate(cmd *cobra.Command, name string) error {
 	}
 
 	templateOptions := client.GetClusterTemplateOptions{
-		Kubeconfig:        cc.kubeconfig,
+		Kubeconfig:        client.Kubeconfig{Path: cc.kubeconfig, Context: cc.kubeconfigContext},
 		ClusterName:       name,
 		TargetNamespace:   cc.targetNamespace,
 		KubernetesVersion: cc.kubernetesVersion,

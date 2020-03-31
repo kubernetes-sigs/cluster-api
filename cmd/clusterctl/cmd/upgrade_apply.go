@@ -25,6 +25,7 @@ import (
 
 type upgradeApplyOptions struct {
 	kubeconfig              string
+	kubeconfigContext       string
 	managementGroup         string
 	contract                string
 	coreProvider            string
@@ -60,6 +61,8 @@ var upgradeApplyCmd = &cobra.Command{
 func init() {
 	upgradeApplyCmd.Flags().StringVar(&ua.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
+	upgradeApplyCmd.Flags().StringVar(&ua.kubeconfigContext, "kubeconfig-context", "",
+		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	upgradeApplyCmd.Flags().StringVar(&ua.managementGroup, "management-group", "",
 		"The management group that should be upgraded (e.g. capi-system/cluster-api)")
 	upgradeApplyCmd.Flags().StringVar(&ua.contract, "contract", "",
@@ -91,7 +94,7 @@ func runUpgradeApply() error {
 	}
 
 	if err := c.ApplyUpgrade(client.ApplyUpgradeOptions{
-		Kubeconfig:              ua.kubeconfig,
+		Kubeconfig:              client.Kubeconfig{Path: ua.kubeconfig, Context: ua.kubeconfigContext},
 		ManagementGroup:         ua.managementGroup,
 		Contract:                ua.contract,
 		CoreProvider:            ua.coreProvider,

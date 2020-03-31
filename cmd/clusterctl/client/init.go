@@ -28,6 +28,39 @@ import (
 
 const NoopProvider = "-"
 
+// InitOptions carries the options supported by Init.
+type InitOptions struct {
+	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
+	// default rules for kubeconfig discovery will be used.
+	Kubeconfig Kubeconfig
+
+	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, the
+	// cluster-api core provider's latest release is used.
+	CoreProvider string
+
+	// BootstrapProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
+	// If unspecified, the kubeadm bootstrap provider's latest release is used.
+	BootstrapProviders []string
+
+	// InfrastructureProviders and versions (e.g. aws:v0.5.0) to add to the management cluster.
+	InfrastructureProviders []string
+
+	// ControlPlaneProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
+	// If unspecified, the kubeadm control plane provider latest release is used.
+	ControlPlaneProviders []string
+
+	// TargetNamespace defines the namespace where the providers should be deployed. If unspecified, each provider
+	// will be installed in a provider's default namespace.
+	TargetNamespace string
+
+	// WatchingNamespace defines the namespace the providers should watch to reconcile Cluster API objects.
+	// If unspecified, the providers watches for Cluster API objects across all namespaces.
+	WatchingNamespace string
+
+	// LogUsageInstructions instructs the init command to print the usage instructions in case of first run.
+	LogUsageInstructions bool
+}
+
 // Init initializes a management cluster by adding the requested list of providers.
 func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	log := logf.Log

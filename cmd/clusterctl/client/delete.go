@@ -25,8 +25,9 @@ import (
 
 // DeleteOptions carries the options supported by Delete.
 type DeleteOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
-	Kubeconfig string
+	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
+	// default rules for kubeconfig discovery will be used.
+	Kubeconfig Kubeconfig
 
 	// Namespace where the provider to be deleted lives. If unspecified, the namespace name will be inferred
 	// from the current configuration.

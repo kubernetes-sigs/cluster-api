@@ -45,7 +45,7 @@ const (
 type InitInput struct {
 	LogFolder               string
 	ClusterctlConfigPath    string
-	KubeconfigPath          string
+	Kubeconfig              clusterctlclient.Kubeconfig
 	CoreProvider            string
 	BootstrapProviders      []string
 	ControlPlaneProviders   []string
@@ -62,7 +62,7 @@ func Init(ctx context.Context, input InitInput) {
 	)
 
 	initOpt := clusterctlclient.InitOptions{
-		Kubeconfig:              input.KubeconfigPath,
+		Kubeconfig:              input.Kubeconfig,
 		CoreProvider:            input.CoreProvider,
 		BootstrapProviders:      input.BootstrapProviders,
 		ControlPlaneProviders:   input.ControlPlaneProviders,
@@ -81,7 +81,7 @@ func Init(ctx context.Context, input InitInput) {
 type ConfigClusterInput struct {
 	LogFolder                string
 	ClusterctlConfigPath     string
-	KubeconfigPath           string
+	Kubeconfig               clusterctlclient.Kubeconfig
 	InfrastructureProvider   string
 	Namespace                string
 	ClusterName              string
@@ -103,7 +103,7 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 	)
 
 	templateOptions := clusterctlclient.GetClusterTemplateOptions{
-		Kubeconfig: input.KubeconfigPath,
+		Kubeconfig: input.Kubeconfig,
 		ProviderRepositorySource: &clusterctlclient.ProviderRepositorySourceOptions{
 			InfrastructureProvider: input.InfrastructureProvider,
 			Flavor:                 input.Flavor,
@@ -133,8 +133,8 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 type MoveInput struct {
 	LogFolder            string
 	ClusterctlConfigPath string
-	FromKubeconfigPath   string
-	ToKubeconfigPath     string
+	FromKubeconfig       clusterctlclient.Kubeconfig
+	ToKubeconfig         clusterctlclient.Kubeconfig
 	Namespace            string
 }
 
@@ -146,8 +146,8 @@ func Move(ctx context.Context, input MoveInput) {
 	defer log.Close()
 
 	options := clusterctlclient.MoveOptions{
-		FromKubeconfig: input.FromKubeconfigPath,
-		ToKubeconfig:   input.ToKubeconfigPath,
+		FromKubeconfig: input.FromKubeconfig,
+		ToKubeconfig:   input.ToKubeconfig,
 		Namespace:      input.Namespace,
 	}
 

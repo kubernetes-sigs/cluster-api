@@ -49,7 +49,7 @@ func TestNewFakeClient(t *testing.T) {
 		WithFile("v1.0", "components.yaml", []byte("content"))
 
 	// create a fake cluster, eventually adding some existing runtime objects to it
-	cluster1 := newFakeCluster("cluster1", config1).
+	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "cluster1"}, config1).
 		WithObjs()
 
 	// create a new fakeClient that allows to execute tests on the fake config, the fake repositories and the fake cluster.
@@ -59,8 +59,9 @@ func TestNewFakeClient(t *testing.T) {
 }
 
 type fakeClient struct {
-	configClient   config.Client
-	clusters       map[string]cluster.Client
+	configClient config.Client
+	// mapping between kubeconfigPath/context with cluster client
+	clusters       map[cluster.Kubeconfig]cluster.Client
 	repositories   map[string]repository.Client
 	internalClient *clusterctlClient
 }
@@ -108,7 +109,7 @@ func (f fakeClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 func newFakeClient(configClient config.Client) *fakeClient {
 
 	fake := &fakeClient{
-		clusters:     map[string]cluster.Client{},
+		clusters:     map[cluster.Kubeconfig]cluster.Client{},
 		repositories: map[string]repository.Client{},
 	}
 
@@ -117,11 +118,13 @@ func newFakeClient(configClient config.Client) *fakeClient {
 		fake.configClient = newFakeConfig()
 	}
 
-	var clusterClientFactory = func(kubeconfig string) (cluster.Client, error) {
-		if _, ok := fake.clusters[kubeconfig]; !ok {
-			return nil, errors.Errorf("Cluster for kubeconfig %q does not exists.", kubeconfig)
+	var clusterClientFactory = func(i Kubeconfig) (cluster.Client, error) {
+		// converting the client.Kubeconfig to cluster.Kubeconfig alias
+		k := cluster.Kubeconfig(i)
+		if _, ok := fake.clusters[k]; !ok {
+			return nil, errors.Errorf("Cluster for kubeconfig %q and/or context %q does not exists.", i.Path, i.Context)
 		}
-		return fake.clusters[kubeconfig], nil
+		return fake.clusters[k], nil
 	}
 
 	fake.internalClient, _ = newClusterctlClient("fake-config",
@@ -139,7 +142,8 @@ func newFakeClient(configClient config.Client) *fakeClient {
 }
 
 func (f *fakeClient) WithCluster(clusterClient cluster.Client) *fakeClient {
-	f.clusters[clusterClient.Kubeconfig()] = clusterClient
+	input := clusterClient.Kubeconfig()
+	f.clusters[input] = clusterClient
 	return f
 }
 
@@ -154,7 +158,7 @@ func (f *fakeClient) WithRepository(repositoryClient repository.Client) *fakeCli
 // newFakeCluster returns a fakeClusterClient that
 // internally uses a FakeProxy (based on the controller-runtime FakeClient).
 // You can use WithObjs to pre-load a set of runtime objects in the cluster.
-func newFakeCluster(kubeconfig string, configClient config.Client) *fakeClusterClient {
+func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *fakeClusterClient {
 	fake := &fakeClusterClient{
 		kubeconfig:   kubeconfig,
 		repositories: map[string]repository.Client{},
@@ -165,7 +169,7 @@ func newFakeCluster(kubeconfig string, configClient config.Client) *fakeClusterC
 		return nil
 	}
 
-	fake.internalclient = cluster.New("", configClient,
+	fake.internalclient = cluster.New(kubeconfig, configClient,
 		cluster.InjectProxy(fake.fakeProxy),
 		cluster.InjectPollImmediateWaiter(pollImmediateWaiter),
 		cluster.InjectRepositoryFactory(func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
@@ -195,15 +199,16 @@ func (p *fakeCertManagerClient) Images() ([]string, error) {
 }
 
 type fakeClusterClient struct {
-	kubeconfig     string
-	fakeProxy      *test.FakeProxy
-	repositories   map[string]repository.Client
-	internalclient cluster.Client
+	kubeconfig      cluster.Kubeconfig
+	fakeProxy       *test.FakeProxy
+	fakeObjectMover cluster.ObjectMover
+	repositories    map[string]repository.Client
+	internalclient  cluster.Client
 }
 
 var _ cluster.Client = &fakeClusterClient{}
 
-func (f fakeClusterClient) Kubeconfig() string {
+func (f fakeClusterClient) Kubeconfig() cluster.Kubeconfig {
 	return f.kubeconfig
 }
 
@@ -228,7 +233,10 @@ func (f fakeClusterClient) ProviderInstaller() cluster.ProviderInstaller {
 }
 
 func (f *fakeClusterClient) ObjectMover() cluster.ObjectMover {
-	return f.internalclient.ObjectMover()
+	if f.fakeObjectMover == nil {
+		return f.internalclient.ObjectMover()
+	}
+	return f.fakeObjectMover
 }
 
 func (f *fakeClusterClient) ProviderUpgrader() cluster.ProviderUpgrader {
@@ -251,6 +259,11 @@ func (f *fakeClusterClient) WithProviderInventory(name string, providerType clus
 
 func (f *fakeClusterClient) WithRepository(repositoryClient repository.Client) *fakeClusterClient {
 	f.repositories[repositoryClient.Name()] = repositoryClient
+	return f
+}
+
+func (f *fakeClusterClient) WithObjectMover(mover cluster.ObjectMover) *fakeClusterClient {
+	f.fakeObjectMover = mover
 	return f
 }
 

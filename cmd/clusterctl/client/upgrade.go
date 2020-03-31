@@ -27,8 +27,8 @@ import (
 
 // PlanUpgradeOptions carries the options supported by upgrade plan.
 type PlanUpgradeOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
-	Kubeconfig string
+	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty, default discovery rules apply.
+	Kubeconfig Kubeconfig
 }
 
 func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
@@ -43,14 +43,14 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 		return nil, err
 	}
 
-	upgradePlan, err := cluster.ProviderUpgrader().Plan()
+	upgradePlans, err := cluster.ProviderUpgrader().Plan()
 	if err != nil {
 		return nil, err
 	}
 
 	// UpgradePlan is an alias for cluster.UpgradePlan; this makes the conversion
-	aliasUpgradePlan := make([]UpgradePlan, len(upgradePlan))
-	for i, plan := range upgradePlan {
+	aliasUpgradePlan := make([]UpgradePlan, len(upgradePlans))
+	for i, plan := range upgradePlans {
 		aliasUpgradePlan[i] = UpgradePlan{
 			Contract:     plan.Contract,
 			CoreProvider: plan.CoreProvider,
@@ -63,8 +63,8 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 
 // ApplyUpgradeOptions carries the options supported by upgrade apply.
 type ApplyUpgradeOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
-	Kubeconfig string
+	// Kubeconfig to use for accessing the management cluster. If empty, default discovery rules apply.
+	Kubeconfig Kubeconfig
 
 	// ManagementGroup that should be upgraded (e.g. capi-system/cluster-api).
 	ManagementGroup string

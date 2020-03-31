@@ -164,11 +164,7 @@ func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clus
 	if len(controlPlaneNodes.Items) < 2 {
 		return ErrControlPlaneMinNodes
 	}
-	anotherNode := firstNodeNotMatchingName(machine.Status.NodeRef.Name, controlPlaneNodes.Items)
-	if anotherNode == nil {
-		return errors.Errorf("failed to find a control plane node whose name is not %s", machine.Status.NodeRef.Name)
-	}
-	etcdClient, err := w.etcdClientGenerator.forNode(ctx, anotherNode.Name)
+	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, controlPlaneNodes)
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}

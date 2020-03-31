@@ -224,22 +224,10 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "returns an error if it can't find a node with a different name",
-			machine: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
-						Name: "cp1",
-					},
-				},
-			},
-			objs:      []runtime.Object{cp1, cp1DiffNS},
-			expectErr: true,
-		},
-		{
-			name:                "returns an error if it failed to create the etcd client",
+			name:                "returns an error if it fails to create the etcd client",
 			machine:             machine,
 			objs:                []runtime.Object{cp1, cp2},
-			etcdClientGenerator: &fakeEtcdClientGenerator{forNodeErr: errors.New("no client")},
+			etcdClientGenerator: &fakeEtcdClientGenerator{forLeaderErr: errors.New("no client")},
 			expectErr:           true,
 		},
 		{
@@ -247,7 +235,7 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodeClient: &etcd.Client{
+				forLeaderClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						ErrorResponse: errors.New("cannot get etcd members"),
 					},
@@ -260,7 +248,7 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodeClient: &etcd.Client{
+				forLeaderClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						ErrorResponse: errors.New("cannot remove etcd member"),
 						MemberListResponse: &clientv3.MemberListResponse{
@@ -283,7 +271,7 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodeClient: &etcd.Client{
+				forLeaderClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						MemberListResponse: &clientv3.MemberListResponse{
 							Members: []*pb.Member{

@@ -190,24 +190,19 @@ func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clus
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower
 func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
-	if machine == nil || machine.Status.NodeRef == nil {
-		// Nothing to do, no node for Machine
+	if machine == nil || machine.Status.NodeRef == nil || leaderCandidate == nil {
 		return nil
 	}
-
-	// TODO we'd probably prefer to pass in all the known nodes and let grpc handle retrying connections across them
-	clientMachineName := machine.Status.NodeRef.Name
-	if leaderCandidate != nil && leaderCandidate.Status.NodeRef != nil {
-		// connect to the new leader candidate, in case machine's etcd membership has already been removed
-		clientMachineName = leaderCandidate.Status.NodeRef.Name
-	}
-
-	etcdClient, err := w.etcdClientGenerator.forNode(ctx, clientMachineName)
+	nodes, err := w.getControlPlaneNodes(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to create etcd Client")
+		return errors.Wrap(err, "failed to list control plane nodes")
 	}
 
-	// List etcd members. This checks that the member is healthy, because the request goes through consensus.
+	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodes)
+	if err != nil {
+		return errors.Wrap(err, "failed to create etcd client")
+	}
+
 	members, err := etcdClient.Members(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to list etcd members using etcd client")
@@ -215,25 +210,7 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 
 	currentMember := etcdutil.MemberForName(members, machine.Status.NodeRef.Name)
 	if currentMember == nil || currentMember.ID != etcdClient.LeaderID {
-		return nil
-	}
-
-	// Move the etcd client to the current leader, which in this case is the machine we're about to delete.
-	etcdClient, err = w.etcdClientGenerator.forNode(ctx, machine.Status.NodeRef.Name)
-	if err != nil {
-		return errors.Wrap(err, "failed to create etcd Client")
-	}
-
-	// If we don't have a leader candidate, move the leader to the next available machine.
-	if leaderCandidate == nil || leaderCandidate.Status.NodeRef == nil {
-		for _, member := range members {
-			if member.ID != currentMember.ID {
-				if err := etcdClient.MoveLeader(ctx, member.ID); err != nil {
-					return errors.Wrapf(err, "failed to move leader")
-				}
-				break
-			}
-		}
+		// nothing to do, this is not the etcd leader
 		return nil
 	}
 

@@ -223,6 +223,7 @@ type fakeClient struct {
 	getErr       error
 	patchErr     error
 	updateErr    error
+	listErr      error
 }
 
 func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Object) error {
@@ -251,6 +252,9 @@ func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Ob
 }
 
 func (f *fakeClient) List(_ context.Context, list runtime.Object, _ ...client.ListOption) error {
+	if f.listErr != nil {
+		return f.listErr
+	}
 	switch l := f.list.(type) {
 	case *clusterv1.MachineList:
 		l.DeepCopyInto(list.(*clusterv1.MachineList))
@@ -469,13 +473,4 @@ func controlPlaneMachine(name string) clusterv1.Machine {
 func nilNodeRef(machine clusterv1.Machine) clusterv1.Machine {
 	machine.Status.NodeRef = nil
 	return machine
-}
-
-func TestPickFirstNodeNotMatching(t *testing.T) {
-	g := NewWithT(t)
-
-	name := "first-control-plane"
-	anotherNode := firstNodeNotMatchingName(name, nodeListForTestControlPlaneIsHealthy().Items)
-	g.Expect(anotherNode).NotTo(BeNil())
-	g.Expect(anotherNode.Name).NotTo(Equal(name))
 }

@@ -154,3 +154,15 @@ images:
 
 In this example we are overriding the image repository for all the components and the image tag for
 all the images in the cert-manager component.
+
+## Cert-Manager timeout override
+
+For situations when resources are limited or the network is slow, the cert-manager wait time to be running can be customized by adding a field to the clusterctl config file, for example:
+
+```yaml
+  cert-manager-timeout: 15m 
+```
+
+The value string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+
+If no value is specified or the format is invalid, the default value of 10 minutes will be used.

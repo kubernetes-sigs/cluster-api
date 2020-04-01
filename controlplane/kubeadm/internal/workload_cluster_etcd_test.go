@@ -334,10 +334,10 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				expectErr: false,
 			},
 			{
-				name:            "does nothing if the leader candidate is nil",
+				name:            "returns an error if the leader candidate is nil",
 				machine:         defaultMachine(),
 				leaderCandidate: nil,
-				expectErr:       false,
+				expectErr:       true,
 			},
 			{
 				name:            "returns an error if it can't retrieve the list of control plane nodes",
@@ -400,20 +400,20 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			},
 		}
 		etcdClientGenerator := &fakeEtcdClientGenerator{
-			forNodeClient: &etcd.Client{
+			forLeaderClient: &etcd.Client{
 				EtcdClient: fakeEtcdClient,
-				// this etcd client does not belong to the current
-				// machine. Ideally, this would match 101 from members
-				// list
-				LeaderID: 555,
+				LeaderID:   555,
 			},
 		}
 
 		w := &Workload{
+			Client: &fakeClient{list: &corev1.NodeList{
+				Items: []corev1.Node{nodeNamed("leader-node")},
+			}},
 			etcdClientGenerator: etcdClientGenerator,
 		}
 		ctx := context.TODO()
-		err := w.ForwardEtcdLeadership(ctx, defaultMachine(), nil)
+		err := w.ForwardEtcdLeadership(ctx, defaultMachine(), defaultMachine())
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(fakeEtcdClient.MovedLeader).To(BeEquivalentTo(0))
 

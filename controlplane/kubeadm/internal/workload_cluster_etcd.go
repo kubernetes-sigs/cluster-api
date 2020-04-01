@@ -190,9 +190,13 @@ func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clus
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower
 func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
-	if machine == nil || machine.Status.NodeRef == nil || leaderCandidate == nil {
+	if machine == nil || machine.Status.NodeRef == nil {
 		return nil
 	}
+	if leaderCandidate == nil {
+		return errors.New("leader candidate cannot be nil")
+	}
+
 	nodes, err := w.getControlPlaneNodes(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to list control plane nodes")

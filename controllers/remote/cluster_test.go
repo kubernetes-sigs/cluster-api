@@ -52,7 +52,7 @@ var (
 	validKubeConfig = `
 clusters:
 - cluster:
-    server: https://test-cluster-api:6443
+    server: https://test-cluster-api.nodomain.example.com:6443
   name: test-cluster-api
 contexts:
 - context:
@@ -104,7 +104,7 @@ func TestNewClusterClient(t *testing.T) {
 
 		restConfig, err := RESTConfig(ctx, client, clusterWithValidKubeConfig)
 		gs.Expect(err).NotTo(HaveOccurred())
-		gs.Expect(restConfig.Host).To(Equal("https://test-cluster-api:6443"))
+		gs.Expect(restConfig.Host).To(Equal("https://test-cluster-api.nodomain.example.com:6443"))
 	})
 
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {

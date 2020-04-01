@@ -91,6 +91,10 @@ func newInventoryClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *i
 func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	log := logf.Log
 
+	if err := p.proxy.ValidateKubernetesVersion(); err != nil {
+		return err
+	}
+
 	// Being this the first connection of many clusterctl operations, we want to fail fast if there is no
 	// connectivity to the cluster, so we try to get a client as a first thing.
 	// NB. NewClient has an internal retry loop that should mitigate temporary connection glitch; here we are

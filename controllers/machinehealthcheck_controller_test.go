@@ -17,6 +17,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -342,7 +344,20 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				for _, m := range rtc.expectRemediated() {
 					machine := &clusterv1.Machine{}
 					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
-					Expect(k8sClient.Get(ctx, key, machine)).ToNot(Succeed())
+					Expect(func() error {
+						err := k8sClient.Get(ctx, key, machine)
+						if err != nil && kerrors.IsNotFound(err) {
+							// Machine has gone
+							return nil
+						} else if err != nil {
+							return err
+						}
+						// Machine was not deleted
+						if machine.GetDeletionTimestamp().IsZero() {
+							return fmt.Errorf("Machine was not deleted")
+						}
+						return nil
+					}()).To(Succeed())
 				}
 			},
 			Entry("with healthy Machines", &reconcileTestCase{

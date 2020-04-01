@@ -8,6 +8,7 @@ approvers:
 emeritus_approvers:
   - roberthbailey
   - kris-nova
+  - chuckha
 
 reviewers:
   - cluster-api-maintainers

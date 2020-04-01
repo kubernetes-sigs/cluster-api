@@ -24,7 +24,6 @@ aliases:
   - detiber
   - ncdc
   - vincepri
-  - chuckha
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
@@ -46,7 +45,6 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-provider-docker-maintainers:
-  - chuckha
   - ncdc
 
   # -----------------------------------------------------------
@@ -54,13 +52,11 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-bootstrap-provider-kubeadm-maintainers:
-  - chuckha
   - fabriziopandini
   - ncdc
   - SataQiu
 
   cluster-api-bootstrap-provider-kubeadm-reviewers:
-  - chuckha
   - fabriziopandini
   - ncdc
 

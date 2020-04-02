@@ -18,6 +18,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -36,6 +37,14 @@ const (
 	githubDomain             = "github.com"
 	githubReleaseRepository  = "releases"
 	githubLatestReleaseLabel = "latest"
+)
+
+var (
+	// Caches used to limit the number of GitHub API calls
+
+	cacheVersions = map[string][]string{}
+	cacheReleases = map[string]*github.RepositoryRelease{}
+	cacheFiles    = map[string][]byte{}
 )
 
 // gitHubRepository provides support for providers hosted on GitHub.
@@ -185,6 +194,11 @@ func (g *gitHubRepository) setClientToken(token string) {
 
 // getVersions returns all the release versions for a github repository
 func (g *gitHubRepository) getVersions() ([]string, error) {
+	cacheID := fmt.Sprintf("%s/%s", g.owner, g.repository)
+	if versions, ok := cacheVersions[cacheID]; ok {
+		return versions, nil
+	}
+
 	client := g.getClient()
 
 	// get all the releases
@@ -206,6 +220,8 @@ func (g *gitHubRepository) getVersions() ([]string, error) {
 		}
 		versions = append(versions, tagName)
 	}
+
+	cacheVersions[cacheID] = versions
 	return versions, nil
 }
 
@@ -241,6 +257,11 @@ func (g *gitHubRepository) getLatestRelease() (string, error) {
 
 // getReleaseByTag returns the github repository release with a specific tag name.
 func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryRelease, error) {
+	cacheID := fmt.Sprintf("%s/%s:%s", g.owner, g.repository, tag)
+	if release, ok := cacheReleases[cacheID]; ok {
+		return release, nil
+	}
+
 	client := g.getClient()
 
 	release, _, err := client.Repositories.GetReleaseByTag(context.TODO(), g.owner, g.repository, tag)
@@ -252,11 +273,17 @@ func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryReleas
 		return nil, errors.Errorf("failed to get release %q", tag)
 	}
 
+	cacheReleases[cacheID] = release
 	return release, nil
 }
 
 // downloadFilesFromRelease download a file from release.
 func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRelease, fileName string) ([]byte, error) {
+	cacheID := fmt.Sprintf("%s/%s:%s:%s", g.owner, g.repository, *release.TagName, fileName)
+	if content, ok := cacheFiles[cacheID]; ok {
+		return content, nil
+	}
+
 	client := g.getClient()
 	absoluteFileName := filepath.Join(g.rootPath, fileName)
 
@@ -290,6 +317,8 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read downloaded file %q from %q release", *release.TagName, fileName)
 	}
+
+	cacheFiles[cacheID] = content
 	return content, nil
 }
 

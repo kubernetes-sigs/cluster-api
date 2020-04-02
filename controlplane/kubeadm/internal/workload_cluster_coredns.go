@@ -151,10 +151,10 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *kubeadmv1.
 	// Handle imageRepository.
 	toImageRepository := fmt.Sprintf("%s/%s", reference.Domain(parsedImage), reference.Path(parsedImage))
 	if clusterConfig.ImageRepository != "" {
-		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.ImageRepository, reference.Path(parsedImage))
+		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.ImageRepository, coreDNSKey)
 	}
 	if clusterConfig.DNS.ImageRepository != "" {
-		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.DNS.ImageRepository, reference.Path(parsedImage))
+		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.DNS.ImageRepository, coreDNSKey)
 	}
 
 	// Handle imageTag.

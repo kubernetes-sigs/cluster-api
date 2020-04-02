@@ -210,6 +210,16 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	controlPlane := internal.NewControlPlane(cluster, kcp, ownedMachines)
+
+	numMachines := len(ownedMachines)
+	// If the control plane is initialized, wait for health checks to pass to continue.
+	if numMachines > 0 {
+		result, err := r.generalHealthCheck(ctx, cluster, kcp, controlPlane)
+		if err != nil {
+			return result, err
+		}
+	}
+
 	requireUpgrade := controlPlane.MachinesNeedingUpgrade()
 	// Upgrade takes precedence over other operations
 	if len(requireUpgrade) > 0 {
@@ -218,7 +228,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// If we've made it this far, we can assume that all ownedMachines are up to date
-	numMachines := len(ownedMachines)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
 	switch {
@@ -227,13 +236,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		// Create new Machine w/ init
 		logger.Info("Initializing control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		return r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
-	// Perform a general health check on control plane before continue
-	case true:
-		result, err := r.generalHealthCheck(ctx, cluster, kcp, controlPlane)
-		if err != nil {
-			return result, err
-		}
-		fallthrough
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join

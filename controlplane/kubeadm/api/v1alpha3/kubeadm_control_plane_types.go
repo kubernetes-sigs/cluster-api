@@ -55,8 +55,7 @@ type KubeadmControlPlaneSpec struct {
 	KubeadmConfigSpec cabpkv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
 	// UpgradeAfter is a field to indicate an upgrade should be performed
-	// after the specified time even if no changes have been made to the
-	// KubeadmControlPlane
+	// only after the specified time for machines with an outdated spec.
 	// +optional
 	UpgradeAfter *metav1.Time `json:"upgradeAfter,omitempty"`
 }

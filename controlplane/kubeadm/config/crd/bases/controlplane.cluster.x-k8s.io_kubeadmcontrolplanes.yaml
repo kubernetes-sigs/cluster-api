@@ -915,8 +915,8 @@ spec:
                 type: integer
               upgradeAfter:
                 description: UpgradeAfter is a field to indicate an upgrade should
-                  be performed after the specified time even if no changes have been
-                  made to the KubeadmControlPlane
+                  be performed only after the specified time for machines with an
+                  outdated spec.
                 format: date-time
                 type: string
               version:

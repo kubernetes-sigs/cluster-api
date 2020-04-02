@@ -437,7 +437,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 
 	var id1 int64 = 1
 	var id2 int64 = 2
-	tagName := "file.yaml"
+	tagName := "vO.3.3"
 	file := "file.yaml"
 
 	type args struct {
@@ -495,7 +495,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 						},
 					},
 				},
-				fileName: file,
+				fileName: "another file",
 			},
 			wantErr: true,
 		},

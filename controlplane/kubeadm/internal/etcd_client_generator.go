@@ -20,7 +20,10 @@ import (
 	"context"
 	"crypto/tls"
 
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
@@ -55,4 +58,30 @@ func (c *etcdClientGenerator) forNode(ctx context.Context, name string) (*etcd.C
 		return nil, err
 	}
 	return customClient, nil
+}
+
+// forLeader takes a list of nodes and returns a client to the leader node
+func (c *etcdClientGenerator) forLeader(ctx context.Context, nodes *corev1.NodeList) (*etcd.Client, error) {
+	var errs []error
+
+	for _, node := range nodes.Items {
+		client, err := c.forNode(ctx, node.Name)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		defer client.Close()
+		members, err := client.Members(ctx)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		for _, member := range members {
+			if member.ID == client.LeaderID {
+				return c.forNode(ctx, member.Name)
+			}
+		}
+	}
+
+	return nil, errors.Wrap(kerrors.NewAggregate(errs), "could not establish a connection to the etcd leader")
 }

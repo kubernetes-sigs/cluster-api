@@ -31,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	fake2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -56,7 +57,7 @@ func TestWorkload_EtcdIsHealthy(t *testing.T) {
 			},
 		},
 		etcdClientGenerator: &fakeEtcdClientGenerator{
-			client: &etcd.Client{
+			forNodeClient: &etcd.Client{
 				EtcdClient: &fake2.FakeEtcdClient{
 					EtcdEndpoints: []string{},
 					MemberListResponse: &clientv3.MemberListResponse{
@@ -169,7 +170,7 @@ kind: ClusterConfiguration
 	}
 }
 
-func TestRemoveEtcdMemberFromMachine(t *testing.T) {
+func TestRemoveEtcdMemberForMachine(t *testing.T) {
 	machine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{
@@ -204,11 +205,12 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 		expectErr           bool
 	}{
 		{
-			name:      "does not panic if machine is nil",
+			name:      "does nothing if the machine is nil",
+			machine:   nil,
 			expectErr: false,
 		},
 		{
-			name: "does not panic if machine noderef is nil",
+			name: "does nothing if the machine has no node",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
 					NodeRef: nil,
@@ -217,36 +219,24 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:      "returns error if there are less than 2 control plane nodes",
+			name:      "returns an error if there are less than 2 control plane nodes",
 			machine:   machine,
 			objs:      []runtime.Object{cp1},
 			expectErr: true,
 		},
 		{
-			name: "returns error if nodes match node ref name",
-			machine: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
-						Name: "cp1",
-					},
-				},
-			},
-			objs:      []runtime.Object{cp1, cp1DiffNS},
-			expectErr: true,
-		},
-		{
-			name:                "returns error if it failed to create etcdClient",
+			name:                "returns an error if it fails to create the etcd client",
 			machine:             machine,
 			objs:                []runtime.Object{cp1, cp2},
-			etcdClientGenerator: &fakeEtcdClientGenerator{err: errors.New("no client")},
+			etcdClientGenerator: &fakeEtcdClientGenerator{forLeaderErr: errors.New("no client")},
 			expectErr:           true,
 		},
 		{
-			name:    "returns error if it failed to get etcd members",
+			name:    "returns an error if the client errors getting etcd members",
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				client: &etcd.Client{
+				forLeaderClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						ErrorResponse: errors.New("cannot get etcd members"),
 					},
@@ -255,11 +245,11 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:    "returns error if it failed to remove etcd member",
+			name:    "returns an error if the client errors removing the etcd member",
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				client: &etcd.Client{
+				forLeaderClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						ErrorResponse: errors.New("cannot remove etcd member"),
 						MemberListResponse: &clientv3.MemberListResponse{
@@ -278,11 +268,11 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:    "removes member from etcd",
+			name:    "removes the member from etcd",
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				client: &etcd.Client{
+				forLeaderClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						MemberListResponse: &clientv3.MemberListResponse{
 							Members: []*pb.Member{
@@ -322,46 +312,55 @@ func TestRemoveEtcdMemberFromMachine(t *testing.T) {
 
 func TestForwardEtcdLeadership(t *testing.T) {
 	t.Run("handles errors correctly", func(t *testing.T) {
-		machine := &clusterv1.Machine{
-			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
-					Name: "machine-node",
-				},
-			},
-		}
-		machineNoNode := machine.DeepCopy()
-		machineNoNode.Status.NodeRef.Name = "does-not-exist"
+
 		tests := []struct {
 			name                string
 			machine             *clusterv1.Machine
 			leaderCandidate     *clusterv1.Machine
 			etcdClientGenerator etcdClientFor
+			k8sClient           client.Client
 			expectErr           bool
 		}{
 			{
-				name:      "does not panic if machine is nil",
+				name:      "does nothing if the machine is nil",
+				machine:   nil,
 				expectErr: false,
 			},
 			{
-				name: "does not panic if machine noderef is nil",
-				machine: &clusterv1.Machine{
-					Status: clusterv1.MachineStatus{
-						NodeRef: nil,
-					},
-				},
+				name: "does nothing if machine's NodeRef is nil",
+				machine: defaultMachine(func(m *clusterv1.Machine) {
+					m.Status.NodeRef = nil
+				}),
 				expectErr: false,
 			},
 			{
-				name:                "returns error if cannot find etcdClient for node",
-				machine:             machineNoNode,
-				etcdClientGenerator: &fakeEtcdClientGenerator{err: errors.New("no etcdClient")},
+				name:            "returns an error if the leader candidate is nil",
+				machine:         defaultMachine(),
+				leaderCandidate: nil,
+				expectErr:       true,
+			},
+			{
+				name:            "returns an error if it can't retrieve the list of control plane nodes",
+				machine:         defaultMachine(),
+				leaderCandidate: defaultMachine(),
+				k8sClient:       &fakeClient{listErr: errors.New("failed to list nodes")},
+				expectErr:       true,
+			},
+			{
+				name:                "returns an error if it can't create an etcd client",
+				machine:             defaultMachine(),
+				leaderCandidate:     defaultMachine(),
+				k8sClient:           &fakeClient{},
+				etcdClientGenerator: &fakeEtcdClientGenerator{forLeaderErr: errors.New("no etcdClient")},
 				expectErr:           true,
 			},
 			{
-				name:    "returns error if it failed to get etcd members",
-				machine: machine,
+				name:            "returns error if it fails to get etcd members",
+				machine:         defaultMachine(),
+				leaderCandidate: defaultMachine(),
+				k8sClient:       &fakeClient{},
 				etcdClientGenerator: &fakeEtcdClientGenerator{
-					client: &etcd.Client{
+					forNodeClient: &etcd.Client{
 						EtcdClient: &fake2.FakeEtcdClient{
 							ErrorResponse: errors.New("cannot get etcd members"),
 						},
@@ -374,6 +373,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				w := &Workload{
+					Client:              tt.k8sClient,
 					etcdClientGenerator: tt.etcdClientGenerator,
 				}
 				ctx := context.TODO()
@@ -387,20 +387,12 @@ func TestForwardEtcdLeadership(t *testing.T) {
 		}
 	})
 
-	t.Run("does noop if machine etcd member ID does not match etcdClient leader ID", func(t *testing.T) {
+	t.Run("does nothing if the machine is not the leader", func(t *testing.T) {
 		g := NewWithT(t)
-		machine := &clusterv1.Machine{
-			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
-					Name: "machine-node",
-				},
-			},
-		}
 		fakeEtcdClient := &fake2.FakeEtcdClient{
 			MemberListResponse: &clientv3.MemberListResponse{
 				Members: []*pb.Member{
 					{Name: "machine-node", ID: uint64(101)},
-					{Name: "other-node", ID: uint64(1034)},
 				},
 			},
 			AlarmResponse: &clientv3.AlarmResponse{
@@ -408,42 +400,26 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			},
 		}
 		etcdClientGenerator := &fakeEtcdClientGenerator{
-			client: &etcd.Client{
+			forLeaderClient: &etcd.Client{
 				EtcdClient: fakeEtcdClient,
-				// this etcd client does not belong to the current
-				// machine. Ideally, this would match 101 from members
-				// list
-				LeaderID: 555,
+				LeaderID:   555,
 			},
 		}
 
 		w := &Workload{
+			Client: &fakeClient{list: &corev1.NodeList{
+				Items: []corev1.Node{nodeNamed("leader-node")},
+			}},
 			etcdClientGenerator: etcdClientGenerator,
 		}
 		ctx := context.TODO()
-		err := w.ForwardEtcdLeadership(ctx, machine, nil)
+		err := w.ForwardEtcdLeadership(ctx, defaultMachine(), defaultMachine())
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(fakeEtcdClient.MovedLeader).To(BeEquivalentTo(0))
 
 	})
 
 	t.Run("move etcd leader", func(t *testing.T) {
-		machine := &clusterv1.Machine{
-			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
-					Name: "machine-node",
-				},
-			},
-		}
-		leaderCandidate := &clusterv1.Machine{
-			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
-					Name: "leader-node",
-				},
-			},
-		}
-		leaderCandidateBadNodeRef := leaderCandidate.DeepCopy()
-		leaderCandidateBadNodeRef.Status.NodeRef.Name = "does-not-exist"
 		tests := []struct {
 			name               string
 			leaderCandidate    *clusterv1.Machine
@@ -452,32 +428,32 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			expectErr          bool
 		}{
 			{
-				name:               "to the next available member",
-				expectedMoveLeader: 1034,
+				name: "it moves the etcd leadership to the leader candidate",
+				leaderCandidate: defaultMachine(func(m *clusterv1.Machine) {
+					m.Status.NodeRef.Name = "candidate-node"
+				}),
+				expectedMoveLeader: 12345,
 			},
 			{
-				name:        "returns error if failed to move to the next available member",
+				name: "returns error if failed to move to the leader candidate",
+				leaderCandidate: defaultMachine(func(m *clusterv1.Machine) {
+					m.Status.NodeRef.Name = "candidate-node"
+				}),
 				etcdMoveErr: errors.New("move err"),
 				expectErr:   true,
 			},
 			{
-				name:               "to the leader candidate",
-				leaderCandidate:    leaderCandidate,
-				expectedMoveLeader: 12345,
-			},
-			{
-				name:            "returns error if failed to move to the leader candidate",
-				leaderCandidate: leaderCandidate,
-				etcdMoveErr:     errors.New("move err"),
-				expectErr:       true,
-			},
-			{
-				name:            "returns error if it cannot find the leader etcd member",
-				leaderCandidate: leaderCandidateBadNodeRef,
-				expectErr:       true,
+				name: "returns error if the leader candidate doesn't exist in etcd",
+				leaderCandidate: defaultMachine(func(m *clusterv1.Machine) {
+					m.Status.NodeRef.Name = "some other node"
+				}),
+				expectErr: true,
 			},
 		}
 
+		currentLeader := defaultMachine(func(m *clusterv1.Machine) {
+			m.Status.NodeRef.Name = "current-leader"
+		})
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
@@ -485,9 +461,9 @@ func TestForwardEtcdLeadership(t *testing.T) {
 					ErrorResponse: tt.etcdMoveErr,
 					MemberListResponse: &clientv3.MemberListResponse{
 						Members: []*pb.Member{
-							{Name: "machine-node", ID: uint64(101)},
+							{Name: currentLeader.Status.NodeRef.Name, ID: uint64(101)},
 							{Name: "other-node", ID: uint64(1034)},
-							{Name: "leader-node", ID: uint64(12345)},
+							{Name: "candidate-node", ID: uint64(12345)},
 						},
 					},
 					AlarmResponse: &clientv3.AlarmResponse{
@@ -496,7 +472,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				}
 
 				etcdClientGenerator := &fakeEtcdClientGenerator{
-					client: &etcd.Client{
+					forLeaderClient: &etcd.Client{
 						EtcdClient: fakeEtcdClient,
 						// this etcdClient belongs to the machine-node
 						LeaderID: 101,
@@ -505,9 +481,12 @@ func TestForwardEtcdLeadership(t *testing.T) {
 
 				w := &Workload{
 					etcdClientGenerator: etcdClientGenerator,
+					Client: &fakeClient{list: &corev1.NodeList{
+						Items: []corev1.Node{nodeNamed("leader-node"), nodeNamed("other-node"), nodeNamed("candidate-node")},
+					}},
 				}
 				ctx := context.TODO()
-				err := w.ForwardEtcdLeadership(ctx, machine, tt.leaderCandidate)
+				err := w.ForwardEtcdLeadership(ctx, currentLeader, tt.leaderCandidate)
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -520,12 +499,18 @@ func TestForwardEtcdLeadership(t *testing.T) {
 }
 
 type fakeEtcdClientGenerator struct {
-	client *etcd.Client
-	err    error
+	forNodeClient   *etcd.Client
+	forLeaderClient *etcd.Client
+	forNodeErr      error
+	forLeaderErr    error
 }
 
 func (c *fakeEtcdClientGenerator) forNode(_ context.Context, _ string) (*etcd.Client, error) {
-	return c.client, c.err
+	return c.forNodeClient, c.forNodeErr
+}
+
+func (c *fakeEtcdClientGenerator) forLeader(_ context.Context, _ *corev1.NodeList) (*etcd.Client, error) {
+	return c.forLeaderClient, c.forLeaderErr
 }
 
 type podOption func(*corev1.Pod)
@@ -555,4 +540,18 @@ func withProviderID(pi string) func(corev1.Node) corev1.Node {
 		node.Spec.ProviderID = pi
 		return node
 	}
+}
+
+func defaultMachine(transforms ...func(m *clusterv1.Machine)) *clusterv1.Machine {
+	m := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "machine-node",
+			},
+		},
+	}
+	for _, t := range transforms {
+		t(m)
+	}
+	return m
 }

@@ -30,6 +30,7 @@ import (
 
 type etcdClientFor interface {
 	forNode(ctx context.Context, name string) (*etcd.Client, error)
+	forLeader(ctx context.Context, nodes *corev1.NodeList) (*etcd.Client, error)
 }
 
 // EtcdIsHealthy runs checks for every etcd member in the cluster to satisfy our definition of healthy.
@@ -148,32 +149,24 @@ func (w *Workload) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imag
 }
 
 // RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.
+// Removing the last remaining member of the cluster is not supported.
 func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error {
 	if machine == nil || machine.Status.NodeRef == nil {
 		// Nothing to do, no node for Machine
 		return nil
 	}
 
-	return w.removeMemberForNode(ctx, machine.Status.NodeRef.Name)
-}
-
-// ForwardEtcdLeadership forwards etcd leadership to the first follower
-func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
-	if machine == nil || machine.Status.NodeRef == nil {
-		// Nothing to do, no node for Machine
-		return nil
-	}
-
-	// TODO we'd probably prefer to pass in all the known nodes and let grpc handle retrying connections across them
-	clientMachineName := machine.Status.NodeRef.Name
-	if leaderCandidate != nil && leaderCandidate.Status.NodeRef != nil {
-		// connect to the new leader candidate, in case machine's etcd membership has already been removed
-		clientMachineName = leaderCandidate.Status.NodeRef.Name
-	}
-
-	etcdClient, err := w.etcdClientGenerator.forNode(ctx, clientMachineName)
+	// Pick a different node to talk to etcd
+	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to create etcd Client")
+		return err
+	}
+	if len(controlPlaneNodes.Items) < 2 {
+		return ErrControlPlaneMinNodes
+	}
+	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, controlPlaneNodes)
+	if err != nil {
+		return errors.Wrap(err, "failed to create etcd client")
 	}
 
 	// List etcd members. This checks that the member is healthy, because the request goes through consensus.
@@ -181,28 +174,47 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 	if err != nil {
 		return errors.Wrap(err, "failed to list etcd members using etcd client")
 	}
+	member := etcdutil.MemberForName(members, machine.Status.NodeRef.Name)
 
-	currentMember := etcdutil.MemberForName(members, machine.Status.NodeRef.Name)
-	if currentMember == nil || currentMember.ID != etcdClient.LeaderID {
+	// The member has already been removed, return immediately
+	if member == nil {
 		return nil
 	}
 
-	// Move the etcd client to the current leader, which in this case is the machine we're about to delete.
-	etcdClient, err = w.etcdClientGenerator.forNode(ctx, machine.Status.NodeRef.Name)
-	if err != nil {
-		return errors.Wrap(err, "failed to create etcd Client")
+	if err := etcdClient.RemoveMember(ctx, member.ID); err != nil {
+		return errors.Wrap(err, "failed to remove member from etcd")
 	}
 
-	// If we don't have a leader candidate, move the leader to the next available machine.
-	if leaderCandidate == nil || leaderCandidate.Status.NodeRef == nil {
-		for _, member := range members {
-			if member.ID != currentMember.ID {
-				if err := etcdClient.MoveLeader(ctx, member.ID); err != nil {
-					return errors.Wrapf(err, "failed to move leader")
-				}
-				break
-			}
-		}
+	return nil
+}
+
+// ForwardEtcdLeadership forwards etcd leadership to the first follower
+func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
+	if machine == nil || machine.Status.NodeRef == nil {
+		return nil
+	}
+	if leaderCandidate == nil {
+		return errors.New("leader candidate cannot be nil")
+	}
+
+	nodes, err := w.getControlPlaneNodes(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to list control plane nodes")
+	}
+
+	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodes)
+	if err != nil {
+		return errors.Wrap(err, "failed to create etcd client")
+	}
+
+	members, err := etcdClient.Members(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to list etcd members using etcd client")
+	}
+
+	currentMember := etcdutil.MemberForName(members, machine.Status.NodeRef.Name)
+	if currentMember == nil || currentMember.ID != etcdClient.LeaderID {
+		// nothing to do, this is not the etcd leader
 		return nil
 	}
 
@@ -214,46 +226,5 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 	if err := etcdClient.MoveLeader(ctx, nextLeader.ID); err != nil {
 		return errors.Wrapf(err, "failed to move leader")
 	}
-	return nil
-}
-
-// removeMemberForNode removes the etcd member for the node. Removing the etcd
-// member when the cluster has one control plane node is not supported. To allow
-// the removal of a failed etcd member, the etcd API requests are sent to a
-// different node.
-func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
-	// Pick a different node to talk to etcd
-	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return err
-	}
-	if len(controlPlaneNodes.Items) < 2 {
-		return ErrControlPlaneMinNodes
-	}
-	anotherNode := firstNodeNotMatchingName(name, controlPlaneNodes.Items)
-	if anotherNode == nil {
-		return errors.Errorf("failed to find a control plane node whose name is not %s", name)
-	}
-	etcdClient, err := w.etcdClientGenerator.forNode(ctx, anotherNode.Name)
-	if err != nil {
-		return errors.Wrap(err, "failed to create etcd client")
-	}
-
-	// List etcd members. This checks that the member is healthy, because the request goes through consensus.
-	members, err := etcdClient.Members(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to list etcd members using etcd client")
-	}
-	member := etcdutil.MemberForName(members, name)
-
-	// The member has already been removed, return immediately
-	if member == nil {
-		return nil
-	}
-
-	if err := etcdClient.RemoveMember(ctx, member.ID); err != nil {
-		return errors.Wrap(err, "failed to remove member from etcd")
-	}
-
 	return nil
 }

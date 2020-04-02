@@ -223,6 +223,7 @@ type fakeClient struct {
 	getErr       error
 	patchErr     error
 	updateErr    error
+	listErr      error
 }
 
 func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Object) error {
@@ -251,6 +252,9 @@ func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Ob
 }
 
 func (f *fakeClient) List(_ context.Context, list runtime.Object, _ ...client.ListOption) error {
+	if f.listErr != nil {
+		return f.listErr
+	}
 	switch l := f.list.(type) {
 	case *clusterv1.MachineList:
 		l.DeepCopyInto(list.(*clusterv1.MachineList))
@@ -469,34 +473,4 @@ func controlPlaneMachine(name string) clusterv1.Machine {
 func nilNodeRef(machine clusterv1.Machine) clusterv1.Machine {
 	machine.Status.NodeRef = nil
 	return machine
-}
-
-func TestRemoveMemberForNode_ErrControlPlaneMinNodes(t *testing.T) {
-	t.Run("do not remove the etcd member if the cluster has fewer than 2 control plane nodes", func(t *testing.T) {
-		g := NewWithT(t)
-
-		expectedErr := ErrControlPlaneMinNodes
-
-		workloadCluster := &Workload{
-			Client: &fakeClient{
-				list: &corev1.NodeList{
-					Items: []corev1.Node{
-						nodeNamed("first-control-plane"),
-					},
-				},
-			},
-		}
-
-		err := workloadCluster.removeMemberForNode(context.Background(), "first-control-plane")
-		g.Expect(err).To(MatchError(expectedErr))
-	})
-}
-
-func TestPickFirstNodeNotMatching(t *testing.T) {
-	g := NewWithT(t)
-
-	name := "first-control-plane"
-	anotherNode := firstNodeNotMatchingName(name, nodeListForTestControlPlaneIsHealthy().Items)
-	g.Expect(anotherNode).NotTo(BeNil())
-	g.Expect(anotherNode.Name).NotTo(Equal(name))
 }

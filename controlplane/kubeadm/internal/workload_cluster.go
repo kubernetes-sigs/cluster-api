@@ -435,15 +435,6 @@ func checkNodeNoExecuteCondition(node corev1.Node) error {
 	return nil
 }
 
-func firstNodeNotMatchingName(name string, nodes []corev1.Node) *corev1.Node {
-	for _, n := range nodes {
-		if n.Name != name {
-			return &n
-		}
-	}
-	return nil
-}
-
 // UpdateKubeProxyImageInfo updates kube-proxy image in the kube-proxy DaemonSet.
 func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
 	ds := &appsv1.DaemonSet{}

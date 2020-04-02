@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -62,6 +63,30 @@ func (k *proxy) CurrentNamespace() (string, error) {
 	}
 
 	return "default", nil
+}
+
+func (k *proxy) ValidateKubernetesVersion() error {
+	config, err := k.getConfig()
+	if err != nil {
+		return err
+	}
+
+	client := discovery.NewDiscoveryClientForConfigOrDie(config)
+	serverVersion, err := client.ServerVersion()
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve server version")
+	}
+
+	compver, err := utilversion.MustParseGeneric(serverVersion.String()).Compare(minimumKubernetesVersion)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse and compare server version")
+	}
+
+	if compver == -1 {
+		return errors.Errorf("unsupported management cluster server version: %s - minimum required version is %s", serverVersion.String(), minimumKubernetesVersion)
+	}
+
+	return nil
 }
 
 func (k *proxy) NewClient() (client.Client, error) {

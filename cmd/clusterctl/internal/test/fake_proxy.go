@@ -57,6 +57,10 @@ func (f *FakeProxy) CurrentNamespace() (string, error) {
 	return "default", nil
 }
 
+func (f *FakeProxy) ValidateKubernetesVersion() error {
+	return nil
+}
+
 func (f *FakeProxy) NewClient() (client.Client, error) {
 	if f.cs != nil {
 		return f.cs, nil

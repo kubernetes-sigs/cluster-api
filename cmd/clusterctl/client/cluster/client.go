@@ -30,6 +30,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	minimumKubernetesVersion = "v1.16.0"
+)
+
 var (
 	ctx = context.TODO()
 )
@@ -186,6 +190,9 @@ func newClusterClient(kubeconfig string, configClient config.Client, options ...
 type Proxy interface {
 	// CurrentNamespace returns the namespace from the current context in the kubeconfig file
 	CurrentNamespace() (string, error)
+
+	// ValidateKubernetesVersion returns an error if management cluster version less than minimumKubernetesVersion
+	ValidateKubernetesVersion() error
 
 	// NewClient returns a new controller runtime Client object for working on the management cluster
 	NewClient() (client.Client, error)

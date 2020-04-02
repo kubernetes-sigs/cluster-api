@@ -71,7 +71,11 @@ type WorkloadCluster interface {
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error
+	RemoveNodeFromKubeadmConfigMap(ctx context.Context, nodeName string) error
 	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error
+
+	// State recovery tasks.
+	ReconcileEtcdMembers(ctx context.Context) error
 }
 
 // Workload defines operations on workload clusters.
@@ -227,13 +231,18 @@ func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machin
 		return nil
 	}
 
+	return w.RemoveNodeFromKubeadmConfigMap(ctx, machine.Status.NodeRef.Name)
+}
+
+// RemoveNodeFromKubeadmConfigMap removes the entry for the node from the kubeadm configmap.
+func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string) error {
 	configMapKey := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
 	kubeadmConfigMap, err := w.getConfigMap(ctx, configMapKey)
 	if err != nil {
 		return err
 	}
 	config := &kubeadmConfig{ConfigMap: kubeadmConfigMap}
-	if err := config.RemoveAPIEndpoint(machine.Status.NodeRef.Name); err != nil {
+	if err := config.RemoveAPIEndpoint(name); err != nil {
 		return err
 	}
 	if err := w.Client.Update(ctx, config.ConfigMap); err != nil {

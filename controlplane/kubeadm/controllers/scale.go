@@ -49,18 +49,6 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, _ internal.FilterableMachineCollection, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
-	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-		logger.V(2).Info("Waiting for control plane to pass control plane health check before adding an additional control plane machine", "cause", err)
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before adding additional control plane machine: %v", err)
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
-	}
-
-	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-		logger.V(2).Info("Waiting for control plane to pass etcd health check before adding an additional control plane machine", "cause", err)
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before adding additional control plane machine: %v", err)
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
-	}
-
 	// Create the bootstrap configuration
 	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
 	fd := controlPlane.FailureDomainWithFewestMachines()
@@ -117,13 +105,6 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
 	}
 
-	// Ensure etcd is healthy prior to attempting to remove the member
-	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-		logger.V(2).Info("Waiting for control plane to pass etcd health check before removing a control plane machine", "cause", err)
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
-			"Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
-	}
 	// If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
 	etcdLeaderCandidate := ownedMachines.Newest()
 	if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate); err != nil {
@@ -152,13 +133,6 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		}
 	}
 
-	// Do a final health check of the Control Plane components prior to actually deleting the machine
-	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-		logger.V(2).Info("Waiting for control plane to pass control plane health check before removing a control plane machine", "cause", err)
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
-			"Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
-	}
 	logger = logger.WithValues("machine", machineToDelete)
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 		logger.Error(err, "Failed to delete control plane machine")

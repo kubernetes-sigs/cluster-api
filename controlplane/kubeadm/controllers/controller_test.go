@@ -919,6 +919,53 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 	})
 
 }
+func TestKubeadmControlPlaneReconciler_generalHealthCheck(t *testing.T) {
+	t.Run("does not create a control plane Machine if health checks fail", func(t *testing.T) {
+		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
+		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
+
+		testCases := []struct {
+			name                  string
+			etcdUnHealthy         bool
+			controlPlaneUnHealthy bool
+		}{
+			{
+				name:          "etcd health check fails",
+				etcdUnHealthy: true,
+			},
+			{
+				name:                  "controlplane component health check fails",
+				controlPlaneUnHealthy: true,
+			},
+		}
+		for _, tc := range testCases {
+			g := NewWithT(t)
+
+			fakeClient := newFakeClient(g, initObjs...)
+			fmc := &fakeManagementCluster{
+				Machines:            nil,
+				ControlPlaneHealthy: !tc.controlPlaneUnHealthy,
+				EtcdHealthy:         !tc.etcdUnHealthy,
+			}
+
+			r := &KubeadmControlPlaneReconciler{
+				Client:            fakeClient,
+				managementCluster: fmc,
+				Log:               log.Log,
+				recorder:          record.NewFakeRecorder(32),
+			}
+			controlPlane := &internal.ControlPlane{
+				KCP:      kcp,
+				Cluster:  cluster,
+				Machines: nil,
+			}
+
+			_, err := r.generalHealthCheck(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), controlPlane)
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
+		}
+	})
+}
 
 func TestKubeadmControlPlaneReconciler_scaleDownControlPlane(t *testing.T) {
 	g := NewWithT(t)

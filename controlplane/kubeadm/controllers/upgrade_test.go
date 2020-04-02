@@ -29,7 +29,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -72,11 +71,8 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, machineCollection, machineCollection, controlPlane)
 
 	g.Expect(machineList.Items[0].Annotations).To(HaveKey(controlplanev1.SelectedForUpgradeAnnotation))
-
-	// TODO flesh out the rest of this test - this is currently least-effort to confirm a fix for an NPE when updating
-	// the etcd version
-	g.Expect(result).To(Equal(ctrl.Result{}))
-	g.Expect(err).To(Equal(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
+	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestSelectMachineForUpgrade(t *testing.T) {

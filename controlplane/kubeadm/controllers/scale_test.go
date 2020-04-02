@@ -29,7 +29,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -115,70 +114,6 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(3))
-	})
-	t.Run("does not create a control plane Machine if health checks fail", func(t *testing.T) {
-		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
-		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
-
-		beforeMachines := internal.NewFilterableMachineCollection()
-		for i := 0; i < 2; i++ {
-			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster.DeepCopy(), kcp.DeepCopy(), true)
-			beforeMachines = beforeMachines.Insert(m)
-			initObjs = append(initObjs, m.DeepCopy())
-		}
-
-		testCases := []struct {
-			name                  string
-			etcdUnHealthy         bool
-			controlPlaneUnHealthy bool
-		}{
-			{
-				name:          "etcd health check fails",
-				etcdUnHealthy: true,
-			},
-			{
-				name:                  "controlplane component health check fails",
-				controlPlaneUnHealthy: true,
-			},
-		}
-		for _, tc := range testCases {
-			g := NewWithT(t)
-
-			fakeClient := newFakeClient(g, initObjs...)
-			fmc := &fakeManagementCluster{
-				Machines:            beforeMachines.DeepCopy(),
-				ControlPlaneHealthy: !tc.controlPlaneUnHealthy,
-				EtcdHealthy:         !tc.etcdUnHealthy,
-			}
-
-			r := &KubeadmControlPlaneReconciler{
-				Client:            fakeClient,
-				managementCluster: fmc,
-				Log:               log.Log,
-				recorder:          record.NewFakeRecorder(32),
-			}
-			controlPlane := &internal.ControlPlane{
-				KCP:      kcp,
-				Cluster:  cluster,
-				Machines: beforeMachines,
-			}
-
-			ownedMachines := fmc.Machines.DeepCopy()
-			_, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), ownedMachines, controlPlane)
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
-
-			controlPlaneMachines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())
-			g.Expect(controlPlaneMachines.Items).To(HaveLen(len(beforeMachines)))
-
-			endMachines := internal.NewFilterableMachineCollectionFromMachineList(controlPlaneMachines)
-			for _, m := range endMachines {
-				bm, ok := beforeMachines[m.Name]
-				g.Expect(ok).To(BeTrue())
-				g.Expect(m).To(Equal(bm))
-			}
-		}
 	})
 }
 

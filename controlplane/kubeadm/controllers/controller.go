@@ -227,6 +227,13 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		// Create new Machine w/ init
 		logger.Info("Initializing control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		return r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
+	// Perform a general health check on control plane before continue
+	case true:
+		result, err := r.generalHealthCheck(ctx, cluster, kcp, controlPlane)
+		if err != nil {
+			return result, err
+		}
+		fallthrough
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
@@ -319,4 +326,25 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 	}
 
 	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) generalHealthCheck(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	logger := controlPlane.Logger()
+
+	// Do a health check of the Control Plane components
+	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
+		logger.V(2).Info("Waiting for control plane to pass control plane health check to continue reconciliation", "cause", err)
+		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
+			"Waiting for control plane to pass control plane health check to continue reconciliation: %v", err)
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
+	}
+
+	// Ensure etcd is healthy
+	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
+		logger.V(2).Info("Waiting for control plane to pass etcd health check to continue reconciliation", "cause", err)
+		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
+			"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
+	}
+	return ctrl.Result{}, nil
 }

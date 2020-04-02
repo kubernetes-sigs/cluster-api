@@ -161,6 +161,8 @@ See the [AWS provider prerequisites] document for more details.
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure provider prerequisites] document.
 
 ```bash
+export AZURE_SUBSCRIPTION_ID=<SubscriptionId>
+
 # Create an Azure Service Principal and paste the output here
 export AZURE_TENANT_ID=<Tenant>
 export AZURE_CLIENT_ID=<AppId>

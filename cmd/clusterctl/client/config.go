@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"k8s.io/utils/pointer"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -76,10 +77,12 @@ type GetClusterTemplateOptions struct {
 	KubernetesVersion string
 
 	// ControlPlaneMachineCount defines the number of control plane machines to be added to the workload cluster.
-	ControlPlaneMachineCount int
+	// It can be set through the cli flag, CONTROL_PLANE_MACHINE_COUNT environment variable or will default to 1
+	ControlPlaneMachineCount *int64
 
 	// WorkerMachineCount defines number of worker machines to be added to the workload cluster.
-	WorkerMachineCount int
+	// It can be set through the cli flag, WORKER_MACHINE_COUNT environment variable or will default to 0
+	WorkerMachineCount *int64
 
 	// listVariablesOnly sets the GetClusterTemplate method to return the list of variables expected by the template
 	// without executing any further processing.
@@ -302,16 +305,40 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 	}
 
 	// the ControlPlaneMachineCount, if valid, can be used in templates using the ${ CONTROL_PLANE_MACHINE_COUNT } variable.
-	if options.ControlPlaneMachineCount < 1 {
+	if options.ControlPlaneMachineCount == nil {
+		// Check if set through env variable and default to 1 otherwise
+		if v, err := c.configClient.Variables().Get("CONTROL_PLANE_MACHINE_COUNT"); err != nil {
+			options.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+		} else {
+			i, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return errors.Errorf("invalid value for CONTROL_PLANE_MACHINE_COUNT set")
+			}
+			options.ControlPlaneMachineCount = &i
+		}
+	}
+	if *options.ControlPlaneMachineCount < 1 {
 		return errors.Errorf("invalid ControlPlaneMachineCount. Please use a number greater or equal than 1")
 	}
-	c.configClient.Variables().Set("CONTROL_PLANE_MACHINE_COUNT", strconv.Itoa(options.ControlPlaneMachineCount))
+	c.configClient.Variables().Set("CONTROL_PLANE_MACHINE_COUNT", strconv.FormatInt(*options.ControlPlaneMachineCount, 10))
 
 	// the WorkerMachineCount, if valid, can be used in templates using the ${ WORKER_MACHINE_COUNT } variable.
-	if options.WorkerMachineCount < 0 {
+	if options.WorkerMachineCount == nil {
+		// Check if set through env variable and default to 0 otherwise
+		if v, err := c.configClient.Variables().Get("WORKER_MACHINE_COUNT"); err != nil {
+			options.WorkerMachineCount = pointer.Int64Ptr(0)
+		} else {
+			i, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return errors.Errorf("invalid value for WORKER_MACHINE_COUNT set")
+			}
+			options.WorkerMachineCount = &i
+		}
+	}
+	if *options.WorkerMachineCount < 0 {
 		return errors.Errorf("invalid WorkerMachineCount. Please use a number greater or equal than 0")
 	}
-	c.configClient.Variables().Set("WORKER_MACHINE_COUNT", strconv.Itoa(options.WorkerMachineCount))
+	c.configClient.Variables().Set("WORKER_MACHINE_COUNT", strconv.FormatInt(*options.WorkerMachineCount, 10))
 
 	return nil
 }

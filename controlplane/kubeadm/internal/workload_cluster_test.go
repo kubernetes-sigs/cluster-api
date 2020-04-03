@@ -474,6 +474,85 @@ kubernetesVersion: v1.16.1
 	}
 }
 
+func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
+	kubeadmConfig := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kubeadmConfigKey,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			clusterConfigurationKey: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+imageRepository: k8s.gcr.io
+`,
+		},
+	}
+
+	kubeadmConfigNoKey := kubeadmConfig.DeepCopy()
+	delete(kubeadmConfigNoKey.Data, clusterConfigurationKey)
+
+	kubeadmConfigBadData := kubeadmConfig.DeepCopy()
+	kubeadmConfigBadData.Data[clusterConfigurationKey] = `foobar`
+
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	tests := []struct {
+		name            string
+		imageRepository string
+		objs            []runtime.Object
+		expectErr       bool
+	}{
+		{
+			name:            "updates the config map",
+			imageRepository: "myspecialrepo.io",
+			objs:            []runtime.Object{kubeadmConfig},
+			expectErr:       false,
+		},
+		{
+			name:      "returns error if cannot find config map",
+			expectErr: true,
+		},
+		{
+			name:            "returns error if config has bad data",
+			objs:            []runtime.Object{kubeadmConfigBadData},
+			imageRepository: "myspecialrepo.io",
+			expectErr:       true,
+		},
+		{
+			name:            "returns error if config doesn't have cluster config key",
+			objs:            []runtime.Object{kubeadmConfigNoKey},
+			imageRepository: "myspecialrepo.io",
+			expectErr:       true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			w := &Workload{
+				Client: fakeClient,
+			}
+			ctx := context.TODO()
+			err := w.UpdateImageRepositoryInKubeadmConfigMap(ctx, tt.imageRepository)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			var actualConfig corev1.ConfigMap
+			g.Expect(w.Client.Get(
+				ctx,
+				ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+				&actualConfig,
+			)).To(Succeed())
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring(tt.imageRepository))
+		})
+	}
+}
+
 func TestClusterStatus(t *testing.T) {
 	node1 := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{

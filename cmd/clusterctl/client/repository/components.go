@@ -347,8 +347,8 @@ func replaceVariables(yaml []byte, variables []string, configVariablesClient con
 			missingVariables = append(missingVariables, key)
 			continue
 		}
-		exp := regexp.MustCompile(`\$\{\s*` + key + `\s*\}`)
-		tmp = exp.ReplaceAllString(tmp, val)
+		exp := regexp.MustCompile(`\$\{\s*` + regexp.QuoteMeta(key) + `\s*\}`)
+		tmp = exp.ReplaceAllLiteralString(tmp, val)
 	}
 	if len(missingVariables) > 0 {
 		return nil, errors.Errorf("value for variables [%s] is not set. Please set the value using os environment variables or the clusterctl config file", strings.Join(missingVariables, ", "))

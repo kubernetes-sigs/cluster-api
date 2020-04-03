@@ -93,6 +93,28 @@ func Test_replaceVariables(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "pass and replaces variables when variable name contains regex metacharacters",
+			args: args{
+				yaml:      []byte("foo ${ BA$R }"),
+				variables: []string{"BA$R"},
+				configVariablesClient: test.NewFakeVariableClient().
+					WithVar("BA$R", "bar"),
+			},
+			want:    []byte("foo bar"),
+			wantErr: false,
+		},
+		{
+			name: "pass and replaces variables when variable value contains regex metacharacters",
+			args: args{
+				yaml:      []byte("foo ${ BAR }"),
+				variables: []string{"BAR"},
+				configVariablesClient: test.NewFakeVariableClient().
+					WithVar("BAR", "ba$r"),
+			},
+			want:    []byte("foo ba$r"),
+			wantErr: false,
+		},
+		{
 			name: "fails for missing variables",
 			args: args{
 				yaml:                  []byte("foo ${ BAR } ${ BAZ }"),

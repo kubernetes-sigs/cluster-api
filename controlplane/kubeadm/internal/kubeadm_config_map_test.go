@@ -47,7 +47,7 @@ kubernetesVersion: v1.16.1
 	delete(kubeadmConfigNoKey.Data, clusterConfigurationKey)
 
 	kubeadmConfigBadData := kconf.DeepCopy()
-	kubeadmConfigBadData.Data[clusterConfigurationKey] = `foobar`
+	kubeadmConfigBadData.Data[clusterConfigurationKey] = `something`
 
 	tests := []struct {
 		name      string
@@ -94,6 +94,7 @@ kubernetesVersion: v1.16.1
 		})
 	}
 }
+
 func Test_kubeadmConfig_RemoveAPIEndpoint(t *testing.T) {
 	g := NewWithT(t)
 	original := &corev1.ConfigMap{
@@ -378,39 +379,48 @@ scheduler: {}`,
 func TestUpdateImageRepository(t *testing.T) {
 
 	tests := []struct {
-		name                      string
-		clusterConfigurationValue string
-		imageRepository           string
-		expected                  string
-		expectErr                 error
+		name            string
+		data            map[string]string
+		imageRepository string
+		expected        string
+		expectErr       error
 	}{
 		{
 			name: "it should set the values, if they were empty",
-			clusterConfigurationValue: `
+			data: map[string]string{
+				clusterConfigurationKey: `
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 imageRepository: k8s.gcr.io
-`,
+`},
 			imageRepository: "example.com/k8s",
 			expected:        "example.com/k8s",
 		},
 		{
 			name: "it shouldn't write empty strings",
-			clusterConfigurationValue: `
+			data: map[string]string{
+				clusterConfigurationKey: `
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 imageRepository: k8s.gcr.io
-`,
+`},
 			imageRepository: "",
 			expected:        "k8s.gcr.io",
 		},
 		{
 			name: "it should error if it's not a valid k8s object",
-			clusterConfigurationValue: `
+			data: map[string]string{
+				clusterConfigurationKey: `
 imageRepository: "cool"
-`,
+`},
 			imageRepository: "example.com/k8s",
 			expectErr:       errors.New("Object 'Kind' is missing"),
+		},
+		{
+			name:            "returns an error if config map doesn't have the cluster config data key",
+			data:            map[string]string{},
+			imageRepository: "example.com/k8s",
+			expectErr:       errors.New("unable to find \"ClusterConfiguration\" key in kubeadm ConfigMap"),
 		},
 	}
 
@@ -420,9 +430,7 @@ imageRepository: "cool"
 
 			kconfig := &kubeadmConfig{
 				ConfigMap: &corev1.ConfigMap{
-					Data: map[string]string{
-						clusterConfigurationKey: test.clusterConfigurationValue,
-					},
+					Data: test.data,
 				},
 			}
 

@@ -156,5 +156,5 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 		}
 		return false
 
-	}, intervals...).Should(BeTrue(), "Deployment %s/%s failed to get status.Available = True condition")
+	}, intervals...).Should(BeTrue(), "Deployment %s/%s failed to get status.Available = True condition", input.Deployment.GetNamespace(), input.Deployment.GetName())
 }

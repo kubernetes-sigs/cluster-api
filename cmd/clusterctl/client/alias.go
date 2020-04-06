@@ -34,5 +34,5 @@ type Components repository.Components
 // Template wraps a YAML file that defines the cluster objects (Cluster, Machines etc.).
 type Template repository.Template
 
-// Template wraps a YAML file that defines the cluster objects (Cluster, Machines etc.).
+// UpgradePlan defines a list of possible upgrade targets for a management group.
 type UpgradePlan cluster.UpgradePlan

@@ -38,6 +38,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
+	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -452,13 +453,13 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 		return nil
 	}
 
-	newImageName, err := util.ModifyImageTag(container.Image, kcp.Spec.Version)
+	newImageName, err := containerutil.ModifyImageTag(container.Image, kcp.Spec.Version)
 	if err != nil {
 		return err
 	}
 	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil &&
 		kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository != "" {
-		newImageName, err = util.ModifyImageRepository(newImageName, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository)
+		newImageName, err = containerutil.ModifyImageRepository(newImageName, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository)
 		if err != nil {
 			return err
 		}

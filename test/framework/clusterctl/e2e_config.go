@@ -118,7 +118,11 @@ type Files struct {
 	TargetName string `json:"targetName,omitempty"`
 }
 
-// Defaults assigns default values to the object.
+// Defaults assigns default values to the object. More specifically:
+// - ManagementClusterName gets a default name if empty.
+// - Providers version gets type KustomizeSource if not otherwise specified.
+// - Providers file gets targetName = sourceName if not otherwise specified.
+// - Images gets LoadBehavior = MustLoadImage if not otherwise specified.
 func (c *E2EConfig) Defaults() {
 	if c.ManagementClusterName == "" {
 		c.ManagementClusterName = fmt.Sprintf("test-%s", util.RandomString(6))
@@ -178,8 +182,20 @@ func errEmptyArg(argName string) error {
 	return errInvalidArg("%s is empty", argName)
 }
 
-// Validate validates the configuration.
+// Validate validates the configuration. More specifically:
+// - ManagementClusterName should not be empty.
+// - Providers name should not be empty.
+// - Providers type should be one of [CoreProvider, BootstrapProvider, ControlPlaneProvider, InfrastructureProvider].
+// - Providers version should have a name.
+// - Providers version.type should be one of [url, kustomize].
+// - Providers version.replacements.old should be a valid regex.
+// - Providers files should be an existing file and have a target name.
+// - There should be one CoreProvider (cluster-api), one BootstrapProvider (kubeadm), one ControlPlaneProvider (kubeadm).
+// - There should be one InfraProvider (pick your own).
+// - Image should have name and loadBehavior be one of [mustload, tryload].
+// - Intervals should be valid ginkgo intervals.
 func (c *E2EConfig) Validate() error {
+	// ManagementClusterName should not be empty.
 	if c.ManagementClusterName == "" {
 		return errEmptyArg("ManagementClusterName")
 	}
@@ -191,9 +207,11 @@ func (c *E2EConfig) Validate() error {
 		clusterctlv1.InfrastructureProviderType: nil,
 	}
 	for i, providerConfig := range c.Providers {
+		// Providers name should not be empty.
 		if providerConfig.Name == "" {
 			return errEmptyArg(fmt.Sprintf("Providers[%d].Name", i))
 		}
+		// Providers type should be one of [CoreProvider, BootstrapProvider, ControlPlaneProvider, InfrastructureProvider].
 		providerType := clusterctlv1.ProviderType(providerConfig.Type)
 		switch providerType {
 		case clusterctlv1.CoreProviderType, clusterctlv1.BootstrapProviderType, clusterctlv1.ControlPlaneProviderType, clusterctlv1.InfrastructureProviderType:
@@ -202,10 +220,14 @@ func (c *E2EConfig) Validate() error {
 			return errInvalidArg("Providers[%d].Type=%q", i, providerConfig.Type)
 		}
 
+		// Providers version should have a name.
+		// Providers version.type should be one of [url, kustomize].
+		// Providers version.replacements.old should be a valid regex.
 		for j, version := range providerConfig.Versions {
 			if version.Name == "" {
 				return errEmptyArg(fmt.Sprintf("Providers[%d].Sources[%d].Name", i, j))
 			}
+			//TODO: check if name is a valid semantic version
 			switch version.Type {
 			case framework.URLSource, framework.KustomizeSource:
 				if version.Value == "" {
@@ -221,6 +243,7 @@ func (c *E2EConfig) Validate() error {
 			}
 		}
 
+		// Providers files should be an existing file and have a target name.
 		for j, file := range providerConfig.Files {
 			if file.SourcePath == "" {
 				return errInvalidArg("Providers[%d].Files[%d].SourcePath=%q", i, j, file.SourcePath)
@@ -234,6 +257,7 @@ func (c *E2EConfig) Validate() error {
 		}
 	}
 
+	// There should be one CoreProvider (cluster-api), one BootstrapProvider (kubeadm), one ControlPlaneProvider (kubeadm).
 	if len(providersByType[clusterctlv1.CoreProviderType]) != 1 {
 		return errInvalidArg("invalid config: it is required to have exactly one core-provider")
 	}
@@ -255,10 +279,12 @@ func (c *E2EConfig) Validate() error {
 		return errInvalidArg("invalid config: control-plane-provider should be named %s", clusterctlconfig.KubeadmControlPlaneProviderName)
 	}
 
+	// There should be one InfraProvider (pick your own).
 	if len(providersByType[clusterctlv1.InfrastructureProviderType]) != 1 {
 		return errInvalidArg("invalid config: it is required to have exactly one infrastructure-provider")
 	}
 
+	// Image should have name and loadBehavior be one of [mustload, tryload].
 	for i, containerImage := range c.Images {
 		if containerImage.Name == "" {
 			return errEmptyArg(fmt.Sprintf("Images[%d].Name=%q", i, containerImage.Name))
@@ -271,6 +297,7 @@ func (c *E2EConfig) Validate() error {
 		}
 	}
 
+	// Intervals should be valid ginkgo intervals.
 	for k, intervals := range c.Intervals {
 		switch len(intervals) {
 		case 0:

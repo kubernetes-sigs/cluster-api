@@ -44,8 +44,8 @@ func (m *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machinehealthcheck,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1alpha3,name=validation.machinehealthcheck.cluster.x-k8s.io
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machinehealthcheck,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1alpha3,name=default.machinehealthcheck.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machinehealthcheck,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1alpha3,name=validation.machinehealthcheck.cluster.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machinehealthcheck,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1alpha3,name=default.machinehealthcheck.cluster.x-k8s.io,sideEffects=None
 
 var _ webhook.Defaulter = &MachineHealthCheck{}
 var _ webhook.Validator = &MachineHealthCheck{}

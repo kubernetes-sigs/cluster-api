@@ -25,6 +25,7 @@ webhooks:
     - UPDATE
     resources:
     - kubeadmcontrolplanes
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -52,3 +53,4 @@ webhooks:
     - UPDATE
     resources:
     - kubeadmcontrolplanes
+  sideEffects: None

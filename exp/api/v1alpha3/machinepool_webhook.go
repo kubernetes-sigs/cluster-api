@@ -33,8 +33,8 @@ func (m *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-exp-cluster-x-k8s-io-v1alpha3-machinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=exp.cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=validation.exp.machinepool.cluster.x-k8s.io
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-exp-cluster-x-k8s-io-v1alpha3-machinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=exp.cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=default.exp.machinepool.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-exp-cluster-x-k8s-io-v1alpha3-machinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=exp.cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=validation.exp.machinepool.cluster.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-exp-cluster-x-k8s-io-v1alpha3-machinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=exp.cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=default.exp.machinepool.cluster.x-k8s.io,sideEffects=None
 
 var _ webhook.Defaulter = &MachinePool{}
 var _ webhook.Validator = &MachinePool{}

@@ -25,6 +25,7 @@ webhooks:
     - UPDATE
     resources:
     - clusters
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -44,6 +45,7 @@ webhooks:
     - UPDATE
     resources:
     - machines
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -63,6 +65,7 @@ webhooks:
     - UPDATE
     resources:
     - machinedeployments
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -82,6 +85,7 @@ webhooks:
     - UPDATE
     resources:
     - machinehealthchecks
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -101,6 +105,7 @@ webhooks:
     - UPDATE
     resources:
     - machinesets
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -120,6 +125,7 @@ webhooks:
     - UPDATE
     resources:
     - machinepools
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -147,6 +153,7 @@ webhooks:
     - UPDATE
     resources:
     - clusters
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -166,6 +173,7 @@ webhooks:
     - UPDATE
     resources:
     - machines
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -185,6 +193,7 @@ webhooks:
     - UPDATE
     resources:
     - machinedeployments
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -204,6 +213,7 @@ webhooks:
     - UPDATE
     resources:
     - machinehealthchecks
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -223,6 +233,7 @@ webhooks:
     - UPDATE
     resources:
     - machinesets
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -242,3 +253,4 @@ webhooks:
     - UPDATE
     resources:
     - machinepools
+  sideEffects: None

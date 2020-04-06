@@ -97,18 +97,14 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}
 	}
 
+	// If there is not already a Machine that is marked for scale down, find one and mark it
 	markedForDeletion := selectedMachines.Filter(machinefilters.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
 	if len(markedForDeletion) == 0 {
-		fd := controlPlane.FailureDomainWithMostMachines(selectedMachines)
-		machinesInFailureDomain := selectedMachines.Filter(machinefilters.InFailureDomains(fd))
-		machineToMark := machinesInFailureDomain.Oldest()
-		if machineToMark == nil {
-			return ctrl.Result{}, errors.New("failed to pick control plane Machine to mark for deletion")
+		machineToMark, err := r.selectAndMarkMachine(ctx, selectedMachines, controlplanev1.DeleteForScaleDownAnnotation, controlPlane)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to select and mark machine for scale down")
 		}
-		if err := r.markWithAnnotationKey(ctx, machineToMark, controlplanev1.DeleteForScaleDownAnnotation); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to mark machine %s for deletion", machineToMark.Name)
-		}
-		markedForDeletion.Insert(machinesInFailureDomain.Oldest())
+		markedForDeletion.Insert(machineToMark)
 	}
 
 	machineToDelete := markedForDeletion.Oldest()

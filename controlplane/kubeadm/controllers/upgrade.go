@@ -85,7 +85,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	// If there is not already a Machine that is marked for upgrade, find one and mark it
 	selectedForUpgrade := requireUpgrade.Filter(machinefilters.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation))
 	if len(selectedForUpgrade) == 0 {
-		selectedMachine, err := r.selectMachineForUpgrade(ctx, cluster, requireUpgrade, controlPlane)
+		selectedMachine, err := r.selectAndMarkMachine(ctx, requireUpgrade, controlplanev1.SelectedForUpgradeAnnotation, controlPlane)
 		if err != nil {
 			logger.Error(err, "failed to select machine for upgrade")
 			return ctrl.Result{}, err
@@ -111,14 +111,14 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines, replacementCreated, controlPlane)
 }
 
-func (r *KubeadmControlPlaneReconciler) selectMachineForUpgrade(ctx context.Context, _ *clusterv1.Cluster, requireUpgrade internal.FilterableMachineCollection, controlPlane *internal.ControlPlane) (*clusterv1.Machine, error) {
-	failureDomain := controlPlane.FailureDomainWithMostMachines(requireUpgrade)
-
-	inFailureDomain := requireUpgrade.Filter(machinefilters.InFailureDomains(failureDomain))
-	selected := inFailureDomain.Oldest()
-
-	if err := r.markWithAnnotationKey(ctx, selected, controlplanev1.SelectedForUpgradeAnnotation); err != nil {
-		return nil, errors.Wrap(err, "failed to select and mark a machine for upgrade")
+func (r *KubeadmControlPlaneReconciler) selectAndMarkMachine(ctx context.Context, machines internal.FilterableMachineCollection, annotation string, controlPlane *internal.ControlPlane) (*clusterv1.Machine, error) {
+	selected, err := controlPlane.MachineInFailureDomainWithMostMachines(machines)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select and mark a machine")
+	}
+	//annotation
+	if err := r.markWithAnnotationKey(ctx, selected, annotation); err != nil {
+		return nil, errors.Wrap(err, "failed to select and mark a machine")
 	}
 
 	return selected, nil

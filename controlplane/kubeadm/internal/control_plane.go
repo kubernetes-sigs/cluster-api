@@ -18,6 +18,7 @@ package internal
 
 import (
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -107,8 +108,19 @@ func (c *ControlPlane) MachinesNeedingUpgrade() FilterableMachineCollection {
 	)
 }
 
-// FailureDomainWithMostMachines returns the failure domain with the most number of machines.
-// Used when scaling down.
+// MachineInFailureDomainWithMostMachines returns the first matching failure domain with machines that has the most control-plane machines on it.
+func (c *ControlPlane) MachineInFailureDomainWithMostMachines(machines FilterableMachineCollection) (*clusterv1.Machine, error) {
+	fd := c.FailureDomainWithMostMachines(machines)
+	machinesInFailureDomain := machines.Filter(machinefilters.InFailureDomains(fd))
+	machineToMark := machinesInFailureDomain.Oldest()
+	if machineToMark == nil {
+		return nil, errors.New("failed to pick control plane Machine to mark for deletion")
+	}
+	return machineToMark, nil
+}
+
+// FailureDomainWithMostMachines returns a fd which exists both in machines and control-plane machines and has the most
+// control-plane machines on it.
 func (c *ControlPlane) FailureDomainWithMostMachines(machines FilterableMachineCollection) *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := machines.Filter(
@@ -121,8 +133,7 @@ func (c *ControlPlane) FailureDomainWithMostMachines(machines FilterableMachineC
 		return notInFailureDomains.Oldest().Spec.FailureDomain
 	}
 
-	// Otherwise pick the currently known failure domain with the most Machines
-	return PickMost(c.Cluster.Status.FailureDomains.FilterControlPlane(), machines)
+	return PickMost(c, machines)
 }
 
 // FailureDomainWithFewestMachines returns the failure domain with the fewest number of machines.

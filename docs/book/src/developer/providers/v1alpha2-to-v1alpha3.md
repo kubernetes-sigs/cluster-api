@@ -162,18 +162,45 @@ outside of the existing module.
   }
   ```
 - Unless your controller is already watching Clusters, add a Watch to get notifications when Cluster.Spec.Paused field changes.
-  In most cases, `util.WatchOnClusterPaused` and `util.ClusterToObjectsMapper` can be used like in the example below:
+  In most cases, `predicates.ClusterUnpaused` and `util.ClusterToObjectsMapper` can be used like in the example below:
   ```go
   // Add a watch on clusterv1.Cluster object for paused notifications.
   clusterToObjectFunc, err := util.ClusterToObjectsMapper(mgr.GetClient(), <List object here>, mgr.GetScheme())
   if err != nil {
     return err
   }
-  if err := util.WatchOnClusterPaused(controller, clusterToObjectFunc); err != nil {
+  err = controller.Watch(
+      &source.Kind{Type: &cluserv1.Cluster{}},
+      &handler.EnqueueRequestsFromMapFunc{
+          ToRequests: clusterToObjectFunc,
+      },
+      predicates.ClusterUnpaused(r.Log),
+  )
+  if err != nil {
     return err
   }
   ```
   NB: You need to have `cluster.x-k8s.io/cluster-name` applied to all your objects for the mapper to function.
+- In some cases, you'll want to not just watch on Cluster.Spec.Paused changes, but also on
+  Cluster.Status.InfrastructureReady. For those cases `predicates.ClusterUnpausedAndInfrastructureReady` should be used
+  instead. 
+  ```go
+  // Add a watch on clusterv1.Cluster object for paused and infrastructureReady notifications.
+  clusterToObjectFunc, err := util.ClusterToObjectsMapper(mgr.GetClient(), <List object here>, mgr.GetScheme())
+  if err != nil {
+    return err
+  }
+  err = controller.Watch(
+        &source.Kind{Type: &cluserv1.Cluster{}},
+        &handler.EnqueueRequestsFromMapFunc{
+            ToRequests: clusterToObjectFunc,
+        },
+        predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+    )
+    if err != nil {
+      return err
+    }
+    ```
 
 ## [OPTIONAL] Support failure domains.
 

@@ -36,7 +36,9 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,15 +72,22 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
-		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmControlPlane)},
-		).
 		WithOptions(options).
+		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
 		Build(r)
-
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
+	err = c.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmControlPlane),
+		},
+		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed adding Watch for Clusters to controller manager")
 	}
 
 	r.scheme = mgr.GetScheme()
@@ -117,7 +126,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	}
 	logger = logger.WithValues("cluster", cluster.Name)
 
-	if util.IsPaused(cluster, kcp) {
+	if annotations.IsPaused(cluster, kcp) {
 		logger.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}

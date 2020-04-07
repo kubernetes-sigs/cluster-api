@@ -24,12 +24,10 @@ If the provider of your choice is missing, you can customize the list of support
 #### Automatically installed providers
 
 The `clusterctl init` command automatically adds the `cluster-api` core provider, the `kubeadm` bootstrap provider, and
-the `kubeadm` control-plane provider to the list of providers to install. This allows users to use a concise command syntax for initializing a management cluster. e.g.
-use the command:
+the `kubeadm` control-plane provider to the list of providers to install. This allows users to use a concise command syntax for initializing a management cluster.
+For example, to get a fully operational management cluster with the `aws` infrastructure provider, the `cluster-api` core provider, the `kubeadm` bootstrap, and the `kubeadm` control-plane provider, use the command:
 
 `clusterctl init --infrastructure aws`
-
-To get a fully operative management cluster with the `aws` infrastructure provider, the `cluster-api` core provider, the `kubeadm` bootstrap and the `kubeadm` control-plane provider
 
 <aside class="note warning">
 

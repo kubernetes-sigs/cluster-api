@@ -4,6 +4,16 @@
 
 Before attempting to configure a MachineHealthCheck, you should have a working [management cluster] with at least one MachineDeployment or MachineSet deployed.
 
+<aside class="note warn">
+
+<h1> Important </h1>
+
+Please note that MachineHealthChecks currently **only** support Machines that are owned by a MachineSet.
+Please review the [Limitations and Caveats of a MachineHealthCheck](#limitations-and-caveats-of-a-machinehealthcheck)
+at the bottom of this page for full details of MachineHealthCheck limitations.
+
+</aside>
+
 ## What is a MachineHealthCheck?
 
 A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machine's within a Cluster should be considered unhealthy.

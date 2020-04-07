@@ -39,7 +39,7 @@ type InitManagementClusterInput struct {
 	// E2EConfig defining the configuration for the E2E test.
 	E2EConfig *E2EConfig
 
-	// ClusterctlConfigPath is the path to a clusterctl config file pointing to the repository to be used for running clusterctl init.
+	// ClusterctlConfigPath is the path to a clusterctl config file that points to repositories to be used during "clusterctl init".
 	ClusterctlConfigPath string
 
 	// LogsFolder defines a folder where to store clusterctl logs.
@@ -48,8 +48,7 @@ type InitManagementClusterInput struct {
 	// Scheme is used to initialize the scheme for the management cluster client.
 	Scheme *runtime.Scheme
 
-	// NewManagementClusterFn may be used to provide a custom function for
-	// returning a new management cluster. Otherwise kind.NewCluster is used.
+	// NewManagementClusterFn should return a new management cluster.
 	NewManagementClusterFn func(name string, scheme *runtime.Scheme) (cluster framework.ManagementCluster, kubeConfigPath string, err error)
 }
 
@@ -58,7 +57,8 @@ func InitManagementCluster(ctx context.Context, input *InitManagementClusterInpu
 	// validate parameters and apply defaults
 
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling InitManagementCluster")
-	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Failed to create a clusterctl config file at %s", input.ClusterctlConfigPath)
+	Expect(input.NewManagementClusterFn).ToNot(BeNil(), "Invalid argument. input.NewManagementClusterFn can't be nil when calling InitManagementCluster")
+	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file")
 
 	By(fmt.Sprintf("Creating the management cluster with name %s", input.E2EConfig.ManagementClusterName))
 

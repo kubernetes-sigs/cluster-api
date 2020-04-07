@@ -126,8 +126,8 @@ type MoveInput struct {
 	Namespace            string
 }
 
-// ClusterctlMove moves a workloads clusters.
-func ClusterctlMove(ctx context.Context, input MoveInput) {
+// Move moves workload clusters.
+func Move(ctx context.Context, input MoveInput) {
 	By("Moving workload clusters")
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", input.LogPath)

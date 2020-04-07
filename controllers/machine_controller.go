@@ -42,13 +42,16 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	kubedrain "sigs.k8s.io/cluster-api/third_party/kubernetes-drain"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var (
@@ -77,22 +80,30 @@ type MachineReconciler struct {
 }
 
 func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	controller, err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.Machine{}).
-		WithOptions(options).
-		Build(r)
-
-	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
-	}
-
-	// Add a watch on clusterv1.Cluster object for paused notifications.
 	clusterToMachines, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
-	if err := util.WatchOnClusterPaused(controller, clusterToMachines); err != nil {
-		return err
+
+	controller, err := ctrl.NewControllerManagedBy(mgr).
+		For(&clusterv1.Machine{}).
+		WithOptions(options).
+		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		Build(r)
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
+	err = controller.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: clusterToMachines,
+		},
+		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
+		predicates.ClusterUnpaused(r.Log),
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
@@ -143,7 +154,7 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	// Return early if the object or Cluster is paused.
-	if util.IsPaused(cluster, m) {
+	if annotations.IsPaused(cluster, m) {
 		logger.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}

@@ -10,4 +10,4 @@ Its main responsibilities are:
   * Scaling down old MachineSets when newer MachineSets replace them
 * Updating the status of MachineDeployment objects
 
-![](../../../images/cluster-admission-machineset-controller.png)
+![](../../../images/cluster-admission-machinedeployment-controller.png)

@@ -2,7 +2,7 @@
 @startuml cluster-admission-machinedeployment-controller
 
 start;
-:MachineSet controller;
+:MachineDeployment controller;
 
 repeat
   :MachineDeployment controller enqueues a Reconcile call;

@@ -484,6 +484,9 @@ kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o jsonpath={.
 
 Calico is used here as an example.
 
+{{#tabs name:"tab-deploy-cni" tabs:"AWS|Docker|GCP|vSphere|OpenStack|Metal3,Azure"}}
+{{#tab AWS|Docker|GCP|vSphere|OpenStack|Metal3}}
+
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \
   apply -f https://docs.projectcalico.org/v3.12/manifests/calico.yaml
@@ -495,6 +498,26 @@ let's check the status using `kubectl get nodes`:
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
+
+{{#/tab }}
+{{#tab Azure}}
+
+Azure [does not currently support Calico networking](https://docs.projectcalico.org/reference/public-cloud/azure). As a workaround, it is recommended that Azure clusters use the Calico spec below that uses VXLAN.
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig \
+  apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-azure/master/templates/addons/calico.yaml
+```
+
+After a short while, our nodes should be running and in `Ready` state,
+let's check the status using `kubectl get nodes`:
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
+```
+
+{{#/tab }}
+{{#/tabs }}
 
 ## Next steps
 

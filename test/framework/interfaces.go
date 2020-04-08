@@ -19,6 +19,7 @@ package framework
 import (
 	"context"
 
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -61,6 +62,8 @@ type ManagementCluster interface {
 	GetName() string
 	// GetClient returns a client to the Management cluster.
 	GetClient() (client.Client, error)
+	// GetClientSet returns a clientset to the management cluster.
+	GetClientSet() (*kubernetes.Clientset, error)
 	// GetWorkdloadClient returns a client to the specified workload cluster.
 	GetWorkloadClient(ctx context.Context, namespace, name string) (client.Client, error)
 }

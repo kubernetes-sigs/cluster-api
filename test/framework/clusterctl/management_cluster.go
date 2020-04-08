@@ -19,16 +19,25 @@ limitations under the License.
 package clusterctl
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterctlconfig "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Provides utilities for setting up a management cluster using clusterctl.
@@ -112,7 +121,74 @@ func InitManagementCluster(ctx context.Context, input *InitManagementClusterInpu
 			Getter:     client,
 			Deployment: deployment,
 		}, input.E2EConfig.IntervalsOrDefault("init-management-cluster/wait-controllers", "2m", "10s")...)
+
+		// Start streaming logs from all controller providers
+		watchLogs(ctx, managementCluster, deployment.Namespace, deployment.Name, input.LogsFolder)
 	}
 
 	return managementCluster, managementClusterKubeConfigPath
+}
+
+// watchLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed
+// in a separate goroutine so they can all be streamed concurrently. This only causes a test failure if there are errors
+// retrieving the deployment, its pods, or setting up a log file. If there is an error with the log streaming itself,
+// that does not cause the test to fail.
+func watchLogs(ctx context.Context, mgmt framework.ManagementCluster, namespace, deploymentName, logDir string) error {
+	c, err := mgmt.GetClient()
+	if err != nil {
+		return err
+	}
+	clientSet, err := mgmt.GetClientSet()
+	if err != nil {
+		return err
+	}
+
+	deployment := &appsv1.Deployment{}
+	Expect(c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: deploymentName}, deployment)).To(Succeed())
+
+	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred())
+
+	pods := &corev1.PodList{}
+	Expect(c.List(ctx, pods, client.InNamespace(namespace), client.MatchingLabels(selector))).To(Succeed())
+
+	for _, pod := range pods.Items {
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			// Watch each container's logs in a goroutine so we can stream them all concurrently.
+			go func(pod corev1.Pod, container corev1.Container) {
+				defer GinkgoRecover()
+
+				logFile := path.Join(logDir, deploymentName, pod.Name, container.Name+".log")
+				fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
+				Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
+
+				fmt.Fprintf(GinkgoWriter, "Creating file: %s\n", logFile)
+				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				Expect(err).NotTo(HaveOccurred())
+				defer f.Close()
+
+				opts := &corev1.PodLogOptions{
+					Container: container.Name,
+					Follow:    true,
+				}
+
+				podLogs, err := clientSet.CoreV1().Pods(namespace).GetLogs(pod.Name, opts).Stream()
+				if err != nil {
+					// Failing to stream logs should not cause the test to fail
+					fmt.Fprintf(GinkgoWriter, "Error starting logs stream for pod %s/%s, container %s: %v\n", namespace, pod.Name, container.Name, err)
+					return
+				}
+				defer podLogs.Close()
+
+				out := bufio.NewWriter(f)
+				defer out.Flush()
+				_, err = out.ReadFrom(podLogs)
+				if err != nil && err != io.ErrUnexpectedEOF {
+					// Failing to stream logs should not cause the test to fail
+					fmt.Fprintf(GinkgoWriter, "Got error while streaming logs for pod %s/%s, container %s: %v\n", namespace, pod.Name, container.Name, err)
+				}
+			}(pod, container)
+		}
+	}
+	return nil
 }

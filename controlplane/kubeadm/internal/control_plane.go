@@ -48,7 +48,7 @@ func NewControlPlane(cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmCont
 
 // Logger returns a logger with useful context.
 func (c *ControlPlane) Logger() logr.Logger {
-	return Log.WithValues("namespace", c.KCP.Namespace, "name", c.KCP.Name, "cluster-nanme", c.Cluster.Name)
+	return Log.WithValues("namespace", c.KCP.Namespace, "name", c.KCP.Name, "cluster-name", c.Cluster.Name)
 }
 
 // FailureDomains returns a slice of failure domain objects synced from the infrastructure provider into Cluster.Status.

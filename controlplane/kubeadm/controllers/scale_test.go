@@ -20,15 +20,19 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -108,7 +112,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			Machines: fmc.Machines,
 		}
 
-		result, err := r.scaleUpControlPlane(context.Background(), cluster, kcp, fmc.Machines.DeepCopy(), controlPlane)
+		result, err := r.scaleUpControlPlane(context.Background(), cluster, kcp, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -163,9 +167,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 				Machines: beforeMachines,
 			}
 
-			ownedMachines := fmc.Machines.DeepCopy()
-
-			_, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), ownedMachines, controlPlane)
+			_, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), controlPlane)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
 
@@ -207,6 +209,105 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		Machines: machines,
 	}
 
-	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, machines, machines, controlPlane)
+	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestSelectMachineForScaleDown(t *testing.T) {
+	kcp := controlplanev1.KubeadmControlPlane{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{},
+	}
+	startDate := time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC)
+	m1 := machine("machine-1", withFailureDomain("one"), withTimestamp(startDate.Add(time.Hour)), withValidHash(kcp.Spec))
+	m2 := machine("machine-2", withFailureDomain("one"), withTimestamp(startDate.Add(-3*time.Hour)), withValidHash(kcp.Spec))
+	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)), withValidHash(kcp.Spec))
+	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)), withValidHash(kcp.Spec))
+	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)), withHash("shrug"))
+
+	mc3 := internal.NewFilterableMachineCollection(m1, m2, m3, m4, m5)
+	fd := clusterv1.FailureDomains{
+		"one": failureDomain(true),
+		"two": failureDomain(true),
+	}
+
+	needsUpgradeControlPlane := &internal.ControlPlane{
+		KCP:      &kcp,
+		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
+		Machines: mc3,
+	}
+	upToDateControlPlane := &internal.ControlPlane{
+		KCP:     &kcp,
+		Cluster: &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
+		Machines: mc3.Filter(func(m *clusterv1.Machine) bool {
+			return m.Name != "machine-5"
+		}),
+	}
+
+	testCases := []struct {
+		name            string
+		cp              *internal.ControlPlane
+		expectErr       bool
+		expectedMachine clusterv1.Machine
+	}{
+		{
+			name:            "when there are are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
+			cp:              needsUpgradeControlPlane,
+			expectErr:       false,
+			expectedMachine: clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-5"}},
+		},
+		{
+			name:            "when there are no outdated machines, it returns the oldest machine in the largest failure domain",
+			cp:              upToDateControlPlane,
+			expectErr:       false,
+			expectedMachine: clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+			selectedMachine, err := selectMachineForScaleDown(tc.cp)
+
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(tc.expectedMachine.Name).To(Equal(selectedMachine.Name))
+		})
+	}
+}
+
+func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
+	return clusterv1.FailureDomainSpec{
+		ControlPlane: controlPlane,
+	}
+}
+
+func withFailureDomain(fd string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Spec.FailureDomain = &fd
+	}
+}
+
+func withTimestamp(t time.Time) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.CreationTimestamp = metav1.NewTime(t)
+	}
+}
+
+func withValidHash(kcp controlplanev1.KubeadmControlPlaneSpec) machineOpt {
+	return func(m *clusterv1.Machine) {
+		withHash(hash.Compute(&kcp))(m)
+	}
+}
+
+func withHash(hash string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.SetLabels(map[string]string{controlplanev1.KubeadmControlPlaneHashLabelKey: hash})
+	}
 }

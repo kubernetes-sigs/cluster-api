@@ -25,12 +25,8 @@ import (
 )
 
 const (
-	KubeadmControlPlaneFinalizer             = "kubeadm.controlplane.cluster.x-k8s.io"
-	KubeadmControlPlaneHashLabelKey          = "kubeadm.controlplane.cluster.x-k8s.io/hash"
-	SelectedForUpgradeAnnotation             = "kubeadm.controlplane.cluster.x-k8s.io/selected-for-upgrade"
-	UpgradeReplacementCreatedAnnotation      = "kubeadm.controlplane.cluster.x-k8s.io/upgrade-replacement-created"
-	DeleteForScaleDownAnnotation             = "kubeadm.controlplane.cluster.x-k8s.io/delete-for-scale-down"
-	ScaleDownConfigMapEntryRemovedAnnotation = "kubeadm.controlplane.cluster.x-k8s.io/scale-down-configmap-entry-removed"
+	KubeadmControlPlaneFinalizer    = "kubeadm.controlplane.cluster.x-k8s.io"
+	KubeadmControlPlaneHashLabelKey = "kubeadm.controlplane.cluster.x-k8s.io/hash"
 )
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.

@@ -229,23 +229,3 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 	}
 	return nil
 }
-
-func (r *KubeadmControlPlaneReconciler) markWithAnnotationKey(ctx context.Context, machine *clusterv1.Machine, annotationKey string) error {
-	if machine == nil {
-		return errors.New("expected machine not nil")
-	}
-	patchHelper, err := patch.NewHelper(machine, r.Client)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for machine %s", machine.Name)
-	}
-
-	if machine.Annotations == nil {
-		machine.Annotations = make(map[string]string)
-	}
-	machine.Annotations[annotationKey] = ""
-
-	if err := patchHelper.Patch(ctx, machine); err != nil {
-		return errors.Wrapf(err, "failed to patch machine %s selected for upgrade", machine.Name)
-	}
-	return nil
-}

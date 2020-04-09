@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -922,52 +923,38 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 }
 
-func TestKubeadmControlPlaneReconciler_scaleDownControlPlane(t *testing.T) {
-	g := NewWithT(t)
-
-	machines := map[string]*clusterv1.Machine{
-		"one":   machine("one"),
-		"two":   machine("two"),
-		"three": machine("three"),
-	}
-	fd1 := "a"
-	fd2 := "b"
-	machines["one"].Spec.FailureDomain = &fd2
-	machines["two"].Spec.FailureDomain = &fd1
-	machines["three"].Spec.FailureDomain = &fd2
-
-	r := &KubeadmControlPlaneReconciler{
-		Log:      log.Log,
-		recorder: record.NewFakeRecorder(32),
-		Client:   newFakeClient(g, machines["one"]),
-		managementCluster: &fakeManagementCluster{
-			EtcdHealthy:         true,
-			ControlPlaneHealthy: true,
-		},
-	}
-	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: "default"})
-
-	kcp := &controlplanev1.KubeadmControlPlane{}
-	controlPlane := &internal.ControlPlane{
-		KCP:      kcp,
-		Cluster:  cluster,
-		Machines: machines,
-	}
-
-	ml := clusterv1.MachineList{}
-	ml.Items = []clusterv1.Machine{*machines["two"]}
-	mll := internal.NewFilterableMachineCollectionFromMachineList(&ml)
-	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, machines, mll, controlPlane)
-	g.Expect(err).To(HaveOccurred())
-}
-
 // test utils
 
 func newFakeClient(g *WithT, initObjs ...runtime.Object) client.Client {
 	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(Succeed())
 	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(Succeed())
-	return fake.NewFakeClientWithScheme(scheme.Scheme, initObjs...)
+	return &fakeClient{
+		startTime: time.Now(),
+		Client:    fake.NewFakeClientWithScheme(scheme.Scheme, initObjs...),
+	}
+}
+
+type fakeClient struct {
+	startTime time.Time
+	mux       sync.Mutex
+	client.Client
+}
+
+type fakeClientI interface {
+	SetCreationTimestamp(timestamp metav1.Time)
+}
+
+// controller-runtime's fake client doesn't set a CreationTimestamp
+// this sets one that increments by a minute for each object created
+func (c *fakeClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+	if f, ok := obj.(fakeClientI); ok {
+		c.mux.Lock()
+		c.startTime = c.startTime.Add(time.Minute)
+		f.SetCreationTimestamp(metav1.NewTime(c.startTime))
+		c.mux.Unlock()
+	}
+	return c.Client.Create(ctx, obj, opts...)
 }
 
 func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.KubeadmControlPlane, *unstructured.Unstructured) {

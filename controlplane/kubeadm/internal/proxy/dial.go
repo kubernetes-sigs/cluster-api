@@ -88,7 +88,7 @@ func (d *Dialer) DialContext(_ context.Context, network string, addr string) (ne
 		Post().
 		Resource(d.proxy.Kind).
 		Namespace(d.proxy.Namespace).
-		Name(d.proxy.ResourceName).
+		Name(addr).
 		SubResource("portforward")
 
 	dialer := spdy.NewDialer(d.upgrader, &http.Client{Transport: d.proxyTransport}, "POST", req.URL())

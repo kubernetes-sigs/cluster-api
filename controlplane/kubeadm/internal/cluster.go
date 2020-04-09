@@ -129,7 +129,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 		RootCAs:      caPool,
 		Certificates: []tls.Certificate{clientCert},
 	}
-
+	cfg.InsecureSkipVerify = true
 	return &Workload{
 		Client:          c,
 		CoreDNSMigrator: &CoreDNSMigrator{},

@@ -17,11 +17,10 @@ limitations under the License.
 package config
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api/util/container"
 )
 
 const (
@@ -119,53 +118,20 @@ func (i *imageMeta) Union(other *imageMeta) {
 
 // ApplyToImage changes an image name applying the transformations defined in the current imageMeta.
 func (i *imageMeta) ApplyToImage(image string) (string, error) {
-	// Splits the image name into its own composing parts
-	ref, err := reference.ParseNormalizedNamed(image)
+
+	newImage, err := container.ImageFromString(image)
 	if err != nil {
 		return "", err
 	}
 
 	// apply transformations
 	if i.Repository != "" {
-		// store tag & digest for rebuilding the image name
-		tagged, hasTag := ref.(reference.Tagged)
-		digested, hasDigest := ref.(reference.Digested)
-
-		// detect the image name, dropping host and path if any
-		name := ref.Name()
-		imageNameIndex := strings.LastIndex(name, "/")
-		if imageNameIndex != -1 {
-			name = strings.TrimPrefix(name[imageNameIndex+1:], "/")
-		}
-
-		// parse the new image resulting by concatenating the new repository and the image name
-		ref, err = reference.ParseNormalizedNamed(fmt.Sprintf("%s/%s", strings.TrimSuffix(i.Repository, "/"), name))
-		if err != nil {
-			return "", err
-		}
-
-		// applies back tag & digest
-		if hasTag {
-			ref, err = reference.WithTag(ref, tagged.Tag())
-			if err != nil {
-				return "", err
-			}
-		}
-
-		if hasDigest {
-			ref, err = reference.WithDigest(ref, digested.Digest())
-			if err != nil {
-				return "", err
-			}
-		}
+		newImage.Repository = strings.TrimSuffix(i.Repository, "/")
 	}
 	if i.Tag != "" {
-		ref, err = reference.WithTag(reference.TrimNamed(ref), i.Tag)
-		if err != nil {
-			return "", err
-		}
+		newImage.Tag = i.Tag
 	}
 
 	// returns the resulting image name
-	return ref.String(), nil
+	return newImage.String(), nil
 }

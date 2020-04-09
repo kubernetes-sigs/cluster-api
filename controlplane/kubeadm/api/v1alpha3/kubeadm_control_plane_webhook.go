@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/container"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -252,7 +253,7 @@ func (in *KubeadmControlPlane) validateCoreDNSImage() (allErrs field.ErrorList) 
 		return allErrs
 	}
 	// TODO: Remove when kubeadm types include OpenAPI validation
-	if !util.ImageTagIsValid(in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag) {
+	if !container.ImageTagIsValid(in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -320,7 +321,7 @@ func (in *KubeadmControlPlane) validateEtcd(prev *KubeadmControlPlane) (allErrs 
 	}
 
 	// TODO: Remove when kubeadm types include OpenAPI validation
-	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && !util.ImageTagIsValid(in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag) {
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && !container.ImageTagIsValid(in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(

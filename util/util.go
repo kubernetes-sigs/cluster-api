@@ -22,14 +22,12 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -40,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/container"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -63,7 +62,6 @@ var (
 	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano()))
 	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
-	ociTagAllowedChars           = regexp.MustCompile(`[^-a-zA-Z0-9_\.]`)
 	kubeSemver                   = regexp.MustCompile(`^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
 )
 
@@ -125,54 +123,22 @@ func Ordinalize(n int) string {
 	return fmt.Sprintf("%d%s", n, m[an%10])
 }
 
-// ModifyImageTag takes an imageName (e.g., repository/image:tag), and returns an image name with updated tag
-func ModifyImageTag(imageName, tagName string) (string, error) {
-	normalisedTagName := SemverToOCIImageTag(tagName)
-
-	namedRef, err := reference.ParseNormalizedNamed(imageName)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse image name")
-	}
-	// return error if images use digest as version instead of tag
-	if _, isCanonical := namedRef.(reference.Canonical); isCanonical {
-		return "", errors.New("image uses digest as version, cannot update tag ")
-	}
-
-	// update the image tag with tagName
-	namedTagged, err := reference.WithTag(namedRef, normalisedTagName)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to update image tag")
-	}
-
-	return reference.FamiliarString(reference.TagNameOnly(namedTagged)), nil
+// ModifyImageRepository takes an imageName (e.g., repository/image:tag), and returns an image name with updated repository
+// Deprecated: Please use the functions in util/container
+func ModifyImageRepository(imageName, repositoryName string) (string, error) {
+	return container.ModifyImageRepository(imageName, repositoryName)
 }
 
-// ModifyImageRepository takes an imageName (e.g., repository/image:tag), and returns an image name with updated repository
-func ModifyImageRepository(imageName, repositoryName string) (string, error) {
-	namedRef, err := reference.ParseNamed(imageName)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse image name")
-	}
-	_, nameOnly := path.Split(reference.Path(namedRef))
-	nameUpdated, err := reference.WithName(path.Join(repositoryName, nameOnly))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to update repository name")
-	}
-	if tagged, ok := namedRef.(reference.NamedTagged); ok {
-		retagged, err := reference.WithTag(nameUpdated, tagged.Tag())
-		if err != nil {
-			// this shouldn't be possible since we parsed it already above
-			return "", errors.Wrap(err, "failed to parse image tag")
-		}
-		return reference.FamiliarString(retagged), nil
-	} else {
-		return "", errors.New("image must be tagged")
-	}
+// ModifyImageTag takes an imageName (e.g., repository/image:tag), and returns an image name with updated tag
+// Deprecated: Please use the functions in util/container
+func ModifyImageTag(imageName, tagName string) (string, error) {
+	return container.ModifyImageTag(imageName, tagName)
 }
 
 // ImageTagIsValid ensures that a given image tag is compliant with the OCI spec
+// Deprecated: Please use the functions in util/container
 func ImageTagIsValid(tagName string) bool {
-	return !ociTagAllowedChars.MatchString(tagName)
+	return container.ImageTagIsValid(tagName)
 }
 
 // GetMachinesForCluster returns a list of machines associated with the cluster.
@@ -191,15 +157,16 @@ func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *cluste
 	return &machines, nil
 }
 
-// SemVerToOCIImageTag is a helper function that replaces all
+// SemverToOCIImageTag is a helper function that replaces all
 // non-allowed symbols in tag strings with underscores.
 // Image tag can only contain lowercase and uppercase letters, digits,
 // underscores, periods and dashes.
 // Current usage is for CI images where all of symbols except '+' are valid,
 // but function is for generic usage where input can't be always pre-validated.
 // Taken from k8s.io/cmd/kubeadm/app/util
+// Deprecated: Please use the functions in util/container
 func SemverToOCIImageTag(version string) string {
-	return ociTagAllowedChars.ReplaceAllString(version, "_")
+	return container.SemverToOCIImageTag(version)
 }
 
 // GetControlPlaneMachines returns a slice containing control plane machines.

@@ -34,17 +34,17 @@ import (
 
 // CreateRepositoryInput is the input for CreateRepository.
 type CreateRepositoryInput struct {
-	ArtifactsPath string
-	E2EConfig     *E2EConfig
+	RepositoryFolder string
+	E2EConfig        *E2EConfig
 }
 
 // CreateRepository creates a clusterctl local repository based on the e2e test config, and the returns the path
 // to a clusterctl config file to be used for working with such repository.
 func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling CreateRepository")
+	Expect(os.MkdirAll(input.RepositoryFolder, 0755)).To(Succeed(), "Failed to create the clusterctl local repository folder %s", input.RepositoryFolder)
 
 	providers := []providerConfig{}
-	repositoryPath := filepath.Join(input.ArtifactsPath, "repository")
 	for _, provider := range input.E2EConfig.Providers {
 		providerUrl := ""
 		for _, version := range provider.Versions {
@@ -54,7 +54,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			manifest, err := generator.Manifests(ctx)
 			Expect(err).ToNot(HaveOccurred(), "Failed to generate the manifest for %q / %q", providerLabel, version.Name)
 
-			sourcePath := filepath.Join(repositoryPath, providerLabel, version.Name)
+			sourcePath := filepath.Join(input.RepositoryFolder, providerLabel, version.Name)
 			Expect(os.MkdirAll(sourcePath, 0755)).To(Succeed(), "Failed to create the clusterctl local repository folder for %q / %q", providerLabel, version.Name)
 
 			filePath := filepath.Join(sourcePath, "components.yaml")
@@ -80,12 +80,12 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	}
 
 	// set this path to an empty file under the repository path, so test can run in isolation without user's overrides kicking in
-	overridePath := filepath.Join(repositoryPath, "overrides")
+	overridePath := filepath.Join(input.RepositoryFolder, "overrides")
 	Expect(os.MkdirAll(overridePath, 0755)).To(Succeed(), "Failed to create the clusterctl overrides folder %q", overridePath)
 
 	// creates a clusterctl config file to be used for working with such repository
 	clusterctlConfigFile := &clusterctlConfig{
-		Path: filepath.Join(repositoryPath, "clusterctl-config.yaml"),
+		Path: filepath.Join(input.RepositoryFolder, "clusterctl-config.yaml"),
 		Values: map[string]interface{}{
 			"providers":       providers,
 			"overridesFolder": overridePath,

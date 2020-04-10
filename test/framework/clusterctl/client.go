@@ -33,6 +33,11 @@ import (
 
 // Provide E2E friendly wrappers for the clusterctl client library.
 
+const (
+	// DefaultFlavor for ConfigClusterInput; use it for getting the cluster-template.yaml file.
+	DefaultFlavor = ""
+)
+
 // InitInput is the input for Init.
 type InitInput struct {
 	LogPath                 string
@@ -46,12 +51,12 @@ type InitInput struct {
 
 // Init calls clusterctl init with the list of providers defined in the local repository
 func Init(ctx context.Context, input InitInput) {
-	By(fmt.Sprintf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s",
+	fmt.Fprintf(GinkgoWriter, "clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s\n",
 		input.CoreProvider,
 		strings.Join(input.BootstrapProviders, ", "),
 		strings.Join(input.ControlPlaneProviders, ", "),
 		strings.Join(input.InfrastructureProviders, ", "),
-	))
+	)
 
 	initOpt := clusterctlclient.InitOptions{
 		Kubeconfig:              input.KubeconfigPath,
@@ -75,32 +80,36 @@ type ConfigClusterInput struct {
 	ClusterctlConfigPath     string
 	KubeconfigPath           string
 	InfrastructureProvider   string
+	Namespace                string
 	ClusterName              string
 	KubernetesVersion        string
 	ControlPlaneMachineCount *int64
 	WorkerMachineCount       *int64
+	Flavor                   string
 }
 
 // ConfigCluster gets a workload cluster based on a template.
 func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
-	By(fmt.Sprintf("clusterctl config cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %s",
+	fmt.Fprintf(GinkgoWriter, "clusterctl config cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s\n",
 		input.ClusterName,
-		input.InfrastructureProvider,
+		valueOrDefault(input.InfrastructureProvider),
 		input.KubernetesVersion,
-		input.ControlPlaneMachineCount,
-		input.WorkerMachineCount,
-	))
+		*input.ControlPlaneMachineCount,
+		*input.WorkerMachineCount,
+		valueOrDefault(input.Flavor),
+	)
 
 	templateOptions := clusterctlclient.GetClusterTemplateOptions{
 		Kubeconfig: input.KubeconfigPath,
 		ProviderRepositorySource: &clusterctlclient.ProviderRepositorySourceOptions{
 			InfrastructureProvider: input.InfrastructureProvider,
-			Flavor:                 "",
+			Flavor:                 input.Flavor,
 		},
 		ClusterName:              input.ClusterName,
 		KubernetesVersion:        input.KubernetesVersion,
 		ControlPlaneMachineCount: input.ControlPlaneMachineCount,
 		WorkerMachineCount:       input.WorkerMachineCount,
+		TargetNamespace:          input.Namespace,
 	}
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-config-cluster.log", input.LogPath)
@@ -152,4 +161,11 @@ func getClusterctlClientWithLogger(configPath, logName, logPath string) (cluster
 	c, err := clusterctlclient.New(configPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create the clusterctl client library")
 	return c, log
+}
+
+func valueOrDefault(v string) string {
+	if v != "" {
+		return v
+	}
+	return "(default)"
 }

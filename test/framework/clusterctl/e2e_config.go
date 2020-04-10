@@ -43,9 +43,6 @@ import (
 type LoadE2EConfigInput struct {
 	// ConfigPath for the e2e test.
 	ConfigPath string
-
-	// BasePath to be used as a base for relative paths in the e2e config file.
-	BasePath string
 }
 
 // LoadE2EConfig loads the configuration for the e2e test environment.
@@ -58,7 +55,7 @@ func LoadE2EConfig(ctx context.Context, input LoadE2EConfigInput) *E2EConfig {
 	Expect(yaml.Unmarshal(configData, config)).To(Succeed(), "Failed to convert the e2e test config file to yaml")
 
 	config.Defaults()
-	config.AbsPaths(input.BasePath)
+	config.AbsPaths(filepath.Dir(input.ConfigPath))
 
 	Expect(config.Validate()).To(Succeed(), "The e2e test config file is not valid")
 
@@ -325,20 +322,26 @@ func fileExists(filename string) bool {
 }
 
 // InfraProvider returns the infrastructure provider selected for running this E2E test.
-func (c *E2EConfig) InfraProvider() string {
-	for _, providerConfig := range c.Providers {
-		if providerConfig.Type == string(clusterctlv1.InfrastructureProviderType) {
-			return providerConfig.Name
+func (c *E2EConfig) InfraProviders() []string {
+	InfraProviders := []string{}
+	for _, provider := range c.Providers {
+		if provider.Type == string(clusterctlv1.InfrastructureProviderType) {
+			InfraProviders = append(InfraProviders, provider.Name)
 		}
 	}
-	panic("it is required to have an infra provider in the config")
+	return InfraProviders
 }
 
-// IntervalsOrDefault returns the intervals to be applied to a Eventually operation.
-func (c *E2EConfig) IntervalsOrDefault(key string, defaults ...interface{}) []interface{} {
-	intervals, ok := c.Intervals[key]
+// GetIntervals returns the intervals to be applied to a Eventually operation.
+// It searches for [spec]/[key] intervals first, and if it is not found, it searches
+// for default/[key]. If also the default/[key] intervals are not found,
+// ginkgo DefaultEventuallyTimeout and DefaultEventuallyPollingInterval are used.
+func (c *E2EConfig) GetIntervals(spec, key string) []interface{} {
+	intervals, ok := c.Intervals[fmt.Sprintf("%s/%s", spec, key)]
 	if !ok {
-		return defaults
+		if intervals, ok = c.Intervals[fmt.Sprintf("default/%s", key)]; !ok {
+			return nil
+		}
 	}
 	intervalsInterfaces := make([]interface{}, len(intervals))
 	for i := range intervals {

@@ -21,7 +21,7 @@ Choose one of the options below:
 
 1. **Existing Management Cluster**
 
-For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place.
+For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place. The Kubernetes cluster must be at least v1.16+. 
 
 ```bash
 export KUBECONFIG=<...>

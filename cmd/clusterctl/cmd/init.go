@@ -35,7 +35,7 @@ type initOptions struct {
 	listImages              bool
 }
 
-var io = &initOptions{}
+var initOpts = &initOptions{}
 
 var initCmd = &cobra.Command{
 	Use:   "init",
@@ -90,25 +90,25 @@ var initCmd = &cobra.Command{
 }
 
 func init() {
-	initCmd.Flags().StringVar(&io.kubeconfig, "kubeconfig", "",
+	initCmd.Flags().StringVar(&initOpts.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig for the management cluster. If unspecified, default discovery rules apply.")
-	initCmd.Flags().StringVar(&io.kubeconfigContext, "kubeconfig-context", "",
+	initCmd.Flags().StringVar(&initOpts.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
-	initCmd.Flags().StringVar(&io.coreProvider, "core", "",
+	initCmd.Flags().StringVar(&initOpts.coreProvider, "core", "",
 		"Core provider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, Cluster API's latest release is used.")
-	initCmd.Flags().StringSliceVarP(&io.infrastructureProviders, "infrastructure", "i", nil,
+	initCmd.Flags().StringSliceVarP(&initOpts.infrastructureProviders, "infrastructure", "i", nil,
 		"Infrastructure providers and versions (e.g. aws:v0.5.0) to add to the management cluster.")
-	initCmd.Flags().StringSliceVarP(&io.bootstrapProviders, "bootstrap", "b", nil,
+	initCmd.Flags().StringSliceVarP(&initOpts.bootstrapProviders, "bootstrap", "b", nil,
 		"Bootstrap providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. If unspecified, Kubeadm bootstrap provider's latest release is used.")
-	initCmd.Flags().StringSliceVarP(&io.controlPlaneProviders, "control-plane", "c", nil,
+	initCmd.Flags().StringSliceVarP(&initOpts.controlPlaneProviders, "control-plane", "c", nil,
 		"Control plane providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
-	initCmd.Flags().StringVar(&io.targetNamespace, "target-namespace", "",
+	initCmd.Flags().StringVar(&initOpts.targetNamespace, "target-namespace", "",
 		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
-	initCmd.Flags().StringVar(&io.watchingNamespace, "watching-namespace", "",
+	initCmd.Flags().StringVar(&initOpts.watchingNamespace, "watching-namespace", "",
 		"Namespace the providers should watch when reconciling objects. If unspecified, all namespaces are watched.")
 
 	// TODO: Move this to a sub-command or similar, it shouldn't really be a flag.
-	initCmd.Flags().BoolVar(&io.listImages, "list-images", false,
+	initCmd.Flags().BoolVar(&initOpts.listImages, "list-images", false,
 		"Lists the container images required for initializing the management cluster (without actually installing the providers)")
 
 	RootCmd.AddCommand(initCmd)
@@ -121,17 +121,17 @@ func runInit() error {
 	}
 
 	options := client.InitOptions{
-		Kubeconfig:              client.Kubeconfig{Path: io.kubeconfig, Context: io.kubeconfigContext},
-		CoreProvider:            io.coreProvider,
-		BootstrapProviders:      io.bootstrapProviders,
-		ControlPlaneProviders:   io.controlPlaneProviders,
-		InfrastructureProviders: io.infrastructureProviders,
-		TargetNamespace:         io.targetNamespace,
-		WatchingNamespace:       io.watchingNamespace,
+		Kubeconfig:              client.Kubeconfig{Path: initOpts.kubeconfig, Context: initOpts.kubeconfigContext},
+		CoreProvider:            initOpts.coreProvider,
+		BootstrapProviders:      initOpts.bootstrapProviders,
+		ControlPlaneProviders:   initOpts.controlPlaneProviders,
+		InfrastructureProviders: initOpts.infrastructureProviders,
+		TargetNamespace:         initOpts.targetNamespace,
+		WatchingNamespace:       initOpts.watchingNamespace,
 		LogUsageInstructions:    true,
 	}
 
-	if io.listImages {
+	if initOpts.listImages {
 		images, err := c.InitImages(options)
 		if err != nil {
 			return err

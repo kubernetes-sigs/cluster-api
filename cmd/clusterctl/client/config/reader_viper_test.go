@@ -25,6 +25,45 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+func Test_viperReader_Init(t *testing.T) {
+
+	g := NewWithT(t)
+	dir, err := ioutil.TempDir("", "clusterctl")
+	g.Expect(err).NotTo(HaveOccurred())
+	defer os.RemoveAll(dir)
+
+	configFile := filepath.Join(dir, ".clusterctl.yaml")
+	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
+	tests := []struct {
+		name      string
+		cfgPath   string
+		expectErr bool
+	}{
+		{
+			name:      "reads in config successfully",
+			cfgPath:   configFile,
+			expectErr: false,
+		},
+		{
+			name:      "returns error for invalid config file path",
+			cfgPath:   "do-not-exist.yaml",
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gg := NewWithT(t)
+			v := &viperReader{}
+			if tt.expectErr {
+				gg.Expect(v.Init(tt.cfgPath)).ToNot(Succeed())
+				return
+			}
+			gg.Expect(v.Init(tt.cfgPath)).To(Succeed())
+
+		})
+	}
+}
 func Test_viperReader_Get(t *testing.T) {
 	g := NewWithT(t)
 

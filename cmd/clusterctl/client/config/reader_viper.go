@@ -61,11 +61,10 @@ func (v *viperReader) Init(path string) error {
 	viper.AllowEmptyEnv(true)
 	viper.AutomaticEnv()
 
-	// If a path file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		log.V(5).Info("Reading configuration", "File", viper.ConfigFileUsed())
+	if err := viper.ReadInConfig(); err != nil {
+		return err
 	}
-
+	log.V(5).Info("Reading configuration", "File", viper.ConfigFileUsed())
 	return nil
 }
 

@@ -100,8 +100,8 @@ clusterctl version
 
 ### Initialize the management cluster
 
-Now that we've got clusterctl installed and all the prerequisites in places, let's transforms the Kubernetes cluster
-into a management cluster by using the  `clusterctl init`.
+Now that we've got clusterctl installed and all the prerequisites in place, let's transform the Kubernetes cluster
+into a management cluster by using `clusterctl init`.
 
 The command accepts as input a list of providers to install; when executed for the first time, `clusterctl init`
 automatically adds to the list the `cluster-api` core provider, and if unspecified, it also adds the `kubeadm` bootstrap
@@ -381,8 +381,8 @@ For more information about prerequisites, credentials management, or permissions
 {{#/tab }}
 {{#tab OpenStack}}
 
-A ClusterAPI compatible image must be available in your OpenStack. For instructions on how to build a compatible image 
-see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html). 
+A ClusterAPI compatible image must be available in your OpenStack. For instructions on how to build a compatible image
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
 Depending on your OpenStack and underlying hypervisor the following options might be of interest:
 * [image-builder (OpenStack)](https://image-builder.sigs.k8s.io/capi/providers/openstack.html)
 * [image-builder (vSphere)](https://image-builder.sigs.k8s.io/capi/providers/vsphere.html)
@@ -410,13 +410,13 @@ Please visit the [Metal3 getting started guide].
 
 #### Generating the cluster configuration
 
-For the purpose of this tutorial, we’ll name our cluster capi-quickstart.
+For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
 ```bash
 clusterctl config cluster capi-quickstart --kubernetes-version v1.17.3 --control-plane-machine-count=3 --worker-machine-count=3 > capi-quickstart.yaml
 ```
 
-Creates a YAML file named `capi-quickstart.yaml` with a predefined list of Cluster API objects; Cluster, Machines,
+This creates a YAML file named `capi-quickstart.yaml` with a predefined list of Cluster API objects; Cluster, Machines,
 Machine Deployments, etc.
 
 The file can be eventually modified using your editor of choice.
@@ -445,7 +445,7 @@ kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io/capi-quickstart-md-0 created
 
 #### Accessing the workload cluster
 
-The cluster will now start provisioning. You check status with:
+The cluster will now start provisioning. You can check status with:
 
 ```bash
 kubectl get cluster --all-namespaces

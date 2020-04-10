@@ -37,6 +37,7 @@ import (
 )
 
 // DumpResources dump cluster API related resources to YAML
+// Deprecated. Please use DumpAllResources instead
 func DumpResources(mgmt ManagementCluster, resourcePath string, writer io.Writer) error {
 	resources := map[string]runtime.Object{
 		"Cluster":             &clusterv1.ClusterList{},
@@ -53,6 +54,7 @@ func DumpResources(mgmt ManagementCluster, resourcePath string, writer io.Writer
 }
 
 // DumpProviderResources dump provider specific API related resources to YAML
+// Deprecated. Please use DumpAllResources instead
 func DumpProviderResources(mgmt ManagementCluster, resources map[string]runtime.Object, resourcePath string, writer io.Writer) error {
 	return dumpResources(mgmt, resources, resourcePath, writer)
 }

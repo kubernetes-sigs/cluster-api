@@ -27,7 +27,6 @@ import (
 
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
@@ -89,27 +88,10 @@ func NewClusterForCAPD(ctx context.Context, name string, scheme *runtime.Scheme,
 
 // GetWorkloadClient uses some special logic for darwin architecture due to Docker for Mac limitations.
 func (c *CAPDCluster) GetWorkloadClient(ctx context.Context, namespace, name string) (client.Client, error) {
-	mgmtClient, err := c.GetClient()
+	kubeconfigPath, err := c.GetWorkerKubeconfigPath(ctx, namespace, name)
 	if err != nil {
 		return nil, err
 	}
-	config := &v1.Secret{}
-	key := client.ObjectKey{
-		Name:      fmt.Sprintf("%s-kubeconfig", name),
-		Namespace: namespace,
-	}
-	if err := mgmtClient.Get(ctx, key, config); err != nil {
-		return nil, err
-	}
-
-	f, err := ioutil.TempFile("", "worker-kubeconfig")
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	if _, err := f.Write(config.Data["value"]); err != nil {
-		return nil, errors.WithStack(err)
-	}
-	c.WorkloadClusterKubeconfigs[namespace+"-"+name] = f.Name()
 
 	master := ""
 
@@ -127,7 +109,7 @@ func (c *CAPDCluster) GetWorkloadClient(ctx context.Context, namespace, name str
 		master = masterURL.String()
 	}
 
-	restConfig, err := clientcmd.BuildConfigFromFlags(master, f.Name())
+	restConfig, err := clientcmd.BuildConfigFromFlags(master, kubeconfigPath)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

@@ -46,7 +46,7 @@ var _ = Describe("Docker Create", func() {
 		mgmtClient ctrlclient.Client
 		cluster    *clusterv1.Cluster
 	)
-	SetDefaultEventuallyTimeout(10 * time.Minute)
+	SetDefaultEventuallyTimeout(15 * time.Minute)
 	SetDefaultEventuallyPollingInterval(10 * time.Second)
 
 	AfterEach(func() {
@@ -137,7 +137,7 @@ var _ = Describe("Docker Create", func() {
 			Cluster:      cluster,
 			ControlPlane: controlPlane,
 		}
-		framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "5m")
+		framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "15m")
 
 		// Insatll a networking solution on the workload cluster
 		workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
@@ -218,7 +218,7 @@ var _ = Describe("Docker Create", func() {
 					return 0, err
 				}
 				return len(machineList.Items), nil
-			}, "10m", "5s").Should(Equal(int(*controlPlane.Spec.Replicas) - 1))
+			}, "15m", "5s").Should(Equal(int(*controlPlane.Spec.Replicas) - 1))
 
 			By("ensuring a replacement machine is created")
 			Eventually(func() (int, error) {
@@ -228,7 +228,7 @@ var _ = Describe("Docker Create", func() {
 					return 0, err
 				}
 				return len(machineList.Items), nil
-			}, "10m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
+			}, "15m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
 		})
 	})
 

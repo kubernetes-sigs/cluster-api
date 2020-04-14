@@ -170,14 +170,19 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		return ctrl.Result{}, nil
 	}
 
-	//Create the docker container hosting the machine
+	// Create the docker container hosting the machine
 	role := constants.WorkerNodeRoleValue
 	if util.IsControlPlaneMachine(machine) {
 		role = constants.ControlPlaneNodeRoleValue
 	}
 
-	if err := externalMachine.Create(ctx, role, machine.Spec.Version); err != nil {
+	if err := externalMachine.Create(ctx, role, machine.Spec.Version, dockerMachine.Spec.ExtraMounts); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
+	}
+
+	// Preload images into the container
+	if err := externalMachine.PreloadLoadImages(ctx, dockerMachine.Spec.PreLoadImages); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to pre-load images into the DockerMachine")
 	}
 
 	// if the machine is a control plane update the load balancer configuration

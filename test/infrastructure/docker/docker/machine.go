@@ -21,16 +21,21 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/cloudinit"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
+	"sigs.k8s.io/kind/pkg/exec"
 )
 
 const (
@@ -95,7 +100,7 @@ func (m *Machine) ProviderID() string {
 }
 
 // Create creates a docker container hosting a Kubernetes node.
-func (m *Machine) Create(ctx context.Context, role string, version *string) error {
+func (m *Machine) Create(ctx context.Context, role string, version *string, mounts []infrav1.Mount) error {
 	// Create if not exists.
 	if m.container == nil {
 		var err error
@@ -114,7 +119,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string) erro
 				clusterLabel(m.cluster),
 				"127.0.0.1",
 				0,
-				nil,
+				kindMounts(mounts),
 				nil,
 			)
 			if err != nil {
@@ -126,7 +131,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string) erro
 				m.ContainerName(),
 				machineImage,
 				clusterLabel(m.cluster),
-				nil,
+				kindMounts(mounts),
 				nil,
 			)
 			if err != nil {
@@ -145,6 +150,54 @@ func (m *Machine) Create(ctx context.Context, role string, version *string) erro
 			return errors.WithStack(err)
 		}
 		return nil
+	}
+	return nil
+}
+
+func kindMounts(mounts []infrav1.Mount) []v1alpha4.Mount {
+	if len(mounts) == 0 {
+		return nil
+	}
+
+	ret := make([]v1alpha4.Mount, 0, len(mounts))
+	for _, m := range mounts {
+		ret = append(ret, v1alpha4.Mount{
+			ContainerPath: m.ContainerPath,
+			HostPath:      m.HostPath,
+			Readonly:      m.Readonly,
+			Propagation:   v1alpha4.MountPropagationNone,
+		})
+	}
+	return ret
+}
+
+func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error {
+	// Save the image into a tar
+	dir, err := ioutil.TempDir("", "image-tar")
+	if err != nil {
+		return errors.Wrap(err, "failed to create tempdir")
+	}
+	defer os.RemoveAll(dir)
+
+	for i, image := range images {
+		imageTarPath := filepath.Join(dir, fmt.Sprintf("image-%d.tar", i))
+
+		err = exec.Command("docker", "save", "-o", imageTarPath, image).Run()
+		if err != nil {
+			return err
+		}
+
+		f, err := os.Open(imageTarPath)
+		if err != nil {
+			return errors.Wrap(err, "failed to open image")
+		}
+		defer f.Close()
+
+		ps := m.container.Commander.Command("ctr", "--namespace=k8s.io", "images", "import", "-")
+		ps.SetStdin(f)
+		if err := ps.Run(ctx); err != nil {
+			return errors.Wrap(err, "failed to load image")
+		}
 	}
 	return nil
 }

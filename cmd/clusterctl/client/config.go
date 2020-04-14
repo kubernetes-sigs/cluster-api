@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/version"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 )
 
 func (c *clusterctlClient) GetProvidersConfig() ([]Provider, error) {
@@ -42,8 +43,15 @@ func (c *clusterctlClient) GetProvidersConfig() ([]Provider, error) {
 	return rr, nil
 }
 
-func (c *clusterctlClient) GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, targetNameSpace, watchingNamespace string) (Components, error) {
-	components, err := c.getComponentsByName(provider, providerType, targetNameSpace, watchingNamespace)
+func (c *clusterctlClient) GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
+	// ComponentsOptions is an alias for repository.ComponentsOptions; this makes the conversion
+	inputOptions := repository.ComponentsOptions{
+		Version:           options.Version,
+		TargetNamespace:   options.TargetNamespace,
+		WatchingNamespace: options.WatchingNamespace,
+		SkipVariables:     true,
+	}
+	components, err := c.getComponentsByName(provider, providerType, inputOptions)
 	if err != nil {
 		return nil, err
 	}

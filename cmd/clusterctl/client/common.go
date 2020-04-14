@@ -25,31 +25,33 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 )
 
-// getComponentsByName is a utility method that returns components for a given provider, targetNamespace, and watchingNamespace.
-func (c *clusterctlClient) getComponentsByName(provider string, providerType clusterctlv1.ProviderType, targetNamespace string, watchingNamespace string) (repository.Components, error) {
+// getComponentsByName is a utility method that returns components
+// for a given provider with options including targetNamespace, and watchingNamespace.
+func (c *clusterctlClient) getComponentsByName(provider string, providerType clusterctlv1.ProviderType, options repository.ComponentsOptions) (repository.Components, error) {
 
-	// parse the abbreviated syntax for name[:version]
+	// Parse the abbreviated syntax for name[:version]
 	name, version, err := parseProviderName(provider)
 	if err != nil {
 		return nil, err
 	}
+	options.Version = version
 
-	// gets the provider configuration (that includes the location of the provider repository)
+	// Gets the provider configuration (that includes the location of the provider repository)
 	providerConfig, err := c.configClient.Providers().Get(name, providerType)
 	if err != nil {
 		return nil, err
 	}
 
-	// get a client for the provider repository and read the provider components;
+	// Get a client for the provider repository and read the provider components;
 	// during the process, provider components will be processed performing variable substitution, customization of target
 	// and watching namespace etc.
 
-	repository, err := c.repositoryClientFactory(providerConfig)
+	repositoryClientFactory, err := c.repositoryClientFactory(providerConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	components, err := repository.Components().Get(version, targetNamespace, watchingNamespace)
+	components, err := repositoryClientFactory.Components().Get(options)
 	if err != nil {
 		return nil, err
 	}

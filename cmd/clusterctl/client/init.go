@@ -23,6 +23,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
@@ -231,8 +232,11 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, provide
 			}
 			continue
 		}
-
-		components, err := c.getComponentsByName(provider, providerType, options.targetNamespace, options.watchingNamespace)
+		componentsOptions := repository.ComponentsOptions{
+			TargetNamespace:   options.targetNamespace,
+			WatchingNamespace: options.watchingNamespace,
+		}
+		components, err := c.getComponentsByName(provider, providerType, componentsOptions)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get provider components for the %q provider", provider)
 		}

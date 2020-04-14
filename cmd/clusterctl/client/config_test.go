@@ -23,12 +23,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"k8s.io/utils/pointer"
-
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -157,7 +156,11 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := client.GetProviderComponents(tt.args.provider, capiProviderConfig.Type(), tt.args.targetNameSpace, tt.args.watchingNamespace)
+			options := ComponentsOptions{
+				TargetNamespace:   tt.args.targetNameSpace,
+				WatchingNamespace: tt.args.watchingNamespace,
+			}
+			got, err := client.GetProviderComponents(tt.args.provider, capiProviderConfig.Type(), options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -168,6 +171,44 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 			g.Expect(got.Version()).To(Equal(tt.want.version))
 		})
 	}
+}
+
+func Test_getComponentsByName_withEmptyVariables(t *testing.T) {
+	g := NewWithT(t)
+
+	// Create a fake config with a provider named P1 and a variable named foo.
+	repository1Config := config.NewProvider("p1", "url", clusterctlv1.InfrastructureProviderType)
+
+	config1 := newFakeConfig().
+		WithProvider(repository1Config)
+
+	repository1 := newFakeRepository(repository1Config, config1).
+		WithPaths("root", "components.yaml").
+		WithDefaultVersion("v1.0.0").
+		WithFile("v1.0.0", "components.yaml", componentsYAML("${FOO}")).
+		WithMetadata("v1.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 1, Minor: 0, Contract: "v1alpha3"},
+			},
+		})
+
+	// Create a fake cluster, eventually adding some existing runtime objects to it.
+	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).WithObjs()
+
+	// Create a new fakeClient that allows to execute tests on the fake config,
+	// the fake repositories and the fake cluster.
+	client := newFakeClient(config1).
+		WithRepository(repository1).
+		WithCluster(cluster1)
+
+	options := ComponentsOptions{
+		TargetNamespace:   "ns1",
+		WatchingNamespace: "",
+	}
+	components, err := client.GetProviderComponents(repository1Config.Name(), repository1Config.Type(), options)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(components.Variables())).To(Equal(1))
+	g.Expect(components.Name()).To(Equal("p1"))
 }
 
 func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {

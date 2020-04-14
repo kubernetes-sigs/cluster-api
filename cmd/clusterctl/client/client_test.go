@@ -72,8 +72,8 @@ func (f fakeClient) GetProvidersConfig() ([]Provider, error) {
 	return f.internalClient.GetProvidersConfig()
 }
 
-func (f fakeClient) GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, targetNameSpace, watchingNamespace string) (Components, error) {
-	return f.internalClient.GetProviderComponents(provider, providerType, targetNameSpace, watchingNamespace)
+func (f fakeClient) GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
+	return f.internalClient.GetProviderComponents(provider, providerType, options)
 }
 
 func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Template, error) {
@@ -443,16 +443,16 @@ type fakeComponentClient struct {
 	configClient   config.Client
 }
 
-func (f *fakeComponentClient) Get(version, targetNamespace, watchingNamespace string) (repository.Components, error) {
-	if version == "" {
-		version = f.fakeRepository.DefaultVersion()
+func (f *fakeComponentClient) Get(options repository.ComponentsOptions) (repository.Components, error) {
+	if options.Version == "" {
+		options.Version = f.fakeRepository.DefaultVersion()
 	}
 	path := f.fakeRepository.ComponentsPath()
 
-	content, err := f.fakeRepository.GetFile(version, path)
+	content, err := f.fakeRepository.GetFile(options.Version, path)
 	if err != nil {
 		return nil, err
 	}
 
-	return repository.NewComponents(f.provider, version, content, f.configClient, targetNamespace, watchingNamespace)
+	return repository.NewComponents(f.provider, f.configClient, content, options)
 }

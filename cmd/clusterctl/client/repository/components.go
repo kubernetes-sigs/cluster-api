@@ -174,32 +174,45 @@ func (c *components) Yaml() ([]byte, error) {
 	return util.FromUnstructured(objs)
 }
 
-// newComponents returns a new objects embedding a component YAML file
+// ComponentsOptions is the inputs needed by the NewComponents
+type ComponentsOptions struct {
+	Version           string
+	TargetNamespace   string
+	WatchingNamespace string
+	SkipVariables     bool
+}
+
+// NewComponents returns a new objects embedding a component YAML file
 //
 // It is important to notice that clusterctl applies a set of processing steps to the “raw” component YAML read
 // from the provider repositories:
 // 1. Checks for all the variables in the component YAML file and replace with corresponding config values
-// 2. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
-// 3. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
-// 4. Set the watching namespace for the provider controller
-// 5. Adds labels to all the components in order to allow easy identification of the provider objects
-func NewComponents(provider config.Provider, version string, rawyaml []byte, configClient config.Client, targetNamespace, watchingNamespace string) (*components, error) {
-	// inspect the yaml read from the repository for variables
+// 2. The variables replacement can be skipped using the SkipVariables flag in the input options
+// 3. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
+// 4. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
+// 5. Set the watching namespace for the provider controller
+// 6. Adds labels to all the components in order to allow easy identification of the provider objects
+func NewComponents(provider config.Provider, configClient config.Client, rawyaml []byte, options ComponentsOptions) (*components, error) {
+	// Inspect the yaml read from the repository for variables.
 	variables := inspectVariables(rawyaml)
 
-	// Replace variables with corresponding values read from the config
-	yaml, err := replaceVariables(rawyaml, variables, configClient.Variables())
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to perform variable substitution")
+	yaml := rawyaml
+	var err error
+	if !options.SkipVariables {
+		// Replace variables with corresponding values read from the config
+		yaml, err = replaceVariables(rawyaml, variables, configClient.Variables())
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to perform variable substitution")
+		}
 	}
 
-	// transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes)
+	// Transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes)
 	objs, err := util.ToUnstructured(yaml)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse yaml")
 	}
 
-	// apply image overrides, if defined
+	// Apply image overrides, if defined
 	objs, err = util.FixImages(objs, func(image string) (string, error) {
 		return configClient.ImageMeta().AlterImage(provider.ManifestLabel(), image)
 	})
@@ -207,7 +220,7 @@ func NewComponents(provider config.Provider, version string, rawyaml []byte, con
 		return nil, errors.Wrap(err, "failed to apply image overrides")
 	}
 
-	// inspect the list of objects for the images required by the provider component
+	// Inspect the list of objects for the images required by the provider component.
 	images, err := util.InspectImages(objs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to detect required images")
@@ -232,24 +245,24 @@ func NewComponents(provider config.Provider, version string, rawyaml []byte, con
 	// if targetNamespace is not specified, then defaultTargetNamespace is used. In case both targetNamespace and defaultTargetNamespace
 	// are empty, an error is returned
 
-	if targetNamespace == "" {
-		targetNamespace = defaultTargetNamespace
+	if options.TargetNamespace == "" {
+		options.TargetNamespace = defaultTargetNamespace
 	}
 
-	if targetNamespace == "" {
+	if options.TargetNamespace == "" {
 		return nil, errors.New("target namespace can't be defaulted. Please specify a target namespace")
 	}
 
 	// add a Namespace object if missing (ensure the targetNamespace will be created)
-	instanceObjs = addNamespaceIfMissing(instanceObjs, targetNamespace)
+	instanceObjs = addNamespaceIfMissing(instanceObjs, options.TargetNamespace)
 
 	// fix Namespace name in all the objects
-	instanceObjs = fixTargetNamespace(instanceObjs, targetNamespace)
+	instanceObjs = fixTargetNamespace(instanceObjs, options.TargetNamespace)
 
 	// ensures all the ClusterRole and ClusterRoleBinding have the name prefixed with the namespace name and that
 	// all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace
 	// Nb. Making all the RBAC rules "namespaced" is required for supporting multi-tenancy
-	instanceObjs, err = fixRBAC(instanceObjs, targetNamespace)
+	instanceObjs, err = fixRBAC(instanceObjs, options.TargetNamespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fix ClusterRoleBinding names")
 	}
@@ -262,8 +275,8 @@ func NewComponents(provider config.Provider, version string, rawyaml []byte, con
 	}
 
 	// if the requested watchingNamespace is different from the defaultWatchingNamespace, fix it
-	if defaultWatchingNamespace != watchingNamespace {
-		instanceObjs, err = fixWatchNamespace(instanceObjs, watchingNamespace)
+	if defaultWatchingNamespace != options.WatchingNamespace {
+		instanceObjs, err = fixWatchNamespace(instanceObjs, options.WatchingNamespace)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to set watching namespace")
 		}
@@ -280,11 +293,11 @@ func NewComponents(provider config.Provider, version string, rawyaml []byte, con
 
 	return &components{
 		Provider:          provider,
-		version:           version,
+		version:           options.Version,
 		variables:         variables,
 		images:            images,
-		targetNamespace:   targetNamespace,
-		watchingNamespace: watchingNamespace,
+		targetNamespace:   options.TargetNamespace,
+		watchingNamespace: options.WatchingNamespace,
 		instanceObjs:      instanceObjs,
 		sharedObjs:        sharedObjs,
 	}, nil

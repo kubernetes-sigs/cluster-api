@@ -233,8 +233,13 @@ func Test_componentsClient_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
+			options := ComponentsOptions{
+				Version:           tt.args.version,
+				TargetNamespace:   tt.args.targetNamespace,
+				WatchingNamespace: tt.args.watchingNamespace,
+			}
 			f := newComponentsClient(tt.fields.provider, tt.fields.repository, configClient)
-			got, err := f.Get(tt.args.version, tt.args.targetNamespace, tt.args.watchingNamespace)
+			got, err := f.Get(options)
 			if tt.wantErr {
 				gs.Expect(err).To(HaveOccurred())
 				return

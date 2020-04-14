@@ -46,7 +46,7 @@ var _ = Describe("Docker Create", func() {
 		mgmtClient ctrlclient.Client
 		cluster    *clusterv1.Cluster
 	)
-	SetDefaultEventuallyTimeout(10 * time.Minute)
+	SetDefaultEventuallyTimeout(15 * time.Minute)
 	SetDefaultEventuallyPollingInterval(10 * time.Second)
 
 	AfterEach(func() {
@@ -137,7 +137,7 @@ var _ = Describe("Docker Create", func() {
 			Cluster:      cluster,
 			ControlPlane: controlPlane,
 		}
-		framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "5m")
+		framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "15m")
 
 		// Insatll a networking solution on the workload cluster
 		workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
@@ -194,6 +194,42 @@ var _ = Describe("Docker Create", func() {
 			},
 		}
 		framework.AssertControlPlaneFailureDomains(ctx, assertControlPlaneFailureDomainInput)
+
+		Describe("Docker recover from manual workload machine deletion", func() {
+			By("cleaning up etcd members and kubeadm configMap")
+			inClustersNamespaceListOption := ctrlclient.InNamespace(cluster.Namespace)
+			// ControlPlane labels
+			matchClusterListOption := ctrlclient.MatchingLabels{
+				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.ClusterLabelName:             cluster.Name,
+			}
+
+			machineList := &clusterv1.MachineList{}
+			err = mgmtClient.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(machineList.Items).To(HaveLen(int(*controlPlane.Spec.Replicas)))
+
+			Expect(mgmtClient.Delete(ctx, &machineList.Items[0])).To(Succeed())
+
+			Eventually(func() (int, error) {
+				machineList := &clusterv1.MachineList{}
+				if err := mgmtClient.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
+					fmt.Println(err)
+					return 0, err
+				}
+				return len(machineList.Items), nil
+			}, "15m", "5s").Should(Equal(int(*controlPlane.Spec.Replicas) - 1))
+
+			By("ensuring a replacement machine is created")
+			Eventually(func() (int, error) {
+				machineList := &clusterv1.MachineList{}
+				if err := mgmtClient.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
+					fmt.Println(err)
+					return 0, err
+				}
+				return len(machineList.Items), nil
+			}, "15m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
+		})
 	})
 
 })

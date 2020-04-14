@@ -70,6 +70,10 @@ func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *cluster
 	return nil
 }
 
+func (f fakeWorkloadCluster) ReconcileEtcdMembers(ctx context.Context) error {
+	return nil
+}
+
 func (f fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterStatus, error) {
 	return f.Status, nil
 }

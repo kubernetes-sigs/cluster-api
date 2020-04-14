@@ -51,7 +51,7 @@ var _ = Describe("Docker Upgrade", func() {
 		cluster      *clusterv1.Cluster
 		controlPlane *controlplanev1.KubeadmControlPlane
 	)
-	SetDefaultEventuallyTimeout(10 * time.Minute)
+	SetDefaultEventuallyTimeout(15 * time.Minute)
 	SetDefaultEventuallyPollingInterval(10 * time.Second)
 
 	BeforeEach(func() {
@@ -97,7 +97,7 @@ var _ = Describe("Docker Upgrade", func() {
 			Cluster:      cluster,
 			ControlPlane: controlPlane,
 		}
-		framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "5m")
+		framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput, "15m")
 
 		// Insatll a networking solution on the workload cluster
 		workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
@@ -116,7 +116,7 @@ var _ = Describe("Docker Upgrade", func() {
 			Cluster:      cluster,
 			ControlPlane: controlPlane,
 		}
-		framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput, "10m", "10s")
+		framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput, "15m", "10s")
 
 		// Create the workload nodes
 		createMachineDeploymentinput := framework.CreateMachineDeploymentInput{
@@ -228,7 +228,7 @@ var _ = Describe("Docker Upgrade", func() {
 				return 0, errors.New("old nodes remain")
 			}
 			return upgraded, nil
-		}, "10m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
+		}, "15m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
 
 		workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
 		Expect(err).ToNot(HaveOccurred())
@@ -245,7 +245,7 @@ var _ = Describe("Docker Upgrade", func() {
 			}
 
 			return false, nil
-		}, "10m", "30s").Should(BeTrue())
+		}, "15m", "30s").Should(BeTrue())
 
 		By("ensuring CoreDNS has the correct image")
 		Eventually(func() (bool, error) {
@@ -259,7 +259,7 @@ var _ = Describe("Docker Upgrade", func() {
 			}
 
 			return false, nil
-		}, "10m", "30s").Should(BeTrue())
+		}, "15m", "30s").Should(BeTrue())
 
 		// Before patching ensure all pods are ready in workload cluster
 		// Might not need this step any more.

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -153,6 +154,14 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 
+		// TODO: remove this as soon as we have a proper remote cluster cache in place.
+		// Make KCP to requeue in case status is not ready, so we can check for node status without waiting for a full resync (by default 10 minutes).
+		// Only requeue if we are not going in exponential backoff due to error, or if we are not already re-queueing, or if the object has a deletion timestamp.
+		if reterr == nil && !res.Requeue && !(res.RequeueAfter > 0) && kcp.ObjectMeta.DeletionTimestamp.IsZero() {
+			if !kcp.Status.Ready {
+				res = ctrl.Result{RequeueAfter: 20 * time.Second}
+			}
+		}
 	}()
 
 	if !kcp.ObjectMeta.DeletionTimestamp.IsZero() {

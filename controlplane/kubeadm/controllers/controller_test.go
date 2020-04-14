@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -379,7 +380,8 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(result).To(Equal(ctrl.Result{}))
+	// TODO: this should stop to re-queue as soon as we have a proper remote cluster cache in place.
+	g.Expect(result).To(Equal(ctrl.Result{Requeue: false, RequeueAfter: 20 * time.Second}))
 	g.Expect(r.Client.Get(context.Background(), util.ObjectKey(kcp), kcp)).To(Succeed())
 
 	// Always expect that the Finalizer is set on the passed in resource

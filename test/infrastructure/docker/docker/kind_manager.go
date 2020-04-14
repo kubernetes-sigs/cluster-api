@@ -342,7 +342,6 @@ func generateMountBindings(mounts ...v1alpha4.Mount) []string {
 		case v1alpha4.MountPropagationHostToContainer:
 			attrs = append(attrs, "rslave")
 		default:
-			fmt.Printf("[W] unknown propagation mode for hostPath %q\n", m.HostPath)
 			// Falls back to "private"
 		}
 

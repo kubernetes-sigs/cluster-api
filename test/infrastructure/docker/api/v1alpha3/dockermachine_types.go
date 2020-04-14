@@ -37,10 +37,36 @@ type DockerMachineSpec struct {
 	// +optional
 	CustomImage string `json:"customImage,omitempty"`
 
+	// PreLoadImages allows to pre-load images in a newly created machine. This can be used to
+	// speed up tests by avoiding e.g. to download CNI images on all the containers.
+	// +optional
+	PreLoadImages []string `json:"preLoadImages,omitempty"`
+
+	// ExtraMounts describes additional mount points for the node container
+	// These may be used to bind a hostPath
+	// +optional
+	ExtraMounts []Mount `json:"extraMounts,omitempty"`
+
 	// Bootstrapped is true when the kubeadm bootstrapping has been run
 	// against this machine
 	// +optional
 	Bootstrapped bool `json:"bootstrapped,omitempty"`
+}
+
+// Mount specifies a host volume to mount into a container.
+// This is a simplified version of kind v1alpha4.Mount types
+type Mount struct {
+	// Path of the mount within the container.
+	ContainerPath string `json:"containerPath,omitempty"`
+
+	// Path of the mount on the host. If the hostPath doesn't exist, then runtimes
+	// should report error. If the hostpath is a symbolic link, runtimes should
+	// follow the symlink and mount the real destination to container.
+	HostPath string `json:"hostPath,omitempty"`
+
+	// If set, the mount is read-only.
+	// +optional
+	Readonly bool `json:"readOnly,omitempty"`
 }
 
 // DockerMachineStatus defines the observed state of DockerMachine

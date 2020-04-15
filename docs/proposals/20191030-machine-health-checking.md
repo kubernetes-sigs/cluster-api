@@ -3,13 +3,14 @@ title: Machine health checking a.k.a node auto repair
 authors:
   - "@enxebre"
   - "@bison"
+  - "@benmoss"
 reviewers:
   - "@detiber"
   - "@vincepri"
   - "@ncdc"
   - "@timothysc"
 creation-date: 2019-10-30
-last-updated: 2019-10-31
+last-updated: 2020-04-05
 status: implementable
 see-also:
 replaces:
@@ -71,12 +72,12 @@ Enable opt in automated health checking and remediation of unhealthy nodes backe
 - Provide a mechanism to guarantee that application quorum for N members is maintained at any time.
 
 ## Proposal
-The machine health checker (MHC) does a best effort to keep nodes healthy in the cluster, by removing machines backing unhealthy Nodes.
+The machine health checker (MHC) is responsible for marking machines backing unhealthy Nodes with an annotation so that they can be remediated by their owning controller.
 
 It provides a short-circuit mechanism and limits remediation when the `maxUnhealthy` threshold is reached for a targeted group of machines.
 This is similar to what the node life cycle controller does for reducing the eviction rate as nodes become unhealthy in a given zone. E.g a large number of nodes in a single zone are down due to a networking issue.
 
-The machine health checker is an integration point between node problem detection tooling expresed as node conditions and remediation to achieve a node auto repairing feature.
+The machine health checker is an integration point between node problem detection tooling expressed as node conditions and remediation to achieve a node auto repairing feature.
 
 ### Unhealthy criteria:
 A machine is unhealthy when:
@@ -91,11 +92,7 @@ Timeouts:
 - For a machine with no nodeRef an opinionated value could be assumed e.g 10 min.
 
 ### Remediation:
-- A deletion request for the machine is sent to the API server.
-- The controller owning that `Machine`, e.g machineSet reconciles towards the expected number of replicas and start the process to bring up a new `Machine`.
-- The machine controller drains the node.
-- The machine controller and the provider implementation delete the cloud instance.
-- The machine controller removes the finalizer for the `Machine` resource.
+- Remediation is not an integral part or responsibility of MachineHealthCheck. This controller only functions as a means for others to act when a Machine is unhealthy in the best way possible.
 
 
 ### User Stories
@@ -107,6 +104,15 @@ Timeouts:
 As an operator of a Management Cluster, I want my machines to be self-healing and to be recreated, resulting in a new healthy node in the case of matching my unhealthy criteria.
 
 ### Implementation Details/Notes/Constraints
+
+#### Machine annotation:
+```go
+const MachineUnhealthyAnnotation = "machine.cluster.x-k8s.io/unhealthy"
+```
+
+This annotation is applied by the MHC controller and it is expected that it
+will never be removed. The only current mediation strategy is deletion, which
+is to be handled by the machine's owning controller.
 
 #### MachineHealthCheck CRD:
 - Enable watching a group of machines (based on a label selector).
@@ -158,19 +164,25 @@ type target struct {
 
 - Calculate the number of unhealthy targets.
 - Compare current number against `maxUnhealthy` threshold and temporary short circuits remediation if the threshold is met.
-- Trigger remediation for unhealthy targets i.e request machines for deletion.
+- Annotates unhealthy target machines as described above.
 
 Out of band:
-- The owning controller e.g machineSet controller reconciles to meet number of replicas and start the process to bring up a new machine/node.
+- The owning controller observes the annotation and is responsible to remediate the machine.
+- The owning controller performs any pre-deletion tasks required.
+- The owning controller MUST delete the machine.
 - The machine controller drains the unhealthy node.
 - The machine controller provider deletes the instance.
-- The machine controller deletes the machine.
 
 ![Machine health check](./images/machine-health-check/mhc.svg)
 
 ### Risks and Mitigations
 
 ## Alternatives
+
+This proposal was originally adopted and implemented having the MHC do the
+deletion itself. This was revised since it did not allow for more complex
+controllers, for example the Kubeadm Control Plane, to account for the
+remediation strategies they require.
 
 Considered to bake this functionality into machineSets.
 This was discarded as different controllers than a machineSet could be owning the targeted machines.
@@ -204,13 +216,9 @@ This propose the new CRD to belong to the same API group than other cluster-api 
 
 ### Version Skew Strategy [optional]
 
-
 ## Implementation History
-- [ ] MM/DD/YYYY: Proposed idea in an issue or [community meeting]
-- [ ] MM/DD/YYYY: Compile a Google Doc following the CAEP template (link here)
-- [ ] MM/DD/YYYY: First round of feedback from community
-- [ ] MM/DD/YYYY: Present proposal at a [community meeting]
-- [ ] MM/DD/YYYY: Open proposal PR
+- [ ] 10/30/2019: Opened proposal PR
+- [ ] 04/15/2020: Revised to move reconciliation to owner controller
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY

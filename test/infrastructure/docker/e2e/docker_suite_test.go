@@ -38,6 +38,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
@@ -97,32 +98,39 @@ var _ = BeforeSuite(func() {
 		config.ManagementClusterName = "docker-e2e-" + util.RandomString(6)
 	}
 
-	managementCluster := framework.InitManagementCluster(
+	framework.InitManagementCluster(
 		ctx, &framework.InitManagementClusterInput{
 			Config: *config,
 			Scheme: scheme,
 			NewManagementClusterFn: func() (framework.ManagementCluster, error) {
-				return NewClusterForCAPD(ctx, config.ManagementClusterName, scheme)
+				var err error
+				mgmt, err = NewClusterForCAPD(ctx, config.ManagementClusterName, scheme)
+				return mgmt, err
 			},
 		})
-	Expect(managementCluster).ToNot(BeNil())
-	Expect(managementCluster).To(BeAssignableToTypeOf(&CAPDCluster{}))
-	mgmt = managementCluster.(*CAPDCluster)
 
 	fmt.Printf("export KUBECONFIG=%q\n", mgmt.KubeconfigPath)
 })
 
 var _ = AfterSuite(func() {
+	if mgmt == nil {
+		// we may have errored before even creating the cluster
+		return
+	}
+
+	defer func() {
+		// If any part of teardown fails it will print what must be manually cleaned up
+		By("Deleting the management cluster")
+		mgmt.Teardown(ctx)
+	}()
 
 	// Dump the logs of the providers before deleting them.
-	Expect(writeLogs(mgmt, "capi-system", "capi-controller-manager", logPath)).To(Succeed())
-	Expect(writeLogs(mgmt, "capi-kubeadm-bootstrap-system", "capi-kubeadm-bootstrap-controller-manager", logPath)).To(Succeed())
-	Expect(writeLogs(mgmt, "capi-kubeadm-control-plane-system", "capi-kubeadm-control-plane-controller-manager", logPath)).To(Succeed())
-	Expect(writeLogs(mgmt, "capd-system", "capd-controller-manager", logPath)).To(Succeed())
-
-	By("Deleting the management cluster")
-	// If any part of teardown fails it will print what must be manually cleaned up
-	mgmt.Teardown(ctx)
+	Expect(kerrors.NewAggregate([]error{
+		writeLogs(mgmt, "capi-system", "capi-controller-manager", logPath),
+		writeLogs(mgmt, "capi-kubeadm-bootstrap-system", "capi-kubeadm-bootstrap-controller-manager", logPath),
+		writeLogs(mgmt, "capi-kubeadm-control-plane-system", "capi-kubeadm-control-plane-controller-manager", logPath),
+		writeLogs(mgmt, "capd-system", "capd-controller-manager", logPath),
+	})).NotTo(HaveOccurred())
 })
 
 func writeLogs(mgmt *CAPDCluster, namespace, deploymentName, logDir string) error {

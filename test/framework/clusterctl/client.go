@@ -1,5 +1,3 @@
-// +build e2e
-
 /*
 Copyright 2020 The Kubernetes Authors.
 
@@ -38,9 +36,14 @@ const (
 	DefaultFlavor = ""
 )
 
+const (
+	// DefaultInfrastructureProvider for ConfigClusterInput; use it for using the only infrastructure provider installed in a cluster.
+	DefaultInfrastructureProvider = ""
+)
+
 // InitInput is the input for Init.
 type InitInput struct {
-	LogPath                 string
+	LogFolder               string
 	ClusterctlConfigPath    string
 	KubeconfigPath          string
 	CoreProvider            string
@@ -67,7 +70,7 @@ func Init(ctx context.Context, input InitInput) {
 		LogUsageInstructions:    true,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-init.log", input.LogPath)
+	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-init.log", input.LogFolder)
 	defer log.Close()
 
 	_, err := clusterctlClient.Init(initOpt)
@@ -76,7 +79,7 @@ func Init(ctx context.Context, input InitInput) {
 
 // ConfigClusterInput is the input for ConfigCluster.
 type ConfigClusterInput struct {
-	LogPath                  string
+	LogFolder                string
 	ClusterctlConfigPath     string
 	KubeconfigPath           string
 	InfrastructureProvider   string
@@ -112,7 +115,7 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 		TargetNamespace:          input.Namespace,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-config-cluster.log", input.LogPath)
+	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName), input.LogFolder)
 	defer log.Close()
 
 	template, err := clusterctlClient.GetClusterTemplate(templateOptions)
@@ -128,7 +131,7 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 
 // MoveInput is the input for ClusterctlMove.
 type MoveInput struct {
-	LogPath              string
+	LogFolder            string
 	ClusterctlConfigPath string
 	FromKubeconfigPath   string
 	ToKubeconfigPath     string
@@ -139,7 +142,7 @@ type MoveInput struct {
 func Move(ctx context.Context, input MoveInput) {
 	By("Moving workload clusters")
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", input.LogPath)
+	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", input.LogFolder)
 	defer log.Close()
 
 	options := clusterctlclient.MoveOptions{
@@ -151,10 +154,10 @@ func Move(ctx context.Context, input MoveInput) {
 	Expect(clusterctlClient.Move(options)).To(Succeed(), "Failed to run clusterctl move")
 }
 
-func getClusterctlClientWithLogger(configPath, logName, logPath string) (clusterctlclient.Client, *logger.LogFile) {
+func getClusterctlClientWithLogger(configPath, logName, logFolder string) (clusterctlclient.Client, *logger.LogFile) {
 	log := logger.CreateLogFile(logger.CreateLogFileInput{
-		LogPath: logPath,
-		Name:    logName,
+		LogFolder: logFolder,
+		Name:      logName,
 	})
 	clusterctllog.SetLogger(log.Logger())
 

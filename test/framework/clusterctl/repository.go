@@ -1,5 +1,3 @@
-// +build e2e
-
 /*
 Copyright 2020 The Kubernetes Authors.
 
@@ -46,7 +44,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 
 	providers := []providerConfig{}
 	for _, provider := range input.E2EConfig.Providers {
-		providerUrl := ""
+		providerURL := ""
 		for _, version := range provider.Versions {
 			providerLabel := clusterctlv1.ManifestLabel(provider.Name, clusterctlv1.ProviderType(provider.Type))
 
@@ -60,13 +58,13 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			filePath := filepath.Join(sourcePath, "components.yaml")
 			Expect(ioutil.WriteFile(filePath, manifest, 0755)).To(Succeed(), "Failed to write manifest in the clusterctl local repository for %q / %q", providerLabel, version.Name)
 
-			if providerUrl == "" {
-				providerUrl = filePath
+			if providerURL == "" {
+				providerURL = filePath
 			}
 		}
 		providers = append(providers, providerConfig{
 			Name: provider.Name,
-			URL:  providerUrl,
+			URL:  providerURL,
 			Type: provider.Type,
 		})
 
@@ -74,7 +72,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			data, err := ioutil.ReadFile(file.SourcePath)
 			Expect(err).ToNot(HaveOccurred(), "Failed to read file %q / %q", provider.Name, file.SourcePath)
 
-			destinationFile := filepath.Join(filepath.Dir(providerUrl), file.TargetName)
+			destinationFile := filepath.Join(filepath.Dir(providerURL), file.TargetName)
 			Expect(ioutil.WriteFile(destinationFile, data, 0644)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
 		}
 	}

@@ -1,5 +1,3 @@
-// +build e2e
-
 /*
 Copyright 2020 The Kubernetes Authors.
 
@@ -25,11 +23,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/gomega"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/version"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlconfig "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -38,6 +38,11 @@ import (
 )
 
 // Provides access to the configuration for an e2e test.
+
+// Define constants for well known clusterctl config variables
+const (
+	kubernetesVersion = "KUBERNETES_VERSION"
+)
 
 // LoadE2EConfigInput is the input for LoadE2EConfig.
 type LoadE2EConfigInput struct {
@@ -181,22 +186,69 @@ func errEmptyArg(argName string) error {
 
 // Validate validates the configuration. More specifically:
 // - ManagementClusterName should not be empty.
-// - Providers name should not be empty.
-// - Providers type should be one of [CoreProvider, BootstrapProvider, ControlPlaneProvider, InfrastructureProvider].
-// - Providers version should have a name.
-// - Providers version.type should be one of [url, kustomize].
-// - Providers version.replacements.old should be a valid regex.
-// - Providers files should be an existing file and have a target name.
 // - There should be one CoreProvider (cluster-api), one BootstrapProvider (kubeadm), one ControlPlaneProvider (kubeadm).
 // - There should be one InfraProvider (pick your own).
 // - Image should have name and loadBehavior be one of [mustload, tryload].
 // - Intervals should be valid ginkgo intervals.
+// - KubernetesVersion is not nil and valid.
 func (c *E2EConfig) Validate() error {
 	// ManagementClusterName should not be empty.
 	if c.ManagementClusterName == "" {
 		return errEmptyArg("ManagementClusterName")
 	}
 
+	if err := c.validateProviders(); err != nil {
+		return err
+	}
+
+	// Image should have name and loadBehavior be one of [mustload, tryload].
+	for i, containerImage := range c.Images {
+		if containerImage.Name == "" {
+			return errEmptyArg(fmt.Sprintf("Images[%d].Name=%q", i, containerImage.Name))
+		}
+		switch containerImage.LoadBehavior {
+		case framework.MustLoadImage, framework.TryLoadImage:
+			// Valid
+		default:
+			return errInvalidArg("Images[%d].LoadBehavior=%q", i, containerImage.LoadBehavior)
+		}
+	}
+
+	// Intervals should be valid ginkgo intervals.
+	for k, intervals := range c.Intervals {
+		switch len(intervals) {
+		case 0:
+			return errInvalidArg("Intervals[%s]=%q", k, intervals)
+		case 1, 2:
+		default:
+			return errInvalidArg("Intervals[%s]=%q", k, intervals)
+		}
+		for _, i := range intervals {
+			if _, err := time.ParseDuration(i); err != nil {
+				return errInvalidArg("Intervals[%s]=%q", k, intervals)
+			}
+		}
+	}
+
+	// If kubernetesVersion is nil or not valid, return error.
+	k8sVersion := c.GetKubernetesVersion()
+	if k8sVersion == "" {
+		return errEmptyArg(fmt.Sprintf("Variables[%s]", kubernetesVersion))
+	} else if _, err := version.ParseSemantic(k8sVersion); err != nil {
+		return errInvalidArg("Variables[%s]=%q", kubernetesVersion, k8sVersion)
+	}
+
+	return nil
+}
+
+// validateProviders validates the provider configuration. More specifically:
+// - Providers name should not be empty.
+// - Providers type should be one of [CoreProvider, BootstrapProvider, ControlPlaneProvider, InfrastructureProvider].
+// - Providers version should have a name.
+// - Providers version.type should be one of [url, kustomize].
+// - Providers version.replacements.old should be a valid regex.
+// - Providers files should be an existing file and have a target name.
+func (c *E2EConfig) validateProviders() error {
 	providersByType := map[clusterctlv1.ProviderType][]string{
 		clusterctlv1.CoreProviderType:           nil,
 		clusterctlv1.BootstrapProviderType:      nil,
@@ -217,23 +269,25 @@ func (c *E2EConfig) Validate() error {
 			return errInvalidArg("Providers[%d].Type=%q", i, providerConfig.Type)
 		}
 
-		// Providers version should have a name.
-		// Providers version.type should be one of [url, kustomize].
-		// Providers version.replacements.old should be a valid regex.
-		for j, version := range providerConfig.Versions {
-			if version.Name == "" {
+		// Providers providerVersion should have a name.
+		// Providers providerVersion.type should be one of [url, kustomize].
+		// Providers providerVersion.replacements.old should be a valid regex.
+		for j, providerVersion := range providerConfig.Versions {
+			if providerVersion.Name == "" {
 				return errEmptyArg(fmt.Sprintf("Providers[%d].Sources[%d].Name", i, j))
 			}
-			//TODO: check if name is a valid semantic version
-			switch version.Type {
+			if _, err := version.ParseSemantic(providerVersion.Name); err != nil {
+				return errInvalidArg("Providers[%d].Sources[%d].Name=%q", i, j, providerVersion.Name)
+			}
+			switch providerVersion.Type {
 			case framework.URLSource, framework.KustomizeSource:
-				if version.Value == "" {
+				if providerVersion.Value == "" {
 					return errEmptyArg(fmt.Sprintf("Providers[%d].Sources[%d].Value", i, j))
 				}
 			default:
-				return errInvalidArg("Providers[%d].Sources[%d].Type=%q", i, j, version.Type)
+				return errInvalidArg("Providers[%d].Sources[%d].Type=%q", i, j, providerVersion.Type)
 			}
-			for k, replacement := range version.Replacements {
+			for k, replacement := range providerVersion.Replacements {
 				if _, err := regexp.Compile(replacement.Old); err != nil {
 					return errInvalidArg("Providers[%d].Sources[%d].Replacements[%d].Old=%q: %v", i, j, k, replacement.Old, err)
 				}
@@ -280,36 +334,6 @@ func (c *E2EConfig) Validate() error {
 	if len(providersByType[clusterctlv1.InfrastructureProviderType]) != 1 {
 		return errInvalidArg("invalid config: it is required to have exactly one infrastructure-provider")
 	}
-
-	// Image should have name and loadBehavior be one of [mustload, tryload].
-	for i, containerImage := range c.Images {
-		if containerImage.Name == "" {
-			return errEmptyArg(fmt.Sprintf("Images[%d].Name=%q", i, containerImage.Name))
-		}
-		switch containerImage.LoadBehavior {
-		case framework.MustLoadImage, framework.TryLoadImage:
-			// Valid
-		default:
-			return errInvalidArg("Images[%d].LoadBehavior=%q", i, containerImage.LoadBehavior)
-		}
-	}
-
-	// Intervals should be valid ginkgo intervals.
-	for k, intervals := range c.Intervals {
-		switch len(intervals) {
-		case 0:
-			return errInvalidArg("Intervals[%s]=%q", k, intervals)
-		case 1, 2:
-		default:
-			return errInvalidArg("Intervals[%s]=%q", k, intervals)
-		}
-		for _, i := range intervals {
-			if _, err := time.ParseDuration(i); err != nil {
-				return errInvalidArg("Intervals[%s]=%q", k, intervals)
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -322,7 +346,7 @@ func fileExists(filename string) bool {
 }
 
 // InfraProvider returns the infrastructure provider selected for running this E2E test.
-func (c *E2EConfig) InfraProviders() []string {
+func (c *E2EConfig) InfrastructureProviders() []string {
 	InfraProviders := []string{}
 	for _, provider := range c.Providers {
 		if provider.Type == string(clusterctlv1.InfrastructureProviderType) {
@@ -330,6 +354,15 @@ func (c *E2EConfig) InfraProviders() []string {
 		}
 	}
 	return InfraProviders
+}
+
+func (c *E2EConfig) HasDockerProvider() bool {
+	for _, i := range c.InfrastructureProviders() {
+		if i == "docker" {
+			return true
+		}
+	}
+	return false
 }
 
 // GetIntervals returns the intervals to be applied to a Eventually operation.
@@ -348,4 +381,38 @@ func (c *E2EConfig) GetIntervals(spec, key string) []interface{} {
 		intervalsInterfaces[i] = intervals[i]
 	}
 	return intervalsInterfaces
+}
+
+// GetVariable returns a variable from the e2e config file.
+func (c *E2EConfig) GetVariable(varName string) string {
+	version, ok := c.Variables[varName]
+	if !ok {
+		return ""
+	}
+	return version
+}
+
+// GetVariable returns an Int64Ptr variable from the e2e config file.
+func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
+	wCountStr := c.GetVariable(varName)
+	if wCountStr == "" {
+		return nil
+	}
+
+	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
+	Expect(err).NotTo(HaveOccurred())
+	return Int64Ptr(wCount)
+}
+
+func Int64Ptr(n int64) *int64 {
+	return &n
+}
+
+// GetKubernetesVersion returns the kubernetes version provided in e2e config.
+func (c *E2EConfig) GetKubernetesVersion() string {
+	version, ok := c.Variables[kubernetesVersion]
+	if !ok {
+		return ""
+	}
+	return version
 }

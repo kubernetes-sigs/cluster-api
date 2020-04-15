@@ -17,8 +17,10 @@ limitations under the License.
 package framework
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -77,6 +79,7 @@ func (c *InitManagementClusterInput) Defaults(ctx context.Context) {
 
 // InitManagementCluster returns a new cluster initialized as a CAPI management
 // cluster.
+// Deprecated. Please use bootstrap.ClusterProvider and ClusterProxy
 func InitManagementCluster(ctx context.Context, input *InitManagementClusterInput) ManagementCluster {
 	By("initializing the management cluster")
 	Expect(input).ToNot(BeNil())
@@ -168,6 +171,75 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 	}, intervals...).Should(BeTrue(), "Deployment %s/%s failed to get status.Available = True condition", input.Deployment.GetNamespace(), input.Deployment.GetName())
 }
 
+// WatchControllerLogsInput is the input for WatchControllerLogs.
+type WatchControllerLogsInput struct {
+	GetLister  GetLister
+	ClientSet  *kubernetes.Clientset
+	Deployment *appsv1.Deployment
+	LogPath    string
+}
+
+// WatchControllerLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed
+// in a separate goroutine so they can all be streamed concurrently. This only causes a test failure if there are errors
+// retrieving the deployment, its pods, or setting up a log file. If there is an error with the log streaming itself,
+// that does not cause the test to fail.
+func WatchControllerLogs(ctx context.Context, input WatchControllerLogsInput) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WatchControllerLogs")
+	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for WatchControllerLogs")
+	Expect(input.Deployment).NotTo(BeNil(), "input.Name is required for WatchControllerLogs")
+
+	deployment := &appsv1.Deployment{}
+	key, err := client.ObjectKeyFromObject(input.Deployment)
+	Expect(err).NotTo(HaveOccurred(), "Failed to get key for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Expect(input.GetLister.Get(ctx, key, deployment)).To(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	pods := &corev1.PodList{}
+	Expect(input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))).To(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	for _, pod := range pods.Items {
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			fmt.Fprintf(GinkgoWriter, "Creating log watcher for controller %s/%s, pod %s, container %s\n", input.Deployment.Namespace, input.Deployment.Name, pod.Name, container.Name)
+
+			// Watch each container's logs in a goroutine so we can stream them all concurrently.
+			go func(pod corev1.Pod, container corev1.Container) {
+				defer GinkgoRecover()
+
+				logFile := path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+".log")
+				Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
+
+				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				Expect(err).NotTo(HaveOccurred())
+				defer f.Close()
+
+				opts := &corev1.PodLogOptions{
+					Container: container.Name,
+					Follow:    true,
+				}
+
+				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream()
+				if err != nil {
+					// Failing to stream logs should not cause the test to fail
+					fmt.Fprintf(GinkgoWriter, "Error starting logs stream for pod %s/%s, container %s: %v\n", input.Deployment.Namespace, pod.Name, container.Name, err)
+					return
+				}
+				defer podLogs.Close()
+
+				out := bufio.NewWriter(f)
+				defer out.Flush()
+				_, err = out.ReadFrom(podLogs)
+				if err != nil && err != io.ErrUnexpectedEOF {
+					// Failing to stream logs should not cause the test to fail
+					fmt.Fprintf(GinkgoWriter, "Got error while streaming logs for pod %s/%s, container %s: %v\n", input.Deployment.Namespace, pod.Name, container.Name, err)
+				}
+			}(pod, container)
+		}
+	}
+	return nil
+}
+
 // CreateNamespaceInput is the input type for CreateNamespace.
 type CreateNamespaceInput struct {
 	Creator Creator
@@ -188,7 +260,7 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 			Name: input.Name,
 		},
 	}
-	By(fmt.Sprintf("Creating namespace %s", input.Name))
+	fmt.Fprintf(GinkgoWriter, "Creating namespace %s\n", input.Name)
 	Eventually(func() error {
 		return input.Creator.Create(context.TODO(), ns)
 	}, intervals...).Should(Succeed())
@@ -212,7 +284,7 @@ func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals 
 			Name: input.Name,
 		},
 	}
-	By(fmt.Sprintf("Deleting namespace %s", input.Name))
+	fmt.Fprintf(GinkgoWriter, "Deleting namespace %s\n", input.Name)
 	Eventually(func() error {
 		return input.Deleter.Delete(context.TODO(), ns)
 	}, intervals...).Should(Succeed())
@@ -222,7 +294,7 @@ func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals 
 type WatchNamespaceEventsInput struct {
 	ClientSet *kubernetes.Clientset
 	Name      string
-	LogPath   string
+	LogFolder string
 }
 
 // WatchNamespaceEvents creates a watcher that streams namespace events into a file.
@@ -233,7 +305,7 @@ type WatchNamespaceEventsInput struct {
 //    	framework.WatchNamespaceEvents(ctx, framework.WatchNamespaceEventsInput{
 //    		ClientSet: clientSet,
 //    		Name: namespace.Name,
-//    		LogPath:   logPath,
+//    		LogFolder:   logFolder,
 //    	})
 //    }()
 //    defer cancelWatches()
@@ -242,8 +314,7 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for WatchNamespaceEvents")
 	Expect(input.Name).NotTo(BeEmpty(), "input.Name is required for WatchNamespaceEvents")
 
-	logFile := path.Join(input.LogPath, "resources", input.Name, "events.log")
-	fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
+	logFile := path.Join(input.LogFolder, "resources", input.Name, "events.log")
 	Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
 
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

@@ -44,6 +44,7 @@ import (
 // Shells out to `kind`, `kubectl`
 
 // Cluster represents a Kubernetes cluster used as a management cluster backed by kind.
+// Deprecated. Please use bootstrap.ClusterProvider and ClusterProxy
 type Cluster struct {
 	Name                       string
 	KubeconfigPath             string
@@ -55,11 +56,13 @@ type Cluster struct {
 }
 
 // NewCluster sets up a new kind cluster to be used as the management cluster.
+// Deprecated. Please use bootstrap.ClusterProvider and ClusterProxy
 func NewCluster(ctx context.Context, name string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
 	return create(ctx, name, "", scheme, images...)
 }
 
 // NewClusterWithConfig creates a kind cluster using a kind-config file.
+// Deprecated. Please use bootstrap.ClusterProvider and ClusterProxy
 func NewClusterWithConfig(ctx context.Context, name, configFile string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
 	return create(ctx, name, configFile, scheme, images...)
 }

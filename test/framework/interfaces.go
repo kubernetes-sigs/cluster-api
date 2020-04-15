@@ -33,24 +33,28 @@ type ComponentGenerator interface {
 }
 
 // Applier is an interface around applying YAML to a cluster
+// Deprecated. Please use ClusterProxy
 type Applier interface {
 	// Apply allows us to apply YAML to the cluster, `kubectl apply`
 	Apply(context.Context, []byte) error
 }
 
 // Waiter is an interface around waiting for something on a kubernetes cluster.
+// Deprecated. Please use ClusterProxy
 type Waiter interface {
 	// Wait allows us to wait for something in the cluster, `kubectl wait`
 	Wait(context.Context, ...string) error
 }
 
 // ImageLoader is an interface around loading an image onto a cluster.
+// Deprecated. Please use ClusterProxy
 type ImageLoader interface {
 	// LoadImage will put a local image onto the cluster.
 	LoadImage(context.Context, string) error
 }
 
 // ManagementCluster are all the features we need out of a kubernetes cluster to qualify as a management cluster.
+// Deprecated. Please use ClusterProxy
 type ManagementCluster interface {
 	Applier
 	Waiter

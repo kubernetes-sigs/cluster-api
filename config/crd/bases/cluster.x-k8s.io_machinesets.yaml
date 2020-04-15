@@ -910,8 +910,6 @@ spec:
                   be in the same format as the query-param syntax. More info about
                   label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors'
                 type: string
-            required:
-            - replicas
             type: object
         type: object
     served: true

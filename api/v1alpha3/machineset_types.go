@@ -115,7 +115,8 @@ type MachineSetStatus struct {
 	Selector string `json:"selector,omitempty"`
 
 	// Replicas is the most recently observed number of replicas.
-	Replicas int32 `json:"replicas"`
+	// +optional
+	Replicas int32 `json:"replicas,omitempty"`
 
 	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
 	// +optional

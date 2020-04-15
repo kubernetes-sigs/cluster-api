@@ -671,17 +671,7 @@ func (r *MachineSetReconciler) patchMachineSetStatus(ctx context.Context, ms *cl
 
 	newStatus.DeepCopyInto(&ms.Status)
 	if err := r.Client.Status().Patch(ctx, ms, patch); err != nil {
-		// TODO(vincepri): Try to fix this once we upgrade to CRDv1.
-		// Our Status.Replicas field is a required non-pointer integer, Go defaults this field to "0" value when decoding
-		// the data from the API server. For this reason, when we try to write the value "0", the patch is going to think
-		// the value is already there and shouldn't be patched, making it fail validation.
-		// Fallback to Update.
-		if !apierrors.IsInvalid(err) {
-			return nil, err
-		}
-		if err := r.Client.Status().Update(ctx, ms); err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	return ms, nil
 }

@@ -49,6 +49,8 @@ RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 LINK_CHECKER_BIN := bin/liche
 LINK_CHECKER := $(TOOLS_DIR)/$(LINK_CHECKER_BIN)
 CLUSTERCTL_E2E_DIR := cmd/clusterctl/test/e2e
+GO_APIDIFF_BIN := bin/go-apidiff
+GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
 
 # Binaries.
 # Need to use abspath so we can invoke these from subdirectories
@@ -178,6 +180,9 @@ $(RELEASE_NOTES): $(TOOLS_DIR)/go.mod
 
 $(LINK_CHECKER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(LINK_CHECKER_BIN) github.com/raviqqe/liche
+
+$(GO_APIDIFF): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework

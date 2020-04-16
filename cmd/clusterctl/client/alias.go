@@ -36,3 +36,6 @@ type Template repository.Template
 
 // UpgradePlan defines a list of possible upgrade targets for a management group.
 type UpgradePlan cluster.UpgradePlan
+
+// Kubeconfig is a type that specifies inputs related to the actual kubeconfig.
+type Kubeconfig cluster.Kubeconfig

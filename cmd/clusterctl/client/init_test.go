@@ -23,10 +23,63 @@ import (
 	. "github.com/onsi/gomega"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 )
+
+// TODO: Refactor to actually test InitImages
+func Test_clusterctlClient_InitImages(t *testing.T) {
+	type field struct {
+		client *fakeClient
+	}
+
+	type args struct {
+		coreProvider           string
+		bootstrapProvider      []string
+		controlPlaneProvider   []string
+		infrastructureProvider []string
+	}
+
+	tests := []struct {
+		name           string
+		field          field
+		args           args
+		expectedImages []string
+		wantErr        bool
+	}{
+		{
+			name: "returns error if cannot find cluster client",
+			field: field{
+				client: fakeEmptyCluster(),
+			},
+			args:           args{},
+			expectedImages: []string{},
+			wantErr:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got, err := tt.field.client.InitImages(InitOptions{
+				Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "does-not-exist"},
+				CoreProvider:            tt.args.coreProvider,
+				BootstrapProviders:      tt.args.bootstrapProvider,
+				ControlPlaneProviders:   tt.args.controlPlaneProvider,
+				InfrastructureProviders: tt.args.infrastructureProvider,
+			})
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(HaveLen(len(tt.expectedImages)))
+		})
+	}
+}
 
 func Test_clusterctlClient_Init(t *testing.T) {
 	type field struct {
@@ -326,11 +379,12 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.field.hasCRD {
-				g.Expect(tt.field.client.clusters["kubeconfig"].ProviderInventory().EnsureCustomResourceDefinitions()).To(Succeed())
+				input := cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}
+				g.Expect(tt.field.client.clusters[input].ProviderInventory().EnsureCustomResourceDefinitions()).To(Succeed())
 			}
 
 			got, err := tt.field.client.Init(InitOptions{
-				Kubeconfig:              "kubeconfig",
+				Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 				CoreProvider:            tt.args.coreProvider,
 				BootstrapProviders:      tt.args.bootstrapProvider,
 				ControlPlaneProviders:   tt.args.controlPlaneProvider,
@@ -435,7 +489,7 @@ func fakeEmptyCluster() *fakeClient {
 		}).
 		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns4", "test"))
 
-	cluster1 := newFakeCluster("kubeconfig", config1).
+	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		// fake repository for capi, bootstrap and infra provider (matching provider's config)
 		WithRepository(repository1).
 		WithRepository(repository2).
@@ -454,11 +508,17 @@ func fakeEmptyCluster() *fakeClient {
 	return client
 }
 
-// clusterctl client for an management cluster with capi installed (with repository setup for capi, bootstrap and infra provider)
+// clusterctl client for a management cluster with capi installed (with repository setup for capi, bootstrap and infra provider)
+// It references a cluster client that corresponds to the mgmt-context in the
+// kubeconfig file.
 func fakeInitializedCluster() *fakeClient {
 	client := fakeEmptyCluster()
 
-	p := client.clusters["kubeconfig"].Proxy()
+	input := cluster.Kubeconfig{
+		Path:    "kubeconfig",
+		Context: "mgmt-context",
+	}
+	p := client.clusters[input].Proxy()
 	fp := p.(*test.FakeProxy)
 
 	fp.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), "v1.0.0", "capi-system", "")

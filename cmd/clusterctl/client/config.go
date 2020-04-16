@@ -17,8 +17,9 @@ limitations under the License.
 package client
 
 import (
-	"k8s.io/utils/pointer"
 	"strconv"
+
+	"k8s.io/utils/pointer"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -51,8 +52,9 @@ func (c *clusterctlClient) GetProviderComponents(provider string, providerType c
 
 // GetClusterTemplateOptions carries the options supported by GetClusterTemplate.
 type GetClusterTemplateOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
-	Kubeconfig string
+	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
+	// default rules for kubeconfig discovery will be used.
+	Kubeconfig Kubeconfig
 
 	// ProviderRepositorySource to be used for reading the workload cluster template from a provider repository;
 	// only one template source can be used at time; if not other source will be set, a ProviderRepositorySource

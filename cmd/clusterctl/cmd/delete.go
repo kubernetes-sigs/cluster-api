@@ -24,6 +24,7 @@ import (
 
 type deleteOptions struct {
 	kubeconfig              string
+	kubeconfigContext       string
 	targetNamespace         string
 	coreProvider            string
 	bootstrapProviders      []string
@@ -84,6 +85,8 @@ var deleteCmd = &cobra.Command{
 func init() {
 	deleteCmd.Flags().StringVar(&dd.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
+	deleteCmd.Flags().StringVar(&dd.kubeconfigContext, "kubeconfig-context", "",
+		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	deleteCmd.Flags().StringVar(&dd.targetNamespace, "namespace", "", "The namespace where the provider to be deleted lives. If unspecified, the namespace name will be inferred from the current configuration")
 
 	deleteCmd.Flags().BoolVar(&dd.includeNamespace, "include-namespace", false,
@@ -126,7 +129,7 @@ func runDelete() error {
 	}
 
 	if err := c.Delete(client.DeleteOptions{
-		Kubeconfig:              dd.kubeconfig,
+		Kubeconfig:              client.Kubeconfig{Path: dd.kubeconfig, Context: dd.kubeconfigContext},
 		IncludeNamespace:        dd.includeNamespace,
 		IncludeCRDs:             dd.includeCRDs,
 		Namespace:               dd.targetNamespace,

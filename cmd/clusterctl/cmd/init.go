@@ -25,6 +25,7 @@ import (
 
 type initOptions struct {
 	kubeconfig              string
+	kubeconfigContext       string
 	coreProvider            string
 	bootstrapProviders      []string
 	controlPlaneProviders   []string
@@ -91,6 +92,8 @@ var initCmd = &cobra.Command{
 func init() {
 	initCmd.Flags().StringVar(&io.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig for the management cluster. If unspecified, default discovery rules apply.")
+	initCmd.Flags().StringVar(&io.kubeconfigContext, "kubeconfig-context", "",
+		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	initCmd.Flags().StringVar(&io.coreProvider, "core", "",
 		"Core provider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, Cluster API's latest release is used.")
 	initCmd.Flags().StringSliceVarP(&io.infrastructureProviders, "infrastructure", "i", nil,
@@ -118,7 +121,7 @@ func runInit() error {
 	}
 
 	options := client.InitOptions{
-		Kubeconfig:              io.kubeconfig,
+		Kubeconfig:              client.Kubeconfig{Path: io.kubeconfig, Context: io.kubeconfigContext},
 		CoreProvider:            io.coreProvider,
 		BootstrapProviders:      io.bootstrapProviders,
 		ControlPlaneProviders:   io.controlPlaneProviders,

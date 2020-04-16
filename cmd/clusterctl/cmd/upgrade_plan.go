@@ -26,7 +26,8 @@ import (
 )
 
 type upgradePlanOptions struct {
-	kubeconfig string
+	kubeconfig        string
+	kubeconfigContext string
 }
 
 var up = &upgradePlanOptions{}
@@ -56,6 +57,8 @@ var upgradePlanCmd = &cobra.Command{
 func init() {
 	upgradePlanCmd.Flags().StringVar(&up.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.")
+	upgradePlanCmd.Flags().StringVar(&up.kubeconfigContext, "kubeconfig-context", "",
+		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 }
 
 func runUpgradePlan() error {
@@ -65,7 +68,7 @@ func runUpgradePlan() error {
 	}
 
 	upgradePlans, err := c.PlanUpgrade(client.PlanUpgradeOptions{
-		Kubeconfig: up.kubeconfig,
+		Kubeconfig: client.Kubeconfig{Path: up.kubeconfig, Context: up.kubeconfigContext},
 	})
 	if err != nil {
 		return err

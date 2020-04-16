@@ -19,6 +19,7 @@ package cluster
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,24 +39,27 @@ var (
 )
 
 type proxy struct {
-	kubeconfig string
+	kubeconfig Kubeconfig
+	timeout    time.Duration
 }
 
 var _ Proxy = &proxy{}
 
 func (k *proxy) CurrentNamespace() (string, error) {
-	config, err := clientcmd.LoadFromFile(k.kubeconfig)
+	config, err := clientcmd.LoadFromFile(k.kubeconfig.Path)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to load Kubeconfig file from %q", k.kubeconfig)
+		return "", errors.Wrapf(err, "failed to load Kubeconfig file from %q", k.kubeconfig.Path)
 	}
 
-	if config.CurrentContext == "" {
-		return "", errors.Wrapf(err, "failed to get current-context from %q", k.kubeconfig)
+	context := config.CurrentContext
+	// If a context is explicitly provided use that instead
+	if k.kubeconfig.Context != "" {
+		context = k.kubeconfig.Context
 	}
 
-	v, ok := config.Contexts[config.CurrentContext]
+	v, ok := config.Contexts[context]
 	if !ok {
-		return "", errors.Wrapf(err, "failed to get context %q from %q", config.CurrentContext, k.kubeconfig)
+		return "", errors.Errorf("failed to get context %q from %q", context, k.kubeconfig.Path)
 	}
 
 	if v.Namespace != "" {
@@ -66,7 +70,7 @@ func (k *proxy) CurrentNamespace() (string, error) {
 }
 
 func (k *proxy) ValidateKubernetesVersion() error {
-	config, err := k.getConfig()
+	config, err := k.GetConfig()
 	if err != nil {
 		return err
 	}
@@ -89,8 +93,34 @@ func (k *proxy) ValidateKubernetesVersion() error {
 	return nil
 }
 
+func (k *proxy) GetConfig() (*rest.Config, error) {
+	config, err := clientcmd.LoadFromFile(k.kubeconfig.Path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to load Kubeconfig file from %q", k.kubeconfig.Path)
+	}
+
+	configOverrides := &clientcmd.ConfigOverrides{
+		CurrentContext: k.kubeconfig.Context,
+		Timeout:        k.timeout.String(),
+	}
+	restConfig, err := clientcmd.NewDefaultClientConfig(*config, configOverrides).ClientConfig()
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "invalid configuration:") {
+			return nil, errors.New(strings.Replace(err.Error(), "invalid configuration:", "invalid kubeconfig file; clusterctl requires a valid kubeconfig file to connect to the management cluster:", 1))
+		}
+		return nil, err
+	}
+	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
+
+	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go does't generate throttling log messages
+	restConfig.QPS = 20
+	restConfig.Burst = 100
+
+	return restConfig, nil
+}
+
 func (k *proxy) NewClient() (client.Client, error) {
-	config, err := k.getConfig()
+	config, err := k.GetConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -175,40 +205,33 @@ func listObjByGVK(c client.Client, groupVersion, kind string, options []client.L
 	return objList, nil
 }
 
-func newProxy(kubeconfig string) Proxy {
-	// If a kubeconfig file isn't provided, find one in the standard locations.
-	if kubeconfig == "" {
-		kubeconfig = clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()
-	}
-	return &proxy{
-		kubeconfig: kubeconfig,
+type ProxyOption func(p *proxy)
+
+func InjectProxyTimeout(t time.Duration) ProxyOption {
+	return func(p *proxy) {
+		p.timeout = t
 	}
 }
 
-func (k *proxy) getConfig() (*rest.Config, error) {
-	config, err := clientcmd.LoadFromFile(k.kubeconfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load Kubeconfig file from %q", k.kubeconfig)
+func newProxy(kubeconfig Kubeconfig, opts ...ProxyOption) Proxy {
+	// If a kubeconfig file isn't provided, find one in the standard locations.
+	if kubeconfig.Path == "" {
+		kubeconfig.Path = clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()
+	}
+	p := &proxy{
+		kubeconfig: kubeconfig,
+		timeout:    30 * time.Second,
 	}
 
-	restConfig, err := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "invalid configuration:") {
-			return nil, errors.New(strings.Replace(err.Error(), "invalid configuration:", "invalid kubeconfig file; clusterctl requires a valid kubeconfig file to connect to the management cluster:", 1))
-		}
-		return nil, err
+	for _, o := range opts {
+		o(p)
 	}
-	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
-	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go does't generate throttling log messages
-	restConfig.QPS = 20
-	restConfig.Burst = 100
-
-	return restConfig, nil
+	return p
 }
 
 func (k *proxy) newClientSet() (*kubernetes.Clientset, error) {
-	config, err := k.getConfig()
+	config, err := k.GetConfig()
 	if err != nil {
 		return nil, err
 	}

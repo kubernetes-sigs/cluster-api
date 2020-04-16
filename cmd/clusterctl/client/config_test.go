@@ -19,16 +19,18 @@ package client
 import (
 	"fmt"
 	"io/ioutil"
-	"k8s.io/utils/pointer"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
 
@@ -391,7 +393,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 		WithDefaultVersion("v3.0.0").
 		WithFile("v3.0.0", "cluster-template.yaml", rawTemplate)
 
-	cluster1 := newFakeCluster("kubeconfig", config1).
+	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo", "bar").
 		WithObjs(configMap)
 
@@ -419,7 +421,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			name: "repository source - pass",
 			args: args{
 				options: GetClusterTemplateOptions{
-					Kubeconfig: "kubeconfig",
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					ProviderRepositorySource: &ProviderRepositorySourceOptions{
 						InfrastructureProvider: "infra:v3.0.0",
 						Flavor:                 "",
@@ -439,7 +441,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			name: "repository source - detects provider name/version if missing",
 			args: args{
 				options: GetClusterTemplateOptions{
-					Kubeconfig: "kubeconfig",
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					ProviderRepositorySource: &ProviderRepositorySourceOptions{
 						InfrastructureProvider: "", // empty triggers auto-detection of the provider name/version
 						Flavor:                 "",
@@ -459,7 +461,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			name: "repository source - use current namespace if targetNamespace is missing",
 			args: args{
 				options: GetClusterTemplateOptions{
-					Kubeconfig: "kubeconfig",
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					ProviderRepositorySource: &ProviderRepositorySourceOptions{
 						InfrastructureProvider: "infra:v3.0.0",
 						Flavor:                 "",
@@ -479,7 +481,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			name: "URL source - pass",
 			args: args{
 				options: GetClusterTemplateOptions{
-					Kubeconfig: "kubeconfig",
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					URLSource: &URLSourceOptions{
 						URL: path,
 					},
@@ -498,7 +500,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			name: "ConfigMap source - pass",
 			args: args{
 				options: GetClusterTemplateOptions{
-					Kubeconfig: "kubeconfig",
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					ConfigMapSource: &ConfigMapSourceOptions{
 						Namespace: "ns1",
 						Name:      "my-template",

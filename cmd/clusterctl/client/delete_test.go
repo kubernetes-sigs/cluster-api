@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 func Test_clusterctlClient_Delete(t *testing.T) {
@@ -47,7 +48,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:              "kubeconfig",
+					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					IncludeNamespace:        false,
 					IncludeCRDs:             false,
 					Namespace:               "",
@@ -68,7 +69,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:              "kubeconfig",
+					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					IncludeNamespace:        false,
 					IncludeCRDs:             false,
 					Namespace:               "capbpk-system",
@@ -89,7 +90,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:              "kubeconfig",
+					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					IncludeNamespace:        false,
 					IncludeCRDs:             false,
 					Namespace:               "", // empty namespace triggers namespace auto detection
@@ -115,7 +116,8 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			}
 			g.Expect(err).NotTo(HaveOccurred())
 
-			proxy := tt.fields.client.clusters["kubeconfig"].Proxy()
+			input := cluster.Kubeconfig(tt.args.options.Kubeconfig)
+			proxy := tt.fields.client.clusters[input].Proxy()
 			gotProviders := &clusterctlv1.ProviderList{}
 
 			c, err := proxy.NewClient()
@@ -150,7 +152,7 @@ func fakeClusterForDelete() *fakeClient {
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
 		WithFile("v2.1.0", "components.yaml", componentsYAML("ns2"))
 
-	cluster1 := newFakeCluster("kubeconfig", config1)
+	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1)
 	cluster1.fakeProxy.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), "v1.0.0", "capi-system", "")
 	cluster1.fakeProxy.WithProviderInventory(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type(), "v1.0.0", "capbpk-system", "")
 

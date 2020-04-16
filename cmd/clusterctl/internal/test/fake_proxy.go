@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	fakebootstrap "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/bootstrap"
@@ -59,6 +60,10 @@ func (f *FakeProxy) CurrentNamespace() (string, error) {
 
 func (f *FakeProxy) ValidateKubernetesVersion() error {
 	return nil
+}
+
+func (f *FakeProxy) GetConfig() (*rest.Config, error) {
+	return nil, nil
 }
 
 func (f *FakeProxy) NewClient() (client.Client, error) {

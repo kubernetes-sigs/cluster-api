@@ -24,7 +24,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -33,8 +32,6 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	ctx context.Context,
 	cluster *clusterv1.Cluster,
 	kcp *controlplanev1.KubeadmControlPlane,
-	ownedMachines internal.FilterableMachineCollection,
-	requireUpgrade internal.FilterableMachineCollection,
 	controlPlane *internal.ControlPlane,
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
@@ -82,44 +79,14 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return ctrl.Result{}, errors.Wrap(err, "failed to upgrade kubelet config map")
 	}
 
-	// If there is not already a Machine that is marked for upgrade, find one and mark it
-	selectedForUpgrade := requireUpgrade.Filter(machinefilters.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation))
-	if len(selectedForUpgrade) == 0 {
-		selectedMachine, err := r.selectAndMarkMachine(ctx, requireUpgrade, controlplanev1.SelectedForUpgradeAnnotation, controlPlane)
-		if err != nil {
-			logger.Error(err, "failed to select machine for upgrade")
-			return ctrl.Result{}, err
-		}
-		selectedForUpgrade = selectedForUpgrade.Insert(selectedMachine)
-	}
-
-	replacementCreated := selectedForUpgrade.Filter(machinefilters.HasAnnotationKey(controlplanev1.UpgradeReplacementCreatedAnnotation))
-	if len(replacementCreated) == 0 {
-		// TODO: should we also add a check here to ensure that current machines not > kcp.spec.replicas+1?
-		// We haven't created a replacement machine for the cluster yet
-		// return here to avoid blocking while waiting for the new control plane Machine to come up
-		result, err := r.scaleUpControlPlane(ctx, cluster, kcp, ownedMachines, controlPlane)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := r.markWithAnnotationKey(ctx, selectedForUpgrade.Oldest(), controlplanev1.UpgradeReplacementCreatedAnnotation); err != nil {
-			return ctrl.Result{}, err
-		}
-		return result, nil
-	}
-
-	return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines, replacementCreated, controlPlane)
-}
-
-func (r *KubeadmControlPlaneReconciler) selectAndMarkMachine(ctx context.Context, machines internal.FilterableMachineCollection, annotation string, controlPlane *internal.ControlPlane) (*clusterv1.Machine, error) {
-	selected, err := controlPlane.MachineInFailureDomainWithMostMachines(machines)
+	status, err := workloadCluster.ClusterStatus(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to select and mark a machine")
-	}
-	//annotation
-	if err := r.markWithAnnotationKey(ctx, selected, annotation); err != nil {
-		return nil, errors.Wrap(err, "failed to select and mark a machine")
+		return ctrl.Result{}, err
 	}
 
-	return selected, nil
+	if status.Nodes <= *kcp.Spec.Replicas {
+		// scaleUp ensures that we don't continue scaling up while waiting for Machines to have NodeRefs
+		return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
+	}
+	return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane)
 }

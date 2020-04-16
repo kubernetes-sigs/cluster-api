@@ -155,6 +155,11 @@ type MachineStatus struct {
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
+
+	// InfrastructureCapabilities are used to inform machine clients of
+	// underlying machine infrastructure capabilities such as power management.
+	// +optional
+	InfrastructureCapabilities *[]string `json:"infrastructureCapabilities,omitempty"`
 }
 
 // ANCHOR_END: MachineStatus

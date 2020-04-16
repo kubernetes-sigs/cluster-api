@@ -51,6 +51,14 @@ const (
 	MachineInternalIP  MachineAddressType = "InternalIP"
 	MachineExternalDNS MachineAddressType = "ExternalDNS"
 	MachineInternalDNS MachineAddressType = "InternalDNS"
+
+	// The capability strings should be all lower case so we can
+	// ToLower() any user input.
+
+	InfraCapbilityPowerOn  = "poweron"
+	InfraCapbilityPowerOff = "poweroff"
+	InfraCapbilityForceOff = "forceoff"
+	InfraCapbilityReboot   = "reboot"
 )
 
 // MachineAddress contains information for the node's address.

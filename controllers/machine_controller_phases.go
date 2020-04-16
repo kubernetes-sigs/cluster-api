@@ -266,6 +266,15 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		m.Spec.FailureDomain = pointer.StringPtr(failureDomain)
 	}
 
+	// Get and set Status.InfrastructureCapabilities from the infrastructure provider.
+	err = util.UnstructuredUnmarshalField(infraConfig, &m.Status.InfrastructureCapabilities, "status", "capabilities")
+
+	if err != nil {
+		if err != util.ErrUnstructuredFieldNotFound {
+			return errors.Wrapf(err, "failed to retrieve InfrastructureCapabilities from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		}
+	}
+
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
 	return nil
 }

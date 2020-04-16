@@ -590,6 +590,13 @@ spec:
                   during the reconciliation of Machines can be added as events to
                   the Machine object and/or logged in the controller's output."
                 type: string
+              infrastructureCapabilities:
+                description: InfrastructureCapabilities are used to inform machine
+                  clients of underlying machine infrastructure capabilities such as
+                  power management.
+                items:
+                  type: string
+                type: array
               infrastructureReady:
                 description: InfrastructureReady is the state of the infrastructure
                   provider.

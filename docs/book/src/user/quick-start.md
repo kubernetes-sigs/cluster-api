@@ -7,6 +7,7 @@ In this tutorial we'll cover the basics of how to use Cluster API to create one 
 ### Common Prerequisites
 
 - Install and setup [kubectl] in your local environment
+- Install [Kind] and [Docker] 
 
 ### Install and/or configure a kubernetes cluster
 
@@ -531,6 +532,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [capv-upload-images]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-machine-images
 [clusterctl config cluster]: ../clusterctl/commands/config-cluster.md
 [clusterctl]: ../clusterctl/overview.md
+[Docker]: https://www.docker.com/
 [docker-provider]: ../clusterctl/developers.md#additional-steps-in-order-to-use-the-docker-provider
 [GCP provider]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider

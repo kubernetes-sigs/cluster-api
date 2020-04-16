@@ -20,9 +20,36 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// Interfaces to scope down client.Client
+
+// Getter can get resources.
+type Getter interface {
+	Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error
+}
+
+// Creator can creates resources.
+type Creator interface {
+	Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error
+}
+
+// Lister can lists resources.
+type Lister interface {
+	List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error
+}
+
+// Deleter can delete resources.
+type Deleter interface {
+	Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error
+}
+
+// GetLister can get and list resources.
+type GetLister interface {
+	Getter
+	Lister
+}
 
 // ComponentGenerator is used to install components, generally any YAML bundle.
 type ComponentGenerator interface {
@@ -30,51 +57,4 @@ type ComponentGenerator interface {
 	GetName() string
 	// Manifests return the YAML bundle.
 	Manifests(context.Context) ([]byte, error)
-}
-
-// Applier is an interface around applying YAML to a cluster
-// Deprecated. Please use ClusterProxy
-type Applier interface {
-	// Apply allows us to apply YAML to the cluster, `kubectl apply`
-	Apply(context.Context, []byte) error
-}
-
-// Waiter is an interface around waiting for something on a kubernetes cluster.
-// Deprecated. Please use ClusterProxy
-type Waiter interface {
-	// Wait allows us to wait for something in the cluster, `kubectl wait`
-	Wait(context.Context, ...string) error
-}
-
-// ImageLoader is an interface around loading an image onto a cluster.
-// Deprecated. Please use ClusterProxy
-type ImageLoader interface {
-	// LoadImage will put a local image onto the cluster.
-	LoadImage(context.Context, string) error
-}
-
-// ManagementCluster are all the features we need out of a kubernetes cluster to qualify as a management cluster.
-// Deprecated. Please use ClusterProxy
-type ManagementCluster interface {
-	Applier
-	Waiter
-	// Teardown will completely clean up the ManagementCluster.
-	// This should be implemented as a synchronous function.
-	// Generally to be used in the AfterSuite function if a management cluster is shared between tests.
-	// Should try to clean everything up and report any dangling artifacts that needs manual intervention.
-	Teardown(context.Context)
-	// GetName returns the name of the cluster.
-	GetName() string
-	// GetKubeconfigPath returns the path to the kubeconfig file for the cluster.
-	GetKubeconfigPath() string
-	// GetScheme returns the scheme defining the types hosted in the cluster.
-	GetScheme() *runtime.Scheme
-	// GetClient returns a client to the Management cluster.
-	GetClient() (client.Client, error)
-	// GetClientSet returns a clientset to the management cluster.
-	GetClientSet() (*kubernetes.Clientset, error)
-	// GetWorkdloadClient returns a client to the specified workload cluster.
-	GetWorkloadClient(ctx context.Context, namespace, name string) (client.Client, error)
-	// GetWorkerKubeconfigPath returns the path to the kubeconfig file for the specified workload cluster.
-	GetWorkerKubeconfigPath(ctx context.Context, namespace, name string) (string, error)
 }

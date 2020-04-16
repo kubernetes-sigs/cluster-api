@@ -21,6 +21,7 @@ import (
 )
 
 var (
+	//Deprecated. using a global var makes it harder to expose test as a function.
 	SkipResourceCleanup bool
 )
 

@@ -18,9 +18,12 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"text/tabwriter"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
@@ -40,7 +43,7 @@ var configRepositoryCmd = &cobra.Command{
 		clusterctl config repositories`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGetRepositories()
+		return runGetRepositories(cfgFile, os.Stdout)
 	},
 }
 
@@ -48,7 +51,10 @@ func init() {
 	configCmd.AddCommand(configRepositoryCmd)
 }
 
-func runGetRepositories() error {
+func runGetRepositories(cfgFile string, out io.Writer) error {
+	if out == nil {
+		return errors.New("unable to print to nil output writer")
+	}
 	c, err := client.New(cfgFile)
 	if err != nil {
 		return err
@@ -59,10 +65,11 @@ func runGetRepositories() error {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
-	fmt.Fprintln(w, "NAME\tTYPE\tURL")
+	w := tabwriter.NewWriter(out, 10, 4, 3, ' ', 0)
+	fmt.Fprintln(w, "NAME\tTYPE\tURL\tFILE")
 	for _, r := range repositoryList {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", r.Name(), r.Type(), r.URL())
+		dir, file := filepath.Split(r.URL())
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.Name(), r.Type(), dir, file)
 	}
 	w.Flush()
 

@@ -31,6 +31,9 @@ type Provider config.Provider
 // Components wraps a YAML file that defines the provider's components (CRDs, controller, RBAC rules etc.).
 type Components repository.Components
 
+// ComponentsOptions wraps inputs to get provider's components
+type ComponentsOptions repository.ComponentsOptions
+
 // Template wraps a YAML file that defines the cluster objects (Cluster, Machines etc.).
 type Template repository.Template
 

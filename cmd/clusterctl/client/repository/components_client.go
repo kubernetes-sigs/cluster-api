@@ -25,7 +25,7 @@ import (
 // ComponentsClient has methods to work with yaml file for generating provider components.
 // Assets are yaml files to be used for deploying a provider into a management cluster.
 type ComponentsClient interface {
-	Get(version, targetNamespace, watchingNamespace string) (Components, error)
+	Get(options ComponentsOptions) (Components, error)
 }
 
 // componentsClient implements ComponentsClient.
@@ -47,22 +47,23 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 	}
 }
 
-func (f *componentsClient) Get(version, targetNamespace, watchingNamespace string) (Components, error) {
+// Get returns the components from a repository
+func (f *componentsClient) Get(options ComponentsOptions) (Components, error) {
 	log := logf.Log
 
-	// if the request does not target a specific version, read from the default repository version that is derived from the repository URL, e.g. latest.
-	if version == "" {
-		version = f.repository.DefaultVersion()
+	// If the request does not target a specific version, read from the default repository version that is derived from the repository URL, e.g. latest.
+	if options.Version == "" {
+		options.Version = f.repository.DefaultVersion()
 	}
 
-	// retrieve the path where the path is stored
+	// Retrieve the path where the path is stored
 	path := f.repository.ComponentsPath()
 
-	// read the component YAML, reading the local override file if it exists, otherwise read from the provider repository
+	// Read the component YAML, reading the local override file if it exists, otherwise read from the provider repository
 	file, err := getLocalOverride(&newOverrideInput{
 		configVariablesClient: f.configClient.Variables(),
 		provider:              f.provider,
-		version:               version,
+		version:               options.Version,
 		filePath:              path,
 	})
 	if err != nil {
@@ -70,14 +71,14 @@ func (f *componentsClient) Get(version, targetNamespace, watchingNamespace strin
 	}
 
 	if file == nil {
-		log.V(5).Info("Fetching", "File", path, "Provider", f.provider.ManifestLabel(), "Version", version)
-		file, err = f.repository.GetFile(version, path)
+		log.V(5).Info("Fetching", "File", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
+		file, err = f.repository.GetFile(options.Version, path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())
 		}
 	} else {
-		log.V(1).Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", version)
+		log.V(1).Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
 	}
 
-	return NewComponents(f.provider, version, file, f.configClient, targetNamespace, watchingNamespace)
+	return NewComponents(f.provider, f.configClient, file, options)
 }

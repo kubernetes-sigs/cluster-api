@@ -136,7 +136,11 @@ func runGetComponents() error {
 		return err
 	}
 
-	components, err := c.GetProviderComponents(providerName, providerType, cpo.targetNamespace, cpo.watchingNamespace)
+	options := client.ComponentsOptions{
+		TargetNamespace:   cpo.targetNamespace,
+		WatchingNamespace: cpo.watchingNamespace,
+	}
+	components, err := c.GetProviderComponents(providerName, providerType, options)
 	if err != nil {
 		return err
 	}

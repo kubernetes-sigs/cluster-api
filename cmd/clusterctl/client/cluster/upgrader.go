@@ -325,7 +325,12 @@ func (u *providerUpgrader) getUpgradeComponents(provider UpgradeItem) (repositor
 		return nil, err
 	}
 
-	components, err := providerRepository.Components().Get(provider.NextVersion, provider.Namespace, provider.WatchedNamespace)
+	options := repository.ComponentsOptions{
+		Version:           provider.NextVersion,
+		TargetNamespace:   provider.Namespace,
+		WatchingNamespace: provider.WatchedNamespace,
+	}
+	components, err := providerRepository.Components().Get(options)
 	if err != nil {
 		return nil, err
 	}

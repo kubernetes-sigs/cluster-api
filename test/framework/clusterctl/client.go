@@ -45,7 +45,7 @@ const (
 type InitInput struct {
 	LogFolder               string
 	ClusterctlConfigPath    string
-	Kubeconfig              clusterctlclient.Kubeconfig
+	KubeconfigPath          string
 	CoreProvider            string
 	BootstrapProviders      []string
 	ControlPlaneProviders   []string
@@ -62,7 +62,10 @@ func Init(ctx context.Context, input InitInput) {
 	)
 
 	initOpt := clusterctlclient.InitOptions{
-		Kubeconfig:              input.Kubeconfig,
+		Kubeconfig: clusterctlclient.Kubeconfig{
+			Path:    input.KubeconfigPath,
+			Context: "",
+		},
 		CoreProvider:            input.CoreProvider,
 		BootstrapProviders:      input.BootstrapProviders,
 		ControlPlaneProviders:   input.ControlPlaneProviders,
@@ -81,7 +84,7 @@ func Init(ctx context.Context, input InitInput) {
 type ConfigClusterInput struct {
 	LogFolder                string
 	ClusterctlConfigPath     string
-	Kubeconfig               clusterctlclient.Kubeconfig
+	KubeconfigPath           string
 	InfrastructureProvider   string
 	Namespace                string
 	ClusterName              string
@@ -103,7 +106,10 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 	)
 
 	templateOptions := clusterctlclient.GetClusterTemplateOptions{
-		Kubeconfig: input.Kubeconfig,
+		Kubeconfig: clusterctlclient.Kubeconfig{
+			Path:    input.KubeconfigPath,
+			Context: "",
+		},
 		ProviderRepositorySource: &clusterctlclient.ProviderRepositorySourceOptions{
 			InfrastructureProvider: input.InfrastructureProvider,
 			Flavor:                 input.Flavor,
@@ -133,8 +139,8 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 type MoveInput struct {
 	LogFolder            string
 	ClusterctlConfigPath string
-	FromKubeconfig       clusterctlclient.Kubeconfig
-	ToKubeconfig         clusterctlclient.Kubeconfig
+	FromKubeconfigPath   string
+	ToKubeconfigPath     string
 	Namespace            string
 }
 
@@ -144,10 +150,9 @@ func Move(ctx context.Context, input MoveInput) {
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", input.LogFolder)
 	defer log.Close()
-
 	options := clusterctlclient.MoveOptions{
-		FromKubeconfig: input.FromKubeconfig,
-		ToKubeconfig:   input.ToKubeconfig,
+		FromKubeconfig: clusterctlclient.Kubeconfig{Path: input.FromKubeconfigPath, Context: ""},
+		ToKubeconfig:   clusterctlclient.Kubeconfig{Path: input.ToKubeconfigPath, Context: ""},
 		Namespace:      input.Namespace,
 	}
 

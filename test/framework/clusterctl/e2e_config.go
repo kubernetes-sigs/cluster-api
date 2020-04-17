@@ -30,6 +30,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/utils/pointer"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlconfig "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -39,9 +40,10 @@ import (
 
 // Provides access to the configuration for an e2e test.
 
-// Define constants for well known clusterctl config variables
+// Define constants for e2e config variables
 const (
-	kubernetesVersion = "KUBERNETES_VERSION"
+	KubernetesVersion = "KUBERNETES_VERSION"
+	CNIPath           = "CNI"
 )
 
 // LoadE2EConfigInput is the input for LoadE2EConfig.
@@ -191,6 +193,7 @@ func errEmptyArg(argName string) error {
 // - Image should have name and loadBehavior be one of [mustload, tryload].
 // - Intervals should be valid ginkgo intervals.
 // - KubernetesVersion is not nil and valid.
+// - CNIPath is not nil.
 func (c *E2EConfig) Validate() error {
 	// ManagementClusterName should not be empty.
 	if c.ManagementClusterName == "" {
@@ -230,14 +233,19 @@ func (c *E2EConfig) Validate() error {
 		}
 	}
 
-	// If kubernetesVersion is nil or not valid, return error.
+	// If KubernetesVersion is nil or not valid, return error.
 	k8sVersion := c.GetKubernetesVersion()
 	if k8sVersion == "" {
-		return errEmptyArg(fmt.Sprintf("Variables[%s]", kubernetesVersion))
+		return errEmptyArg(fmt.Sprintf("Variables[%s]", KubernetesVersion))
 	} else if _, err := version.ParseSemantic(k8sVersion); err != nil {
-		return errInvalidArg("Variables[%s]=%q", kubernetesVersion, k8sVersion)
+		return errInvalidArg("Variables[%s]=%q", KubernetesVersion, k8sVersion)
 	}
 
+	// If CniPath is nil, return error.
+	cniPath := c.GetCNIPath()
+	if cniPath == "" {
+		return errEmptyArg(fmt.Sprintf("Variables[%s]", CNIPath))
+	}
 	return nil
 }
 
@@ -401,18 +409,23 @@ func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 
 	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
 	Expect(err).NotTo(HaveOccurred())
-	return Int64Ptr(wCount)
-}
-
-func Int64Ptr(n int64) *int64 {
-	return &n
+	return pointer.Int64Ptr(wCount)
 }
 
 // GetKubernetesVersion returns the kubernetes version provided in e2e config.
 func (c *E2EConfig) GetKubernetesVersion() string {
-	version, ok := c.Variables[kubernetesVersion]
+	version, ok := c.Variables[KubernetesVersion]
 	if !ok {
 		return ""
 	}
 	return version
+}
+
+// GetCNIPath returns the CNI path provided in e2e config.
+func (c *E2EConfig) GetCNIPath() string {
+	path, ok := c.Variables[CNIPath]
+	if !ok {
+		return ""
+	}
+	return path
 }

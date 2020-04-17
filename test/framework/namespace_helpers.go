@@ -161,3 +161,35 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 	<-ctx.Done()
 	stopInformer <- struct{}{}
 }
+
+// CreateNamespaceAndWatchEventsInput is the input type for CreateNamespaceAndWatchEvents.
+type CreateNamespaceAndWatchEventsInput struct {
+	Creator   Creator
+	ClientSet *kubernetes.Clientset
+	Name      string
+	LogFolder string
+}
+
+// CreateNamespaceAndWatchEvents creates a namespace and setups a watch for the namespace events.
+func CreateNamespaceAndWatchEvents(ctx context.Context, input CreateNamespaceAndWatchEventsInput) (*corev1.Namespace, context.CancelFunc) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateNamespaceAndWatchEvents")
+	Expect(input.Creator).ToNot(BeNil(), "Invalid argument. input.Creator can't be nil when calling CreateNamespaceAndWatchEvents")
+	Expect(input.ClientSet).ToNot(BeNil(), "Invalid argument. input.ClientSet can't be nil when calling ClientSet")
+	Expect(input.Name).ToNot(BeEmpty(), "Invalid argument. input.Name can't be empty when calling ClientSet")
+	Expect(os.MkdirAll(input.LogFolder, 0755)).To(Succeed(), "Invalid argument. input.LogFolder can't be created in CreateNamespaceAndWatchEvents")
+
+	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name}, "40s", "10s")
+	Expect(namespace).ToNot(BeNil(), "Failed to create namespace %q", input.Name)
+
+	fmt.Fprintf(GinkgoWriter, "Creating event watcher for namespace %q\n", input.Name)
+	watchesCtx, cancelWatches := context.WithCancel(ctx)
+	go func() {
+		defer GinkgoRecover()
+		WatchNamespaceEvents(watchesCtx, WatchNamespaceEventsInput{
+			ClientSet: input.ClientSet,
+			Name:      namespace.Name,
+			LogFolder: input.LogFolder,
+		})
+	}()
+	return namespace, cancelWatches
+}

@@ -133,6 +133,67 @@ func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput
 	}, intervals...).Should(BeTrue())
 }
 
+// DiscoveryAndWaitForClusterInput is the input type for DiscoveryAndWaitForCluster.
+type DiscoveryAndWaitForClusterInput struct {
+	Getter    Getter
+	Namespace string
+	Name      string
+}
+
+// DiscoveryAndWaitForCluster discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
+func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForClusterInput, intervals ...interface{}) *clusterv1.Cluster {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForCluster")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling DiscoveryAndWaitForCluster")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling DiscoveryAndWaitForCluster")
+	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling DiscoveryAndWaitForCluster")
+
+	cluster := GetClusterByName(ctx, GetClusterByNameInput{
+		Getter:    input.Getter,
+		Name:      input.Name,
+		Namespace: input.Namespace,
+	})
+	Expect(cluster).ToNot(BeNil(), "Failed to get the Cluster object")
+
+	WaitForClusterToProvision(ctx, WaitForClusterToProvisionInput{
+		Getter:  input.Getter,
+		Cluster: cluster,
+	}, intervals...)
+
+	return cluster
+}
+
+// DeleteClusterAndWaitInput is the input type for DeleteClusterAndWait.
+type DeleteClusterAndWaitInput struct {
+	Client  client.Client
+	Cluster *clusterv1.Cluster
+}
+
+// DeleteClusterAndWait deletes a cluster object and waits for it to be gone.
+func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, intervals ...interface{}) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteClusterAndWait")
+	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling DeleteClusterAndWait")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DeleteClusterAndWait")
+
+	DeleteCluster(ctx, DeleteClusterInput{
+		Deleter: input.Client,
+		Cluster: input.Cluster,
+	})
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for the Cluster object to be deleted\n")
+	WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
+		Getter:  input.Client,
+		Cluster: input.Cluster,
+	}, intervals...)
+
+	//TODO: consider if to move in another func (what if there are more than one cluster?)
+	fmt.Fprintf(GinkgoWriter, "Check for all the Cluster API resources being deleted\n")
+	resources := GetCAPIResources(ctx, GetCAPIResourcesInput{
+		Lister:    input.Client,
+		Namespace: input.Cluster.Namespace,
+	})
+	Expect(resources).To(BeEmpty(), "There are still Cluster API resources in the %q namespace", input.Cluster.Namespace)
+}
+
 // byClusterOptions returns a set of ListOptions that allows to identify all the objects belonging to a Cluster.
 func byClusterOptions(name, namespace string) []client.ListOption {
 	return []client.ListOption{

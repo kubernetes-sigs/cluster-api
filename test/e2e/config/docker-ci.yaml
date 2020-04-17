@@ -1,0 +1,77 @@
+---
+# CI E2E test test configuration scenario using locally build images and manifests for:
+# - cluster-api
+# - bootstrap kubeadm
+# - control-plane kubeadm
+# - docker
+
+# For creating local dev images run ./scripts/ci-e2e.sh
+
+images:
+# Use local dev images built source tree;
+- name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:ci
+  loadBehavior: mustLoad
+- name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:ci
+  loadBehavior: mustLoad
+- name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:ci
+  loadBehavior: mustLoad
+- name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:ci
+  loadBehavior: mustLoad
+- name: quay.io/jetstack/cert-manager-cainjector:v0.11.0
+  loadBehavior: tryLoad
+- name: quay.io/jetstack/cert-manager-webhook:v0.11.0
+  loadBehavior: tryLoad
+- name: quay.io/jetstack/cert-manager-controller:v0.11.0
+  loadBehavior: tryLoad
+
+providers:
+
+- name: cluster-api
+  type: CoreProvider
+  versions:
+  - name: v0.3.0
+  # Use manifest from source files
+    value: ../../../config
+
+- name: kubeadm
+  type: BootstrapProvider
+  versions:
+  - name: v0.3.0
+  # Use manifest from source files
+    value: ../../../bootstrap/kubeadm/config
+
+- name: kubeadm
+  type: ControlPlaneProvider
+  versions:
+  - name: v0.3.0
+  # Use manifest from source files
+    value: ../../../controlplane/kubeadm/config
+
+- name: docker
+  type: InfrastructureProvider
+  versions:
+  - name: v0.3.0
+  # Use manifest from source files
+    value: ../../../test/infrastructure/docker/config
+  files:
+  # Add a metadata for docker provider
+  - sourcePath: "../data/infrastructure-docker/metadata.yaml"
+  # Add a cluster template
+  - sourcePath: "../data/infrastructure-docker/cluster-template-ci.yaml"
+    targetName: "cluster-template.yaml"
+
+variables:
+  KUBERNETES_VERSION: "v1.17.0"
+  DOCKER_SERVICE_DOMAIN: "cluster.local"
+  DOCKER_SERVICE_CIDRS: "10.128.0.0/12"
+  # IMPORTANT! This values should match the one used by the CNI provider
+  DOCKER_POD_CIDRS: "192.168.0.0/16"
+  CNI: "./data/cni/kindnet/kindnet.yaml"
+
+intervals:
+  default/wait-controllers: ["3m", "10s"]
+  default/wait-cluster: ["3m", "10s"]
+  default/wait-control-plane: ["3m", "10s"]
+  default/wait-worker-nodes: ["3m", "10s"]
+  default/wait-delete-cluster: ["3m", "10s"]
+  default/wait-machine-upgrade: ["15m", "1m"]

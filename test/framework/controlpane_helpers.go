@@ -23,9 +23,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -225,4 +228,141 @@ func controlPlaneMachineOptions() []client.ListOption {
 	return []client.ListOption{
 		client.HasLabels{clusterv1.MachineControlPlaneLabelName},
 	}
+}
+
+// DiscoveryAndWaitForControlPlaneInitializedInput is the input type for DiscoveryAndWaitForControlPlaneInitialized.
+type DiscoveryAndWaitForControlPlaneInitializedInput struct {
+	Lister  Lister
+	Cluster *clusterv1.Cluster
+}
+
+// DiscoveryAndWaitForControlPlaneInitialized discovers the KubeadmControlPlane object attached to a cluster and waits for it to be initialized.
+func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input DiscoveryAndWaitForControlPlaneInitializedInput, intervals ...interface{}) *controlplanev1.KubeadmControlPlane {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForControlPlaneInitialized")
+	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
+
+	controlPlane := GetKubeadmControlPlaneByCluster(ctx, GetKubeadmControlPlaneByClusterInput{
+		Lister:      input.Lister,
+		ClusterName: input.Cluster.Name,
+		Namespace:   input.Cluster.Namespace,
+	})
+	Expect(controlPlane).ToNot(BeNil())
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for the first control plane machine managed by %s/%s to be provisioned\n", controlPlane.Namespace, controlPlane.Name)
+	WaitForOneKubeadmControlPlaneMachineToExist(ctx, WaitForOneKubeadmControlPlaneMachineToExistInput{
+		Lister:       input.Lister,
+		Cluster:      input.Cluster,
+		ControlPlane: controlPlane,
+	}, intervals...)
+
+	return controlPlane
+}
+
+// WaitForControlPlaneAndMachinesReadyInput is the input type for WaitForControlPlaneAndMachinesReady.
+type WaitForControlPlaneAndMachinesReadyInput struct {
+	GetLister    GetLister
+	Cluster      *clusterv1.Cluster
+	ControlPlane *controlplanev1.KubeadmControlPlane
+}
+
+// WaitForControlPlaneAndMachinesReady waits for a KubeadmControlPlane object to be ready (all the machine provisioned and one node ready).
+func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForControlPlaneAndMachinesReadyInput, intervals ...interface{}) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForControlPlaneReady")
+	Expect(input.GetLister).ToNot(BeNil(), "Invalid argument. input.GetLister can't be nil when calling WaitForControlPlaneReady")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForControlPlaneReady")
+	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling WaitForControlPlaneReady")
+
+	if input.ControlPlane.Spec.Replicas != nil && int(*input.ControlPlane.Spec.Replicas) > 1 {
+		fmt.Fprintf(GinkgoWriter, "Waiting for the remaining control plane machines managed by %s/%s to be provisioned\n", input.ControlPlane.Namespace, input.ControlPlane.Name)
+		WaitForKubeadmControlPlaneMachinesToExist(ctx, WaitForKubeadmControlPlaneMachinesToExistInput{
+			Lister:       input.GetLister,
+			Cluster:      input.Cluster,
+			ControlPlane: input.ControlPlane,
+		}, intervals...)
+	}
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for control plane %s/%s to be ready (implies underlying nodes to be ready as well)\n", input.ControlPlane.Namespace, input.ControlPlane.Name)
+	waitForControlPlaneToBeReadyInput := WaitForControlPlaneToBeReadyInput{
+		Getter:       input.GetLister,
+		ControlPlane: input.ControlPlane,
+	}
+	WaitForControlPlaneToBeReady(ctx, waitForControlPlaneToBeReadyInput, intervals...)
+}
+
+// UpgradeControlPlaneAndWaitForUpgradeInput is the input type for UpgradeControlPlaneAndWaitForUpgrade.
+type UpgradeControlPlaneAndWaitForUpgradeInput struct {
+	ClusterProxy                ClusterProxy
+	Cluster                     *clusterv1.Cluster
+	ControlPlane                *controlplanev1.KubeadmControlPlane
+	KubernetesUpgradeVersion    string
+	EtcdImageTag                string
+	DNSImageTag                 string
+	WaitForMachinesToBeUpgraded []interface{}
+	WaitForDNSUpgrade           []interface{}
+	WaitForEtcdUpgrade          []interface{}
+}
+
+// UpgradeControlPlaneAndWaitForUpgrade upgrades a KubeadmControlPlane and waits for it to be upgraded.
+func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeControlPlaneAndWaitForUpgradeInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeControlPlaneAndWaitForUpgrade")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeControlPlaneAndWaitForUpgrade")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling UpgradeControlPlaneAndWaitForUpgrade")
+	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling UpgradeControlPlaneAndWaitForUpgrade")
+	Expect(input.KubernetesUpgradeVersion).ToNot(BeNil(), "Invalid argument. input.KubernetesUpgradeVersion can't be empty when calling UpgradeControlPlaneAndWaitForUpgrade")
+	Expect(input.EtcdImageTag).ToNot(BeNil(), "Invalid argument. input.EtcdImageTag can't be empty when calling UpgradeControlPlaneAndWaitForUpgrade")
+	Expect(input.DNSImageTag).ToNot(BeNil(), "Invalid argument. input.DNSImageTag can't be empty when calling UpgradeControlPlaneAndWaitForUpgrade")
+
+	mgmtClient := input.ClusterProxy.GetClient()
+
+	fmt.Fprintf(GinkgoWriter, "Patching the new kubernetes version to KCP\n")
+	patchHelper, err := patch.NewHelper(input.ControlPlane, mgmtClient)
+	Expect(err).ToNot(HaveOccurred())
+
+	input.ControlPlane.Spec.Version = input.KubernetesUpgradeVersion
+	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = v1beta1.Etcd{
+		Local: &v1beta1.LocalEtcd{
+			ImageMeta: v1beta1.ImageMeta{
+				ImageTag: input.EtcdImageTag,
+			},
+		},
+	}
+	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = v1beta1.DNS{
+		ImageMeta: v1beta1.ImageMeta{
+			ImageTag: input.DNSImageTag,
+		},
+	}
+
+	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for machines to have the upgraded kubernetes version\n")
+	WaitForMachinesToBeUpgraded(ctx, WaitForMachinesToBeUpgradedInput{
+		Lister:                   mgmtClient,
+		Cluster:                  input.Cluster,
+		MachineCount:             int(*input.ControlPlane.Spec.Replicas),
+		KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
+	}, input.WaitForMachinesToBeUpgraded...)
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for kube-proxy to have the upgraded kubernetes version\n")
+	workloadCluster := input.ClusterProxy.GetWorkloadCluster(context.TODO(), input.Cluster.Namespace, input.Cluster.Name)
+	workloadClient := workloadCluster.GetClient()
+	WaitForKubeProxyUpgrade(ctx, WaitForKubeProxyUpgradeInput{
+		Getter:            workloadClient,
+		KubernetesVersion: input.KubernetesUpgradeVersion,
+	}, input.WaitForDNSUpgrade...)
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for CoreDNS to have the upgraded image tag\n")
+	WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
+		Getter:     workloadClient,
+		DNSVersion: input.DNSImageTag,
+	})
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for etcd to have the upgraded image tag\n")
+	lblSelector, err := labels.Parse("component=etcd")
+	Expect(err).ToNot(HaveOccurred())
+	WaitForPodListCondition(ctx, WaitForPodListConditionInput{
+		Lister:      workloadClient,
+		ListOptions: &client.ListOptions{LabelSelector: lblSelector},
+		Condition:   EtcdImageTagCondition(input.EtcdImageTag, int(*input.ControlPlane.Spec.Replicas)),
+	}, input.WaitForEtcdUpgrade...)
 }

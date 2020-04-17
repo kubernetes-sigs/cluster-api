@@ -110,3 +110,30 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 		return count, nil
 	}, intervals...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)))
 }
+
+// DiscoveryAndWaitForMachineDeploymentsInput is the input type for DiscoveryAndWaitForMachineDeployments.
+type DiscoveryAndWaitForMachineDeploymentsInput struct {
+	Lister  Lister
+	Cluster *clusterv1.Cluster
+}
+
+// DiscoveryAndWaitForMachineDeployments discovers the MachineDeployments existing in a cluster and waits for them to be ready (all the machine provisioned).
+func DiscoveryAndWaitForMachineDeployments(ctx context.Context, input DiscoveryAndWaitForMachineDeploymentsInput, intervals ...interface{}) []*clusterv1.MachineDeployment {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForMachineDeployments")
+	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForMachineDeployments")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForMachineDeployments")
+
+	machineDeployments := GetMachineDeploymentsByCluster(ctx, GetMachineDeploymentsByClusterInput{
+		Lister:      input.Lister,
+		ClusterName: input.Cluster.Name,
+		Namespace:   input.Cluster.Namespace,
+	})
+	for _, deployment := range machineDeployments {
+		WaitForMachineDeploymentNodesToExist(ctx, WaitForMachineDeploymentNodesToExistInput{
+			Lister:            input.Lister,
+			Cluster:           input.Cluster,
+			MachineDeployment: deployment,
+		}, intervals...)
+	}
+	return machineDeployments
+}

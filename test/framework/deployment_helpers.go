@@ -77,7 +77,7 @@ type WatchDeploymentLogsInput struct {
 // in a separate goroutine so they can all be streamed concurrently. This only causes a test failure if there are errors
 // retrieving the deployment, its pods, or setting up a log file. If there is an error with the log streaming itself,
 // that does not cause the test to fail.
-func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) error {
+func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WatchControllerLogs")
 	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for WatchControllerLogs")
 	Expect(input.Deployment).NotTo(BeNil(), "input.Name is required for WatchControllerLogs")
@@ -131,7 +131,6 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) er
 			}(pod, container)
 		}
 	}
-	return nil
 }
 
 // WaitForDNSUpgradeInput is the input for WaitForDNSUpgrade.

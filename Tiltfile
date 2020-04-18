@@ -25,21 +25,6 @@ default_registry(settings.get("default_registry"))
 always_enable_providers = ["core"]
 
 providers = {
-    "core": {
-        "context": ".",
-        "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
-        "live_reload_deps": [
-            "main.go",
-            "go.mod",
-            "go.sum",
-            "api",
-            "cmd",
-            "controllers",
-            "errors",
-            "third_party",
-            "util",
-        ],
-    },
     "kubeadm-bootstrap": {
         "context": "bootstrap/kubeadm",
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller",
@@ -95,7 +80,10 @@ COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 #     }
 # }
 def load_provider_tiltfiles():
-    provider_repos = settings.get("provider_repos", [])
+    provider_repos = settings.get("provider_repos", ["."])
+    if "." not in provider_repos:
+        provider_repos.append(".")
+
     for repo in provider_repos:
         file = repo + "/tilt-provider.json"
         provider_details = read_json(file, default = {})
@@ -156,14 +144,17 @@ def enable_provider(name):
         additional_docker_build_commands,
     ])
 
-    # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
-    # build into the container.
+    entrypoint = ["sh", "/start.sh", "/manager"]
+    extra_args = p.get("extra_args")
+    if extra_args:
+        entrypoint.extend(extra_args)
+
     docker_build(
         ref = p.get("image"),
         context = context + "/.tiltbuild/",
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
-        entrypoint = ["sh", "/start.sh", "/manager"],
+        entrypoint = entrypoint,
         only = "manager",
         live_update = [
             sync(context + "/.tiltbuild/manager", "/manager"),

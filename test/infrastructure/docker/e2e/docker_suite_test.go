@@ -130,6 +130,9 @@ var _ = AfterSuite(func() {
 		writeLogs(mgmt, "capi-kubeadm-bootstrap-system", "capi-kubeadm-bootstrap-controller-manager", logPath),
 		writeLogs(mgmt, "capi-kubeadm-control-plane-system", "capi-kubeadm-control-plane-controller-manager", logPath),
 		writeLogs(mgmt, "capd-system", "capd-controller-manager", logPath),
+		writeLogs(mgmt, "capi-webhook-system", "capi-controller-manager", logPath),
+		writeLogs(mgmt, "capi-webhook-system", "capi-kubeadm-bootstrap-controller-manager", logPath),
+		writeLogs(mgmt, "capi-webhook-system", "capi-kubeadm-control-plane-controller-manager", logPath),
 	})).NotTo(HaveOccurred())
 })
 
@@ -159,7 +162,7 @@ func writeLogs(mgmt *CAPDCluster, namespace, deploymentName, logDir string) erro
 
 	for _, pod := range pods.Items {
 		for _, container := range deployment.Spec.Template.Spec.Containers {
-			logFile := path.Join(logDir, deploymentName, pod.Name, container.Name+".log")
+			logFile := path.Join(logDir, namespace, deploymentName, pod.Name, container.Name+".log")
 			fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
 			if err := os.MkdirAll(filepath.Dir(logFile), 0755); err != nil {
 				return errors.Wrapf(err, "error making logDir %q", filepath.Dir(logFile))

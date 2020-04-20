@@ -31,6 +31,7 @@ require (
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
+	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/grpc v1.26.0
 	k8s.io/api v0.17.2
 	k8s.io/apiextensions-apiserver v0.17.2
@@ -40,6 +41,7 @@ require (
 	k8s.io/cluster-bootstrap v0.17.2
 	k8s.io/component-base v0.17.2
 	k8s.io/klog v1.0.0
+	k8s.io/kube-openapi v0.0.0-20200121204235-bf4fb3bd569c // indirect
 	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
 	sigs.k8s.io/controller-runtime v0.5.2
 	sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802

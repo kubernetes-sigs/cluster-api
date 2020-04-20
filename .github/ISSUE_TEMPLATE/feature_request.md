@@ -4,6 +4,8 @@ about: Suggest an idea for this project
 
 ---
 
+<!-- NOTE: ⚠️ For larger proposals, we follow the CAEP process as outlined in https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/YYYYMMDD-template.md. -->
+
 **User Story**
 
 As a [developer/user/operator] I would like to [high level description] for [reasons]

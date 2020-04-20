@@ -56,6 +56,38 @@ release branch. For example, if the most recent branch is `release-0.2`, and the
 development for v0.3.0, a bug fix that merged to `master` that also affects `v0.2.x` may be considered for backporting
 to `release-0.2`. We generally do not accept PRs against older release branches.
 
+### Features and bugs
+
+Open [issues](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose) to report bugs, or minor features.
+
+For big feature, API and contract amendments, we follow the CAEP process as outlined below.
+
+### Proposal process (CAEP)
+
+The Cluster API Enhacement Proposal is the process this project uses to adopt new features, or changes to the APIs.
+
+- The template, and accepted proposals live under `docs/proposals`.
+- A proposal SHOULD be introduced and discussed during the weekly community meetings,
+  [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle),
+  or [discuss forum](https://discuss.kubernetes.io/c/contributors/cluster-api/).
+- A proposal SHOULD be submitted first to the community using a collaborative writing platform, preferably Google Docs.
+  - When using Google Docs, share the document with edit permissions for the [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
+
+### Experiments
+
+Proof of concepts, code experiments, or other initiatives can live under the `exp` folder and behind a feature gate.
+
+- Experiments SHOULD ship with a CAEP marked as experimental.
+- Experiments SHOULD not modify any of the publicly exposed APIs (e.g. CRDs).
+- Experiments SHOULD not modify any existing CRD types outside of the experimental API group(s).
+- Experiments SHOULD not modify any existing command line contracts.
+- Experiments MUST not cause any breaking changes to existing (non-experimental) Go APIs.
+- Experiments SHOULD introduce utility helpers in the go APIs for experiments that cross multiple components
+  and require support from bootstrap, control plane, or infrastructure providers.
+- Experiments follow a strict lifecycle: Alpha -> Beta -> GA.
+  - Alpha-stage experiments SHOULD not be enabled by default.
+  - Inactive or outdated experiments will be deprecated and removed from the codebase, as outlined in Kubernetes deprecation policy
+
 ## Breaking Changes
 
 Breaking changes are generally allowed in the `master` branch, as this is the branch used to develop the next minor

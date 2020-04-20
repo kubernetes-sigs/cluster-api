@@ -196,14 +196,10 @@ func NewComponents(provider config.Provider, configClient config.Client, rawyaml
 	// Inspect the yaml read from the repository for variables.
 	variables := inspectVariables(rawyaml)
 
-	yaml := rawyaml
-	var err error
-	if !options.SkipVariables {
-		// Replace variables with corresponding values read from the config
-		yaml, err = replaceVariables(rawyaml, variables, configClient.Variables())
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to perform variable substitution")
-		}
+	// Replace variables with corresponding values read from the config
+	yaml, err := replaceVariables(rawyaml, variables, configClient.Variables(), options.SkipVariables)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to perform variable substitution")
 	}
 
 	// Transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes)
@@ -351,7 +347,7 @@ func inspectVariables(data []byte) []string {
 	return ret
 }
 
-func replaceVariables(yaml []byte, variables []string, configVariablesClient config.VariablesClient) ([]byte, error) {
+func replaceVariables(yaml []byte, variables []string, configVariablesClient config.VariablesClient, skipVariables bool) ([]byte, error) {
 	tmp := string(yaml)
 	var missingVariables []string
 	for _, key := range variables {
@@ -363,7 +359,7 @@ func replaceVariables(yaml []byte, variables []string, configVariablesClient con
 		exp := regexp.MustCompile(`\$\{\s*` + regexp.QuoteMeta(key) + `\s*\}`)
 		tmp = exp.ReplaceAllLiteralString(tmp, val)
 	}
-	if len(missingVariables) > 0 {
+	if !skipVariables && len(missingVariables) > 0 {
 		return nil, errors.Errorf("value for variables [%s] is not set. Please set the value using os environment variables or the clusterctl config file", strings.Join(missingVariables, ", "))
 	}
 

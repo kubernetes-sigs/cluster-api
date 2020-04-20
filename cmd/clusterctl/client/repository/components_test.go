@@ -74,6 +74,7 @@ func Test_replaceVariables(t *testing.T) {
 		yaml                  []byte
 		variables             []string
 		configVariablesClient config.VariablesClient
+		skipVariables         bool
 	}
 	tests := []struct {
 		name    string
@@ -88,6 +89,7 @@ func Test_replaceVariables(t *testing.T) {
 				variables: []string{"BAR"},
 				configVariablesClient: test.NewFakeVariableClient().
 					WithVar("BAR", "bar"),
+				skipVariables: false,
 			},
 			want:    []byte("foo bar"),
 			wantErr: false,
@@ -99,6 +101,7 @@ func Test_replaceVariables(t *testing.T) {
 				variables: []string{"BA$R"},
 				configVariablesClient: test.NewFakeVariableClient().
 					WithVar("BA$R", "bar"),
+				skipVariables: false,
 			},
 			want:    []byte("foo bar"),
 			wantErr: false,
@@ -110,26 +113,40 @@ func Test_replaceVariables(t *testing.T) {
 				variables: []string{"BAR"},
 				configVariablesClient: test.NewFakeVariableClient().
 					WithVar("BAR", "ba$r"),
+				skipVariables: false,
 			},
 			want:    []byte("foo ba$r"),
 			wantErr: false,
 		},
 		{
-			name: "fails for missing variables",
+			name: "fails for missing variables and not skip variables",
 			args: args{
 				yaml:                  []byte("foo ${ BAR } ${ BAZ }"),
 				variables:             []string{"BAR", "BAZ"},
 				configVariablesClient: test.NewFakeVariableClient(),
+				skipVariables:         false,
 			},
 			want:    nil,
 			wantErr: true,
+		},
+		{
+			name: "pass when missing variables and skip variables",
+			args: args{
+				yaml:      []byte("foo ${ BAR } ${ BAZ }"),
+				variables: []string{"BAR", "BAZ"},
+				configVariablesClient: test.NewFakeVariableClient().
+					WithVar("BAR", "bar"),
+				skipVariables: true,
+			},
+			want:    []byte("foo bar ${ BAZ }"),
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := replaceVariables(tt.args.yaml, tt.args.variables, tt.args.configVariablesClient)
+			got, err := replaceVariables(tt.args.yaml, tt.args.variables, tt.args.configVariablesClient, tt.args.skipVariables)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

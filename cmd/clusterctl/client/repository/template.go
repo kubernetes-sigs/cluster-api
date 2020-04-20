@@ -80,7 +80,7 @@ func NewTemplate(rawYaml []byte, configVariablesClient config.VariablesClient, t
 		}, nil
 	}
 
-	yaml, err := replaceVariables(rawYaml, variables, configVariablesClient)
+	yaml, err := replaceVariables(rawYaml, variables, configVariablesClient, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to perform variable substitution")
 	}

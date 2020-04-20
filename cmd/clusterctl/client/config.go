@@ -49,7 +49,7 @@ func (c *clusterctlClient) GetProviderComponents(provider string, providerType c
 		Version:           options.Version,
 		TargetNamespace:   options.TargetNamespace,
 		WatchingNamespace: options.WatchingNamespace,
-		SkipVariables:     true,
+		SkipVariables:     options.SkipVariables,
 	}
 	components, err := c.getComponentsByName(provider, providerType, inputOptions)
 	if err != nil {

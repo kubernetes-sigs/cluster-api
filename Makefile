@@ -48,7 +48,6 @@ RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 LINK_CHECKER_BIN := bin/liche
 LINK_CHECKER := $(TOOLS_DIR)/$(LINK_CHECKER_BIN)
-CLUSTERCTL_E2E_DIR := cmd/clusterctl/test/e2e
 GO_APIDIFF_BIN := bin/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
 
@@ -323,7 +322,6 @@ modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	$(MAKE) -C $(CAPD_DIR) modules
-	$(MAKE) -C $(CLUSTERCTL_E2E_DIR) modules
 
 ## --------------------------------------
 ## Docker

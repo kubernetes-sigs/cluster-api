@@ -96,11 +96,13 @@ func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration)
 		etcdCert = &Certificate{
 			Purpose:  EtcdCA,
 			CertFile: config.Etcd.External.CAFile,
+			External: true,
 		}
 		apiserverEtcdClientCert := &Certificate{
 			Purpose:  APIServerEtcdClient,
 			CertFile: config.Etcd.External.CertFile,
 			KeyFile:  config.Etcd.External.KeyFile,
+			External: true,
 		}
 		certificates = append(certificates, apiserverEtcdClientCert)
 	}
@@ -171,6 +173,9 @@ func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clus
 		}
 		if err := ctrlclient.Get(ctx, key, s); err != nil {
 			if apierrors.IsNotFound(err) {
+				if certificate.External {
+					return errors.WithMessage(err, "external certificate not found")
+				}
 				continue
 			}
 			return errors.WithStack(err)
@@ -266,6 +271,7 @@ func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Cl
 // Certificate represents a single certificate CA.
 type Certificate struct {
 	Generated         bool
+	External          bool
 	Purpose           Purpose
 	KeyPair           *certs.KeyPair
 	CertFile, KeyFile string

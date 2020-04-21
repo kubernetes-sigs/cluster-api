@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	embeddedCertManagerManifestPath = "cmd/clusterctl/config/manifest/cert-manager.yaml"
+	embeddedCertManagerManifestPath = "cmd/clusterctl/config/assets/cert-manager.yaml"
 
 	waitCertManagerInterval       = 1 * time.Second
 	waitCertManagerDefaultTimeout = 10 * time.Minute

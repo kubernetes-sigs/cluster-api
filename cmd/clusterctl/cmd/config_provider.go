@@ -19,6 +19,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -151,10 +153,15 @@ func runGetComponents() error {
 func printComponents(c client.Components, output string) error {
 	switch output {
 	case ComponentsOutputText:
+		dir, file := filepath.Split(c.URL())
+		// Remove the version suffix from the URL since we already display it
+		// separately.
+		baseURL, _ := filepath.Split(strings.TrimSuffix(dir, "/"))
 		fmt.Printf("Name:               %s\n", c.Name())
 		fmt.Printf("Type:               %s\n", c.Type())
-		fmt.Printf("URL:                %s\n", c.URL())
+		fmt.Printf("URL:                %s\n", baseURL)
 		fmt.Printf("Version:            %s\n", c.Version())
+		fmt.Printf("File:               %s\n", file)
 		fmt.Printf("TargetNamespace:    %s\n", c.TargetNamespace())
 		fmt.Printf("WatchingNamespace:  %s\n", c.WatchingNamespace())
 		if len(c.Variables()) > 0 {

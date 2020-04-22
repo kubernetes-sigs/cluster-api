@@ -200,11 +200,10 @@ Example:
 
 ```json
 {
-    "name": "core",
-    "config": {
-        "context": ".",
-        "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
-        "extra_args": ["--feature-gates=MachinePool=true"]
+    "extra_args": {
+        "core": ["--feature-gates=MachinePool=true"],
+        "kubeadm-bootstrap": ["--feature-gates=MachinePool=true"],
+        "azure": ["--feature-gates=MachinePool=true"]
     }
 }
 ```

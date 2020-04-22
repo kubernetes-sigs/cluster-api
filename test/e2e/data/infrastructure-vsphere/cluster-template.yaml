@@ -1,0 +1,211 @@
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  name: '${ CLUSTER_NAME }'
+  namespace: '${ NAMESPACE }'
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.0.0/16
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    kind: KubeadmControlPlane
+    name: '${ CLUSTER_NAME }'
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: VSphereCluster
+    name: '${ CLUSTER_NAME }'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: HAProxyLoadBalancer
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: '${ CLUSTER_NAME }'
+  name: '${ CLUSTER_NAME }'
+  namespace: '${ NAMESPACE }'
+spec:
+  user:
+    authorizedKeys:
+    - '${ VSPHERE_SSH_AUTHORIZED_KEY }'
+    name: capv
+  virtualMachineConfiguration:
+    cloneMode: linkedClone
+    datacenter: '${ VSPHERE_DATACENTER }'
+    datastore: '${ VSPHERE_DATASTORE }'
+    diskGiB: 25
+    folder: '${ VSPHERE_FOLDER }'
+    memoryMiB: 8192
+    network:
+      devices:
+      - dhcp4: true
+        networkName: '${ VSPHERE_NETWORK }'
+    numCPUs: 2
+    resourcePool: '${ VSPHERE_RESOURCE_POOL }'
+    server: '${ VSPHERE_SERVER }'
+    template: '${ VSPHERE_HAPROXY_TEMPLATE }'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: VSphereCluster
+metadata:
+  name: '${ CLUSTER_NAME }'
+  namespace: '${ NAMESPACE }'
+spec:
+  cloudProviderConfiguration:
+    global:
+      insecure: true
+      secretName: cloud-provider-vsphere-credentials
+      secretNamespace: kube-system
+    network:
+      name: '${ VSPHERE_NETWORK }'
+    providerConfig:
+      cloud:
+        controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0
+      storage:
+        attacherImage: quay.io/k8scsi/csi-attacher:v1.1.1
+        controllerImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2
+        livenessProbeImage: quay.io/k8scsi/livenessprobe:v1.1.0
+        metadataSyncerImage: gcr.io/cloud-provider-vsphere/csi/release/syncer:v1.0.2
+        nodeDriverImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2
+        provisionerImage: quay.io/k8scsi/csi-provisioner:v1.2.1
+        registrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+    virtualCenter:
+      ${ VSPHERE_SERVER }:
+        datacenters: '${ VSPHERE_DATACENTER }'
+    workspace:
+      datacenter: '${ VSPHERE_DATACENTER }'
+      datastore: '${ VSPHERE_DATASTORE }'
+      folder: '${ VSPHERE_FOLDER }'
+      resourcePool: '${ VSPHERE_RESOURCE_POOL }'
+      server: '${ VSPHERE_SERVER }'
+  loadBalancerRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: HAProxyLoadBalancer
+    name: '${ CLUSTER_NAME }'
+  server: '${ VSPHERE_SERVER }'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: VSphereMachineTemplate
+metadata:
+  name: '${ CLUSTER_NAME }'
+  namespace: '${ NAMESPACE }'
+spec:
+  template:
+    spec:
+      cloneMode: linkedClone
+      datacenter: '${ VSPHERE_DATACENTER }'
+      datastore: '${ VSPHERE_DATASTORE }'
+      diskGiB: 25
+      folder: '${ VSPHERE_FOLDER }'
+      memoryMiB: 8192
+      network:
+        devices:
+        - dhcp4: true
+          networkName: '${ VSPHERE_NETWORK }'
+      numCPUs: 2
+      resourcePool: '${ VSPHERE_RESOURCE_POOL }'
+      server: '${ VSPHERE_SERVER }'
+      template: '${ VSPHERE_TEMPLATE }'
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: KubeadmControlPlane
+metadata:
+  name: '${ CLUSTER_NAME }'
+  namespace: '${ NAMESPACE }'
+spec:
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: VSphereMachineTemplate
+    name: '${ CLUSTER_NAME }'
+  kubeadmConfigSpec:
+    useExperimentalRetryJoin: true
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: external
+      controllerManager:
+        extraArgs:
+          cloud-provider: external
+    initConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+        name: '{{ ds.meta_data.hostname }}'
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+        name: '{{ ds.meta_data.hostname }}'
+    preKubeadmCommands:
+    - hostname "{{ ds.meta_data.hostname }}"
+    - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+    - echo "127.0.0.1   localhost" >>/etc/hosts
+    - echo "127.0.0.1   {{ ds.meta_data.hostname }}" >>/etc/hosts
+    - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+    users:
+    - name: capv
+      sshAuthorizedKeys:
+      - '${ VSPHERE_SSH_AUTHORIZED_KEY }'
+      sudo: ALL=(ALL) NOPASSWD:ALL
+  replicas: ${ CONTROL_PLANE_MACHINE_COUNT }
+  version: '${ KUBERNETES_VERSION }'
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfigTemplate
+metadata:
+  name: '${ CLUSTER_NAME }-md-0'
+  namespace: '${ NAMESPACE }'
+spec:
+  template:
+    spec:
+      useExperimentalRetryJoin: true
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            cloud-provider: external
+          name: '{{ ds.meta_data.hostname }}'
+      preKubeadmCommands:
+      - hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+      - echo "127.0.0.1   localhost" >>/etc/hosts
+      - echo "127.0.0.1   {{ ds.meta_data.hostname }}" >>/etc/hosts
+      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+      users:
+      - name: capv
+        sshAuthorizedKeys:
+        - '${ VSPHERE_SSH_AUTHORIZED_KEY }'
+        sudo: ALL=(ALL) NOPASSWD:ALL
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineDeployment
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: '${ CLUSTER_NAME }'
+  name: '${ CLUSTER_NAME }-md-0'
+  namespace: '${ NAMESPACE }'
+spec:
+  clusterName: '${ CLUSTER_NAME }'
+  replicas: ${ WORKER_MACHINE_COUNT }
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: '${ CLUSTER_NAME }'
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: '${ CLUSTER_NAME }'
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          kind: KubeadmConfigTemplate
+          name: '${ CLUSTER_NAME }-md-0'
+      clusterName: '${ CLUSTER_NAME }'
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        kind: VSphereMachineTemplate
+        name: '${ CLUSTER_NAME }'
+      version: '${ KUBERNETES_VERSION }'

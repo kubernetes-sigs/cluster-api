@@ -217,12 +217,12 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 		}
 
 		type reconcileTestCase struct {
-			mhc                 func() *clusterv1.MachineHealthCheck
-			nodes               func() []*corev1.Node
-			machines            func() []*clusterv1.Machine
-			expectRemediated    func() []*clusterv1.Machine
-			expectNotRemediated func() []*clusterv1.Machine
-			expectedStatus      clusterv1.MachineHealthCheckStatus
+			mhc                func() *clusterv1.MachineHealthCheck
+			nodes              func() []*corev1.Node
+			machines           func() []*clusterv1.Machine
+			expectAnnotated    func() []*clusterv1.Machine
+			expectNotAnnotated func() []*clusterv1.Machine
+			expectedStatus     clusterv1.MachineHealthCheckStatus
 		}
 
 		var labels = map[string]string{"cluster": clusterName, "nodepool": "foo"}
@@ -296,7 +296,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 			unlabelledMachine = newTestMachine("unlabelled-machine", namespaceName, clusterName, unlabelledNode.Name, map[string]string{})
 		})
 
-		DescribeTable("should remediate unhealthy nodes",
+		DescribeTable("should annotate unhealthy nodes",
 			func(rtc *reconcileTestCase) {
 				By("Creating Nodes")
 				for _, n := range rtc.nodes() {
@@ -326,28 +326,28 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 
 				// Status has been updated, a reconcile has occurred, should no longer need async assertions
 
-				By("Verifying Machine remediations")
-				for _, m := range rtc.expectNotRemediated() {
+				By("Verifying Machine annotations")
+				for _, m := range rtc.expectNotAnnotated() {
 					machine := &clusterv1.Machine{}
 					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
 					Expect(testEnv.Get(ctx, key, machine)).To(Succeed())
-					Expect(machine.GetDeletionTimestamp().IsZero()).To(BeTrue())
+					Expect(machine.GetAnnotations()).ToNot(HaveKey(clusterv1.MachineUnhealthy))
 				}
 
-				for _, m := range rtc.expectRemediated() {
+				for _, m := range rtc.expectAnnotated() {
 					machine := &clusterv1.Machine{}
 					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
-					err := testEnv.Get(ctx, key, machine)
-					Expect(apierrors.IsNotFound(err)).To(BeTrue())
+					Expect(testEnv.Get(ctx, key, machine)).To(Succeed())
+					Expect(machine.GetAnnotations()).To(HaveKey(clusterv1.MachineUnhealthy))
 				}
 			},
 			Entry("with healthy Machines", &reconcileTestCase{
-				mhc:                 func() *clusterv1.MachineHealthCheck { return testMHC },
-				nodes:               func() []*corev1.Node { return []*corev1.Node{healthyNode1, healthyNode2} },
-				machines:            func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
-				expectRemediated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
-				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 2, CurrentHealthy: 2},
+				mhc:                func() *clusterv1.MachineHealthCheck { return testMHC },
+				nodes:              func() []*corev1.Node { return []*corev1.Node{healthyNode1, healthyNode2} },
+				machines:           func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectAnnotated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
+				expectNotAnnotated: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectedStatus:     clusterv1.MachineHealthCheckStatus{ExpectedMachines: 2, CurrentHealthy: 2},
 			}),
 			Entry("with an unhealthy Machine", &reconcileTestCase{
 				mhc:   func() *clusterv1.MachineHealthCheck { return testMHC },
@@ -355,9 +355,9 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, unhealthyMachine1}
 				},
-				expectRemediated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{unhealthyMachine1} },
-				expectNotRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
-				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
+				expectAnnotated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{unhealthyMachine1} },
+				expectNotAnnotated: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectedStatus:     clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
 			}),
 			Entry("when the unhealthy Machines exceed MaxUnhealthy", &reconcileTestCase{
 				mhc:   func() *clusterv1.MachineHealthCheck { return testMHC },
@@ -365,8 +365,8 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, unhealthyMachine1, unhealthyMachine2}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
+				expectAnnotated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
+				expectNotAnnotated: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, unhealthyMachine1, unhealthyMachine2}
 				},
 				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 1},
@@ -377,8 +377,8 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, noNodeRefMachine1}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
+				expectAnnotated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
+				expectNotAnnotated: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, noNodeRefMachine1}
 				},
 				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
@@ -389,8 +389,8 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, noNodeRefMachine2}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{noNodeRefMachine2} },
-				expectNotRemediated: func() []*clusterv1.Machine {
+				expectAnnotated: func() []*clusterv1.Machine { return []*clusterv1.Machine{noNodeRefMachine2} },
+				expectNotAnnotated: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2}
 				},
 				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
@@ -401,45 +401,19 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, nodeGoneMachine1}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{nodeGoneMachine1} },
-				expectNotRemediated: func() []*clusterv1.Machine {
+				expectAnnotated: func() []*clusterv1.Machine { return []*clusterv1.Machine{nodeGoneMachine1} },
+				expectNotAnnotated: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2}
 				},
 				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
 			}),
-			Entry("with a healthy control plane Machine", &reconcileTestCase{
-				mhc:   func() *clusterv1.MachineHealthCheck { return testMHC },
-				nodes: func() []*corev1.Node { return []*corev1.Node{healthyNode1, healthyNode2, controlPlaneNode1} },
-				machines: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1}
-				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1}
-				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 3},
-			}),
-			Entry("with an unhealthy control plane Machine", &reconcileTestCase{
-				mhc: func() *clusterv1.MachineHealthCheck { return testMHC },
-				nodes: func() []*corev1.Node {
-					return []*corev1.Node{healthyNode1, healthyNode2, controlPlaneNode1, unhealthyControlPlaneNode1}
-				},
-				machines: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1, unhealthyControlPlaneMachine1}
-				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1, unhealthyControlPlaneMachine1}
-				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 4, CurrentHealthy: 3},
-			}),
 			Entry("when no Machines are matched by the selector", &reconcileTestCase{
-				mhc:                 func() *clusterv1.MachineHealthCheck { return testMHC },
-				nodes:               func() []*corev1.Node { return []*corev1.Node{unlabelledNode} },
-				machines:            func() []*clusterv1.Machine { return []*clusterv1.Machine{unlabelledMachine} },
-				expectRemediated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{unlabelledMachine} },
-				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 0, CurrentHealthy: 0},
+				mhc:                func() *clusterv1.MachineHealthCheck { return testMHC },
+				nodes:              func() []*corev1.Node { return []*corev1.Node{unlabelledNode} },
+				machines:           func() []*clusterv1.Machine { return []*clusterv1.Machine{unlabelledMachine} },
+				expectAnnotated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
+				expectNotAnnotated: func() []*clusterv1.Machine { return []*clusterv1.Machine{unlabelledMachine} },
+				expectedStatus:     clusterv1.MachineHealthCheckStatus{ExpectedMachines: 0, CurrentHealthy: 0},
 			}),
 		)
 	})

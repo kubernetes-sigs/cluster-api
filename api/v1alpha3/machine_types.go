@@ -29,6 +29,10 @@ const (
 	// MachineControlPlaneLabelName is the label set on machines or related objects that are part of a control plane.
 	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 
+	// MachineUnhealthy is set on machines determined unhealthy by the Machine Health Check controller.
+	// It is expected that the controller that maintains this machine will remediate this machine by deleting it.
+	MachineUnhealthy = "cluster.x-k8s.io/unhealthy"
+
 	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
 	ExcludeNodeDrainingAnnotation = "machine.cluster.x-k8s.io/exclude-node-draining"
 

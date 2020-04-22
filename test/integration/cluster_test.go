@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package integration
 
 import (
 	"context"
@@ -27,11 +27,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers"
+	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 func init() {
@@ -58,35 +60,31 @@ func TestCluster(t *testing.T) {
 }
 
 var _ = Describe("Cluster-Controller", func() {
-	var k8sClient *kubernetes.Clientset
-	var apiclient client.Client
-	var testNamespace string
+	var testEnv *helpers.TestEnvironment
+	var ns *corev1.Namespace
 
 	BeforeEach(func() {
-		// Load configuration
-		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-		configOverrides := &clientcmd.ConfigOverrides{}
-		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-		config, err := kubeConfig.ClientConfig()
-		Expect(err).ShouldNot(HaveOccurred())
+		var err error
+		testEnv, err = helpers.NewTestEnvironment()
+		Expect(err).NotTo(HaveOccurred())
 
-		// Create kubernetes client
-		k8sClient, err = kubernetes.NewForConfig(config)
-		Expect(err).ShouldNot(HaveOccurred())
+		logger := klogr.New()
+		Expect((&controllers.ClusterReconciler{
+			Client: testEnv,
+			Log:    logger,
+		}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 
+		go func() {
+			Expect(testEnv.StartManager()).To(Succeed())
+		}()
 		// Create namespace for test
-		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "clusterapi-test-"}}
-		ns, err = k8sClient.CoreV1().Namespaces().Create(ns)
-		Expect(err).ShouldNot(HaveOccurred())
-		testNamespace = ns.ObjectMeta.Name
-
-		// Create a new client
-		apiclient, err = client.New(config, client.Options{Scheme: scheme.Scheme})
-		Expect(err).ShouldNot(HaveOccurred())
+		ns = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "clusterapi-test-"}}
+		Expect(testEnv.Create(context.Background(), ns)).To(Succeed())
 	})
 
 	AfterEach(func() {
-		Expect(k8sClient.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})).To(Succeed())
+		Expect(testEnv.Delete(context.Background(), ns)).To(Succeed())
+		Expect(testEnv.Stop()).To(Succeed())
 	})
 
 	Describe("Create Cluster", func() {
@@ -96,14 +94,14 @@ var _ = Describe("Cluster-Controller", func() {
 			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "cluster-",
-					Namespace:    testNamespace,
+					Namespace:    ns.Name,
 				},
 				Spec: *clusterSpec.DeepCopy(),
 			}
 
-			Expect(apiclient.Create(ctx, cluster)).To(Succeed())
+			Expect(testEnv.Create(ctx, cluster)).To(Succeed())
 			Eventually(func() bool {
-				if err := apiclient.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, cluster); err != nil {
+				if err := testEnv.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, cluster); err != nil {
 					return false
 				}
 				return cluster.Status.Phase == string(clusterv1.ClusterPhasePending)

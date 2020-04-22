@@ -26,29 +26,35 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	ownerControllerKind   = "MachineSet"
 	nodeControlPlaneLabel = "node-role.kubernetes.io/master"
 
 	// Event types
 
 	// EventSkippedControlPlane is emitted in case an unhealthy node (or a machine
 	// associated with the node) has the `master` role
+	// Deprecated: no longer in use
 	EventSkippedControlPlane string = "SkippedControlPlane"
 	// EventMachineDeletionFailed is emitted in case remediation of a machine
 	// is required but deletion of its Machine object failed
+	// Deprecated: no longer in use
 	EventMachineDeletionFailed string = "MachineDeletionFailed"
 	// EventMachineDeleted is emitted when machine was successfully remediated
 	// by deleting its Machine object
+	// Deprecated: no longer in use
 	EventMachineDeleted string = "MachineDeleted"
+	// EventMachineUnhealthyAnnotationFailed is emitted in case remediation of a machine
+	// is required but annotation of its Machine object failed
+	EventMachineUnhealthyAnnotationFailed string = "MachineUnhealthyAnnotationFailed"
+	// EventMachineAnnotatedUnhealthy is emitted when machine was successfully annotated
+	EventMachineAnnotatedUnhealthy string = "MachineAnnotatedUnhealthy"
 	// EventDetectedUnhealthy is emitted in case a node associated with a
 	// machine was detected unhealthy
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
@@ -147,7 +153,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
 // and their nodes targeted by the health check, ready for health checking.
-func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Client, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
+func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Client, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
 	machines, err := r.getMachinesFromMHC(mhc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
@@ -274,86 +280,39 @@ func minDuration(durations []time.Duration) time.Duration {
 	return minDuration
 }
 
-// remediate deletes the Machine if it is owned by a MachineSet and is not part of the cluster's control plane
-func (t *healthCheckTarget) remediate(ctx context.Context, logger logr.Logger, c client.Client, r record.EventRecorder) error {
+// annotate annotates the Machine with the MachineUnhealthy annotation
+func (t *healthCheckTarget) annotate(ctx context.Context, logger logr.Logger, c client.Client, r record.EventRecorder) error {
 	logger = logger.WithValues("target", t.string())
-	logger.Info("Starting remediation for target")
 
-	// If the machine is not owned by a MachineSet, it should be skipped
-	hasOwner, err := t.hasMachineSetOwner()
+	patchHelper, err := patch.NewHelper(t.Machine, c)
 	if err != nil {
-		return fmt.Errorf("%s: unable to determine Machine owners: %v", t.string(), err)
-	}
-	if !hasOwner {
-		logger.Info("Target has no machineset owner, skipping remediation")
-		return nil
+		return errors.Wrapf(err, "failed to create patch helper for machine %s", t.Machine.Name)
 	}
 
-	// If the machine is a control plane node, it should be skipped
-	if t.isControlPlane() {
-		r.Eventf(
-			t.Machine,
-			corev1.EventTypeNormal,
-			EventSkippedControlPlane,
-			"Machine %v is a control plane node, skipping remediation",
-			t.string(),
-		)
-		logger.Info("Target is a control plane node, skipping remediation")
-		return nil
+	if t.Machine.Annotations == nil {
+		t.Machine.Annotations = make(map[string]string)
 	}
+	t.Machine.Annotations[clusterv1.MachineUnhealthy] = ""
 
-	logger.Info("Deleting target machine")
-	if err := c.Delete(ctx, t.Machine); err != nil {
+	logger.Info("Applying unhealthy annotation")
+	if err := patchHelper.Patch(ctx, t.Machine); err != nil {
 		r.Eventf(
 			t.Machine,
 			corev1.EventTypeWarning,
-			EventMachineDeletionFailed,
-			"Machine %v remediation failed: unable to delete Machine object: %v",
+			EventMachineUnhealthyAnnotationFailed,
+			"Machine %v annotation failed: unable to annotate Machine object: %v",
 			t.string(),
 			err,
 		)
-		return fmt.Errorf("%s: failed to delete machine: %v", t.string(), err)
+		return fmt.Errorf("%s: failed to annotate machine: %v", t.string(), err)
 	}
 	r.Eventf(
 		t.Machine,
 		corev1.EventTypeNormal,
-		EventMachineDeleted,
-		"Machine %v has been remediated by requesting to delete Machine object",
+		EventMachineAnnotatedUnhealthy,
+		"Machine %v has been annotated as unhealthy",
 		t.string(),
 	)
 
 	return nil
-}
-
-// hasMachineSetOwner checks whether the target's Machine is owned by a MachineSet
-func (t *healthCheckTarget) hasMachineSetOwner() (bool, error) {
-	ownerRefs := t.Machine.ObjectMeta.GetOwnerReferences()
-	for _, or := range ownerRefs {
-		if or.Kind == ownerControllerKind {
-			// The Kind matches so check the Group matches as well
-			gv, err := schema.ParseGroupVersion(or.APIVersion)
-			if err != nil {
-				return false, err
-			}
-			if gv.Group == clusterv1.GroupVersion.Group {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
-}
-
-// isControlPlane checks whether the target refers to a machine that is part of the
-// cluster's control plane
-func (t *healthCheckTarget) isControlPlane() bool {
-	if t.Node != nil && labels.Set(t.Node.Labels).Has(nodeControlPlaneLabel) {
-		return true
-	}
-
-	// if the node is not found, fallback to checking the machine
-	if t.Machine != nil && labels.Set(t.Machine.Labels).Has(clusterv1.MachineControlPlaneLabelName) {
-		return true
-	}
-
-	return false
 }

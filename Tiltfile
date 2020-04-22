@@ -95,9 +95,7 @@ COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 #     }
 # }
 def load_provider_tiltfiles():
-    provider_repos = settings.get("provider_repos", ["."])
-    if "." not in provider_repos:
-        provider_repos.append(".")
+    provider_repos = settings.get("provider_repos", ["])
 
     for repo in provider_repos:
         file = repo + "/tilt-provider.json"
@@ -159,6 +157,8 @@ def enable_provider(name):
         additional_docker_build_commands,
     ])
 
+    # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
+    # build into the container.
     entrypoint = ["sh", "/start.sh", "/manager"]
     provider_args = extra_args.get(name)
     if provider_args:

@@ -23,8 +23,23 @@ allow_k8s_contexts(settings.get("allowed_contexts"))
 default_registry(settings.get("default_registry"))
 
 always_enable_providers = ["core"]
+extra_args = settings.get("extra_args", {})
 
 providers = {
+    "core": {
+        "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
+        "live_reload_deps": [
+            "main.go",
+            "go.mod",
+            "go.sum",
+            "api",
+            "cmd",
+            "controllers",
+            "errors",
+            "third_party",
+            "util",
+        ],
+    },
     "kubeadm-bootstrap": {
         "context": "bootstrap/kubeadm",
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller",
@@ -145,9 +160,9 @@ def enable_provider(name):
     ])
 
     entrypoint = ["sh", "/start.sh", "/manager"]
-    extra_args = p.get("extra_args")
-    if extra_args:
-        entrypoint.extend(extra_args)
+    provider_args = extra_args.get(name)
+    if provider_args:
+        entrypoint.extend(provider_args)
 
     docker_build(
         ref = p.get("image"),

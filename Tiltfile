@@ -95,7 +95,7 @@ COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 #     }
 # }
 def load_provider_tiltfiles():
-    provider_repos = settings.get("provider_repos", ["])
+    provider_repos = settings.get("provider_repos", [])
 
     for repo in provider_repos:
         file = repo + "/tilt-provider.json"

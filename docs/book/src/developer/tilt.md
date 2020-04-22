@@ -193,7 +193,7 @@ COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 ```
 
 
-**extra_args** (Array, default=[]): An array of additional arguments to pass to the main binary configured
+**extra_args** (Object, default={}): A mapping of provider to additional arguments to pass to the main binary configured
 for this provider. Each item in the array will be passed is to the manager. 
 
 Example:

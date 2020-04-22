@@ -23,6 +23,7 @@ allow_k8s_contexts(settings.get("allowed_contexts"))
 default_registry(settings.get("default_registry"))
 
 always_enable_providers = ["core"]
+extra_args = settings.get("extra_args", {})
 
 providers = {
     "core": {
@@ -96,6 +97,7 @@ COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 # }
 def load_provider_tiltfiles():
     provider_repos = settings.get("provider_repos", [])
+
     for repo in provider_repos:
         file = repo + "/tilt-provider.json"
         provider_details = read_json(file, default = {})
@@ -158,12 +160,17 @@ def enable_provider(name):
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
     # build into the container.
+    entrypoint = ["sh", "/start.sh", "/manager"]
+    provider_args = extra_args.get(name)
+    if provider_args:
+        entrypoint.extend(provider_args)
+
     docker_build(
         ref = p.get("image"),
         context = context + "/.tiltbuild/",
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
-        entrypoint = ["sh", "/start.sh", "/manager"],
+        entrypoint = entrypoint,
         only = "manager",
         live_update = [
             sync(context + "/.tiltbuild/manager", "/manager"),

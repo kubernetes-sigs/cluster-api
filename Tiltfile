@@ -27,6 +27,7 @@ extra_args = settings.get("extra_args", {})
 
 providers = {
     "core": {
+        "context": ".",
         "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
         "live_reload_deps": [
             "main.go",

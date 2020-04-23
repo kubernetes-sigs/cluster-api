@@ -322,7 +322,7 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 		// Do not delete the NodeRef if there are no remaining members of
 		// the control plane.
 		return errNoControlPlaneNodes
-	case numControlPlaneMachines == 1 && util.IsControlPlaneMachine(machine):
+	case numControlPlaneMachines == 1 && util.IsControlPlaneMachine(machine) && util.IsCurrentControlPlaneMachine(machine, machines):
 		// Do not delete the NodeRef if this is the last member of the
 		// control plane.
 		return errLastControlPlaneNode

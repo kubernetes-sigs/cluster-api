@@ -83,7 +83,7 @@ func KCPUpgradeSpec(ctx context.Context, inputGetter func() KCPUpgradeSpecInput)
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("cluster-%s", util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetKubernetesVersion(),
-				ControlPlaneMachineCount: pointer.Int64Ptr(3),
+				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
 			CNIManifestPath:              input.E2EConfig.GetCNIPath(),

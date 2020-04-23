@@ -179,6 +179,17 @@ func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Ma
 	return
 }
 
+// IsCurrentControlPlaneMachine checks if machine is one of the current control plane machines.
+func IsCurrentControlPlaneMachine(machine *clusterv1.Machine, machines []*clusterv1.Machine) bool {
+	controlPlaneMachines := GetControlPlaneMachines(machines)
+	for _, m := range controlPlaneMachines {
+		if m.Name == machine.Name && m.Namespace == machine.Namespace {
+			return true
+		}
+	}
+	return false
+}
+
 // GetControlPlaneMachinesFromList returns a slice containing control plane machines.
 func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []*clusterv1.Machine) {
 	for i := 0; i < len(machineList.Items); i++ {

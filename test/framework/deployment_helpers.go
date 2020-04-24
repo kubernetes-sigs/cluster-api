@@ -113,7 +113,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 					Follow:    true,
 				}
 
-				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream()
+				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream(context.TODO())
 				if err != nil {
 					// Failing to stream logs should not cause the test to fail
 					fmt.Fprintf(GinkgoWriter, "Error starting logs stream for pod %s/%s, container %s: %v\n", input.Deployment.Namespace, pod.Name, container.Name, err)

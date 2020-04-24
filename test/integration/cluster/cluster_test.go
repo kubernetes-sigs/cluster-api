@@ -75,7 +75,7 @@ var _ = Describe("Cluster-Controller", func() {
 
 		// Create namespace for test
 		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "clusterapi-test-"}}
-		ns, err = k8sClient.CoreV1().Namespaces().Create(ns)
+		ns, err = k8sClient.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		testNamespace = ns.ObjectMeta.Name
 
@@ -85,7 +85,7 @@ var _ = Describe("Cluster-Controller", func() {
 	})
 
 	AfterEach(func() {
-		Expect(k8sClient.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})).To(Succeed())
+		Expect(k8sClient.CoreV1().Namespaces().Delete(context.TODO(), testNamespace, metav1.DeleteOptions{})).To(Succeed())
 	})
 
 	Describe("Create Cluster", func() {

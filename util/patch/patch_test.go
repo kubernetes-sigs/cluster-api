@@ -51,8 +51,7 @@ func TestHelperUnstructuredPatch(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-	g.Expect(fakeClient.Create(ctx, obj)).To(Succeed())
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, obj)
 
 	h, err := NewHelper(obj, fakeClient)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -226,12 +225,9 @@ func TestHelperPatch(t *testing.T) {
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			ctx := context.Background()
-			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tt.before.DeepCopyObject())
 
-			beforeCopy := tt.before.DeepCopyObject()
-			g.Expect(fakeClient.Create(ctx, beforeCopy)).To(Succeed())
-
-			h, err := NewHelper(beforeCopy, fakeClient)
+			h, err := NewHelper(tt.before.DeepCopyObject(), fakeClient)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			afterCopy := tt.after.DeepCopyObject()

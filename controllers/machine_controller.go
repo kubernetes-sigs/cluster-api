@@ -34,13 +34,14 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/kubectl/pkg/drain"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/metrics"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	kubedrain "sigs.k8s.io/cluster-api/third_party/kubernetes-drain"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -346,7 +347,7 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		return nil
 	}
 
-	node, err := kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	node, err := kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
@@ -356,7 +357,7 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		return errors.Errorf("unable to get node %q: %v", nodeName, err)
 	}
 
-	drainer := &kubedrain.Helper{
+	drainer := &drain.Helper{
 		Client:              kubeClient,
 		Force:               true,
 		IgnoreAllDaemonSets: true,
@@ -373,9 +374,9 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 			logger.Info(fmt.Sprintf("%s pod from Node", verbStr),
 				"pod", fmt.Sprintf("%s/%s", pod.Name, pod.Namespace))
 		},
-		Out:    writer{klog.Info},
-		ErrOut: writer{klog.Error},
-		DryRun: false,
+		Out:            writer{klog.Info},
+		ErrOut:         writer{klog.Error},
+		DryRunStrategy: cmdutil.DryRunNone,
 	}
 
 	if noderefutil.IsNodeUnreachable(node) {
@@ -383,13 +384,13 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		drainer.SkipWaitForDeleteTimeoutSeconds = 60 * 5 // 5 minutes
 	}
 
-	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {
+	if err := drain.RunCordonOrUncordon(drainer, node, true); err != nil {
 		// Machine will be re-reconciled after a cordon failure.
 		logger.Error(err, "Cordon failed")
 		return errors.Errorf("unable to cordon node %s: %v", node.Name, err)
 	}
 
-	if err := kubedrain.RunNodeDrain(drainer, node.Name); err != nil {
+	if err := drain.RunNodeDrain(drainer, node.Name); err != nil {
 		// Machine will be re-reconciled after a drain failure.
 		logger.Error(err, "Drain failed")
 		return &capierrors.RequeueAfterError{RequeueAfter: 20 * time.Second}

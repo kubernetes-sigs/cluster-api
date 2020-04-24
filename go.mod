@@ -19,7 +19,6 @@ require (
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
-	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.5.0
 	github.com/prometheus/client_model v0.2.0
@@ -33,17 +32,17 @@ require (
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/grpc v1.26.0
-	k8s.io/api v0.17.2
-	k8s.io/apiextensions-apiserver v0.17.2
-	k8s.io/apimachinery v0.17.2
-	k8s.io/apiserver v0.17.2
-	k8s.io/client-go v0.17.2
-	k8s.io/cluster-bootstrap v0.17.2
-	k8s.io/component-base v0.17.2
+	k8s.io/api v0.18.2
+	k8s.io/apiextensions-apiserver v0.18.2
+	k8s.io/apimachinery v0.18.2
+	k8s.io/apiserver v0.18.2
+	k8s.io/client-go v0.18.2
+	k8s.io/cluster-bootstrap v0.18.2
+	k8s.io/component-base v0.18.2
 	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20200121204235-bf4fb3bd569c // indirect
-	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
-	sigs.k8s.io/controller-runtime v0.5.2
+	k8s.io/kubectl v0.18.2
+	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
+	sigs.k8s.io/controller-runtime v0.6.0
 	sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802
 	sigs.k8s.io/yaml v1.2.0
 )

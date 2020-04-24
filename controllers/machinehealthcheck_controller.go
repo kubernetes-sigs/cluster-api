@@ -92,7 +92,8 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	}
 
 	// Add index to MachineHealthCheck for listing by Cluster Name
-	if err := mgr.GetCache().IndexField(&clusterv1.MachineHealthCheck{},
+	if err := mgr.GetCache().IndexField(context.TODO(),
+		&clusterv1.MachineHealthCheck{},
 		mhcClusterNameIndex,
 		r.indexMachineHealthCheckByClusterName,
 	); err != nil {
@@ -100,7 +101,8 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	}
 
 	// Add index to Machine for listing by Node reference
-	if err := mgr.GetCache().IndexField(&clusterv1.Machine{},
+	if err := mgr.GetCache().IndexField(context.TODO(),
+		&clusterv1.Machine{},
 		machineNodeNameIndex,
 		r.indexMachineByNodeName,
 	); err != nil {

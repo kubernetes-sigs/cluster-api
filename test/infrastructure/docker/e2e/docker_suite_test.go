@@ -170,7 +170,7 @@ func writeLogs(mgmt *CAPDCluster, namespace, deploymentName, logDir string) erro
 				Follow:    false,
 			}
 
-			podLogs, err := clientSet.CoreV1().Pods(namespace).GetLogs(pod.Name, opts).Stream()
+			podLogs, err := clientSet.CoreV1().Pods(namespace).GetLogs(pod.Name, opts).Stream(context.TODO())
 			if err != nil {
 				return errors.Wrapf(err, "error getting pod stream for pod name %q/%q", pod.Namespace, pod.Name)
 			}

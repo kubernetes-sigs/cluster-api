@@ -216,8 +216,9 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 
 	t.Run("patches the core dns deployment to point to the backup corefile before migration", func(t *testing.T) {
 		g := NewWithT(t)
-		objs := []runtime.Object{depl, cm}
-		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
+		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+		g.Expect(fakeClient.Create(context.TODO(), depl)).To(Succeed())
+		g.Expect(fakeClient.Create(context.TODO(), cm)).To(Succeed())
 		fakeMigrator := &fakeMigrator{
 			migratedCorefile: "updated-core-file",
 		}

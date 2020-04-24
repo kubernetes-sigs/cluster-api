@@ -47,8 +47,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const defaultNamespaceName = "default"
-
 var _ = Describe("MachineHealthCheck Reconciler", func() {
 	var namespace *corev1.Namespace
 	var testCluster *clusterv1.Cluster
@@ -561,21 +559,33 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	defer close(doneMgr)
 
 	// END: setup test environment
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "mhc-test-"}}
+	g.Expect(r.Client.Create(context.Background(), namespace)).To(Succeed())
+	defer func() {
+		g.Expect(r.Client.Delete(context.Background(), namespace))
+	}()
+	namespaceName := namespace.Name
 
-	namespace := defaultNamespaceName
+	otherNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "mhc-test-"}}
+	g.Expect(r.Client.Create(context.Background(), otherNamespace)).To(Succeed())
+	defer func() {
+		g.Expect(r.Client.Delete(context.Background(), otherNamespace))
+	}()
+	otherNamespaceName := otherNamespace.Name
+
 	clusterName := "test-cluster"
 	labels := make(map[string]string)
 
-	mhc1 := newTestMachineHealthCheck("mhc1", namespace, clusterName, labels)
+	mhc1 := newTestMachineHealthCheck("mhc1", namespaceName, clusterName, labels)
 	mhc1Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc1.Namespace, Name: mhc1.Name}}
-	mhc2 := newTestMachineHealthCheck("mhc2", namespace, clusterName, labels)
+	mhc2 := newTestMachineHealthCheck("mhc2", namespaceName, clusterName, labels)
 	mhc2Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc2.Namespace, Name: mhc2.Name}}
-	mhc3 := newTestMachineHealthCheck("mhc3", namespace, "othercluster", labels)
-	mhc4 := newTestMachineHealthCheck("mhc4", "othernamespace", clusterName, labels)
+	mhc3 := newTestMachineHealthCheck("mhc3", namespaceName, "othercluster", labels)
+	mhc4 := newTestMachineHealthCheck("mhc4", otherNamespaceName, clusterName, labels)
 	cluster1 := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
-			Namespace: namespace,
+			Namespace: namespaceName,
 		},
 	}
 
@@ -760,19 +770,31 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	defer close(doneMgr)
 
 	// END: setup test environment
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "mhc-test-"}}
+	g.Expect(r.Client.Create(context.Background(), namespace)).To(Succeed())
+	defer func() {
+		g.Expect(r.Client.Delete(context.Background(), namespace))
+	}()
+	namespaceName := namespace.Name
 
-	namespace := defaultNamespaceName
+	otherNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "mhc-test-"}}
+	g.Expect(r.Client.Create(context.Background(), otherNamespace)).To(Succeed())
+	defer func() {
+		g.Expect(r.Client.Delete(context.Background(), otherNamespace))
+	}()
+	otherNamespaceName := otherNamespace.Name
+
 	clusterName := "test-cluster"
 	nodeName := "node1"
 	labels := map[string]string{"cluster": "foo", "nodepool": "bar"}
 
-	mhc1 := newTestMachineHealthCheck("mhc1", namespace, clusterName, labels)
+	mhc1 := newTestMachineHealthCheck("mhc1", namespaceName, clusterName, labels)
 	mhc1Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc1.Namespace, Name: mhc1.Name}}
-	mhc2 := newTestMachineHealthCheck("mhc2", namespace, clusterName, labels)
+	mhc2 := newTestMachineHealthCheck("mhc2", namespaceName, clusterName, labels)
 	mhc2Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc2.Namespace, Name: mhc2.Name}}
-	mhc3 := newTestMachineHealthCheck("mhc3", namespace, clusterName, map[string]string{"cluster": "foo", "nodepool": "other"})
-	mhc4 := newTestMachineHealthCheck("mhc4", "othernamespace", clusterName, labels)
-	machine1 := newTestMachine("machine1", namespace, clusterName, nodeName, labels)
+	mhc3 := newTestMachineHealthCheck("mhc3", namespaceName, clusterName, map[string]string{"cluster": "foo", "nodepool": "other"})
+	mhc4 := newTestMachineHealthCheck("mhc4", otherNamespaceName, clusterName, labels)
+	machine1 := newTestMachine("machine1", namespaceName, clusterName, nodeName, labels)
 
 	testCases := []struct {
 		name     string
@@ -892,21 +914,33 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	defer close(doneMgr)
 
 	// END: setup test environment
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "mhc-test-"}}
+	g.Expect(r.Client.Create(context.Background(), namespace)).To(Succeed())
+	defer func() {
+		g.Expect(r.Client.Delete(context.Background(), namespace))
+	}()
+	namespaceName := namespace.Name
 
-	namespace := defaultNamespaceName
+	otherNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "mhc-test-"}}
+	g.Expect(r.Client.Create(context.Background(), otherNamespace)).To(Succeed())
+	defer func() {
+		g.Expect(r.Client.Delete(context.Background(), otherNamespace))
+	}()
+	otherNamespaceName := otherNamespace.Name
+
 	clusterName := "test-cluster"
 	nodeName := "node1"
 	labels := map[string]string{"cluster": "foo", "nodepool": "bar"}
 
-	mhc1 := newTestMachineHealthCheck("mhc1", namespace, clusterName, labels)
+	mhc1 := newTestMachineHealthCheck("mhc1", namespaceName, clusterName, labels)
 	mhc1Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc1.Namespace, Name: mhc1.Name}}
-	mhc2 := newTestMachineHealthCheck("mhc2", namespace, clusterName, labels)
+	mhc2 := newTestMachineHealthCheck("mhc2", namespaceName, clusterName, labels)
 	mhc2Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc2.Namespace, Name: mhc2.Name}}
-	mhc3 := newTestMachineHealthCheck("mhc3", namespace, "othercluster", labels)
-	mhc4 := newTestMachineHealthCheck("mhc4", "othernamespace", clusterName, labels)
+	mhc3 := newTestMachineHealthCheck("mhc3", namespaceName, "othercluster", labels)
+	mhc4 := newTestMachineHealthCheck("mhc4", otherNamespaceName, clusterName, labels)
 
-	machine1 := newTestMachine("machine1", namespace, clusterName, nodeName, labels)
-	machine2 := newTestMachine("machine2", namespace, clusterName, nodeName, labels)
+	machine1 := newTestMachine("machine1", namespaceName, clusterName, nodeName, labels)
+	machine2 := newTestMachine("machine2", namespaceName, clusterName, nodeName, labels)
 
 	node1 := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{

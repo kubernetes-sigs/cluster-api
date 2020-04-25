@@ -23,7 +23,7 @@ If you do not already have a CA then run command `kubeadm init phase certs etcd-
 * `/etc/kubernetes/pki/etcd/ca.crt`
 * `/etc/kubernetes/pki/etcd/ca.key`  
 
-This certificate and private key are used to sign etcd server, peer certificates and eventually apiserver-etcd-client certificate. More information on how to setup external etcd with kubeadm can be found [here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/#setting-up-the-cluster).
+This certificate and private key are used to sign etcd server and peer certificates as well as other client certificates (like the apiserver-etcd-client certificate or the etcd-healthcheck-client certificate). More information on how to setup external etcd with kubeadm can be found [here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/#setting-up-the-cluster).
 
 Once the etcd cluster is setup, you will need the following files from the etcd cluster:
 

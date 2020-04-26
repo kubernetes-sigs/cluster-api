@@ -36,15 +36,15 @@ export ARCH=amd64
 export PULL_POLICY=IfNotPresent
 
 ## Rebuild all Cluster API provider images
-make docker-build
+time make docker-build
 
 ## Rebuild CAPD provider images
-make -C test/infrastructure/docker docker-build
+time make -C test/infrastructure/docker docker-build
 
 ## Pulling cert manager images so we can pre-load in kind nodes
-docker pull quay.io/jetstack/cert-manager-cainjector:v0.11.0
-docker pull quay.io/jetstack/cert-manager-webhook:v0.11.0
-docker pull quay.io/jetstack/cert-manager-controller:v0.11.0
+time docker pull quay.io/jetstack/cert-manager-cainjector:v0.11.0
+time docker pull quay.io/jetstack/cert-manager-webhook:v0.11.0
+time docker pull quay.io/jetstack/cert-manager-controller:v0.11.0
 
 # Configure e2e tests
 export GINKGO_FOCUS=
@@ -57,4 +57,4 @@ export USE_EXISTING_CLUSTER=false
 
 # Run e2e tests
 mkdir -p "$ARTIFACTS"
-make -C test/e2e/ run
+time make -C test/e2e/ run

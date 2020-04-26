@@ -330,6 +330,19 @@ docker-build: ## Build the docker images for controller managers
 	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-bootstrap
 	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-control-plane
 
+.PHONY: docker-build-ci
+docker-build-ci: ## Build the docker images for controller managers
+	docker build --pull . -t cluster-api/builder:dev -f Dockerfile-builder
+	docker build --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) -f Dockerfile-manager
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/manager/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
+	docker build --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG) -f Dockerfile-manager
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_pull_policy.yaml"
+	docker build --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG) -f Dockerfile-manager
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
+
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
 	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)

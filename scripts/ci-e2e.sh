@@ -36,10 +36,10 @@ export ARCH=amd64
 export PULL_POLICY=IfNotPresent
 
 ## Rebuild all Cluster API provider images
-time make docker-build
+time make docker-build-ci
 
 ## Rebuild CAPD provider images
-time make -C test/infrastructure/docker docker-build
+time make -C test/infrastructure/docker docker-build-ci
 
 ## Pulling cert manager images so we can pre-load in kind nodes
 time docker pull quay.io/jetstack/cert-manager-cainjector:v0.11.0

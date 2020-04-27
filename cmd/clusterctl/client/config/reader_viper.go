@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -26,17 +28,36 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
-// ConfigFolder defines the name of the config folder under $home
-const ConfigFolder = ".cluster-api"
+const (
+	// ConfigFolder defines the name of the config folder under $home
+	ConfigFolder = ".cluster-api"
+	// ConfigName defines the name of the config file under ConfigFolder
+	ConfigName = "clusterctl"
+)
 
 // viperReader implements Reader using viper as backend for reading from environment variables
 // and from a clusterctl config file.
 type viperReader struct {
+	configPaths []string
+}
+
+type viperReaderOption func(*viperReader)
+
+func InjectConfigPaths(configPaths []string) viperReaderOption {
+	return func(vr *viperReader) {
+		vr.configPaths = configPaths
+	}
 }
 
 // newViperReader returns a viperReader.
-func newViperReader() Reader {
-	return &viperReader{}
+func newViperReader(opts ...viperReaderOption) Reader {
+	vr := &viperReader{
+		configPaths: []string{filepath.Join(homedir.HomeDir(), ConfigFolder)},
+	}
+	for _, o := range opts {
+		o(vr)
+	}
+	return vr
 }
 
 // Init initialize the viperReader.
@@ -44,12 +65,23 @@ func (v *viperReader) Init(path string) error {
 	log := logf.Log
 
 	if path != "" {
+		if _, err := os.Stat(path); err != nil {
+			return err
+		}
 		// Use path file from the flag.
 		viper.SetConfigFile(path)
 	} else {
 		// Configure for searching .cluster-api/clusterctl{.extension} in home directory
-		viper.SetConfigName("clusterctl")
-		viper.AddConfigPath(filepath.Join(homedir.HomeDir(), ConfigFolder))
+		viper.SetConfigName(ConfigName)
+		for _, p := range v.configPaths {
+			viper.AddConfigPath(p)
+		}
+		if !v.checkDefaultConfig() {
+			// since there is no default config to read from, just skip
+			// reading in config
+			log.V(5).Info("No default config file available")
+			return nil
+		}
 	}
 
 	// Configure for reading environment variables as well, and more specifically:
@@ -81,4 +113,20 @@ func (v *viperReader) Set(key, value string) {
 
 func (v *viperReader) UnmarshalKey(key string, rawval interface{}) error {
 	return viper.UnmarshalKey(key, rawval)
+}
+
+// checkDefaultConfig checks the existence of the default config.
+// Returns true if it finds a supported config file in the available config
+// folders.
+func (v *viperReader) checkDefaultConfig() bool {
+	for _, path := range v.configPaths {
+		for _, ext := range viper.SupportedExts {
+			f := fmt.Sprintf("%s%s.%s", path, ConfigName, ext)
+			_, err := os.Stat(f)
+			if err == nil {
+				return true
+			}
+		}
+	}
+	return false
 }

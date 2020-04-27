@@ -26,44 +26,70 @@ import (
 )
 
 func Test_viperReader_Init(t *testing.T) {
-
 	g := NewWithT(t)
+
+	// Change HOME dir and do not specify config file
+	// (.cluster-api/clusterctl) in it.
+	clusterctlHomeDir, err := ioutil.TempDir("", "clusterctl-default")
+	g.Expect(err).NotTo(HaveOccurred())
+	defer os.RemoveAll(clusterctlHomeDir)
+
 	dir, err := ioutil.TempDir("", "clusterctl")
 	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(dir)
 
 	configFile := filepath.Join(dir, ".clusterctl.yaml")
 	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
+
+	configFileBadContents := filepath.Join(dir, ".clusterctl-bad.yaml")
+	g.Expect(ioutil.WriteFile(configFileBadContents, []byte("bad-contents"), 0640)).To(Succeed())
+
 	tests := []struct {
-		name      string
-		cfgPath   string
-		expectErr bool
+		name       string
+		configPath string
+		configDirs []string
+		expectErr  bool
 	}{
 		{
-			name:      "reads in config successfully",
-			cfgPath:   configFile,
-			expectErr: false,
+			name:       "reads in config successfully",
+			configPath: configFile,
+			configDirs: []string{clusterctlHomeDir},
+			expectErr:  false,
 		},
 		{
-			name:      "returns error for invalid config file path",
-			cfgPath:   "do-not-exist.yaml",
-			expectErr: true,
+			name:       "returns error for invalid config file path",
+			configPath: "do-not-exist.yaml",
+			configDirs: []string{clusterctlHomeDir},
+			expectErr:  true,
+		},
+		{
+			name:       "does not return error if default file doesn't exist",
+			configPath: "",
+			configDirs: []string{clusterctlHomeDir},
+			expectErr:  false,
+		},
+		{
+			name:       "returns error for malformed config",
+			configPath: configFileBadContents,
+			configDirs: []string{clusterctlHomeDir},
+			expectErr:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gg := NewWithT(t)
-			v := &viperReader{}
+			v := newViperReader(InjectConfigPaths(tt.configDirs))
 			if tt.expectErr {
-				gg.Expect(v.Init(tt.cfgPath)).ToNot(Succeed())
+				gg.Expect(v.Init(tt.configPath)).ToNot(Succeed())
 				return
 			}
-			gg.Expect(v.Init(tt.cfgPath)).To(Succeed())
+			gg.Expect(v.Init(tt.configPath)).To(Succeed())
 
 		})
 	}
 }
+
 func Test_viperReader_Get(t *testing.T) {
 	g := NewWithT(t)
 

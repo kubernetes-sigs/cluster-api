@@ -713,6 +713,78 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 	}
 }
 
+// during kubeadmconfig reconcile it is possible that bootstrap secret gets created
+// but kubeadmconfig is not patched, do not error if secret already exists.
+// ignore the alreadyexists error and update the status to ready.
+func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := newCluster("cluster")
+	cluster.Status.InfrastructureReady = true
+	cluster.Status.ControlPlaneInitialized = true
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
+
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-config")
+	workerMachine := newWorkerMachine(cluster)
+	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
+	objects := []runtime.Object{
+		cluster,
+		workerMachine,
+		workerJoinConfig,
+	}
+
+	objects = append(objects, createSecrets(t, cluster, initConfig)...)
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+	k := &KubeadmConfigReconciler{
+		Log:                log.Log,
+		Client:             myclient,
+		KubeadmInitLock:    &myInitLocker{},
+		remoteClientGetter: fakeremote.NewClusterClient,
+	}
+	request := ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Namespace: "default",
+			Name:      "worker-join-cfg",
+		},
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      workerJoinConfig.Name,
+			Namespace: workerJoinConfig.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Kind:       "KubeadmConfig",
+					Name:       workerJoinConfig.Name,
+					UID:        workerJoinConfig.UID,
+					Controller: pointer.BoolPtr(true),
+				},
+			},
+		},
+		Data: map[string][]byte{
+			"value": nil,
+		},
+		Type: clusterv1.ClusterSecretType,
+	}
+
+	err := myclient.Create(context.Background(), secret)
+	g.Expect(err).ToNot(HaveOccurred())
+	result, err := k.Reconcile(request)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+
+	cfg, err := getKubeadmConfig(myclient, "worker-join-cfg")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(cfg.Status.Ready).To(BeTrue())
+	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+}
+
 func TestBootstrapTokenTTLExtension(t *testing.T) {
 	g := NewWithT(t)
 

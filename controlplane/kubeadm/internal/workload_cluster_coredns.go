@@ -18,6 +18,7 @@ package internal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/coredns/corefile-migration/migration"
@@ -26,12 +27,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -229,17 +232,30 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 		return errors.Wrap(err, "unable to migrate CoreDNS corefile")
 	}
 
-	// First we backup the Corefile by backing it up.
-	if err := w.Client.Update(ctx, &corev1.ConfigMap{
+	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
-		Data: map[string]string{
-			corefileKey:       info.Corefile,
-			corefileBackupKey: info.Corefile,
+	}
+
+	// First we backup the Corefile by backing it up.
+	patchData, err := json.Marshal(
+		[]map[string]interface{}{
+			{
+				"op":   "replace",
+				"path": "/data",
+				"value": map[string]string{
+					corefileKey:       info.Corefile,
+					corefileBackupKey: info.Corefile,
+				},
+			},
 		},
-	}); err != nil {
+	)
+	if err != nil {
+		return errors.Wrap(err, "unable to create jsonpatch for CoreDNS config map with backup Corefile")
+	}
+	if err := w.Client.Patch(ctx, cm, ctrlclient.RawPatch(types.JSONPatchType, patchData)); err != nil {
 		return errors.Wrap(err, "unable to update CoreDNS config map with backup Corefile")
 	}
 
@@ -254,16 +270,22 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 		return err
 	}
 
-	if err := w.Client.Update(ctx, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
+	patchData, err = json.Marshal(
+		[]map[string]interface{}{
+			{
+				"op":   "replace",
+				"path": "/data",
+				"value": map[string]string{
+					corefileKey:       updatedCorefile,
+					corefileBackupKey: info.Corefile,
+				},
+			},
 		},
-		Data: map[string]string{
-			corefileKey:       updatedCorefile,
-			corefileBackupKey: info.Corefile,
-		},
-	}); err != nil {
+	)
+	if err != nil {
+		return errors.Wrap(err, "unable to create jsonpatch for CoreDNS config map")
+	}
+	if err := w.Client.Patch(ctx, cm, ctrlclient.RawPatch(types.JSONPatchType, patchData)); err != nil {
 		return errors.Wrap(err, "unable to update CoreDNS config map")
 	}
 

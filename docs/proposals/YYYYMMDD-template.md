@@ -6,7 +6,7 @@ reviewers:
   - "@janedoe"
 creation-date: yyyy-mm-dd
 last-updated: yyyy-mm-dd
-status: provisional|implementable|implemented|deferred|rejected|withdrawn|replaced
+status: provisional|experimental|implementable|implemented|deferred|rejected|withdrawn|replaced
 see-also:
   - "/docs/proposals/20190101-we-heard-you-like-proposals.md"
   - "/docs/proposals/20190102-everyone-gets-a-proposal.md"

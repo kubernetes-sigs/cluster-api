@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -836,7 +837,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			expectedError: errNoControlPlaneNodes,
 		},
 		{
-			name:    "is last control plane members",
+			name:    "is last control plane member",
 			cluster: &clusterv1.Cluster{},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -846,7 +847,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 						clusterv1.ClusterLabelName:             "test",
 						clusterv1.MachineControlPlaneLabelName: "",
 					},
-					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+					Finalizers:        []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
@@ -859,7 +861,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			expectedError: errLastControlPlaneNode,
+			expectedError: errNoControlPlaneNodes,
 		},
 		{
 			name:    "has nodeRef and control plane is healthy",

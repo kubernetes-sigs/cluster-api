@@ -332,6 +332,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 
 // reconcileHealth performs health checks for control plane components and etcd
 // It removes any etcd members that do not have a corresponding node.
+// Also, as a final step, checks if there is any machines that is being deleted.
 func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) error {
 	logger := controlPlane.Logger()
 
@@ -361,5 +362,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 		return &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
 	}
 
+	// We need this check for scale up as well as down to avoid scaling up when there is a machine being deleted.
+	// This should be at the end of this method as no need to wait for machine to be completely deleted to reconcile etcd.
+	// TODO: Revisit during machine remediation implementation which may need to cover other machine phases.
+	if controlPlane.HasDeletingMachine() {
+		return &capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}
+	}
 	return nil
 }

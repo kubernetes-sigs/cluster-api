@@ -35,6 +35,9 @@ runcmd:
 {{- template "commands" .PostKubeadmCommands }}
 {{- template "ntp" .NTP }}
 {{- template "users" .Users }}
+{{- template "disk_setup" .DiskSetup}}
+{{- template "fs_setup" .DiskSetup}}
+{{- template "mounts" .Mounts}}
 `
 )
 

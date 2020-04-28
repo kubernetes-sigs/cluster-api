@@ -285,6 +285,8 @@ func autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in *v1
 	} else {
 		out.Files = nil
 	}
+	// WARNING: in.DiskSetup requires manual conversion: does not exist in peer-type
+	// WARNING: in.Mounts requires manual conversion: does not exist in peer-type
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
 	out.PostKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PostKubeadmCommands))
 	out.Users = *(*[]User)(unsafe.Pointer(&in.Users))

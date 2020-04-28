@@ -40,6 +40,8 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.ObservedGeneration = restored.Status.ObservedGeneration
 	dst.Spec.Verbosity = restored.Spec.Verbosity
 	dst.Spec.UseExperimentalRetryJoin = restored.Spec.UseExperimentalRetryJoin
+	dst.Spec.DiskSetup = restored.Spec.DiskSetup
+	dst.Spec.Mounts = restored.Spec.Mounts
 	dst.Spec.Files = restored.Spec.Files
 
 	// Track files successfully up-converted. We need this to dedupe

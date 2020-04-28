@@ -77,16 +77,31 @@ The Cluster API Enhacement Proposal is the process this project uses to adopt ne
 
 Proof of concepts, code experiments, or other initiatives can live under the `exp` folder and behind a feature gate.
 
-- Experiments SHOULD ship with a CAEP marked as experimental.
 - Experiments SHOULD not modify any of the publicly exposed APIs (e.g. CRDs).
 - Experiments SHOULD not modify any existing CRD types outside of the experimental API group(s).
 - Experiments SHOULD not modify any existing command line contracts.
 - Experiments MUST not cause any breaking changes to existing (non-experimental) Go APIs.
 - Experiments SHOULD introduce utility helpers in the go APIs for experiments that cross multiple components
   and require support from bootstrap, control plane, or infrastructure providers.
-- Experiments follow a strict lifecycle: Alpha -> Beta -> GA.
-  - Alpha-stage experiments SHOULD not be enabled by default.
-  - Inactive or outdated experiments will be deprecated and removed from the codebase, as outlined in Kubernetes deprecation policy
+- Experiments follow a strict lifecycle: Early -> Late -> Promoted.
+  - Early-stage experiments:
+    - SHOULD not be enabled by default and any feature gates MUST be marked as 'Alpha' 
+    - MUST be associated with a CAEP that is merged and in at least a provisional state
+    - MAY be considered inactive and eligible for removal if it does not graduate to Late-stage after 3 minor releases or 1 year, whichever is greater.
+  - Late-stage experiments:
+    - SHOULD be enabled by default, and any feature gates MUST be marked as 'Beta'
+    - MUST be associated with a CAEP that is at least in the experimental state
+    - MUST support conversions for any type changes
+    - MUST remain backwards compatible unless updates are coinciding with a breaking Cluster API release
+    - MAY be considered inactive and eligible for demotion back to Early-stage if it does not graduate to Promoted after 3 minor releases or 1 year, whichever is greater.
+  - Promoted experiments:
+    - MAY provide ways to be disabled and any feature gates MUST be marked as 'GA'
+    - MUST have undergone a full Kubernetes-style API review and have addressed any issues raised by the review
+    - MUST be associated with a CAEP that is in an implementable state and is fully up to date with the current implementation
+    - The associated CAEP MUST have a documented transition plan for moving into a non-experimental api group and code directory
+    - The associated CAEP MUST have documented upgrade steps for Existing Management and Workload Clusters
+    - The associated CAEP MUST have documented upgrade steps required to be implemented by out-of-tree bootstrap, control plane, and infrastructure providers.
+    - Promotion MUST coincide with a breaking Cluster API release
 
 ## Breaking Changes
 

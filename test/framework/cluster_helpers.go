@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/cluster-api/test/framework/options"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,6 +53,24 @@ func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...i
 		}
 		return nil
 	}, intervals...).Should(Succeed())
+}
+
+// GetAllClustersByNamespaceInput is the input for GetAllClustersByNamespace.
+type GetAllClustersByNamespaceInput struct {
+	Lister    Lister
+	Namespace string
+}
+
+// GetClustersByNamespace returns the list of Cluster object in a namespace
+func GetAllClustersByNamespace(ctx context.Context, input GetAllClustersByNamespaceInput) []*clusterv1.Cluster {
+	clusterList := &clusterv1.ClusterList{}
+	Expect(input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
+
+	clusters := make([]*clusterv1.Cluster, len(clusterList.Items))
+	for i := range clusterList.Items {
+		clusters[i] = &clusterList.Items[i]
+	}
+	return clusters
 }
 
 // GetClusterByNameInput is the input for GetClusterByName.
@@ -192,6 +209,39 @@ func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, 
 		Namespace: input.Cluster.Namespace,
 	})
 	Expect(resources).To(BeEmpty(), "There are still Cluster API resources in the %q namespace", input.Cluster.Namespace)
+}
+
+// DeleteAllClustersAndWaitInput is the input type for DeleteAllClustersAndWait.
+type DeleteAllClustersAndWaitInput struct {
+	Client    client.Client
+	Namespace string
+}
+
+// DeleteAllClustersAndWait deletes a cluster object and waits for it to be gone.
+func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWaitInput, intervals ...interface{}) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteAllClustersAndWait")
+	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling DeleteAllClustersAndWait")
+	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling DeleteAllClustersAndWait")
+
+	clusters := GetAllClustersByNamespace(ctx, GetAllClustersByNamespaceInput{
+		Lister:    input.Client,
+		Namespace: input.Namespace,
+	})
+
+	for _, c := range clusters {
+		DeleteCluster(ctx, DeleteClusterInput{
+			Deleter: input.Client,
+			Cluster: c,
+		})
+	}
+
+	for _, c := range clusters {
+		fmt.Fprintf(GinkgoWriter, "Waiting for the Cluster %s/%s to be deleted\n", c.Namespace, c.Name)
+		WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
+			Getter:  input.Client,
+			Cluster: c,
+		}, intervals...)
+	}
 }
 
 // byClusterOptions returns a set of ListOptions that allows to identify all the objects belonging to a Cluster.

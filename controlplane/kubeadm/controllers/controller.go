@@ -254,6 +254,11 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	// Ensure kubeadm role bindings for v1.18+
+	if err := workloadCluster.AllowBootstrapTokensToGetNodes(ctx); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to set role and role binding for kubeadm")
+	}
+
 	// Update kube-proxy daemonset.
 	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, kcp); err != nil {
 		logger.Error(err, "failed to update kube-proxy daemonset")

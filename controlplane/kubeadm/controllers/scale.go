@@ -48,6 +48,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
+	// reconcileHealth returns err if there is a machine being delete which is a required condition to check before scaling up
 	if err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil {
 		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
 	}
@@ -73,19 +74,14 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
+	if err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil {
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
+	}
+
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		logger.Error(err, "Failed to create client to workload cluster")
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create client to workload cluster")
-	}
-
-	// Wait for any delete in progress to complete before deleting another Machine
-	if controlPlane.HasDeletingMachine() {
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}
-	}
-
-	if err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil {
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
 	}
 
 	machineToDelete, err := selectMachineForScaleDown(controlPlane)

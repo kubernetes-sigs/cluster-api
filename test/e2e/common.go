@@ -56,9 +56,12 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 
 	if !skipCleanup {
 		Byf("Deleting cluster %s/%s", cluster.Namespace, cluster.Name)
-		framework.DeleteClusterAndWait(ctx, framework.DeleteClusterAndWaitInput{
-			Client:  clusterProxy.GetClient(),
-			Cluster: cluster,
+		// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
+		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
+		// instead of DeleteClusterAndWait
+		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
+			Client:    clusterProxy.GetClient(),
+			Namespace: namespace.Name,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 
 		Byf("Deleting namespace used for hosting the %q test spec", specName)

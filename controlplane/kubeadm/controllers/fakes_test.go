@@ -78,6 +78,10 @@ func (f fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterS
 	return f.Status, nil
 }
 
+func (f fakeWorkloadCluster) AllowBootstrapTokensToGetNodes(ctx context.Context) error {
+	return nil
+}
+
 func (f fakeWorkloadCluster) ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error {
 	return nil
 }

@@ -91,7 +91,11 @@ providers:
   - sourcePath: "../data/infrastructure-docker/cluster-template.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.17.0"
+  KUBERNETES_VERSION: "v1.18.2"
+  ETCD_VERSION_CURRENT: "3.4.3-0"
+  COREDNS_VERSION_CURRENT: "1.6.7"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.17.2"
+  KUBERNETES_VERSION_MINIMUM_CAPI_SUPPORTED: "v1.16.4"
   DOCKER_SERVICE_DOMAIN: "cluster.local"
   DOCKER_SERVICE_CIDRS: "10.128.0.0/12"
   # IMPORTANT! This values should match the one used by the CNI provider

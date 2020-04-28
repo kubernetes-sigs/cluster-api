@@ -44,6 +44,8 @@ type BaseUserData struct {
 	WriteFiles           []bootstrapv1.File
 	Users                []bootstrapv1.User
 	NTP                  *bootstrapv1.NTP
+	DiskSetup            *bootstrapv1.DiskSetup
+	Mounts               []bootstrapv1.MountPoints
 	ControlPlane         bool
 	UseExperimentalRetry bool
 	KubeadmCommand       string
@@ -80,6 +82,18 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	}
 
 	if _, err := tm.Parse(usersTemplate); err != nil {
+		return nil, errors.Wrap(err, "failed to parse users template")
+	}
+
+	if _, err := tm.Parse(diskSetupTemplate); err != nil {
+		return nil, errors.Wrap(err, "failed to parse users template")
+	}
+
+	if _, err := tm.Parse(fsSetupTemplate); err != nil {
+		return nil, errors.Wrap(err, "failed to parse users template")
+	}
+
+	if _, err := tm.Parse(mountsTemplate); err != nil {
 		return nil, errors.Wrap(err, "failed to parse users template")
 	}
 

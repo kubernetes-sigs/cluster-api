@@ -104,8 +104,8 @@ Proof of concepts, code experiments, or other initiatives can live under the `ex
     - Any deprecated Beta-stage experiment MAY be removed after being deprecated for an entire minor release. 
 - Experiment Graduation MUST coincide with a breaking Cluster API release
 - Experiment Graduation checklist:
-  - [ ] If a graduating experiment plans to provide a way to be disabled, any feature gates MUST be marked as 'GA'
-  - [ ] Undergo a full Kubernetes-style API review and update the CAEP with the plan to address any issues raised
+  - [ ] MAY provide a way to be disabled, any feature gates MUST be marked as 'GA'
+  - [ ] MUST undergo a full Kubernetes-style API review and update the CAEP with the plan to address any issues raised
   - [ ] CAEP MUST be in an implementable state and is fully up to date with the current implementation
   - [ ] CAEP MUST define transition plan for moving out of the experimental api group and code directories
   - [ ] CAEP MUST define any upgrade steps required for Existing Management and Workload Clusters

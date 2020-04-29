@@ -161,6 +161,7 @@ type ComponentConfig struct {
 }
 
 // Config is the input used to configure the e2e test environment.
+// Deprecated. Please use clusterctl.E2EConfig instead.
 type Config struct {
 	// Name is the name of the Kind management cluster.
 	// Defaults to DefaultManagementClusterName.

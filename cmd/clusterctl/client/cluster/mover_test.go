@@ -788,3 +788,36 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 		})
 	}
 }
+
+func Test_objectsMoverService_ensureNamespaces(t *testing.T) {
+	for _, tt := range moveTests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs(tt.fields.objs)
+
+			// Get all the types to be considered for discovery
+			discoveryTypes, err := getFakeDiscoveryTypes(graph)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// trigger discovery the content of the source cluster
+			g.Expect(graph.Discovery("ns1", discoveryTypes)).To(Succeed())
+
+			// gets a fakeProxy to an empty cluster with all the required CRDs
+			toProxy := getFakeProxyWithCRDs()
+
+			// Run move
+			mover := objectMover{
+				fromProxy: graph.proxy,
+			}
+
+			err = mover.ensureNamespaces(graph, toProxy)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}

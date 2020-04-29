@@ -17,9 +17,11 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -38,10 +40,10 @@ func Test_viperReader_Init(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(dir)
 
-	configFile := filepath.Join(dir, ".clusterctl.yaml")
+	configFile := filepath.Join(dir, "clusterctl.yaml")
 	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
 
-	configFileBadContents := filepath.Join(dir, ".clusterctl-bad.yaml")
+	configFileBadContents := filepath.Join(dir, "clusterctl-bad.yaml")
 	g.Expect(ioutil.WriteFile(configFileBadContents, []byte("bad-contents"), 0640)).To(Succeed())
 
 	tests := []struct {
@@ -99,7 +101,7 @@ func Test_viperReader_Get(t *testing.T) {
 
 	os.Setenv("FOO", "foo")
 
-	configFile := filepath.Join(dir, ".clusterctl.yaml")
+	configFile := filepath.Join(dir, "clusterctl.yaml")
 	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
 
 	type args struct {
@@ -140,7 +142,7 @@ func Test_viperReader_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			v := &viperReader{}
+			v := newViperReader(InjectConfigPaths([]string{dir}))
 
 			gs.Expect(v.Init(configFile)).To(Succeed())
 
@@ -156,6 +158,22 @@ func Test_viperReader_Get(t *testing.T) {
 	}
 }
 
+func Test_viperReader_GetWithoutDefaultConfig(t *testing.T) {
+	g := NewWithT(t)
+	dir, err := ioutil.TempDir("", "clusterctl")
+	g.Expect(err).NotTo(HaveOccurred())
+	defer os.RemoveAll(dir)
+
+	os.Setenv("FOO_FOO", "bar")
+
+	v := newViperReader(InjectConfigPaths([]string{dir}))
+	g.Expect(v.Init("")).To(Succeed())
+
+	got, err := v.Get("FOO_FOO")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(got).To(Equal("bar"))
+}
+
 func Test_viperReader_Set(t *testing.T) {
 	g := NewWithT(t)
 
@@ -165,7 +183,7 @@ func Test_viperReader_Set(t *testing.T) {
 
 	os.Setenv("FOO", "foo")
 
-	configFile := filepath.Join(dir, ".clusterctl.yaml")
+	configFile := filepath.Join(dir, "clusterctl.yaml")
 
 	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
 
@@ -200,6 +218,51 @@ func Test_viperReader_Set(t *testing.T) {
 			got, err := v.Get(tt.args.key)
 			gs.Expect(err).NotTo(HaveOccurred())
 			gs.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_viperReader_checkDefaultConfig(t *testing.T) {
+	g := NewWithT(t)
+	dir, err := ioutil.TempDir("", "clusterctl")
+	g.Expect(err).NotTo(HaveOccurred())
+	defer os.RemoveAll(dir)
+	dir = strings.TrimSuffix(dir, "/")
+
+	configFile := filepath.Join(dir, "clusterctl.yaml")
+	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
+
+	type fields struct {
+		configPaths []string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name: "tmp path without final /",
+			fields: fields{
+				configPaths: []string{dir},
+			},
+			want: true,
+		},
+		{
+			name: "tmp path with final /",
+			fields: fields{
+				configPaths: []string{fmt.Sprintf("%s/", dir)},
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
+			v := &viperReader{
+				configPaths: tt.fields.configPaths,
+			}
+			gs.Expect(v.checkDefaultConfig()).To(Equal(tt.want))
 		})
 	}
 }

@@ -7,6 +7,7 @@ support v1alpha3 API types.
 
 ## Bootstrap
 - [**Kubeadm**](https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm)
+- [**Kubeadm with ignition on AWS**](https://github.com/minsheng-fintech-corp-ltd/cluster-api-bootstrap-provider-kubeadm-ignition)
 - [**Talos**](https://github.com/talos-systems/cluster-api-bootstrap-provider-talos)
 
 

@@ -131,6 +131,27 @@ base64 -i ~/path/to/gcp/credentials.json
 **trigger_mode** (String, default=`auto`): Optional setting to configure if tilt should automatically rebuild on changes.
 Set to `manual` to disable auto-rebuilding and require users to trigger rebuilds of individual changed components through the UI.
 
+**extra_args** (Object, default={}): A mapping of provider to additional arguments to pass to the main binary configured
+for this provider. Each item in the array will be passed in to the manager for the given provider. 
+
+Example:
+
+```json
+{
+    "extra_args": {
+        "core": ["--feature-gates=MachinePool=true"],
+        "kubeadm-bootstrap": ["--feature-gates=MachinePool=true"],
+        "azure": ["--feature-gates=MachinePool=true"]
+    }
+}
+```
+
+With this config, the respective managers will be invoked with:
+
+```bash
+manager --feature-gates=MachinePool=true
+```
+
 ### Run Tilt!
 
 To launch your development environment, run
@@ -190,28 +211,6 @@ The manager image will use docker-slim, so to download files, use `additional_he
 ``` Dockerfile
 COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
 COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
-```
-
-
-**extra_args** (Object, default={}): A mapping of provider to additional arguments to pass to the main binary configured
-for this provider. Each item in the array will be passed in to the manager. 
-
-Example:
-
-```json
-{
-    "extra_args": {
-        "core": ["--feature-gates=MachinePool=true"],
-        "kubeadm-bootstrap": ["--feature-gates=MachinePool=true"],
-        "azure": ["--feature-gates=MachinePool=true"]
-    }
-}
-```
-
-With this config, the manager will be invoked with:
-
-```bash
-manager --feature-gates=MachinePool=true
 ```
 
 ## Customizing Tilt

@@ -56,13 +56,13 @@ release branch. For example, if the most recent branch is `release-0.2`, and the
 development for v0.3.0, a bug fix that merged to `master` that also affects `v0.2.x` may be considered for backporting
 to `release-0.2`. We generally do not accept PRs against older release branches.
 
-### Features and bugs
+## Features and bugs
 
 Open [issues](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose) to report bugs, or minor features.
 
 For big feature, API and contract amendments, we follow the CAEP process as outlined below.
 
-### Proposal process (CAEP)
+## Proposal process (CAEP)
 
 The Cluster API Enhacement Proposal is the process this project uses to adopt new features, or changes to the APIs.
 
@@ -73,7 +73,7 @@ The Cluster API Enhacement Proposal is the process this project uses to adopt ne
 - A proposal SHOULD be submitted first to the community using a collaborative writing platform, preferably Google Docs.
   - When using Google Docs, share the document with edit permissions for the [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
 
-### Experiments
+## Experiments
 
 Proof of concepts, code experiments, or other initiatives can live under the `exp` folder and behind a feature gate.
 
@@ -83,18 +83,19 @@ Proof of concepts, code experiments, or other initiatives can live under the `ex
 - Experiments MUST not cause any breaking changes to existing (non-experimental) Go APIs.
 - Experiments SHOULD introduce utility helpers in the go APIs for experiments that cross multiple components
   and require support from bootstrap, control plane, or infrastructure providers.
-- Experiments follow a strict lifecycle: Early -> Late -> Promoted.
-  - Early-stage experiments:
+- Experiments follow a strict lifecycle: Alpha -> Beta -> Graduation.
+  - Alpha-stage experiments:
     - SHOULD not be enabled by default and any feature gates MUST be marked as 'Alpha' 
     - MUST be associated with a CAEP that is merged and in at least a provisional state
-    - MAY be considered inactive and eligible for removal if it does not graduate to Late-stage after 3 minor releases or 1 year, whichever is greater.
-  - Late-stage experiments:
+    - MAY be considered inactive and eligible for removal if it does not graduate to Late-stage after 2 minor releases.
+  - Beta-stage experiments:
     - SHOULD be enabled by default, and any feature gates MUST be marked as 'Beta'
     - MUST be associated with a CAEP that is at least in the experimental state
     - MUST support conversions for any type changes
     - MUST remain backwards compatible unless updates are coinciding with a breaking Cluster API release
-    - MAY be considered inactive and eligible for demotion back to Early-stage if it does not graduate to Promoted after 3 minor releases or 1 year, whichever is greater.
-  - Promoted experiments:
+    - MAY be considered inactive and marked as deprecated if it does not graduate to Promoted after 2 minor releases.
+    - Any deprecated Beta-stage experiment MAY be removed in the next minor release. 
+- Experiment Graduation checklist:
     - MAY provide ways to be disabled and any feature gates MUST be marked as 'GA'
     - MUST have undergone a full Kubernetes-style API review and have addressed any issues raised by the review
     - MUST be associated with a CAEP that is in an implementable state and is fully up to date with the current implementation
@@ -128,20 +129,20 @@ There may, at times, need to be exceptions where breaking changes are allowed in
 discretion of the project's maintainers, and must be carefully considered before merging. An example of an allowed
 breaking change might be a fix for a behavioral bug that was released in an initial minor version (such as `v0.3.0`).
 
-### Merge Approval
+## Merge Approval
 
 Please see the [Kubernetes community document on pull
 requests](https://git.k8s.io/community/contributors/guide/pull-requests.md) for more information about the merge
 process.
 
-### Google Doc Viewing Permissions
+## Google Doc Viewing Permissions
 
 To gain viewing permissions to google docs in this project, please join either the
 [kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or
 [kubernetes-sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) google
 group.
 
-### Issue and Pull Request Management
+## Issue and Pull Request Management
 
 Anyone may comment on issues and submit reviews for pull requests. However, in order to be assigned an issue or pull
 request, you must be a member of the [Kubernetes SIGs](https://github.com/kubernetes-sigs) GitHub organization.

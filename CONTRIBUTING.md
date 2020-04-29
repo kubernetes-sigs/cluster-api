@@ -83,26 +83,33 @@ Proof of concepts, code experiments, or other initiatives can live under the `ex
 - Experiments MUST not cause any breaking changes to existing (non-experimental) Go APIs.
 - Experiments SHOULD introduce utility helpers in the go APIs for experiments that cross multiple components
   and require support from bootstrap, control plane, or infrastructure providers.
-- Experiments follow a strict lifecycle: Alpha -> Beta -> Graduation.
+- Experiments follow a strict lifecycle: Alpha -> Beta prior to Graduation.
   - Alpha-stage experiments:
     - SHOULD not be enabled by default and any feature gates MUST be marked as 'Alpha' 
     - MUST be associated with a CAEP that is merged and in at least a provisional state
-    - MAY be considered inactive and eligible for removal if it does not graduate to Late-stage after 2 minor releases.
+    - MAY be considered inactive and marked as deprecated if the following does not happen within the course of 1 minor release cycle:
+      - Transition to Beta-stage
+      - Active development towards progressing to Beta-stage
+      - Either direct or downstream user evaluation
+    - Any deprecated Alpha-stage experiment MAY be removed in the next minor release. 
   - Beta-stage experiments:
     - SHOULD be enabled by default, and any feature gates MUST be marked as 'Beta'
     - MUST be associated with a CAEP that is at least in the experimental state
     - MUST support conversions for any type changes
     - MUST remain backwards compatible unless updates are coinciding with a breaking Cluster API release
-    - MAY be considered inactive and marked as deprecated if it does not graduate to Promoted after 2 minor releases.
-    - Any deprecated Beta-stage experiment MAY be removed in the next minor release. 
+    - MAY be considered inactive and marked as deprecated if the following does not happen within the course of 1 minor release cycle:
+      - Graduate
+      - Active development towards Graduation
+      - Either direct or downstream user consumption
+    - Any deprecated Beta-stage experiment MAY be removed after being deprecated for an entire minor release. 
+- Experiment Graduation MUST coincide with a breaking Cluster API release
 - Experiment Graduation checklist:
-    - MAY provide ways to be disabled and any feature gates MUST be marked as 'GA'
-    - MUST have undergone a full Kubernetes-style API review and have addressed any issues raised by the review
-    - MUST be associated with a CAEP that is in an implementable state and is fully up to date with the current implementation
-    - The associated CAEP MUST have a documented transition plan for moving into a non-experimental api group and code directory
-    - The associated CAEP MUST have documented upgrade steps for Existing Management and Workload Clusters
-    - The associated CAEP MUST have documented upgrade steps required to be implemented by out-of-tree bootstrap, control plane, and infrastructure providers.
-    - Promotion MUST coincide with a breaking Cluster API release
+  - [ ] If a graduating experiment plans to provide a way to be disabled, any feature gates MUST be marked as 'GA'
+  - [ ] Undergo a full Kubernetes-style API review and update the CAEP with the plan to address any issues raised
+  - [ ] CAEP MUST be in an implementable state and is fully up to date with the current implementation
+  - [ ] CAEP MUST define transition plan for moving out of the experimental api group and code directories
+  - [ ] CAEP MUST define any upgrade steps required for Existing Management and Workload Clusters
+  - [ ] CAEP MUST define any upgrade steps required to be implemented by out-of-tree bootstrap, control plane, and infrastructure providers.
 
 ## Breaking Changes
 

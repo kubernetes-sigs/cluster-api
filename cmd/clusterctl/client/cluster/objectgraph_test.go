@@ -1078,6 +1078,18 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 				"/v1, Kind=Secret, ns1/foo-kubeconfig": {}, // the kubeconfig secret has explicit OwnerRef to the cluster, so it should NOT be identified as a soft ownership
 			},
 		},
+		{
+			name: "A cluster with a soft owned secret (cluster name with - in the middle)",
+			fields: fields{
+				objs: test.NewFakeCluster("ns1", "foo-bar").Objs(),
+			},
+			wantSecrets: map[string][]string{ // wantSecrets is a map[node UID] --> list of soft owner UIDs
+				"/v1, Kind=Secret, ns1/foo-bar-ca": { // the ca secret has no explicit OwnerRef to the cluster, so it should be identified as a soft ownership
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo-bar",
+				},
+				"/v1, Kind=Secret, ns1/foo-bar-kubeconfig": {}, // the kubeconfig secret has explicit OwnerRef to the cluster, so it should NOT be identified as a soft ownership
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

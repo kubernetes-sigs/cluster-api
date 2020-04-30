@@ -19,7 +19,9 @@ package secret
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -49,4 +51,21 @@ func GetFromNamespacedName(ctx context.Context, c client.Client, clusterName cli
 // Name returns the name of the secret for a cluster.
 func Name(cluster string, suffix Purpose) string {
 	return fmt.Sprintf("%s-%s", cluster, suffix)
+}
+
+// ParseSecretName return the cluster name and the suffix Purpose in name is a valid cluster secrets,
+// otherwise it return error.
+func ParseSecretName(name string) (string, Purpose, error) {
+	separatorPos := strings.LastIndex(name, "-")
+	if separatorPos == -1 {
+		return "", "", errors.Errorf("%q is not a valid cluster secret name. The purpose suffix is missing", name)
+	}
+	clusterName := name[:separatorPos]
+	purposeSuffix := Purpose(name[separatorPos+1:])
+	for _, purpose := range allSecretPurposes {
+		if purpose == purposeSuffix {
+			return clusterName, purposeSuffix, nil
+		}
+	}
+	return "", "", errors.Errorf("%q is not a valid cluster secret name. Invalid purpose suffix", name)
 }

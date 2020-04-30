@@ -47,3 +47,8 @@ const (
 	// APIServerEtcdClient is the secret name of user-supplied secret containing the apiserver-etcd-client key/cert
 	APIServerEtcdClient Purpose = "apiserver-etcd-client"
 )
+
+var (
+	// allSecretPurposes defines a lists with all the secret suffix used by Cluster API
+	allSecretPurposes = []Purpose{Kubeconfig, ClusterCA, EtcdCA, ServiceAccount, FrontProxyCA, APIServerEtcdClient}
+)

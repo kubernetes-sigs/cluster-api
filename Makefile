@@ -86,6 +86,8 @@ TAG ?= dev
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
+GINKGO_NODES ?= 1
+
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
@@ -131,6 +133,22 @@ test-capd-e2e-images: ## Rebuild all Cluster API provider images and run the cap
 test-capd-e2e: ## Rebuild the docker provider and run the capd-e2e tests
 	$(MAKE) -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-capi-docker
 	$(MAKE) -C test/infrastructure/docker run-e2e
+
+E2E_FLAGS := REGISTRY=gcr.io/k8s-staging-cluster-api TAG=dev ARCH=amd64 PULL_POLICY=IfNotPresent GINKGO_FOCUS="$(GINKGO_FOCUS)" GINKGO_NODES=$(GINKGO_NODES) GINKGO_NOCOLOR=false E2E_CONF_FILE=config/docker-dev.yaml ARTIFACTS=$(abspath _artifacts) SKIP_RESOURCE_CLEANUP=false USE_EXISTING_CLUSTER=false
+
+.PHONY: e2e
+e2e: ## Run clusterctl e2e
+	mkdir -p _artifacts
+	$(E2E_FLAGS) $(MAKE) docker-build
+	$(E2E_FLAGS) $(MAKE) -C test/infrastructure/docker docker-build
+	docker pull quay.io/jetstack/cert-manager-cainjector:v0.11.0
+	docker pull quay.io/jetstack/cert-manager-webhook:v0.11.0
+	docker pull quay.io/jetstack/cert-manager-controller:v0.11.0
+	$(E2E_FLAGS) $(MAKE) -C test/e2e run
+
+.PHONY: clean-e2e
+clean-e2e: clean-manifests ## Clean-up after clusterctl e2e
+	rm -rf _artifacts
 
 ## --------------------------------------
 ## Binaries
@@ -200,6 +218,9 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false
 	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v --fast=false
 	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v --fast=false
+
+apidiff: $(GO_APIDIFF) ## Check for API differences
+	$(GO_APIDIFF) $(shell git rev-parse origin/master) --print-compatible
 
 ## --------------------------------------
 ## Generate / Manifests
@@ -528,6 +549,11 @@ clean-book: ## Remove all generated GitBook files
 .PHONY: clean-bindata
 clean-bindata: ## Remove bindata generated folder
 	rm -rf $(GOBINDATA_CLUSTERCTL_DIR)/manifest
+
+.PHONY: clean-manifests ## Reset manifests in config directories back to master
+clean-manifests:
+	@read -p "WARNING: This will reset all config directories to local master. Press [ENTER] to continue."
+	git checkout master config bootstrap/kubeadm/config controlplane/kubeadm/config test/infrastructure/docker/config
 
 .PHONY: format-tiltfile
 format-tiltfile: ## Format Tiltfile

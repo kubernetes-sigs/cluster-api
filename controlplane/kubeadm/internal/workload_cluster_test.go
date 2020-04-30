@@ -26,11 +26,9 @@ import (
 	"github.com/blang/semver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -38,79 +36,6 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
-	tests := []struct {
-		name   string
-		client ctrlclient.Client
-	}{
-		{
-			name: "role binding and role already exist",
-			client: &fakeClient{
-				get: map[string]interface{}{
-					"kube-system/kubeadm:kubelet-config-1.12": &rbacv1.RoleBinding{},
-					"kube-system/kubeadm:kubelet-config-1.13": &rbacv1.Role{},
-				},
-			},
-		},
-		{
-			name:   "role binding and role don't exist",
-			client: &fakeClient{},
-		},
-		{
-			name: "create returns an already exists error",
-			client: &fakeClient{
-				createErr: apierrors.NewAlreadyExists(schema.GroupResource{}, ""),
-			},
-		},
-	}
-	ctx := context.Background()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			c := &Workload{
-				Client: tt.client,
-			}
-			g.Expect(c.ReconcileKubeletRBACBinding(ctx, semver.MustParse("1.12.3"))).To(Succeed())
-			g.Expect(c.ReconcileKubeletRBACRole(ctx, semver.MustParse("1.13.3"))).To(Succeed())
-		})
-	}
-}
-
-func TestCluster_ReconcileKubeletRBACBinding_Error(t *testing.T) {
-	tests := []struct {
-		name   string
-		client ctrlclient.Client
-	}{
-		{
-			name: "client fails to retrieve an expected error or the role binding/role",
-			client: &fakeClient{
-				getErr: errors.New(""),
-			},
-		},
-		{
-			name: "fails to create the role binding/role",
-			client: &fakeClient{
-				createErr: errors.New(""),
-			},
-		},
-	}
-	ctx := context.Background()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			c := &Workload{
-				Client: tt.client,
-			}
-			g.Expect(c.ReconcileKubeletRBACBinding(ctx, semver.MustParse("1.12.3"))).NotTo(Succeed())
-			g.Expect(c.ReconcileKubeletRBACRole(ctx, semver.MustParse("1.13.3"))).NotTo(Succeed())
-		})
-	}
-}
 
 func TestUpdateKubeProxyImageInfo(t *testing.T) {
 	g := NewWithT(t)

@@ -34,6 +34,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
+const MinimumCAPISupportedKubernetesVersion = "KUBERNETES_VERSION_MINIMUM_CAPI_SUPPORTED"
+
 // SelfHostedSpecInput is the input for SelfHostedSpec.
 type SelfHostedSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
@@ -65,6 +67,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0755)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
+		Expect(input.E2EConfig.Variables).To(HaveKey(MinimumCAPISupportedKubernetesVersion))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(context.TODO(), specName, input.BootstrapClusterProxy, input.ArtifactFolder)
@@ -86,7 +89,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("cluster-%s", util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetKubernetesVersion(),
+				KubernetesVersion:        input.GetMinimumCAPISupportedKubernetesVersion(),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
@@ -189,4 +192,8 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
+}
+
+func (k SelfHostedSpecInput) GetMinimumCAPISupportedKubernetesVersion() string {
+	return k.E2EConfig.Variables[MinimumCAPISupportedKubernetesVersion]
 }

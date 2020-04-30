@@ -340,6 +340,14 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				expectErr:       true,
 			},
 			{
+				name:    "returns an error if the leader candidate's noderef is nil",
+				machine: defaultMachine(),
+				leaderCandidate: defaultMachine(func(m *clusterv1.Machine) {
+					m.Status.NodeRef = nil
+				}),
+				expectErr: true,
+			},
+			{
 				name:            "returns an error if it can't retrieve the list of control plane nodes",
 				machine:         defaultMachine(),
 				leaderCandidate: defaultMachine(),

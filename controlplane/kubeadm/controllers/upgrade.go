@@ -57,6 +57,12 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile the remote kubelet RBAC binding")
 	}
 
+	// Ensure kubeadm cluster role  & bindings for v1.18+
+	// as per https://github.com/kubernetes/kubernetes/commit/b117a928a6c3f650931bdac02a41fca6680548c4
+	if err := workloadCluster.AllowBootstrapTokensToGetNodes(ctx); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to set role and role binding for kubeadm")
+	}
+
 	if err := workloadCluster.UpdateKubernetesVersionInKubeadmConfigMap(ctx, parsedVersion); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
 	}

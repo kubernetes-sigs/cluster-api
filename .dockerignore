@@ -15,3 +15,5 @@ Tiltfile
 test/infrastructure/docker/e2e/logs/**
 **/config/**/*.yaml
 _artifacts
+Makefile
+**/Makefile

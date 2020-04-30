@@ -23,3 +23,5 @@ about: Tell us about a problem you are experiencing
 - OS (e.g. from `/etc/os-release`):
 
 /kind bug
+[One or more /area label. See https://github.com/kubernetes-sigs/cluster-api/labels?q=area for the list of labels]
+ 

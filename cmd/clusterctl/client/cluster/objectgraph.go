@@ -17,8 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"strings"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -29,6 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	secretutil "sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -339,15 +338,15 @@ func (o *objectGraph) setSoftOwnership() {
 			continue
 		}
 
-		// If the secret name does not comply the naming convention {cluster-name}-{certificate-name/kubeconfig}, ignore it.
-		nameSplit := strings.Split(secret.identity.Name, "-")
-		if len(nameSplit) != 2 {
+		// If the secret name is not a valid cluster secret name, ignore it.
+		secretClusterName, _, err := secretutil.ParseSecretName(secret.identity.Name)
+		if err != nil {
 			continue
 		}
 
-		// If the secret is linked to a cluster by the naming convention, then add the cluster to the list of the secrets's softOwners.
+		// If the secret is linked to a cluster, then add the cluster to the list of the secrets's softOwners.
 		for _, cluster := range clusters {
-			if nameSplit[0] == cluster.identity.Name && secret.identity.Namespace == cluster.identity.Namespace {
+			if secretClusterName == cluster.identity.Name && secret.identity.Namespace == cluster.identity.Namespace {
 				secret.addSoftOwner(cluster)
 			}
 		}

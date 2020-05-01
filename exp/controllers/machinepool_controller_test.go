@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"sigs.k8s.io/cluster-api/util"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -30,6 +29,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -304,7 +304,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "created",
 					Namespace:  "default",
-					Finalizers: []string{expv1.MachinePoolFinalizer, metav1.FinalizerDeleteDependents},
+					Finalizers: []string{expv1.MachinePoolFinalizer},
 				},
 				Spec: expv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
@@ -340,7 +340,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "updated",
 					Namespace:  "default",
-					Finalizers: []string{expv1.MachinePoolFinalizer, metav1.FinalizerDeleteDependents},
+					Finalizers: []string{expv1.MachinePoolFinalizer},
 				},
 				Spec: expv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
@@ -378,7 +378,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Labels: map[string]string{
 						clusterv1.MachineControlPlaneLabelName: "",
 					},
-					Finalizers:        []string{expv1.MachinePoolFinalizer, metav1.FinalizerDeleteDependents},
+					Finalizers:        []string{expv1.MachinePoolFinalizer},
 					DeletionTimestamp: &time,
 				},
 				Spec: expv1.MachinePoolSpec{
@@ -574,7 +574,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete123",
 			Namespace:         "default",
-			Finalizers:        []string{expv1.MachinePoolFinalizer, metav1.FinalizerDeleteDependents},
+			Finalizers:        []string{expv1.MachinePoolFinalizer},
 			DeletionTimestamp: &dt,
 		},
 		Spec: expv1.MachinePoolSpec{
@@ -601,6 +601,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(mr.Client.Get(ctx, key, m)).To(Succeed())
-	g.Expect(m.ObjectMeta.Finalizers).To(Equal([]string{metav1.FinalizerDeleteDependents}))
+	var actual expv1.MachinePool
+	g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
+	g.Expect(actual.ObjectMeta.Finalizers).To(BeEmpty())
 }

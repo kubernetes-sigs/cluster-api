@@ -28,13 +28,13 @@ import (
 
 // Get retrieves the specified Secret (if any) from the given
 // cluster name and namespace.
-func Get(ctx context.Context, c client.Client, cluster client.ObjectKey, purpose Purpose) (*corev1.Secret, error) {
+func Get(ctx context.Context, c client.Reader, cluster client.ObjectKey, purpose Purpose) (*corev1.Secret, error) {
 	return GetFromNamespacedName(ctx, c, cluster, purpose)
 }
 
 // GetFromNamespacedName retrieves the specified Secret (if any) from the given
 // cluster name and namespace.
-func GetFromNamespacedName(ctx context.Context, c client.Client, clusterName client.ObjectKey, purpose Purpose) (*corev1.Secret, error) {
+func GetFromNamespacedName(ctx context.Context, c client.Reader, clusterName client.ObjectKey, purpose Purpose) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
 		Namespace: clusterName.Namespace,

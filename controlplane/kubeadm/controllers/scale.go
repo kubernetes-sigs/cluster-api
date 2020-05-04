@@ -25,6 +25,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,6 +33,20 @@ import (
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
+
+	// Perform an uncached read of all the owned machines. This check is in place to make sure
+	// that the controller cache is not misbehaving and we end up initializing the cluster more than once.
+	ownedMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, util.ObjectKey(cluster), machinefilters.OwnedControlPlaneMachines(kcp.Name))
+	if err != nil {
+		logger.Error(err, "failed to perform an uncached read of control plane machines for cluster")
+		return ctrl.Result{}, err
+	}
+	if len(ownedMachines) > 0 {
+		return ctrl.Result{}, errors.Errorf(
+			"control plane has already been initialized, found %d owned machine for cluster %s/%s: controller cache or management cluster is misbehaving",
+			len(ownedMachines), cluster.Namespace, cluster.Name,
+		)
+	}
 
 	bootstrapSpec := controlPlane.InitialControlPlaneConfig()
 	fd := controlPlane.FailureDomainWithFewestMachines()

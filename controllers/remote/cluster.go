@@ -40,12 +40,11 @@ func NewClusterClient(ctx context.Context, c client.Client, cluster client.Objec
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create client for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
-
 	return ret, nil
 }
 
 // RESTConfig returns a configuration instance to be used with a Kubernetes client.
-func RESTConfig(ctx context.Context, c client.Client, cluster client.ObjectKey) (*restclient.Config, error) {
+func RESTConfig(ctx context.Context, c client.Reader, cluster client.ObjectKey) (*restclient.Config, error) {
 	kubeConfig, err := kcfg.FromSecret(ctx, c, cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %s/%s", cluster.Namespace, cluster.Name)

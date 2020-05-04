@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -251,8 +252,15 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *
 
 // SetupWithManager will add watches for this controller
 func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	clusterToDockerMachines, err := util.ClusterToObjectsMapper(mgr.GetClient(), &infrav1.DockerMachineList{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerMachine{}).
+		WithOptions(options).
+		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
@@ -265,8 +273,17 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager, options con
 				ToRequests: handler.ToRequestsFunc(r.DockerClusterToDockerMachines),
 			},
 		).
-		WithOptions(options).
-		Complete(r)
+		Build(r)
+	if err != nil {
+		return err
+	}
+	return c.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: clusterToDockerMachines,
+		},
+		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+	)
 }
 
 // DockerClusterToDockerMachines is a handler.ToRequestsFunc to be used to enqeue

@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -102,7 +103,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	}
 
 	// if external ref is paused, return error.
-	if util.IsPaused(cluster, obj) {
+	if annotations.IsPaused(cluster, obj) {
 		logger.V(3).Info("External object referenced is paused")
 		return external.ReconcileOutput{Paused: true}, nil
 	}

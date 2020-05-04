@@ -33,6 +33,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -90,7 +91,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 	}
 
 	// if external ref is paused, return error.
-	if util.IsPaused(cluster, obj) {
+	if annotations.IsPaused(cluster, obj) {
 		logger.V(3).Info("External object referenced is paused")
 		return external.ReconcileOutput{Paused: true}, nil
 	}

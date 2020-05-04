@@ -35,7 +35,9 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/metrics"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -77,6 +79,7 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.controlPlaneMachineToCluster)},
 		).
 		WithOptions(options).
+		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
 		Build(r)
 
 	if err != nil {
@@ -109,7 +112,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	// Return early if the object or Cluster is paused.
-	if util.IsPaused(cluster, cluster) {
+	if annotations.IsPaused(cluster, cluster) {
 		logger.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}

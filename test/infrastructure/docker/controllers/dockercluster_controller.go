@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -150,13 +151,18 @@ func reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, 
 
 // SetupWithManager will add watches for this controller
 func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerCluster{}).
-		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerCluster")),
-			},
-		).
-		Complete(r)
+		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		Build(r)
+	if err != nil {
+		return err
+	}
+	return c.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerCluster")),
+		},
+		predicates.ClusterUnpaused(r.Log),
+	)
 }

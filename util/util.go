@@ -37,15 +37,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/container"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -433,23 +434,15 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 	return false
 }
 
-// IsPaused returns true if the Cluster is paused or the object has the `paused` annotation.
-func IsPaused(cluster *clusterv1.Cluster, o metav1.Object) bool {
-	if cluster.Spec.Paused {
-		return true
-	}
-	return HasPausedAnnotation(o)
-}
+var (
+	// IsPaused returns true if the Cluster is paused or the object has the `paused` annotation.
+	// Deprecated: use util/annotations/IsPaused instead
+	IsPaused = annotations.IsPaused
 
-// HasPausedAnnotation returns true if the object has the `paused` annotation.
-func HasPausedAnnotation(o metav1.Object) bool {
-	annotations := o.GetAnnotations()
-	if annotations == nil {
-		return false
-	}
-	_, ok := annotations[clusterv1.PausedAnnotation]
-	return ok
-}
+	// HasPausedAnnotation returns true if the object has the `paused` annotation.
+	// Deprecated: use util/annotations/HasPausedAnnotation instead
+	HasPausedAnnotation = annotations.HasPausedAnnotation
+)
 
 // GetCRDWithContract retrieves a list of CustomResourceDefinitions from using controller-runtime Client,
 // filtering with the `contract` label passed in.
@@ -505,19 +498,16 @@ func (o MachinesByCreationTimestamp) Less(i, j int) bool {
 // WatchOnClusterPaused adds a conditional watch to the controlled given as input
 // that sends watch notifications on any create or delete, and only updates
 // that toggle Cluster.Spec.Cluster.
+// Deprecated: Instead add the Watch directly and use predicates.ClusterUnpaused or
+// predicates.ClusterUnpausedAndInfrastructureReady depending on your use case.
 func WatchOnClusterPaused(c controller.Controller, mapFunc handler.Mapper) error {
+	log := klogr.New().WithName("WatchOnClusterPaused")
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: mapFunc,
 		},
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-			},
-		},
+		predicates.ClusterUnpaused(log),
 	)
 }
 

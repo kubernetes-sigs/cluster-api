@@ -46,7 +46,7 @@ type ManagementCluster interface {
 
 // Management holds operations on the management cluster.
 type Management struct {
-	Client ctrlclient.Client
+	Client ctrlclient.Reader
 }
 
 // GetMachinesForCluster returns a list of machines that can be filtered or not.

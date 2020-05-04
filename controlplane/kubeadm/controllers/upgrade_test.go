@@ -53,6 +53,12 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 			ControlPlaneHealthy: true,
 			EtcdHealthy:         true,
 		},
+		managementClusterUncached: &fakeManagementCluster{
+			Management:          &internal.Management{Client: fakeClient},
+			Workload:            fakeWorkloadCluster{Status: internal.ClusterStatus{Nodes: 1}},
+			ControlPlaneHealthy: true,
+			EtcdHealthy:         true,
+		},
 	}
 	controlPlane := &internal.ControlPlane{
 		KCP:      kcp,

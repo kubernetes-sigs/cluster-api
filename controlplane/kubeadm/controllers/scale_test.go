@@ -50,6 +50,10 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 		Client:   fakeClient,
 		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
+		managementClusterUncached: &fakeManagementCluster{
+			Management: &internal.Management{Client: fakeClient},
+			Workload:   fakeWorkloadCluster{},
+		},
 	}
 	controlPlane := &internal.ControlPlane{
 		Cluster: cluster,
@@ -101,10 +105,11 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		fakeClient := newFakeClient(g, initObjs...)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:            fakeClient,
-			managementCluster: fmc,
-			Log:               log.Log,
-			recorder:          record.NewFakeRecorder(32),
+			Client:                    fakeClient,
+			managementCluster:         fmc,
+			managementClusterUncached: fmc,
+			Log:                       log.Log,
+			recorder:                  record.NewFakeRecorder(32),
 		}
 		controlPlane := &internal.ControlPlane{
 			KCP:      kcp,
@@ -156,10 +161,11 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			}
 
 			r := &KubeadmControlPlaneReconciler{
-				Client:            fakeClient,
-				managementCluster: fmc,
-				Log:               log.Log,
-				recorder:          record.NewFakeRecorder(32),
+				Client:                    fakeClient,
+				managementCluster:         fmc,
+				managementClusterUncached: fmc,
+				Log:                       log.Log,
+				recorder:                  record.NewFakeRecorder(32),
 			}
 			controlPlane := &internal.ControlPlane{
 				KCP:      kcp,

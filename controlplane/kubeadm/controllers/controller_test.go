@@ -525,6 +525,15 @@ kubernetesVersion: metav1.16.1`,
 				Status: internal.ClusterStatus{},
 			},
 		},
+		managementClusterUncached: &fakeManagementCluster{
+			Management: &internal.Management{Client: fakeClient},
+			Workload: fakeWorkloadCluster{
+				Workload: &internal.Workload{
+					Client: fakeClient,
+				},
+				Status: internal.ClusterStatus{},
+			},
+		},
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})

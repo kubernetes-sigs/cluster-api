@@ -65,7 +65,8 @@ type KubeadmControlPlaneReconciler struct {
 	controller controller.Controller
 	recorder   record.EventRecorder
 
-	managementCluster internal.ManagementCluster
+	managementCluster         internal.ManagementCluster
+	managementClusterUncached internal.ManagementCluster
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -96,6 +97,9 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 
 	if r.managementCluster == nil {
 		r.managementCluster = &internal.Management{Client: r.Client}
+	}
+	if r.managementClusterUncached == nil {
+		r.managementClusterUncached = &internal.Management{Client: mgr.GetAPIReader()}
 	}
 
 	return nil

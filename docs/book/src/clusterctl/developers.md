@@ -10,7 +10,7 @@ This document describes how to use `clusterctl` during the development workflow.
 
 ## Getting started
 
-### Build clustertl
+### Build clusterctl
 
 From the root of the local copy of Cluster API, you can build the `clusterctl` binary by running:
 
@@ -38,7 +38,15 @@ See [available providers](#available-providers) for more details.
 **provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have
 a `clusterctl-settings.json` file describing how to build the provider assets.
 
-## Run the local-overrides hack!
+### Run the local-overrides hack!
+
+<aside class="note">
+
+<h1>If using the docker provider, take additional steps</h1>
+
+Before running the local-overrides hack with the Docker provider, follow <a href="#additional-steps-for-the-docker-provider">these steps</a>.
+
+</aside>
 
 You can now run the local-overrides hack from the root of the local copy of Cluster API:
 
@@ -51,7 +59,7 @@ and places them in a local override folder located under `$HOME/.cluster-api/ove
 Additionally, the command output provides you the `clusterctl init` command with all the necessary flags.
 
 ```shell
-clusterctl local overrides generated from local repositories for the cluster-api, bootstrap-kubeadm, control-plane-kubeadm, infrastrcuture-aws providers.
+clusterctl local overrides generated from local repositories for the cluster-api, bootstrap-kubeadm, control-plane-kubeadm, infrastructure-aws providers.
 in order to use them, please run:
 
 clusterctl init  --core cluster-api:v0.3.0 --bootstrap kubeadm:v0.3.0 --infrastructure aws:v0.5.0
@@ -60,7 +68,7 @@ clusterctl init  --core cluster-api:v0.3.0 --bootstrap kubeadm:v0.3.0 --infrastr
 See [Overrides Layer](configuration.md#overrides-layer) for more information
 on the purpose of overrides.
 
-## Available providers
+#### Available providers
 
 The following providers are currently defined in the script:
 
@@ -82,7 +90,7 @@ please note that each `provider_repo` should have its own `clusterctl-settings.j
 }
 ```
 
-## Additional steps in order to use the docker provider
+#### Additional Steps for the Docker Provider
 
 <aside class="note warning">
 
@@ -114,7 +122,7 @@ providers:
 
 If you are using Kind for creating the management cluster, you should:
 
-- run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
+- Run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
 
 ```bash
 cat > kind-cluster-with-extramounts.yaml <<EOF
@@ -126,16 +134,14 @@ nodes:
       - hostPath: /var/run/docker.sock
         containerPath: /var/run/docker.sock
 EOF
-  kind create cluster --config ./kind-cluster-with-extramounts.yaml --name clusterapi
-  kubectl cluster-info --context kind-clusterapi
 ```
 
-- Run `kind create cluster --config ./kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
+- Run `kind create cluster --config kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
 
 - Run `kind load docker-image gcr.io/k8s-staging-capi-docker/capd-manager-amd64:dev` to make the docker provider image available
   for the kubelet in the management cluster.
 
-Run `clusterctl init` command provided as output of the local-overrides hack.
+- Run `clusterctl init` command provided as output of the local-overrides hack.
 
 ### Connecting to a workload cluster on docker
 
@@ -156,24 +162,4 @@ sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/t
 
 # Ignore the CA, because it is not signed for 127.0.0.1
 sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./capi-quickstart.kubeconfig
-```
-
-### Known issues
-
-A [known issue](https://github.com/kubernetes-sigs/kind/issues/891) affects Calico with the Docker provider v0.2.0.
-After you deploy Calico, apply this patch to work around the issue:
-
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  -n kube-system patch daemonset calico-node \
-  --type=strategic --patch='
-spec:
-  template:
-    spec:
-      containers:
-      - name: calico-node
-        env:
-        - name: FELIX_IGNORELOOSERPF
-          value: "true"
-'
 ```

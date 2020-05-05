@@ -23,7 +23,7 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
 MAKE="make"
-KIND_VERSION="v0.6.1"
+KIND_VERSION="v0.7.0"
 KUBECTL_VERSION="v1.16.7"
 KUSTOMIZE_VERSION="3.1.0"
 CRD_YAML="crd.yaml"
@@ -82,8 +82,6 @@ prepare_crd_yaml() {
 
 create_bootstrap() {
    kind create cluster --name "${BOOTSTRAP_CLUSTER_NAME}"
-   KUBECONFIG="$(kind get kubeconfig-path --name="${BOOTSTRAP_CLUSTER_NAME}")"
-   export KUBECONFIG
 
    kind load docker-image "${CONTROLLER_IMG}-${GOARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
    kind load docker-image "${KUBEADM_BOOTSTRAP_CONTROLLER_IMG}-${GOARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"

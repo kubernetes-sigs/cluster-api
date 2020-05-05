@@ -17,7 +17,6 @@ package controllers
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -32,18 +31,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -62,36 +57,36 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName}}
 
 		By("Ensuring the namespace exists")
-		Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
+		Expect(testEnv.Create(ctx, namespace)).To(Succeed())
 		namespaceName = namespace.Name
 
 		By("Creating the Cluster")
 		testCluster.Namespace = namespaceName
-		Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
+		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
 
 		By("Creating the remote Cluster kubeconfig")
-		Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, testCluster)).To(Succeed())
+		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
 	})
 
 	AfterEach(func() {
 		By("Deleting any Nodes")
-		Expect(cleanupTestNodes(ctx, k8sClient)).To(Succeed())
+		Expect(cleanupTestNodes(ctx, testEnv)).To(Succeed())
 		By("Deleting any Machines")
-		Expect(cleanupTestMachines(ctx, k8sClient)).To(Succeed())
+		Expect(cleanupTestMachines(ctx, testEnv)).To(Succeed())
 		By("Deleting any MachineHealthChecks")
-		Expect(cleanupTestMachineHealthChecks(ctx, k8sClient)).To(Succeed())
+		Expect(cleanupTestMachineHealthChecks(ctx, testEnv)).To(Succeed())
 		By("Deleting the Cluster")
-		Expect(k8sClient.Delete(ctx, testCluster)).To(Succeed())
+		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 		By("Deleting the remote Cluster kubeconfig")
 		remoteClusterKubeconfig := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: namespaceName, Name: clusterKubeconfigName}}
-		Expect(k8sClient.Delete(ctx, remoteClusterKubeconfig)).To(Succeed())
+		Expect(testEnv.Delete(ctx, remoteClusterKubeconfig)).To(Succeed())
 		By("Deleting the Namespace")
-		Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
+		Expect(testEnv.Delete(ctx, namespace)).To(Succeed())
 
 		// Ensure the cluster is actually gone before moving on
 		Eventually(func() error {
 			c := &clusterv1.Cluster{}
-			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespaceName, Name: clusterName}, c)
+			err := testEnv.Get(ctx, client.ObjectKey{Namespace: namespaceName, Name: clusterName}, c)
 			if err != nil && apierrors.IsNotFound(err) {
 				return nil
 			} else if err != nil {
@@ -127,11 +122,11 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				},
 			}
 			mhcToCreate.Default()
-			Expect(k8sClient.Create(ctx, mhcToCreate)).To(Succeed())
+			Expect(testEnv.Create(ctx, mhcToCreate)).To(Succeed())
 
 			Eventually(func() map[string]string {
 				mhc := &clusterv1.MachineHealthCheck{}
-				err := k8sClient.Get(ctx, util.ObjectKey(mhcToCreate), mhc)
+				err := testEnv.Get(ctx, util.ObjectKey(mhcToCreate), mhc)
 				if err != nil {
 					return nil
 				}
@@ -179,11 +174,11 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				},
 			}
 			mhcToCreate.Default()
-			Expect(k8sClient.Create(ctx, mhcToCreate)).To(Succeed())
+			Expect(testEnv.Create(ctx, mhcToCreate)).To(Succeed())
 
 			Eventually(func() []metav1.OwnerReference {
 				mhc := &clusterv1.MachineHealthCheck{}
-				err := k8sClient.Get(ctx, util.ObjectKey(mhcToCreate), mhc)
+				err := testEnv.Get(ctx, util.ObjectKey(mhcToCreate), mhc)
 				if err != nil {
 					return []metav1.OwnerReference{}
 				}
@@ -210,14 +205,14 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 		// has been set on it
 		createMachine := func(m *clusterv1.Machine) {
 			status := m.Status
-			Expect(k8sClient.Create(ctx, m)).To(Succeed())
+			Expect(testEnv.Create(ctx, m)).To(Succeed())
 			key := util.ObjectKey(m)
 			Eventually(func() error {
-				if err := k8sClient.Get(ctx, key, m); err != nil {
+				if err := testEnv.Get(ctx, key, m); err != nil {
 					return err
 				}
 				m.Status = status
-				return k8sClient.Status().Update(ctx, m)
+				return testEnv.Status().Update(ctx, m)
 			}, timeout).Should(Succeed())
 		}
 
@@ -306,7 +301,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				By("Creating Nodes")
 				for _, n := range rtc.nodes() {
 					node := *n
-					Expect(k8sClient.Create(ctx, &node)).To(Succeed())
+					Expect(testEnv.Create(ctx, &node)).To(Succeed())
 				}
 
 				By("Creating Machines")
@@ -318,12 +313,12 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				By("Creating a MachineHealthCheck")
 				mhc := rtc.mhc()
 				mhc.Default()
-				Expect(k8sClient.Create(ctx, mhc)).To(Succeed())
+				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
 
 				By("Verifying the status has been updated")
 				Eventually(func() clusterv1.MachineHealthCheckStatus {
 					mhc := &clusterv1.MachineHealthCheck{}
-					if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceName, Name: rtc.mhc().Name}, mhc); err != nil {
+					if err := testEnv.Get(ctx, types.NamespacedName{Namespace: namespaceName, Name: rtc.mhc().Name}, mhc); err != nil {
 						return clusterv1.MachineHealthCheckStatus{}
 					}
 					return mhc.Status
@@ -335,14 +330,15 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				for _, m := range rtc.expectNotRemediated() {
 					machine := &clusterv1.Machine{}
 					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
-					Expect(k8sClient.Get(ctx, key, machine)).To(Succeed())
+					Expect(testEnv.Get(ctx, key, machine)).To(Succeed())
 					Expect(machine.GetDeletionTimestamp().IsZero()).To(BeTrue())
 				}
 
 				for _, m := range rtc.expectRemediated() {
 					machine := &clusterv1.Machine{}
 					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
-					Expect(k8sClient.Get(ctx, key, machine)).ToNot(Succeed())
+					err := testEnv.Get(ctx, key, machine)
+					Expect(apierrors.IsNotFound(err)).To(BeTrue())
 				}
 			},
 			Entry("with healthy Machines", &reconcileTestCase{
@@ -505,7 +501,7 @@ func cleanupTestNodes(ctx context.Context, c client.Client) error {
 func ownerReferenceForCluster(ctx context.Context, c *clusterv1.Cluster) metav1.OwnerReference {
 	// Fetch the cluster to populate the UID
 	cc := &clusterv1.Cluster{}
-	Expect(k8sClient.Get(ctx, util.ObjectKey(c), cc)).To(Succeed())
+	Expect(testEnv.GetClient().Get(ctx, util.ObjectKey(c), cc)).To(Succeed())
 
 	return metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -522,43 +518,22 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	// BEGIN: Set up test environment
 	g := NewWithT(t)
 
-	testEnv = &envtest.Environment{
-		CRDs: []runtime.Object{
-			external.TestGenericBootstrapCRD,
-			external.TestGenericBootstrapTemplateCRD,
-			external.TestGenericInfrastructureCRD,
-			external.TestGenericInfrastructureTemplateCRD,
-		},
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
-	}
-
-	var err error
-	cfg, err := testEnv.Start()
+	testEnv, err := helpers.NewTestEnvironment()
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(cfg).ToNot(BeNil())
+
 	defer func() {
 		g.Expect(testEnv.Stop()).To(Succeed())
 	}()
 
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
-	mgr, err = manager.New(cfg, manager.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-	})
-	g.Expect(err).ToNot(HaveOccurred())
-
 	r := &MachineHealthCheckReconciler{
 		Log:    log.Log,
-		Client: mgr.GetClient(),
+		Client: testEnv.GetClient(),
 	}
-	g.Expect(r.SetupWithManager(mgr, controller.Options{})).To(Succeed())
+	g.Expect(r.SetupWithManager(testEnv.Manager, controller.Options{})).To(Succeed())
 
-	doneMgr := make(chan struct{})
 	go func() {
-		g.Expect(mgr.Start(doneMgr)).To(Succeed())
+		g.Expect(testEnv.StartManager()).To(Succeed())
 	}()
-	defer close(doneMgr)
 
 	// END: setup test environment
 
@@ -721,43 +696,22 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	// BEGIN: Set up test environment
 	g := NewWithT(t)
 
-	testEnv = &envtest.Environment{
-		CRDs: []runtime.Object{
-			external.TestGenericBootstrapCRD,
-			external.TestGenericBootstrapTemplateCRD,
-			external.TestGenericInfrastructureCRD,
-			external.TestGenericInfrastructureTemplateCRD,
-		},
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
-	}
-
-	var err error
-	cfg, err := testEnv.Start()
+	testEnv, err := helpers.NewTestEnvironment()
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(cfg).ToNot(BeNil())
+
 	defer func() {
 		g.Expect(testEnv.Stop()).To(Succeed())
 	}()
 
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
-	mgr, err = manager.New(cfg, manager.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-	})
-	g.Expect(err).ToNot(HaveOccurred())
-
 	r := &MachineHealthCheckReconciler{
 		Log:    log.Log,
-		Client: mgr.GetClient(),
+		Client: testEnv.GetClient(),
 	}
-	g.Expect(r.SetupWithManager(mgr, controller.Options{})).To(Succeed())
+	g.Expect(r.SetupWithManager(testEnv.Manager, controller.Options{})).To(Succeed())
 
-	doneMgr := make(chan struct{})
 	go func() {
-		g.Expect(mgr.Start(doneMgr)).To(Succeed())
+		g.Expect(testEnv.StartManager()).To(Succeed())
 	}()
-	defer close(doneMgr)
 
 	// END: setup test environment
 
@@ -853,43 +807,22 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	// BEGIN: Set up test environment
 	g := NewWithT(t)
 
-	testEnv = &envtest.Environment{
-		CRDs: []runtime.Object{
-			external.TestGenericBootstrapCRD,
-			external.TestGenericBootstrapTemplateCRD,
-			external.TestGenericInfrastructureCRD,
-			external.TestGenericInfrastructureTemplateCRD,
-		},
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
-	}
-
-	var err error
-	cfg, err := testEnv.Start()
+	testEnv, err := helpers.NewTestEnvironment()
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(cfg).ToNot(BeNil())
+
 	defer func() {
 		g.Expect(testEnv.Stop()).To(Succeed())
 	}()
 
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
-	mgr, err = manager.New(cfg, manager.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-	})
-	g.Expect(err).ToNot(HaveOccurred())
-
 	r := &MachineHealthCheckReconciler{
 		Log:    log.Log,
-		Client: mgr.GetClient(),
+		Client: testEnv.GetClient(),
 	}
-	g.Expect(r.SetupWithManager(mgr, controller.Options{})).To(Succeed())
+	g.Expect(r.SetupWithManager(testEnv.Manager, controller.Options{})).To(Succeed())
 
-	doneMgr := make(chan struct{})
 	go func() {
-		g.Expect(mgr.Start(doneMgr)).To(Succeed())
+		g.Expect(testEnv.StartManager()).To(Succeed())
 	}()
-	defer close(doneMgr)
 
 	// END: setup test environment
 

@@ -40,7 +40,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -56,16 +55,16 @@ var _ = Describe("Cluster Reconciler", func() {
 		}
 
 		// Create the Cluster object and expect the Reconcile and Deployment to be created
-		Expect(k8sClient.Create(ctx, instance)).ToNot(HaveOccurred())
+		Expect(testEnv.Create(ctx, instance)).ToNot(HaveOccurred())
 		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
 		defer func() {
-			err := k8sClient.Delete(ctx, instance)
+			err := testEnv.Delete(ctx, instance)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Make sure the Cluster exists.
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, instance); err != nil {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return false
 			}
 			return len(instance.Finalizers) > 0
@@ -80,16 +79,16 @@ var _ = Describe("Cluster Reconciler", func() {
 				Namespace:    "default",
 			},
 		}
-		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		Expect(testEnv.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := k8sClient.Delete(ctx, cluster)
+			err := testEnv.Delete(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+			if err := testEnv.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -97,7 +96,7 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		// Patch
 		Eventually(func() bool {
-			ph, err := patch.NewHelper(cluster, k8sClient)
+			ph, err := patch.NewHelper(cluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
 			cluster.Spec.ControlPlaneRef = &v1.ObjectReference{Name: "test-too"}
@@ -108,7 +107,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Assertions
 		Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			if err := k8sClient.Get(ctx, key, instance); err != nil {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return false
 			}
 			return instance.Spec.InfrastructureRef != nil &&
@@ -124,16 +123,16 @@ var _ = Describe("Cluster Reconciler", func() {
 				Namespace:    "default",
 			},
 		}
-		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		Expect(testEnv.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := k8sClient.Delete(ctx, cluster)
+			err := testEnv.Delete(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+			if err := testEnv.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -141,7 +140,7 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		// Patch
 		Eventually(func() bool {
-			ph, err := patch.NewHelper(cluster, k8sClient)
+			ph, err := patch.NewHelper(cluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -151,7 +150,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Assertions
 		Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			if err := k8sClient.Get(ctx, key, instance); err != nil {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return false
 			}
 			return instance.Status.InfrastructureReady
@@ -166,16 +165,16 @@ var _ = Describe("Cluster Reconciler", func() {
 				Namespace:    "default",
 			},
 		}
-		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		Expect(testEnv.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := k8sClient.Delete(ctx, cluster)
+			err := testEnv.Delete(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+			if err := testEnv.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -183,7 +182,7 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		// Patch
 		Eventually(func() bool {
-			ph, err := patch.NewHelper(cluster, k8sClient)
+			ph, err := patch.NewHelper(cluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
@@ -194,7 +193,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Assertions
 		Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			if err := k8sClient.Get(ctx, key, instance); err != nil {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return false
 			}
 			return instance.Status.InfrastructureReady &&
@@ -211,16 +210,16 @@ var _ = Describe("Cluster Reconciler", func() {
 				Namespace:    "default",
 			},
 		}
-		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		Expect(testEnv.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := k8sClient.Delete(ctx, cluster)
+			err := testEnv.Delete(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+			if err := testEnv.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -228,7 +227,7 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		// Patch
 		Eventually(func() bool {
-			ph, err := patch.NewHelper(cluster, k8sClient)
+			ph, err := patch.NewHelper(cluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.SetFinalizers([]string{})
 			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -240,7 +239,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Assertions
 		Eventually(func() []string {
 			instance := &clusterv1.Cluster{}
-			if err := k8sClient.Get(ctx, key, instance); err != nil {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return []string{"not-empty"}
 			}
 			return instance.Finalizers
@@ -255,17 +254,17 @@ var _ = Describe("Cluster Reconciler", func() {
 			},
 		}
 
-		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		Expect(testEnv.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := k8sClient.Delete(ctx, cluster)
+			err := testEnv.Delete(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
 		}()
-		Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, cluster)).To(Succeed())
+		Expect(testEnv.CreateKubeconfigSecret(cluster)).To(Succeed())
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+			if err := testEnv.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -282,7 +281,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			},
 		}
 
-		Expect(k8sClient.Create(ctx, node)).To(Succeed())
+		Expect(testEnv.Create(ctx, node)).To(Succeed())
 
 		machine := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
@@ -301,10 +300,10 @@ var _ = Describe("Cluster Reconciler", func() {
 			},
 		}
 
-		Expect(k8sClient.Create(ctx, machine)).To(BeNil())
+		Expect(testEnv.Create(ctx, machine)).To(BeNil())
 		key = client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 		defer func() {
-			err := k8sClient.Delete(ctx, machine)
+			err := testEnv.Delete(ctx, machine)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
@@ -316,7 +315,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// we continue to see test timeouts here, that will likely point to something else being the problem, but
 		// I've yet to determine any other possibility for the test flakes.
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, machine); err != nil {
+			if err := testEnv.Get(ctx, key, machine); err != nil {
 				return false
 			}
 			return len(machine.Finalizers) > 0
@@ -325,7 +324,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Assertion
 		key = client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+			if err := testEnv.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return cluster.Status.ControlPlaneInitialized

@@ -18,30 +18,19 @@ package controllers
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/test/helpers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -50,11 +39,7 @@ import (
 
 func init() {
 	klog.InitFlags(nil)
-	logf.SetLogger(klogr.New())
-
-	// Register required object kinds with global scheme.
-	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
-	_ = clusterv1.AddToScheme(scheme.Scheme)
+	log.SetLogger(klogr.New())
 }
 
 const (
@@ -62,12 +47,8 @@ const (
 )
 
 var (
-	cfg               *rest.Config
-	k8sClient         client.Client
-	testEnv           *envtest.Environment
-	mgr               manager.Manager
+	testEnv           *helpers.TestEnvironment
 	clusterReconciler *ClusterReconciler
-	doneMgr           = make(chan struct{})
 	ctx               = context.Background()
 )
 
@@ -81,75 +62,48 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDs: []runtime.Object{
-			external.TestGenericBootstrapCRD,
-			external.TestGenericBootstrapTemplateCRD,
-			external.TestGenericInfrastructureCRD,
-			external.TestGenericInfrastructureTemplateCRD,
-		},
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
-	}
-
 	var err error
-	cfg, err = testEnv.Start()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(cfg).ToNot(BeNil())
-
-	// +kubebuilder:scaffold:scheme
-
-	By("setting up a new manager")
-	mgr, err = manager.New(cfg, manager.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-		NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
-			syncPeriod := 1 * time.Second
-			opts.Resync = &syncPeriod
-			return cache.New(config, opts)
-		},
-	})
+	testEnv, err = helpers.NewTestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
 
-	k8sClient = mgr.GetClient()
-
 	clusterReconciler = &ClusterReconciler{
-		Client:   k8sClient,
+		Client:   testEnv,
 		Log:      log.Log,
-		recorder: mgr.GetEventRecorderFor("cluster-controller"),
+		recorder: testEnv.GetEventRecorderFor("cluster-controller"),
 	}
-	Expect(clusterReconciler.SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+	Expect(clusterReconciler.SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineReconciler{
-		Client:   k8sClient,
+		Client:   testEnv,
 		Log:      log.Log,
-		recorder: mgr.GetEventRecorderFor("machine-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+		recorder: testEnv.GetEventRecorderFor("machine-controller"),
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineSetReconciler{
-		Client:   k8sClient,
+		Client:   testEnv,
 		Log:      log.Log,
-		recorder: mgr.GetEventRecorderFor("machineset-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+		recorder: testEnv.GetEventRecorderFor("machineset-controller"),
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineDeploymentReconciler{
-		Client:   k8sClient,
+		Client:   testEnv,
 		Log:      log.Log,
-		recorder: mgr.GetEventRecorderFor("machinedeployment-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+		recorder: testEnv.GetEventRecorderFor("machinedeployment-controller"),
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineHealthCheckReconciler{
-		Client:   k8sClient,
+		Client:   testEnv,
 		Log:      log.Log,
-		recorder: mgr.GetEventRecorderFor("machinehealthcheck-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+		recorder: testEnv.GetEventRecorderFor("machinehealthcheck-controller"),
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 
 	By("starting the manager")
 	go func() {
-		Expect(mgr.Start(doneMgr)).To(Succeed())
+		Expect(testEnv.StartManager()).To(Succeed())
 	}()
 
 	close(done)
 }, 60)
 
 var _ = AfterSuite(func() {
-	By("closing the manager")
-	close(doneMgr)
-	By("tearing down the test environment")
-	Expect(testEnv.Stop()).To(Succeed())
+	if testEnv != nil {
+		By("tearing down the test environment")
+		Expect(testEnv.Stop()).To(Succeed())
+	}
 })

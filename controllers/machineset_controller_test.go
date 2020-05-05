@@ -40,7 +40,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 var _ reconcile.Reconciler = &MachineSetReconciler{}
@@ -51,18 +50,18 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 	BeforeEach(func() {
 		By("Creating the namespace")
-		Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
+		Expect(testEnv.Create(ctx, namespace)).To(Succeed())
 		By("Creating the Cluster")
-		Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
+		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
 		By("Creating the Cluster Kubeconfig Secret")
-		Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, testCluster)).To(Succeed())
+		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
 	})
 
 	AfterEach(func() {
 		By("Deleting the Cluster")
-		Expect(k8sClient.Delete(ctx, testCluster)).To(Succeed())
+		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 		By("Deleting the namespace")
-		Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
+		Expect(testEnv.Delete(ctx, namespace)).To(Succeed())
 	})
 
 	It("Should reconcile a MachineSet", func() {
@@ -124,7 +123,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha3")
 		bootstrapTmpl.SetName("ms-template")
 		bootstrapTmpl.SetNamespace(namespace.Name)
-		Expect(k8sClient.Create(ctx, bootstrapTmpl)).To(Succeed())
+		Expect(testEnv.Create(ctx, bootstrapTmpl)).To(Succeed())
 
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
@@ -147,17 +146,17 @@ var _ = Describe("MachineSet Reconciler", func() {
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha3")
 		infraTmpl.SetName("ms-template")
 		infraTmpl.SetNamespace(namespace.Name)
-		Expect(k8sClient.Create(ctx, infraTmpl)).To(Succeed())
+		Expect(testEnv.Create(ctx, infraTmpl)).To(Succeed())
 
 		// Create the MachineSet.
-		Expect(k8sClient.Create(ctx, instance)).To(Succeed())
+		Expect(testEnv.Create(ctx, instance)).To(Succeed())
 		defer func() {
-			Expect(k8sClient.Delete(ctx, instance)).To(Succeed())
+			Expect(testEnv.Delete(ctx, instance)).To(Succeed())
 		}()
 
 		By("Verifying the linked bootstrap template has a cluster owner reference")
 		Eventually(func() bool {
-			obj, err := external.Get(ctx, k8sClient, instance.Spec.Template.Spec.Bootstrap.ConfigRef, instance.Namespace)
+			obj, err := external.Get(ctx, testEnv, instance.Spec.Template.Spec.Bootstrap.ConfigRef, instance.Namespace)
 			if err != nil {
 				return false
 			}
@@ -172,7 +171,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		By("Verifying the linked infrastructure template has a cluster owner reference")
 		Eventually(func() bool {
-			obj, err := external.Get(ctx, k8sClient, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
+			obj, err := external.Get(ctx, testEnv, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
 			if err != nil {
 				return false
 			}
@@ -189,7 +188,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Verify that we have 2 replicas.
 		Eventually(func() int {
-			if err := k8sClient.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
+			if err := testEnv.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			return len(machines.Items)
@@ -202,12 +201,12 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Try to delete 1 machine and check the MachineSet scales back up.
 		machineToBeDeleted := machines.Items[0]
-		Expect(k8sClient.Delete(ctx, &machineToBeDeleted)).To(Succeed())
+		Expect(testEnv.Delete(ctx, &machineToBeDeleted)).To(Succeed())
 
 		// Verify that the Machine has been deleted.
 		Eventually(func() bool {
 			key := client.ObjectKey{Name: machineToBeDeleted.Name, Namespace: machineToBeDeleted.Namespace}
-			if err := k8sClient.Get(ctx, key, &machineToBeDeleted); apierrors.IsNotFound(err) || !machineToBeDeleted.DeletionTimestamp.IsZero() {
+			if err := testEnv.Get(ctx, key, &machineToBeDeleted); apierrors.IsNotFound(err) || !machineToBeDeleted.DeletionTimestamp.IsZero() {
 				return true
 			}
 			return false
@@ -215,7 +214,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Verify that we have 2 replicas.
 		Eventually(func() (ready int) {
-			if err := k8sClient.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
+			if err := testEnv.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			for _, m := range machines.Items {
@@ -245,7 +244,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		// Verify that all Machines are Ready.
 		Eventually(func() int32 {
 			key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
-			if err := k8sClient.Get(ctx, key, instance); err != nil {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return -1
 			}
 			return instance.Status.AvailableReplicas

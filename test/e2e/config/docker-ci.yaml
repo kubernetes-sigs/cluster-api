@@ -62,10 +62,10 @@ providers:
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"
-  ETCD_VERSION_CURRENT: "3.4.3-0"
-  COREDNS_VERSION_CURRENT: "1.6.7"
+  ETCD_VERSION_UPGRADE_TO: "3.4.3-0"
+  COREDNS_VERSION_UPGRADE_TO: "1.6.7"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.18.2"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.17.2"
-  KUBERNETES_VERSION_MINIMUM_CAPI_SUPPORTED: "v1.16.4"
   DOCKER_SERVICE_DOMAIN: "cluster.local"
   DOCKER_SERVICE_CIDRS: "10.128.0.0/12"
   # IMPORTANT! This values should match the one used by the CNI provider
@@ -79,4 +79,4 @@ intervals:
   default/wait-worker-nodes: ["5m", "10s"]
   default/wait-delete-cluster: ["3m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]
-
+  default/wait-machine-remediation: ["3m", "10s"]

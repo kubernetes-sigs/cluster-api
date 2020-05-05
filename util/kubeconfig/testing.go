@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// Deprecated: use test/helpers/envtest
 func CreateEnvTestSecret(client client.Client, cfg *rest.Config, cluster *clusterv1.Cluster) error {
 	return client.Create(context.TODO(), GenerateSecret(cluster, FromEnvTestConfig(cfg, cluster)))
 }

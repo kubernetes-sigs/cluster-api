@@ -7,7 +7,7 @@ In this tutorial we'll cover the basics of how to use Cluster API to create one 
 ### Common Prerequisites
 
 - Install and setup [kubectl] in your local environment
-- Install [Kind] and [Docker] 
+- Install [Kind] and [Docker]
 
 ### Install and/or configure a kubernetes cluster
 
@@ -22,7 +22,7 @@ Choose one of the options below:
 
 1. **Existing Management Cluster**
 
-For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place. The Kubernetes cluster must be at least v1.16+. 
+For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place. The Kubernetes cluster must be at least v1.16+.
 
 ```bash
 export KUBECONFIG=<...>
@@ -36,7 +36,7 @@ export KUBECONFIG=<...>
 
 [kind] is not designed for production use.
 
-**Minimum [kind] supported version**: v0.6.x
+**Minimum [kind] supported version**: v0.7.0
 
 </aside>
 

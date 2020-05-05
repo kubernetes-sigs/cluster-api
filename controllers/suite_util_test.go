@@ -37,7 +37,7 @@ func intOrStrPtr(i int32) *intstr.IntOrString {
 func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]interface{}) {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	Eventually(func() error {
-		return k8sClient.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
+		return testEnv.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
 	}, timeout).Should(Succeed())
 
 	ready, found, err := unstructured.NestedBool(iref.Object, "status", "ready")
@@ -48,13 +48,13 @@ func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]inte
 
 	irefPatch := client.MergeFrom(iref.DeepCopy())
 	Expect(unstructured.SetNestedField(iref.Object, true, "status", "ready")).To(Succeed())
-	Expect(k8sClient.Status().Patch(ctx, iref, irefPatch)).To(Succeed())
+	Expect(testEnv.Status().Patch(ctx, iref, irefPatch)).To(Succeed())
 }
 
 func fakeMachineNodeRef(m *clusterv1.Machine) {
 	Eventually(func() error {
 		key := client.ObjectKey{Name: m.Name, Namespace: m.Namespace}
-		return k8sClient.Get(ctx, key, &clusterv1.Machine{})
+		return testEnv.Get(ctx, key, &clusterv1.Machine{})
 	}, timeout).Should(Succeed())
 
 	if m.Status.NodeRef != nil {
@@ -67,17 +67,17 @@ func fakeMachineNodeRef(m *clusterv1.Machine) {
 			GenerateName: m.Name + "-",
 		},
 	}
-	Expect(k8sClient.Create(ctx, node)).To(Succeed())
+	Expect(testEnv.Create(ctx, node)).To(Succeed())
 
 	Eventually(func() error {
 		key := client.ObjectKey{Name: node.Name, Namespace: node.Namespace}
-		return k8sClient.Get(ctx, key, &corev1.Node{})
+		return testEnv.Get(ctx, key, &corev1.Node{})
 	}, timeout).Should(Succeed())
 
 	// Patch the node and make it look like ready.
 	patchNode := client.MergeFrom(node.DeepCopy())
 	node.Status.Conditions = append(node.Status.Conditions, corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionTrue})
-	Expect(k8sClient.Status().Patch(ctx, node, patchNode)).To(Succeed())
+	Expect(testEnv.Status().Patch(ctx, node, patchNode)).To(Succeed())
 
 	// Patch the Machine.
 	patchMachine := client.MergeFrom(m.DeepCopy())
@@ -87,5 +87,5 @@ func fakeMachineNodeRef(m *clusterv1.Machine) {
 		Name:       node.Name,
 		UID:        node.UID,
 	}
-	Expect(k8sClient.Status().Patch(ctx, m, patchMachine)).To(Succeed())
+	Expect(testEnv.Status().Patch(ctx, m, patchMachine)).To(Succeed())
 }

@@ -152,7 +152,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	return r.reconcileNormal(ctx, machine, dockerMachine, externalMachine, externalLoadBalancer, log)
 }
 
-func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (ctrl.Result, error) {
+func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (res ctrl.Result, retErr error) {
 	// If the DockerMachine doesn't have finalizer, add it.
 	controllerutil.AddFinalizer(dockerMachine, infrav1.MachineFinalizer)
 
@@ -175,6 +175,19 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	if util.IsControlPlaneMachine(machine) {
 		role = constants.ControlPlaneNodeRoleValue
 	}
+
+	// Defining a cleanup func that will delete a machine when there are error during provisioning, so the operation
+	// can be re-tried from a clean state when the next reconcile happens (in 10 seconds)
+	defer func() {
+		if retErr != nil && !dockerMachine.Spec.Bootstrapped {
+			log.Info(fmt.Sprintf("%v, cleaning up so we can re-provision from a clean state", retErr))
+			if err := externalMachine.Delete(ctx); err != nil {
+				log.Info("Failed to cleanup machine")
+			}
+			res = ctrl.Result{RequeueAfter: 10 * time.Second}
+			retErr = nil
+		}
+	}()
 
 	if err := externalMachine.Create(ctx, role, machine.Spec.Version, dockerMachine.Spec.ExtraMounts); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")

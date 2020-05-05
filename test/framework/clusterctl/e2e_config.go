@@ -40,12 +40,6 @@ import (
 
 // Provides access to the configuration for an e2e test.
 
-// Define constants for e2e config variables
-const (
-	KubernetesVersion = "KUBERNETES_VERSION"
-	CNIPath           = "CNI"
-)
-
 // LoadE2EConfigInput is the input for LoadE2EConfig.
 type LoadE2EConfigInput struct {
 	// ConfigPath for the e2e test.
@@ -192,8 +186,6 @@ func errEmptyArg(argName string) error {
 // - There should be one InfraProvider (pick your own).
 // - Image should have name and loadBehavior be one of [mustload, tryload].
 // - Intervals should be valid ginkgo intervals.
-// - KubernetesVersion is not nil and valid.
-// - CNIPath is not nil.
 func (c *E2EConfig) Validate() error {
 	// ManagementClusterName should not be empty.
 	if c.ManagementClusterName == "" {
@@ -231,20 +223,6 @@ func (c *E2EConfig) Validate() error {
 				return errInvalidArg("Intervals[%s]=%q", k, intervals)
 			}
 		}
-	}
-
-	// If KubernetesVersion is nil or not valid, return error.
-	k8sVersion := c.GetKubernetesVersion()
-	if k8sVersion == "" {
-		return errEmptyArg(fmt.Sprintf("Variables[%s]", KubernetesVersion))
-	} else if _, err := version.ParseSemantic(k8sVersion); err != nil {
-		return errInvalidArg("Variables[%s]=%q", KubernetesVersion, k8sVersion)
-	}
-
-	// If CniPath is nil, return error.
-	cniPath := c.GetCNIPath()
-	if cniPath == "" {
-		return errEmptyArg(fmt.Sprintf("Variables[%s]", CNIPath))
 	}
 	return nil
 }
@@ -394,9 +372,7 @@ func (c *E2EConfig) GetIntervals(spec, key string) []interface{} {
 // GetVariable returns a variable from the e2e config file.
 func (c *E2EConfig) GetVariable(varName string) string {
 	version, ok := c.Variables[varName]
-	if !ok {
-		return ""
-	}
+	Expect(ok).NotTo(BeFalse())
 	return version
 }
 
@@ -410,22 +386,4 @@ func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
 	Expect(err).NotTo(HaveOccurred())
 	return pointer.Int64Ptr(wCount)
-}
-
-// GetKubernetesVersion returns the kubernetes version provided in e2e config.
-func (c *E2EConfig) GetKubernetesVersion() string {
-	version, ok := c.Variables[KubernetesVersion]
-	if !ok {
-		return ""
-	}
-	return version
-}
-
-// GetCNIPath returns the CNI path provided in e2e config.
-func (c *E2EConfig) GetCNIPath() string {
-	path, ok := c.Variables[CNIPath]
-	if !ok {
-		return ""
-	}
-	return path
 }

@@ -62,6 +62,9 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0755)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
+		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
+		Expect(input.E2EConfig.Variables).To(HaveKey(CNIPath))
+
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 	})
@@ -69,8 +72,6 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 	It("Should create a workload cluster", func() {
 
 		By("Creating a workload cluster")
-		Expect(input.E2EConfig.Variables).To(HaveKey(clusterctl.KubernetesVersion))
-		Expect(input.E2EConfig.Variables).To(HaveKey(clusterctl.CNIPath))
 
 		cluster, _, _ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
@@ -82,11 +83,11 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("cluster-%s", util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetKubernetesVersion(),
+				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
-			CNIManifestPath:              input.E2EConfig.GetCNIPath(),
+			CNIManifestPath:              input.E2EConfig.GetVariable(CNIPath),
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),

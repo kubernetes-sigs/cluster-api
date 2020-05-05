@@ -80,7 +80,7 @@ type WatchDeploymentLogsInput struct {
 func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WatchControllerLogs")
 	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for WatchControllerLogs")
-	Expect(input.Deployment).NotTo(BeNil(), "input.Name is required for WatchControllerLogs")
+	Expect(input.Deployment).NotTo(BeNil(), "input.Deployment is required for WatchControllerLogs")
 
 	deployment := &appsv1.Deployment{}
 	key, err := client.ObjectKeyFromObject(input.Deployment)

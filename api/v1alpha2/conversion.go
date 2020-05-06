@@ -172,6 +172,11 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ClusterName = name
 	}
 
+	// Manually convert annotations
+	for i := range v2Annotations {
+		convertAnnotations(v2Annotations[i], v3Annotations[i], dst.Annotations)
+	}
+
 	// Manually restore data.
 	restored := &v1alpha3.MachineSet{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
@@ -190,6 +195,11 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineSet)
 	if err := Convert_v1alpha3_MachineSet_To_v1alpha2_MachineSet(src, dst, nil); err != nil {
 		return err
+	}
+
+	// Manually convert annotations
+	for i := range v3Annotations {
+		convertAnnotations(v3Annotations[i], v2Annotations[i], dst.Annotations)
 	}
 
 	// Preserve Hub data on down-conversion except for metadata

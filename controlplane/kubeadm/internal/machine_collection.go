@@ -136,3 +136,23 @@ func (s FilterableMachineCollection) DeepCopy() FilterableMachineCollection {
 	}
 	return result
 }
+
+// Any returns whether the collection has 1 or more elements
+func (s FilterableMachineCollection) Any() bool {
+	return s.Len() > 0
+}
+
+// None returns whether the collection is empty
+func (s FilterableMachineCollection) None() bool {
+	return s.Len() == 0
+}
+
+// Names returns a slice of the names of each machine in the collection.
+// Useful for logging and test assertions.
+func (s FilterableMachineCollection) Names() []string {
+	names := make([]string, 0, s.Len())
+	for _, m := range s {
+		names = append(names, m.Name)
+	}
+	return names
+}

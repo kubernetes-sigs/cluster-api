@@ -143,3 +143,20 @@ func HasAnnotationKey(key string) Func {
 		return false
 	}
 }
+
+// IsProvisioning returns whether the machine is missing its NodeRef or does
+// not have InfrastructureReady set to true.
+func IsProvisioning(m *clusterv1.Machine) bool {
+	return m.Status.NodeRef == nil || !m.Status.InfrastructureReady
+}
+
+// IsFailed returns whether the machine has a FailureMessage or a FailureReason.
+func IsFailed(m *clusterv1.Machine) bool {
+	return m.Status.FailureMessage != nil || m.Status.FailureReason != nil
+}
+
+// IsUnhealthy returns whether the machine has the MachineHealthCheck unhealthy
+// annotation.
+func IsUnhealthy(m *clusterv1.Machine) bool {
+	return HasAnnotationKey(clusterv1.MachineUnhealthy)(m)
+}

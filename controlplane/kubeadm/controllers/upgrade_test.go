@@ -22,12 +22,12 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -71,17 +71,19 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	// initial setup
-	initialMachine := &clusterv1.MachineList{}
-	g.Expect(fakeClient.List(context.Background(), initialMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
-	g.Expect(initialMachine.Items).To(HaveLen(1))
+	initialMachines := &clusterv1.MachineList{}
+	g.Expect(fakeClient.List(context.Background(), initialMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
+	g.Expect(initialMachines.Items).To(HaveLen(1))
+
+	markAllMachinesProvisioned(g, fakeClient, initialMachines)
 
 	// change the KCP spec so the machine becomes outdated
 	kcp.Spec.Version = "v1.17.4"
 
 	// run upgrade the first time, expect we scale up
-	needingUpgrade := internal.NewFilterableMachineCollectionFromMachineList(initialMachine)
+	needingUpgrade := internal.NewFilterableMachineCollectionFromMachineList(initialMachines)
 	controlPlane.Machines = needingUpgrade
-	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, controlPlane)
+	result, err = r.reconcile(context.Background(), cluster, kcp)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	g.Expect(err).To(BeNil())
 	bothMachines := &clusterv1.MachineList{}
@@ -90,19 +92,20 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 
 	// run upgrade a second time, simulate that the node has not appeared yet but the machine exists
 	r.managementCluster.(*fakeManagementCluster).ControlPlaneHealthy = false
-	_, err = r.upgradeControlPlane(context.Background(), cluster, kcp, controlPlane)
-	g.Expect(err).To(Equal(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
+	_, err = r.reconcile(context.Background(), cluster, kcp)
+	g.Expect(err).To(BeNil())
 	g.Expect(fakeClient.List(context.Background(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(bothMachines.Items).To(HaveLen(2))
 
 	controlPlane.Machines = internal.NewFilterableMachineCollectionFromMachineList(bothMachines)
 
 	// manually increase number of nodes, make control plane healthy again
+	markAllMachinesProvisioned(g, fakeClient, bothMachines)
 	r.managementCluster.(*fakeManagementCluster).Workload.Status.Nodes++
 	r.managementCluster.(*fakeManagementCluster).ControlPlaneHealthy = true
 
 	// run upgrade the second time, expect we scale down
-	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, controlPlane)
+	result, err = r.reconcile(context.Background(), cluster, kcp)
 	g.Expect(err).To(BeNil())
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	finalMachine := &clusterv1.MachineList{}
@@ -110,8 +113,8 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	g.Expect(finalMachine.Items).To(HaveLen(1))
 
 	// assert that the deleted machine is the oldest, initial machine
-	g.Expect(finalMachine.Items[0].Name).ToNot(Equal(initialMachine.Items[0].Name))
-	g.Expect(finalMachine.Items[0].CreationTimestamp.Time).To(BeTemporally(">", initialMachine.Items[0].CreationTimestamp.Time))
+	g.Expect(finalMachine.Items[0].Name).ToNot(Equal(initialMachines.Items[0].Name))
+	g.Expect(finalMachine.Items[0].CreationTimestamp.Time).To(BeTemporally(">", initialMachines.Items[0].CreationTimestamp.Time))
 }
 
 type machineOpt func(*clusterv1.Machine)
@@ -127,4 +130,13 @@ func machine(name string, opts ...machineOpt) *clusterv1.Machine {
 		opt(m)
 	}
 	return m
+}
+
+func markAllMachinesProvisioned(g *WithT, client client.StatusClient, machines *clusterv1.MachineList) {
+	for i := range machines.Items {
+		m := machines.Items[i]
+		m.Status.InfrastructureReady = true
+		m.Status.NodeRef = &corev1.ObjectReference{}
+		g.Expect(client.Status().Update(context.Background(), &m)).To(Succeed())
+	}
 }

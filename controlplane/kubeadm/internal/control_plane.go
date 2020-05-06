@@ -18,7 +18,6 @@ package internal
 
 import (
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -29,26 +28,26 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 )
 
+// MachineHealthCheck remediation is only supported on clusters with >= 3 machines to avoid disrupting etcd consensus
+const minimumClusterSizeForRemediation = 3
+
 // ControlPlane holds business logic around control planes.
 // It should never need to connect to a service, that responsibility lies outside of this struct.
 type ControlPlane struct {
 	KCP      *controlplanev1.KubeadmControlPlane
 	Cluster  *clusterv1.Cluster
 	Machines FilterableMachineCollection
+	Logger   logr.Logger
 }
 
 // NewControlPlane returns an instantiated ControlPlane.
-func NewControlPlane(cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines FilterableMachineCollection) *ControlPlane {
+func NewControlPlane(cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines FilterableMachineCollection, logger logr.Logger) *ControlPlane {
 	return &ControlPlane{
 		KCP:      kcp,
 		Cluster:  cluster,
 		Machines: ownedMachines,
+		Logger:   logger,
 	}
-}
-
-// Logger returns a logger with useful context.
-func (c *ControlPlane) Logger() logr.Logger {
-	return Log.WithValues("namespace", c.KCP.Namespace, "name", c.KCP.Name, "cluster-name", c.Cluster.Name)
 }
 
 // FailureDomains returns a slice of failure domain objects synced from the infrastructure provider into Cluster.Status.
@@ -109,14 +108,10 @@ func (c *ControlPlane) MachinesNeedingUpgrade() FilterableMachineCollection {
 }
 
 // MachineInFailureDomainWithMostMachines returns the first matching failure domain with machines that has the most control-plane machines on it.
-func (c *ControlPlane) MachineInFailureDomainWithMostMachines(machines FilterableMachineCollection) (*clusterv1.Machine, error) {
+func (c *ControlPlane) MachineInFailureDomainWithMostMachines(machines FilterableMachineCollection) *clusterv1.Machine {
 	fd := c.FailureDomainWithMostMachines(machines)
 	machinesInFailureDomain := machines.Filter(machinefilters.InFailureDomains(fd))
-	machineToMark := machinesInFailureDomain.Oldest()
-	if machineToMark == nil {
-		return nil, errors.New("failed to pick control plane Machine to mark for deletion")
-	}
-	return machineToMark, nil
+	return machinesInFailureDomain.Oldest()
 }
 
 // FailureDomainWithMostMachines returns a fd which exists both in machines and control-plane machines and has the most
@@ -215,7 +210,104 @@ func (c *ControlPlane) NeedsReplacementNode() bool {
 	return len(c.Machines)+1 == int(*c.KCP.Spec.Replicas)
 }
 
-// HasDeletingMachine returns true if any machine in the control plane is in the process of being deleted.
-func (c *ControlPlane) HasDeletingMachine() bool {
-	return len(c.Machines.Filter(machinefilters.HasDeletionTimestamp)) > 0
+// HasDeletingMachine returns true if any machine in the control plane is in
+// the process of being deleted.
+func (c *ControlPlane) DeletingMachines() FilterableMachineCollection {
+	return c.Machines.Filter(machinefilters.HasDeletionTimestamp)
+}
+
+// ProvisioningMachines returns machines that are still booting.  In the case
+// of 3 node or larger clusters, it excludes unhealthy machines.
+func (c *ControlPlane) ProvisioningMachines() FilterableMachineCollection {
+	machines := c.Machines.Filter(machinefilters.IsProvisioning).
+		Filter(machinefilters.Not(machinefilters.IsFailed))
+
+	if c.Machines.Len() < minimumClusterSizeForRemediation {
+		return machines
+	}
+	return machines.Filter(machinefilters.Not(machinefilters.IsUnhealthy))
+}
+
+// ReadyMachines returns machines that are not provisioning or failed.  In the
+// case of 3 node or larger clusters, it excludes unhealthy machines.
+func (c *ControlPlane) ReadyMachines() FilterableMachineCollection {
+	machines := c.Machines.
+		Filter(machinefilters.Not(machinefilters.IsProvisioning)).
+		Filter(machinefilters.Not(machinefilters.IsFailed))
+
+	if c.Machines.Len() < minimumClusterSizeForRemediation {
+		return machines
+	}
+	return machines.Filter(machinefilters.Not(machinefilters.IsUnhealthy))
+}
+
+// UnhealthyMachines returns the machines with the MachineHealthCheck unhealthy
+// annotation.  If cluster size is less than 3, will return an empty list.
+func (c *ControlPlane) UnhealthyMachines() FilterableMachineCollection {
+	if c.Machines.Len() < minimumClusterSizeForRemediation {
+		return nil
+	}
+	return c.Machines.Filter(machinefilters.IsUnhealthy)
+}
+
+// FailedMachines returns the machines with a FailureMessage or FailureReason.
+func (c *ControlPlane) FailedMachines() FilterableMachineCollection {
+	return c.Machines.Filter(machinefilters.IsFailed)
+}
+
+// NeedsInitialization returns whether the control plane has yet to create the
+// first machine.  Returns false in the case that zero replicas are desired.
+func (c *ControlPlane) NeedsInitialization() bool {
+	return c.Machines.Len() == 0 && *c.KCP.Spec.Replicas > 0
+}
+
+// NeedsScaleDown returns whether the control plane needs to remove a machine
+// from the cluster.  Scale down can be caused by the presence of unhealthy
+// machines or when there are more machines than desired replicas.
+func (c *ControlPlane) NeedsScaleDown() bool {
+	if c.UnhealthyMachines().Any() {
+		c.Logger.Info("Scale down is required because unhealthy machines were found", "machines", c.UnhealthyMachines().Names())
+		return true
+	}
+	if c.Machines.Len() > int(*c.KCP.Spec.Replicas) {
+		c.Logger.Info("Scale down is required", "existing", c.Machines.Len(), "desired", int(*c.KCP.Spec.Replicas))
+		return true
+	}
+	return false
+}
+
+// NeedsScaleUp returns whether the control plane needs to add a machine to the
+// cluster.  Scale up can be caused by an upgrade, where the cluster will
+// replace outdated machines one by one, or by the more common case of having
+// fewer machines than the number of desired replicas.
+func (c *ControlPlane) NeedsScaleUp() bool {
+	if c.MachinesNeedingUpgrade().Any() && !c.NeedsScaleDown() {
+		c.Logger.Info("Scale up is required for upgrade")
+		return true
+	}
+	if c.Machines.Len() < int(*c.KCP.Spec.Replicas) {
+		c.Logger.Info("Scale up is required", "desired", int(*c.KCP.Spec.Replicas), "existing", c.Machines.Len())
+		return true
+	}
+	return false
+}
+
+// NextMachineForScaleDown returns the next machine that should be selected for removal.
+// It will first recommend the oldest unhealthy machine, if there are any.
+// It then will recommend the oldest outdated machine in the failure domain with the most outdated machines, if there are any.
+// Lastly it will recommend the oldest machine in the largest failure domain.
+func (c *ControlPlane) NextMachineForScaleDown() *clusterv1.Machine {
+	if c.UnhealthyMachines().Any() {
+		machine := c.UnhealthyMachines().Oldest()
+		c.Logger.Info("Scaling down unhealthy machine", "machine", machine.Name)
+		return machine
+	}
+	if c.MachinesNeedingUpgrade().Any() {
+		machine := c.MachineInFailureDomainWithMostMachines(c.MachinesNeedingUpgrade())
+		c.Logger.Info("Scaling down outdated machine", "machine", machine.Name)
+		return machine
+	}
+	machine := c.MachineInFailureDomainWithMostMachines(c.Machines)
+	c.Logger.Info("Scaling down unneeded machine", "machine", machine.Name)
+	return machine
 }

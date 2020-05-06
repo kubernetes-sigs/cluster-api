@@ -975,6 +975,10 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 			Name:       "kcp-foo",
 			APIVersion: controlplanev1.GroupVersion.String(),
 		},
+		ControlPlaneEndpoint: clusterv1.APIEndpoint{
+			Host: "foo",
+			Port: -1,
+		},
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{

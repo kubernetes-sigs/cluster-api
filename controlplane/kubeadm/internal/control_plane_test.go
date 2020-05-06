@@ -25,10 +25,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 func TestControlPlane(t *testing.T) {
@@ -200,6 +204,238 @@ var _ = Describe("Control Plane", func() {
 
 })
 
+func TestNextMachineForScaleDown(t *testing.T) {
+	kcp := controlplanev1.KubeadmControlPlane{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{},
+	}
+	startDate := time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC)
+	m1 := machine("machine-1", withFailureDomain("one"), withTimestamp(startDate.Add(time.Hour)), withValidHash(kcp.Spec))
+	m2 := machine("machine-2", withFailureDomain("one"), withTimestamp(startDate.Add(-3*time.Hour)), withValidHash(kcp.Spec))
+	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)), withValidHash(kcp.Spec))
+	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)), withValidHash(kcp.Spec))
+	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)), withHash("shrug"))
+	m6 := machine("machine-6", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)), withValidHash(kcp.Spec), withUnhealthyAnnotation())
+
+	fd := clusterv1.FailureDomains{
+		"one": failureDomain(true),
+		"two": failureDomain(true),
+	}
+	upToDateControlPlane := &ControlPlane{
+		KCP:      &kcp,
+		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
+		Machines: NewFilterableMachineCollection(m1, m2, m3, m4),
+		Logger:   klogr.New(),
+	}
+	needsUpgradeControlPlane := &ControlPlane{
+		KCP:      &kcp,
+		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
+		Machines: NewFilterableMachineCollection(m1, m2, m3, m4, m5),
+		Logger:   klogr.New(),
+	}
+	unhealthyControlPlane := &ControlPlane{
+		KCP:      &kcp,
+		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
+		Machines: NewFilterableMachineCollection(m1, m2, m3, m4, m5, m6),
+		Logger:   klogr.New(),
+	}
+
+	testCases := []struct {
+		name            string
+		cp              *ControlPlane
+		expectedMachine clusterv1.Machine
+	}{
+		{
+			name:            "when there are unhealthy machines, it returns the oldest unhealthy machine in the failure domain with the most unhealthy machines",
+			cp:              unhealthyControlPlane,
+			expectedMachine: clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-6"}},
+		},
+		{
+			name:            "when there are are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
+			cp:              needsUpgradeControlPlane,
+			expectedMachine: clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-5"}},
+		},
+		{
+			name:            "when there are no outdated machines, it returns the oldest machine in the largest failure domain",
+			cp:              upToDateControlPlane,
+			expectedMachine: clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+			selectedMachine := tc.cp.NextMachineForScaleDown()
+
+			g.Expect(selectedMachine.Name).To(Equal(tc.expectedMachine.Name))
+		})
+	}
+}
+
+func TestControlPlaneScalingLogic(t *testing.T) {
+	testCases := []struct {
+		name string
+		test func(g *WithT, cp *ControlPlane)
+	}{
+		{
+			name: "it needs initialization when there are no machines and any desired replicas",
+			test: func(g *WithT, cp *ControlPlane) {
+				cp.KCP.Spec.Replicas = pointer.Int32Ptr(0)
+				g.Expect(cp.NeedsInitialization()).To(BeFalse())
+
+				cp.KCP.Spec.Replicas = pointer.Int32Ptr(1)
+				g.Expect(cp.NeedsInitialization()).To(BeTrue())
+
+				cp.Machines = NewFilterableMachineCollection(machine("1"))
+				g.Expect(cp.NeedsInitialization()).To(BeFalse())
+			},
+		},
+		{
+			name: "it needs scale up when it is missing replicas",
+			test: func(g *WithT, cp *ControlPlane) {
+				cp.KCP.Spec.Replicas = pointer.Int32Ptr(0)
+				cp.Machines = NewFilterableMachineCollection()
+				g.Expect(cp.NeedsScaleUp()).To(BeFalse())
+				g.Expect(cp.NeedsScaleDown()).To(BeFalse())
+
+				cp.KCP.Spec.Replicas = pointer.Int32Ptr(1)
+				g.Expect(cp.NeedsScaleUp()).To(BeTrue())
+				g.Expect(cp.NeedsScaleDown()).To(BeFalse())
+			},
+		},
+		{
+			name: "it needs scale up one machine at a time when there are outdated machines",
+			test: func(g *WithT, cp *ControlPlane) {
+				cp.KCP.Spec.Replicas = pointer.Int32Ptr(1)
+				cp.Machines = NewFilterableMachineCollection(machine("1", withValidHash(cp.KCP.Spec)))
+				g.Expect(cp.NeedsScaleUp()).To(BeFalse())
+				g.Expect(cp.NeedsScaleDown()).To(BeFalse())
+
+				cp.KCP.Spec.Version = "1.2.0"
+				g.Expect(cp.NeedsScaleUp()).To(BeTrue())
+				g.Expect(cp.NeedsScaleDown()).To(BeFalse())
+
+				cp.Machines = NewFilterableMachineCollection(machine("1", withValidHash(cp.KCP.Spec)), machine("2", withValidHash(cp.KCP.Spec)))
+				g.Expect(cp.NeedsScaleUp()).To(BeFalse())
+				g.Expect(cp.NeedsScaleDown()).To(BeTrue())
+			},
+		},
+		{
+			name: "it needs scale down when the cluster has at least 3 machines and any are unhealthy",
+			test: func(g *WithT, cp *ControlPlane) {
+				cp.KCP.Spec.Replicas = pointer.Int32Ptr(2)
+				cp.Machines = NewFilterableMachineCollection(
+					machine("1", withValidHash(cp.KCP.Spec), withUnhealthyAnnotation()),
+					machine("2", withValidHash(cp.KCP.Spec)),
+				)
+				g.Expect(cp.NeedsScaleUp()).To(BeFalse())
+				g.Expect(cp.NeedsScaleDown()).To(BeFalse())
+
+				cp.KCP.Spec.Replicas = pointer.Int32Ptr(3)
+				cp.Machines = NewFilterableMachineCollection(
+					machine("1", withUnhealthyAnnotation()),
+					machine("2", withValidHash(cp.KCP.Spec)),
+					machine("3", withValidHash(cp.KCP.Spec)),
+				)
+				g.Expect(cp.NeedsScaleUp()).To(BeFalse())
+				g.Expect(cp.NeedsScaleDown()).To(BeTrue())
+
+				cp.Machines = NewFilterableMachineCollection(
+					machine("1", withValidHash(cp.KCP.Spec)),
+					machine("2", withValidHash(cp.KCP.Spec)),
+					machine("3", withValidHash(cp.KCP.Spec)),
+				)
+				g.Expect(cp.NeedsScaleUp()).To(BeFalse())
+				g.Expect(cp.NeedsScaleDown()).To(BeFalse())
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			kcp := &controlplanev1.KubeadmControlPlane{}
+			cp := &ControlPlane{KCP: kcp, Logger: klogr.New()}
+			tc.test(g, cp)
+		})
+	}
+}
+
+func TestMachinePhaseFilters(t *testing.T) {
+	testCases := []struct {
+		name string
+		test func(g *WithT, cp *ControlPlane)
+	}{
+		{
+			name: "machines without a node or infrastructure ready are provisioning",
+			test: func(g *WithT, cp *ControlPlane) {
+				cp.Machines = NewFilterableMachineCollection(
+					machine("1", withNodeRef(), withInfrastructureReady()),
+					machine("2"),
+					machine("3", withNodeRef(), withInfrastructureReady()),
+				)
+				g.Expect(cp.ProvisioningMachines().Names()).To(ConsistOf("2"))
+				g.Expect(cp.ReadyMachines().Names()).To(ConsistOf("1", "3"))
+				g.Expect(cp.UnhealthyMachines().Names()).To(BeEmpty())
+				g.Expect(cp.FailedMachines().Names()).To(BeEmpty())
+			},
+		},
+		{
+			name: "machines with a failure message or reason are not provisioning or ready",
+			test: func(g *WithT, cp *ControlPlane) {
+				cp.Machines = NewFilterableMachineCollection(
+					machine("1", withNodeRef(), withFailureReason("foo")),
+					machine("2", withNodeRef(), withFailureMessage("foo")),
+					machine("3", withInfrastructureReady(), withFailureReason("bar")),
+					machine("4", withInfrastructureReady(), withFailureMessage("bar")),
+					machine("5", withInfrastructureReady(), withNodeRef(), withFailureMessage("baz")),
+					machine("6", withInfrastructureReady(), withNodeRef(), withFailureReason("baz")),
+				)
+				g.Expect(cp.ProvisioningMachines().Names()).To(BeEmpty())
+				g.Expect(cp.ReadyMachines().Names()).To(BeEmpty())
+				g.Expect(cp.UnhealthyMachines().Names()).To(BeEmpty())
+				g.Expect(cp.FailedMachines().Names()).To(ConsistOf("1", "2", "3", "4", "5", "6"))
+			},
+		},
+		{
+			name: "machines with an unhealthy annotation in clusters with at least 3 machines are unhealthy",
+			test: func(g *WithT, cp *ControlPlane) {
+				cp.Machines = NewFilterableMachineCollection(
+					machine("1", withUnhealthyAnnotation()),
+					machine("2", withNodeRef(), withInfrastructureReady()),
+					machine("3"),
+				)
+				g.Expect(cp.ProvisioningMachines().Names()).To(ConsistOf("3"))
+				g.Expect(cp.ReadyMachines().Names()).To(ConsistOf("2"))
+				g.Expect(cp.UnhealthyMachines().Names()).To(ConsistOf("1"))
+				g.Expect(cp.FailedMachines().Names()).To(BeEmpty())
+			},
+		},
+		{
+			name: "machines with an unhealthy annotation in clusters with less than 3 machines are not unhealthy",
+			test: func(g *WithT, cp *ControlPlane) {
+				cp.Machines = NewFilterableMachineCollection(
+					machine("1", withUnhealthyAnnotation()),
+					machine("2", withNodeRef(), withInfrastructureReady(), withUnhealthyAnnotation()),
+				)
+				g.Expect(cp.ProvisioningMachines().Names()).To(ConsistOf("1"))
+				g.Expect(cp.ReadyMachines().Names()).To(ConsistOf("2"))
+				g.Expect(cp.UnhealthyMachines().Names()).To(BeEmpty())
+				g.Expect(cp.FailedMachines().Names()).To(BeEmpty())
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			kcp := &controlplanev1.KubeadmControlPlane{}
+			cp := &ControlPlane{KCP: kcp, Logger: klogr.New()}
+			tc.test(g, cp)
+		})
+	}
+}
+
 func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
 	return clusterv1.FailureDomainSpec{
 		ControlPlane: controlPlane,
@@ -215,5 +451,47 @@ func withFailureDomain(fd string) machineOpt {
 func withHash(hash string) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.SetLabels(map[string]string{controlplanev1.KubeadmControlPlaneHashLabelKey: hash})
+	}
+}
+
+func withTimestamp(t time.Time) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.CreationTimestamp = metav1.NewTime(t)
+	}
+}
+
+func withValidHash(kcp controlplanev1.KubeadmControlPlaneSpec) machineOpt {
+	return func(m *clusterv1.Machine) {
+		withHash(hash.Compute(&kcp))(m)
+	}
+}
+
+func withUnhealthyAnnotation() machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Annotations = map[string]string{clusterv1.MachineUnhealthy: ""}
+	}
+}
+
+func withNodeRef() machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Status.NodeRef = &corev1.ObjectReference{}
+	}
+}
+
+func withInfrastructureReady() machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Status.InfrastructureReady = true
+	}
+}
+
+func withFailureReason(reason string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		failureReason := capierrors.MachineStatusError(reason)
+		m.Status.FailureReason = &failureReason
+	}
+}
+func withFailureMessage(msg string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Status.FailureMessage = pointer.StringPtr(msg)
 	}
 }

@@ -231,32 +231,30 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, err
 	}
 
-	controlPlane := internal.NewControlPlane(cluster, kcp, ownedMachines)
-	requireUpgrade := controlPlane.MachinesNeedingUpgrade()
-	// Upgrade takes precedence over other operations
-	if len(requireUpgrade) > 0 {
-		logger.Info("Upgrading Control Plane")
-		return r.upgradeControlPlane(ctx, cluster, kcp, controlPlane)
+	controlPlane := internal.NewControlPlane(cluster, kcp, ownedMachines, logger)
+
+	if hasOperationInProgress(controlPlane) {
+		return ctrl.Result{}, nil
 	}
 
-	// If we've made it this far, we can assume that all ownedMachines are up to date
 	numMachines := len(ownedMachines)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
-	switch {
-	// We are creating the first replica
-	case numMachines < desiredReplicas && numMachines == 0:
-		// Create new Machine w/ init
+	if controlPlane.NeedsInitialization() {
 		logger.Info("Initializing control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		return r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
-	// We are scaling up
-	case numMachines < desiredReplicas && numMachines > 0:
-		// Create a new Machine w/ join
-		logger.Info("Scaling up control plane", "Desired", desiredReplicas, "Existing", numMachines)
+	}
+
+	if controlPlane.UnhealthyMachines().None() {
+		if err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	switch {
+	case controlPlane.NeedsScaleUp():
 		return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
-	// We are scaling down
-	case numMachines > desiredReplicas:
-		logger.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
+	case controlPlane.NeedsScaleDown():
 		return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane)
 	}
 
@@ -352,11 +350,11 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 // It removes any etcd members that do not have a corresponding node.
 // Also, as a final step, checks if there is any machines that is being deleted.
 func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) error {
-	logger := controlPlane.Logger()
+	logger := controlPlane.Logger
 
 	// Do a health check of the Control Plane components
 	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-		logger.V(2).Info("Waiting for control plane to pass control plane health check to continue reconciliation", "cause", err)
+		logger.Error(err, "Waiting for control plane to pass control plane health check to continue reconciliation")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass control plane health check to continue reconciliation: %v", err)
 		return &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
@@ -371,20 +369,30 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 			return err
 		}
 		if err := workloadCluster.ReconcileEtcdMembers(ctx); err != nil {
-			logger.V(2).Info("Failed attempt to remove potential hanging etcd members to pass etcd health check to continue reconciliation", "cause", err)
+			logger.Error(err, "Failed attempt to remove potential hanging etcd members to pass etcd health check to continue reconciliation")
 		}
 
-		logger.V(2).Info("Waiting for control plane to pass etcd health check to continue reconciliation", "cause", err)
+		logger.Error(err, "Waiting for control plane to pass etcd health check to continue reconciliation")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
 		return &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
 	}
 
-	// We need this check for scale up as well as down to avoid scaling up when there is a machine being deleted.
-	// This should be at the end of this method as no need to wait for machine to be completely deleted to reconcile etcd.
-	// TODO: Revisit during machine remediation implementation which may need to cover other machine phases.
-	if controlPlane.HasDeletingMachine() {
-		return &capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}
-	}
 	return nil
+}
+
+func hasOperationInProgress(controlPlane *internal.ControlPlane) bool {
+	logger := controlPlane.Logger
+
+	if controlPlane.DeletingMachines().Any() {
+		logger.Info("waiting for machine deletion", "machines", controlPlane.DeletingMachines().Names())
+		return true
+	}
+
+	if controlPlane.ProvisioningMachines().Any() {
+		logger.Info("waiting for machine to finish provisioning", "machines", controlPlane.ProvisioningMachines().Names())
+		return true
+	}
+
+	return false
 }

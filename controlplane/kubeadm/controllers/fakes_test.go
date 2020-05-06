@@ -102,6 +102,14 @@ func (f fakeWorkloadCluster) UpdateKubeletConfigMap(ctx context.Context, version
 	return nil
 }
 
+func (f fakeWorkloadCluster) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error {
+	return nil
+}
+
+func (f fakeWorkloadCluster) RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error {
+	return nil
+}
+
 type fakeMigrator struct {
 	migrateCalled    bool
 	migrateErr       error

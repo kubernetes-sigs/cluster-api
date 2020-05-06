@@ -34,6 +34,7 @@ import (
 	"k8s.io/klog"
 	"k8s.io/utils/integer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
 const (
@@ -156,6 +157,13 @@ var annotationsToSkip = map[string]bool{
 	RevisionHistoryAnnotation:      true,
 	DesiredReplicasAnnotation:      true,
 	MaxReplicasAnnotation:          true,
+
+	// Exclude the conversion annotation, to avoid infinite loops between the conversion webhook
+	// and the MachineDeployment controller syncing the annotations between a MachineDeployment
+	// and its linked MachineSets.
+	//
+	// See https://github.com/kubernetes-sigs/cluster-api/pull/3010#issue-413767831 for more details.
+	conversion.DataAnnotation: true,
 }
 
 // skipCopyAnnotation returns true if we should skip copying the annotation with the given annotation key

@@ -20,7 +20,6 @@ package cluster
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -65,8 +64,10 @@ var _ = Describe("Cluster-Controller", func() {
 
 	BeforeEach(func() {
 		// Load configuration
-		kubeconfig := os.Getenv("KUBECONFIG")
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		configOverrides := &clientcmd.ConfigOverrides{}
+		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+		config, err := kubeConfig.ClientConfig()
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Create kubernetes client

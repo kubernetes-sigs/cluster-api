@@ -68,10 +68,16 @@ type coreDNSInfo struct {
 // UpdateCoreDNS updates the kubeadm configmap, coredns corefile and coredns
 // deployment.
 func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
+	// Return early if we've been asked to skip CoreDNS upgrades entirely.
+	if _, ok := kcp.Annotations[controlplanev1.SkipCoreDNSAnnotation]; ok {
+		return nil
+	}
+
 	// Return early if the configuration is nil.
 	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 		return nil
 	}
+
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 	// Return early if the type is anything other than empty (default), or CoreDNS.
 	if clusterConfig.DNS.Type != "" && clusterConfig.DNS.Type != kubeadmv1.CoreDNS {

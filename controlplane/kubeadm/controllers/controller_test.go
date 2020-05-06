@@ -788,6 +788,45 @@ kubernetesVersion: metav1.16.1`,
 		g.Expect(workloadCluster.UpdateCoreDNS(context.TODO(), kcp)).To(Succeed())
 	})
 
+	t.Run("should not return an error when no DNS upgrade is requested", func(t *testing.T) {
+		g := NewWithT(t)
+		objs := []runtime.Object{
+			cluster.DeepCopy(),
+			corednsCM.DeepCopy(),
+			kubeadmCM.DeepCopy(),
+		}
+		kcp := kcp.DeepCopy()
+		kcp.Annotations = map[string]string{controlplanev1.SkipCoreDNSAnnotation: ""}
+
+		depl := depl.DeepCopy()
+
+		depl.Spec.Template.Spec.Containers[0].Image = "my-cool-image!!!!" // something very unlikely for getCoreDNSInfo to parse
+		objs = append(objs, depl)
+
+		fakeClient := newFakeClient(g, objs...)
+		log.SetLogger(klogr.New())
+
+		workloadCluster := fakeWorkloadCluster{
+			Workload: &internal.Workload{
+				Client: fakeClient,
+			},
+		}
+
+		g.Expect(workloadCluster.UpdateCoreDNS(context.TODO(), kcp)).To(Succeed())
+
+		var actualCoreDNSCM corev1.ConfigMap
+		g.Expect(fakeClient.Get(context.TODO(), client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, &actualCoreDNSCM)).To(Succeed())
+		g.Expect(actualCoreDNSCM.Data).To(Equal(corednsCM.Data))
+
+		var actualKubeadmConfig corev1.ConfigMap
+		g.Expect(fakeClient.Get(context.TODO(), client.ObjectKey{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}, &actualKubeadmConfig)).To(Succeed())
+		g.Expect(actualKubeadmConfig.Data).To(Equal(kubeadmCM.Data))
+
+		var actualCoreDNSDeployment appsv1.Deployment
+		g.Expect(fakeClient.Get(context.TODO(), client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, &actualCoreDNSDeployment)).To(Succeed())
+		g.Expect(actualCoreDNSDeployment.Spec.Template.Spec.Containers[0].Image).ToNot(ContainSubstring("coredns"))
+	})
+
 	t.Run("returns error when unable to UpdateCoreDNS", func(t *testing.T) {
 		g := NewWithT(t)
 		objs := []runtime.Object{

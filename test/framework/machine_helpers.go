@@ -207,3 +207,50 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	node.Status.Conditions = append(node.Status.Conditions, input.NodeCondition)
 	Expect(patchHelper.Patch(ctx, node)).To(Succeed())
 }
+
+// MachineStatusCheck is a type that operates a status check on a Machine
+type MachineStatusCheck func(p *clusterv1.Machine) error
+
+// WaitForMachineStatusCheckInput is the input for WaitForMachineStatusCheck.
+type WaitForMachineStatusCheckInput struct {
+	Machine                 *clusterv1.Machine
+	StatusChecks            []MachineStatusCheck
+	WaitForMachineIntervals []interface{}
+}
+
+// WaitForMachineStatusCheck waits for the specified status to be true for the machine.
+func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCheckInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineStatusCheck")
+	Expect(input.Machine).ToNot(BeNil(), "Invalid argument. input.Machine can't be nil when calling WaitForMachineStatusCheck")
+	Expect(input.StatusChecks).ToNot(BeEmpty(), "Invalid argument. input.StatusCheck can't be empty when calling WaitForMachineStatusCheck")
+
+	Eventually(func() (bool, error) {
+		for _, statusCheck := range input.StatusChecks {
+			err := statusCheck(input.Machine)
+			if err != nil {
+				return false, err
+			}
+		}
+		return true, nil
+	}, input.WaitForMachineIntervals...).Should(BeTrue())
+}
+
+// MachineNodeRefCheck is a MachineStatusCheck ensuring that a NodeRef is assigned to the machine
+func MachineNodeRefCheck() MachineStatusCheck {
+	return func(machine *clusterv1.Machine) error {
+		if machine.Status.NodeRef == nil {
+			return errors.Errorf("NodeRef is not assigned to the machine %s/%s", machine.Namespace, machine.Name)
+		}
+		return nil
+	}
+}
+
+// MachinePhaseCheck is a MachineStatusCheck ensuring that a machines is in the expected phase
+func MachinePhaseCheck(expectedPhase string) MachineStatusCheck {
+	return func(machine *clusterv1.Machine) error {
+		if machine.Status.Phase != expectedPhase {
+			return errors.Errorf("Machine %s/%s is not in phase %s", machine.Namespace, machine.Name, expectedPhase)
+		}
+		return nil
+	}
+}

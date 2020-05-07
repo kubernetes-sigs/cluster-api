@@ -732,8 +732,13 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		Type: clusterv1.ClusterSecretType,
 	}
 
+	// as secret creation and scope.Config status patch are not atomic operations
+	// it is possible that secret creation happens but the config.Status patches are not applied
 	if err := r.Client.Create(ctx, secret); err != nil {
-		return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
+		if !apierrors.IsAlreadyExists(err) {
+			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
+		}
+		r.Log.Info("bootstrap data secret for KubeadmConfig already exists", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
 	}
 
 	scope.Config.Status.DataSecretName = pointer.StringPtr(secret.Name)

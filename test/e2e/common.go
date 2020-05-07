@@ -20,13 +20,26 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 
+	"github.com/blang/semver"
+	"github.com/onsi/gomega/types"
 	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
+)
+
+// Test suite constants for e2e config variables
+const (
+	KubernetesVersion            = "KUBERNETES_VERSION"
+	CNIPath                      = "CNI"
+	KubernetesVersionUpgradeFrom = "KUBERNETES_VERSION_UPGRADE_FROM"
+	KubernetesVersionUpgradeTo   = "KUBERNETES_VERSION_UPGRADE_TO"
+	EtcdVersionUpgradeTo         = "ETCD_VERSION_UPGRADE_TO"
+	CoreDNSVersionUpgradeTo      = "COREDNS_VERSION_UPGRADE_TO"
 )
 
 func Byf(format string, a ...interface{}) {
@@ -71,4 +84,26 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		})
 	}
 	cancelWatches()
+}
+
+// HaveValidVersion succeeds if version is a valid semver version
+func HaveValidVersion(version string) types.GomegaMatcher {
+	return &validVersionMatcher{version: version}
+}
+
+type validVersionMatcher struct{ version string }
+
+func (m *validVersionMatcher) Match(actual interface{}) (success bool, err error) {
+	if _, err := semver.Parse(strings.TrimPrefix(strings.TrimSpace(m.version), "v")); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (m *validVersionMatcher) FailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf("Expected\n%s\n%s", m.version, " to be a valid version ")
+}
+
+func (m *validVersionMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf("Expected\n%s\n%s", m.version, " not to be a valid version ")
 }

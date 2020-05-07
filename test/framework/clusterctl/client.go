@@ -19,6 +19,7 @@ package clusterctl
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -146,6 +147,12 @@ type MoveInput struct {
 
 // Move moves workload clusters.
 func Move(ctx context.Context, input MoveInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for Move")
+	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling Move")
+	Expect(input.FromKubeconfigPath).To(BeAnExistingFile(), "Invalid argument. input.FromKubeconfigPath must be an existing file when calling Move")
+	Expect(input.ToKubeconfigPath).To(BeAnExistingFile(), "Invalid argument. input.ToKubeconfigPath must be an existing file when calling Move")
+	Expect(os.MkdirAll(input.LogFolder, 0755)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for Move")
+
 	By("Moving workload clusters")
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", input.LogFolder)

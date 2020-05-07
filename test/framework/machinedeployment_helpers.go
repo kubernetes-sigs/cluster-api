@@ -18,14 +18,18 @@ package framework
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -79,6 +83,10 @@ type WaitForMachineDeploymentNodesToExistInput struct {
 
 // WaitForMachineDeploymentNodesToExist waits until all nodes associated with a machine deployment exist.
 func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMachineDeploymentNodesToExistInput, intervals ...interface{}) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentNodesToExist")
+	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling WaitForMachineDeploymentNodesToExist")
+	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentNodesToExist")
+
 	By("waiting for the workload nodes to exist")
 	Eventually(func() (int, error) {
 		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
@@ -136,4 +144,148 @@ func DiscoveryAndWaitForMachineDeployments(ctx context.Context, input DiscoveryA
 		}, intervals...)
 	}
 	return machineDeployments
+}
+
+// UpgradeMachineDeploymentsAndWaitInput is the input type for UpgradeMachineDeploymentsAndWait.
+type UpgradeMachineDeploymentsAndWaitInput struct {
+	ClusterProxy                ClusterProxy
+	Cluster                     *clusterv1.Cluster
+	UpgradeVersion              string
+	MachineDeployments          []*clusterv1.MachineDeployment
+	WaitForMachinesToBeUpgraded []interface{}
+}
+
+// UpgradeMachineDeploymentsAndWait upgrades a machine deployment and waits for its machines to be upgraded.
+func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineDeploymentsAndWaitInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeMachineDeploymentsAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeMachineDeploymentsAndWait")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling UpgradeMachineDeploymentsAndWait")
+	Expect(input.UpgradeVersion).ToNot(BeNil(), "Invalid argument. input.UpgradeVersion can't be nil when calling UpgradeMachineDeploymentsAndWait")
+	Expect(input.MachineDeployments).ToNot(BeEmpty(), "Invalid argument. input.MachineDeployments can't be empty when calling UpgradeMachineDeploymentsAndWait")
+
+	mgmtClient := input.ClusterProxy.GetClient()
+
+	for _, deployment := range input.MachineDeployments {
+		fmt.Fprintf(GinkgoWriter, "Patching the new kubernetes version to Machine Deployment %s/%s\n", deployment.Namespace, deployment.Name)
+		patchHelper, err := patch.NewHelper(deployment, mgmtClient)
+		Expect(err).ToNot(HaveOccurred())
+
+		oldVersion := deployment.Spec.Template.Spec.Version
+		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
+		Expect(patchHelper.Patch(context.TODO(), deployment)).To(Succeed())
+
+		fmt.Fprintf(GinkgoWriter, "Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s\n",
+			deployment.Namespace, deployment.Name, *oldVersion, input.UpgradeVersion)
+		WaitForMachineDeploymentMachinesToBeUpgraded(ctx, WaitForMachineDeploymentMachinesToBeUpgradedInput{
+			Lister:                   mgmtClient,
+			Cluster:                  input.Cluster,
+			MachineCount:             int(*deployment.Spec.Replicas),
+			KubernetesUpgradeVersion: input.UpgradeVersion,
+			MachineDeployment:        *deployment,
+		}, input.WaitForMachinesToBeUpgraded...)
+	}
+}
+
+// WaitForMachineDeploymentRollingUpgradeToStartInput is the input for WaitForMachineDeploymentRollingUpgradeToStart.
+type WaitForMachineDeploymentRollingUpgradeToStartInput struct {
+	Getter            Getter
+	MachineDeployment *clusterv1.MachineDeployment
+}
+
+// WaitForMachineDeploymentRollingUpgradeToStart waits until rolling upgrade starts.
+func WaitForMachineDeploymentRollingUpgradeToStart(ctx context.Context, input WaitForMachineDeploymentRollingUpgradeToStartInput, intervals ...interface{}) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentRollingUpgradeToStart")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentRollingUpgradeToStart")
+	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentRollingUpgradeToStarts")
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for MachineDeployment rolling upgrade to start\n")
+	Eventually(func() bool {
+		md := &clusterv1.MachineDeployment{}
+		Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
+		return md.Status.Replicas != md.Status.AvailableReplicas
+	}, intervals...).Should(BeTrue())
+}
+
+// WaitForMachineDeploymentRollingUpgradeToCompleteInput is the input for WaitForMachineDeploymentRollingUpgradeToComplete.
+type WaitForMachineDeploymentRollingUpgradeToCompleteInput struct {
+	Getter            Getter
+	MachineDeployment *clusterv1.MachineDeployment
+}
+
+// WaitForMachineDeploymentNodesToExist waits until rolling upgrade is complete.
+func WaitForMachineDeploymentRollingUpgradeToComplete(ctx context.Context, input WaitForMachineDeploymentRollingUpgradeToCompleteInput, intervals ...interface{}) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentRollingUpgradeToComplete")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentRollingUpgradeToComplete")
+	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentRollingUpgradeToComplete")
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for MachineDeployment rolling upgrade to complete\n")
+	Eventually(func() bool {
+		md := &clusterv1.MachineDeployment{}
+		Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
+		return md.Status.Replicas == md.Status.AvailableReplicas
+	}, intervals...).Should(BeTrue())
+}
+
+// UpgradeMachineDeploymentInfrastructureRefAndWaitInput is the input type for UpgradeMachineDeploymentInfrastructureRefAndWait.
+type UpgradeMachineDeploymentInfrastructureRefAndWaitInput struct {
+	ClusterProxy                ClusterProxy
+	Cluster                     *clusterv1.Cluster
+	MachineDeployments          []*clusterv1.MachineDeployment
+	WaitForMachinesToBeUpgraded []interface{}
+}
+
+// UpgradeMachineDeploymentInfrastructureRefAndWait upgrades a machine deployment infrastructure ref and waits for its machines to be upgraded.
+func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input UpgradeMachineDeploymentInfrastructureRefAndWaitInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeMachineDeploymentInfrastructureRefAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeMachineDeploymentInfrastructureRefAndWait")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling UpgradeMachineDeploymentInfrastructureRefAndWait")
+	Expect(input.MachineDeployments).ToNot(BeEmpty(), "Invalid argument. input.MachineDeployments can't be empty when calling UpgradeMachineDeploymentInfrastructureRefAndWait")
+
+	mgmtClient := input.ClusterProxy.GetClient()
+
+	for _, deployment := range input.MachineDeployments {
+		fmt.Fprintf(GinkgoWriter, "Patching the new infrastructure ref to Machine Deployment %s/%s\n", deployment.Namespace, deployment.Name)
+		// Retrieve infra object
+		infraRef := deployment.Spec.Template.Spec.InfrastructureRef
+		infraObj := &unstructured.Unstructured{}
+		infraObj.SetGroupVersionKind(infraRef.GroupVersionKind())
+		key := client.ObjectKey{
+			Namespace: input.Cluster.Namespace,
+			Name:      infraRef.Name,
+		}
+		Expect(mgmtClient.Get(ctx, key, infraObj)).NotTo(HaveOccurred())
+
+		// Creates a new infra object
+		newInfraObj := infraObj
+		newInfraObjName := fmt.Sprintf("%s-%s", infraRef.Name, util.RandomString(6))
+		newInfraObj.SetName(newInfraObjName)
+		newInfraObj.SetResourceVersion("")
+		Expect(mgmtClient.Create(ctx, newInfraObj)).NotTo(HaveOccurred())
+
+		// Patch the new infra object's ref to the machine deployment
+		patchHelper, err := patch.NewHelper(deployment, mgmtClient)
+		Expect(err).ToNot(HaveOccurred())
+		infraRef.Name = newInfraObjName
+		deployment.Spec.Template.Spec.InfrastructureRef = infraRef
+		Expect(patchHelper.Patch(context.TODO(), deployment)).To(Succeed())
+
+		fmt.Fprintf(GinkgoWriter, "Waiting for rolling upgrade to start.\n")
+		WaitForMachineDeploymentRollingUpgradeToStart(ctx, WaitForMachineDeploymentRollingUpgradeToStartInput{
+			Getter:            mgmtClient,
+			MachineDeployment: deployment,
+		}, input.WaitForMachinesToBeUpgraded...)
+
+		fmt.Fprintf(GinkgoWriter, "Waiting for rolling upgrade to complete.\n")
+		WaitForMachineDeploymentRollingUpgradeToComplete(ctx, WaitForMachineDeploymentRollingUpgradeToCompleteInput{
+			Getter:            mgmtClient,
+			MachineDeployment: deployment,
+		}, input.WaitForMachinesToBeUpgraded...)
+	}
+}
+
+// machineDeploymentOptions returns a set of ListOptions that allows to get all machine objects belonging to a machine deployment.
+func machineDeploymentOptions(deployment clusterv1.MachineDeployment) []client.ListOption {
+	return []client.ListOption{
+		client.MatchingLabels(deployment.Spec.Selector.MatchLabels),
+	}
 }

@@ -48,7 +48,7 @@ docker pull quay.io/jetstack/cert-manager-controller:v0.11.0
 
 # Configure e2e tests
 export GINKGO_FOCUS=
-export GINKGO_NODES=2
+export GINKGO_NODES=3
 export GINKGO_NOCOLOR=true
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker-ci.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"

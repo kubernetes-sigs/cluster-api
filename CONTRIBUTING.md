@@ -56,13 +56,13 @@ release branch. For example, if the most recent branch is `release-0.2`, and the
 development for v0.3.0, a bug fix that merged to `master` that also affects `v0.2.x` may be considered for backporting
 to `release-0.2`. We generally do not accept PRs against older release branches.
 
-### Features and bugs
+## Features and bugs
 
 Open [issues](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose) to report bugs, or minor features.
 
 For big feature, API and contract amendments, we follow the CAEP process as outlined below.
 
-### Proposal process (CAEP)
+## Proposal process (CAEP)
 
 The Cluster API Enhacement Proposal is the process this project uses to adopt new features, or changes to the APIs.
 
@@ -73,20 +73,43 @@ The Cluster API Enhacement Proposal is the process this project uses to adopt ne
 - A proposal SHOULD be submitted first to the community using a collaborative writing platform, preferably Google Docs.
   - When using Google Docs, share the document with edit permissions for the [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
 
-### Experiments
+## Experiments
 
 Proof of concepts, code experiments, or other initiatives can live under the `exp` folder and behind a feature gate.
 
-- Experiments SHOULD ship with a CAEP marked as experimental.
 - Experiments SHOULD not modify any of the publicly exposed APIs (e.g. CRDs).
 - Experiments SHOULD not modify any existing CRD types outside of the experimental API group(s).
 - Experiments SHOULD not modify any existing command line contracts.
 - Experiments MUST not cause any breaking changes to existing (non-experimental) Go APIs.
 - Experiments SHOULD introduce utility helpers in the go APIs for experiments that cross multiple components
   and require support from bootstrap, control plane, or infrastructure providers.
-- Experiments follow a strict lifecycle: Alpha -> Beta -> GA.
-  - Alpha-stage experiments SHOULD not be enabled by default.
-  - Inactive or outdated experiments will be deprecated and removed from the codebase, as outlined in Kubernetes deprecation policy
+- Experiments follow a strict lifecycle: Alpha -> Beta prior to Graduation.
+  - Alpha-stage experiments:
+    - SHOULD not be enabled by default and any feature gates MUST be marked as 'Alpha' 
+    - MUST be associated with a CAEP that is merged and in at least a provisional state
+    - MAY be considered inactive and marked as deprecated if the following does not happen within the course of 1 minor release cycle:
+      - Transition to Beta-stage
+      - Active development towards progressing to Beta-stage
+      - Either direct or downstream user evaluation
+    - Any deprecated Alpha-stage experiment MAY be removed in the next minor release. 
+  - Beta-stage experiments:
+    - SHOULD be enabled by default, and any feature gates MUST be marked as 'Beta'
+    - MUST be associated with a CAEP that is at least in the experimental state
+    - MUST support conversions for any type changes
+    - MUST remain backwards compatible unless updates are coinciding with a breaking Cluster API release
+    - MAY be considered inactive and marked as deprecated if the following does not happen within the course of 1 minor release cycle:
+      - Graduate
+      - Active development towards Graduation
+      - Either direct or downstream user consumption
+    - Any deprecated Beta-stage experiment MAY be removed after being deprecated for an entire minor release. 
+- Experiment Graduation MUST coincide with a breaking Cluster API release
+- Experiment Graduation checklist:
+  - [ ] MAY provide a way to be disabled, any feature gates MUST be marked as 'GA'
+  - [ ] MUST undergo a full Kubernetes-style API review and update the CAEP with the plan to address any issues raised
+  - [ ] CAEP MUST be in an implementable state and is fully up to date with the current implementation
+  - [ ] CAEP MUST define transition plan for moving out of the experimental api group and code directories
+  - [ ] CAEP MUST define any upgrade steps required for Existing Management and Workload Clusters
+  - [ ] CAEP MUST define any upgrade steps required to be implemented by out-of-tree bootstrap, control plane, and infrastructure providers.
 
 ## Breaking Changes
 
@@ -113,20 +136,20 @@ There may, at times, need to be exceptions where breaking changes are allowed in
 discretion of the project's maintainers, and must be carefully considered before merging. An example of an allowed
 breaking change might be a fix for a behavioral bug that was released in an initial minor version (such as `v0.3.0`).
 
-### Merge Approval
+## Merge Approval
 
 Please see the [Kubernetes community document on pull
 requests](https://git.k8s.io/community/contributors/guide/pull-requests.md) for more information about the merge
 process.
 
-### Google Doc Viewing Permissions
+## Google Doc Viewing Permissions
 
 To gain viewing permissions to google docs in this project, please join either the
 [kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or
 [kubernetes-sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) google
 group.
 
-### Issue and Pull Request Management
+## Issue and Pull Request Management
 
 Anyone may comment on issues and submit reviews for pull requests. However, in order to be assigned an issue or pull
 request, you must be a member of the [Kubernetes SIGs](https://github.com/kubernetes-sigs) GitHub organization.

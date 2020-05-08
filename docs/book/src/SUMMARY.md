@@ -52,4 +52,5 @@
     - [Ports](./reference/ports.md)
     - [Code of Conduct](./code-of-conduct.md)
     - [Contributing](./CONTRIBUTING.md)
+    - [Version Support](./reference/versions.md)
     - [Roadmap](./roadmap.md)

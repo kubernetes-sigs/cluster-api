@@ -103,6 +103,69 @@ func TestProxyGetConfig(t *testing.T) {
 	})
 }
 
+// These tests are emulating the files passed in via KUBECONFIG env var by
+// injecting the file paths into the ClientConfigLoadingRules.Precedence
+// chain.
+func TestKUBECONFIGEnvVar(t *testing.T) {
+	t.Run("CurrentNamespace", func(t *testing.T) {
+		// KUBECONFIG can specify multiple config files. We should be able to
+		// get the correct namespace for the context by parsing through all
+		// kubeconfig files
+		var (
+			context            = "workload"
+			kubeconfigContents = kubeconfig("does-not-exist", "some-ns")
+		)
+
+		g := NewWithT(t)
+		dir, err := ioutil.TempDir("", "clusterctl")
+		g.Expect(err).NotTo(HaveOccurred())
+		defer os.RemoveAll(dir)
+		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
+		g.Expect(ioutil.WriteFile(configFile, []byte(kubeconfigContents), 0640)).To(Succeed())
+
+		proxy := newProxy(
+			// dont't give an explicit path but rather define the file in the
+			// configLoadingRules precedence chain.
+			Kubeconfig{Path: "", Context: context},
+			InjectKubeconfigPaths([]string{configFile}),
+		)
+		actualNS, err := proxy.CurrentNamespace()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(actualNS).To(Equal("some-ns"))
+	})
+
+	t.Run("GetConfig", func(t *testing.T) {
+		// KUBECONFIG can specify multiple config files. We should be able to
+		// get the valid cluster context by parsing all the kubeconfig files.
+		var (
+			context = "workload"
+			// TODO: If we change current context to "do-not-exist", we get an
+			// error. See https://github.com/kubernetes/client-go/issues/797
+			kubeconfigContents = kubeconfig("management", "default")
+			expectedHost       = "https://kind-server:38790"
+		)
+		g := NewWithT(t)
+		dir, err := ioutil.TempDir("", "clusterctl")
+		g.Expect(err).NotTo(HaveOccurred())
+		defer os.RemoveAll(dir)
+		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
+		g.Expect(ioutil.WriteFile(configFile, []byte(kubeconfigContents), 0640)).To(Succeed())
+
+		proxy := newProxy(
+			// dont't give an explicit path but rather define the file in the
+			// configLoadingRules precedence chain.
+			Kubeconfig{Path: "", Context: context},
+			InjectKubeconfigPaths([]string{configFile}),
+		)
+		conf, err := proxy.GetConfig()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(conf).ToNot(BeNil())
+		// asserting on the host of the cluster associated with the
+		// context
+		g.Expect(conf.Host).To(Equal(expectedHost))
+	})
+}
+
 func TestProxyCurrentNamespace(t *testing.T) {
 	tests := []struct {
 		name               string

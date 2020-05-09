@@ -14,6 +14,17 @@ The Machine controller's main responsibilities are:
 * Deleting Nodes in the target cluster when the associated machine is deleted.
 * Cleanup of related objects.
 * Keeping the Machine's Status object up to date with the InfrastructureMachine's Status object.
+* Finding Kubernetes nodes matching the expected providerID in the workload cluster.
+
+After the machine controller sets the OwnerReferences on the associated objects, it waits for the bootstrap
+and infrastructure objects referenced by the machine to have the `Status.Ready` field set to `true`. When 
+the infrastructure object is ready, the machine controller will attempt to read its `Spec.ProviderID` and
+copy it into `Machine.Spec.ProviderID`.
+
+The machine controller uses the kubeconfig for the new workload cluster to watch new nodes coming up.
+When a node appears with `Node.Spec.ProviderID` matching `Machine.Spec.ProviderID`, the machine controller
+transitions the associated machine into the `Provisioned` state. When the infrastructure ref is also  
+`Ready`, the machine controller marks the machine as `Running`.
 
 ## Contracts
 
@@ -62,14 +73,19 @@ status:
 
 ### Infrastructure provider
 
-The InfrastructureMachine object **must** have a `status` object.
+The InfrastructureMachine object **must** have both `spec` and `status` objects.
+
+#### Required `spec` fields
+
+The `spec` object **must** at least one field defined:
+
+* `providerID` - a cloud provider ID identifying the machine.
 
 #### Required `status` fields
 
-The `status` object **must** have several fields defined:
+The `status` object **must** at least one field defined:
 
 * `ready` - a boolean field indicating if the infrastructure is ready to be used or not.
-* `providerID` - a cloud provider ID identifying the machine. This is often set by the cloud-provider-controller.
 
 #### Optional `status` fields
 
@@ -82,9 +98,10 @@ Example:
 ```yaml
 kind: MyMachine
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+spec:
+    providerID: cloud:////my-cloud-provider-id
 status:
     ready: true
-    providerID: cloud:////my-cloud-provider-id
 ```
 
 ### Secrets

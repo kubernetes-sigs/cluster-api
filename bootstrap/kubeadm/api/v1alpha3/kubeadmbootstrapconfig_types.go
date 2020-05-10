@@ -47,7 +47,7 @@ type KubeadmConfigSpec struct {
 
 	// Files specifies extra files to be passed to user_data upon creation.
 	// +optional
-	Files []File `json:"files,omitempty"`
+	Files []FileSource `json:"files,omitempty"`
 
 	// PreKubeadmCommands specifies extra commands to run before kubeadm runs
 	// +optional
@@ -173,6 +173,98 @@ type File struct {
 
 	// Content is the actual content of the file.
 	Content string `json:"content"`
+}
+
+// FileSource is a union of all possible external source types for file data.
+// Only one field may be populated in any given instance. Developers adding new
+// sources of data for target systems should add them here.
+type FileSource struct {
+	// Raw represents raw user-provided string content to populate this file.
+	Raw *File `json:"raw,omitempty"`
+
+	// Secret represents a secret that should populate this file.
+	// +optional
+	Secret *SecretFileSource `json:"secret,omitempty"`
+
+	// ConfigMap represents a configMap that should populate this volume
+	// +optional
+	ConfigMap *ConfigMapFileSource `json:"configMap,omitempty"`
+}
+
+type FileSourceOptions struct {
+	// DefaultPermissions specifies optional mode bits to use on created files by default.
+	// Must be a value between 0 and 0777.
+	// +optional
+	DefaultPermissions string `json:"defaultPermissions,omitempty"`
+
+	// DefaultOwner specifies the ownership of the file, e.g. "root:root".
+	// +optional
+	DefaultOwner string `json:"defaultOwner,omitempty"`
+
+	// DefaultEncoding specifies the encoding of the file contents.
+	// +optional
+	DefaultEncoding Encoding `json:"defaultEncoding,omitempty"`
+}
+
+// Adapts a ConfigMap into a FileSource.
+//
+// The contents of the target ConfigMap's Data field will be presented
+// as files using the keys in the Data field as the file names.
+type ConfigMapFileSource struct {
+	*FileSourceOptions `json:",inline"`
+
+	ConfigMapName string `json:"configMapName"`
+
+	// If unspecified, each key-value pair in the Data field of the referenced
+	// Secret will be projected as a file whose name is the
+	// key and content is the value. If specified, the listed keys will be
+	// projected into the specified paths, and unlisted keys will not be
+	// present. If a key is specified which is not present in the Secret,
+	// the volume setup will error.
+	// +optional
+	Items []KeyToPath `json:"items,omitempty"`
+}
+
+// Adapts a Secret into a FileSource.
+//
+// The contents of the target Secret's Data field will be presented
+// as files using the keys in the Data field as the file names.
+type SecretFileSource struct {
+	*FileSourceOptions `json:",inline"`
+
+	// Name of the secret in the pod's namespace to use.
+	// More info: https://kubernetes.io/docs/concepts/storage/volumes#secret
+	SecretName string `json:"secretName"`
+
+	// If unspecified, each key-value pair in the Data field of the referenced
+	// Secret will be projected as a file whose name is the
+	// key and content is the value. If specified, the listed keys will be
+	// projected into the specified paths, and unlisted keys will not be
+	// present. If a key is specified which is not present in the Secret,
+	// the volume setup will error.
+	// +optional
+	Items []KeyToPath `json:"items,omitempty"`
+}
+
+// Maps a string key to a path within a configmap or secret.
+type KeyToPath struct {
+	// The key to project.
+	Key string `json:"key"`
+
+	// Path specifies the full path on disk where to store the file.
+	Path string `json:"path"`
+
+	// Owner specifies the ownership of the file, e.g. "root:root".
+	// +optional
+	Owner *string `json:"owner,omitempty"`
+
+	// Permissions specifies the permissions to assign to the file, e.g. "0640".
+	// +optional
+	Permissions *string `json:"permissions,omitempty"`
+
+	// Encoding specifies the encoding of the file contents.
+	// +optional
+	Encoding *Encoding `json:"encoding,omitempty"`
 }
 
 // User defines the input for a generated user in cloud-init.

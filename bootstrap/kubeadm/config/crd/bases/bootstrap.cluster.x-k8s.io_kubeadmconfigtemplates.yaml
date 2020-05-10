@@ -1221,35 +1221,179 @@ spec:
                         description: Files specifies extra files to be passed to user_data
                           upon creation.
                         items:
-                          description: File defines the input for generating write_files
-                            in cloud-init.
+                          description: FileSource is a union of all possible external
+                            source types for file data. Only one field may be populated
+                            in any given instance. Developers adding new sources of
+                            data for target systems should add them here.
                           properties:
-                            content:
-                              description: Content is the actual content of the file.
-                              type: string
-                            encoding:
-                              description: Encoding specifies the encoding of the
-                                file contents.
-                              enum:
-                              - base64
-                              - gzip
-                              - gzip+base64
-                              type: string
-                            owner:
-                              description: Owner specifies the ownership of the file,
-                                e.g. "root:root".
-                              type: string
-                            path:
-                              description: Path specifies the full path on disk where
-                                to store the file.
-                              type: string
-                            permissions:
-                              description: Permissions specifies the permissions to
-                                assign to the file, e.g. "0640".
-                              type: string
-                          required:
-                          - content
-                          - path
+                            configMap:
+                              description: ConfigMap represents a configMap that should
+                                populate this volume
+                              properties:
+                                configMapName:
+                                  type: string
+                                defaultEncoding:
+                                  description: DefaultEncoding specifies the encoding
+                                    of the file contents.
+                                  enum:
+                                  - base64
+                                  - gzip
+                                  - gzip+base64
+                                  type: string
+                                defaultOwner:
+                                  description: DefaultOwner specifies the ownership
+                                    of the file, e.g. "root:root".
+                                  type: string
+                                defaultPermissions:
+                                  description: DefaultPermissions specifies optional
+                                    mode bits to use on created files by default.
+                                    Must be a value between 0 and 0777.
+                                  type: string
+                                items:
+                                  description: If unspecified, each key-value pair
+                                    in the Data field of the referenced Secret will
+                                    be projected as a file whose name is the key and
+                                    content is the value. If specified, the listed
+                                    keys will be projected into the specified paths,
+                                    and unlisted keys will not be present. If a key
+                                    is specified which is not present in the Secret,
+                                    the volume setup will error.
+                                  items:
+                                    description: Maps a string key to a path within
+                                      a configmap or secret.
+                                    properties:
+                                      encoding:
+                                        description: Encoding specifies the encoding
+                                          of the file contents.
+                                        enum:
+                                        - base64
+                                        - gzip
+                                        - gzip+base64
+                                        type: string
+                                      key:
+                                        description: The key to project.
+                                        type: string
+                                      owner:
+                                        description: Owner specifies the ownership
+                                          of the file, e.g. "root:root".
+                                        type: string
+                                      path:
+                                        description: Path specifies the full path
+                                          on disk where to store the file.
+                                        type: string
+                                      permissions:
+                                        description: Permissions specifies the permissions
+                                          to assign to the file, e.g. "0640".
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    type: object
+                                  type: array
+                              required:
+                              - configMapName
+                              type: object
+                            raw:
+                              description: Raw represents raw user-provided string
+                                content to populate this file.
+                              properties:
+                                content:
+                                  description: Content is the actual content of the
+                                    file.
+                                  type: string
+                                encoding:
+                                  description: Encoding specifies the encoding of
+                                    the file contents.
+                                  enum:
+                                  - base64
+                                  - gzip
+                                  - gzip+base64
+                                  type: string
+                                owner:
+                                  description: Owner specifies the ownership of the
+                                    file, e.g. "root:root".
+                                  type: string
+                                path:
+                                  description: Path specifies the full path on disk
+                                    where to store the file.
+                                  type: string
+                                permissions:
+                                  description: Permissions specifies the permissions
+                                    to assign to the file, e.g. "0640".
+                                  type: string
+                              required:
+                              - content
+                              - path
+                              type: object
+                            secret:
+                              description: Secret represents a secret that should
+                                populate this file.
+                              properties:
+                                defaultEncoding:
+                                  description: DefaultEncoding specifies the encoding
+                                    of the file contents.
+                                  enum:
+                                  - base64
+                                  - gzip
+                                  - gzip+base64
+                                  type: string
+                                defaultOwner:
+                                  description: DefaultOwner specifies the ownership
+                                    of the file, e.g. "root:root".
+                                  type: string
+                                defaultPermissions:
+                                  description: DefaultPermissions specifies optional
+                                    mode bits to use on created files by default.
+                                    Must be a value between 0 and 0777.
+                                  type: string
+                                items:
+                                  description: If unspecified, each key-value pair
+                                    in the Data field of the referenced Secret will
+                                    be projected as a file whose name is the key and
+                                    content is the value. If specified, the listed
+                                    keys will be projected into the specified paths,
+                                    and unlisted keys will not be present. If a key
+                                    is specified which is not present in the Secret,
+                                    the volume setup will error.
+                                  items:
+                                    description: Maps a string key to a path within
+                                      a configmap or secret.
+                                    properties:
+                                      encoding:
+                                        description: Encoding specifies the encoding
+                                          of the file contents.
+                                        enum:
+                                        - base64
+                                        - gzip
+                                        - gzip+base64
+                                        type: string
+                                      key:
+                                        description: The key to project.
+                                        type: string
+                                      owner:
+                                        description: Owner specifies the ownership
+                                          of the file, e.g. "root:root".
+                                        type: string
+                                      path:
+                                        description: Path specifies the full path
+                                          on disk where to store the file.
+                                        type: string
+                                      permissions:
+                                        description: Permissions specifies the permissions
+                                          to assign to the file, e.g. "0640".
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    type: object
+                                  type: array
+                                secretName:
+                                  description: 'Name of the secret in the pod''s namespace
+                                    to use. More info: https://kubernetes.io/docs/concepts/storage/volumes#secret'
+                                  type: string
+                              required:
+                              - secretName
+                              type: object
                           type: object
                         type: array
                       format:

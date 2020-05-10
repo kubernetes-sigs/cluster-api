@@ -129,3 +129,27 @@ func Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *Kubead
 func Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in *kubeadmbootstrapv1alpha3.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in, out, s)
 }
+
+// Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec converts this KubeadmConfigSpec to the Hub version (v1alpha3).
+func Convert_v1alpha2_File_To_v1alpha3_FileSource(in *File, out *kubeadmbootstrapv1alpha3.FileSource, s apiconversion.Scope) error {
+	out.Raw = &kubeadmbootstrapv1alpha3.File{
+		Path:        in.Path,
+		Owner:       in.Owner,
+		Permissions: in.Permissions,
+		Encoding:    kubeadmbootstrapv1alpha3.Encoding(in.Encoding),
+		Content:     in.Content,
+	}
+	return nil
+}
+
+// Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec converts from the Hub version (v1alpha3) of the KubeadmConfigSpec to this version.
+func Convert_v1alpha3_FileSource_To_v1alpha2_File(in *kubeadmbootstrapv1alpha3.FileSource, out *File, s apiconversion.Scope) error {
+	if in.Raw != nil {
+		out.Path = in.Raw.Path
+		out.Owner = in.Raw.Owner
+		out.Permissions = in.Raw.Permissions
+		out.Encoding = Encoding(in.Raw.Encoding)
+		out.Content = in.Raw.Content
+	}
+	return nil
+}

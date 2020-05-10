@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -365,9 +366,15 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
+	additionalFiles, err := r.resolveFiles(ctx, scope.Config)
+	if err != nil {
+		scope.Error(err, "Failed to resolve files")
+		return ctrl.Result{}, err
+	}
+
 	cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:     scope.Config.Spec.Files,
+			AdditionalFiles:     append(certificates.AsFiles(), additionalFiles...),
 			NTP:                 scope.Config.Spec.NTP,
 			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
@@ -433,9 +440,15 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
+	files, err := r.resolveFiles(ctx, scope.Config)
+	if err != nil {
+		scope.Error(err, "Failed to resolve files")
+		return ctrl.Result{}, err
+	}
+
 	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:      scope.Config.Spec.Files,
+			AdditionalFiles:      files,
 			NTP:                  scope.Config.Spec.NTP,
 			PreKubeadmCommands:   scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands:  scope.Config.Spec.PostKubeadmCommands,
@@ -499,14 +512,22 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 
 	verbosityFlag := ""
 	if scope.Config.Spec.Verbosity != nil {
-		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
+		verbosityFlag =
+
+			fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
+	}
+
+	additionalFiles, err := r.resolveFiles(ctx, scope.Config)
+	if err != nil {
+		scope.Error(err, "Failed to resolve files")
+		return ctrl.Result{}, err
 	}
 
 	cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 		JoinConfiguration: joinData,
 		Certificates:      certificates,
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:      scope.Config.Spec.Files,
+			AdditionalFiles:      append(certificates.AsFiles(), additionalFiles...),
 			NTP:                  scope.Config.Spec.NTP,
 			PreKubeadmCommands:   scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands:  scope.Config.Spec.PostKubeadmCommands,
@@ -526,6 +547,152 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references
+// along the way.
+func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig) ([]bootstrapv1.File, error) {
+	var converted []bootstrapv1.File
+
+	for i := range cfg.Spec.Files {
+		files, err := r.resolveSource(ctx, cfg.Namespace, cfg.Spec.Files[i])
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to resolve file source")
+		}
+		converted = append(converted, files...)
+	}
+
+	return converted, nil
+}
+
+func (r *KubeadmConfigReconciler) resolveSource(ctx context.Context, ns string, source bootstrapv1.FileSource) ([]bootstrapv1.File, error) {
+	switch {
+	case source.Raw != nil:
+		return []bootstrapv1.File{*source.Raw}, nil
+	case source.Secret != nil:
+		return r.resolveSecretFileSource(ctx, ns, source.Secret)
+	case source.ConfigMap != nil:
+		return r.resolveConfigMapFileSource(ctx, ns, source.ConfigMap)
+	}
+	return nil, errors.New("could not find non-nil filesource")
+}
+
+var errOptionalFileSourceNotFound = errors.New("optional file content source not found")
+
+// resolveFileSource returns file content fetched from a referenced object.
+// If the reference is not found and was marked as optional, errOptionalFileSourceNotFound
+// is returned.
+func (r *KubeadmConfigReconciler) resolveConfigMapFileSource(ctx context.Context, ns string, source *bootstrapv1.ConfigMapFileSource) ([]bootstrapv1.File, error) {
+	var files []bootstrapv1.File
+
+	var cm corev1.ConfigMap
+	nn := types.NamespacedName{Namespace: ns, Name: source.ConfigMapName}
+	if err := r.Client.Get(ctx, nn, &cm); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, errOptionalFileSourceNotFound
+		}
+		return nil, errors.Wrapf(err, "getting ConfigMap %s", nn)
+	}
+
+	if len(source.Items) == 0 {
+		for path, data := range cm.Data {
+			f := bootstrapv1.File{
+				Owner:       source.DefaultOwner,
+				Permissions: source.DefaultPermissions,
+				Encoding:    source.DefaultEncoding,
+				Content:     data,
+				Path:        path,
+			}
+			files = append(files, f)
+		}
+	} else {
+		for _, ktp := range source.Items {
+			f := bootstrapv1.File{
+				Owner:       source.DefaultOwner,
+				Permissions: source.DefaultPermissions,
+				Encoding:    source.DefaultEncoding,
+				Path:        ktp.Path,
+			}
+
+			if data, ok := cm.Data[ktp.Key]; ok {
+				f.Content = data
+			} else {
+				return nil, fmt.Errorf("configmap references non-existent config key: %s", ktp.Key)
+			}
+
+			if ktp.Permissions != nil {
+				f.Permissions = *ktp.Permissions
+			}
+			if ktp.Owner != nil {
+				f.Owner = *ktp.Owner
+			}
+			if ktp.Encoding != nil {
+				f.Encoding = *ktp.Encoding
+			}
+
+			files = append(files, f)
+		}
+	}
+
+	return files, nil
+}
+
+// resolveSecretFileSource returns file content fetched from a referenced object.
+// If the reference is not found and was marked as optional, errOptionalFileSourceNotFound
+// is returned.
+func (r *KubeadmConfigReconciler) resolveSecretFileSource(ctx context.Context, ns string, source *bootstrapv1.SecretFileSource) ([]bootstrapv1.File, error) {
+	var files []bootstrapv1.File
+
+	var secret corev1.Secret
+	nn := types.NamespacedName{Namespace: ns, Name: source.SecretName}
+	if err := r.Client.Get(ctx, nn, &secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, errOptionalFileSourceNotFound
+		}
+		return nil, errors.Wrapf(err, "getting Secret %s", nn)
+	}
+
+	if len(source.Items) == 0 {
+		for path, data := range secret.Data {
+			f := bootstrapv1.File{
+				Owner:       source.DefaultOwner,
+				Permissions: source.DefaultPermissions,
+				Encoding:    source.DefaultEncoding,
+				Content:     string(data),
+				Path:        path,
+			}
+			files = append(files, f)
+		}
+	} else {
+		for _, ktp := range source.Items {
+			f := bootstrapv1.File{
+				Owner:       source.DefaultOwner,
+				Permissions: source.DefaultPermissions,
+				Encoding:    source.DefaultEncoding,
+				Path:        ktp.Path,
+			}
+
+			if data, ok := secret.Data[ktp.Key]; ok {
+				f.Content = string(data)
+			} else {
+				return nil, fmt.Errorf("secret references non-existent secret key: %s", ktp.Key)
+			}
+
+			if ktp.Permissions != nil {
+				f.Permissions = *ktp.Permissions
+			}
+			if ktp.Owner != nil {
+				f.Owner = *ktp.Owner
+			}
+			if ktp.Encoding != nil {
+				f.Encoding = *ktp.Encoding
+			}
+
+			files = append(files, f)
+		}
+	}
+
+	return files, nil
 }
 
 // ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqeue

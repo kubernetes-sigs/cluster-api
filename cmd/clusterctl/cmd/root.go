@@ -24,10 +24,15 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
+
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
 
 var (
 	cfgFile   string
@@ -45,7 +50,13 @@ var RootCmd = &cobra.Command{
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		// TODO: print error stack if log v>0
+		if verbosity != nil && *verbosity >= 5 {
+			if err, ok := err.(stackTracer); ok {
+				for _, f := range err.StackTrace() {
+					fmt.Fprintf(os.Stderr, "%+s:%d\n", f, f)
+				}
+			}
+		}
 		// TODO: print cmd help if validation error
 		os.Exit(1)
 	}

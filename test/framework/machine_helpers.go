@@ -57,6 +57,29 @@ func GetMachinesByMachineDeployments(ctx context.Context, input GetMachinesByMac
 	return machineList.Items
 }
 
+// GetMachinesByMachineHealthCheckInput is the input for GetMachinesByMachineHealthCheck.
+type GetMachinesByMachineHealthCheckInput struct {
+	Lister             Lister
+	ClusterName        string
+	MachineHealthCheck *clusterv1.MachineHealthCheck
+}
+
+// GetMachinesByMachineHealthCheckInput returns Machine objects for a cluster that match with MachineHealthCheck selector.
+func GetMachinesByMachineHealthCheck(ctx context.Context, input GetMachinesByMachineHealthCheckInput) []clusterv1.Machine {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for GetMachinesByMachineDeployments")
+	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling GetMachinesByMachineHealthCheck")
+	Expect(input.ClusterName).ToNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling GetMachinesByMachineHealthCheck")
+	Expect(input.MachineHealthCheck).ToNot(BeNil(), "Invalid argument. input.MachineHealthCheck can't be nil when calling GetMachinesByMachineHealthCheck")
+
+	opts := byClusterOptions(input.ClusterName, input.MachineHealthCheck.Namespace)
+	opts = append(opts, machineHealthCheckOptions(*input.MachineHealthCheck)...)
+
+	machineList := &clusterv1.MachineList{}
+	Expect(input.Lister.List(ctx, machineList, opts...)).To(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.MachineHealthCheck.Namespace, input.ClusterName)
+
+	return machineList.Items
+}
+
 // GetControlPlaneMachinesByClusterInput is the input for GetControlPlaneMachinesByCluster.
 type GetControlPlaneMachinesByClusterInput struct {
 	Lister      Lister
@@ -100,7 +123,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 	fmt.Fprintf(GinkgoWriter, "Ensuring all MachineDeployment Machines have upgraded kubernetes version %s\n", input.KubernetesUpgradeVersion)
 
 	Eventually(func() (int, error) {
-		machines := GetControlPlaneMachinesByCluster(context.TODO(), GetControlPlaneMachinesByClusterInput{
+		machines := GetControlPlaneMachinesByCluster(ctx, GetControlPlaneMachinesByClusterInput{
 			Lister:      input.Lister,
 			ClusterName: input.Cluster.Name,
 			Namespace:   input.Cluster.Namespace,
@@ -139,7 +162,7 @@ func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input Wai
 
 	fmt.Fprintf(GinkgoWriter, "Ensuring all MachineDeployment Machines have upgraded kubernetes version %s\n", input.KubernetesUpgradeVersion)
 	Eventually(func() (int, error) {
-		machines := GetMachinesByMachineDeployments(context.TODO(), GetMachinesByMachineDeploymentsInput{
+		machines := GetMachinesByMachineDeployments(ctx, GetMachinesByMachineDeploymentsInput{
 			Lister:            input.Lister,
 			ClusterName:       input.Cluster.Name,
 			Namespace:         input.Cluster.Namespace,

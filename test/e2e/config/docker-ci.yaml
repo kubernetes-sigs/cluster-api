@@ -79,4 +79,4 @@ intervals:
   default/wait-worker-nodes: ["5m", "10s"]
   default/wait-delete-cluster: ["3m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]
-  default/wait-machine-remediation: ["3m", "10s"]
+  default/wait-machine-remediation: ["5m", "10s"]

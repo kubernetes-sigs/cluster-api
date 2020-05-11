@@ -93,6 +93,9 @@ spec:
   selector:
     matchLabels:
   template:
+    metadata:
+      labels:
+        "nodepool": "pool1"
     spec:
       clusterName: "${ CLUSTER_NAME }"
       version: "${ KUBERNETES_VERSION }"
@@ -105,3 +108,18 @@ spec:
         name: "${ CLUSTER_NAME }-md-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: DockerMachineTemplate
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineHealthCheck
+metadata:
+  name: "${CLUSTER_NAME}-mhc-0"
+spec:
+  clusterName: "${ CLUSTER_NAME }"
+  maxUnhealthy: 100%
+  selector:
+    matchLabels:
+      nodepool: "pool1"
+  unhealthyConditions:
+    - type: E2ENodeUnhealthy
+      status: "True"
+      timeout: 30s

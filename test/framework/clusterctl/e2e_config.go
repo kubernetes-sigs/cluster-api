@@ -154,7 +154,7 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 		provider := &c.Providers[i]
 		for j := range provider.Versions {
 			version := &provider.Versions[j]
-			if version.Value != "" {
+			if version.Type != framework.URLSource && version.Value != "" {
 				if !filepath.IsAbs(version.Value) {
 					version.Value = filepath.Join(basePath, version.Value)
 				}

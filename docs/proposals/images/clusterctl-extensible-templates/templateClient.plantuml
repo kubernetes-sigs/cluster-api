@@ -1,0 +1,22 @@
+@startuml
+class templateClient {
+  listVariablesOnly: bool
+
+
+  provider: config.Provider
+  repository: Repository
+  configVariablesClient: config.VariablesClient
+
+
+  processor: YamlProcessor
+  {method} Get(version, flavor, targetNamespace string) (Template, error)
+
+
+}
+note right
+ An instance of this struct is created
+ in newTemplateClient(TemplateClientInput).
+ It defaults to using the default processor else
+ it uses the specified yaml processor.
+end note
+@enduml

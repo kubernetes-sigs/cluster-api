@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	"encoding/json"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
@@ -86,4 +88,20 @@ func NewProvider(name string, url string, ttype clusterctlv1.ProviderType) Provi
 		url:          url,
 		providerType: ttype,
 	}
+}
+
+func (p provider) MarshalJSON() ([]byte, error) {
+	j, err := json.Marshal(struct {
+		Name         string
+		URL          string
+		ProviderType clusterctlv1.ProviderType
+	}{
+		Name:         p.name,
+		URL:          p.url,
+		ProviderType: p.providerType,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return j, nil
 }

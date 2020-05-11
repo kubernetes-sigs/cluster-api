@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -288,4 +289,60 @@ func machineDeploymentOptions(deployment clusterv1.MachineDeployment) []client.L
 	return []client.ListOption{
 		client.MatchingLabels(deployment.Spec.Selector.MatchLabels),
 	}
+}
+
+// ScaleAndWaitMachineDeploymentInput is the input for ScaleAndWaitMachineDeployment.
+type ScaleAndWaitMachineDeploymentInput struct {
+	ClusterProxy              ClusterProxy
+	Cluster                   *clusterv1.Cluster
+	MachineDeployment         *clusterv1.MachineDeployment
+	Replicas                  int32
+	WaitForMachineDeployments []interface{}
+}
+
+// ScaleAndWaitMachineDeployment scales MachineDeployment and waits until all machines have node ref and equal to Replicas.
+func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachineDeploymentInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for ScaleAndWaitMachineDeployment")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ScaleAndWaitMachineDeployment")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling ScaleAndWaitMachineDeployment")
+
+	fmt.Fprintf(GinkgoWriter, "Scaling machine deployment %s/%s from %v to %v replicas\n", input.MachineDeployment.Namespace, input.MachineDeployment.Name, input.MachineDeployment.Spec.Replicas, input.Replicas)
+	patchHelper, err := patch.NewHelper(input.MachineDeployment, input.ClusterProxy.GetClient())
+	Expect(err).ToNot(HaveOccurred())
+	input.MachineDeployment.Spec.Replicas = pointer.Int32Ptr(input.Replicas)
+	Expect(patchHelper.Patch(ctx, input.MachineDeployment)).To(Succeed())
+
+	fmt.Fprintf(GinkgoWriter, "Waiting for correct number of replicas to exist\n")
+	Eventually(func() (int, error) {
+		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
+		if err != nil {
+			return -1, err
+		}
+		ms := &clusterv1.MachineSetList{}
+		if err := input.ClusterProxy.GetClient().List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+			return -1, err
+		}
+		if len(ms.Items) == 0 {
+			return -1, errors.New("no machinesets were found")
+		}
+		machineSet := ms.Items[0]
+		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
+		if err != nil {
+			return -1, err
+		}
+		machines := &clusterv1.MachineList{}
+		if err := input.ClusterProxy.GetClient().List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+			return -1, err
+		}
+		nodeRefCount := 0
+		for _, machine := range machines.Items {
+			if machine.Status.NodeRef != nil {
+				nodeRefCount++
+			}
+		}
+		if len(machines.Items) != nodeRefCount {
+			return -1, errors.New("Machine count does not match existing nodes count")
+		}
+		return nodeRefCount, nil
+	}, input.WaitForMachineDeployments...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)))
 }

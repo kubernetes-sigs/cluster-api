@@ -179,7 +179,8 @@ type ComponentsOptions struct {
 	Version           string
 	TargetNamespace   string
 	WatchingNamespace string
-	SkipVariables     bool
+	// Allows for skipping variable replacement in the component YAML
+	SkipVariables bool
 }
 
 // NewComponents returns a new objects embedding a component YAML file

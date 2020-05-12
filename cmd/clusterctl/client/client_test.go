@@ -353,7 +353,7 @@ func (f fakeRepositoryClient) Components() repository.ComponentsClient {
 }
 
 func (f fakeRepositoryClient) Templates(version string) repository.TemplateClient {
-	// use a fakeComponentClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
+	// use a fakeTemplateClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
 	return &fakeTemplateClient{
 		version:               version,
 		fakeRepository:        f.fakeRepository,
@@ -362,7 +362,7 @@ func (f fakeRepositoryClient) Templates(version string) repository.TemplateClien
 }
 
 func (f fakeRepositoryClient) Metadata(version string) repository.MetadataClient {
-	// use a fakeComponentClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
+	// use a fakeMetadataClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
 	return &fakeMetadataClient{
 		version:        version,
 		fakeRepository: f.fakeRepository,

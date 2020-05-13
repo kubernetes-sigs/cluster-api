@@ -72,7 +72,7 @@ Enable opt in automated health checking and remediation of unhealthy nodes backe
 - Provide a mechanism to guarantee that application quorum for N members is maintained at any time.
 
 ## Proposal
-The machine health checker (MHC) is responsible for marking machines backing unhealthy Nodes with an annotation so that they can be remediated by their owning controller.
+The machine health checker (MHC) is responsible for marking machines backing unhealthy Nodes with a condition so that they can be remediated by their owning controller.
 
 It provides a short-circuit mechanism and limits remediation when the `maxUnhealthy` threshold is reached for a targeted group of machines.
 This is similar to what the node life cycle controller does for reducing the eviction rate as nodes become unhealthy in a given zone. E.g a large number of nodes in a single zone are down due to a networking issue.
@@ -85,7 +85,7 @@ A machine is unhealthy when:
 - The Machine has no nodeRef.
 - The Machine has a nodeRef but the referenced node is not found.
 
-If any of those criteria are met for longer than the given timeouts and the `maxUnhealthy` threshold has not been reached yet, remediation is triggered.
+If any of those criteria are met for longer than the given timeouts and the `maxUnhealthy` threshold has not been reached yet, the machine will be marked as failing the healthcheck.
 
 Timeouts:
 - For the node conditions the time outs are defined by the admin.
@@ -93,7 +93,6 @@ Timeouts:
 
 ### Remediation:
 - Remediation is not an integral part or responsibility of MachineHealthCheck. This controller only functions as a means for others to act when a Machine is unhealthy in the best way possible.
-
 
 ### User Stories
 
@@ -105,14 +104,16 @@ As an operator of a Management Cluster, I want my machines to be self-healing an
 
 ### Implementation Details/Notes/Constraints
 
-#### Machine annotation:
+#### Machine conditions:
 ```go
-const MachineUnhealthyAnnotation = "machine.cluster.x-k8s.io/unhealthy"
+const ConditionHealthCheckSucceeded ConditionType = "HealthCheckSucceeded"
+const ConditionOwnerRemediated ConditionType = "OwnerRemediated"
 ```
 
-This annotation is applied by the MHC controller and it is expected that it
-will never be removed. The only current mediation strategy is deletion, which
-is to be handled by the machine's owning controller.
+- Both of these conditions are applied by the MHC controller. HealthCheckSucceeded should only be updated by the MHC after running the health check.
+- If a health check passes after it has failed, the conditions will not be updated. When in-place remediation is needed we can address the challenges around this.
+- OwnerRemediated is set to False after a health check fails, but should be changed to True by the owning controller after remediation succeeds.
+- If remediation fails OwnerRemediated can be updated to a higher severity and the reason can be updated to aid in troubleshooting.
 
 #### MachineHealthCheck CRD:
 - Enable watching a group of machines (based on a label selector).
@@ -164,10 +165,10 @@ type target struct {
 
 - Calculate the number of unhealthy targets.
 - Compare current number against `maxUnhealthy` threshold and temporary short circuits remediation if the threshold is met.
-- Annotates unhealthy target machines as described above.
+- Marks unhealthy target machines with the conditions as described above.
 
 Out of band:
-- The owning controller observes the annotation and is responsible to remediate the machine.
+- The owning controller observes the OwnerRemediated=False condition and is responsible to remediate the machine.
 - The owning controller performs any pre-deletion tasks required.
 - The owning controller MUST delete the machine.
 - The machine controller drains the unhealthy node.
@@ -177,12 +178,31 @@ Out of band:
 
 ### Risks and Mitigations
 
+## Contradictory signal
+
+If a user configures healthchecks such that more than one check applies to
+machines these healthchecks can potentially become a source of contradictory
+information. For instance, one healthcheck could pass for a given machine,
+while another fails. This will result in undefined behavior since the order in
+which the checks are run and the timing of the remediating controller will
+determine which condition is used for remediation decisions.
+
+There are safeguards that can be put in place to prevent this but it is out of
+scope for this proposal. Documentation should be updated to warn users to
+ensure their healthchecks do not overlap.
+
 ## Alternatives
 
 This proposal was originally adopted and implemented having the MHC do the
 deletion itself. This was revised since it did not allow for more complex
 controllers, for example the Kubeadm Control Plane, to account for the
 remediation strategies they require.
+
+It was also adopted in a later iteration using annotations on the machine.
+However it was realized that this would amount to a privilege escalation
+vector, as the `machines.edit` permission would grant effective access to
+`machines.delete`. By using conditions, this requires `machines/status.edit`,
+which is a less common privilege.
 
 Considered to bake this functionality into machineSets.
 This was discarded as different controllers than a machineSet could be owning the targeted machines.

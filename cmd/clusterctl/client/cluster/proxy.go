@@ -39,16 +39,19 @@ var (
 )
 
 type proxy struct {
-	kubeconfig Kubeconfig
-	timeout    time.Duration
+	kubeconfig         Kubeconfig
+	timeout            time.Duration
+	configLoadingRules *clientcmd.ClientConfigLoadingRules
 }
 
 var _ Proxy = &proxy{}
 
+// CurrentNamespace returns the namespace for the specified context or the
+// first valid context as determined by the default config loading rules.
 func (k *proxy) CurrentNamespace() (string, error) {
-	config, err := clientcmd.LoadFromFile(k.kubeconfig.Path)
+	config, err := k.configLoadingRules.Load()
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to load Kubeconfig file from %q", k.kubeconfig.Path)
+		return "", errors.Wrap(err, "failed to load Kubeconfig")
 	}
 
 	context := config.CurrentContext
@@ -59,7 +62,10 @@ func (k *proxy) CurrentNamespace() (string, error) {
 
 	v, ok := config.Contexts[context]
 	if !ok {
-		return "", errors.Errorf("failed to get context %q from %q", context, k.kubeconfig.Path)
+		if k.kubeconfig.Path != "" {
+			return "", errors.Errorf("failed to get context %q from %q", context, k.configLoadingRules.GetExplicitFile())
+		}
+		return "", errors.Errorf("failed to get context %q from %q", context, k.configLoadingRules.GetLoadingPrecedence())
 	}
 
 	if v.Namespace != "" {
@@ -93,10 +99,11 @@ func (k *proxy) ValidateKubernetesVersion() error {
 	return nil
 }
 
+// GetConfig returns the config for a kubernetes client.
 func (k *proxy) GetConfig() (*rest.Config, error) {
-	config, err := clientcmd.LoadFromFile(k.kubeconfig.Path)
+	config, err := k.configLoadingRules.Load()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load Kubeconfig file from %q", k.kubeconfig.Path)
+		return nil, errors.Wrap(err, "failed to load Kubeconfig")
 	}
 
 	configOverrides := &clientcmd.ConfigOverrides{
@@ -213,14 +220,22 @@ func InjectProxyTimeout(t time.Duration) ProxyOption {
 	}
 }
 
+func InjectKubeconfigPaths(paths []string) ProxyOption {
+	return func(p *proxy) {
+		p.configLoadingRules.Precedence = paths
+	}
+}
+
 func newProxy(kubeconfig Kubeconfig, opts ...ProxyOption) Proxy {
 	// If a kubeconfig file isn't provided, find one in the standard locations.
-	if kubeconfig.Path == "" {
-		kubeconfig.Path = clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()
+	rules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if kubeconfig.Path != "" {
+		rules.ExplicitPath = kubeconfig.Path
 	}
 	p := &proxy{
-		kubeconfig: kubeconfig,
-		timeout:    30 * time.Second,
+		kubeconfig:         kubeconfig,
+		timeout:            30 * time.Second,
+		configLoadingRules: rules,
 	}
 
 	for _, o := range opts {

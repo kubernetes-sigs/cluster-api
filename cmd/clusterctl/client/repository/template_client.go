@@ -24,18 +24,6 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
-// TemplateOptions defines a set of well-know variables that all the cluster templates are expected to manage;
-// this set of variables defines a simple, day1 experience that will be made accessible via flags in the clusterctl CLI.
-// Please note that each provider/each template is allowed to add more variables, but additional variables are exposed
-// only via environment variables or the clusterctl configuration file.
-type TemplateOptions struct {
-	ClusterName       string
-	Namespace         string
-	KubernetesVersion string
-	ControlplaneCount int
-	WorkerCount       int
-}
-
 // TemplateClient has methods to work with cluster templates hosted on a provider repository.
 // Templates are yaml files to be used for creating a guest cluster.
 type TemplateClient interface {

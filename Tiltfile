@@ -2,6 +2,8 @@
 
 # set defaults
 
+load('ext://restart_process', 'docker_build_with_restart')
+
 settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
@@ -109,17 +111,11 @@ def load_provider_tiltfiles():
 tilt_helper_dockerfile_header = """
 # Tilt image
 FROM golang:1.13.8 as tilt-helper
-# Support live reloading with Tilt
-RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
-    wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
-    chmod +x /start.sh && chmod +x /restart.sh
 """
 
 tilt_dockerfile_header = """
 FROM gcr.io/distroless/base:debug as tilt
 WORKDIR /
-COPY --from=tilt-helper /start.sh .
-COPY --from=tilt-helper /restart.sh .
 COPY manager .
 """
 
@@ -151,32 +147,30 @@ def enable_provider(name):
     additional_docker_helper_commands = p.get("additional_docker_helper_commands", "")
     additional_docker_build_commands = p.get("additional_docker_build_commands", "")
 
-    dockerfile_contents = "\n".join([
-        tilt_helper_dockerfile_header,
-        additional_docker_helper_commands,
-        tilt_dockerfile_header,
-        additional_docker_build_commands,
-    ])
+    dockerfile_components = []
+    if additional_docker_helper_commands:
+        dockerfile_components.extend([tilt_helper_dockerfile_header, additional_docker_helper_commands])
+    dockerfile_components.extend([tilt_dockerfile_header, additional_docker_build_commands])
+    dockerfile_contents = "\n".join(dockerfile_components)
 
-    # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
-    # build into the container.
-    entrypoint = ["sh", "/start.sh", "/manager"]
-    provider_args = extra_args.get(name)
-    if provider_args:
-        entrypoint.extend(provider_args)
-
-    docker_build(
-        ref = p.get("image"),
-        context = context + "/.tiltbuild/",
-        dockerfile_contents = dockerfile_contents,
-        target = "tilt",
-        entrypoint = entrypoint,
-        only = "manager",
-        live_update = [
+    # Set up an image build for the provider. The live update configuration syncs
+    # the output from the local_resource build into the container.
+    kwargdict = {
+        "ref": p.get("image"),
+        "context": context + "/.tiltbuild/",
+        "dockerfile_contents": dockerfile_contents,
+        "target": "tilt",
+        "entrypoint": ["/manager"],
+        "only": "manager",
+        "live_update": [
             sync(context + "/.tiltbuild/manager", "/manager"),
-            run("sh /restart.sh"),
         ],
-    )
+    }
+
+    container_args = extra_args.get(name)
+    if container_args:
+        kwargdict["container_args"] = container_args
+    docker_build_with_restart(**kwargdict)
 
     # Apply the kustomized yaml for this provider
     yaml = str(kustomize(context + "/config"))

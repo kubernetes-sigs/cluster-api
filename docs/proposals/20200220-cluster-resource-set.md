@@ -45,27 +45,30 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 
 ## Summary
 
-Provide a mechanism for applying configuration in a cluster once it is created. 
+Provide a mechanism for applying resources in a cluster once it is created.
 
 ## Motivation
 
-Clusters created by Cluster API are minimally functional. For instance,they do not have a container networking interface (CNI), which is required for pod-to-pod networking and any StorageClasses, which are required for dynamic persistent volume provisioning.
-Users today must first remember to add these things to every cluster they create, and then actually add them.
+Clusters created by Cluster API are minimally functional. For instance,they do not have a container networking interface (CNI), which is required for pod-to-pod networking, or any StorageClasses, which are required for dynamic persistent volume provisioning.
+Users today must manually add these components to every cluster they create.
 
 Having a mechanism to sync an initial set of default resources after clusters are created makes clusters created with Cluster API functional and ready for workloads from the beginning, without requiring additional user intervention. 
 
+To achieve this, ClusterResourceSet CRD is introduced that will be responsible for applying a set resources defined by users to the matching clusters.
+
 ### Goals
 
-Provide a means to specify a set of resources to apply automatically to newly-created and existing Clusters. Resources initially will be applied only once, adding sync functionality is optional
-Support additions to the resource list by applying the new added resources to both new and existing matching clusters
-Support both json and yaml resources
+- Provide a means to specify a set of resources to apply automatically to newly-created and existing Clusters. Resources will be applied only once.
+- Support additions to the resource list by applying the new added resources to both new and existing matching clusters.
+- Support both json and yaml resources.
 
 ### Non-Goals/Future Work
 
-Replace or compete with the Cluster Addons subproject
-Support deletion of resources. Deleting resources from the list will not result in deletion of those resources from the synced clusters, but deleted resources will not be applied to the new clusters
-Responsible for cleaning up resources applied by ClusterResourceSet controller when ClusterResourceSet resource is deleted
-Responsible for lifecycle management of the installed resources (such as CNI)
+- Replace or compete with the Cluster Addons subproject.
+- Support deletion of resources from clusters. Deleting a resource from a ClusterResourceSet or deleting a ClusterResourceSet does not result in deletion of those resources from clusters.
+- Lifecycle management of the installed resources (such as CNI).
+- Support reconciliation of resources on resource hash change and/or periodically. This can be a future enhancement work.
+
 
 ## Proposal
 
@@ -93,7 +96,7 @@ None. We are planning to implement this feature without modifying any of the exi
 
 This is the CRD that is used to have a set of components that will be applied to clusters that match the label selector in it.
 
-The resources field is a list of secrets/configmaps in the same namespace. As a cluster label selector, any key-value pair works as long as the same key-value label is assigned to clusters that the addon will be applied to. The reason not to use a predefined label here is to allow matching with multiple ClusterResourceSet objects.
+The resources field is a list of secrets/configmaps in the same namespace. The clusterSelector field is a Kubernetes [label selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements) that matches against labels on clusters (in any namespace).
 
 *Sample ClusterResourceSet YAML*
 
@@ -105,7 +108,7 @@ metadata:
  name: postcreate-conf
  namespace: default
 spec:
- mode: "ApplyOnce" / "Sync"
+ mode: "ApplyOnce"
  clusterSelector:
    matchLabels:
      postcreatelabelcni: calico
@@ -114,9 +117,13 @@ spec:
      kind: Secret
    - name: network-policy-addon
      kind: ConfigMap
+status:
+ LastUpdated:  "2020-05-05T08:24:17Z"
 ```
 
-Initially, the only mode supported will be "ApplyOnce" and it will be the default mode if no mode is provided. "Sync" mode will include reapplying the resources on resource hash change or periodically following an interval.
+Initially, the only supported mode will be `ApplyOnce` and it will be the default mode if no mode is provided. In the future, we may consider adding a `Sync` mode that reapplies the resources on resource hash change and/or periodically.
+If ClusterResourceSet resources will be managed by an operator after they are applied by ClusterResourceSet controller, "ApplyOnce" mode must be used so that reconciliation on those resources can be delegated to the operator.
+
 Each item in the resources specifies a kind (must be either ConfigMap or Secret) and a name. Each referenced ConfigMap/Secret  contains yaml/json content as value. The key to that content is “value”.
 
 *Sample Secret Format*
@@ -124,7 +131,7 @@ Each item in the resources specifies a kind (must be either ConfigMap or Secret)
 apiVersion: v1
 kind: Secret
 metadata:
-  name:calico-addon
+  name: calico-addon
 type: Opaque
 stringData:
   value: |-
@@ -134,7 +141,8 @@ stringData:
      name: calico-conf
 ```
 
-The resources in ClusterResourceSet will be applied to matching clusters. 
+The resources in ClusterResourceSet will be applied to matching clusters.
+There is many-to-many mapping between Clusters and ClusterResourceSets: Multiple ClusterResourceSets can match with a cluster; and multiple clusters can match with a single ClusterResourceSet.
 A configmap will be created in the management cluster to keep track of which resources are applied by ClusterResourceSet resources. There will be one configmap per workload cluster.
 
 Example:
@@ -142,34 +150,32 @@ Example:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: capi-crs-my-awesome-cluster
-  namespace: cluster-api-system
+  name: capi-crs-my-cluster
+  namespace: capi-crs-my-cluster-namespace
 data:
   <ClusterResourceSet-name1>:   
     <secret-name1>:
       hash: <>
       status: success
       error: ""
-      timestamp: "2020-04-05T08:24:17Z"
+      lastAppliedTime: "2020-04-05T08:24:17Z"
     <configmap-name1>:
       hash: <>
       status: failed
       error: "some error"
-      timestamp: "2020-05-05T08:24:17Z"
+      lastAppliedTime: "2020-05-05T08:24:17Z"
   <ClusterResourceSet-name2>:  
     <secret-name2>:
       hash: <>
       status: success
       error: ""
-      timestamp: "2020-04-05T08:24:17Z"
+      lastAppliedTime: "2020-04-05T08:24:17Z"
   Status: InProgress/Completed
 ```
 Status will be `Completed` when all matching ClusterResourceSet reconciles are completed for that cluster. In case of new resource addition to a matching ClusterResourceSet, Status becomes `InProgress`
 Also, the errors / overall progress will be tracked in the ClusterResourceSet’s status.
 
 ### Risks and Mitigations
-
-Installing a component (such as CNI) using ClusterResourceSet that may later be managed by an addon operator for lifecycle management may require addon operators to discover and own those resources and reconciling should stop on those resources once this happens.
 
 ## Alternatives
 

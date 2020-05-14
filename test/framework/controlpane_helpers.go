@@ -18,7 +18,6 @@ package framework
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,6 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -48,7 +48,7 @@ func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPl
 	Eventually(func() error {
 		err := input.Creator.Create(ctx, input.ControlPlane)
 		if err != nil {
-			fmt.Println(err)
+			log.Logf("Failed to create the KubeadmControlPlane: %+v", err)
 		}
 		return err
 	}, intervals...).Should(Succeed())
@@ -94,7 +94,7 @@ func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitFo
 	Eventually(func() (int, error) {
 		machineList := &clusterv1.MachineList{}
 		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
-			fmt.Println(err)
+			log.Logf("Failed to list the machines: %+v", err)
 			return 0, err
 		}
 		count := 0
@@ -131,7 +131,7 @@ func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input Wait
 	Eventually(func() (bool, error) {
 		machineList := &clusterv1.MachineList{}
 		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
-			fmt.Println(err)
+			log.Logf("Failed to list the machines: %+v", err)
 			return false, err
 		}
 		count := 0
@@ -228,7 +228,7 @@ func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input Disco
 	})
 	Expect(controlPlane).ToNot(BeNil())
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for the first control plane machine managed by %s/%s to be provisioned\n", controlPlane.Namespace, controlPlane.Name)
+	log.Logf("Waiting for the first control plane machine managed by %s/%s to be provisioned", controlPlane.Namespace, controlPlane.Name)
 	WaitForOneKubeadmControlPlaneMachineToExist(ctx, WaitForOneKubeadmControlPlaneMachineToExistInput{
 		Lister:       input.Lister,
 		Cluster:      input.Cluster,
@@ -253,7 +253,7 @@ func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForContr
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling WaitForControlPlaneReady")
 
 	if input.ControlPlane.Spec.Replicas != nil && int(*input.ControlPlane.Spec.Replicas) > 1 {
-		fmt.Fprintf(GinkgoWriter, "Waiting for the remaining control plane machines managed by %s/%s to be provisioned\n", input.ControlPlane.Namespace, input.ControlPlane.Name)
+		log.Logf("Waiting for the remaining control plane machines managed by %s/%s to be provisioned", input.ControlPlane.Namespace, input.ControlPlane.Name)
 		WaitForKubeadmControlPlaneMachinesToExist(ctx, WaitForKubeadmControlPlaneMachinesToExistInput{
 			Lister:       input.GetLister,
 			Cluster:      input.Cluster,
@@ -261,7 +261,7 @@ func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForContr
 		}, intervals...)
 	}
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for control plane %s/%s to be ready (implies underlying nodes to be ready as well)\n", input.ControlPlane.Namespace, input.ControlPlane.Name)
+	log.Logf("Waiting for control plane %s/%s to be ready (implies underlying nodes to be ready as well)", input.ControlPlane.Namespace, input.ControlPlane.Name)
 	waitForControlPlaneToBeReadyInput := WaitForControlPlaneToBeReadyInput{
 		Getter:       input.GetLister,
 		ControlPlane: input.ControlPlane,
@@ -294,7 +294,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 
 	mgmtClient := input.ClusterProxy.GetClient()
 
-	fmt.Fprintf(GinkgoWriter, "Patching the new kubernetes version to KCP\n")
+	log.Logf("Patching the new kubernetes version to KCP")
 	patchHelper, err := patch.NewHelper(input.ControlPlane, mgmtClient)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -314,7 +314,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 
 	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for machines to have the upgraded kubernetes version\n")
+	log.Logf("Waiting for machines to have the upgraded kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{
 		Lister:                   mgmtClient,
 		Cluster:                  input.Cluster,
@@ -322,7 +322,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 		KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
 	}, input.WaitForMachinesToBeUpgraded...)
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for kube-proxy to have the upgraded kubernetes version\n")
+	log.Logf("Waiting for kube-proxy to have the upgraded kubernetes version")
 	workloadCluster := input.ClusterProxy.GetWorkloadCluster(context.TODO(), input.Cluster.Namespace, input.Cluster.Name)
 	workloadClient := workloadCluster.GetClient()
 	WaitForKubeProxyUpgrade(ctx, WaitForKubeProxyUpgradeInput{
@@ -330,13 +330,13 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 		KubernetesVersion: input.KubernetesUpgradeVersion,
 	}, input.WaitForDNSUpgrade...)
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for CoreDNS to have the upgraded image tag\n")
+	log.Logf("Waiting for CoreDNS to have the upgraded image tag")
 	WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
 		Getter:     workloadClient,
 		DNSVersion: input.DNSImageTag,
 	})
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for etcd to have the upgraded image tag\n")
+	log.Logf("Waiting for etcd to have the upgraded image tag")
 	lblSelector, err := labels.Parse("component=etcd")
 	Expect(err).ToNot(HaveOccurred())
 	WaitForPodListCondition(ctx, WaitForPodListConditionInput{

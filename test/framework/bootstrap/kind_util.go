@@ -18,17 +18,16 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	kindnodes "sigs.k8s.io/kind/pkg/cluster/nodes"
 	kindnodesutils "sigs.k8s.io/kind/pkg/cluster/nodeutils"
@@ -51,7 +50,7 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateKindBootstrapClusterAndLoadImages")
 	Expect(input.Name).ToNot(BeEmpty(), "Invalid argument. Name can't be empty when calling CreateKindBootstrapClusterAndLoadImages")
 
-	fmt.Fprintf(GinkgoWriter, "Creating a kind cluster with name %q\n", input.Name)
+	log.Logf("Creating a kind cluster with name %q", input.Name)
 
 	options := []KindClusterOption{}
 	if input.RequiresDockerSock {
@@ -86,14 +85,14 @@ func LoadImagesToKindCluster(ctx context.Context, input LoadImagesToKindClusterI
 	Expect(input.Name).ToNot(BeEmpty(), "Invalid argument. Name can't be empty when calling LoadImagesToKindCluster")
 
 	for _, image := range input.Images {
-		fmt.Fprintf(GinkgoWriter, "Loading image: %q\n", image.Name)
+		log.Logf("Loading image: %q", image.Name)
 		err := loadImage(ctx, input.Name, image.Name)
 		switch image.LoadBehavior {
 		case framework.MustLoadImage:
 			Expect(err).ToNot(HaveOccurred(), "Failed to load image %q into the kind cluster %q", image.Name, input.Name)
 		case framework.TryLoadImage:
 			if err != nil {
-				fmt.Fprintf(GinkgoWriter, "[WARNING] Unable to load image %q into the kind cluster %q: %v \n", image.Name, input.Name, err)
+				log.Logf("[WARNING] Unable to load image %q into the kind cluster %q: %v", image.Name, input.Name, err)
 			}
 		}
 	}

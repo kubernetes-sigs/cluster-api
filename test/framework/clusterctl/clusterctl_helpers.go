@@ -18,16 +18,15 @@ package clusterctl
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
@@ -70,7 +69,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 		})
 	}
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for provider controllers to be running\n")
+	log.Logf("Waiting for provider controllers to be running")
 	controllersDeployments = framework.GetControllerDeployments(context.TODO(), framework.GetControllerDeploymentsInput{
 		Lister: client,
 	})
@@ -108,10 +107,10 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ApplyClusterTemplateAndWait")
 
-	fmt.Fprintf(GinkgoWriter, "Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)\n",
+	log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
 		input.ConfigCluster.ClusterName, valueOrDefault(input.ConfigCluster.Flavor), input.ConfigCluster.KubernetesVersion, input.ConfigCluster.ControlPlaneMachineCount, input.ConfigCluster.WorkerMachineCount)
 
-	fmt.Fprintf(GinkgoWriter, "Getting the cluster template yaml\n")
+	log.Logf("Getting the cluster template yaml")
 	workloadClusterTemplate := ConfigCluster(ctx, ConfigClusterInput{
 		// pass reference to the management cluster hosting this test
 		KubeconfigPath: input.ConfigCluster.KubeconfigPath,
@@ -131,23 +130,23 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	})
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
-	fmt.Fprintf(GinkgoWriter, "Applying the cluster template yaml to the cluster\n")
+	log.Logf("Applying the cluster template yaml to the cluster")
 	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate)).ShouldNot(HaveOccurred())
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for the cluster infrastructure to be provisioned\n")
+	log.Logf("Waiting for the cluster infrastructure to be provisioned")
 	cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.ClusterProxy.GetClient(),
 		Namespace: input.ConfigCluster.Namespace,
 		Name:      input.ConfigCluster.ClusterName,
 	}, input.WaitForClusterIntervals...)
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for control plane to be initialized\n")
+	log.Logf("Waiting for control plane to be initialized")
 	controlPlane := framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: cluster,
 	}, input.WaitForControlPlaneIntervals...)
 
-	fmt.Fprintf(GinkgoWriter, "Installing a CNI plugin to the workload cluster\n")
+	log.Logf("Installing a CNI plugin to the workload cluster")
 	workloadCluster := input.ClusterProxy.GetWorkloadCluster(context.TODO(), cluster.Namespace, cluster.Name)
 
 	cniYaml, err := ioutil.ReadFile(input.CNIManifestPath)
@@ -155,14 +154,14 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 
 	Expect(workloadCluster.Apply(context.TODO(), cniYaml)).ShouldNot(HaveOccurred())
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for control plane to be ready\n")
+	log.Logf("Waiting for control plane to be ready")
 	framework.WaitForControlPlaneAndMachinesReady(ctx, framework.WaitForControlPlaneAndMachinesReadyInput{
 		GetLister:    input.ClusterProxy.GetClient(),
 		Cluster:      cluster,
 		ControlPlane: controlPlane,
 	}, input.WaitForControlPlaneIntervals...)
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for the worker machines to be provisioned\n")
+	log.Logf("Waiting for the worker machines to be provisioned")
 	machineDeployments := framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: cluster,

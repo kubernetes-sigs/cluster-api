@@ -28,6 +28,7 @@ import (
 	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	clusterctllog "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl/logger"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 )
 
 // Provide E2E friendly wrappers for the clusterctl client library.
@@ -55,7 +56,7 @@ type InitInput struct {
 
 // Init calls clusterctl init with the list of providers defined in the local repository
 func Init(ctx context.Context, input InitInput) {
-	fmt.Fprintf(GinkgoWriter, "clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s\n",
+	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s",
 		input.CoreProvider,
 		strings.Join(input.BootstrapProviders, ", "),
 		strings.Join(input.ControlPlaneProviders, ", "),
@@ -97,7 +98,7 @@ type ConfigClusterInput struct {
 
 // ConfigCluster gets a workload cluster based on a template.
 func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
-	fmt.Fprintf(GinkgoWriter, "clusterctl config cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s\n",
+	log.Logf("clusterctl config cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s",
 		input.ClusterName,
 		valueOrDefault(input.InfrastructureProvider),
 		input.KubernetesVersion,

@@ -18,13 +18,12 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 )
@@ -130,9 +129,9 @@ func (k *kindClusterProvider) Dispose(ctx context.Context) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Dispose")
 
 	if err := kind.NewProvider().Delete(k.name, k.kubeconfigPath); err != nil {
-		fmt.Fprintf(GinkgoWriter, "Deleting the kind cluster %q failed. You may need to remove this by hand.\n", k.name)
+		log.Logf("Deleting the kind cluster %q failed. You may need to remove this by hand.", k.name)
 	}
 	if err := os.Remove(k.kubeconfigPath); err != nil {
-		fmt.Fprintf(GinkgoWriter, "Deleting the kubeconfig file %q file. You may need to remove this by hand.\n", k.kubeconfigPath)
+		log.Logf("Deleting the kubeconfig file %q file. You may need to remove this by hand.", k.kubeconfigPath)
 	}
 }

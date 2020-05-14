@@ -353,19 +353,19 @@ docker-build: ## Build the docker images for controller managers
 
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
-	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-bootstrap
 docker-build-kubeadm-bootstrap: ## Build the docker image for kubeadm bootstrap controller manager
-	docker build --pull --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-control-plane
 docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm control plane controller manager
-	docker build --pull --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
 
@@ -521,7 +521,7 @@ EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
 
 .PHONY: docker-build-example-provider
 docker-build-example-provider: ## Build the docker image for example provider
-	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
 	sed -i'' -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager/manager_image_patch.yaml
 
 ## --------------------------------------

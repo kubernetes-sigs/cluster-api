@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -192,7 +193,7 @@ func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []
 	return
 }
 
-// GetMachineIfExists gets a machine from the API server if it exists
+// GetMachineIfExists gets a machine from the API server if it exists.
 func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Machine, error) {
 	if c == nil {
 		// Being called before k8s is setup as part of control plane VM creation
@@ -262,7 +263,7 @@ func GetClusterByName(ctx context.Context, c client.Client, namespace, name stri
 	return cluster, nil
 }
 
-// ObjectKey returns client.ObjectKey for the object
+// ObjectKey returns client.ObjectKey for the object.
 func ObjectKey(object metav1.Object) client.ObjectKey {
 	return client.ObjectKey{
 		Namespace: object.GetNamespace(),
@@ -363,6 +364,25 @@ func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRef
 	return ownerReferences
 }
 
+// ReplaceOwnerRef re-parents an object from one OwnerReference to another
+// It compares strictly based on UID to avoid reparenting across an intentional deletion: if an object is deleted
+// and re-created with the same name and namespace, the only way to tell there was an in-progress deletion
+// is by comparing the UIDs.
+func ReplaceOwnerRef(ownerReferences []metav1.OwnerReference, source metav1.Object, target metav1.OwnerReference) []metav1.OwnerReference {
+	fi := -1
+	for index, r := range ownerReferences {
+		if r.UID == source.GetUID() {
+			fi = index
+			ownerReferences[index] = target
+			break
+		}
+	}
+	if fi < 0 {
+		ownerReferences = append(ownerReferences, target)
+	}
+	return ownerReferences
+}
+
 // indexOwnerRef returns the index of the owner reference in the slice if found, or -1.
 func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) int {
 	for index, r := range ownerReferences {
@@ -371,6 +391,37 @@ func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRefe
 		}
 	}
 	return -1
+}
+
+// PointsTo returns true if any of the owner references point to the given target
+// Deprecated: Use IsOwnedByObject to cover differences in API version or backup/restore that changed UIDs.
+func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
+	for _, ref := range refs {
+		if ref.UID == target.UID {
+			return true
+		}
+	}
+	return false
+}
+
+// IsOwnedByObject returns true if any of the owner references point to the given target.
+func IsOwnedByObject(obj metav1.Object, target controllerutil.Object) bool {
+	for _, ref := range obj.GetOwnerReferences() {
+		ref := ref
+		if refersTo(&ref, target) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsControlledBy differs from metav1.IsControlledBy in that it checks the group (but not version), kind, and name vs uid.
+func IsControlledBy(obj metav1.Object, owner controllerutil.Object) bool {
+	controllerRef := metav1.GetControllerOfNoCopy(obj)
+	if controllerRef == nil {
+		return false
+	}
+	return refersTo(controllerRef, owner)
 }
 
 // Returns true if a and b point to the same object.
@@ -388,15 +439,15 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 	return aGV.Group == bGV.Group && a.Kind == b.Kind && a.Name == b.Name
 }
 
-// PointsTo returns true if any of the owner references point to the given target
-func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
-	for _, ref := range refs {
-		if ref.UID == target.UID {
-			return true
-		}
+// Returns true if ref refers to obj.
+func refersTo(ref *metav1.OwnerReference, obj controllerutil.Object) bool {
+	refGv, err := schema.ParseGroupVersion(ref.APIVersion)
+	if err != nil {
+		return false
 	}
 
-	return false
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return refGv.Group == gvk.Group && ref.Kind == gvk.Kind && ref.Name == obj.GetName()
 }
 
 // UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field
@@ -556,4 +607,15 @@ func ObjectReferenceToUnstructured(in corev1.ObjectReference) *unstructured.Unst
 	out.SetNamespace(in.Namespace)
 	out.SetName(in.Name)
 	return out
+}
+
+// IsSupportedVersionSkew will return true if a and b are no more than one minor version off from each other.
+func IsSupportedVersionSkew(a, b semver.Version) bool {
+	if a.Major != b.Major {
+		return false
+	}
+	if a.Minor > b.Minor {
+		return a.Minor-b.Minor == 1
+	}
+	return b.Minor-a.Minor <= 1
 }

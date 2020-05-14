@@ -155,6 +155,14 @@ func (p *clusterProxy) Apply(ctx context.Context, resources []byte) error {
 	return exec.KubectlApply(ctx, p.kubeconfigPath, resources)
 }
 
+// Apply wraps `kubectl apply ...` and prints the output so we can see what gets applied to the cluster.
+func (p *clusterProxy) ApplyWithArgs(ctx context.Context, resources []byte, args ...string) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for Apply")
+	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
+
+	return exec.KubectlApplyWithArgs(ctx, p.kubeconfigPath, resources, args...)
+}
+
 func (p *clusterProxy) getConfig() *rest.Config {
 	config, err := clientcmd.LoadFromFile(p.kubeconfigPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to load Kubeconfig file from %q", p.kubeconfigPath)

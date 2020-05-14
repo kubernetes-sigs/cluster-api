@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,6 +89,13 @@ type ClusterNetwork struct {
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	CIDRBlocks []string `json:"cidrBlocks"`
+}
+
+func (n *NetworkRanges) String() string {
+	if n == nil {
+		return ""
+	}
+	return strings.Join(n.CIDRBlocks, "")
 }
 
 // ANCHOR_END: NetworkRanges

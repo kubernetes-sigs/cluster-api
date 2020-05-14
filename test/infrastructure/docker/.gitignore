@@ -16,3 +16,5 @@ manager
 
 # test results
 *.xml
+
+e2e/resources/**

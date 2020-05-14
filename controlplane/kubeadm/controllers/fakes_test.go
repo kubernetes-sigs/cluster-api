@@ -21,6 +21,7 @@ import (
 	"errors"
 
 	"github.com/blang/semver"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
@@ -34,6 +35,15 @@ type fakeManagementCluster struct {
 	EtcdHealthy         bool
 	Machines            internal.FilterableMachineCollection
 	Workload            fakeWorkloadCluster
+	Reader              client.Reader
+}
+
+func (f *fakeManagementCluster) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+	return f.Reader.Get(ctx, key, obj)
+}
+
+func (f *fakeManagementCluster) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+	return f.Reader.List(ctx, list, opts...)
 }
 
 func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ client.ObjectKey) (internal.WorkloadCluster, error) {
@@ -47,14 +57,14 @@ func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n clien
 	return f.Machines, nil
 }
 
-func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(_ context.Context, _ client.ObjectKey, _ string) error {
+func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(_ context.Context, _ client.ObjectKey) error {
 	if !f.ControlPlaneHealthy {
 		return errors.New("control plane is not healthy")
 	}
 	return nil
 }
 
-func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ client.ObjectKey, _ string) error {
+func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ client.ObjectKey) error {
 	if !f.EtcdHealthy {
 		return errors.New("etcd is not healthy")
 	}

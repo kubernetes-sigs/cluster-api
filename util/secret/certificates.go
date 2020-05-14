@@ -44,7 +44,7 @@ import (
 const (
 	rootOwnerValue = "root:root"
 
-	defaultCertificatesDir = "/etc/kubernetes/pki"
+	DefaultCertificatesDir = "/etc/kubernetes/pki"
 )
 
 var (
@@ -64,7 +64,7 @@ type Certificates []*Certificate
 // NewCertificatesForInitialControlPlane returns a list of certificates configured for a control plane node
 func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration) Certificates {
 	if config.CertificatesDir == "" {
-		config.CertificatesDir = defaultCertificatesDir
+		config.CertificatesDir = DefaultCertificatesDir
 	}
 
 	certificates := Certificates{
@@ -116,23 +116,23 @@ func NewCertificatesForJoiningControlPlane() Certificates {
 	return Certificates{
 		&Certificate{
 			Purpose:  ClusterCA,
-			CertFile: filepath.Join(defaultCertificatesDir, "ca.crt"),
-			KeyFile:  filepath.Join(defaultCertificatesDir, "ca.key"),
+			CertFile: filepath.Join(DefaultCertificatesDir, "ca.crt"),
+			KeyFile:  filepath.Join(DefaultCertificatesDir, "ca.key"),
 		},
 		&Certificate{
 			Purpose:  ServiceAccount,
-			CertFile: filepath.Join(defaultCertificatesDir, "sa.pub"),
-			KeyFile:  filepath.Join(defaultCertificatesDir, "sa.key"),
+			CertFile: filepath.Join(DefaultCertificatesDir, "sa.pub"),
+			KeyFile:  filepath.Join(DefaultCertificatesDir, "sa.key"),
 		},
 		&Certificate{
 			Purpose:  FrontProxyCA,
-			CertFile: filepath.Join(defaultCertificatesDir, "front-proxy-ca.crt"),
-			KeyFile:  filepath.Join(defaultCertificatesDir, "front-proxy-ca.key"),
+			CertFile: filepath.Join(DefaultCertificatesDir, "front-proxy-ca.crt"),
+			KeyFile:  filepath.Join(DefaultCertificatesDir, "front-proxy-ca.key"),
 		},
 		&Certificate{
 			Purpose:  EtcdCA,
-			CertFile: filepath.Join(defaultCertificatesDir, "etcd", "ca.crt"),
-			KeyFile:  filepath.Join(defaultCertificatesDir, "etcd", "ca.key"),
+			CertFile: filepath.Join(DefaultCertificatesDir, "etcd", "ca.crt"),
+			KeyFile:  filepath.Join(DefaultCertificatesDir, "etcd", "ca.key"),
 		},
 	}
 }
@@ -140,7 +140,7 @@ func NewCertificatesForJoiningControlPlane() Certificates {
 // NewCertificatesForWorker return an initialized but empty set of CA certificates needed to bootstrap a cluster.
 func NewCertificatesForWorker(caCertPath string) Certificates {
 	if caCertPath == "" {
-		caCertPath = filepath.Join(defaultCertificatesDir, "ca.crt")
+		caCertPath = filepath.Join(DefaultCertificatesDir, "ca.crt")
 	}
 
 	return Certificates{

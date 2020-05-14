@@ -32,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -95,7 +96,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 
 	for _, pod := range pods.Items {
 		for _, container := range deployment.Spec.Template.Spec.Containers {
-			fmt.Fprintf(GinkgoWriter, "Creating log watcher for controller %s/%s, pod %s, container %s\n", input.Deployment.Namespace, input.Deployment.Name, pod.Name, container.Name)
+			log.Logf("Creating log watcher for controller %s/%s, pod %s, container %s", input.Deployment.Namespace, input.Deployment.Name, pod.Name, container.Name)
 
 			// Watch each container's logs in a goroutine so we can stream them all concurrently.
 			go func(pod corev1.Pod, container corev1.Container) {
@@ -116,7 +117,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream()
 				if err != nil {
 					// Failing to stream logs should not cause the test to fail
-					fmt.Fprintf(GinkgoWriter, "Error starting logs stream for pod %s/%s, container %s: %v\n", input.Deployment.Namespace, pod.Name, container.Name, err)
+					log.Logf("Error starting logs stream for pod %s/%s, container %s: %v", input.Deployment.Namespace, pod.Name, container.Name, err)
 					return
 				}
 				defer podLogs.Close()
@@ -126,7 +127,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 				_, err = out.ReadFrom(podLogs)
 				if err != nil && err != io.ErrUnexpectedEOF {
 					// Failing to stream logs should not cause the test to fail
-					fmt.Fprintf(GinkgoWriter, "Got error while streaming logs for pod %s/%s, container %s: %v\n", input.Deployment.Namespace, pod.Name, container.Name, err)
+					log.Logf("Got error while streaming logs for pod %s/%s, container %s: %v", input.Deployment.Namespace, pod.Name, container.Name, err)
 				}
 			}(pod, container)
 		}

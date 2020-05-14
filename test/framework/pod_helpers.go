@@ -18,7 +18,6 @@ package framework
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -52,8 +52,7 @@ func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionI
 		// all pods in the list should satisfy the condition
 		err := input.Condition(podList)
 		if err != nil {
-			// DEBUG:
-			fmt.Println(err.Error())
+			log.Logf("Failed to get the conditions for the pod list: %+v", err)
 			return false, err
 		}
 		return true, nil

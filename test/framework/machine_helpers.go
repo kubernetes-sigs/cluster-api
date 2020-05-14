@@ -18,8 +18,6 @@ package framework
 
 import (
 	"context"
-	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,7 +26,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetMachinesByMachineDeploymentsInput is the input for GetMachinesByMachineDeployments.
@@ -65,7 +65,7 @@ type GetMachinesByMachineHealthCheckInput struct {
 	MachineHealthCheck *clusterv1.MachineHealthCheck
 }
 
-// GetMachinesByMachineHealthCheckInput returns Machine objects for a cluster that match with MachineHealthCheck selector.
+// GetMachinesByMachineHealthCheck returns Machine objects for a cluster that match with MachineHealthCheck selector.
 func GetMachinesByMachineHealthCheck(ctx context.Context, input GetMachinesByMachineHealthCheckInput) []clusterv1.Machine {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for GetMachinesByMachineDeployments")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling GetMachinesByMachineHealthCheck")
@@ -121,7 +121,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 	Expect(input.MachineCount).To(BeNumerically(">", 0), "Invalid argument. input.MachineCount can't be smaller than 1 when calling WaitForControlPlaneMachinesToBeUpgraded")
 
 	By("ensuring all machines have upgraded kubernetes version")
-	fmt.Fprintf(GinkgoWriter, "Ensuring all MachineDeployment Machines have upgraded kubernetes version %s\n", input.KubernetesUpgradeVersion)
+	log.Logf("Ensuring all MachineDeployment Machines have upgraded kubernetes version %s", input.KubernetesUpgradeVersion)
 
 	Eventually(func() (int, error) {
 		machines := GetControlPlaneMachinesByCluster(ctx, GetControlPlaneMachinesByClusterInput{
@@ -161,7 +161,7 @@ func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input Wai
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentMachinesToBeUpgraded")
 	Expect(input.MachineCount).To(BeNumerically(">", 0), "Invalid argument. input.MachineCount can't be smaller than 1 when calling WaitForMachineDeploymentMachinesToBeUpgraded")
 
-	fmt.Fprintf(GinkgoWriter, "Ensuring all MachineDeployment Machines have upgraded kubernetes version %s\n", input.KubernetesUpgradeVersion)
+	log.Logf("Ensuring all MachineDeployment Machines have upgraded kubernetes version %s", input.KubernetesUpgradeVersion)
 	Eventually(func() (int, error) {
 		machines := GetMachinesByMachineDeployments(ctx, GetMachinesByMachineDeploymentsInput{
 			Lister:            input.Lister,
@@ -199,7 +199,7 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	Expect(input.NodeCondition).ToNot(BeNil(), "Invalid argument. input.NodeCondition can't be nil when calling PatchNodeConditions")
 	Expect(input.Machine).ToNot(BeNil(), "Invalid argument. input.Machine can't be nil when calling PatchNodeConditions")
 
-	fmt.Fprintf(GinkgoWriter, "Patching the node condition to the node\n")
+	log.Logf("Patching the node condition to the node")
 	Expect(input.Machine.Status.NodeRef).ToNot(BeNil())
 	node := &corev1.Node{}
 	Expect(input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name, Namespace: input.Machine.Status.NodeRef.Namespace}, node)).To(Succeed())

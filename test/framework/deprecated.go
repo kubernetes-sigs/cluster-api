@@ -33,6 +33,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework/management/kind"
 	"sigs.k8s.io/cluster-api/test/framework/options"
 
@@ -170,7 +171,7 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 	By("creating a Cluster resource linked to the InfrastructureCluster resource")
 	Eventually(func() error {
 		if err := mgmtClient.Create(ctx, input.Cluster); err != nil {
-			fmt.Printf("%+v\n", err)
+			log.Logf("Failed to create the cluster: %+v", err)
 			return err
 		}
 		return nil
@@ -192,7 +193,7 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 	Eventually(func() error {
 		err := mgmtClient.Create(ctx, input.ControlPlane)
 		if err != nil {
-			fmt.Println(err)
+			log.Logf("Failed to create the KubeadmControlPlane: %+v", err)
 		}
 		return err
 	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
@@ -262,7 +263,7 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 			Name:      input.ControlPlane.GetName(),
 		}
 		if err := mgmtClient.Get(ctx, key, controlplane); err != nil {
-			fmt.Println(err.Error())
+			log.Logf("Failed to get the control plane: %+v", err)
 			return false
 		}
 		return controlplane.Status.Initialized
@@ -289,7 +290,7 @@ func (input *ControlplaneClusterInput) CleanUpCoreArtifacts() {
 	Eventually(func() bool {
 		clusters := clusterv1.ClusterList{}
 		if err := mgmtClient.List(ctx, &clusters); err != nil {
-			fmt.Println(err.Error())
+			log.Logf("Failed to list the clusters: %+v", err)
 			return false
 		}
 		return len(clusters.Items) == 0
@@ -345,16 +346,16 @@ func DumpResources(mgmt ManagementCluster, resourcePath string, writer io.Writer
 		"Node":                &corev1.NodeList{},
 	}
 
-	return dumpResources(mgmt, resources, resourcePath, writer)
+	return dumpResources(mgmt, resources, resourcePath)
 }
 
 // DumpProviderResources dump provider specific API related resources to YAML
 // Deprecated. Please use DumpAllResources instead
 func DumpProviderResources(mgmt ManagementCluster, resources map[string]runtime.Object, resourcePath string, writer io.Writer) error {
-	return dumpResources(mgmt, resources, resourcePath, writer)
+	return dumpResources(mgmt, resources, resourcePath)
 }
 
-func dumpResources(mgmt ManagementCluster, resources map[string]runtime.Object, resourcePath string, writer io.Writer) error {
+func dumpResources(mgmt ManagementCluster, resources map[string]runtime.Object, resourcePath string) error {
 	c, err := mgmt.GetClient()
 	if err != nil {
 		return err
@@ -380,7 +381,7 @@ func dumpResources(mgmt ManagementCluster, resources map[string]runtime.Object, 
 			name := metaObj.GetName()
 
 			resourceFilePath := path.Join(resourcePath, kind, namespace, name+".yaml")
-			if err := dumpResource(resourceFilePath, obj, writer); err != nil {
+			if err := dumpResource(resourceFilePath, obj); err != nil {
 				return err
 			}
 		}
@@ -389,8 +390,8 @@ func dumpResources(mgmt ManagementCluster, resources map[string]runtime.Object, 
 	return nil
 }
 
-func dumpResource(resourceFilePath string, resource runtime.Object, writer io.Writer) error {
-	fmt.Fprintf(writer, "Creating directory: %s\n", filepath.Dir(resourceFilePath))
+func dumpResource(resourceFilePath string, resource runtime.Object) error {
+	log.Logf("Creating directory: %s\n", filepath.Dir(resourceFilePath))
 	if err := os.MkdirAll(filepath.Dir(resourceFilePath), 0755); err != nil {
 		return errors.Wrapf(err, "error making logDir %q", filepath.Dir(resourceFilePath))
 	}

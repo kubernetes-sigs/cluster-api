@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -57,7 +58,7 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 			Name: input.Name,
 		},
 	}
-	fmt.Fprintf(GinkgoWriter, "Creating namespace %s\n", input.Name)
+	log.Logf("Creating namespace %s", input.Name)
 	Eventually(func() error {
 		return input.Creator.Create(context.TODO(), ns)
 	}, intervals...).Should(Succeed())
@@ -98,7 +99,7 @@ func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals 
 			Name: input.Name,
 		},
 	}
-	fmt.Fprintf(GinkgoWriter, "Deleting namespace %s\n", input.Name)
+	log.Logf("Deleting namespace %s", input.Name)
 	Eventually(func() error {
 		return input.Deleter.Delete(context.TODO(), ns)
 	}, intervals...).Should(Succeed())
@@ -181,7 +182,7 @@ func CreateNamespaceAndWatchEvents(ctx context.Context, input CreateNamespaceAnd
 	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name}, "40s", "10s")
 	Expect(namespace).ToNot(BeNil(), "Failed to create namespace %q", input.Name)
 
-	fmt.Fprintf(GinkgoWriter, "Creating event watcher for namespace %q\n", input.Name)
+	log.Logf("Creating event watcher for namespace %q", input.Name)
 	watchesCtx, cancelWatches := context.WithCancel(ctx)
 	go func() {
 		defer GinkgoRecover()

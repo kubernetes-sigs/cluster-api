@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework/options"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,7 +49,7 @@ func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...i
 	By("creating a Cluster resource linked to the InfrastructureCluster resource")
 	Eventually(func() error {
 		if err := input.Creator.Create(ctx, input.Cluster); err != nil {
-			fmt.Printf("%+v\n", err)
+			log.Logf("Failed to create a cluster: %+v", err)
 			return err
 		}
 		return nil
@@ -61,7 +62,7 @@ type GetAllClustersByNamespaceInput struct {
 	Namespace string
 }
 
-// GetClustersByNamespace returns the list of Cluster object in a namespace
+// GetAllClustersByNamespace returns the list of Cluster object in a namespace
 func GetAllClustersByNamespace(ctx context.Context, input GetAllClustersByNamespaceInput) []*clusterv1.Cluster {
 	clusterList := &clusterv1.ClusterList{}
 	Expect(input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
@@ -196,14 +197,14 @@ func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, 
 		Cluster: input.Cluster,
 	})
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for the Cluster object to be deleted\n")
+	log.Logf("Waiting for the Cluster object to be deleted")
 	WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
 		Getter:  input.Client,
 		Cluster: input.Cluster,
 	}, intervals...)
 
 	//TODO: consider if to move in another func (what if there are more than one cluster?)
-	fmt.Fprintf(GinkgoWriter, "Check for all the Cluster API resources being deleted\n")
+	log.Logf("Check for all the Cluster API resources being deleted")
 	resources := GetCAPIResources(ctx, GetCAPIResourcesInput{
 		Lister:    input.Client,
 		Namespace: input.Cluster.Namespace,
@@ -236,7 +237,7 @@ func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWai
 	}
 
 	for _, c := range clusters {
-		fmt.Fprintf(GinkgoWriter, "Waiting for the Cluster %s/%s to be deleted\n", c.Namespace, c.Name)
+		log.Logf("Waiting for the Cluster %s/%s to be deleted", c.Namespace, c.Name)
 		WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
 			Getter:  input.Client,
 			Cluster: c,

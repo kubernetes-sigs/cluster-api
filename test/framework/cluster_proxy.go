@@ -25,7 +25,6 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -36,6 +35,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -246,7 +246,7 @@ func (p *clusterProxy) Dispose(ctx context.Context) {
 
 	if p.shouldCleanupKubeconfig {
 		if err := os.Remove(p.kubeconfigPath); err != nil {
-			fmt.Fprintf(GinkgoWriter, "Deleting the kubeconfig file %q file. You may need to remove this by hand.\n", p.kubeconfigPath)
+			log.Logf("Deleting the kubeconfig file %q file. You may need to remove this by hand.", p.kubeconfigPath)
 		}
 	}
 }

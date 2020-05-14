@@ -214,7 +214,8 @@ when the instance is created:
   (Delete is supported for VMs as part of VMSS only).
 
 - BillingProfile (default: -1) : This is a struct containing a single field, `MaxPrice`.
-  This is a float representation of the maximum price the user wishes to pay for their VM.
+  This is a string representation of the maximum price the user wishes to pay for their VM.
+  Uses a string representation because [floats are disallowed](https://github.com/kubernetes-sigs/controller-tools/issues/245#issuecomment-518465214) in Kubernetes APIs.
   This defaults to -1 which makes the maximum price the On-Demand price for the instance type.
   This also means the instance will never be evicted for price reasons as Azure caps Spot Market prices at the On-Demand price.
   (Note instances may still be evicted based on resource pressure within a region).
@@ -224,7 +225,7 @@ Similar to AWS, we can make an optional struct for SpotVMOptions, which, if pres
 
 ```
 type SpotVMOptions struct {
-  MaxPrice *float64 `json:”maxPrice,omitempty”`
+  MaxPrice *string `json:”maxPrice,omitempty”`
 }
 
 type AzureMachineSpec struct {

@@ -1,5 +1,7 @@
+// +build e2e
+
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,32 +16,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package framework_test
+package e2e
 
 import (
-	"testing"
+	"context"
 
-	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"sigs.k8s.io/cluster-api/test/framework"
+	. "github.com/onsi/ginkgo"
 )
 
-func TestObjectToKind(t *testing.T) {
-	g := NewWithT(t)
+var _ = Describe("When testing KCP adoption", func() {
 
-	g.Expect(framework.ObjectToKind(&hello{})).To(Equal("hello"))
-}
+	KCPAdoptionSpec(context.TODO(), func() KCPAdoptionSpecInput {
+		return KCPAdoptionSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy.(ClusterProxy),
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+		}
+	})
 
-var _ runtime.Object = &hello{}
-
-type hello struct{}
-
-func (*hello) GetObjectKind() schema.ObjectKind {
-	return schema.EmptyObjectKind
-}
-
-func (h *hello) DeepCopyObject() runtime.Object {
-	return h
-}
+})

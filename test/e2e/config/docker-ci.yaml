@@ -56,9 +56,10 @@ providers:
   files:
   # Add a metadata for docker provider
   - sourcePath: "../data/infrastructure-docker/metadata.yaml"
-  # Add a cluster template
+  # Add cluster templates
   - sourcePath: "../data/infrastructure-docker/cluster-template-ci.yaml"
     targetName: "cluster-template.yaml"
+  - sourcePath: "../data/infrastructure-docker/cluster-template-kcp-adoption.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"

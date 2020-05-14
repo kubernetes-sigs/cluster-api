@@ -164,8 +164,8 @@ func TestGetMachinesForCluster(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(3))
 
-	// Test the OwnedControlPlaneMachines works
-	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.OwnedControlPlaneMachines("my-control-plane"))
+	// Test the ControlPlaneMachines works
+	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.ControlPlaneMachines("my-cluster"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 
@@ -173,7 +173,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	nameFilter := func(cluster *clusterv1.Machine) bool {
 		return cluster.Name == "first-machine"
 	}
-	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.OwnedControlPlaneMachines("my-control-plane"), nameFilter)
+	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.ControlPlaneMachines("my-cluster"), nameFilter)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 }
@@ -314,8 +314,7 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 					"three": nil,
 				}, nil
 			},
-			clusterKey:       client.ObjectKey{Namespace: "default", Name: "cluster-name"},
-			controlPlaneName: "control-plane-name",
+			clusterKey: client.ObjectKey{Namespace: "default", Name: "cluster-name"},
 		},
 	}
 	for _, tt := range tests {
@@ -326,7 +325,7 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 			m := &Management{
 				Client: &fakeClient{list: tt.machineList},
 			}
-			g.Expect(m.healthCheck(ctx, tt.check, tt.clusterKey, tt.controlPlaneName)).To(Succeed())
+			g.Expect(m.healthCheck(ctx, tt.check, tt.clusterKey)).To(Succeed())
 		})
 	}
 }
@@ -432,12 +431,11 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 
 			ctx := context.Background()
 			clusterKey := client.ObjectKey{Namespace: "default", Name: "cluster-name"}
-			controlPlaneName := "control-plane-name"
 
 			m := &Management{
 				Client: &fakeClient{list: tt.machineList},
 			}
-			err := m.healthCheck(ctx, tt.check, clusterKey, controlPlaneName)
+			err := m.healthCheck(ctx, tt.check, clusterKey)
 			g.Expect(err).To(HaveOccurred())
 
 			for _, expectedError := range tt.expectedErrors {

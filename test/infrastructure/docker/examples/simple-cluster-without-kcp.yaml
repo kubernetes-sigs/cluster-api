@@ -17,11 +17,6 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: "cluster.local"
-  controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
-    kind: KubeadmControlPlane
-    name: controlplane
-    namespace: default
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: DockerCluster
@@ -29,36 +24,48 @@ spec:
     namespace: default
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: DockerMachineTemplate
+kind: DockerMachine
 metadata:
-  name: controlplane
+  name: controlplane-0
   namespace: default
-spec:
-  template:
-    spec: {}
 ---
-apiVersion: "controlplane.cluster.x-k8s.io/v1alpha3"
-kind: KubeadmControlPlane
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Machine
 metadata:
-  name: controlplane
+  labels:
+    cluster.x-k8s.io/cluster-name: my-cluster
+    cluster.x-k8s.io/control-plane: "true"
+  name: controlplane-0
   namespace: default
 spec:
-  replicas: 1
-  version: v1.14.2
-  infrastructureTemplate:
+  version: "v1.14.2"
+  clusterName: my-cluster
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+      kind: KubeadmConfig
+      name: controlplane-0-config
+      namespace: default
+  infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: DockerMachineTemplate
-    name: controlplane
+    kind: DockerMachine
+    name: controlplane-0
     namespace: default
-  kubeadmConfigSpec:
-    clusterConfiguration:
-      controllerManager:
-        extraArgs:
-          enable-hostpath-provisioner: "true"
-    initConfiguration:
-      nodeRegistration:
-        kubeletExtraArgs:
-          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfig
+metadata:
+  name: controlplane-0-config
+  namespace: default
+spec:
+  clusterConfiguration:
+    controllerManager:
+      extraArgs:
+        enable-hostpath-provisioner: "true"
+  initConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: DockerMachine

@@ -24,10 +24,15 @@ import (
 
 // TODO: Remove this usage of kubectl and replace with a function from apply.go using the controller-runtime client.
 func KubectlApply(ctx context.Context, kubeconfigPath string, resources []byte) error {
+	return KubectlApplyWithArgs(ctx, kubeconfigPath, resources)
+}
+
+func KubectlApplyWithArgs(ctx context.Context, kubeconfigPath string, resources []byte, args ...string) error {
+	aargs := append([]string{"apply", "--kubeconfig", kubeconfigPath, "-f", "-"}, args...)
 	rbytes := bytes.NewReader(resources)
 	applyCmd := NewCommand(
 		WithCommand("kubectl"),
-		WithArgs("apply", "--kubeconfig", kubeconfigPath, "-f", "-"),
+		WithArgs(aargs...),
 		WithStdin(rbytes),
 	)
 	stdout, stderr, err := applyCmd.Run(ctx)

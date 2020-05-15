@@ -126,11 +126,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*File)(nil), (*v1alpha3.FileSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_File_To_v1alpha3_FileSource(a.(*File), b.(*v1alpha3.FileSource), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*KubeadmConfigSpec)(nil), (*v1alpha3.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(a.(*KubeadmConfigSpec), b.(*v1alpha3.KubeadmConfigSpec), scope)
 	}); err != nil {
@@ -138,11 +133,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*KubeadmConfigStatus)(nil), (*v1alpha3.KubeadmConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(a.(*KubeadmConfigStatus), b.(*v1alpha3.KubeadmConfigStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1alpha3.FileSource)(nil), (*File)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_FileSource_To_v1alpha2_File(a.(*v1alpha3.FileSource), b.(*File), scope)
 	}); err != nil {
 		return err
 	}
@@ -265,17 +255,7 @@ func autoConvert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *Ku
 	out.ClusterConfiguration = (*v1beta1.ClusterConfiguration)(unsafe.Pointer(in.ClusterConfiguration))
 	out.InitConfiguration = (*v1beta1.InitConfiguration)(unsafe.Pointer(in.InitConfiguration))
 	out.JoinConfiguration = (*v1beta1.JoinConfiguration)(unsafe.Pointer(in.JoinConfiguration))
-	if in.Files != nil {
-		in, out := &in.Files, &out.Files
-		*out = make([]v1alpha3.FileSource, len(*in))
-		for i := range *in {
-			if err := Convert_v1alpha2_File_To_v1alpha3_FileSource(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Files = nil
-	}
+	out.Files = *(*[]v1alpha3.File)(unsafe.Pointer(&in.Files))
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
 	out.PostKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PostKubeadmCommands))
 	out.Users = *(*[]v1alpha3.User)(unsafe.Pointer(&in.Users))
@@ -288,17 +268,8 @@ func autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in *v1
 	out.ClusterConfiguration = (*v1beta1.ClusterConfiguration)(unsafe.Pointer(in.ClusterConfiguration))
 	out.InitConfiguration = (*v1beta1.InitConfiguration)(unsafe.Pointer(in.InitConfiguration))
 	out.JoinConfiguration = (*v1beta1.JoinConfiguration)(unsafe.Pointer(in.JoinConfiguration))
-	if in.Files != nil {
-		in, out := &in.Files, &out.Files
-		*out = make([]File, len(*in))
-		for i := range *in {
-			if err := Convert_v1alpha3_FileSource_To_v1alpha2_File(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Files = nil
-	}
+	out.Files = *(*[]File)(unsafe.Pointer(&in.Files))
+	// WARNING: in.FileSources requires manual conversion: does not exist in peer-type
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
 	out.PostKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PostKubeadmCommands))
 	out.Users = *(*[]User)(unsafe.Pointer(&in.Users))

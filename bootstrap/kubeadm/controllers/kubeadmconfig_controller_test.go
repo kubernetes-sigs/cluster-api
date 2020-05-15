@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -469,6 +470,92 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	// Ensure that we don't fail trying to refresh any bootstrap tokens
 	_, err = k.Reconcile(request)
 	g.Expect(err).NotTo(HaveOccurred())
+}
+
+func TestKubeadmConfigReconcile_ExpandSecretFileSource(t *testing.T) {
+	var (
+		secretName       string = "foo"
+		secretDataKey    string = "/foo/bar"
+		secretContent    string = "fooBarBaz"
+		fileOwner        string = "baz"
+		filePermissions  string = "foobar"
+		filePath         string = "bazbar"
+		fileRemappedPath string = "foobazbar"
+	)
+
+	tests := map[string]struct {
+		source bootstrapv1.FileSource
+		output []bootstrapv1.File
+	}{
+		"secret": {
+			source: bootstrapv1.FileSource{
+				Secret: &bootstrapv1.SecretFileSource{
+					SecretName: secretName,
+				},
+			},
+			output: []bootstrapv1.File{
+				{
+					Content: secretContent,
+					Path:    secretDataKey,
+				},
+			},
+		},
+		"secret-remapped": {
+			source: bootstrapv1.FileSource{
+				Secret: &bootstrapv1.SecretFileSource{
+					SecretName: secretName,
+					Items: []bootstrapv1.KeyToPath{
+						{
+							Key:   secretDataKey,
+							Path:  filePath,
+							Owner: fileOwner,
+						},
+						{
+							Key:         secretDataKey,
+							Path:        fileRemappedPath,
+							Owner:       fileOwner,
+							Permissions: filePermissions,
+						},
+					},
+				},
+			},
+			output: []bootstrapv1.File{
+				{
+					Content: secretContent,
+					Path:    filePath,
+					Owner:   fileOwner,
+				},
+				{
+					Content:     secretContent,
+					Path:        fileRemappedPath,
+					Owner:       fileOwner,
+					Permissions: filePermissions,
+				},
+			},
+		},
+	}
+
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: secretName,
+		},
+		Data: map[string][]byte{
+			secretDataKey: []byte(secretContent),
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+			files, err := expandSecretFileSource(secret, tc.source.Secret)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			diff := cmp.Diff(tc.output, files)
+			if diff != "" {
+				t.Fatalf(diff)
+			}
+		})
+	}
 }
 
 // If a control plane has no JoinConfiguration, then we will create a default and no error will occur

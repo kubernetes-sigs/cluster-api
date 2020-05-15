@@ -157,22 +157,23 @@ def enable_provider(name):
 
     # Set up an image build for the provider. The live update configuration syncs
     # the output from the local_resource build into the container.
-    kwargdict = {
-        "ref": p.get("image"),
-        "context": context + "/.tiltbuild/",
-        "dockerfile_contents": dockerfile_contents,
-        "target": "tilt",
-        "entrypoint": ["/manager"],
-        "only": "manager",
-        "live_update": [
+    entrypoint = ["/manager"]
+    provider_args = extra_args.get(name)
+    if provider_args:
+        entrypoint.extend(provider_args)
+
+    docker_build_with_restart(
+        ref=p.get("image"),
+        context=context + "/.tiltbuild/",
+        dockerfile_contents=dockerfile_contents,
+        target="tilt",
+        entrypoint=entrypoint,
+        only="manager",
+        live_update=[
             sync(context + "/.tiltbuild/manager", "/manager"),
         ],
-    }
+    )
 
-    container_args = extra_args.get(name)
-    if container_args:
-        kwargdict["container_args"] = container_args
-    docker_build_with_restart(**kwargdict)
 
     # Apply the kustomized yaml for this provider
     yaml = str(kustomize(context + "/config"))

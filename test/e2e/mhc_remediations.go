@@ -33,8 +33,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// QuickStartSpecInput is the input for QuickStartSpec.
-type QuickStartSpecInput struct {
+// MachineRemediationSpecInput is the input for MachineRemediationSpec.
+type MachineRemediationSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -42,13 +42,11 @@ type QuickStartSpecInput struct {
 	SkipCleanup           bool
 }
 
-// QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
-// creating a workload cluster.
-// This test is meant to provide a first, fast signal to detect regression; it is recommended to use it as a PR blocker test.
-func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput) {
+// MachineRemediationSpec implements a test that verifies that Machines are remediated by MHC during unhealthy conditions.
+func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemediationSpecInput) {
 	var (
-		specName      = "quick-start"
-		input         QuickStartSpecInput
+		specName      = "mhc-remediation"
+		input         MachineRemediationSpecInput
 		namespace     *corev1.Namespace
 		cancelWatches context.CancelFunc
 		cluster       *clusterv1.Cluster
@@ -61,7 +59,6 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0755)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
-
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveKey(CNIPath))
 
@@ -69,7 +66,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 	})
 
-	It("Should create a workload cluster", func() {
+	It("Should successfully remediate unhealthy machines with MachineHealthCheck", func() {
 
 		By("Creating a workload cluster")
 
@@ -91,6 +88,13 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		By("Waiting for MachineHealthCheck remediation")
+		framework.DiscoverMachineHealthChecksAndWaitForRemediation(ctx, framework.DiscoverMachineHealthCheckAndWaitForRemediationInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   cluster,
+			WaitForMachineRemediation: input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"),
 		})
 
 		By("PASSED!")

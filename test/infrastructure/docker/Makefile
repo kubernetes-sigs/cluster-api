@@ -68,32 +68,6 @@ help:  ## Display this help
 test: ## Run tests
 	go test -v ./...
 
-# core
-CORE_IMAGE_NAME ?= cluster-api-controller
-CORE_CONTROLLER_IMG ?= $(REGISTRY)/$(CORE_IMAGE_NAME)-$(ARCH):$(TAG)
-
-# bootstrap
-KUBEADM_BOOTSTRAP_IMAGE_NAME ?= kubeadm-bootstrap-controller
-KUBEADM_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME)-$(ARCH):$(TAG)
-
-# control plane
-KUBEADM_CONTROL_PLANE_IMAGE_NAME ?= kubeadm-control-plane-controller
-KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME)-$(ARCH):$(TAG)
-
-.PHONY: test-e2e
-test-e2e: ## Run the end-to-end tests
-	$(MAKE) docker-build
-	MANAGER_IMAGE=$(CONTROLLER_IMG)-$(ARCH):$(TAG) \
-		CAPI_IMAGE=$(CORE_CONTROLLER_IMG) \
-		CAPI_KUBEADM_BOOTSTRAP_IMAGE=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG) \
-		CAPI_KUBEADM_CONTROL_PLANE_IMAGE=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) \
-		$(MAKE) run-e2e
-
-E2E_CONF_FILE ?= e2e/local-e2e.conf
-SKIP_RESOURCE_CLEANUP ?= false
-run-e2e:
-	go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=35m -tags=e2e -e2e.config="$(abspath $(E2E_CONF_FILE))" -skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP)
-
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
@@ -161,7 +135,7 @@ modules: ## Runs go mod to ensure modules are up to date.
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --pull --build-arg ARCH=$(ARCH) ../../.. -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) ../../.. -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 

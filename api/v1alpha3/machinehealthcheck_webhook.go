@@ -90,11 +90,19 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 	var allErrs field.ErrorList
 
 	// Validate selector parses as Selector
-	_, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
+	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
 	if err != nil {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec", "selector"), m.Spec.Selector, err.Error()),
+		)
+	}
+
+	// Validate that the selector isn't empty.
+	if selector != nil && selector.Empty() {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "selector"), m.Spec.Selector, "selector must not be empty"),
 		)
 	}
 

@@ -6091,7 +6091,9 @@ spec:
                 fieldPath: metadata.namespace
           resources:
             {}
-
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
 
 ---
 # Source: cert-manager/templates/deployment.yaml
@@ -6151,6 +6153,9 @@ spec:
             requests:
               cpu: 10m
               memory: 32Mi
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
 
 
 ---
@@ -6209,6 +6214,9 @@ spec:
       - name: certs
         secret:
           secretName: cert-manager-webhook-tls
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
 ---
 # Source: cert-manager/templates/webhook-apiservice.yaml
 apiVersion: apiregistration.k8s.io/v1beta1

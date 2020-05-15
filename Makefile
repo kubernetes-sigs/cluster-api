@@ -118,38 +118,6 @@ test: ## Run tests
 test-integration: ## Run integration tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
 
-.PHONY: test-capd-e2e-full
-test-capd-e2e-full: ## Rebuild all manifests and all provider images then run the capd-e2es
-	$(MAKE) generate-manifests
-	$(MAKE) release-manifests
-	$(MAKE) test-capd-e2e-images
-
-.PHONY: test-capd-e2e-images
-test-capd-e2e-images: ## Rebuild all Cluster API provider images and run the capd-e2e tests
-	make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
-	$(MAKE) test-capd-e2e
-
-.PHONY: test-capd-e2e
-test-capd-e2e: ## Rebuild the docker provider and run the capd-e2e tests
-	$(MAKE) -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-capi-docker
-	$(MAKE) -C test/infrastructure/docker run-e2e
-
-E2E_FLAGS := REGISTRY=gcr.io/k8s-staging-cluster-api TAG=dev ARCH=amd64 PULL_POLICY=IfNotPresent GINKGO_FOCUS="$(GINKGO_FOCUS)" GINKGO_NODES=$(GINKGO_NODES) GINKGO_NOCOLOR=false E2E_CONF_FILE=config/docker-dev.yaml ARTIFACTS=$(abspath _artifacts) SKIP_RESOURCE_CLEANUP=false USE_EXISTING_CLUSTER=false
-
-.PHONY: e2e
-e2e: ## Run clusterctl e2e
-	mkdir -p _artifacts
-	$(E2E_FLAGS) $(MAKE) docker-build
-	$(E2E_FLAGS) $(MAKE) -C test/infrastructure/docker docker-build
-	docker pull quay.io/jetstack/cert-manager-cainjector:v0.11.0
-	docker pull quay.io/jetstack/cert-manager-webhook:v0.11.0
-	docker pull quay.io/jetstack/cert-manager-controller:v0.11.0
-	$(E2E_FLAGS) $(MAKE) -C test/e2e run
-
-.PHONY: clean-e2e
-clean-e2e: clean-manifests ## Clean-up after clusterctl e2e
-	rm -rf _artifacts
-
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
@@ -353,19 +321,19 @@ docker-build: ## Build the docker images for controller managers
 
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
-	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-bootstrap
 docker-build-kubeadm-bootstrap: ## Build the docker image for kubeadm bootstrap controller manager
-	docker build --pull --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-control-plane
 docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm control plane controller manager
-	docker build --pull --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
 
@@ -521,7 +489,7 @@ EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
 
 .PHONY: docker-build-example-provider
 docker-build-example-provider: ## Build the docker image for example provider
-	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
 	sed -i'' -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager/manager_image_patch.yaml
 
 ## --------------------------------------

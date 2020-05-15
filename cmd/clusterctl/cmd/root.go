@@ -18,15 +18,26 @@ package cmd
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
-var cfgFile string
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
+var (
+	cfgFile   string
+	verbosity *int
+)
 
 var RootCmd = &cobra.Command{
 	Use:          "clusterctl",
@@ -39,7 +50,13 @@ var RootCmd = &cobra.Command{
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		// TODO: print error stack if log v>0
+		if verbosity != nil && *verbosity >= 5 {
+			if err, ok := err.(stackTracer); ok {
+				for _, f := range err.StackTrace() {
+					fmt.Fprintf(os.Stderr, "%+s:%d\n", f, f)
+				}
+			}
+		}
 		// TODO: print cmd help if validation error
 		os.Exit(1)
 	}
@@ -48,12 +65,33 @@ func Execute() {
 func init() {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	verbosity := flag.CommandLine.Int("v", 0, "Set the log level verbosity.")
-	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
+	verbosity = flag.CommandLine.Int("v", 0, "Set the log level verbosity. This overrides the CLUSTERCTL_LOG_LEVEL environment variable.")
 
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
 		"Path to clusterctl configuration (default is `$HOME/.cluster-api/clusterctl.yaml`)")
+
+	cobra.OnInitialize(initConfig)
+}
+
+func initConfig() {
+	// check if the CLUSTERCTL_LOG_LEVEL was set via env var or in the config file
+	if *verbosity == 0 {
+		configClient, err := config.New(cfgFile)
+		if err == nil {
+			v, err := configClient.Variables().Get("CLUSTERCTL_LOG_LEVEL")
+			if err == nil && v != "" {
+				verbosityFromEnv, err := strconv.Atoi(v)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to convert CLUSTERCTL_LOG_LEVEL string to an int. err=%s\n", err.Error())
+					os.Exit(1)
+				}
+				verbosity = &verbosityFromEnv
+			}
+		}
+	}
+
+	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
 }
 
 const Indentation = `  `

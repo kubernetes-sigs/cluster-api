@@ -195,14 +195,17 @@ type FileSource struct {
 type FileSourceOptions struct {
 	// DefaultPermissions specifies optional mode bits to use on created files by default.
 	// Must be a value between 0 and 0777.
+	// Defaults to 0644 in cloud-init if unspecified
 	// +optional
 	DefaultPermissions string `json:"defaultPermissions,omitempty"`
 
 	// DefaultOwner specifies the ownership of the file, e.g. "root:root".
+	// Defaults to root:root in cloud-init if unspecified.
 	// +optional
 	DefaultOwner string `json:"defaultOwner,omitempty"`
 
 	// DefaultEncoding specifies the encoding of the file contents.
+	// Defaults to text/plain in cloud-init.
 	// +optional
 	DefaultEncoding Encoding `json:"defaultEncoding,omitempty"`
 }

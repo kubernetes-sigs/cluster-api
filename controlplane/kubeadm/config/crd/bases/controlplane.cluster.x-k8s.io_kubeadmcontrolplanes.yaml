@@ -451,7 +451,7 @@ spec:
                           properties:
                             defaultEncoding:
                               description: DefaultEncoding specifies the encoding
-                                of the file contents.
+                                of the file contents. Defaults to text/plain in cloud-init.
                               enum:
                               - base64
                               - gzip
@@ -459,12 +459,14 @@ spec:
                               type: string
                             defaultOwner:
                               description: DefaultOwner specifies the ownership of
-                                the file, e.g. "root:root".
+                                the file, e.g. "root:root". Defaults to root:root
+                                in cloud-init if unspecified.
                               type: string
                             defaultPermissions:
                               description: DefaultPermissions specifies optional mode
                                 bits to use on created files by default. Must be a
-                                value between 0 and 0777.
+                                value between 0 and 0777. Defaults to 0644 in cloud-init
+                                if unspecified
                               type: string
                             items:
                               description: If unspecified, each key-value pair in

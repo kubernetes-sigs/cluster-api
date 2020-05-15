@@ -52,7 +52,7 @@ Provide a mechanism for applying resources in a cluster once it is created.
 Clusters created by Cluster API are minimally functional. For instance,they do not have a container networking interface (CNI), which is required for pod-to-pod networking, or any StorageClasses, which are required for dynamic persistent volume provisioning.
 Users today must manually add these components to every cluster they create.
 
-Having a mechanism to sync an initial set of default resources after clusters are created makes clusters created with Cluster API functional and ready for workloads from the beginning, without requiring additional user intervention. 
+Having a mechanism to apply an initial set of default resources after clusters are created makes clusters created with Cluster API functional and ready for workloads from the beginning, without requiring additional user intervention.
 
 To achieve this, ClusterResourceSet CRD is introduced that will be responsible for applying a set resources defined by users to the matching clusters.
 
@@ -121,7 +121,7 @@ status:
  LastUpdated:  "2020-05-05T08:24:17Z"
 ```
 
-Initially, the only supported mode will be `ApplyOnce` and it will be the default mode if no mode is provided. In the future, we may consider adding a `Sync` mode that reapplies the resources on resource hash change and/or periodically.
+Initially, the only supported mode will be `ApplyOnce` and it will be the default mode if no mode is provided. In the future, we may consider adding a `Reconcile` mode that reapplies the resources on resource hash change and/or periodically.
 If ClusterResourceSet resources will be managed by an operator after they are applied by ClusterResourceSet controller, "ApplyOnce" mode must be used so that reconciliation on those resources can be delegated to the operator.
 
 Each item in the resources specifies a kind (must be either ConfigMap or Secret) and a name. Each referenced ConfigMap/Secret  contains yaml/json content as value. The key to that content is “value”.

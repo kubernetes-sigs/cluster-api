@@ -19,6 +19,7 @@ package framework
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -213,26 +214,34 @@ type MachineStatusCheck func(p *clusterv1.Machine) error
 
 // WaitForMachineStatusCheckInput is the input for WaitForMachineStatusCheck.
 type WaitForMachineStatusCheckInput struct {
-	Machine                 *clusterv1.Machine
-	StatusChecks            []MachineStatusCheck
-	WaitForMachineIntervals []interface{}
+	Getter       Getter
+	Machine      *clusterv1.Machine
+	StatusChecks []MachineStatusCheck
 }
 
 // WaitForMachineStatusCheck waits for the specified status to be true for the machine.
-func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCheckInput) {
+func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCheckInput, intervals ...interface{}) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineStatusCheck")
 	Expect(input.Machine).ToNot(BeNil(), "Invalid argument. input.Machine can't be nil when calling WaitForMachineStatusCheck")
 	Expect(input.StatusChecks).ToNot(BeEmpty(), "Invalid argument. input.StatusCheck can't be empty when calling WaitForMachineStatusCheck")
 
 	Eventually(func() (bool, error) {
+		machine := &clusterv1.Machine{}
+		key := client.ObjectKey{
+			Namespace: input.Machine.Namespace,
+			Name:      input.Machine.Name,
+		}
+		err := input.Getter.Get(ctx, key, machine)
+		Expect(err).NotTo(HaveOccurred())
+
 		for _, statusCheck := range input.StatusChecks {
-			err := statusCheck(input.Machine)
+			err := statusCheck(machine)
 			if err != nil {
 				return false, err
 			}
 		}
 		return true, nil
-	}, input.WaitForMachineIntervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue())
 }
 
 // MachineNodeRefCheck is a MachineStatusCheck ensuring that a NodeRef is assigned to the machine

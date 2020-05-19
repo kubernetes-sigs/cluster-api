@@ -19,6 +19,7 @@ package repository
 import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
@@ -33,6 +34,7 @@ type componentsClient struct {
 	provider     config.Provider
 	repository   Repository
 	configClient config.Client
+	processor    yaml.Processor
 }
 
 // ensure componentsClient implements ComponentsClient.
@@ -44,6 +46,7 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 		provider:     provider,
 		repository:   repository,
 		configClient: configClient,
+		processor:    yaml.NewSimpleProcessor(),
 	}
 }
 
@@ -80,5 +83,5 @@ func (f *componentsClient) Get(options ComponentsOptions) (Components, error) {
 		log.Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
 	}
 
-	return NewComponents(f.provider, f.configClient, file, options)
+	return NewComponents(ComponentsInput{f.provider, f.configClient, f.processor, file, options})
 }

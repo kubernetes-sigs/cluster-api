@@ -71,7 +71,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	log := logf.Log
 
 	// gets access to the management cluster
-	cluster, err := c.clusterClientFactory(options.Kubeconfig)
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 // Init returns the list of images required for init.
 func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	// gets access to the management cluster
-	cluster, err := c.clusterClientFactory(options.Kubeconfig)
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return nil, err
 	}

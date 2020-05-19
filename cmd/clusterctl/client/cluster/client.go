@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -97,6 +98,7 @@ type clusterClient struct {
 	proxy                   Proxy
 	repositoryClientFactory RepositoryClientFactory
 	pollImmediateWaiter     PollImmediateWaiter
+	processor               yaml.Processor
 }
 
 type RepositoryClientFactory func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error)
@@ -137,7 +139,7 @@ func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {
 }
 
 func (c *clusterClient) Template() TemplateClient {
-	return newTemplateClient(c.proxy, c.configClient)
+	return newTemplateClient(TemplateClientInput{c.proxy, c.configClient, c.processor})
 }
 
 // Option is a configuration option supplied to New
@@ -165,6 +167,17 @@ func InjectPollImmediateWaiter(pollImmediateWaiter PollImmediateWaiter) Option {
 	}
 }
 
+// InjectYamlProcessor allows you to override the yaml processor that the
+// cluster client uses. By default, the SimpleProcessor is used. This is
+// true even if a nil processor is injected.
+func InjectYamlProcessor(p yaml.Processor) Option {
+	return func(c *clusterClient) {
+		if p != nil {
+			c.processor = p
+		}
+	}
+}
+
 // New returns a cluster.Client.
 func New(kubeconfig Kubeconfig, configClient config.Client, options ...Option) Client {
 	return newClusterClient(kubeconfig, configClient, options...)
@@ -174,6 +187,7 @@ func newClusterClient(kubeconfig Kubeconfig, configClient config.Client, options
 	client := &clusterClient{
 		configClient: configClient,
 		kubeconfig:   kubeconfig,
+		processor:    yaml.NewSimpleProcessor(),
 	}
 	for _, o := range options {
 		o(client)

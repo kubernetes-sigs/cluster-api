@@ -97,6 +97,10 @@ type GetClusterTemplateOptions struct {
 	// ListVariablesOnly sets the GetClusterTemplate method to return the list of variables expected by the template
 	// without executing any further processing.
 	ListVariablesOnly bool
+
+	// YamlProcessor defines the yaml processor to use for the cluster
+	// template processing. If not defined, SimpleProcessor will be used.
+	YamlProcessor Processor
 }
 
 // numSources return the number of template sources currently set on a GetClusterTemplateOptions.
@@ -162,7 +166,7 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 	}
 
 	// Gets  the client for the current management cluster
-	cluster, err := c.clusterClientFactory(options.Kubeconfig)
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{options.Kubeconfig, options.YamlProcessor})
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +190,7 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 
 	// Gets the workload cluster template from the selected source
 	if options.ProviderRepositorySource != nil {
-		return c.getTemplateFromRepository(cluster, *options.ProviderRepositorySource, options.TargetNamespace, options.ListVariablesOnly)
+		return c.getTemplateFromRepository(cluster, options)
 	}
 	if options.ConfigMapSource != nil {
 		return c.getTemplateFromConfigMap(cluster, *options.ConfigMapSource, options.TargetNamespace, options.ListVariablesOnly)
@@ -199,7 +203,12 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 }
 
 // getTemplateFromRepository returns a workload cluster template from a provider repository.
-func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, source ProviderRepositorySourceOptions, targetNamespace string, listVariablesOnly bool) (Template, error) {
+func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, options GetClusterTemplateOptions) (Template, error) {
+	source := *options.ProviderRepositorySource
+	targetNamespace := options.TargetNamespace
+	listVariablesOnly := options.ListVariablesOnly
+	processor := options.YamlProcessor
+
 	// If the option specifying the name of the infrastructure provider to get templates from is empty, try to detect it.
 	provider := source.InfrastructureProvider
 	ensureCustomResourceDefinitions := false
@@ -253,7 +262,7 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, sou
 		return nil, err
 	}
 
-	repo, err := c.repositoryClientFactory(providerConfig)
+	repo, err := c.repositoryClientFactory(RepositoryClientFactoryInput{provider: providerConfig, processor: processor})
 	if err != nil {
 		return nil, err
 	}

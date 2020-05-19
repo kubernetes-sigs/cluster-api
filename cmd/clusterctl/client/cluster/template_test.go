@@ -33,14 +33,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-var template = "apiVersion: cluster.x-k8s.io/v1alpha3\n" +
-	"kind: Cluster\n" +
-	"---\n" +
-	"apiVersion: cluster.x-k8s.io/v1alpha3\n" +
-	"kind: Machine"
+var template = `apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Machine`
 
 func Test_templateClient_GetFromConfigMap(t *testing.T) {
 	g := NewWithT(t)
@@ -133,19 +134,22 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			tc := &templateClient{
-				proxy:        tt.fields.proxy,
-				configClient: tt.fields.configClient,
-			}
+			processor := yaml.NewSimpleProcessor()
+			tc := newTemplateClient(TemplateClientInput{tt.fields.proxy, tt.fields.configClient, processor})
 			got, err := tc.GetFromConfigMap(tt.args.configMapNamespace, tt.args.configMapName, tt.args.configMapDataKey, tt.args.targetNamespace, tt.args.listVariablesOnly)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
 			g.Expect(err).NotTo(HaveOccurred())
 
-			wantTemplate, err := repository.NewTemplate([]byte(tt.want), configClient.Variables(), tt.args.targetNamespace, tt.args.listVariablesOnly)
+			wantTemplate, err := repository.NewTemplate(repository.TemplateInput{
+				RawArtifact:           []byte(tt.want),
+				ConfigVariablesClient: configClient.Variables(),
+				Processor:             processor,
+				TargetNamespace:       tt.args.targetNamespace,
+				ListVariablesOnly:     tt.args.listVariablesOnly,
+			})
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(got).To(Equal(wantTemplate))
 		})
@@ -286,7 +290,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).NotTo(HaveOccurred())
 
-	client, mux, teardown := test.NewFakeGitHub()
+	fakeGithubClient, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
 	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, r *http.Request) {
@@ -340,12 +344,14 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			c := &templateClient{
-				configClient: configClient,
-				gitHubClientFactory: func(configVariablesClient config.VariablesClient) (*github.Client, error) {
-					return client, nil
-				},
+			gitHubClientFactory := func(configVariablesClient config.VariablesClient) (*github.Client, error) {
+				return fakeGithubClient, nil
 			}
+			processor := yaml.NewSimpleProcessor()
+			c := newTemplateClient(TemplateClientInput{nil, configClient, processor})
+			// override the github client factory
+			c.gitHubClientFactory = gitHubClientFactory
+
 			got, err := c.GetFromURL(tt.args.templateURL, tt.args.targetNamespace, tt.args.listVariablesOnly)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -354,7 +360,13 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 
 			g.Expect(err).NotTo(HaveOccurred())
 
-			wantTemplate, err := repository.NewTemplate([]byte(tt.want), configClient.Variables(), tt.args.targetNamespace, tt.args.listVariablesOnly)
+			wantTemplate, err := repository.NewTemplate(repository.TemplateInput{
+				RawArtifact:           []byte(tt.want),
+				ConfigVariablesClient: configClient.Variables(),
+				Processor:             processor,
+				TargetNamespace:       tt.args.targetNamespace,
+				ListVariablesOnly:     tt.args.listVariablesOnly,
+			})
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(got).To(Equal(wantTemplate))
 		})

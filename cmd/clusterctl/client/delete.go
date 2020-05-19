@@ -61,7 +61,7 @@ type DeleteOptions struct {
 }
 
 func (c *clusterctlClient) Delete(options DeleteOptions) error {
-	clusterClient, err := c.clusterClientFactory(options.Kubeconfig)
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}

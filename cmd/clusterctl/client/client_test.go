@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
@@ -118,11 +119,11 @@ func newFakeClient(configClient config.Client) *fakeClient {
 		fake.configClient = newFakeConfig()
 	}
 
-	var clusterClientFactory = func(i Kubeconfig) (cluster.Client, error) {
+	var clusterClientFactory = func(i ClusterClientFactoryInput) (cluster.Client, error) {
 		// converting the client.Kubeconfig to cluster.Kubeconfig alias
-		k := cluster.Kubeconfig(i)
+		k := cluster.Kubeconfig(i.kubeconfig)
 		if _, ok := fake.clusters[k]; !ok {
-			return nil, errors.Errorf("Cluster for kubeconfig %q and/or context %q does not exists.", i.Path, i.Context)
+			return nil, errors.Errorf("Cluster for kubeconfig %q and/or context %q does not exist.", i.kubeconfig.Path, i.kubeconfig.Context)
 		}
 		return fake.clusters[k], nil
 	}
@@ -130,11 +131,11 @@ func newFakeClient(configClient config.Client) *fakeClient {
 	fake.internalClient, _ = newClusterctlClient("fake-config",
 		InjectConfig(fake.configClient),
 		InjectClusterClientFactory(clusterClientFactory),
-		InjectRepositoryFactory(func(provider config.Provider) (repository.Client, error) {
-			if _, ok := fake.repositories[provider.ManifestLabel()]; !ok {
-				return nil, errors.Errorf("Repository for kubeconfig %q does not exists.", provider.ManifestLabel())
+		InjectRepositoryFactory(func(input RepositoryClientFactoryInput) (repository.Client, error) {
+			if _, ok := fake.repositories[input.provider.ManifestLabel()]; !ok {
+				return nil, errors.Errorf("Repository for kubeconfig %q does not exist.", input.provider.ManifestLabel())
 			}
-			return fake.repositories[provider.ManifestLabel()], nil
+			return fake.repositories[input.provider.ManifestLabel()], nil
 		}),
 	)
 
@@ -324,6 +325,7 @@ func newFakeRepository(provider config.Provider, configClient config.Client) *fa
 		Provider:       provider,
 		configClient:   configClient,
 		fakeRepository: fakeRepository,
+		processor:      yaml.NewSimpleProcessor(),
 	}
 }
 
@@ -331,6 +333,7 @@ type fakeRepositoryClient struct {
 	config.Provider
 	configClient   config.Client
 	fakeRepository *test.FakeRepository
+	processor      yaml.Processor
 }
 
 var _ repository.Client = &fakeRepositoryClient{}
@@ -349,6 +352,7 @@ func (f fakeRepositoryClient) Components() repository.ComponentsClient {
 		provider:       f.Provider,
 		fakeRepository: f.fakeRepository,
 		configClient:   f.configClient,
+		processor:      f.processor,
 	}
 }
 
@@ -358,6 +362,7 @@ func (f fakeRepositoryClient) Templates(version string) repository.TemplateClien
 		version:               version,
 		fakeRepository:        f.fakeRepository,
 		configVariablesClient: f.configClient.Variables(),
+		processor:             f.processor,
 	}
 }
 
@@ -399,6 +404,7 @@ type fakeTemplateClient struct {
 	version               string
 	fakeRepository        *test.FakeRepository
 	configVariablesClient config.VariablesClient
+	processor             yaml.Processor
 }
 
 func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOnly bool) (repository.Template, error) {
@@ -412,7 +418,13 @@ func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOn
 	if err != nil {
 		return nil, err
 	}
-	return repository.NewTemplate(content, f.configVariablesClient, targetNamespace, listVariablesOnly)
+	return repository.NewTemplate(repository.TemplateInput{
+		RawArtifact:           content,
+		ConfigVariablesClient: f.configVariablesClient,
+		Processor:             f.processor,
+		TargetNamespace:       targetNamespace,
+		ListVariablesOnly:     listVariablesOnly,
+	})
 }
 
 // fakeMetadataClient provides a super simple MetadataClient (e.g. without support for local overrides/embedded metadata)
@@ -441,6 +453,7 @@ type fakeComponentClient struct {
 	provider       config.Provider
 	fakeRepository *test.FakeRepository
 	configClient   config.Client
+	processor      yaml.Processor
 }
 
 func (f *fakeComponentClient) Get(options repository.ComponentsOptions) (repository.Components, error) {
@@ -454,5 +467,13 @@ func (f *fakeComponentClient) Get(options repository.ComponentsOptions) (reposit
 		return nil, err
 	}
 
-	return repository.NewComponents(f.provider, f.configClient, content, options)
+	return repository.NewComponents(
+		repository.ComponentsInput{
+			Provider:     f.provider,
+			ConfigClient: f.configClient,
+			Processor:    f.processor,
+			RawYaml:      content,
+			Options:      options,
+		},
+	)
 }

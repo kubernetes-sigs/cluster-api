@@ -2,7 +2,7 @@
 
 # set defaults
 
-load('ext://restart_process', 'docker_build_with_restart')
+load("ext://restart_process", "docker_build_with_restart")
 
 settings = {
     "deploy_cert_manager": True,
@@ -163,17 +163,16 @@ def enable_provider(name):
         entrypoint.extend(provider_args)
 
     docker_build_with_restart(
-        ref=p.get("image"),
-        context=context + "/.tiltbuild/",
-        dockerfile_contents=dockerfile_contents,
-        target="tilt",
-        entrypoint=entrypoint,
-        only="manager",
-        live_update=[
+        ref = p.get("image"),
+        context = context + "/.tiltbuild/",
+        dockerfile_contents = dockerfile_contents,
+        target = "tilt",
+        entrypoint = entrypoint,
+        only = "manager",
+        live_update = [
             sync(context + "/.tiltbuild/manager", "/manager"),
         ],
     )
-
 
     # Apply the kustomized yaml for this provider
     yaml = str(kustomize(context + "/config"))

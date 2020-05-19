@@ -94,7 +94,7 @@ type GetClusterTemplateOptions struct {
 	// It can be set through the cli flag, WORKER_MACHINE_COUNT environment variable or will default to 0
 	WorkerMachineCount *int64
 
-	// listVariablesOnly sets the GetClusterTemplate method to return the list of variables expected by the template
+	// ListVariablesOnly sets the GetClusterTemplate method to return the list of variables expected by the template
 	// without executing any further processing.
 	ListVariablesOnly bool
 }

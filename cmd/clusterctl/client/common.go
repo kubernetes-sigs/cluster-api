@@ -92,3 +92,11 @@ func validateDNS1123Label(label string) error {
 	}
 	return nil
 }
+
+func validateDNS1123Domanin(subdomain string) error {
+	errs := validation.IsDNS1123Subdomain(subdomain)
+	if len(errs) != 0 {
+		return errors.New(strings.Join(errs, "; "))
+	}
+	return nil
+}

@@ -290,6 +290,16 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "tolerates subdomains as cluster Name",
+			args: args{
+				options: GetClusterTemplateOptions{
+					ClusterName:     "foo.bar",
+					TargetNamespace: "baz",
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "fails for invalid namespace Name",
 			args: args{
 				options: GetClusterTemplateOptions{

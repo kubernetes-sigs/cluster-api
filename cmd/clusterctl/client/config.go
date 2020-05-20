@@ -299,7 +299,7 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 	c.configClient.Variables().Set("NAMESPACE", options.TargetNamespace)
 
 	// the ClusterName, if valid, can be used in templates using the ${ CLUSTER_NAME } variable.
-	if err := validateDNS1123Label(options.ClusterName); err != nil {
+	if err := validateDNS1123Domanin(options.ClusterName); err != nil {
 		return errors.Wrapf(err, "invalid cluster name")
 	}
 	c.configClient.Variables().Set("CLUSTER_NAME", options.ClusterName)

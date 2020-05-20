@@ -43,23 +43,25 @@ remains. You can then `docker exec` into a running container to get information 
 is also useful if you simply want a local cluster to experiment with. After the tests run and succeed you are left
 with a cluster in a known working state for experimentation.
 
-* `FOCUS`: The `FOCUS` variable allows running of certain tests. The default on CI is `FOCUS='Basic'`. In order to run
-all the tests, set `FOCUS='Basic|Full'`. This will run the basic test and then run all other tests.
+* `GINKGO_FOCUS`: The `GINKGO_FOCUS` variable allows running of certain tests. By default, all tests are run if `GINKGO_FOCUS` is not provided. To run
+a particular test, set focus to a regex string: e.g., `GINKGO_FOCUS='KCP upgrade'`.
 
-### Types of end-to-end runs
+* `USE_EXISTING_CLUSTER`: The `USE_EXISTING_CLUSTER` variable allows using an existing management cluster with providers already installed.
+For instance, after running e2e tests once with `SKIP_RESOURCE_CLEANUP=true`, the created management cluster can be used for the following e2e test runs by setting up `KUBECONFIG` variable.
 
-`make test-capd-e2e-full` will build all manifests and provider images then use those manifests and images in the test
-run. This is great if you're modifying API types in any of the providers.
+### Running tests
 
-`make test-capd-e2e-images` will only build the images for all providers then use those images during the e2e tests and
-use whatever manifests exist on disk. This is good if you're only updating controller code.
+`make docker-build-e2e` will build the images for all providers that will be needed for the e2e test.
 
-`make test-capd-e2e` will only build the docker provider image and use whatever provider images already exist on disk.
-This is good if you're working on the test framework itself. You'll likely want to build the images at least once
-and then use this for a faster test run.
+`make test-e2e` will run e2e tests by using whatever provider images already exist on disk.
+After running `make docker-build-e2e` at least once, this can be used for a faster test run if there are no provider code changes.
 
-### Examples
+**Examples**
 
-* `make test-capd-e2e-full SKIP_RESOURCE_CLEANUP=true`
-* `make test-capd-e2e-images`
-* `make test-capd-e2e FOCUS='Basic|Full'`
+* `make docker-build-e2e`
+
+* `make test-e2e GINKGO_FOCUS='upgrade' SKIP_RESOURCE_CLEANUP=true USE_EXISTING_CLUSTER=false`
+
+See [e2e development] for more information on developing e2e tests for CAPI and external providers.
+
+[e2e development]: ./e2e.md

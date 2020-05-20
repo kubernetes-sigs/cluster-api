@@ -94,22 +94,22 @@ func runGetRepositories(cfgFile string, out io.Writer) error {
 		return err
 	}
 
+	w := tabwriter.NewWriter(out, 10, 4, 3, ' ', 0)
+
 	switch cro.output {
 	case RepositoriesOutputText:
-		w := tabwriter.NewWriter(out, 10, 4, 3, ' ', 0)
 		fmt.Fprintln(w, "NAME\tTYPE\tURL\tFILE")
 		for _, r := range repositoryList {
 			dir, file := filepath.Split(r.URL())
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.Name(), r.Type(), dir, file)
 		}
-		w.Flush()
 	case RepositoriesOutputYaml:
 		y, err := yaml.Marshal(repositoryList)
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(y))
+		fmt.Fprintf(w, string(y))
 	}
-
+	w.Flush()
 	return nil
 }

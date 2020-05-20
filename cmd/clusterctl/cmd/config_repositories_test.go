@@ -38,11 +38,18 @@ func Test_runGetRepositories(t *testing.T) {
 		g.Expect(ioutil.WriteFile(path, []byte(template), 0644)).To(Succeed())
 
 		buf := bytes.NewBufferString("")
-		g.Expect(runGetRepositories(path, buf)).To(Succeed())
 
-		out, err := ioutil.ReadAll(buf)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(string(out)).To(Equal(expectedOutput))
+		for _, val := range RepositoriesOutputs {
+			cro.output = val
+			g.Expect(runGetRepositories(path, buf)).To(Succeed())
+			out, err := ioutil.ReadAll(buf)
+			g.Expect(err).ToNot(HaveOccurred())
+			if val == RepositoriesOutputText {
+				g.Expect(string(out)).To(Equal(expectedOutputText))
+			} else if val == RepositoriesOutputYaml {
+				g.Expect(string(out)).To(Equal(expectedOutputYaml))
+			}
+		}
 	})
 
 	t.Run("returns error for bad cfgFile path", func(t *testing.T) {
@@ -91,7 +98,7 @@ providers:
     type: "CoreProvider"
 `
 
-var expectedOutput = `NAME                TYPE                     URL                                                                                  FILE
+var expectedOutputText = `NAME                TYPE                     URL                                                                                  FILE
 cluster-api         CoreProvider             https://github.com/myorg/myforkofclusterapi/releases/latest/                         core_components.yaml
 another-provider    BootstrapProvider        ./                                                                                   bootstrap-components.yaml
 kubeadm             BootstrapProvider        https://github.com/kubernetes-sigs/cluster-api/releases/latest/                      bootstrap-components.yaml
@@ -102,4 +109,46 @@ metal3              InfrastructureProvider   https://github.com/metal3-io/cluste
 my-infra-provider   InfrastructureProvider   /home/.cluster-api/overrides/infrastructure-docker/latest/                           infrastructure-components.yaml
 openstack           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/   infrastructure-components.yaml
 vsphere             InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/     infrastructure-components.yaml
+`
+
+var expectedOutputYaml = `- File: core_components.yaml
+  Name: cluster-api
+  ProviderType: CoreProvider
+  URL: https://github.com/myorg/myforkofclusterapi/releases/latest/
+- File: bootstrap-components.yaml
+  Name: another-provider
+  ProviderType: BootstrapProvider
+  URL: ./
+- File: bootstrap-components.yaml
+  Name: kubeadm
+  ProviderType: BootstrapProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
+- File: control-plane-components.yaml
+  Name: kubeadm
+  ProviderType: ControlPlaneProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
+- File: my-aws-infrastructure-components.yaml
+  Name: aws
+  ProviderType: InfrastructureProvider
+  URL: ""
+- File: infrastructure-components.yaml
+  Name: azure
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/
+- File: infrastructure-components.yaml
+  Name: metal3
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/
+- File: infrastructure-components.yaml
+  Name: my-infra-provider
+  ProviderType: InfrastructureProvider
+  URL: /home/.cluster-api/overrides/infrastructure-docker/latest/
+- File: infrastructure-components.yaml
+  Name: openstack
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/
+- File: infrastructure-components.yaml
+  Name: vsphere
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/
 `

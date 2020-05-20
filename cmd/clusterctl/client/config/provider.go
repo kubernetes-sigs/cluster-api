@@ -18,6 +18,7 @@ package config
 
 import (
 	"encoding/json"
+	"path/filepath"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
@@ -91,14 +92,17 @@ func NewProvider(name string, url string, ttype clusterctlv1.ProviderType) Provi
 }
 
 func (p provider) MarshalJSON() ([]byte, error) {
+	dir, file := filepath.Split(p.url)
 	j, err := json.Marshal(struct {
 		Name         string
-		URL          string
 		ProviderType clusterctlv1.ProviderType
+		URL          string
+		File         string
 	}{
 		Name:         p.name,
-		URL:          p.url,
 		ProviderType: p.providerType,
+		URL:          dir,
+		File:         file,
 	})
 	if err != nil {
 		return nil, err

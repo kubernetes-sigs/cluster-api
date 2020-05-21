@@ -157,8 +157,13 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 
 		// Always attempt to update status.
 		if err := r.updateStatus(ctx, kcp, cluster); err != nil {
-			logger.Error(err, "Failed to update KubeadmControlPlane Status")
-			reterr = kerrors.NewAggregate([]error{reterr, err})
+			var connFailure *internal.RemoteClusterConnectionError
+			if errors.As(err, &connFailure) {
+				logger.Info("Could not connect to workload cluster to fetch status", "err", err)
+			} else {
+				logger.Error(err, "Failed to update KubeadmControlPlane Status")
+				reterr = kerrors.NewAggregate([]error{reterr, err})
+			}
 		}
 
 		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.

@@ -49,6 +49,15 @@ type Management struct {
 	Client ctrlclient.Reader
 }
 
+// RemoteClusterConnectionError represents a failure to connect to a remote cluster
+type RemoteClusterConnectionError struct {
+	Name string
+	Err  error
+}
+
+func (e *RemoteClusterConnectionError) Error() string { return e.Name + ": " + e.Err.Error() }
+func (e *RemoteClusterConnectionError) Unwrap() error { return e.Err }
+
 // GetMachinesForCluster returns a list of machines that can be filtered or not.
 // If no filter is supplied then all machines associated with the target cluster are returned.
 func (m *Management) GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...machinefilters.Func) (FilterableMachineCollection, error) {
@@ -77,7 +86,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 
 	c, err := client.New(restConfig, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create client for workload cluster %v", clusterKey)
+		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
 	}
 
 	etcdCASecret := &corev1.Secret{}

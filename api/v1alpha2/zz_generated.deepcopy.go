@@ -578,6 +578,11 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Bootstrap.DeepCopyInto(&out.Bootstrap)
 	out.InfrastructureRef = in.InfrastructureRef
+	if in.InfrastructureTemplateRef != nil {
+		in, out := &in.InfrastructureTemplateRef, &out.InfrastructureTemplateRef
+		*out = new(v1.ObjectReference)
+		**out = **in
+	}
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)

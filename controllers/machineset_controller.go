@@ -334,6 +334,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 			}
 			machine.Spec.InfrastructureRef = *infraRef
+			machine.Spec.InfrastructureTemplateRef = &ms.Spec.Template.Spec.InfrastructureRef
 
 			if err := r.Client.Create(ctx, machine); err != nil {
 				logger.Error(err, "Unable to create Machine", "machine", machine.Name)

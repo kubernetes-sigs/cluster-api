@@ -875,6 +875,7 @@ func autoConvert_v1alpha2_MachineSpec_To_v1alpha3_MachineSpec(in *MachineSpec, o
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
+	out.InfrastructureTemplateRef = (*v1.ObjectReference)(unsafe.Pointer(in.InfrastructureTemplateRef))
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	return nil
@@ -886,6 +887,7 @@ func autoConvert_v1alpha3_MachineSpec_To_v1alpha2_MachineSpec(in *v1alpha3.Machi
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
+	out.InfrastructureTemplateRef = (*v1.ObjectReference)(unsafe.Pointer(in.InfrastructureTemplateRef))
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type

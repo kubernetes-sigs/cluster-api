@@ -196,6 +196,8 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
+			Expect(m.Spec.InfrastructureTemplateRef).To(Equal(&instance.Spec.Template.Spec.InfrastructureRef))
+
 			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
 		}
 

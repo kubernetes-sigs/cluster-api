@@ -123,6 +123,11 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 			},
 			"spec": map[string]interface{}{
 				"template": map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							"test": "annotations",
+						},
+					},
 					"spec": map[string]interface{}{
 						"hello": "world",
 					},
@@ -146,6 +151,10 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 
 	expectedKind := "Purple"
 	expectedAPIVersion := templateAPIVersion
+	expectedMetadata, ok, err := unstructured.NestedMap(template.UnstructuredContent(), "spec", "template", "metadata")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(ok).To(BeTrue())
+	g.Expect(expectedMetadata).NotTo(BeEmpty())
 
 	expectedSpec, ok, err := unstructured.NestedMap(template.UnstructuredContent(), "spec", "template", "spec")
 	g.Expect(err).NotTo(HaveOccurred())
@@ -188,6 +197,9 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	cloneLabels := clone.GetLabels()
 	g.Expect(cloneLabels).To(HaveKeyWithValue(clusterv1.ClusterLabelName, testClusterName))
 	g.Expect(cloneLabels).To(HaveKeyWithValue("test-label-1", "value-1"))
+
+	cloneAnnotations := clone.GetAnnotations()
+	g.Expect(cloneAnnotations).To(HaveKeyWithValue("test", "annotations"))
 }
 
 func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {

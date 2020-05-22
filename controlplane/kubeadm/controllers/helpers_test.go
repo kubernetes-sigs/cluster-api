@@ -274,6 +274,12 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		g.Expect(m.Spec.InfrastructureRef.APIVersion).To(Equal(genericMachineTemplate.GetAPIVersion()))
 		g.Expect(m.Spec.InfrastructureRef.Kind).To(Equal("GenericMachine"))
 
+		g.Expect(m.Spec.InfrastructureClonedFrom).ToNot(BeNil())
+		g.Expect(m.Spec.InfrastructureClonedFrom.Namespace).To(Equal(cluster.Namespace))
+		g.Expect(m.Spec.InfrastructureClonedFrom.Name).To(Equal(genericMachineTemplate.GetName()))
+		g.Expect(m.Spec.InfrastructureClonedFrom.APIVersion).To(Equal(genericMachineTemplate.GetAPIVersion()))
+		g.Expect(m.Spec.InfrastructureClonedFrom.Kind).To(Equal("GenericMachineTemplate"))
+
 		g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(cluster.Namespace))
 		g.Expect(m.Spec.Bootstrap.ConfigRef.Name).To(HavePrefix(kcp.Name))
 		g.Expect(m.Spec.Bootstrap.ConfigRef.APIVersion).To(Equal(bootstrapv1.GroupVersion.String()))

@@ -53,12 +53,12 @@ type MachineSpec struct {
 	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 
 	// InfrastructureClonedFrom is an optional reference to the infrastructure template resource
-	// that was copied for this machine, if any. 
-	// 
+	// that was copied for this machine, if any.
+	//
 	// This value is not meant to be set by users, controllers creating and managing Machine objects
 	// may set this value to inform users that the object has been created from a cloned template.
 	// +optional
-	InfrastructureClonedFrom *corev1.ObjectReference `json:"infrastructureTemplateRef,omitempty"`
+	InfrastructureClonedFrom *corev1.ObjectReference `json:"infrastructureClonedFrom,omitempty"`
 
 	// Version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.

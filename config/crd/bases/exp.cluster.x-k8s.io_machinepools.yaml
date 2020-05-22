@@ -294,9 +294,13 @@ spec:
                           will be created in. Must match a key in the FailureDomains
                           map stored on the cluster object.
                         type: string
-                      infrastructureRef:
-                        description: InfrastructureRef is a required reference to
-                          a custom resource offered by an infrastructure provider.
+                      infrastructureClonedFrom:
+                        description: "InfrastructureClonedFrom is an optional reference
+                          to the infrastructure template resource that was copied
+                          for this machine, if any. \n This value is not meant to
+                          be set by users, controllers creating and managing Machine
+                          objects may set this value to inform users that the object
+                          has been created from a cloned template."
                         properties:
                           apiVersion:
                             description: API version of the referent.
@@ -332,10 +336,9 @@ spec:
                             description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                             type: string
                         type: object
-                      infrastructureTemplateRef:
-                        description: InfrastructureTemplateRef is an optional reference
-                          to the infrastructure Template resource that was copied
-                          for this machine, if any.
+                      infrastructureRef:
+                        description: InfrastructureRef is a required reference to
+                          a custom resource offered by an infrastructure provider.
                         properties:
                           apiVersion:
                             description: API version of the referent.

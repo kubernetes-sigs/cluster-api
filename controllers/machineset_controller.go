@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -170,12 +169,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 		})
 		// Patch using a deep copy to avoid overwriting any unexpected Status changes from the returned result
 		if err := r.Client.Patch(ctx, machineSet.DeepCopy(), patch); err != nil {
-			return ctrl.Result{}, errors.Wrapf(
-				err,
-				"failed to add OwnerReference to MachineSet %s/%s",
-				machineSet.Namespace,
-				machineSet.Name,
-			)
+			return ctrl.Result{}, errors.Wrapf(err, "failed to add OwnerReference to MachineSet %s/%s", machineSet.Namespace, machineSet.Name)
 		}
 	}
 
@@ -289,13 +283,16 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 	}
 
 	diff := len(machines) - int(*(ms.Spec.Replicas))
-
-	if diff < 0 {
+	switch {
+	case diff < 0:
 		diff *= -1
 		logger.Info("Too few replicas", "need", *(ms.Spec.Replicas), "creating", diff)
 
-		var machineList []*clusterv1.Machine
-		var errstrings []string
+		var (
+			machineList []*clusterv1.Machine
+			errs        []error
+		)
+
 		for i := 0; i < diff; i++ {
 			logger.Info(fmt.Sprintf("Creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
 				i+1, diff, *(ms.Spec.Replicas), len(machines)))
@@ -337,39 +334,30 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			if err := r.Client.Create(ctx, machine); err != nil {
 				logger.Error(err, "Unable to create Machine", "machine", machine.Name)
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
-				errstrings = append(errstrings, err.Error())
-				infraConfig := &unstructured.Unstructured{}
-				infraConfig.SetKind(infraRef.Kind)
-				infraConfig.SetAPIVersion(infraRef.APIVersion)
-				infraConfig.SetNamespace(infraRef.Namespace)
-				infraConfig.SetName(infraRef.Name)
-				if err := r.Client.Delete(ctx, infraConfig); !apierrors.IsNotFound(err) {
+				errs = append(errs, err)
+
+				// Try to cleanup the external objects if the Machine creation failed.
+				if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*infraRef)); !apierrors.IsNotFound(err) {
 					logger.Error(err, "Failed to cleanup infrastructure configuration object after Machine creation error")
 				}
 				if bootstrapRef != nil {
-					bootstrapConfig := &unstructured.Unstructured{}
-					bootstrapConfig.SetKind(bootstrapRef.Kind)
-					bootstrapConfig.SetAPIVersion(bootstrapRef.APIVersion)
-					bootstrapConfig.SetNamespace(bootstrapRef.Namespace)
-					bootstrapConfig.SetName(bootstrapRef.Name)
-					if err := r.Client.Delete(ctx, bootstrapConfig); !apierrors.IsNotFound(err) {
+					if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*bootstrapRef)); !apierrors.IsNotFound(err) {
 						logger.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error")
 					}
 				}
 				continue
 			}
+
 			logger.Info(fmt.Sprintf("Created machine %d of %d with name %q", i+1, diff, machine.Name))
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created machine %q", machine.Name)
-
 			machineList = append(machineList, machine)
 		}
 
-		if len(errstrings) > 0 {
-			return errors.New(strings.Join(errstrings, "; "))
+		if len(errs) > 0 {
+			return kerrors.NewAggregate(errs)
 		}
-
 		return r.waitForMachineCreation(machineList)
-	} else if diff > 0 {
+	case diff > 0:
 		logger.Info("Too many replicas", "need", *(ms.Spec.Replicas), "deleting", diff)
 
 		deletePriorityFunc, err := getDeletePriorityFunc(ms)
@@ -377,32 +365,23 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			return err
 		}
 		logger.Info("Found delete policy", "delete-policy", ms.Spec.DeletePolicy)
-		// Choose which Machines to delete.
-		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
-
-		errCh := make(chan error, diff)
-		for _, machine := range machinesToDelete {
-			go func(targetMachine *clusterv1.Machine) {
-				err := r.Client.Delete(context.Background(), targetMachine)
-				if err != nil {
-					logger.Error(err, "Unable to delete Machine", "machine", targetMachine.Name)
-					r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedDelete", "Failed to delete machine %q: %v", targetMachine.Name, err)
-					errCh <- err
-				}
-				logger.Info("Deleted machine", "machine", targetMachine.Name)
-				r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", targetMachine.Name)
-			}(machine)
-		}
-		close(errCh)
 
 		var errs []error
-		for err := range errCh {
-			errs = append(errs, err)
+		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
+		for _, machine := range machinesToDelete {
+			if err := r.Client.Delete(ctx, machine); err != nil {
+				logger.Error(err, "Unable to delete Machine", "machine", machine.Name)
+				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedDelete", "Failed to delete machine %q: %v", machine.Name, err)
+				errs = append(errs, err)
+				continue
+			}
+			logger.Info("Deleted machine", "machine", machine.Name)
+			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", machine.Name)
 		}
+
 		if len(errs) > 0 {
 			return kerrors.NewAggregate(errs)
 		}
-
 		return r.waitForMachineDeletion(machinesToDelete)
 	}
 
@@ -414,19 +393,19 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.Machine {
 	gv := clusterv1.GroupVersion
 	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    fmt.Sprintf("%s-", machineSet.Name),
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)},
+			Namespace:       machineSet.Namespace,
+			Labels:          machineSet.Spec.Template.Labels,
+			Annotations:     machineSet.Spec.Template.Annotations,
+		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       gv.WithKind("Machine").Kind,
 			APIVersion: gv.String(),
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Labels:      machineSet.Spec.Template.Labels,
-			Annotations: machineSet.Spec.Template.Annotations,
-		},
 		Spec: machineSet.Spec.Template.Spec,
 	}
-	machine.ObjectMeta.GenerateName = fmt.Sprintf("%s-", machineSet.Name)
-	machine.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)}
-	machine.Namespace = machineSet.Namespace
 	machine.Spec.ClusterName = machineSet.Spec.ClusterName
 	if machine.Labels == nil {
 		machine.Labels = make(map[string]string)
@@ -456,12 +435,10 @@ func (r *MachineSetReconciler) waitForMachineCreation(machineList []*clusterv1.M
 		machine := machineList[i]
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
-
 			if err := r.Client.Get(context.Background(), key, &clusterv1.Machine{}); err != nil {
 				if apierrors.IsNotFound(err) {
 					return false, nil
 				}
-				r.Log.Error(err, "Error getting machines")
 				return false, err
 			}
 
@@ -483,12 +460,10 @@ func (r *MachineSetReconciler) waitForMachineDeletion(machineList []*clusterv1.M
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
 			m := &clusterv1.Machine{}
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
-
 			err := r.Client.Get(context.Background(), key, m)
 			if apierrors.IsNotFound(err) || !m.DeletionTimestamp.IsZero() {
 				return true, nil
 			}
-
 			return false, err
 		})
 

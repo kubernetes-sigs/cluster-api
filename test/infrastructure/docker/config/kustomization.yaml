@@ -6,3 +6,4 @@ commonLabels:
 resources:
 - crd
 - default
+- webhook

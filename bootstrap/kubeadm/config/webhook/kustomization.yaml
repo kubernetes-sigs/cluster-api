@@ -11,7 +11,7 @@ configurations:
 
 patchesStrategicMerge:
 - manager_webhook_patch.yaml
-# - webhookcainjection_patch.yaml
+- webhookcainjection_patch.yaml
 
 vars:
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER' prefix.

@@ -57,7 +57,7 @@ func TestClusterValidate(t *testing.T) {
 					Files: []File{
 						{
 							ContentFrom: &FileSource{
-								Secret: &SecretFileSource{
+								Secret: SecretFileSource{
 									Name: "foo",
 									Key:  "bar",
 								},
@@ -94,7 +94,7 @@ func TestClusterValidate(t *testing.T) {
 					Files: []File{
 						{
 							ContentFrom: &FileSource{
-								Secret: &SecretFileSource{
+								Secret: SecretFileSource{
 									Key: "bar",
 								},
 							},
@@ -115,7 +115,7 @@ func TestClusterValidate(t *testing.T) {
 					Files: []File{
 						{
 							ContentFrom: &FileSource{
-								Secret: &SecretFileSource{
+								Secret: SecretFileSource{
 									Name: "foo",
 								},
 							},

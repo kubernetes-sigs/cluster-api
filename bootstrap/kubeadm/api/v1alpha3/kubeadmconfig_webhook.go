@@ -45,12 +45,12 @@ var _ webhook.Validator = &KubeadmConfig{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (c *KubeadmConfig) ValidateCreate() error {
-	return c.validate()
+	return c.Spec.validate(c.Name)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (c *KubeadmConfig) ValidateUpdate(old runtime.Object) error {
-	return c.validate()
+	return c.Spec.validate(c.Name)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -58,11 +58,11 @@ func (c *KubeadmConfig) ValidateDelete() error {
 	return nil
 }
 
-func (c *KubeadmConfig) validate() error {
+func (c *KubeadmConfigSpec) validate(name string) error {
 	var allErrs field.ErrorList
 
-	for i := range c.Spec.Files {
-		file := c.Spec.Files[i]
+	for i := range c.Files {
+		file := c.Files[i]
 		if file.Content != "" && file.ContentFrom != nil {
 			allErrs = append(
 				allErrs,
@@ -76,7 +76,7 @@ func (c *KubeadmConfig) validate() error {
 		// n.b.: if we ever add types besides Secret as a ContentFrom
 		// Source, we must add webhook validation here for one of the
 		// sources being non-nil.
-		if file.ContentFrom != nil && file.ContentFrom.Secret != nil {
+		if file.ContentFrom != nil {
 			if file.ContentFrom.Secret.Name == "" {
 				allErrs = append(
 					allErrs,
@@ -103,5 +103,5 @@ func (c *KubeadmConfig) validate() error {
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmConfig").GroupKind(), c.Name, allErrs)
+	return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmConfig").GroupKind(), name, allErrs)
 }

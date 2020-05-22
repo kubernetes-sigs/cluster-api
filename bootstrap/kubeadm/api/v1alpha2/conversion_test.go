@@ -39,7 +39,7 @@ func TestConvertKubeadmConfig(t *testing.T) {
 					Files: []v1alpha3.File{
 						{
 							ContentFrom: &v1alpha3.FileSource{
-								Secret: &v1alpha3.SecretFileSource{
+								Secret: v1alpha3.SecretFileSource{
 									Name: "foo",
 									Key:  "bar",
 								},

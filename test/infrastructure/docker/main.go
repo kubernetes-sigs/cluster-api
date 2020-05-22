@@ -85,6 +85,7 @@ func main() {
 
 	setupChecks(mgr)
 	setupReconcilers(mgr)
+	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager")
@@ -122,6 +123,13 @@ func setupReconcilers(mgr ctrl.Manager) {
 		Log:    ctrl.Log.WithName("controllers").WithName("DockerCluster"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DockerCluster")
+		os.Exit(1)
+	}
+}
+
+func setupWebhooks(mgr ctrl.Manager) {
+	if err := (&infrav1.DockerMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "DockerMachineTemplate")
 		os.Exit(1)
 	}
 }

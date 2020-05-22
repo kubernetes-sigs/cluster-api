@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -167,7 +168,7 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 	mgmtClient := input.ClusterProxy.GetClient()
 
 	for _, deployment := range input.MachineDeployments {
-		fmt.Fprintf(GinkgoWriter, "Patching the new kubernetes version to Machine Deployment %s/%s\n", deployment.Namespace, deployment.Name)
+		log.Logf("Patching the new kubernetes version to Machine Deployment %s/%s", deployment.Namespace, deployment.Name)
 		patchHelper, err := patch.NewHelper(deployment, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -175,7 +176,7 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
 		Expect(patchHelper.Patch(context.TODO(), deployment)).To(Succeed())
 
-		fmt.Fprintf(GinkgoWriter, "Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s\n",
+		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
 			deployment.Namespace, deployment.Name, *oldVersion, input.UpgradeVersion)
 		WaitForMachineDeploymentMachinesToBeUpgraded(ctx, WaitForMachineDeploymentMachinesToBeUpgradedInput{
 			Lister:                   mgmtClient,
@@ -199,7 +200,7 @@ func WaitForMachineDeploymentRollingUpgradeToStart(ctx context.Context, input Wa
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentRollingUpgradeToStart")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentRollingUpgradeToStarts")
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for MachineDeployment rolling upgrade to start\n")
+	log.Logf("Waiting for MachineDeployment rolling upgrade to start")
 	Eventually(func() bool {
 		md := &clusterv1.MachineDeployment{}
 		Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
@@ -219,7 +220,7 @@ func WaitForMachineDeploymentRollingUpgradeToComplete(ctx context.Context, input
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentRollingUpgradeToComplete")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentRollingUpgradeToComplete")
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for MachineDeployment rolling upgrade to complete\n")
+	log.Logf("Waiting for MachineDeployment rolling upgrade to complete")
 	Eventually(func() bool {
 		md := &clusterv1.MachineDeployment{}
 		Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
@@ -245,7 +246,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 	mgmtClient := input.ClusterProxy.GetClient()
 
 	for _, deployment := range input.MachineDeployments {
-		fmt.Fprintf(GinkgoWriter, "Patching the new infrastructure ref to Machine Deployment %s/%s\n", deployment.Namespace, deployment.Name)
+		log.Logf("Patching the new infrastructure ref to Machine Deployment %s/%s", deployment.Namespace, deployment.Name)
 		// Retrieve infra object
 		infraRef := deployment.Spec.Template.Spec.InfrastructureRef
 		infraObj := &unstructured.Unstructured{}
@@ -270,13 +271,13 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 		deployment.Spec.Template.Spec.InfrastructureRef = infraRef
 		Expect(patchHelper.Patch(context.TODO(), deployment)).To(Succeed())
 
-		fmt.Fprintf(GinkgoWriter, "Waiting for rolling upgrade to start.\n")
+		log.Logf("Waiting for rolling upgrade to start.")
 		WaitForMachineDeploymentRollingUpgradeToStart(ctx, WaitForMachineDeploymentRollingUpgradeToStartInput{
 			Getter:            mgmtClient,
 			MachineDeployment: deployment,
 		}, input.WaitForMachinesToBeUpgraded...)
 
-		fmt.Fprintf(GinkgoWriter, "Waiting for rolling upgrade to complete.\n")
+		log.Logf("Waiting for rolling upgrade to complete.")
 		WaitForMachineDeploymentRollingUpgradeToComplete(ctx, WaitForMachineDeploymentRollingUpgradeToCompleteInput{
 			Getter:            mgmtClient,
 			MachineDeployment: deployment,
@@ -306,13 +307,13 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ScaleAndWaitMachineDeployment")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling ScaleAndWaitMachineDeployment")
 
-	fmt.Fprintf(GinkgoWriter, "Scaling machine deployment %s/%s from %v to %v replicas\n", input.MachineDeployment.Namespace, input.MachineDeployment.Name, input.MachineDeployment.Spec.Replicas, input.Replicas)
+	log.Logf("Scaling machine deployment %s/%s from %v to %v replicas", input.MachineDeployment.Namespace, input.MachineDeployment.Name, input.MachineDeployment.Spec.Replicas, input.Replicas)
 	patchHelper, err := patch.NewHelper(input.MachineDeployment, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	input.MachineDeployment.Spec.Replicas = pointer.Int32Ptr(input.Replicas)
 	Expect(patchHelper.Patch(ctx, input.MachineDeployment)).To(Succeed())
 
-	fmt.Fprintf(GinkgoWriter, "Waiting for correct number of replicas to exist\n")
+	log.Logf("Waiting for correct number of replicas to exist")
 	Eventually(func() (int, error) {
 		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
 		if err != nil {

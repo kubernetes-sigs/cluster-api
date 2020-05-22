@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -469,6 +470,83 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	// Ensure that we don't fail trying to refresh any bootstrap tokens
 	_, err = k.Reconcile(request)
 	g.Expect(err).NotTo(HaveOccurred())
+}
+
+func TestKubeadmConfigReconcile_SecretSource(t *testing.T) {
+	var (
+		secretName       string = "foo"
+		secretDataKey    string = "/foo/bar"
+		missingKey       string = "/foo/bar/baz"
+		secretContent    string = "fooBarBaz"
+		fileOwner        string = "baz"
+		filePermissions  string = "foobar"
+		filePath         string = "bazbar"
+		fileRemappedPath string = "foobazbar"
+	)
+
+	tests := map[string]struct {
+		input         bootstrapv1.File
+		output        bootstrapv1.File
+		expectFailure bool
+	}{
+		"defaults": {
+			input: bootstrapv1.File{
+				ContentFrom: &bootstrapv1.FileSource{
+					Secret: &bootstrapv1.SecretFileSource{
+						Name: secretName,
+						Key:  secretDataKey,
+					},
+				},
+				Path:  filePath,
+				Owner: fileOwner,
+			},
+			output: bootstrapv1.File{
+				Content: secretContent,
+				Path:    filePath,
+				Owner:   fileOwner,
+			},
+		},
+		"failure": {
+			input: bootstrapv1.File{
+				ContentFrom: &bootstrapv1.FileSource{
+					Secret: &bootstrapv1.SecretFileSource{
+						Name: secretName,
+						Key:  missingKey,
+					},
+				},
+				Path:        fileRemappedPath,
+				Owner:       fileOwner,
+				Permissions: filePermissions,
+			},
+			output:        bootstrapv1.File{},
+			expectFailure: true,
+		},
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: secretName,
+		},
+		Data: map[string][]byte{
+			secretDataKey: []byte(secretContent),
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+			files, err := secretToFile(secret, tc.input)
+			if tc.expectFailure {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				diff := cmp.Diff(tc.output, files)
+				if diff != "" {
+					t.Fatalf(diff)
+				}
+			}
+		})
+	}
 }
 
 // If a control plane has no JoinConfiguration, then we will create a default and no error will occur

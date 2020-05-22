@@ -188,6 +188,17 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 						Name: "test",
 					},
 				},
+				PreKubeadmCommands: []string{
+					"test", "foo",
+				},
+				PostKubeadmCommands: []string{
+					"test", "foo",
+				},
+				Files: []bootstrapv1.File{
+					{
+						Path: "test",
+					},
+				},
 			},
 			Version: "v1.16.6",
 		},
@@ -204,6 +215,16 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	validUpdate := before.DeepCopy()
 	validUpdate.Labels = map[string]string{"blue": "green"}
+	validUpdate.Spec.KubeadmConfigSpec.PreKubeadmCommands = []string{"ab", "abc"}
+	validUpdate.Spec.KubeadmConfigSpec.PostKubeadmCommands = []string{"ab", "abc"}
+	validUpdate.Spec.KubeadmConfigSpec.Files = []bootstrapv1.File{
+		{
+			Path: "ab",
+		},
+		{
+			Path: "abc",
+		},
+	}
 	validUpdate.Spec.Version = "v1.16.6"
 	validUpdate.Spec.InfrastructureTemplate.Name = "orange"
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)

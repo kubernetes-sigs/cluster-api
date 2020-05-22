@@ -74,6 +74,9 @@ const (
 	spec                 = "spec"
 	kubeadmConfigSpec    = "kubeadmConfigSpec"
 	clusterConfiguration = "clusterConfiguration"
+	preKubeadmCommands   = "preKubeadmCommands"
+	postKubeadmCommands  = "postKubeadmCommands"
+	files                = "files"
 )
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -87,6 +90,9 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageTag"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "imageRepository"},
+		{spec, kubeadmConfigSpec, preKubeadmCommands},
+		{spec, kubeadmConfigSpec, postKubeadmCommands},
+		{spec, kubeadmConfigSpec, files},
 		{spec, "infrastructureTemplate", "name"},
 		{spec, "replicas"},
 		{spec, "version"},

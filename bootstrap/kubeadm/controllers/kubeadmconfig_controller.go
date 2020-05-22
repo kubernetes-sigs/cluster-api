@@ -366,15 +366,11 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files := append(certificates.AsFiles(), scope.Config.Spec.Files...)
-
-	additionalFiles, err := r.resolveFiles(ctx, scope.Config)
+	files, err := r.resolveFiles(ctx, scope.Config, certificates.AsFiles()...)
 	if err != nil {
 		scope.Error(err, "Failed to resolve files")
 		return ctrl.Result{}, err
 	}
-
-	files = append(files, additionalFiles...)
 
 	cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
 		BaseUserData: cloudinit.BaseUserData{
@@ -444,13 +440,11 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	additionalFiles, err := r.resolveFiles(ctx, scope.Config)
+	files, err := r.resolveFiles(ctx, scope.Config)
 	if err != nil {
 		scope.Error(err, "Failed to resolve files")
 		return ctrl.Result{}, err
 	}
-
-	var files = append(scope.Config.Spec.Files, additionalFiles...)
 
 	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
@@ -518,20 +512,14 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 
 	verbosityFlag := ""
 	if scope.Config.Spec.Verbosity != nil {
-		verbosityFlag =
-
-			fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
+		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	var files = append(certificates.AsFiles(), scope.Config.Spec.Files...)
-
-	additionalFiles, err := r.resolveFiles(ctx, scope.Config)
+	files, err := r.resolveFiles(ctx, scope.Config, certificates.AsFiles()...)
 	if err != nil {
 		scope.Error(err, "Failed to resolve files")
 		return ctrl.Result{}, err
 	}
-
-	files = append(files, additionalFiles...)
 
 	cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 		JoinConfiguration: joinData,
@@ -561,64 +549,41 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 
 // resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references
 // along the way.
-func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig) ([]bootstrapv1.File, error) {
-	var converted []bootstrapv1.File
+func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, merge ...bootstrapv1.File) ([]bootstrapv1.File, error) {
+	collected := append(cfg.Spec.Files, merge...)
 
-	for i := range cfg.Spec.Files {
-		in := cfg.Spec.Files[i]
-		switch {
-		case in.ContentFrom != nil:
-			file, err := r.resolveContent(ctx, cfg.Namespace, in)
+	for i := range collected {
+		in := collected[i]
+		if in.ContentFrom != nil {
+			data, err := r.resolveSecretFileContent(ctx, cfg.Namespace, in)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to resolve file source")
 			}
-			converted = append(converted, file)
-		case in.Content != "":
-			converted = append(converted, in)
-		default:
-			return nil, fmt.Errorf("could not find content to populate file: %s", in.Path)
+			in.ContentFrom = nil
+			in.Content = string(data)
+			collected[i] = in
 		}
+
 	}
 
-	return converted, nil
-}
-
-func (r *KubeadmConfigReconciler) resolveContent(ctx context.Context, ns string, source bootstrapv1.File) (bootstrapv1.File, error) {
-	switch {
-	case source.ContentFrom.Secret != nil:
-		return r.resolveSecretFileContent(ctx, ns, source)
-	default:
-		return bootstrapv1.File{}, errors.New("could not find non-nil source for file content")
-	}
+	return collected, nil
 }
 
 // resolveSecretFileContent returns file content fetched from a referenced secret object.
-func (r *KubeadmConfigReconciler) resolveSecretFileContent(ctx context.Context, ns string, source bootstrapv1.File) (bootstrapv1.File, error) {
-	var secret corev1.Secret
-	nn := types.NamespacedName{Namespace: ns, Name: source.ContentFrom.Secret.Name}
-	if err := r.Client.Get(ctx, nn, &secret); err != nil {
+func (r *KubeadmConfigReconciler) resolveSecretFileContent(ctx context.Context, ns string, source bootstrapv1.File) ([]byte, error) {
+	secret := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: ns, Name: source.ContentFrom.Secret.Name}
+	if err := r.Client.Get(ctx, key, secret); err != nil {
 		if apierrors.IsNotFound(err) {
-			return bootstrapv1.File{}, errors.Wrapf(err, "secret not found: %s", nn)
+			return nil, errors.Wrapf(err, "secret not found: %s", key)
 		}
-		return bootstrapv1.File{}, errors.Wrapf(err, "getting Secret %s", nn)
+		return nil, errors.Wrapf(err, "failed to retrieve Secret %q", key)
 	}
-
-	return secretToFile(&secret, source)
-}
-
-func secretToFile(secret *corev1.Secret, source bootstrapv1.File) (bootstrapv1.File, error) {
 	data, ok := secret.Data[source.ContentFrom.Secret.Key]
 	if !ok {
-		return bootstrapv1.File{}, fmt.Errorf("secret references non-existent secret key: %s", source.ContentFrom.Secret.Key)
+		return nil, errors.Errorf("secret references non-existent secret key: %q", source.ContentFrom.Secret.Key)
 	}
-
-	return bootstrapv1.File{
-		Owner:       source.Owner,
-		Permissions: source.Permissions,
-		Encoding:    source.Encoding,
-		Content:     string(data),
-		Path:        source.Path,
-	}, nil
+	return data, nil
 }
 
 // ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqeue

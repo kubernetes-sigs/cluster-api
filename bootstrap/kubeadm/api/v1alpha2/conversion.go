@@ -40,6 +40,12 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Verbosity = restored.Spec.Verbosity
 	dst.Spec.UseExperimentalRetryJoin = restored.Spec.UseExperimentalRetryJoin
 	dst.Spec.Files = restored.Spec.Files
+	for i := range restored.Spec.Files {
+		file := restored.Spec.Files[i]
+		if file.ContentFrom != nil {
+			dst.Spec.Files = append(dst.Spec.Files, file)
+		}
+	}
 
 	return nil
 }

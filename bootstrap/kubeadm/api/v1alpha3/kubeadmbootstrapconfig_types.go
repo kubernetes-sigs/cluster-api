@@ -185,7 +185,7 @@ type File struct {
 // sources of data for target systems should add them here.
 type FileSource struct {
 	// Secret represents a secret that should populate this file.
-	Secret *SecretFileSource `json:"secret"`
+	Secret SecretFileSource `json:"secret"`
 }
 
 // Adapts a Secret into a FileSource.

@@ -172,7 +172,32 @@ type File struct {
 	Encoding Encoding `json:"encoding,omitempty"`
 
 	// Content is the actual content of the file.
-	Content string `json:"content"`
+	// +optional
+	Content string `json:"content,omitempty"`
+
+	// ContentFrom is a referenced source of content to populate the file.
+	// +optional
+	ContentFrom *FileSource `json:"contentFrom,omitempty"`
+}
+
+// FileSource is a union of all possible external source types for file data.
+// Only one field may be populated in any given instance. Developers adding new
+// sources of data for target systems should add them here.
+type FileSource struct {
+	// Secret represents a secret that should populate this file.
+	Secret *SecretFileSource `json:"secret"`
+}
+
+// Adapts a Secret into a FileSource.
+//
+// The contents of the target Secret's Data field will be presented
+// as files using the keys in the Data field as the file names.
+type SecretFileSource struct {
+	// Name of the secret in the KubeadmBootstrapConfig's namespace to use.
+	Name string `json:"name"`
+
+	// Key is the key in the secret's data map for this value.
+	Key string `json:"key"`
 }
 
 // User defines the input for a generated user in cloud-init.

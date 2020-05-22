@@ -27,6 +27,9 @@ import (
 const (
 	KubeadmControlPlaneFinalizer    = "kubeadm.controlplane.cluster.x-k8s.io"
 	KubeadmControlPlaneHashLabelKey = "kubeadm.controlplane.cluster.x-k8s.io/hash"
+
+	// SkipCoreDNSAnnotation annotation explicitly skips reconciling CoreDNS if set
+	SkipCoreDNSAnnotation = "controlplane.cluster.x-k8s.io/skip-coredns"
 )
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.

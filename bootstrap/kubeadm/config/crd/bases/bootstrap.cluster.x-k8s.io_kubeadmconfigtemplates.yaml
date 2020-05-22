@@ -1227,6 +1227,29 @@ spec:
                             content:
                               description: Content is the actual content of the file.
                               type: string
+                            contentFrom:
+                              description: ContentFrom is a referenced source of content
+                                to populate the file.
+                              properties:
+                                secret:
+                                  description: Secret represents a secret that should
+                                    populate this file.
+                                  properties:
+                                    key:
+                                      description: Key is the key in the secret's
+                                        data map for this value.
+                                      type: string
+                                    name:
+                                      description: Name of the secret in the KubeadmBootstrapConfig's
+                                        namespace to use.
+                                      type: string
+                                  required:
+                                  - key
+                                  - name
+                                  type: object
+                              required:
+                              - secret
+                              type: object
                             encoding:
                               description: Encoding specifies the encoding of the
                                 file contents.
@@ -1248,7 +1271,6 @@ spec:
                                 assign to the file, e.g. "0640".
                               type: string
                           required:
-                          - content
                           - path
                           type: object
                         type: array

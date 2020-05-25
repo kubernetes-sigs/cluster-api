@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -382,11 +381,8 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 
 		errCh := make(chan error, diff)
-		var wg sync.WaitGroup
-		wg.Add(diff)
 		for _, machine := range machinesToDelete {
 			go func(targetMachine *clusterv1.Machine) {
-				defer wg.Done()
 				err := r.Client.Delete(context.Background(), targetMachine)
 				if err != nil {
 					logger.Error(err, "Unable to delete Machine", "machine", targetMachine.Name)
@@ -397,7 +393,6 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", targetMachine.Name)
 			}(machine)
 		}
-		wg.Wait()
 		close(errCh)
 
 		var errs []error

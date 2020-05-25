@@ -1,0 +1,35 @@
+@startuml
+
+[clusterctl]
+
+package "Management Cluster" {
+    [Kubeadm Bootstrap Provider] as cabpk
+    [Core Provider] as capi
+    [Kubeadm Control Plane Provider] as cakcp
+    [Infrastructure Provider] as infra #white
+    [API Server] as api #white
+    capi --> api
+    cabpk --> api
+    cakcp --> api
+    infra --> api
+}
+
+clusterctl -> api
+
+package "Workload Cluster 1" {
+    [API Server] as api1 #white
+    [etcd] as etcd1 #white
+    capi ---> api1
+    cakcp ---> api1
+    cakcp ---> etcd1
+}
+
+package "Workload Cluster 2" {
+    [API Server] as api2 #white
+    [etcd] as etcd2 #white
+    capi ---> api2
+    cakcp ---> api2
+    cakcp ---> etcd2
+}
+
+@enduml

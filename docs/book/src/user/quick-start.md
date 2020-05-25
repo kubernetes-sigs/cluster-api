@@ -301,8 +301,6 @@ before configuring a cluster with Cluster API.
 {{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3"}}
 {{#tab AWS}}
 
-Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
-
 ```bash
 export AWS_REGION=us-east-1
 export AWS_SSH_KEY_NAME=default

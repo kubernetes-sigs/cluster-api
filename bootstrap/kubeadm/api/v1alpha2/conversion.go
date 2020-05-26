@@ -39,6 +39,13 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.DataSecretName = restored.Status.DataSecretName
 	dst.Spec.Verbosity = restored.Spec.Verbosity
 	dst.Spec.UseExperimentalRetryJoin = restored.Spec.UseExperimentalRetryJoin
+	dst.Spec.Files = restored.Spec.Files
+	for i := range restored.Spec.Files {
+		file := restored.Spec.Files[i]
+		if file.ContentFrom != nil {
+			dst.Spec.Files = append(dst.Spec.Files, file)
+		}
+	}
 
 	return nil
 }
@@ -128,4 +135,9 @@ func Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *Kubead
 // Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec converts from the Hub version (v1alpha3) of the KubeadmConfigSpec to this version.
 func Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in *kubeadmbootstrapv1alpha3.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in, out, s)
+}
+
+// Convert_v1alpha3_File_To_v1alpha2_File converts from the Hub version (v1alpha3) of the File to this version.
+func Convert_v1alpha3_File_To_v1alpha2_File(in *kubeadmbootstrapv1alpha3.File, out *File, s apiconversion.Scope) error {
+	return autoConvert_v1alpha3_File_To_v1alpha2_File(in, out, s)
 }

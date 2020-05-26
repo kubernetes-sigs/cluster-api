@@ -17,62 +17,127 @@ limitations under the License.
 package v1alpha3
 
 import (
-	. "github.com/onsi/ginkgo"
+	"testing"
+
 	. "github.com/onsi/gomega"
 
-	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // These tests are written in BDD-style using Ginkgo framework. Refer to
 // http://onsi.github.io/ginkgo to learn more.
 
-var _ = Describe("KubeadmConfig", func() {
-	var (
-		key              types.NamespacedName
-		created, fetched *KubeadmConfig
-	)
-
-	BeforeEach(func() {
-		// Add any setup steps that needs to be executed before each test
-	})
-
-	AfterEach(func() {
-		// Add any teardown steps that needs to be executed after each test
-	})
-
-	// Add Tests for OpenAPI validation (or additional CRD features) specified in
-	// your API definition.
-	// Avoid adding tests for vanilla CRUD operations because they would
-	// test Kubernetes API server, which isn't the goal here.
-	Context("Create API", func() {
-
-		It("should create an object successfully", func() {
-
-			key = types.NamespacedName{
-				Name:      "foo",
-				Namespace: "default",
-			}
-			created = &KubeadmConfig{
+func TestClusterValidate(t *testing.T) {
+	cases := map[string]struct {
+		in        *KubeadmConfig
+		expectErr bool
+	}{
+		"valid content": {
+			in: &KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
+					Name:      "baz",
 					Namespace: "default",
 				},
+				Spec: KubeadmConfigSpec{
+					Files: []File{
+						{
+							Content: "foo",
+						},
+					},
+				},
+			},
+		},
+		"valid contentFrom": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Files: []File{
+						{
+							ContentFrom: &FileSource{
+								Secret: SecretFileSource{
+									Name: "foo",
+									Key:  "bar",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"invalid content and contentFrom": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Files: []File{
+						{
+							ContentFrom: &FileSource{},
+							Content:     "foo",
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"invalid contentFrom without name": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Files: []File{
+						{
+							ContentFrom: &FileSource{
+								Secret: SecretFileSource{
+									Key: "bar",
+								},
+							},
+							Content: "foo",
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"invalid contentFrom without key": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Files: []File{
+						{
+							ContentFrom: &FileSource{
+								Secret: SecretFileSource{
+									Name: "foo",
+								},
+							},
+							Content: "foo",
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+	}
+
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+			if tt.expectErr {
+				g.Expect(tt.in.ValidateCreate()).NotTo(Succeed())
+				g.Expect(tt.in.ValidateUpdate(nil)).NotTo(Succeed())
+			} else {
+				g.Expect(tt.in.ValidateCreate()).To(Succeed())
+				g.Expect(tt.in.ValidateUpdate(nil)).To(Succeed())
 			}
-
-			By("creating an API obj")
-			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
-
-			fetched = &KubeadmConfig{}
-			Expect(k8sClient.Get(context.TODO(), key, fetched)).To(Succeed())
-			Expect(fetched).To(Equal(created))
-
-			By("deleting the created object")
-			Expect(k8sClient.Delete(context.TODO(), created)).To(Succeed())
-			Expect(k8sClient.Get(context.TODO(), key, created)).ToNot(Succeed())
 		})
-
-	})
-
-})
+	}
+}

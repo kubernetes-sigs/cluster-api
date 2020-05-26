@@ -35,7 +35,21 @@ func TestConvertKubeadmConfig(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hub",
 				},
-				Spec: v1alpha3.KubeadmConfigSpec{},
+				Spec: v1alpha3.KubeadmConfigSpec{
+					Files: []v1alpha3.File{
+						{
+							ContentFrom: &v1alpha3.FileSource{
+								Secret: v1alpha3.SecretFileSource{
+									Name: "foo",
+									Key:  "bar",
+								},
+							},
+						},
+						{
+							Content: "baz",
+						},
+					},
+				},
 				Status: v1alpha3.KubeadmConfigStatus{
 					Ready:          true,
 					DataSecretName: pointer.StringPtr("secret-data"),

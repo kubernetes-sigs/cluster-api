@@ -133,7 +133,7 @@ and
 
 ```
 $EDITOR config/manager/manager_image_patch.yaml
-$EDITOR test/infrastructure/docker/config/default/manager_image_patch.yaml
+$EDITOR test/infrastructure/docker/config/manager/manager_image_patch.yaml
 ```
 
 In both cases, change the `- image:` url to the digest URL mentioned above:

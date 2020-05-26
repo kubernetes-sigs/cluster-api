@@ -4,18 +4,11 @@ nameReference:
 - kind: Service
   version: v1
   fieldSpecs:
-  - kind: MutatingWebhookConfiguration
-    group: admissionregistration.k8s.io
-    path: webhooks/clientConfig/service/name
   - kind: ValidatingWebhookConfiguration
     group: admissionregistration.k8s.io
     path: webhooks/clientConfig/service/name
 
 namespace:
-- kind: MutatingWebhookConfiguration
-  group: admissionregistration.k8s.io
-  path: webhooks/clientConfig/service/namespace
-  create: true
 - kind: ValidatingWebhookConfiguration
   group: admissionregistration.k8s.io
   path: webhooks/clientConfig/service/namespace
@@ -23,3 +16,5 @@ namespace:
 
 varReference:
 - path: metadata/annotations
+- kind: Deployment
+  path: spec/template/spec/volumes/secret/secretName

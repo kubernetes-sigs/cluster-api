@@ -126,6 +126,10 @@ type ClusterStatus struct {
 	// ControlPlaneReady defines if the control plane is ready.
 	// +optional
 	ControlPlaneReady bool `json:"controlPlaneReady,omitempty"`
+
+	// Conditions defines current service state of the cluster.
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: ClusterStatus
@@ -187,6 +191,14 @@ type Cluster struct {
 
 	Spec   ClusterSpec   `json:"spec,omitempty"`
 	Status ClusterStatus `json:"status,omitempty"`
+}
+
+func (c *Cluster) GetConditions() Conditions {
+	return c.Status.Conditions
+}
+
+func (c *Cluster) SetConditions(conditions Conditions) {
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

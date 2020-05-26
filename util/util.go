@@ -29,6 +29,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -545,4 +546,14 @@ func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.
 		return results
 
 	}), nil
+}
+
+// ObjectReferenceToUnstructured converts an object reference to an unstructured object.
+func ObjectReferenceToUnstructured(in corev1.ObjectReference) *unstructured.Unstructured {
+	out := &unstructured.Unstructured{}
+	out.SetKind(in.Kind)
+	out.SetAPIVersion(in.APIVersion)
+	out.SetNamespace(in.Namespace)
+	out.SetName(in.Name)
+	return out
 }

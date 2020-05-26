@@ -39,24 +39,24 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.DataSecretName = restored.Status.DataSecretName
 	dst.Spec.Verbosity = restored.Spec.Verbosity
 	dst.Spec.UseExperimentalRetryJoin = restored.Spec.UseExperimentalRetryJoin
+	dst.Spec.Files = restored.Spec.Files
 
 	// Track files successfully up-converted. We need this to dedupe
-	// restored files from user-updated files on up-conversion.
-	dstPaths := make(map[string]struct{}, len(dst.Spec.Files))
-	for _, file := range dst.Spec.Files {
-		dstPaths[file.Path] = struct{}{}
+	// restored files from user-updated files on up-conversion. We store
+	// them as pointers for later modification without paying for second
+	// lookup.
+	dstPaths := make(map[string]*kubeadmbootstrapv1alpha3.File, len(dst.Spec.Files))
+	for i := range dst.Spec.Files {
+		file := dst.Spec.Files[i]
+		dstPaths[file.Path] = &file
 	}
 
-	// If we had any files referencing contentFrom secrets, and those
-	// file paths have not been updated by the user with newer content,
-	// we should append the files lost during down conversions
-	for _, file := range restored.Spec.Files {
-		if file.ContentFrom != nil {
-			_, conflict := dstPaths[file.Path]
-			if conflict {
-				continue
-			}
-			dst.Spec.Files = append(dst.Spec.Files, file)
+	// If we find a restored file matching the file path of a v1alpha2
+	// file with no content, we should restore contentFrom to that file.
+	for _, restoredFile := range restored.Spec.Files {
+		dstFile, exists := dstPaths[restoredFile.Path]
+		if exists && dstFile.Content == "" {
+			dstFile.ContentFrom = restoredFile.ContentFrom
 		}
 	}
 
@@ -73,14 +73,6 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	// Preserve Hub data on down-conversion.
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
-	}
-
-	for i, file := range src.Spec.Files {
-		if file.ContentFrom != nil {
-			// Cut file with referenced content.
-			// It's already in the marshaled data.
-			dst.Spec.Files = append(dst.Spec.Files[:i], dst.Spec.Files[i+1:]...)
-		}
 	}
 
 	return nil

@@ -19,6 +19,8 @@ package v1alpha2
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,11 +35,16 @@ func TestConvertKubeadmConfig(t *testing.T) {
 
 			src := &v1alpha3.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "hub",
+					Name:        "hub",
+					Annotations: map[string]string{},
 				},
 				Spec: v1alpha3.KubeadmConfigSpec{
 					Files: []v1alpha3.File{
 						{
+							Path:        "/etc/another/file",
+							Owner:       "ubuntu:ubuntu",
+							Encoding:    v1alpha3.GzipBase64,
+							Permissions: "0600",
 							ContentFrom: &v1alpha3.FileSource{
 								Secret: v1alpha3.SecretFileSource{
 									Name: "foo",
@@ -46,7 +53,11 @@ func TestConvertKubeadmConfig(t *testing.T) {
 							},
 						},
 						{
-							Content: "baz",
+							Path:        "/etc/kubernetes/azure.json",
+							Owner:       "root:root",
+							Encoding:    v1alpha3.Base64,
+							Permissions: "0644",
+							Content:     "baz",
 						},
 					},
 				},
@@ -55,9 +66,9 @@ func TestConvertKubeadmConfig(t *testing.T) {
 					DataSecretName: pointer.StringPtr("secret-data"),
 				},
 			}
-			dst := &KubeadmConfig{}
 
-			g.Expect(dst.ConvertFrom(src)).To(Succeed())
+			dst := &KubeadmConfig{}
+			g.Expect(dst.ConvertFrom(src.DeepCopy())).To(Succeed())
 			restored := &v1alpha3.KubeadmConfig{}
 			g.Expect(dst.ConvertTo(restored)).To(Succeed())
 
@@ -65,6 +76,14 @@ func TestConvertKubeadmConfig(t *testing.T) {
 			g.Expect(restored.Name).To(Equal(src.Name))
 			g.Expect(restored.Status.Ready).To(Equal(src.Status.Ready))
 			g.Expect(restored.Status.DataSecretName).To(Equal(src.Status.DataSecretName))
+
+			diff := cmp.Diff(src.Spec.Files, restored.Spec.Files, cmpopts.SortSlices(func(i, j v1alpha3.File) bool {
+				return i.Path < j.Path
+			}))
+			if diff != "" {
+				t.Fatalf(diff)
+			}
+
 		})
 	})
 }

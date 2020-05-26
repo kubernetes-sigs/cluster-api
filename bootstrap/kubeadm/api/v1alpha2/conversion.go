@@ -39,10 +39,23 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.DataSecretName = restored.Status.DataSecretName
 	dst.Spec.Verbosity = restored.Spec.Verbosity
 	dst.Spec.UseExperimentalRetryJoin = restored.Spec.UseExperimentalRetryJoin
-	dst.Spec.Files = restored.Spec.Files
-	for i := range restored.Spec.Files {
-		file := restored.Spec.Files[i]
+
+	// Track files successfully up-converted. We need this to dedupe
+	// restored files from user-updated files on up-conversion.
+	dstPaths := make(map[string]struct{}, len(dst.Spec.Files))
+	for _, file := range dst.Spec.Files {
+		dstPaths[file.Path] = struct{}{}
+	}
+
+	// If we had any files referencing contentFrom secrets, and those
+	// file paths have not been updated by the user with newer content,
+	// we should append the files lost during down conversions
+	for _, file := range restored.Spec.Files {
 		if file.ContentFrom != nil {
+			_, conflict := dstPaths[file.Path]
+			if conflict {
+				continue
+			}
 			dst.Spec.Files = append(dst.Spec.Files, file)
 		}
 	}
@@ -60,6 +73,14 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	// Preserve Hub data on down-conversion.
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
+	}
+
+	for i, file := range src.Spec.Files {
+		if file.ContentFrom != nil {
+			// Cut file with referenced content.
+			// It's already in the marshaled data.
+			dst.Spec.Files = append(dst.Spec.Files[:i], dst.Spec.Files[i+1:]...)
+		}
 	}
 
 	return nil

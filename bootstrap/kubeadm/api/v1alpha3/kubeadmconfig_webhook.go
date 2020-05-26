@@ -31,6 +31,7 @@ var (
 	MissingFileSourceMsg     = "source for file content must be specified if contenFrom is non-nil"
 	MissingSecretNameMsg     = "secret file source must specify non-empty secret name"
 	MissingSecretKeyMsg      = "secret file source must specify non-empty secret key"
+	PathConflictMsg          = "path property must be unique among all files"
 )
 
 func (c *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -60,6 +61,8 @@ func (c *KubeadmConfig) ValidateDelete() error {
 
 func (c *KubeadmConfigSpec) validate(name string) error {
 	var allErrs field.ErrorList
+
+	knownPaths := map[string]struct{}{}
 
 	for i := range c.Files {
 		file := c.Files[i]
@@ -98,6 +101,18 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 				)
 			}
 		}
+		_, conflict := knownPaths[file.Path]
+		if conflict {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					field.NewPath("spec", "files", fmt.Sprintf("%d", i), "path"),
+					file,
+					PathConflictMsg,
+				),
+			)
+		}
+		knownPaths[file.Path] = struct{}{}
 	}
 
 	if len(allErrs) == 0 {

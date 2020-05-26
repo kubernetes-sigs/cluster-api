@@ -126,6 +126,25 @@ func TestClusterValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"invalid with duplicate file path": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Files: []File{
+						{
+							Content: "foo",
+						},
+						{
+							Content: "bar",
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
 	}
 
 	for name, tt := range cases {

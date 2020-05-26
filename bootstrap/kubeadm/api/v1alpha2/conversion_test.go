@@ -83,7 +83,6 @@ func TestConvertKubeadmConfig(t *testing.T) {
 			if diff != "" {
 				t.Fatalf(diff)
 			}
-
 		})
 	})
 }

@@ -88,16 +88,16 @@ As someone creating multiple clusters, I want to be able to provide different va
 
 ### Implementation Details/Notes/Constraints
 
-#### Data model changes
+#### Data model changes to existing API types
 
 None. We are planning to implement this feature without modifying any of the existing structure to minimize the footprint of ClusterResourceSet Controller. This enhancement will follow Kubernetes’s feature-gate structure and will be under the experimental package with its APIs, and enabled/disabled with a feature gate. 
 
 #### ClusterResourceSet Object Definition
 
-This is the CRD that is used to have a set of components that will be applied to clusters that match the label selector in it.
+This is the CRD that has a set of components to be applied to clusters that match the label selector in it.
 
-The resources field is a list of secrets/configmaps in the same namespace. The clusterSelector field is a Kubernetes [label selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements) that matches against labels on clusters (in any namespace).
-
+The resources field is a list of secrets/configmaps in the same namespace. The clusterSelector field is a Kubernetes [label selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements) that matches against labels on clusters (only the clusters in the same namespace with the ClusterResourceSet resource).
+ClusterResourceSet is namespace-scoped, all resources and clusters needs to be in the same namespace as the ClusterResourceSet.
 *Sample ClusterResourceSet YAML*
 
 ```yaml
@@ -105,7 +105,7 @@ The resources field is a list of secrets/configmaps in the same namespace. The c
 apiVersion: cluster.x-k8s.io/v1alpha3
 kind: ClusterResourceSet
 metadata:
- name: postcreate-conf
+ name: crs-conf
  namespace: default
 spec:
  mode: "ApplyOnce"
@@ -131,9 +131,25 @@ Each item in the resources specifies a kind (must be either ConfigMap or Secret)
 apiVersion: v1
 kind: Secret
 metadata:
-  name: calico-addon
-type: Opaque
+  name: db-secret
+type: clusterresourceset
 stringData:
+  value: |-
+    kind: Secret
+    apiVersion: v1
+    metadata:
+     name: mysql-secret
+```
+
+For preventing all secrets to be reached by all clusters in a namespace, only secrets with type "clusterresourceset" can be accessed by ClusterResourceSet controller.
+
+*Sample ConfigMap Format*
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: calico-addon
+data:
   value: |-
     kind: ConfigMap
     apiVersion: v1
@@ -143,16 +159,17 @@ stringData:
 
 The resources in ClusterResourceSet will be applied to matching clusters.
 There is many-to-many mapping between Clusters and ClusterResourceSets: Multiple ClusterResourceSets can match with a cluster; and multiple clusters can match with a single ClusterResourceSet.
-A configmap will be created in the management cluster to keep track of which resources are applied by ClusterResourceSet resources. There will be one configmap per workload cluster.
+To keep information on which resources applied to which clusters, a new CRD is used, ClusterResourceSetStatus will be created in the management cluster. There will be one ClusterResourceSetStatus per workload cluster.
 
 Example:
 ```yaml
 apiVersion: v1
-kind: ConfigMap
+kind: ClusterResourceSetStatus
 metadata:
-  name: capi-crs-my-cluster
-  namespace: capi-crs-my-cluster-namespace
-data:
+  name: <cluster-name>
+  namespace: <cluster-namespace>
+spec:
+clusterresourcesets:
   <ClusterResourceSet-name1>:   
     <secret-name1>:
       hash: <>
@@ -170,7 +187,7 @@ data:
       status: success
       error: ""
       lastAppliedTime: "2020-04-05T08:24:17Z"
-  Status: InProgress/Completed
+Status: InProgress/Completed
 ```
 Status will be `Completed` when all matching ClusterResourceSet reconciles are completed for that cluster. In case of new resource addition to a matching ClusterResourceSet, Status becomes `InProgress`
 Also, the errors / overall progress will be tracked in the ClusterResourceSet’s status.

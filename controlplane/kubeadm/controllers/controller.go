@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -29,10 +30,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/equality"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -40,16 +52,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=core,resources=configmaps,namespace=kube-system,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=rbac,resources=roles,namespace=kube-system,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=rbac,resources=rolebindings,namespace=kube-system,verbs=get;list;watch;create
@@ -229,11 +235,23 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, err
 	}
 
-	// TODO: handle proper adoption of Machines
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), machinefilters.OwnedControlPlaneMachines(kcp.Name))
+	controlPlaneMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), machinefilters.ControlPlaneMachines(cluster.Name))
 	if err != nil {
 		logger.Error(err, "failed to retrieve control plane machines for cluster")
 		return ctrl.Result{}, err
+	}
+
+	adoptableMachines := controlPlaneMachines.Filter(machinefilters.AdoptableControlPlaneMachines(cluster.Name))
+	if len(adoptableMachines) > 0 {
+		// We adopt the Machines and then wait for the update event for the ownership reference to re-queue them so the cache is up-to-date
+		err = r.adoptMachines(ctx, kcp, adoptableMachines, cluster)
+		return ctrl.Result{}, err
+	}
+
+	ownedMachines := controlPlaneMachines.Filter(machinefilters.OwnedMachines(kcp))
+	if len(ownedMachines) != len(controlPlaneMachines) {
+		logger.Info("Not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
+		return ctrl.Result{}, nil
 	}
 
 	controlPlane := internal.NewControlPlane(cluster, kcp, ownedMachines)
@@ -302,7 +320,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	ownedMachines := allMachines.Filter(machinefilters.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines := allMachines.Filter(machinefilters.OwnedMachines(kcp))
 
 	// If no control plane machines remain, remove the finalizer
 	if len(ownedMachines) == 0 {
@@ -360,7 +378,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 	logger := controlPlane.Logger()
 
 	// Do a health check of the Control Plane components
-	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
+	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {
 		logger.V(2).Info("Waiting for control plane to pass control plane health check to continue reconciliation", "cause", err)
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass control plane health check to continue reconciliation: %v", err)
@@ -368,7 +386,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 	}
 
 	// Ensure etcd is healthy
-	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
+	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {
 		// If there are any etcd members that do not have corresponding nodes, remove them from etcd and from the kubeadm configmap.
 		// This will solve issues related to manual control-plane machine deletion.
 		workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
@@ -391,5 +409,134 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 	if controlPlane.HasDeletingMachine() {
 		return &capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}
 	}
+
+	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machines internal.FilterableMachineCollection, cluster *clusterv1.Cluster) error {
+	// We do an uncached full quorum read against the KCP to avoid re-adopting Machines the garbage collector just intentionally orphaned
+	// See https://github.com/kubernetes/kubernetes/issues/42639
+	uncached := controlplanev1.KubeadmControlPlane{}
+	err := r.managementClusterUncached.Get(ctx, client.ObjectKey{Namespace: kcp.Namespace, Name: kcp.Name}, &uncached)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check whether %v/%v was deleted before adoption", kcp.GetNamespace(), kcp.GetName())
+	}
+	if !uncached.DeletionTimestamp.IsZero() {
+		return errors.Errorf("%v/%v has just been deleted at %v", kcp.GetNamespace(), kcp.GetName(), kcp.GetDeletionTimestamp())
+	}
+
+	kcpVersion, err := semver.ParseTolerant(kcp.Spec.Version)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
+	}
+
+	for _, m := range machines {
+		ref := m.Spec.Bootstrap.ConfigRef
+
+		// TODO instead of returning error here, we should instead Event and add a watch on potentially adoptable Machines
+		if ref == nil || ref.Kind != "KubeadmConfig" {
+			return errors.Errorf("unable to adopt Machine %v/%v: expected a ConfigRef of kind KubeadmConfig but instead found %v", m.Namespace, m.Name, ref)
+		}
+
+		// TODO instead of returning error here, we should instead Event and add a watch on potentially adoptable Machines
+		if ref.Namespace != "" && ref.Namespace != kcp.Namespace {
+			return errors.Errorf("could not adopt resources from KubeadmConfig %v/%v: cannot adopt across namespaces", ref.Namespace, ref.Name)
+		}
+
+		if m.Spec.Version == nil {
+			// if the machine's version is not immediately apparent, assume the operator knows what they're doing
+			continue
+		}
+
+		machineVersion, err := semver.ParseTolerant(*m.Spec.Version)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse kubernetes version %q", *m.Spec.Version)
+		}
+
+		if !util.IsSupportedVersionSkew(kcpVersion, machineVersion) {
+			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "AdoptionFailed", "Could not adopt Machine %s/%s: its version (%q) is outside supported +/- one minor version skew from KCP's (%q)", m.Namespace, m.Name, *m.Spec.Version, kcp.Spec.Version)
+			// avoid returning an error here so we don't cause the KCP controller to spin until the operator clarifies their intent
+			return nil
+		}
+	}
+
+	for _, m := range machines {
+		ref := m.Spec.Bootstrap.ConfigRef
+		cfg := &bootstrapv1.KubeadmConfig{}
+
+		if err := r.Client.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: kcp.Namespace}, cfg); err != nil {
+			return err
+		}
+
+		if err := r.adoptOwnedSecrets(ctx, kcp, cfg, cluster.Name); err != nil {
+			return err
+		}
+
+		patchHelper, err := patch.NewHelper(m, r.Client)
+		if err != nil {
+			return err
+		}
+
+		if err := controllerutil.SetControllerReference(kcp, m, r.scheme); err != nil {
+			return err
+		}
+
+		// 0. get machine.Spec.Version - the easy answer
+		machineKubernetesVersion := ""
+		if m.Spec.Version != nil {
+			machineKubernetesVersion = *m.Spec.Version
+		}
+
+		// 1. hash the version (kubernetes version) and kubeadm_controlplane's Spec.infrastructureTemplate
+		syntheticSpec := controlplanev1.KubeadmControlPlaneSpec{
+			Version:                machineKubernetesVersion,
+			InfrastructureTemplate: kcp.Spec.InfrastructureTemplate,
+			KubeadmConfigSpec:      equality.SemanticMerge(cfg.Spec, kcp.Spec.KubeadmConfigSpec, cluster),
+		}
+		newConfigurationHash := hash.Compute(&syntheticSpec)
+		// 2. add kubeadm.controlplane.cluster.x-k8s.io/hash as a label in each machine
+		m.Labels[controlplanev1.KubeadmControlPlaneHashLabelKey] = newConfigurationHash
+
+		// Note that ValidateOwnerReferences() will reject this patch if another
+		// OwnerReference exists with controller=true.
+		if err := patchHelper.Patch(ctx, m); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, currentOwner *bootstrapv1.KubeadmConfig, clusterName string) error {
+	secrets := corev1.SecretList{}
+	if err := r.Client.List(ctx, &secrets, client.InNamespace(kcp.Namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}); err != nil {
+		return errors.Wrap(err, "error finding secrets for adoption")
+	}
+
+	for i := range secrets.Items {
+		s := secrets.Items[i]
+		if !util.IsControlledBy(&s, currentOwner) {
+			continue
+		}
+		// avoid taking ownership of the bootstrap data secret
+		if currentOwner.Status.DataSecretName != nil && s.Name == *currentOwner.Status.DataSecretName {
+			continue
+		}
+
+		ss := s.DeepCopy()
+
+		ss.SetOwnerReferences(util.ReplaceOwnerRef(ss.GetOwnerReferences(), currentOwner, metav1.OwnerReference{
+			APIVersion:         controlplanev1.GroupVersion.String(),
+			Kind:               "KubeadmControlPlane",
+			Name:               kcp.Name,
+			UID:                kcp.UID,
+			Controller:         pointer.BoolPtr(true),
+			BlockOwnerDeletion: pointer.BoolPtr(true),
+		}))
+
+		if err := r.Client.Update(ctx, ss); err != nil {
+			return errors.Wrapf(err, "error changing secret %v ownership from KubeadmConfig/%v to KubeadmControlPlane/%v", s.Name, currentOwner.GetName(), kcp.Name)
+		}
+	}
+
 	return nil
 }

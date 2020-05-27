@@ -404,7 +404,7 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 			return nil
 		}
 
-		if util.PointsTo(acc.GetOwnerReferences(), &cluster.ObjectMeta) {
+		if util.IsOwnedByObject(acc, cluster) {
 			ownedDescendants = append(ownedDescendants, o)
 		}
 

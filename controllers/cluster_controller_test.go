@@ -703,6 +703,10 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	g := NewWithT(t)
 
 	c := clusterv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "c",
 		},

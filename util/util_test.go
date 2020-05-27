@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -310,54 +309,118 @@ func TestHasOwner(t *testing.T) {
 	}
 }
 
-func TestPointsTo(t *testing.T) {
+type fakeMeta struct {
+	metav1.ObjectMeta
+	metav1.TypeMeta
+}
+
+var _ runtime.Object = &fakeMeta{}
+
+func (*fakeMeta) DeepCopyObject() runtime.Object {
+	panic("not implemented")
+}
+
+func TestIsOwnedByObject(t *testing.T) {
 	g := NewWithT(t)
 
-	targetID := "fri3ndsh1p"
+	targetGroup := "ponies.info"
+	targetKind := "Rainbow"
+	targetName := "fri3ndsh1p"
 
-	meta := metav1.ObjectMeta{
-		UID: types.UID(targetID),
+	meta := fakeMeta{
+		metav1.ObjectMeta{
+			Name: targetName,
+		},
+		metav1.TypeMeta{
+			APIVersion: "ponies.info/v1",
+			Kind:       targetKind,
+		},
 	}
 
 	tests := []struct {
 		name     string
-		refIDs   []string
+		refs     []metav1.OwnerReference
 		expected bool
 	}{
 		{
 			name: "empty owner list",
 		},
 		{
-			name:   "single wrong owner ref",
-			refIDs: []string{"m4g1c"},
+			name: "single wrong name owner ref",
+			refs: []metav1.OwnerReference{{
+				APIVersion: targetGroup + "/v1",
+				Kind:       targetKind,
+				Name:       "m4g1c",
+			}},
 		},
 		{
-			name:     "single right owner ref",
-			refIDs:   []string{targetID},
+			name: "single wrong group owner ref",
+			refs: []metav1.OwnerReference{{
+				APIVersion: "dazzlings.info/v1",
+				Kind:       "Twilight",
+				Name:       "m4g1c",
+			}},
+		},
+		{
+			name: "single wrong kind owner ref",
+			refs: []metav1.OwnerReference{{
+				APIVersion: targetGroup + "/v1",
+				Kind:       "Twilight",
+				Name:       "m4g1c",
+			}},
+		},
+		{
+			name: "single right owner ref",
+			refs: []metav1.OwnerReference{{
+				APIVersion: targetGroup + "/v1",
+				Kind:       targetKind,
+				Name:       targetName,
+			}},
 			expected: true,
 		},
 		{
-			name:   "multiple wrong refs",
-			refIDs: []string{"m4g1c", "h4rm0ny"},
+			name: "single right owner ref (different version)",
+			refs: []metav1.OwnerReference{{
+				APIVersion: targetGroup + "/v2alpha2",
+				Kind:       targetKind,
+				Name:       targetName,
+			}},
+			expected: true,
 		},
 		{
-			name:     "multiple refs one right",
-			refIDs:   []string{"m4g1c", targetID},
+			name: "multiple wrong refs",
+			refs: []metav1.OwnerReference{{
+				APIVersion: targetGroup + "/v1",
+				Kind:       targetKind,
+				Name:       "m4g1c",
+			}, {
+				APIVersion: targetGroup + "/v1",
+				Kind:       targetKind,
+				Name:       "h4rm0ny",
+			}},
+		},
+		{
+			name: "multiple refs one right",
+			refs: []metav1.OwnerReference{{
+				APIVersion: targetGroup + "/v1",
+				Kind:       targetKind,
+				Name:       "m4g1c",
+			}, {
+				APIVersion: targetGroup + "/v1",
+				Kind:       targetKind,
+				Name:       targetName,
+			}},
 			expected: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			pointer := &metav1.ObjectMeta{}
-
-			for _, ref := range test.refIDs {
-				pointer.OwnerReferences = append(pointer.OwnerReferences, metav1.OwnerReference{
-					UID: types.UID(ref),
-				})
+			pointer := &metav1.ObjectMeta{
+				OwnerReferences: test.refs,
 			}
 
-			g.Expect(PointsTo(pointer.OwnerReferences, &meta)).To(Equal(test.expected))
+			g.Expect(IsOwnedByObject(pointer, &meta)).To(Equal(test.expected), "Could not find a ref to %+v in %+v", meta, test.refs)
 		})
 	}
 }
@@ -660,5 +723,72 @@ func TestOrdinalize(t *testing.T) {
 			g.Expect(Ordinalize(tt.input)).To(Equal(tt.expected))
 		})
 	}
+}
 
+func TestIsSupportedVersionSkew(t *testing.T) {
+	type args struct {
+		a semver.Version
+		b semver.Version
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "same version",
+			args: args{
+				a: semver.MustParse("1.10.0"),
+				b: semver.MustParse("1.10.0"),
+			},
+			want: true,
+		},
+		{
+			name: "different patch version",
+			args: args{
+				a: semver.MustParse("1.10.0"),
+				b: semver.MustParse("1.10.2"),
+			},
+			want: true,
+		},
+		{
+			name: "a + 1 minor version",
+			args: args{
+				a: semver.MustParse("1.11.0"),
+				b: semver.MustParse("1.10.2"),
+			},
+			want: true,
+		},
+		{
+			name: "b + 1 minor version",
+			args: args{
+				a: semver.MustParse("1.10.0"),
+				b: semver.MustParse("1.11.2"),
+			},
+			want: true,
+		},
+		{
+			name: "a + 2 minor versions",
+			args: args{
+				a: semver.MustParse("1.12.0"),
+				b: semver.MustParse("1.10.0"),
+			},
+			want: false,
+		},
+		{
+			name: "b + 2 minor versions",
+			args: args{
+				a: semver.MustParse("1.10.0"),
+				b: semver.MustParse("1.12.0"),
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsSupportedVersionSkew(tt.args.a, tt.args.b); got != tt.want {
+				t.Errorf("IsSupportedVersionSkew() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

@@ -124,7 +124,7 @@ status:
 Initially, the only supported mode will be `ApplyOnce` and it will be the default mode if no mode is provided. In the future, we may consider adding a `Reconcile` mode that reapplies the resources on resource hash change and/or periodically.
 If ClusterResourceSet resources will be managed by an operator after they are applied by ClusterResourceSet controller, "ApplyOnce" mode must be used so that reconciliation on those resources can be delegated to the operator.
 
-Each item in the resources specifies a kind (must be either ConfigMap or Secret) and a name. Each referenced ConfigMap/Secret  contains yaml/json content as value. The key to that content is “value”.
+Each item in the resources specifies a kind (must be either ConfigMap or Secret) and a name. Each referenced ConfigMap/Secret  contains yaml/json content as value.
 
 *Sample Secret Format*
 ```yaml
@@ -159,30 +159,32 @@ data:
 
 The resources in ClusterResourceSet will be applied to matching clusters.
 There is many-to-many mapping between Clusters and ClusterResourceSets: Multiple ClusterResourceSets can match with a cluster; and multiple clusters can match with a single ClusterResourceSet.
-To keep information on which resources applied to which clusters, a new CRD is used, ClusterResourceSetStatus will be created in the management cluster. There will be one ClusterResourceSetStatus per workload cluster.
+To keep information on which resources applied to which clusters, a new CRD is used, ClusterResourceSetBinding will be created in the management cluster. There will be one ClusterResourceSetBinding per workload cluster.
 
 Example:
 ```yaml
 apiVersion: v1
-kind: ClusterResourceSetStatus
+kind: ClusterResourceBinding
 metadata:
   name: <cluster-name>
   namespace: <cluster-namespace>
-spec:
 clusterresourcesets:
   <ClusterResourceSet-name1>:   
     <secret-name1>:
+      kind: Secret
       hash: <>
       status: success
       error: ""
       lastAppliedTime: "2020-04-05T08:24:17Z"
     <configmap-name1>:
+      kind: ConfigMap
       hash: <>
       status: failed
       error: "some error"
       lastAppliedTime: "2020-05-05T08:24:17Z"
   <ClusterResourceSet-name2>:  
     <secret-name2>:
+      kind: Secret
       hash: <>
       status: success
       error: ""

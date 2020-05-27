@@ -40,10 +40,23 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Verbosity = restored.Spec.Verbosity
 	dst.Spec.UseExperimentalRetryJoin = restored.Spec.UseExperimentalRetryJoin
 	dst.Spec.Files = restored.Spec.Files
-	for i := range restored.Spec.Files {
-		file := restored.Spec.Files[i]
-		if file.ContentFrom != nil {
-			dst.Spec.Files = append(dst.Spec.Files, file)
+
+	// Track files successfully up-converted. We need this to dedupe
+	// restored files from user-updated files on up-conversion. We store
+	// them as pointers for later modification without paying for second
+	// lookup.
+	dstPaths := make(map[string]*kubeadmbootstrapv1alpha3.File, len(dst.Spec.Files))
+	for i := range dst.Spec.Files {
+		file := dst.Spec.Files[i]
+		dstPaths[file.Path] = &file
+	}
+
+	// If we find a restored file matching the file path of a v1alpha2
+	// file with no content, we should restore contentFrom to that file.
+	for _, restoredFile := range restored.Spec.Files {
+		dstFile, exists := dstPaths[restoredFile.Path]
+		if exists && dstFile.Content == "" {
+			dstFile.ContentFrom = restoredFile.ContentFrom
 		}
 	}
 

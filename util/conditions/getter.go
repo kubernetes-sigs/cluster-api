@@ -113,3 +113,61 @@ func GetLastTransitionTime(from Getter, t clusterv1.ConditionType) *metav1.Time 
 	}
 	return nil
 }
+
+// Summary returns a Ready condition with the summary of all the conditions existing
+// on an object. If the object does not have other conditions, no summary condition is generated.
+func Summary(from Getter, options ...MergeOption) *clusterv1.Condition {
+	conditions := from.GetConditions()
+
+	conditionsInScope := make([]localizedCondition, 0, len(conditions))
+	for i := range conditions {
+		c := conditions[i]
+		if c.Type != clusterv1.ReadyCondition {
+			conditionsInScope = append(conditionsInScope, localizedCondition{
+				Condition: &c,
+				Getter:    from,
+			})
+		}
+	}
+
+	mergeOpt := &mergeOptions{}
+	for _, o := range options {
+		o(mergeOpt)
+	}
+	return merge(conditionsInScope, clusterv1.ReadyCondition, mergeOpt)
+}
+
+// Mirror mirrors the Ready condition from a dependent object into the target condition;
+// if the Ready condition does not exists in the source object, no target conditions is generated.
+func Mirror(from Getter, targetCondition clusterv1.ConditionType) *clusterv1.Condition {
+	condition := Get(from, clusterv1.ReadyCondition)
+
+	if condition != nil {
+		condition.Type = targetCondition
+	}
+
+	return condition
+}
+
+// Aggregates all the the Ready condition from a list of dependent objects into the target object;
+// if the Ready condition does not exists in one of the source object, the object is excluded from
+// the aggregation; if none of the source object have ready condition, no target conditions is generated.
+func Aggregate(from []Getter, targetCondition clusterv1.ConditionType, options ...MergeOption) *clusterv1.Condition {
+	conditionsInScope := make([]localizedCondition, 0, len(from))
+	for i := range from {
+		condition := Get(from[i], clusterv1.ReadyCondition)
+
+		conditionsInScope = append(conditionsInScope, localizedCondition{
+			Condition: condition,
+			Getter:    from[i],
+		})
+	}
+
+	mergeOpt := &mergeOptions{
+		stepCounter: len(from),
+	}
+	for _, o := range options {
+		o(mergeOpt)
+	}
+	return merge(conditionsInScope, targetCondition, mergeOpt)
+}

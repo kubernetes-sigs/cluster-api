@@ -112,6 +112,26 @@ func MarkFalse(to Setter, t clusterv1.ConditionType, reason string, severity clu
 	Set(to, FalseCondition(t, reason, severity, messageFormat, messageArgs...))
 }
 
+// SetSummary sets a Ready condition with the summary of all the conditions existing
+// on an object. If the object does not have other conditions, no summary condition is generated.
+func SetSummary(to Setter, options ...MergeOption) {
+	Set(to, Summary(to, options...))
+}
+
+// SetMirrorCondition creates a new condition by mirroring the the Ready condition from a dependent object;
+// if the Ready condition does not exists in the source object, no target conditions is generated.
+func SetMirrorCondition(to Setter, targetCondition clusterv1.ConditionType, from Getter) {
+	Set(to, Mirror(from, targetCondition))
+}
+
+// SetAggregateCondition creates a new condition with the aggregation of all the the Ready condition
+// from a list of dependent objects; if the Ready condition does not exists in one of the source object,
+// the object is excluded from the aggregation; if none of the source object have ready condition,
+// no target conditions is generated.
+func SetAggregateCondition(to Setter, targetCondition clusterv1.ConditionType, from []Getter, options ...MergeOption) {
+	Set(to, Aggregate(from, targetCondition, options...))
+}
+
 // Delete deletes the condition with the given type.
 func Delete(to Setter, t clusterv1.ConditionType) {
 	if to == nil {

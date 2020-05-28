@@ -29,7 +29,7 @@ const (
 // Conditions and condition Reasons for the Machine object
 
 // MachineSummaryConditionsCount defines the total number of conditions on the Machine object.
-const MachineSummaryConditionsCount = 2
+const MachineSummaryConditionsCount = 4
 
 const (
 	// BootstrapReadyCondition reports a summary of current status of the bootstrap object defined for this machine.
@@ -55,4 +55,31 @@ const (
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the infrastructure object is not reporting its own ready condition.
 	WaitingForInfrastructureFallbackReason = "WaitingForInfrastructure"
+)
+
+const (
+	// MachineHealthCheckSuccededCondition is set on machines that have passed a healthcheck by the MachineHealthCheck controller.
+	// In the event that the health check fails it will be set to False.
+	MachineHealthCheckSuccededCondition ConditionType = "HealthCheckSucceeded"
+
+	// MachineHasFailure is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
+	MachineHasFailure = "MachineHasFailure"
+
+	// NodeNotFound is the reason used when a machine's node has previously been observed but is now gone.
+	NodeNotFound = "NodeNotFound"
+
+	// NodeStartupTimeout is the reason used when a machine's node does not appear within the specified timeout.
+	NodeStartupTimeout = "NodeStartupTimeout"
+
+	// UnhealthyNodeCondition is the reason used when a machine's node has one of the MachineHealthCheck's unhealthy conditions.
+	UnhealthyNodeCondition = "UnhealthyNode"
+)
+
+const (
+	// MachineOwnerRemediatedCondition is set on machines that have failed a healthcheck by the MachineHealthCheck controller.
+	// MachineOwnerRemediatedCondition is set to False after a health check fails, but should be changed to True by the owning controller after remediation succeeds.
+	MachineOwnerRemediatedCondition ConditionType = "OwnerRemediated"
+
+	// WaitingForRemediation is the reason used when a machine fails a health check and remediation is needed.
+	WaitingForRemediation = "WaitingForRemediation"
 )

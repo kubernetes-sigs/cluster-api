@@ -17,23 +17,18 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
-	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
-	gtypes "github.com/onsi/gomega/types"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -43,9 +38,8 @@ func TestGetTargetsFromMHC(t *testing.T) {
 	clusterName := "test-cluster"
 	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 
-	// Create a namespace and cluster for the tests
+	// Create a namespace for the tests
 	testNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "mhc-test"}}
-	testCluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: clusterName}}
 
 	// Create a test MHC
 	testMHC := &clusterv1.MachineHealthCheck{
@@ -57,7 +51,6 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			Selector: metav1.LabelSelector{
 				MatchLabels: mhcSelector,
 			},
-			ClusterName: testCluster.ObjectMeta.Name,
 			UnhealthyConditions: []clusterv1.UnhealthyCondition{
 				{
 					Type:    corev1.NodeReady,
@@ -68,7 +61,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 		},
 	}
 
-	baseObjects := []runtime.Object{testNS, testCluster, testMHC}
+	baseObjects := []runtime.Object{testNS, testMHC}
 
 	// Initialise some test machines and nodes for use in the test cases
 
@@ -150,11 +143,22 @@ func TestGetTargetsFromMHC(t *testing.T) {
 				Log:    log.Log,
 				scheme: scheme.Scheme,
 			}
+			for _, t := range tc.expectedTargets {
+				patchHelper, err := patch.NewHelper(t.Machine, k8sClient)
+				gs.Expect(err).ToNot(HaveOccurred())
+				t.patchHelper = patchHelper
+			}
 
-			targets, err := reconciler.getTargetsFromMHC(k8sClient, testCluster, testMHC)
+			targets, err := reconciler.getTargetsFromMHC(k8sClient, testMHC)
 			gs.Expect(err).ToNot(HaveOccurred())
 
-			gs.Expect(targets).To(ConsistOf(tc.expectedTargets))
+			gs.Expect(len(targets)).To(Equal(len(tc.expectedTargets)))
+			for i, target := range targets {
+				expectedTarget := tc.expectedTargets[i]
+				gs.Expect(target.Machine).To(Equal(expectedTarget.Machine))
+				gs.Expect(target.MHC).To(Equal(expectedTarget.MHC))
+				gs.Expect(target.Node).To(Equal(expectedTarget.Node))
+			}
 		})
 	}
 }
@@ -251,49 +255,49 @@ func TestHealthCheckTargets(t *testing.T) {
 	testCases := []struct {
 		desc                     string
 		targets                  []healthCheckTarget
-		expectedHealthy          int
+		expectedHealthy          []healthCheckTarget
 		expectedNeedsRemediation []healthCheckTarget
 		expectedNextCheckTimes   []time.Duration
 	}{
 		{
 			desc:                     "when the node has not yet started",
 			targets:                  []healthCheckTarget{nodeNotYetStartedTarget},
-			expectedHealthy:          0,
+			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{},
 			expectedNextCheckTimes:   []time.Duration{200 * time.Second},
 		},
 		{
 			desc:                     "when the node has gone away",
 			targets:                  []healthCheckTarget{nodeGoneAway},
-			expectedHealthy:          0,
+			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{nodeGoneAway},
 			expectedNextCheckTimes:   []time.Duration{},
 		},
 		{
 			desc:                     "when the node has been in an unknown state for shorter than the timeout",
 			targets:                  []healthCheckTarget{nodeUnknown200},
-			expectedHealthy:          0,
+			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{},
 			expectedNextCheckTimes:   []time.Duration{100 * time.Second},
 		},
 		{
 			desc:                     "when the node has been in an unknown state for longer than the timeout",
 			targets:                  []healthCheckTarget{nodeUnknown400},
-			expectedHealthy:          0,
+			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{nodeUnknown400},
 			expectedNextCheckTimes:   []time.Duration{},
 		},
 		{
 			desc:                     "when the node is healthy",
 			targets:                  []healthCheckTarget{nodeHealthy},
-			expectedHealthy:          1,
+			expectedHealthy:          []healthCheckTarget{nodeHealthy},
 			expectedNeedsRemediation: []healthCheckTarget{},
 			expectedNextCheckTimes:   []time.Duration{},
 		},
 		{
 			desc:                     "with a mix of healthy and unhealthy nodes",
 			targets:                  []healthCheckTarget{nodeUnknown100, nodeUnknown200, nodeUnknown400, nodeHealthy},
-			expectedHealthy:          1,
+			expectedHealthy:          []healthCheckTarget{nodeHealthy},
 			expectedNeedsRemediation: []healthCheckTarget{nodeUnknown400},
 			expectedNextCheckTimes:   []time.Duration{200 * time.Second, 100 * time.Second},
 		},
@@ -315,7 +319,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			}
 
 			timeoutForMachineToHaveNode := 10 * time.Minute
-			currentHealthy, needRemediationTargets, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, reconciler.Log, timeoutForMachineToHaveNode)
+			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, reconciler.Log, timeoutForMachineToHaveNode)
 
 			// Round durations down to nearest second account for minute differences
 			// in timing when running tests
@@ -327,314 +331,9 @@ func TestHealthCheckTargets(t *testing.T) {
 				return out
 			}
 
-			gs.Expect(currentHealthy).To(Equal(tc.expectedHealthy))
-			gs.Expect(needRemediationTargets).To(ConsistOf(tc.expectedNeedsRemediation))
+			gs.Expect(healthy).To(ConsistOf(tc.expectedHealthy))
+			gs.Expect(unhealthy).To(ConsistOf(tc.expectedNeedsRemediation))
 			gs.Expect(nextCheckTimes).To(WithTransform(roundDurations, ConsistOf(tc.expectedNextCheckTimes)))
-		})
-	}
-}
-
-func TestRemediate(t *testing.T) {
-	namespace := "test-mhc"
-	clusterName := "test-cluster"
-	labels := map[string]string{"cluster": clusterName, "machine-group": "foo"}
-
-	machineSetORs := []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "MachineSet"}}
-	kubeadmControlPlaneORs := []metav1.OwnerReference{{APIVersion: controlplanev1.GroupVersion.String(), Kind: "KubeadmControlPlane"}}
-
-	workerNode := newTestNode("worker-node")
-	workerMachine := newTestMachine("worker-machine", namespace, clusterName, workerNode.Name, labels)
-	workerMachine.SetOwnerReferences(machineSetORs)
-	workerMachineUnowned := newTestMachine("worker-machine", namespace, clusterName, workerNode.Name, labels)
-
-	controlPlaneNode := newTestNode("control-plane-node")
-	if controlPlaneNode.Labels == nil {
-		controlPlaneNode.Labels = make(map[string]string)
-	}
-	controlPlaneNode.Labels[nodeControlPlaneLabel] = ""
-
-	controlPlaneMachine := newTestMachine("control-plane-machine", namespace, clusterName, controlPlaneNode.Name, labels)
-	controlPlaneMachine.SetOwnerReferences(kubeadmControlPlaneORs)
-	if controlPlaneMachine.Labels == nil {
-		controlPlaneMachine.Labels = make(map[string]string)
-	}
-	controlPlaneMachine.Labels[clusterv1.MachineControlPlaneLabelName] = ""
-
-	testCases := []struct {
-		name          string
-		node          *corev1.Node
-		machine       *clusterv1.Machine
-		expectErr     bool
-		expectDeleted bool
-		expectEvents  []string
-	}{
-		{
-			name:          "when the machine is not owned by a machineset",
-			node:          workerNode,
-			machine:       workerMachineUnowned,
-			expectErr:     false,
-			expectDeleted: false,
-			expectEvents:  []string{},
-		},
-		{
-			name:          "when the node is a worker with a machine owned by a machineset",
-			node:          workerNode,
-			machine:       workerMachine,
-			expectErr:     false,
-			expectDeleted: true,
-			expectEvents:  []string{EventMachineDeleted},
-		},
-		{
-			name:          "when the node is a control plane node",
-			node:          controlPlaneNode,
-			machine:       controlPlaneMachine,
-			expectErr:     false,
-			expectDeleted: false,
-			expectEvents:  []string{},
-		},
-		{
-			name:          "when the machine is a control plane machine",
-			node:          nil,
-			machine:       controlPlaneMachine,
-			expectErr:     false,
-			expectDeleted: false,
-			expectEvents:  []string{},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			gs := NewGomegaWithT(t)
-
-			target := &healthCheckTarget{
-				Node:    tc.node,
-				Machine: tc.machine,
-				MHC:     newTestMachineHealthCheck("mhc", namespace, clusterName, labels),
-			}
-
-			fakeRecorder := record.NewFakeRecorder(2)
-			gs.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-			k8sClient := fake.NewFakeClientWithScheme(scheme.Scheme, target.Machine)
-			if target.Node != nil {
-				gs.Expect(k8sClient.Create(context.Background(), target.Node)).To(Succeed())
-			}
-
-			// Run rememdiation
-			err := target.remediate(context.Background(), log.Log, k8sClient, fakeRecorder)
-			gs.Expect(err != nil).To(Equal(tc.expectErr))
-
-			machine := &clusterv1.Machine{}
-			key := types.NamespacedName{Namespace: tc.machine.Namespace, Name: tc.machine.Name}
-			err = k8sClient.Get(context.Background(), key, machine)
-
-			// Check if the machine was deleted or not
-			if tc.expectDeleted {
-				gs.Expect(errors.IsNotFound(err)).To(BeTrue())
-			} else {
-				gs.Expect(err).ToNot(HaveOccurred())
-				gs.Expect(machine).To(Equal(target.Machine))
-			}
-
-			// Check which event types were sent
-			gs.Expect(fakeRecorder.Events).To(HaveLen(len(tc.expectEvents)))
-			receivedEvents := []string{}
-			eventMatchers := []gtypes.GomegaMatcher{}
-			for _, ev := range tc.expectEvents {
-				receivedEvents = append(receivedEvents, <-fakeRecorder.Events)
-				eventMatchers = append(eventMatchers, ContainSubstring(fmt.Sprintf(" %s ", ev)))
-			}
-			gs.Expect(receivedEvents).To(ConsistOf(eventMatchers))
-		})
-	}
-}
-
-func TestHasMachineSetOwner(t *testing.T) {
-	machineSetOR := metav1.OwnerReference{
-		Kind:       "MachineSet",
-		APIVersion: clusterv1.GroupVersion.String(),
-	}
-
-	machineDeploymentOR := metav1.OwnerReference{
-		Kind:       "MachineDeployment",
-		APIVersion: clusterv1.GroupVersion.String(),
-	}
-
-	differentGroupOR := metav1.OwnerReference{
-		Kind:       "MachineSet",
-		APIVersion: "different-group/v1",
-	}
-
-	invalidGroupOR := metav1.OwnerReference{
-		Kind:       "MachineSet",
-		APIVersion: "invalid/group/",
-	}
-
-	testCases := []struct {
-		name            string
-		ownerReferences []metav1.OwnerReference
-		hasOwner        bool
-		expectErr       bool
-	}{
-		{
-			name:            "with no owner references",
-			ownerReferences: []metav1.OwnerReference{},
-			hasOwner:        false,
-			expectErr:       false,
-		},
-		{
-			name:            "with a MachineDeployment owner reference",
-			ownerReferences: []metav1.OwnerReference{machineDeploymentOR},
-			hasOwner:        false,
-			expectErr:       false,
-		},
-		{
-			name:            "with a MachineSet owner reference",
-			ownerReferences: []metav1.OwnerReference{machineSetOR},
-			hasOwner:        true,
-			expectErr:       false,
-		},
-		{
-			name:            "with a MachineSet and MachineDeployment owner reference",
-			ownerReferences: []metav1.OwnerReference{machineSetOR, machineDeploymentOR},
-			hasOwner:        true,
-			expectErr:       false,
-		},
-		{
-			name:            "with a MachineSet owner reference from a different API Group",
-			ownerReferences: []metav1.OwnerReference{differentGroupOR},
-			hasOwner:        false,
-			expectErr:       false,
-		},
-		{
-			name:            "with a MachineSet owner reference from an invalid API Group",
-			ownerReferences: []metav1.OwnerReference{invalidGroupOR},
-			hasOwner:        false,
-			expectErr:       true,
-		},
-		{
-			name:            "with MachineSet owner references from two API Groups",
-			ownerReferences: []metav1.OwnerReference{differentGroupOR, machineSetOR},
-			hasOwner:        true,
-			expectErr:       false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			gs := NewGomegaWithT(t)
-
-			machine := newTestMachine("machine", "test-mhc", "test-cluster", "node", map[string]string{})
-			machine.SetOwnerReferences(tc.ownerReferences)
-
-			target := &healthCheckTarget{
-				Machine: machine,
-			}
-
-			hasOwner, err := target.hasMachineSetOwner()
-			gs.Expect(err != nil).To(Equal(tc.expectErr))
-			gs.Expect(hasOwner).To(Equal(tc.hasOwner))
-		})
-	}
-}
-
-func TestIsControlPlane(t *testing.T) {
-	namespace := "test-mhc"
-	clusterName := "test-cluster"
-	labels := map[string]string{"cluster": clusterName, "machine-group": "foo"}
-
-	workerNode := newTestNode("worker-node")
-	workerMachine := newTestMachine("worker-machine", namespace, clusterName, workerNode.Name, labels)
-
-	controlPlaneNode1 := newTestNode("control-plane-node")
-	if controlPlaneNode1.Labels == nil {
-		controlPlaneNode1.Labels = make(map[string]string)
-	}
-	controlPlaneNode1.Labels[nodeControlPlaneLabel] = ""
-
-	controlPlaneMachine1 := newTestMachine("control-plane-machine", namespace, clusterName, controlPlaneNode1.Name, labels)
-	if controlPlaneMachine1.Labels == nil {
-		controlPlaneMachine1.Labels = make(map[string]string)
-	}
-	controlPlaneMachine1.Labels[clusterv1.MachineControlPlaneLabelName] = ""
-
-	controlPlaneNode2 := newTestNode("control-plane-node")
-	if controlPlaneNode2.Labels == nil {
-		controlPlaneNode2.Labels = make(map[string]string)
-	}
-	controlPlaneNode2.Labels[nodeControlPlaneLabel] = "abcdef"
-
-	controlPlaneMachine2 := newTestMachine("control-plane-machine", namespace, clusterName, controlPlaneNode2.Name, labels)
-	if controlPlaneMachine2.Labels == nil {
-		controlPlaneMachine2.Labels = make(map[string]string)
-	}
-	controlPlaneMachine2.Labels[clusterv1.MachineControlPlaneLabelName] = "abcdef"
-
-	testCases := []struct {
-		name           string
-		node           *corev1.Node
-		machine        *clusterv1.Machine
-		isControlPlane bool
-	}{
-		{
-			name:           "when the node and machine are nil",
-			node:           nil,
-			machine:        nil,
-			isControlPlane: false,
-		},
-		{
-			name:           "when the node is not a control plane node",
-			node:           workerNode,
-			machine:        workerMachine,
-			isControlPlane: false,
-		},
-		{
-			name:           "when the node is missing and the machine is not a control plane machine",
-			node:           nil,
-			machine:        workerMachine,
-			isControlPlane: false,
-		},
-		{
-			name:           "when the node is a control plane node",
-			node:           controlPlaneNode1,
-			machine:        controlPlaneMachine1,
-			isControlPlane: true,
-		},
-		{
-			name:           "when the node is missing and the machine is a control plane machine",
-			node:           nil,
-			machine:        controlPlaneMachine1,
-			isControlPlane: true,
-		},
-		{
-			name:           "when the node control plane label has a value",
-			node:           controlPlaneNode2,
-			machine:        controlPlaneMachine2,
-			isControlPlane: true,
-		},
-		{
-			name:           "when the machine control plane label has a value",
-			node:           nil,
-			machine:        controlPlaneMachine2,
-			isControlPlane: true,
-		},
-		{
-			name:           "when the node is not a control plane node, but the machine is a control plane machine",
-			node:           workerNode,
-			machine:        controlPlaneMachine1,
-			isControlPlane: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			gs := NewGomegaWithT(t)
-
-			target := &healthCheckTarget{
-				Node:    tc.node,
-				Machine: tc.machine,
-			}
-
-			gs.Expect(target.isControlPlane()).To(Equal(tc.isControlPlane))
 		})
 	}
 }

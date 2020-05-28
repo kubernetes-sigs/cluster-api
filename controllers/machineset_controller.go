@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -224,6 +225,28 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 		}
 
 		filteredMachines = append(filteredMachines, machine)
+	}
+
+	var errs []error
+	for _, machine := range filteredMachines {
+		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
+			logger.Info("Deleting unhealthy machine", "machine", machine.GetName())
+			patch := client.MergeFrom(machine.DeepCopy())
+			if err := r.Client.Delete(ctx, machine); err != nil {
+				errs = append(errs, errors.Wrap(err, "failed to delete"))
+				continue
+			}
+			conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
+			if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
+				errs = append(errs, errors.Wrap(err, "failed to update status"))
+			}
+		}
+	}
+
+	err = kerrors.NewAggregate(errs)
+	if err != nil {
+		logger.Info("Failed while deleting unhealthy machines", "err", err)
+		return ctrl.Result{}, errors.Wrap(err, "failed to remediate machines")
 	}
 
 	syncErr := r.syncReplicas(ctx, machineSet, filteredMachines)

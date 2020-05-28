@@ -35,6 +35,7 @@ const (
 	Metal3ProviderName              = "metal3"
 	OpenStackProviderName           = "openstack"
 	VSphereProviderName             = "vsphere"
+	PacketProviderName              = "packet"
 	ProvidersConfigKey              = "providers"
 )
 
@@ -87,6 +88,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         AzureProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         PacketProviderName,
+			url:          "https://github.com/packethost/cluster-api-provider-packet/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

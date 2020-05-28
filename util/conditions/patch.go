@@ -98,7 +98,6 @@ func (p Patch) Apply(source Setter) error {
 				}
 				// otherwise, the source is already as intended.
 				// NOTE: We are preserving LastTransitionTime from the source in order to avoid altering the existing value.
-				// XXX Set(source, sourceCondition)
 				continue
 			}
 			// If the condition does not exists on the source, add the new target condition.
@@ -120,7 +119,6 @@ func (p Patch) Apply(source Setter) error {
 				}
 				// Otherwise the source is already as intended.
 				// NOTE: We are preserving LastTransitionTime from the source in order to avoid altering the existing value.
-				// XXX Set(source, sourceCondition)
 				continue
 			}
 

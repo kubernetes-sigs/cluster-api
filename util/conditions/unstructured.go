@@ -16,13 +16,11 @@ limitations under the License.
 package conditions
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // UnstructuredGetter return a Getter object that can read conditions from an Unstructured object.
@@ -59,12 +57,19 @@ func (c *unstructuredWrapper) GetConditions() clusterv1.Conditions {
 }
 
 // SetConditions set the conditions into an Unstructured object.
+//
+// NOTE: Due to the constraints of JSON-unmarshal, this operation is to be considered best effort.
+// In more details:
+// - Errors during JSON-unmarshal are ignored and a empty collection list is returned.
+// - It's not possible to detect if the object has an empty condition list or if it does not implement conditions;
+//   in both cases the operation returns an empty slice is returned.
 func (c *unstructuredWrapper) SetConditions(conditions clusterv1.Conditions) {
 	v := make([]interface{}, 0, len(conditions))
 	for i := range conditions {
 		m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&conditions[i])
 		if err != nil {
-			klog.Error(fmt.Sprintf("Failed to convert condition on %s/%s:  %v", c.GetObjectKind().GroupVersionKind().Kind, c.GetName(), err))
+			log.Log.Error(err, "Failed to convert Condition to unstructured map. This error shouldn't have occurred, please file an issue.", "groupVersionKind", c.GroupVersionKind(), "name", c.GetName(), "namespace", c.GetNamespace())
+			continue
 		}
 		v = append(v, m)
 	}
@@ -72,6 +77,6 @@ func (c *unstructuredWrapper) SetConditions(conditions clusterv1.Conditions) {
 	// the nesting levels is not a map[string]interface{}; this is not the case so the error should never happen here.
 	err := unstructured.SetNestedField(c.Unstructured.Object, v, "status", "conditions")
 	if err != nil {
-		klog.Error(fmt.Sprintf("Failed to set conditions on %s/%s:  %v", c.GetObjectKind().GroupVersionKind().Kind, c.GetName(), err))
+		log.Log.Error(err, "Failed to set Conditions on unstructured object. This error shouldn't have occurred, please file an issue.", "groupVersionKind", c.GroupVersionKind(), "name", c.GetName(), "namespace", c.GetNamespace())
 	}
 }

@@ -23,6 +23,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 	"github.com/onsi/gomega"
 
@@ -35,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
-	"k8s.io/utils/diff"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -159,7 +159,7 @@ func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Con
 			g.Expect(dstCopy.ConvertTo(after)).To(gomega.Succeed())
 
 			// Make sure that the hub before the conversions and after are the same, include a diff if not.
-			g.Expect(apiequality.Semantic.DeepEqual(hubCopy, after)).To(gomega.BeTrue(), diff.ObjectDiff(hubCopy, after))
+			g.Expect(apiequality.Semantic.DeepEqual(hubCopy, after)).To(gomega.BeTrue(), cmp.Diff(hubCopy, after))
 		}
 	}
 }

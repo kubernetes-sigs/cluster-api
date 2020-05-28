@@ -50,6 +50,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 			field: field{
 				client: newFakeClient(newFakeConfig()),
 			},
+			// note: these will be sorted by name by the Providers() call, so be sure they are in alphabetical order here too
 			wantProviders: []string{
 				config.ClusterAPIProviderName,
 				config.KubeadmBootstrapProviderName,
@@ -58,6 +59,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.AzureProviderName,
 				config.Metal3ProviderName,
 				config.OpenStackProviderName,
+				config.PacketProviderName,
 				config.VSphereProviderName,
 			},
 			wantErr: false,
@@ -67,6 +69,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 			field: field{
 				client: newFakeClient(newFakeConfig().WithProvider(customProviderConfig)),
 			},
+			// note: these will be sorted by name by the Providers() call, so be sure they are in alphabetical order here too
 			wantProviders: []string{
 				config.ClusterAPIProviderName,
 				customProviderConfig.Name(),
@@ -76,6 +79,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.AzureProviderName,
 				config.Metal3ProviderName,
 				config.OpenStackProviderName,
+				config.PacketProviderName,
 				config.VSphereProviderName,
 			},
 			wantErr: false,

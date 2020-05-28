@@ -50,16 +50,20 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	// lookup.
 	dstPaths := make(map[string]*kubeadmbootstrapv1alpha3.File, len(dst.Spec.Files))
 	for i := range dst.Spec.Files {
-		file := dst.Spec.Files[i]
-		dstPaths[file.Path] = &file
+		path := dst.Spec.Files[i].Path
+		dstPaths[path] = &dst.Spec.Files[i]
 	}
 
 	// If we find a restored file matching the file path of a v1alpha2
 	// file with no content, we should restore contentFrom to that file.
-	for _, restoredFile := range restored.Spec.Files {
+	for i := range restored.Spec.Files {
+		restoredFile := restored.Spec.Files[i]
 		dstFile, exists := dstPaths[restoredFile.Path]
 		if exists && dstFile.Content == "" {
-			dstFile.ContentFrom = restoredFile.ContentFrom
+			if dstFile.ContentFrom == nil {
+				dstFile.ContentFrom = new(kubeadmbootstrapv1alpha3.FileSource)
+			}
+			*dstFile.ContentFrom = *restoredFile.ContentFrom
 		}
 	}
 

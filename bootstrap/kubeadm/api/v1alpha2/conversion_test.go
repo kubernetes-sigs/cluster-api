@@ -35,8 +35,7 @@ func TestConvertKubeadmConfig(t *testing.T) {
 
 			src := &v1alpha3.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "hub",
-					Annotations: map[string]string{},
+					Name: "hub",
 				},
 				Spec: v1alpha3.KubeadmConfigSpec{
 					Files: []v1alpha3.File{

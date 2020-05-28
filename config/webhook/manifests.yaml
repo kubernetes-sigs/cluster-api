@@ -126,6 +126,26 @@ webhooks:
     resources:
     - machinepools
   sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-addons-cluster-x-k8s-io-v1alpha3-clusterresourceset
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.clusterresourceset.addons.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - addons.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusterresourcesets
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -253,4 +273,24 @@ webhooks:
     - UPDATE
     resources:
     - machinepools
+  sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-addons-cluster-x-k8s-io-v1alpha3-clusterresourceset
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.clusterresourceset.addons.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - addons.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusterresourcesets
   sideEffects: None

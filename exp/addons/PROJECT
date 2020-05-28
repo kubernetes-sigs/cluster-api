@@ -1,0 +1,8 @@
+domain: cluster.x-k8s.io
+repo: sigs.k8s.io/cluster-api/exp/addons
+version: "2"
+resources:
+- group: addons
+  kind: ClusterResourceSet
+  version: v1alpha3
+

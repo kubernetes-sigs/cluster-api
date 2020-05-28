@@ -27,6 +27,7 @@ import (
 	manifests "sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	utilresource "sigs.k8s.io/cluster-api/util/resource"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -120,7 +121,7 @@ func (cm *certManagerClient) EnsureWebhook() error {
 
 	// installs the web-hook
 	createCertManagerBackoff := newWriteBackoff()
-	objs = sortResourcesForCreate(objs)
+	objs = utilresource.SortForCreate(objs)
 	for i := range objs {
 		o := objs[i]
 		log.V(5).Info("Creating", logf.UnstructuredToValues(o)...)
@@ -182,6 +183,7 @@ func (cm *certManagerClient) getManifestObjs() ([]unstructured.Unstructured, err
 	}
 
 	objs, err := utilyaml.ToUnstructured(yaml)
+
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse yaml for cert-manager manifest")
 	}

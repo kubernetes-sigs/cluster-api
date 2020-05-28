@@ -123,3 +123,39 @@ spec:
     - type: E2ENodeUnhealthy
       status: "True"
       timeout: 30s
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha3
+kind: ClusterResourceSet
+metadata:
+  name:  "${CLUSTER_NAME}-crs-0"
+spec:
+  strategy: ApplyOnce
+  clusterSelector:
+    matchLabels:
+      label: e2e
+  resources:
+    - name: test-secret1
+      kind: Secret
+    - name: test-configmap1
+      kind: ConfigMap
+    - name: test-notexist
+      kind: Secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret1
+type: addons.cluster.x-k8s.io/resource-set
+stringData:
+  addon.yaml: |-
+    {
+      "kind": "ConfigMap",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "test-e2e-cm",
+        "namespace": "default"
+      },
+      "data": {
+        "service_name": "none"
+      }
+    }

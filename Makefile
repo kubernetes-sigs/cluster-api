@@ -218,6 +218,7 @@ generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN)
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
+		paths=./$(EXP_DIR)/addons/api/... \
 		paths=./cmd/clusterctl/...
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha2 \
@@ -271,6 +272,8 @@ generate-core-manifests: $(CONTROLLER_GEN) ## Generate manifests for the core pr
 		paths=./controllers/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/controllers/... \
+		paths=./$(EXP_DIR)/addons/api/... \
+		paths=./$(EXP_DIR)/addons/controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \

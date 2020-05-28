@@ -6,4 +6,11 @@ This subrepository holds experimental code and API types.
 
 In short, code in this subrepository is not subject to any compatibility or deprecation promise.
 
-TODO: Write policy around graduation and timelines.
+Experiments follow a strict lifecycle: Alpha -> Beta prior to Graduation.
+
+For more information on graduation criteria, see: [Contributing Guidelines](../CONTRIBUTING.md#experiments)
+
+## Active Features
+ MachinePool  (alpha)
+ 
+ ClusterResourceSet (alpha)

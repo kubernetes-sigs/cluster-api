@@ -1660,6 +1660,11 @@ spec:
               failureReason:
                 description: FailureReason will be set on non-retryable errors
                 type: string
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
               ready:
                 description: Ready indicates the BootstrapData field is ready to be
                   consumed

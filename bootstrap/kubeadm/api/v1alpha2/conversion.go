@@ -37,6 +37,7 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Status.DataSecretName = restored.Status.DataSecretName
+	dst.Status.ObservedGeneration = restored.Status.ObservedGeneration
 	dst.Spec.Verbosity = restored.Spec.Verbosity
 	dst.Spec.UseExperimentalRetryJoin = restored.Spec.UseExperimentalRetryJoin
 	dst.Spec.Files = restored.Spec.Files

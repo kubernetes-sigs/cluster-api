@@ -162,6 +162,11 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
             type: object
         type: object
     served: true

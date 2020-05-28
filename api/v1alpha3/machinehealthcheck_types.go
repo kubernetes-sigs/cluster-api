@@ -83,6 +83,10 @@ type MachineHealthCheckStatus struct {
 	// total number of healthy machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	CurrentHealthy int32 `json:"currentHealthy,omitempty"`
+
+	// ObservedGeneration is the latest generation observed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCheckStatus

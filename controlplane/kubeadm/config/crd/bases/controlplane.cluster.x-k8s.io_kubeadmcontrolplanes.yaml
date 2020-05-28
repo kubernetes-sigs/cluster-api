@@ -967,6 +967,11 @@ spec:
                 description: Initialized denotes whether or not the control plane
                   has the uploaded kubeadm-config configmap.
                 type: boolean
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
               ready:
                 description: Ready denotes that the KubeadmControlPlane API Server
                   is ready to receive requests.

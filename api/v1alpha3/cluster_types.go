@@ -138,6 +138,10 @@ type ClusterStatus struct {
 	// Conditions defines current service state of the cluster.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// ObservedGeneration is the latest generation observed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // ANCHOR_END: ClusterStatus

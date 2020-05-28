@@ -74,3 +74,23 @@ func TestUnstructuredGetConditions(t *testing.T) {
 
 	g.Expect(UnstructuredGetter(u).GetConditions()).To(HaveLen(1))
 }
+
+func TestUnstructuredSetConditions(t *testing.T) {
+	g := NewWithT(t)
+
+	// gets an unstructured with empty conditions
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+	c := &clusterv1.Cluster{}
+	u := &unstructured.Unstructured{}
+	g.Expect(scheme.Convert(c, u, nil)).To(Succeed())
+
+	// set conditions
+	conditions := conditionList(true1, falseInfo1)
+
+	s := UnstructuredSetter(u)
+	s.SetConditions(conditions)
+	g.Expect(s.GetConditions()).To(Equal(conditions))
+}

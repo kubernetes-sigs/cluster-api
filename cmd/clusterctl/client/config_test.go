@@ -424,7 +424,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	g.Expect(ioutil.WriteFile(path, rawTemplate, 0644)).To(Succeed())
+	g.Expect(ioutil.WriteFile(path, rawTemplate, 0600)).To(Succeed())
 
 	// Template on a repository & in a ConfigMap
 	configMap := &corev1.ConfigMap{

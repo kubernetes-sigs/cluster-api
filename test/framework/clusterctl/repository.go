@@ -56,7 +56,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			Expect(os.MkdirAll(sourcePath, 0755)).To(Succeed(), "Failed to create the clusterctl local repository folder for %q / %q", providerLabel, version.Name)
 
 			filePath := filepath.Join(sourcePath, "components.yaml")
-			Expect(ioutil.WriteFile(filePath, manifest, 0755)).To(Succeed(), "Failed to write manifest in the clusterctl local repository for %q / %q", providerLabel, version.Name)
+			Expect(ioutil.WriteFile(filePath, manifest, 0600)).To(Succeed(), "Failed to write manifest in the clusterctl local repository for %q / %q", providerLabel, version.Name)
 
 			if providerURL == "" {
 				providerURL = filePath
@@ -73,7 +73,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			Expect(err).ToNot(HaveOccurred(), "Failed to read file %q / %q", provider.Name, file.SourcePath)
 
 			destinationFile := filepath.Join(filepath.Dir(providerURL), file.TargetName)
-			Expect(ioutil.WriteFile(destinationFile, data, 0644)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
+			Expect(ioutil.WriteFile(destinationFile, data, 0600)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
 		}
 	}
 

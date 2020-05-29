@@ -554,7 +554,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				"test0": &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: cluster.Namespace,
-						Name:      fmt.Sprintf("test0"),
+						Name:      "test0",
 						Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
 					},
 					Spec: clusterv1.MachineSpec{

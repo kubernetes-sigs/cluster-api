@@ -112,6 +112,10 @@ type KubeadmConfigStatus struct {
 	// FailureMessage will be set on non-retryable errors
 	// +optional
 	FailureMessage string `json:"failureMessage,omitempty"`
+
+	// ObservedGeneration is the latest generation observed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -465,6 +465,7 @@ func autoConvert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in *v1alpha3.C
 	out.ControlPlaneInitialized = in.ControlPlaneInitialized
 	// WARNING: in.ControlPlaneReady requires manual conversion: does not exist in peer-type
 	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
+	// WARNING: in.ObservedGeneration requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -916,6 +917,7 @@ func autoConvert_v1alpha3_MachineStatus_To_v1alpha2_MachineStatus(in *v1alpha3.M
 	out.Phase = in.Phase
 	out.BootstrapReady = in.BootstrapReady
 	out.InfrastructureReady = in.InfrastructureReady
+	// WARNING: in.ObservedGeneration requires manual conversion: does not exist in peer-type
 	return nil
 }
 

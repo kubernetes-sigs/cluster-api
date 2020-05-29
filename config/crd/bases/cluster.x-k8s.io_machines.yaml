@@ -635,6 +635,11 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
               phase:
                 description: Phase represents the current phase of machine actuation.
                   E.g. Pending, Running, Terminating, Failed etc.

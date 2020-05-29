@@ -309,6 +309,7 @@ func autoConvert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in
 	out.BootstrapData = *(*[]byte)(unsafe.Pointer(&in.BootstrapData))
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
+	// WARNING: in.ObservedGeneration requires manual conversion: does not exist in peer-type
 	return nil
 }
 

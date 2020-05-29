@@ -153,7 +153,8 @@ before getting started with Cluster API.
 {{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3,Packet"}}
 {{#tab AWS}}
 
-Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
+Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path. You need at least version v0.5.5 for these instructions.
+Instructions for older versions of clusterawsadm are available in [Github][legacy-clusterawsadm].
 
 The clusterawsadm command line utility assists with identity and access management (IAM) for Cluster API Provider AWS.
 
@@ -166,12 +167,12 @@ export AWS_SESSION_TOKEN=<session-token> # If you are using Multi-Factor Auth.
 # The clusterawsadm utility takes the credentials that you set as environment
 # variables and uses them to create a CloudFormation stack in your AWS account
 # with the correct IAM resources.
-clusterawsadm alpha bootstrap create-stack
+clusterawsadm bootstrap iam create-cloudformation-stack
 
 # Create the base64 encoded credentials using clusterawsadm.
 # This command uses your environment variables and encodes
 # them in a value to be stored in a Kubernetes Secret.
-export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-credentials)
+export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
 
 # Finally, initialize the management cluster
 clusterctl init --infrastructure aws
@@ -628,3 +629,4 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [provider components]: ../reference/glossary.md#provider-components
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/
 [workload cluster]: ../reference/glossary.md#workload-cluster
+[legacy-clusterawsadm]: https://github.com/kubernetes-sigs/cluster-api/blob/v0.3.6/docs/book/src/user/quick-start.md#initialization-for-common-providers

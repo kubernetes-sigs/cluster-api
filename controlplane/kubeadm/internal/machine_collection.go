@@ -48,10 +48,8 @@ func NewFilterableMachineCollection(machines ...*clusterv1.Machine) FilterableMa
 // NewFilterableMachineCollectionFromMachineList creates a FilterableMachineCollection from the given MachineList
 func NewFilterableMachineCollectionFromMachineList(machineList *clusterv1.MachineList) FilterableMachineCollection {
 	ss := make(FilterableMachineCollection, len(machineList.Items))
-	if machineList != nil {
-		for i := range machineList.Items {
-			ss.Insert(&machineList.Items[i])
-		}
+	for i := range machineList.Items {
+		ss.Insert(&machineList.Items[i])
 	}
 	return ss
 }

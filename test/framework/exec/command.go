@@ -71,7 +71,7 @@ func WithArgs(args ...string) Option {
 
 // Run executes the command and returns stdout, stderr and the error if there is any.
 func (c *Command) Run(ctx context.Context) ([]byte, []byte, error) {
-	cmd := exec.CommandContext(ctx, c.Cmd, c.Args...)
+	cmd := exec.CommandContext(ctx, c.Cmd, c.Args...) //nolint:gosec
 	if c.Stdin != nil {
 		cmd.Stdin = c.Stdin
 	}

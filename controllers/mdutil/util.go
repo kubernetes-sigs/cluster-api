@@ -193,7 +193,7 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 	if !ok {
 		return int32(0), false
 	}
-	intValue, err := strconv.Atoi(annotationValue)
+	intValue, err := strconv.ParseInt(annotationValue, 10, 32)
 	if err != nil {
 		logger.V(2).Info("Cannot convert the value to integer", "annotationValue", annotationValue)
 		return int32(0), false
@@ -563,7 +563,7 @@ func IsSaturated(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineS
 		return false
 	}
 	desiredString := ms.Annotations[clusterv1.DesiredReplicasAnnotation]
-	desired, err := strconv.Atoi(desiredString)
+	desired, err := strconv.ParseInt(desiredString, 10, 32)
 	if err != nil {
 		return false
 	}

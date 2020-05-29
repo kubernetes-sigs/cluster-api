@@ -55,7 +55,7 @@ func JoinYaml(yamls ...[]byte) []byte {
 
 // ToUnstructured takes a YAML and converts it to a list of Unstructured objects
 func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
-	var ret []unstructured.Unstructured //nolint
+	var ret []unstructured.Unstructured
 
 	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(rawyaml)))
 	count := 1

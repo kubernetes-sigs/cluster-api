@@ -41,10 +41,10 @@ func Test_viperReader_Init(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
-	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
+	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
 
 	configFileBadContents := filepath.Join(dir, "clusterctl-bad.yaml")
-	g.Expect(ioutil.WriteFile(configFileBadContents, []byte("bad-contents"), 0640)).To(Succeed())
+	g.Expect(ioutil.WriteFile(configFileBadContents, []byte("bad-contents"), 0600)).To(Succeed())
 
 	tests := []struct {
 		name       string
@@ -102,7 +102,7 @@ func Test_viperReader_Get(t *testing.T) {
 	os.Setenv("FOO", "foo")
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
-	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
+	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
 
 	type args struct {
 		key string
@@ -185,7 +185,7 @@ func Test_viperReader_Set(t *testing.T) {
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
 
-	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
+	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
 
 	type args struct {
 		key   string
@@ -230,7 +230,7 @@ func Test_viperReader_checkDefaultConfig(t *testing.T) {
 	dir = strings.TrimSuffix(dir, "/")
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
-	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0640)).To(Succeed())
+	g.Expect(ioutil.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
 
 	type fields struct {
 		configPaths []string

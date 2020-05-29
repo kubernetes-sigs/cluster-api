@@ -66,7 +66,7 @@ func getReason(groups conditionGroups, options *mergeOptions) string {
 }
 
 // getFirstReason returns the first reason from the ordered list of conditions in the top group.
-// If required, the reason gets
+// If required, the reason gets localized with the source object reference.
 func getFirstReason(g conditionGroups, order []clusterv1.ConditionType, addSourceRef bool) string {
 	if condition := getFirstCondition(g, order); condition != nil {
 		reason := condition.Reason

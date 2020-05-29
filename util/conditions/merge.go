@@ -72,9 +72,7 @@ func merge(conditions []localizedCondition, targetCondition clusterv1.ConditionT
 func getConditionGroups(conditions []localizedCondition) conditionGroups {
 	groups := conditionGroups{}
 
-	for i := range conditions {
-		condition := conditions[i]
-
+	for _, condition := range conditions {
 		if condition.Condition == nil {
 			continue
 		}

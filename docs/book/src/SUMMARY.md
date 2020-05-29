@@ -11,6 +11,7 @@
     - [Upgrade](./tasks/upgrade.md)
     - [Configure a MachineHealthCheck](./tasks/healthcheck.md)
     - [Kubeadm based control plane management](./tasks/kubeadm-control-plane.md)
+    - [Changing a Machine Template](./tasks/change-machine-template.md)
 - [clusterctl CLI](./clusterctl/overview.md)
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)

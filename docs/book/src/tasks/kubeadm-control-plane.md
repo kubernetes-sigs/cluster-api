@@ -39,7 +39,9 @@ but is the final step in fully upgrading a Cluster API managed cluster.
 
 It is recommended to manage workload machines with one or more `MachineDeployment`s. `MachineDeployment`s will
 transparently manage `MachineSet`s and `Machine`s to allow for a seamless scaling experience. A modification to the
-`MachineDeployment`s spec will begin a rolling update of the workload machines.
+`MachineDeployment`s spec will begin a rolling update of the workload machines. Follow 
+[these instructions](./change-machine-template.md) for changing the 
+template for an existing `MachineDeployment`.
 
 For a more in-depth look at how `MachineDeployments` manage scaling events, take a look at the [`MachineDeployment`
 controller documentation](../developer/architecture/controllers/machine-deployment.md) and the [`MachineSet` controller

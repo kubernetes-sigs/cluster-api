@@ -19,6 +19,7 @@ package conditions
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +45,7 @@ func Set(to Setter, condition *clusterv1.Condition) {
 	conditions := to.GetConditions()
 	newConditions := make(clusterv1.Conditions, 0, len(conditions))
 	exists := false
-	condition.LastTransitionTime = metav1.Now()
+	condition.LastTransitionTime = metav1.NewTime(time.Now().Truncate(time.Second))
 	for i := range conditions {
 		existingCondition := conditions[i]
 		if existingCondition.Type == condition.Type {

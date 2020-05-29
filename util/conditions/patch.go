@@ -89,8 +89,7 @@ func (p Patch) Apply(source Setter) error {
 	for _, conditionPatch := range p {
 		switch conditionPatch.Op {
 		case AddConditionPatch:
-			// If the condition is already on source, check if source and target agree on the change;
-			// if not, this is a conflict.
+			// If the condition is already on source, check if source and target agree on the change; if not, this is a conflict.
 			if sourceCondition := Get(source, conditionPatch.Target.Type); sourceCondition != nil {
 				// If source and target agree on the change, then it is a conflict.
 				if !hasSameState(sourceCondition, conditionPatch.Target) {
@@ -138,4 +137,9 @@ func (p Patch) Apply(source Setter) error {
 		}
 	}
 	return nil
+}
+
+// IsZero returns true if the patch has no changes.
+func (p Patch) IsZero() bool {
+	return len(p) == 0
 }

@@ -58,6 +58,10 @@ var (
 									Type:                   "object",
 									XPreserveUnknownFields: pointer.BoolPtr(true),
 								},
+								"status": {
+									Type:                   "object",
+									XPreserveUnknownFields: pointer.BoolPtr(true),
+								},
 							},
 						},
 					},

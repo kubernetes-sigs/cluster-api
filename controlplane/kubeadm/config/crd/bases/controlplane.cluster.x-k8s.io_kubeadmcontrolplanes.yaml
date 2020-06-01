@@ -433,6 +433,90 @@ spec:
                           separate images
                         type: boolean
                     type: object
+                  diskSetup:
+                    description: DiskSetup specifies options for the creation of partition
+                      tables and file systems on devices.
+                    properties:
+                      filesystems:
+                        description: Filesystems specifies the list of file systems
+                          to setup.
+                        items:
+                          description: Filesystem defines the file systems to be created.
+                          properties:
+                            device:
+                              description: Device specifies the device name
+                              type: string
+                            extraOpts:
+                              description: ExtraOpts defined extra options to add
+                                to the command for creating the file system.
+                              items:
+                                type: string
+                              type: array
+                            filesystem:
+                              description: Filesystem specifies the file system type.
+                              type: string
+                            label:
+                              description: Label specifies the file system label to
+                                be used. If set to None, no label is used.
+                              type: string
+                            overwrite:
+                              description: Overwrite defines whether or not to overwrite
+                                any existing filesystem. If true, any pre-existing
+                                file system will be destroyed. Use with Caution.
+                              type: boolean
+                            partition:
+                              description: 'Partition specifies the partition to use.
+                                The valid options are: "auto|any", "auto", "any",
+                                "none", and <NUM>, where NUM is the actual partition
+                                number.'
+                              type: string
+                            replaceFS:
+                              description: 'ReplaceFS is a special directive, used
+                                for Microsoft Azure that instructs cloud-init to replace
+                                a file system of <FS_TYPE>. NOTE: unless you define
+                                a label, this requires the use of the ''any'' partition
+                                directive.'
+                              type: string
+                          required:
+                          - device
+                          - filesystem
+                          - label
+                          type: object
+                        type: array
+                      partitions:
+                        description: Partitions specifies the list of the partitions
+                          to setup.
+                        items:
+                          description: Partition defines how to create and layout
+                            a partition.
+                          properties:
+                            device:
+                              description: Device is the name of the device.
+                              type: string
+                            layout:
+                              description: Layout specifies the device layout. If
+                                it is true, a single partition will be created for
+                                the entire device. When layout is false, it means
+                                don't partition or ignore existing partitioning.
+                              type: boolean
+                            overwrite:
+                              description: Overwrite describes whether to skip checks
+                                and create the partition if a partition or filesystem
+                                is found on the device. Use with caution. Default
+                                is 'false'.
+                              type: boolean
+                            tableType:
+                              description: 'TableType specifies the tupe of partition
+                                table. The following are supported: ''mbr'': default
+                                and setups a MS-DOS partition table ''gpt'': setups
+                                a GPT partition table'
+                              type: string
+                          required:
+                          - device
+                          - layout
+                          type: object
+                        type: array
+                    type: object
                   files:
                     description: Files specifies extra files to be passed to user_data
                       upon creation.
@@ -838,6 +922,15 @@ spec:
                             type: array
                         type: object
                     type: object
+                  mounts:
+                    description: Mounts specifies a list of mount points to be setup.
+                    items:
+                      description: MountPoints defines input for generated mounts
+                        in cloud-init.
+                      items:
+                        type: string
+                      type: array
+                    type: array
                   ntp:
                     description: NTP specifies NTP configuration
                     properties:

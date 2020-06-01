@@ -21,6 +21,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	"k8s.io/utils/pointer"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -113,4 +115,67 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	for _, f := range expectedCommands {
 		g.Expect(out).To(ContainSubstring(f))
 	}
+}
+
+func TestNewInitControlPlaneDiskMounts(t *testing.T) {
+	g := NewWithT(t)
+
+	cpinput := &ControlPlaneInput{
+		BaseUserData: BaseUserData{
+			Header:              "test",
+			PreKubeadmCommands:  nil,
+			PostKubeadmCommands: nil,
+			WriteFiles:          nil,
+			Users:               nil,
+			NTP:                 nil,
+			DiskSetup: &bootstrapv1.DiskSetup{
+				Partitions: []bootstrapv1.Partition{
+					{
+						Device:    "test-device",
+						Layout:    true,
+						Overwrite: pointer.BoolPtr(false),
+						TableType: pointer.StringPtr("gpt"),
+					},
+				},
+				Filesystems: []bootstrapv1.Filesystem{
+					{
+						Device:     "test-device",
+						Filesystem: "ext4",
+						Label:      "test_disk",
+						ExtraOpts:  []string{"-F", "-E", "lazy_itable_init=1,lazy_journal_init=1"},
+					},
+				},
+			},
+			Mounts: []bootstrapv1.MountPoints{
+				{"test_disk", "/var/lib/testdir"},
+			},
+		},
+		Certificates:         secret.Certificates{},
+		ClusterConfiguration: "my-cluster-config",
+		InitConfiguration:    "my-init-config",
+	}
+
+	out, err := NewInitControlPlane(cpinput)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	expectedDiskSetup := `disk_setup:
+  test-device:
+    table_type: gpt
+    layout: true
+    overwrite: false`
+	expectedFSSetup := `fs_setup:
+  - label: test_disk
+    filesystem: ext4
+    device: test-device
+    extra_opts: 
+      - -F
+      - -E
+      - lazy_itable_init=1,lazy_journal_init=1`
+	expectedMounts := `mounts:
+  - - test_disk
+    - /var/lib/testdir`
+
+	g.Expect(out).To(ContainSubstring(expectedDiskSetup))
+	g.Expect(out).To(ContainSubstring(expectedFSSetup))
+	g.Expect(out).To(ContainSubstring(expectedMounts))
 }

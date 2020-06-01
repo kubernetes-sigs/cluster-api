@@ -19,6 +19,7 @@ package log
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -126,7 +127,7 @@ func (l *logger) write(values []interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(f)
+	fmt.Fprintln(os.Stderr, f)
 }
 
 func (l *logger) clone() *logger {

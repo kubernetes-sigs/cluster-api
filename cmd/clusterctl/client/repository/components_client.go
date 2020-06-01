@@ -77,7 +77,7 @@ func (f *componentsClient) Get(options ComponentsOptions) (Components, error) {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())
 		}
 	} else {
-		log.V(1).Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
+		log.Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
 	}
 
 	return NewComponents(f.provider, f.configClient, file, options)

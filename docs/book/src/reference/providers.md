@@ -6,7 +6,7 @@ are also sponsored by SIG Cluster Lifecycle. Providers marked in bold are known 
 support v1alpha3 API types.
 
 ## Bootstrap
-- [**Kubeadm**](https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm)
+- [**Kubeadm**](https://github.com/kubernetes-sigs/cluster-api/tree/master/bootstrap/kubeadm)
 - [**Talos**](https://github.com/talos-systems/cluster-api-bootstrap-provider-talos)
 
 

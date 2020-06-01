@@ -173,6 +173,7 @@ providers.
 |CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere   |
 |CAPD          | cluster.x-k8s.io/provider=infrastructure-docker    |
 |CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3    |
+|CAPP          | cluster.x-k8s.io/provider=infrastructure-packet     |
 |CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure     |
 
 ### Workload cluster templates

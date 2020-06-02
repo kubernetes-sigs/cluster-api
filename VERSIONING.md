@@ -61,7 +61,7 @@ a:
 - Non-breaking feature: :sparkles: (`:sparkles:`)
 - Patch fix: :bug: (`:bug:`)
 - Docs: :book: (`:book:`)
-- Infra/Tests/Other: :running: (`:running:`)
+- Infra/Tests/Other: :seedling: (`:seedling:`)
 
 You can also use the equivalent emoji directly, since GitHub doesn't
 render the `:xyz:` aliases in PR titles.

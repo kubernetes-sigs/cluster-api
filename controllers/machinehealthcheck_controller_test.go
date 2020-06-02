@@ -50,6 +50,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 
 	var clusterName = "test-cluster"
 	var clusterKubeconfigName = "test-cluster-kubeconfig"
+	var clusterUID types.UID
 	var namespaceName string
 
 	BeforeEach(func() {
@@ -63,6 +64,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 		By("Creating the Cluster")
 		testCluster.Namespace = namespaceName
 		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
+		clusterUID = testCluster.UID
 
 		By("Creating the remote Cluster kubeconfig")
 		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
@@ -216,6 +218,17 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 			}, timeout).Should(Succeed())
 		}
 
+		// getMHCStatus is a function to be used in Eventually() matchers to check the MHC status
+		getMHCStatus := func(namespace, name string) func() clusterv1.MachineHealthCheckStatus {
+			return func() clusterv1.MachineHealthCheckStatus {
+				mhc := &clusterv1.MachineHealthCheck{}
+				if err := testEnv.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, mhc); err != nil {
+					return clusterv1.MachineHealthCheckStatus{}
+				}
+				return mhc.Status
+			}
+		}
+
 		type reconcileTestCase struct {
 			mhc                 func() *clusterv1.MachineHealthCheck
 			nodes               func() []*corev1.Node
@@ -316,13 +329,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
 
 				By("Verifying the status has been updated")
-				Eventually(func() clusterv1.MachineHealthCheckStatus {
-					mhc := &clusterv1.MachineHealthCheck{}
-					if err := testEnv.Get(ctx, types.NamespacedName{Namespace: namespaceName, Name: rtc.mhc().Name}, mhc); err != nil {
-						return clusterv1.MachineHealthCheckStatus{}
-					}
-					return mhc.Status
-				}, timeout).Should(Equal(rtc.expectedStatus))
+				Eventually(getMHCStatus(namespaceName, rtc.mhc().Name), timeout).Should(Equal(rtc.expectedStatus))
 
 				// Status has been updated, a reconcile has occurred, should no longer need async assertions
 
@@ -442,6 +449,54 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 0, CurrentHealthy: 0},
 			}),
 		)
+
+		Context("when a remote Node is modified", func() {
+			It("should react to the updated Node", func() {
+				By("Creating a Node")
+				remoteNode := newTestNode("remote-node-1")
+				remoteNode.Status.Conditions = []corev1.NodeCondition{healthyNodeCondition}
+				Expect(testEnv.Create(ctx, remoteNode)).To(Succeed())
+
+				By("Creating a Machine")
+				// Set up the Machine to reduce events triggered by other controllers updating the Machine
+				clusterOR := metav1.OwnerReference{APIVersion: clusterv1.GroupVersion.String(), Kind: "Cluster", Name: clusterName, UID: clusterUID}
+				remoteMachine := newTestMachine("remote-machine-1", namespaceName, clusterName, remoteNode.Name, labels)
+				remoteMachine.SetOwnerReferences([]metav1.OwnerReference{machineSetOR, clusterOR})
+				now := metav1.NewTime(time.Now())
+				remoteMachine.SetFinalizers([]string{"machine.cluster.x-k8s.io"})
+				remoteMachine.Status.LastUpdated = &now
+				remoteMachine.Status.Phase = "Provisioned"
+				createMachine(remoteMachine)
+
+				By("Creating a MachineHealthCheck")
+				mhc := newTestMachineHealthCheck("remote-test-mhc", namespaceName, clusterName, labels)
+				maxUnhealthy := intstr.Parse("1")
+				mhc.Spec.MaxUnhealthy = &maxUnhealthy
+				mhc.Default()
+				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
+
+				By("Verifying the status has been updated, and the machine is currently healthy")
+				Eventually(getMHCStatus(namespaceName, mhc.Name), timeout).Should(Equal(clusterv1.MachineHealthCheckStatus{ExpectedMachines: 1, CurrentHealthy: 1}))
+				// Make sure the status is stable before making any changes, this allows in-flight reconciles to finish
+				Consistently(getMHCStatus(namespaceName, mhc.Name), 100*time.Millisecond).Should(Equal(clusterv1.MachineHealthCheckStatus{ExpectedMachines: 1, CurrentHealthy: 1}))
+
+				By("Updating the node to make it unhealthy")
+				Eventually(func() error {
+					node := &corev1.Node{}
+					if err := testEnv.Get(ctx, util.ObjectKey(remoteNode), node); err != nil {
+						return err
+					}
+					node.Status.Conditions = []corev1.NodeCondition{unhealthyNodeCondition}
+					if err := testEnv.Status().Update(ctx, node); err != nil {
+						return err
+					}
+					return nil
+				}, timeout).Should(Succeed())
+
+				By("Verifying the status has been updated, and the machine is now unhealthy")
+				Eventually(getMHCStatus(namespaceName, mhc.Name), timeout).Should(Equal(clusterv1.MachineHealthCheckStatus{ExpectedMachines: 1, CurrentHealthy: 0}))
+			})
+		})
 	})
 })
 

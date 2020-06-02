@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -65,14 +64,13 @@ const (
 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object
 type MachineHealthCheckReconciler struct {
-	Client client.Client
-	Log    logr.Logger
+	Client  client.Client
+	Log     logr.Logger
+	Tracker *remote.ClusterCacheTracker
 
-	controller        controller.Controller
-	recorder          record.EventRecorder
-	scheme            *runtime.Scheme
-	clusterCaches     map[client.ObjectKey]cache.Cache
-	clusterCachesLock sync.RWMutex
+	controller controller.Controller
+	recorder   record.EventRecorder
+	scheme     *runtime.Scheme
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -117,7 +115,6 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	r.scheme = mgr.GetScheme()
-	r.clusterCaches = make(map[client.ObjectKey]cache.Cache)
 	return nil
 }
 
@@ -203,7 +200,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 		return ctrl.Result{}, err
 	}
 
-	if err := r.watchClusterNodes(ctx, r.Client, cluster); err != nil {
+	if err := r.watchClusterNodes(ctx, cluster); err != nil {
 		logger.Error(err, "Error watching nodes on target cluster")
 		return ctrl.Result{}, err
 	}
@@ -376,54 +373,21 @@ func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clu
 	return &machineList.Items[0], nil
 }
 
-func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
-	key := util.ObjectKey(cluster)
-	if _, ok := r.getClusterCache(key); ok {
-		// watch was already set up for this cluster
+func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
+	// If there is no tracker, don't watch remote nodes
+	if r.Tracker == nil {
 		return nil
 	}
 
-	return r.createClusterCache(ctx, c, key)
-}
-
-func (r *MachineHealthCheckReconciler) getClusterCache(key client.ObjectKey) (cache.Cache, bool) {
-	r.clusterCachesLock.RLock()
-	defer r.clusterCachesLock.RUnlock()
-
-	c, ok := r.clusterCaches[key]
-	return c, ok
-}
-
-func (r *MachineHealthCheckReconciler) createClusterCache(ctx context.Context, c client.Client, key client.ObjectKey) error {
-	r.clusterCachesLock.Lock()
-	defer r.clusterCachesLock.Unlock()
-
-	// Double check the key still doesn't exist under write lock
-	if _, ok := r.clusterCaches[key]; ok {
-		// An informer was created while waiting for the lock
-		return nil
+	if err := r.Tracker.Watch(ctx, remote.WatchInput{
+		Cluster:      util.ObjectKey(cluster),
+		Watcher:      r.controller,
+		Kind:         &corev1.Node{},
+		CacheOptions: cache.Options{},
+		EventHandler: &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.nodeToMachineHealthCheck)},
+	}); err != nil {
+		return err
 	}
-
-	config, err := remote.RESTConfig(ctx, c, key)
-	if err != nil {
-		return errors.Wrap(err, "error fetching remote cluster config")
-	}
-
-	clusterCache, err := cache.New(config, cache.Options{})
-	if err != nil {
-		return errors.Wrap(err, "error creating cache for remote cluster")
-	}
-	go clusterCache.Start(ctx.Done())
-
-	err = r.controller.Watch(
-		source.NewKindWithCache(&corev1.Node{}, clusterCache),
-		&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.nodeToMachineHealthCheck)},
-	)
-	if err != nil {
-		return errors.Wrap(err, "error watching nodes on target cluster")
-	}
-
-	r.clusterCaches[key] = clusterCache
 	return nil
 }
 

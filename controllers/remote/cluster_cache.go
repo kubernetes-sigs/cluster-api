@@ -366,34 +366,21 @@ func healthCheckPath(sourceCfg *rest.Config, requestTimeout time.Duration, path 
 // ClusterCacheReconciler is responsible for stopping remote cluster caches when
 // the cluster for the remote cache is being deleted.
 type ClusterCacheReconciler struct {
-	log     logr.Logger
-	client  client.Client
-	tracker *ClusterCacheTracker
+	Log     logr.Logger
+	Client  client.Client
+	Tracker *ClusterCacheTracker
 }
 
-func NewClusterCacheReconciler(
-	log logr.Logger,
-	mgr ctrl.Manager,
-	controllerOptions controller.Options,
-	cct *ClusterCacheTracker,
-) (*ClusterCacheReconciler, error) {
-	r := &ClusterCacheReconciler{
-		log:     log,
-		client:  mgr.GetClient(),
-		tracker: cct,
-	}
-
-	// Watch Clusters so we can stop and remove caches when Clusters are deleted.
+func (r *ClusterCacheReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	_, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
-		WithOptions(controllerOptions).
+		WithOptions(options).
 		Build(r)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create cluster cache manager controller")
+		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
-
-	return r, nil
+	return nil
 }
 
 // Reconcile reconciles Clusters and removes ClusterCaches for any Cluster that cannot be retrieved from the
@@ -401,12 +388,12 @@ func NewClusterCacheReconciler(
 func (r *ClusterCacheReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	ctx := context.Background()
 
-	log := r.log.WithValues("namespace", req.Namespace, "name", req.Name)
+	log := r.Log.WithValues("namespace", req.Namespace, "name", req.Name)
 	log.V(4).Info("Reconciling")
 
 	var cluster clusterv1.Cluster
 
-	err := r.client.Get(ctx, req.NamespacedName, &cluster)
+	err := r.Client.Get(ctx, req.NamespacedName, &cluster)
 	if err == nil {
 		log.V(4).Info("Cluster still exists")
 		return reconcile.Result{}, nil
@@ -417,7 +404,7 @@ func (r *ClusterCacheReconciler) Reconcile(req reconcile.Request) (reconcile.Res
 
 	log.V(4).Info("Cluster no longer exists")
 
-	c := r.tracker.getClusterCache(req.NamespacedName)
+	c := r.Tracker.getClusterCache(req.NamespacedName)
 	if c == nil {
 		log.V(4).Info("No current cluster cache exists - nothing to do")
 		return reconcile.Result{}, nil
@@ -426,10 +413,10 @@ func (r *ClusterCacheReconciler) Reconcile(req reconcile.Request) (reconcile.Res
 	log.V(4).Info("Stopping cluster cache")
 	c.Stop()
 
-	r.tracker.deleteClusterCache(req.NamespacedName)
+	r.Tracker.deleteClusterCache(req.NamespacedName)
 
 	log.V(4).Info("Deleting watches for cluster cache")
-	r.tracker.deleteWatchesForCluster(req.NamespacedName)
+	r.Tracker.deleteWatchesForCluster(req.NamespacedName)
 
 	return reconcile.Result{}, nil
 }

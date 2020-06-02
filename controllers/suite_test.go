@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	// +kubebuilder:scaffold:imports
 )
@@ -66,6 +67,20 @@ var _ = BeforeSuite(func(done Done) {
 	testEnv, err = helpers.NewTestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
 
+	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
+	// requiring a connection to a remote cluster
+	tracker, err := remote.NewClusterCacheTracker(
+		log.Log,
+		testEnv.Manager,
+	)
+	Expect(err).ToNot(HaveOccurred())
+
+	Expect((&remote.ClusterCacheReconciler{
+		Client:  testEnv,
+		Log:     log.Log,
+		Tracker: tracker,
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+
 	clusterReconciler = &ClusterReconciler{
 		Client:   testEnv,
 		Log:      log.Log,
@@ -90,6 +105,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect((&MachineHealthCheckReconciler{
 		Client:   testEnv,
 		Log:      log.Log,
+		Tracker:  tracker,
 		recorder: testEnv.GetEventRecorderFor("machinehealthcheck-controller"),
 	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 

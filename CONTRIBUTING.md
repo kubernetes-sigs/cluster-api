@@ -40,10 +40,10 @@ come up, including gaps in documentation!
 1. Submit a pull request.
     1. All code PR must be labeled with one of
         - ⚠️ (:warning:, major or breaking changes)
-        - ✨ (:sparkles:, minor or feature additions)
+        - ✨ (:sparkles:, feature additions)
         - 🐛 (:bug:, patch and bugfixes)
         - 📖 (:book:, documentation or proposals)
-        - 🏃 (:running:, other)
+        - 🌱 (:seedling:, minor or other)
 
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer
 docs](https://github.com/kubernetes/community/tree/master/contributors/devel). Expect reviewers to request that you
@@ -85,13 +85,13 @@ Proof of concepts, code experiments, or other initiatives can live under the `ex
   and require support from bootstrap, control plane, or infrastructure providers.
 - Experiments follow a strict lifecycle: Alpha -> Beta prior to Graduation.
   - Alpha-stage experiments:
-    - SHOULD not be enabled by default and any feature gates MUST be marked as 'Alpha' 
+    - SHOULD not be enabled by default and any feature gates MUST be marked as 'Alpha'
     - MUST be associated with a CAEP that is merged and in at least a provisional state
     - MAY be considered inactive and marked as deprecated if the following does not happen within the course of 1 minor release cycle:
       - Transition to Beta-stage
       - Active development towards progressing to Beta-stage
       - Either direct or downstream user evaluation
-    - Any deprecated Alpha-stage experiment MAY be removed in the next minor release. 
+    - Any deprecated Alpha-stage experiment MAY be removed in the next minor release.
   - Beta-stage experiments:
     - SHOULD be enabled by default, and any feature gates MUST be marked as 'Beta'
     - MUST be associated with a CAEP that is at least in the experimental state
@@ -101,7 +101,7 @@ Proof of concepts, code experiments, or other initiatives can live under the `ex
       - Graduate
       - Active development towards Graduation
       - Either direct or downstream user consumption
-    - Any deprecated Beta-stage experiment MAY be removed after being deprecated for an entire minor release. 
+    - Any deprecated Beta-stage experiment MAY be removed after being deprecated for an entire minor release.
 - Experiment Graduation MUST coincide with a breaking Cluster API release
 - Experiment Graduation checklist:
   - [ ] MAY provide a way to be disabled, any feature gates MUST be marked as 'GA'

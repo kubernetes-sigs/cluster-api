@@ -39,7 +39,7 @@ const (
 	bugs          = ":bug: Bug Fixes"
 	documentation = ":book: Documentation"
 	warning       = ":warning: Breaking Changes"
-	other         = ":running: Others"
+	other         = ":seedling: Others"
 	unknown       = ":question: Sort these by hand"
 )
 
@@ -134,14 +134,19 @@ func run() int {
 			key = documentation
 			body = strings.TrimPrefix(body, ":book:")
 			body = strings.TrimPrefix(body, "📖")
-		case strings.HasPrefix(body, ":running:"), strings.HasPrefix(body, "🏃"):
+		case strings.HasPrefix(body, ":seedling:"), strings.HasPrefix(body, "🌱"):
 			key = other
-			body = strings.TrimPrefix(body, ":running:")
-			body = strings.TrimPrefix(body, "🏃")
+			body = strings.TrimPrefix(body, ":seedling:")
+			body = strings.TrimPrefix(body, "🌱")
 		case strings.HasPrefix(body, ":warning:"), strings.HasPrefix(body, "⚠️"):
 			key = warning
 			body = strings.TrimPrefix(body, ":warning:")
 			body = strings.TrimPrefix(body, "⚠️")
+		case strings.HasPrefix(body, ":running:"), strings.HasPrefix(body, "🏃"):
+			// This has been deprecated in favor of :seedling:
+			key = other
+			body = strings.TrimPrefix(body, ":running:")
+			body = strings.TrimPrefix(body, "🏃")
 		default:
 			key = unknown
 		}

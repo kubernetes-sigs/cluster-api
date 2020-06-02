@@ -20,7 +20,6 @@ import (
 	"path"
 	"path/filepath"
 	goruntime "runtime"
-	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,8 +30,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -88,11 +87,7 @@ func NewTestEnvironment() (*TestEnvironment, error) {
 	mgr, err := manager.New(cfg, manager.Options{
 		Scheme:             env.scheme,
 		MetricsBindAddress: "0",
-		NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
-			syncPeriod := 1 * time.Second
-			opts.Resync = &syncPeriod
-			return cache.New(config, opts)
-		},
+		NewClient:          util.ManagerDelegatingClientFunc,
 	})
 	if err != nil {
 		if stopErr := env.Stop(); err != nil {

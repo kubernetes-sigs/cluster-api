@@ -20,7 +20,6 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,7 +30,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -43,6 +41,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -99,11 +98,7 @@ var _ = BeforeSuite(func(done Done) {
 	mgr, err = manager.New(cfg, manager.Options{
 		Scheme:             scheme.Scheme,
 		MetricsBindAddress: "0",
-		NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
-			syncPeriod := 1 * time.Second
-			opts.Resync = &syncPeriod
-			return cache.New(config, opts)
-		},
+		NewClient:          util.ManagerDelegatingClientFunc,
 	})
 	Expect(err).NotTo(HaveOccurred())
 

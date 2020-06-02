@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -46,7 +47,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		return nil
 	}
 
-	_, err := secret.GetFromNamespacedName(ctx, r.Client, clusterName, secret.Kubeconfig)
+	controllerOwnerRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
+	configSecret, err := secret.GetFromNamespacedName(ctx, r.Client, clusterName, secret.Kubeconfig)
 	switch {
 	case apierrors.IsNotFound(err):
 		createErr := kubeconfig.CreateSecretWithOwner(
@@ -54,18 +56,36 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 			r.Client,
 			clusterName,
 			endpoint.String(),
-			*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+			controllerOwnerRef,
 		)
 		if createErr != nil {
-			if createErr == kubeconfig.ErrDependentCertificateNotFound {
+			if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
 				return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: dependentCertRequeueAfter},
-					"could not find secret %q for Cluster %q in namespace %q, requeuing",
-					secret.ClusterCA, clusterName.Name, clusterName.Namespace)
+					"could not find secret %q, requeuing", secret.ClusterCA)
 			}
 			return createErr
 		}
+		// skip rotation checks
+		return nil
 	case err != nil:
-		return errors.Wrapf(err, "failed to retrieve kubeconfig Secret for Cluster %q in namespace %q", clusterName.Name, clusterName.Namespace)
+		return errors.Wrap(err, "failed to retrieve kubeconfig Secret")
+	}
+
+	// only do rotation on owned secrets
+	if !util.HasOwnerRef(configSecret.OwnerReferences, controllerOwnerRef) {
+		return nil
+	}
+
+	needsRotation, err := kubeconfig.NeedsClientCertRotation(configSecret, certs.ClientCertificateRenewalDuration)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode kubeconfig client certificates")
+	}
+
+	if needsRotation {
+		r.Log.Info("rotating kubeconfig secret")
+		if err := kubeconfig.UpdateSecret(ctx, r.Client, configSecret); err != nil {
+			return errors.Wrap(err, "failed to rotate client certificates")
+		}
 	}
 
 	return nil

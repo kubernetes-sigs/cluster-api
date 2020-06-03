@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (
@@ -171,7 +172,7 @@ func (c *components) Yaml() ([]byte, error) {
 	objs = append(objs, c.sharedObjs...)
 	objs = append(objs, c.instanceObjs...)
 
-	return util.FromUnstructured(objs)
+	return utilyaml.FromUnstructured(objs)
 }
 
 // ComponentsOptions is the inputs needed by the NewComponents
@@ -204,7 +205,7 @@ func NewComponents(provider config.Provider, configClient config.Client, rawyaml
 	}
 
 	// Transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes)
-	objs, err := util.ToUnstructured(yaml)
+	objs, err := utilyaml.ToUnstructured(yaml)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse yaml")
 	}

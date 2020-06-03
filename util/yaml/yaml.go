@@ -28,9 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/yaml"
 )
 
 func ExtractClusterReferences(out *ParseOutput, c *clusterv1.Cluster) (res []*unstructured.Unstructured) {
@@ -151,7 +153,7 @@ func Parse(input ParseInput) (*ParseOutput, error) {
 }
 
 type yamlDecoder struct {
-	reader  *yaml.YAMLReader
+	reader  *apiyaml.YAMLReader
 	decoder runtime.Decoder
 	close   func() error
 }
@@ -179,8 +181,87 @@ func (d *yamlDecoder) Close() error {
 
 func NewYAMLDecoder(r io.ReadCloser) streaming.Decoder {
 	return &yamlDecoder{
-		reader:  yaml.NewYAMLReader(bufio.NewReader(r)),
+		reader:  apiyaml.NewYAMLReader(bufio.NewReader(r)),
 		decoder: scheme.Codecs.UniversalDeserializer(),
 		close:   r.Close,
 	}
+}
+
+// ToUnstructured takes a YAML and converts it to a list of Unstructured objects
+func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
+	var ret []unstructured.Unstructured
+
+	reader := apiyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(rawyaml)))
+	count := 1
+	for {
+		// Read one YAML document at a time, until io.EOF is returned
+		b, err := reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, errors.Wrapf(err, "failed to read yaml")
+		}
+		if len(b) == 0 {
+			break
+		}
+
+		var m map[string]interface{}
+		if err := yaml.Unmarshal(b, &m); err != nil {
+			return nil, errors.Wrapf(err, "failed to unmarshal the %s yaml document: %q", util.Ordinalize(count), string(b))
+		}
+
+		var u unstructured.Unstructured
+		u.SetUnstructuredContent(m)
+
+		// Ignore empty objects.
+		// Empty objects are generated if there are weird things in manifest files like e.g. two --- in a row without a yaml doc in the middle
+		if u.Object == nil {
+			continue
+		}
+
+		ret = append(ret, u)
+		count++
+	}
+
+	return ret, nil
+}
+
+// JoinYaml takes a list of YAML files and join them ensuring
+// each YAML that the yaml separator goes on a new line by adding \n where necessary
+func JoinYaml(yamls ...[]byte) []byte {
+	var yamlSeparator = []byte("---")
+
+	var cr = []byte("\n")
+	var b [][]byte //nolint
+	for _, y := range yamls {
+		if !bytes.HasPrefix(y, cr) {
+			y = append(cr, y...)
+		}
+		if !bytes.HasSuffix(y, cr) {
+
+			y = append(y, cr...)
+		}
+		b = append(b, y)
+	}
+
+	r := bytes.Join(b, yamlSeparator)
+	r = bytes.TrimPrefix(r, cr)
+	r = bytes.TrimSuffix(r, cr)
+
+	return r
+}
+
+// FromUnstructured takes a list of Unstructured objects and converts it into a YAML
+func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
+	var ret [][]byte //nolint
+	for _, o := range objs {
+		content, err := yaml.Marshal(o.UnstructuredContent())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to marshal yaml for %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+		}
+		ret = append(ret, content)
+	}
+
+	return JoinYaml(ret...), nil
 }

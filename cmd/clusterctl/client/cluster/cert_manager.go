@@ -27,6 +27,7 @@ import (
 	manifests "sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -180,7 +181,7 @@ func (cm *certManagerClient) getManifestObjs() ([]unstructured.Unstructured, err
 		return nil, err
 	}
 
-	objs, err := util.ToUnstructured(yaml)
+	objs, err := utilyaml.ToUnstructured(yaml)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse yaml for cert-manager manifest")
 	}

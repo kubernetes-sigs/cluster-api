@@ -26,7 +26,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (
@@ -96,7 +96,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -119,7 +119,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -142,7 +142,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -180,7 +180,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(controllerYaml, configMapYaml)),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -196,7 +196,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(controllerYaml, configMapYaml)),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -219,7 +219,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(controllerYaml, configMapYaml)),
 			},
 			args: args{
 				version:           "v2.0.0",

@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 // Template wraps a YAML file that defines the cluster objects (Cluster, Machines etc.).
@@ -66,7 +66,7 @@ func (t *template) Objs() []unstructured.Unstructured {
 }
 
 func (t *template) Yaml() ([]byte, error) {
-	return util.FromUnstructured(t.objs)
+	return utilyaml.FromUnstructured(t.objs)
 }
 
 // NewTemplate returns a new objects embedding a cluster template YAML file.
@@ -86,7 +86,7 @@ func NewTemplate(rawYaml []byte, configVariablesClient config.VariablesClient, t
 	}
 
 	// Transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes).
-	objs, err := util.ToUnstructured(yaml)
+	objs, err := utilyaml.ToUnstructured(yaml)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse yaml")
 	}

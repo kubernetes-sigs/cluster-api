@@ -215,7 +215,7 @@ type Proxy interface {
 }
 
 // retryWithExponentialBackoff repeats an operation until it passes or the exponential backoff times out.
-func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) error { //nolint:unparam
+func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) error {
 	log := logf.Log
 
 	i := 0

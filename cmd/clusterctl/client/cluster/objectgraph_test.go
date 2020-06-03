@@ -858,7 +858,7 @@ func getDetachedObjectGraphWihObjs(objs []runtime.Object) (*objectGraph, error) 
 	graph := newObjectGraph(nil) // detached from any cluster
 	for _, o := range objs {
 		u := &unstructured.Unstructured{}
-		if err := test.FakeScheme.Convert(o, u, nil); err != nil { //nolint
+		if err := test.FakeScheme.Convert(o, u, nil); err != nil {
 			return nil, errors.Wrap(err, "failed to convert object in unstructured")
 		}
 		graph.addObj(u)

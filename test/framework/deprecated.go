@@ -407,7 +407,7 @@ func dumpResource(resourceFilePath string, resource runtime.Object) error {
 		return errors.Wrapf(err, "error marshaling cluster ")
 	}
 
-	if err := ioutil.WriteFile(f.Name(), resourceYAML, 0644); err != nil {
+	if err := ioutil.WriteFile(f.Name(), resourceYAML, 0600); err != nil {
 		return errors.Wrapf(err, "error writing cluster yaml to file %q", f.Name())
 	}
 

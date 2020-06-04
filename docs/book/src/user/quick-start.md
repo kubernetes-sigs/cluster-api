@@ -127,7 +127,7 @@ See [`clusterctl init`](../clusterctl/commands/init.md) for more details.
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3,Packet"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -229,6 +229,21 @@ clusterctl init --infrastructure openstack
 Please visit the [Metal3 project][Metal3 getting started guide].
 
 {{#/tab }}
+{{#tab Packet}}
+
+In order to initialize the Packet Provider you have to expose the environment
+variable `PACKET_API_KEY`. This variable is used to authorize the infrastructure
+provider manager against the Packet API. You can retrieve your token directly
+from the [Packet Portal](https://app.packet.net/).
+
+```bash
+export PACKET_API_KEY="34ts3g4s5g45gd45dhdh"
+
+clusterctl init --infrastructure packet
+```
+
+{{#/tab }}
+
 {{#/tabs }}
 
 
@@ -298,7 +313,7 @@ discover the list of variables required by a cluster templates.
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before configuring a cluster with Cluster API.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3,Packet"}}
 {{#tab AWS}}
 
 ```bash
@@ -405,6 +420,28 @@ A full configuration reference can be found in [configuration.md](https://github
 Please visit the [Metal3 getting started guide].
 
 {{#/tab }}
+{{#tab Packet}}
+
+There are a couple of required environment variables that you have to expose in
+order to get a well tuned and function workload, they are all listed here:
+
+```bash
+# The project where your cluster will be placed to.
+# You have to get out from Packet Portal if you don't have one already.
+export PROJECT_ID="5yd4thd-5h35-5hwk-1111-125gjej40930"
+# The facility where you want your cluster to be provisioned
+export FACILITY="ewr1"
+# The operatin system used to provision the device
+export NODE_OS="ubuntu_18_04"
+# The ssh key name you loaded in Packet Portal
+export SSH_KEY="my-ssh"
+export POD_CIDR="172.25.0.0/16"
+export SERVICE_CIDR="172.26.0.0/16"
+export MASTER_NODE_TYPE="t1.small"
+export WORKER_NODE_TYPE="t1.small"
+```
+
+{{#/tab }}
 {{#/tabs }}
 
 #### Generating the cluster configuration
@@ -483,8 +520,8 @@ kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o jsonpath={.
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"AWS|Docker|GCP|vSphere|OpenStack|Metal3,Azure"}}
-{{#tab AWS|Docker|GCP|vSphere|OpenStack|Metal3}}
+{{#tabs name:"tab-deploy-cni" tabs:"AWS|Docker|GCP|vSphere|OpenStack|Metal3|Packet,Azure"}}
+{{#tab AWS|Docker|GCP|vSphere|OpenStack|Metal3|Packet}}
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \
@@ -539,6 +576,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[Packet getting started guide]: https://github.com/packethost/cluster-api-provider-packet#using
 [provider components]: ../reference/glossary.md#provider-components
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/
 [workload cluster]: ../reference/glossary.md#workload-cluster

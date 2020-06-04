@@ -30,6 +30,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -95,12 +96,6 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	// Make sure infrastructure is ready
-	if !cluster.Status.InfrastructureReady {
-		log.Info("Waiting for DockerCluster Controller to create cluster infrastructure")
-		return ctrl.Result{}, nil
-	}
-
 	// Fetch the Docker Cluster.
 	dockerCluster := &infrav1.DockerCluster{}
 	dockerClusterName := client.ObjectKey{
@@ -113,6 +108,31 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	log = log.WithValues("docker-cluster", dockerCluster.Name)
+
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(dockerMachine, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Always attempt to Patch the DockerMachine object and status after each reconciliation.
+	defer func() {
+		// always update the readyCondition; the summary is represented using the "1 of x completed" notation.
+		conditions.SetSummary(dockerMachine, conditions.WithStepCounter(infrav1.ConditionsCount))
+
+		if err := patchHelper.Patch(ctx, dockerMachine); err != nil {
+			log.Error(err, "failed to patch DockerMachine")
+			if rerr == nil {
+				rerr = err
+			}
+		}
+	}()
+
+	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
+	if !cluster.Status.InfrastructureReady {
+		log.Info("Waiting for DockerCluster Controller to create cluster infrastructure")
+		conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		return ctrl.Result{}, nil
+	}
 
 	// Create a helper for managing the docker container hosting the machine.
 	externalMachine, err := docker.NewMachine(cluster.Name, machine.Name, dockerMachine.Spec.CustomImage, log)
@@ -128,21 +148,6 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}
-
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(dockerMachine, r)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	// Always attempt to Patch the DockerMachine object and status after each reconciliation.
-	defer func() {
-		if err := patchHelper.Patch(ctx, dockerMachine); err != nil {
-			log.Error(err, "failed to patch DockerMachine")
-			if rerr == nil {
-				rerr = err
-			}
-		}
-	}()
 
 	// Handle deleted machines
 	if !dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -160,14 +165,16 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	// if the machine is already provisioned, return
 	if dockerMachine.Spec.ProviderID != nil {
 		// ensure ready state is set.
-		// This is required after move, bacuse status is not moved to the target cluster.
+		// This is required after move, because status is not moved to the target cluster.
 		dockerMachine.Status.Ready = true
+		conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
 		return ctrl.Result{}, nil
 	}
 
 	// Make sure bootstrap data is available and populated.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
 		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
+		conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -185,18 +192,30 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 			if err := externalMachine.Delete(ctx); err != nil {
 				log.Info("Failed to cleanup machine")
 			}
+			dockerMachine.Status.LoadBalancerConfigured = false
+			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, "Re-provisioning")
+			conditions.Delete(dockerMachine, infrav1.BootstrapExecSucceededCondition)
+
 			res = ctrl.Result{RequeueAfter: 10 * time.Second}
 			retErr = nil
 		}
 	}()
 
-	if err := externalMachine.Create(ctx, role, machine.Spec.Version, dockerMachine.Spec.ExtraMounts); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
+	// Create the machine if not existing yet
+	if !externalMachine.Exists() {
+		if err := externalMachine.Create(ctx, role, machine.Spec.Version, dockerMachine.Spec.ExtraMounts); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
+		}
 	}
 
+	// Update the ContainerProvisionedCondition condition
+	conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
+
 	// Preload images into the container
-	if err := externalMachine.PreloadLoadImages(ctx, dockerMachine.Spec.PreLoadImages); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to pre-load images into the DockerMachine")
+	if len(dockerMachine.Spec.PreLoadImages) > 0 {
+		if err := externalMachine.PreloadLoadImages(ctx, dockerMachine.Spec.PreLoadImages); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to pre-load images into the DockerMachine")
+		}
 	}
 
 	// if the machine is a control plane update the load balancer configuration
@@ -209,34 +228,48 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		dockerMachine.Status.LoadBalancerConfigured = true
 	}
 
+	// At, this stage, we are ready for bootstrap. However, if the BootstrapExecSucceededCondition is missing we add it and we
+	// requeue so the user can see the change of state before the bootstrap actually starts.
+	// NOTE: usually controller should not rely on status they are setting, but on the observed state; however
+	// in this case we are doing this because we explicitly want to give a feedback to users.
+	if !conditions.Has(dockerMachine, infrav1.BootstrapExecSucceededCondition) {
+		conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrappingReason, clusterv1.ConditionSeverityInfo, "")
+		return ctrl.Result{Requeue: true}, nil
+	}
+
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !dockerMachine.Spec.Bootstrapped {
 		bootstrapData, err := r.getBootstrapData(ctx, machine)
 		if err != nil {
 			r.Log.Error(err, "failed to get bootstrap data")
-			return ctrl.Result{}, nil
+			return ctrl.Result{}, err
 		}
 
 		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
 		// Run the bootstrap script. Simulates cloud-init.
 		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
+			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 			return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 		}
 		dockerMachine.Spec.Bootstrapped = true
 	}
 
+	// Update the BootstrapExecSucceededCondition condition
+	conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
+
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.
-	// Requeue after 1s if there is an error, as this is likely momentary load balancer
+	// Requeue if there is an error, as this is likely momentary load balancer
 	// state changes during control plane provisioning.
 	if err := externalMachine.SetNodeProviderID(ctx); err != nil {
 		r.Log.Error(err, "failed to patch the Kubernetes node with the machine providerID")
-		return ctrl.Result{RequeueAfter: time.Second}, nil
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	providerID := externalMachine.ProviderID()
 	dockerMachine.Spec.ProviderID = &providerID
 	dockerMachine.Status.Ready = true
+	conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
 
 	return ctrl.Result{}, nil
 }

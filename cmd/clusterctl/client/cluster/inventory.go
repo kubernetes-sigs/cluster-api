@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -129,7 +129,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	}
 
 	// Transform the yaml in a list of objects.
-	objs, err := util.ToUnstructured(yaml)
+	objs, err := utilyaml.ToUnstructured(yaml)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse yaml for clusterctl inventory CRDs")
 	}

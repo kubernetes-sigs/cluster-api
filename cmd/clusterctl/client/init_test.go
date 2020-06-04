@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 func Test_clusterctlClient_InitImages(t *testing.T) {
@@ -618,7 +618,7 @@ func componentsYAML(ns string) []byte {
 		"metadata:\n" +
 		"  name: manager")
 
-	return util.JoinYaml(namespaceYaml, podYaml)
+	return utilyaml.JoinYaml(namespaceYaml, podYaml)
 }
 
 func templateYAML(ns string, clusterName string) []byte {

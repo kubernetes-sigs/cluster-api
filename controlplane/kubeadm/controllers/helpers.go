@@ -69,7 +69,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	}
 
 	// only do rotation on owned secrets
-	if !util.HasOwnerRef(configSecret.OwnerReferences, controllerOwnerRef) {
+	if !util.IsControlledBy(configSecret, kcp) {
 		return nil
 	}
 

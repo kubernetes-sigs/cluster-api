@@ -89,6 +89,11 @@ func NewMachine(cluster, machine, image string, logger logr.Logger) (*Machine, e
 	}, nil
 }
 
+// Exists returns true if the container for this machine exists.
+func (m *Machine) Exists() bool {
+	return m.container != nil
+}
+
 // ContainerName return the name of the container for this machine
 func (m *Machine) ContainerName() string {
 	return machineContainerName(m.cluster, m.machine)

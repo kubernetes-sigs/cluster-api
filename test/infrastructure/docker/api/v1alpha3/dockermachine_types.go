@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -79,6 +80,10 @@ type DockerMachineStatus struct {
 	// added to the load balancer
 	// +optional
 	LoadBalancerConfigured bool `json:"loadBalancerConfigured,omitempty"`
+
+	// Conditions defines current service state of the DockerMachine.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:resource:path=dockermachines,scope=Namespaced,categories=cluster-api
@@ -93,6 +98,14 @@ type DockerMachine struct {
 
 	Spec   DockerMachineSpec   `json:"spec,omitempty"`
 	Status DockerMachineStatus `json:"status,omitempty"`
+}
+
+func (c *DockerMachine) GetConditions() clusterv1.Conditions {
+	return c.Status.Conditions
+}
+
+func (c *DockerMachine) SetConditions(conditions clusterv1.Conditions) {
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

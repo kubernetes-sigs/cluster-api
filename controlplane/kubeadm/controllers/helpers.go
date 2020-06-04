@@ -78,7 +78,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 
 	needsRotation, err := kubeconfig.NeedsClientCertRotation(configSecret, certs.ClientCertificateRenewalDuration)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode kubeconfig client certificates")
+		return err
 	}
 
 	if needsRotation {

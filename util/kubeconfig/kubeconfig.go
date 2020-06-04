@@ -162,7 +162,7 @@ func NeedsClientCertRotation(configSecret *corev1.Secret, threshold time.Duratio
 	for _, authInfo := range config.AuthInfos {
 		cert, err := certs.DecodeCertPEM(authInfo.ClientCertificateData)
 		if err != nil {
-			return false, err
+			return false, errors.Wrap(err, "failed to decode kubeconfig client certificate")
 		}
 		if cert.NotAfter.Sub(now) < threshold {
 			return true, nil

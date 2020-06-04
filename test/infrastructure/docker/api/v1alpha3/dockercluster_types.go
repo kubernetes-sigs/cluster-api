@@ -52,6 +52,10 @@ type DockerClusterStatus struct {
 	// FailureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
 	// will use this if we populate it.
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+
+	// Conditions defines current service state of the DockerCluster.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
@@ -75,6 +79,14 @@ type DockerCluster struct {
 
 	Spec   DockerClusterSpec   `json:"spec,omitempty"`
 	Status DockerClusterStatus `json:"status,omitempty"`
+}
+
+func (c *DockerCluster) GetConditions() clusterv1.Conditions {
+	return c.Status.Conditions
+}
+
+func (c *DockerCluster) SetConditions(conditions clusterv1.Conditions) {
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

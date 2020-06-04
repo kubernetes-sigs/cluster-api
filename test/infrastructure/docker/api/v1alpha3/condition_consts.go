@@ -63,3 +63,20 @@ const (
 	// transient and failed bootstrap are automatically re-tried by the controller.
 	BootstrapFailedReason = "BootstrapFailed"
 )
+
+// Conditions and condition Reasons for the DockerCluster object
+
+const (
+	// LoadBalancerProvisionedCondition provide an observation of the provisioning of the
+	// container that implements the cluster load balancer.
+	//
+	// NOTE: When the load balancer provisioning starts the process completes almost immediately and within
+	// the same reconciliation, so the user will always see a transition from no condition to Provisioned without
+	// having evidence that the operation is started/is in progress.
+	LoadBalancerProvisionedCondition clusterv1.ConditionType = "LoadBalancerProvisioned"
+
+	// LoadBalancerProvisioningFailedReason (Severity=Warning) documents a DockerCluster controller detecting
+	// an error while provisioning the container that provides that implements the cluster load balancer.; those kind of
+	// errors are usually transient and failed provisioning are automatically re-tried by the controller.
+	LoadBalancerProvisioningFailedReason = "LoadBalancerProvisioningFailed"
+)

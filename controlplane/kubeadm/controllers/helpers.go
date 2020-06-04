@@ -58,15 +58,12 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 			endpoint.String(),
 			controllerOwnerRef,
 		)
-		if createErr != nil {
-			if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
-				return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: dependentCertRequeueAfter},
-					"could not find secret %q, requeuing", secret.ClusterCA)
-			}
-			return createErr
+		if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
+			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: dependentCertRequeueAfter},
+				"could not find secret %q, requeuing", secret.ClusterCA)
 		}
-		// skip rotation checks
-		return nil
+		// always return if we have just created in order to skip rotation checks
+		return createErr
 	case err != nil:
 		return errors.Wrap(err, "failed to retrieve kubeconfig Secret")
 	}

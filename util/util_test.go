@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -474,6 +475,36 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 			{
 				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "my-machine",
+			},
+		},
+		Namespace: "my-ns",
+		Name:      "my-resource-owned-by-machine",
+	}
+	machine, err := GetOwnerMachine(context.TODO(), c, objm)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(machine).NotTo(BeNil())
+}
+
+func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+	myMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-machine",
+			Namespace: "my-ns",
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(scheme, myMachine)
+	objm := metav1.ObjectMeta{
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Machine",
+				APIVersion: clusterv1.GroupVersion.Group + "/v1alpha2",
 				Name:       "my-machine",
 			},
 		},

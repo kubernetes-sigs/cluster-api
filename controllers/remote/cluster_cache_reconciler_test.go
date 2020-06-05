@@ -129,13 +129,12 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			Expect(k8sClient.Create(ctx, testNamespace)).To(Succeed())
 
 			By("Starting the ClusterCacheReconciler")
-			r, err := NewClusterCacheReconciler(
-				&log.NullLogger{},
-				mgr,
-				controller.Options{},
-				cct,
-			)
-			Expect(err).ToNot(HaveOccurred())
+			r := &ClusterCacheReconciler{
+				Log:     &log.NullLogger{},
+				Client:  mgr.GetClient(),
+				Tracker: cct,
+			}
+			Expect(r.SetupWithManager(mgr, controller.Options{})).To(Succeed())
 
 			By("Creating clusters to test with")
 			clusterRequest1, clusterCache1 = createAndWatchCluster("cluster-1")

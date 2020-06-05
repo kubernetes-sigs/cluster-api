@@ -121,13 +121,14 @@ func reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, 
 
 	//Create the docker container hosting the load balancer
 	if err := externalLoadBalancer.Create(); err != nil {
+		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, errors.Wrap(err, "failed to create load balancer")
 	}
 
 	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull it
 	lbip4, err := externalLoadBalancer.IP(ctx)
 	if err != nil {
-		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerProvisionedCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
 	}
 
@@ -138,7 +139,7 @@ func reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, 
 
 	// Mark the dockerCluster ready
 	dockerCluster.Status.Ready = true
-	conditions.MarkTrue(dockerCluster, infrav1.LoadBalancerProvisionedCondition)
+	conditions.MarkTrue(dockerCluster, infrav1.LoadBalancerAvailableCondition)
 
 	return ctrl.Result{}, nil
 }

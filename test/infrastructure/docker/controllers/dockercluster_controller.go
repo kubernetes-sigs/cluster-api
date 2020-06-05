@@ -26,6 +26,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -89,6 +90,9 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 	// Always attempt to Patch the DockerCluster object and status after each reconciliation.
 	defer func() {
+		// always update the readyCondition; the summary is represented using the "1 of x completed" notation.
+		conditions.SetSummary(dockerCluster, conditions.WithStepCounter(1))
+
 		if err := patchHelper.Patch(ctx, dockerCluster); err != nil {
 			log.Error(err, "failed to patch DockerCluster")
 			if rerr == nil {
@@ -117,12 +121,14 @@ func reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, 
 
 	//Create the docker container hosting the load balancer
 	if err := externalLoadBalancer.Create(); err != nil {
+		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, errors.Wrap(err, "failed to create load balancer")
 	}
 
 	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull it
 	lbip4, err := externalLoadBalancer.IP(ctx)
 	if err != nil {
+		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
 	}
 
@@ -133,6 +139,7 @@ func reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, 
 
 	// Mark the dockerCluster ready
 	dockerCluster.Status.Ready = true
+	conditions.MarkTrue(dockerCluster, infrav1.LoadBalancerAvailableCondition)
 
 	return ctrl.Result{}, nil
 }

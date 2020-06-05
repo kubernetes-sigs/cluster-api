@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 
@@ -94,7 +93,7 @@ func HaveValidVersion(version string) types.GomegaMatcher {
 type validVersionMatcher struct{ version string }
 
 func (m *validVersionMatcher) Match(actual interface{}) (success bool, err error) {
-	if _, err := semver.Parse(strings.TrimPrefix(strings.TrimSpace(m.version), "v")); err != nil {
+	if _, err := semver.ParseTolerant(m.version); err != nil {
 		return false, err
 	}
 	return true, nil

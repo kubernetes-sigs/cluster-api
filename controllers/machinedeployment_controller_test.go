@@ -66,7 +66,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			"foo":                      "bar",
 			clusterv1.ClusterLabelName: testCluster.Name,
 		}
-		version := "1.10.3"
+		version := "v1.10.3"
 		deployment := &clusterv1.MachineDeployment{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "md-",
@@ -207,7 +207,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 
 		firstMachineSet := machineSets.Items[0]
 		Expect(*firstMachineSet.Spec.Replicas).To(BeEquivalentTo(2))
-		Expect(*firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("1.10.3"))
+		Expect(*firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("v1.10.3"))
 
 		//
 		// Delete firstMachineSet and expect Reconcile to be called to replace it.

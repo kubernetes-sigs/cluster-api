@@ -51,22 +51,6 @@ var _ = Describe("KubeadmControlPlane", func() {
 				Namespace: "default",
 			}
 
-			// wrong version value
-			created = &KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "default",
-				},
-				Spec: KubeadmControlPlaneSpec{
-					InfrastructureTemplate: corev1.ObjectReference{},
-					Version:                "1",
-					KubeadmConfigSpec:      cabpkv1.KubeadmConfigSpec{},
-				},
-			}
-
-			By("creating an API obj with wrong version")
-			Expect(k8sClient.Create(ctx, created)).NotTo(Succeed())
-
 			// missing field
 			created2 := map[string]interface{}{
 				"kind":       "KubeadmControlPlane",

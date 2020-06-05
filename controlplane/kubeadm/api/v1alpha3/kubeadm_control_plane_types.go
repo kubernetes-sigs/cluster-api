@@ -41,8 +41,6 @@ type KubeadmControlPlaneSpec struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Version defines the desired Kubernetes version.
-	// +kubebuilder:validation:MinLength:=2
-	// +kubebuilder:validation:Pattern:=^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$
 	Version string `json:"version"`
 
 	// InfrastructureTemplate is a required reference to a custom resource

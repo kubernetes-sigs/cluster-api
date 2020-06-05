@@ -66,7 +66,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 	It("Should reconcile a MachineSet", func() {
 		replicas := int32(2)
-		version := "1.14.2"
+		version := "v1.14.2"
 		instance := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "ms-",
@@ -236,7 +236,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 			}
 
 			Expect(m.Spec.Version).ToNot(BeNil())
-			Expect(*m.Spec.Version).To(BeEquivalentTo("1.14.2"))
+			Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
 			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
 			fakeMachineNodeRef(&m)
 		}

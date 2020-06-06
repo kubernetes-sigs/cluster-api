@@ -24,7 +24,6 @@ import (
 	apicorev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,16 +58,16 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 		return err
 	}
 
-	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return err
 	}
 
 	// Get the Node reference.
-	nodeRef, err := r.getNodeReference(clusterClient, providerID)
+	nodeRef, err := r.getNodeReference(remoteClient, providerID)
 	if err != nil {
 		if err == ErrNodeNotFound {
-			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
+			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 20 * time.Second},
 				"cannot assign NodeRef to Machine %q in namespace %q, no matching Node", machine.Name, machine.Namespace)
 		}
 		logger.Error(err, "Failed to assign NodeRef")
@@ -83,7 +82,7 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 	return nil
 }
 
-func (r *MachineReconciler) getNodeReference(c client.Client, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
+func (r *MachineReconciler) getNodeReference(c client.Reader, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
 	logger := r.Log.WithValues("providerID", providerID)
 
 	nodeList := apicorev1.NodeList{}

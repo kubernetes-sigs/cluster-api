@@ -81,11 +81,13 @@ var _ = BeforeSuite(func(done Done) {
 	Expect((&MachineReconciler{
 		Client:   testEnv,
 		Log:      log.Log,
+		Tracker:  tracker,
 		recorder: testEnv.GetEventRecorderFor("machine-controller"),
 	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineSetReconciler{
 		Client:   testEnv,
 		Log:      log.Log,
+		Tracker:  tracker,
 		recorder: testEnv.GetEventRecorderFor("machineset-controller"),
 	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineDeploymentReconciler{

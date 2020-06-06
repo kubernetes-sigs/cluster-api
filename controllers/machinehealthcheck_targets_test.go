@@ -364,9 +364,11 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 			},
 		},
 		Status: clusterv1.MachineStatus{
+			InfrastructureReady: true,
+			BootstrapReady:      true,
+			Phase:               string(clusterv1.MachinePhaseRunning),
 			NodeRef: &corev1.ObjectReference{
-				Name:      nodeName,
-				Namespace: namespace,
+				Name: nodeName,
 			},
 		},
 	}

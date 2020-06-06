@@ -30,7 +30,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -152,6 +151,9 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
+			testCluster.Status.ControlPlaneInitialized = true
+			testCluster.Status.InfrastructureReady = true
+			Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
 
 			By("Creating a test cluster kubeconfig")
 			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
@@ -180,7 +182,6 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 				Cluster:      input.clusterKey,
 				Watcher:      input.watcher,
 				Kind:         input.kind,
-				CacheOptions: cache.Options{},
 				EventHandler: input.eventHandler,
 				Predicates:   input.predicates,
 			})).To(Succeed())
@@ -206,7 +207,6 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 					Cluster:      input.clusterKey,
 					Watcher:      input.watcher,
 					Kind:         input.kind,
-					CacheOptions: cache.Options{},
 					EventHandler: input.eventHandler,
 					Predicates:   input.predicates,
 				})).To(Succeed())
@@ -226,7 +226,6 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 					Cluster:      input.clusterKey,
 					Watcher:      input.watcher,
 					Kind:         input.kind,
-					CacheOptions: cache.Options{},
 					EventHandler: input.eventHandler,
 					Predicates:   input.predicates,
 				})).To(Succeed())
@@ -247,7 +246,6 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 					Cluster:      input.clusterKey,
 					Watcher:      input.watcher,
 					Kind:         input.kind,
-					CacheOptions: cache.Options{},
 					EventHandler: input.eventHandler,
 					Predicates:   input.predicates,
 				})).To(Succeed())
@@ -266,7 +264,6 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 					Cluster:      input.clusterKey,
 					Watcher:      input.watcher,
 					Kind:         input.kind,
-					CacheOptions: cache.Options{},
 					EventHandler: input.eventHandler,
 					Predicates:   input.predicates,
 				})).To(Succeed())
@@ -323,7 +320,6 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 					Cluster:      differentClusterInput.clusterKey,
 					Watcher:      differentClusterInput.watcher,
 					Kind:         differentClusterInput.kind,
-					CacheOptions: cache.Options{},
 					EventHandler: differentClusterInput.eventHandler,
 					Predicates:   differentClusterInput.predicates,
 				})).To(Succeed())

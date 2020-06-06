@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -184,10 +183,10 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 		UID:        cluster.UID,
 	})
 
-	// Create client for target cluster
-	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+	// Get the remote cluster cache to use as a client.Reader.
+	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "Error building target cluster client")
+		return ctrl.Result{}, err
 	}
 
 	if err := r.watchClusterNodes(ctx, cluster); err != nil {
@@ -196,7 +195,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 
 	// fetch all targets
 	logger.V(3).Info("Finding targets")
-	targets, err := r.getTargetsFromMHC(clusterClient, m)
+	targets, err := r.getTargetsFromMHC(remoteClient, m)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "Failed to fetch targets from MachineHealthCheck")
 	}
@@ -389,7 +388,6 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 		Cluster:      util.ObjectKey(cluster),
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
-		CacheOptions: cache.Options{},
 		EventHandler: &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.nodeToMachineHealthCheck)},
 	}); err != nil {
 		return err

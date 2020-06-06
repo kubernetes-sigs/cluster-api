@@ -68,8 +68,9 @@ var (
 
 // MachineSetReconciler reconciles a MachineSet object
 type MachineSetReconciler struct {
-	Client client.Client
-	Log    logr.Logger
+	Client  client.Client
+	Log     logr.Logger
+	Tracker *remote.ClusterCacheTracker
 
 	recorder record.EventRecorder
 	scheme   *runtime.Scheme
@@ -678,12 +679,12 @@ func (r *MachineSetReconciler) patchMachineSetStatus(ctx context.Context, ms *cl
 }
 
 func (r *MachineSetReconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
-	c, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return nil, err
 	}
 	node := &corev1.Node{}
-	if err := c.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node); err != nil {
+	if err := remoteClient.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node); err != nil {
 		return nil, errors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
 	}
 	return node, nil

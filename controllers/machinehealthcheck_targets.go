@@ -159,7 +159,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
 // and their nodes targeted by the health check, ready for health checking.
-func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Client, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
+func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
 	machines, err := r.getMachinesFromMHC(mhc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
@@ -215,7 +215,7 @@ func (r *MachineHealthCheckReconciler) getMachinesFromMHC(mhc *clusterv1.Machine
 
 // getNodeFromMachine fetches the node from a local or remote cluster for a
 // given machine.
-func (r *MachineHealthCheckReconciler) getNodeFromMachine(clusterClient client.Client, machine *clusterv1.Machine) (*corev1.Node, error) {
+func (r *MachineHealthCheckReconciler) getNodeFromMachine(clusterClient client.Reader, machine *clusterv1.Machine) (*corev1.Node, error) {
 	if machine.Status.NodeRef == nil {
 		return nil, nil
 	}

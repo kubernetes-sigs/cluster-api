@@ -84,6 +84,9 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
+			testCluster.Status.ControlPlaneInitialized = true
+			testCluster.Status.InfrastructureReady = true
+			Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
 
 			By("Creating a test cluster kubeconfig")
 			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
@@ -131,7 +134,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			config := rest.CopyConfig(testEnv.Config)
 			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/foo"})
 
-			// This should succeed after 3 consecutive failed requests
+			// This should succeed after N consecutive failed requests.
 			Eventually(func() *clusterCache {
 				cct.clusterCachesLock.RLock()
 				defer cct.clusterCachesLock.RUnlock()
@@ -159,7 +162,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 
 			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
 
-			// This should succeed after 3 consecutive failed requests
+			// This should succeed after N consecutive failed requests.
 			Eventually(func() *clusterCache {
 				cct.clusterCachesLock.RLock()
 				defer cct.clusterCachesLock.RUnlock()

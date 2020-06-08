@@ -159,6 +159,10 @@ type MachineStatus struct {
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Conditions defines current service state of the Machine.
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachineStatus
@@ -229,6 +233,14 @@ type Machine struct {
 
 	Spec   MachineSpec   `json:"spec,omitempty"`
 	Status MachineStatus `json:"status,omitempty"`
+}
+
+func (m *Machine) GetConditions() Conditions {
+	return m.Status.Conditions
+}
+
+func (m *Machine) SetConditions(conditions Conditions) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

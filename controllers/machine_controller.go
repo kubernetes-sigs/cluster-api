@@ -43,6 +43,7 @@ import (
 	kubedrain "sigs.k8s.io/cluster-api/third_party/kubernetes-drain"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -166,6 +167,13 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	defer func() {
+		// always update the readyCondition with the summary of the machine conditions.
+		conditions.SetSummary(m,
+			// we want to surface infrastructure problems first, then the others.
+			conditions.WithConditionOrder(clusterv1.InfrastructureReadyCondition),
+			conditions.WithStepCounter(clusterv1.MachineSummaryConditionsCount),
+		)
+
 		r.reconcilePhase(ctx, m)
 		r.reconcileMetrics(ctx, m)
 

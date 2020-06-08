@@ -216,6 +216,36 @@ func TestMarkMethods(t *testing.T) {
 	}))
 }
 
+func TestSetSummary(t *testing.T) {
+	g := NewWithT(t)
+	target := setterWithConditions(TrueCondition("foo"))
+
+	SetSummary(target)
+
+	g.Expect(Has(target, clusterv1.ReadyCondition)).To(BeTrue())
+}
+
+func TestSetMirror(t *testing.T) {
+	g := NewWithT(t)
+	source := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
+	target := setterWithConditions()
+
+	SetMirror(target, "foo", source)
+
+	g.Expect(Has(target, "foo")).To(BeTrue())
+}
+
+func TestSetAggregate(t *testing.T) {
+	g := NewWithT(t)
+	source1 := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
+	source2 := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
+	target := setterWithConditions()
+
+	SetAggregate(target, "foo", []Getter{source1, source2})
+
+	g.Expect(Has(target, "foo")).To(BeTrue())
+}
+
 func setterWithConditions(conditions ...*clusterv1.Condition) Setter {
 	obj := &clusterv1.Cluster{}
 	obj.SetConditions(conditionList(conditions...))

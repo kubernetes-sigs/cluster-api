@@ -114,9 +114,9 @@ func GetLastTransitionTime(from Getter, t clusterv1.ConditionType) *metav1.Time 
 	return nil
 }
 
-// Summary returns a Ready condition with the summary of all the conditions existing
+// summary returns a Ready condition with the summary of all the conditions existing
 // on an object. If the object does not have other conditions, no summary condition is generated.
-func Summary(from Getter, options ...MergeOption) *clusterv1.Condition {
+func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 	conditions := from.GetConditions()
 
 	conditionsInScope := make([]localizedCondition, 0, len(conditions))
@@ -137,10 +137,46 @@ func Summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 	return merge(conditionsInScope, clusterv1.ReadyCondition, mergeOpt)
 }
 
-// Mirror mirrors the Ready condition from a dependent object into the target condition;
+// mirrorOptions allows to set options for the mirror operation.
+type mirrorOptions struct {
+	fallbackTo       *bool
+	fallbackReason   string
+	fallbackSeverity clusterv1.ConditionSeverity
+	fallbackMessage  string
+}
+
+// MirrorOptions defines an option for mirroring conditions.
+type MirrorOptions func(*mirrorOptions)
+
+// WithFallbackValue specify a fallback value to use in case the mirrored condition does not exists;
+// in case the fallbackValue is false, given values for reason, severity and message will be used.
+func WithFallbackValue(fallbackValue bool, reason string, severity clusterv1.ConditionSeverity, message string) MirrorOptions {
+	return func(c *mirrorOptions) {
+		c.fallbackTo = &fallbackValue
+		c.fallbackReason = reason
+		c.fallbackSeverity = severity
+		c.fallbackMessage = message
+	}
+}
+
+// mirror mirrors the Ready condition from a dependent object into the target condition;
 // if the Ready condition does not exists in the source object, no target conditions is generated.
-func Mirror(from Getter, targetCondition clusterv1.ConditionType) *clusterv1.Condition {
+func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...MirrorOptions) *clusterv1.Condition {
+	mirrorOpt := &mirrorOptions{}
+	for _, o := range options {
+		o(mirrorOpt)
+	}
+
 	condition := Get(from, clusterv1.ReadyCondition)
+
+	if mirrorOpt.fallbackTo != nil && condition == nil {
+		switch *mirrorOpt.fallbackTo {
+		case true:
+			condition = TrueCondition(targetCondition)
+		case false:
+			condition = FalseCondition(targetCondition, mirrorOpt.fallbackReason, mirrorOpt.fallbackSeverity, mirrorOpt.fallbackMessage)
+		}
+	}
 
 	if condition != nil {
 		condition.Type = targetCondition
@@ -152,7 +188,7 @@ func Mirror(from Getter, targetCondition clusterv1.ConditionType) *clusterv1.Con
 // Aggregates all the the Ready condition from a list of dependent objects into the target object;
 // if the Ready condition does not exists in one of the source object, the object is excluded from
 // the aggregation; if none of the source object have ready condition, no target conditions is generated.
-func Aggregate(from []Getter, targetCondition clusterv1.ConditionType, options ...MergeOption) *clusterv1.Condition {
+func aggregate(from []Getter, targetCondition clusterv1.ConditionType, options ...MergeOption) *clusterv1.Condition {
 	conditionsInScope := make([]localizedCondition, 0, len(from))
 	for i := range from {
 		condition := Get(from[i], clusterv1.ReadyCondition)

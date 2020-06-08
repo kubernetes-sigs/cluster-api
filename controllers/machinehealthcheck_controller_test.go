@@ -31,12 +31,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -567,30 +567,13 @@ func ownerReferenceForCluster(ctx context.Context, c *clusterv1.Cluster) metav1.
 }
 
 func TestClusterToMachineHealthCheck(t *testing.T) {
-	// This test sets up a proper test env to allow testing of the cache index
-	// that is used as part of the clusterToMachineHealthCheck map function
-
-	// BEGIN: Set up test environment
-	g := NewWithT(t)
-
-	testEnv, err := helpers.NewTestEnvironment()
-	g.Expect(err).ToNot(HaveOccurred())
-
-	defer func() {
-		g.Expect(testEnv.Stop()).To(Succeed())
-	}()
+	_ = clusterv1.AddToScheme(scheme.Scheme)
+	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
 		Log:    log.Log,
-		Client: testEnv.GetClient(),
+		Client: fakeClient,
 	}
-	g.Expect(r.SetupWithManager(testEnv.Manager, controller.Options{})).To(Succeed())
-
-	go func() {
-		g.Expect(testEnv.StartManager()).To(Succeed())
-	}()
-
-	// END: setup test environment
 
 	namespace := defaultNamespaceName
 	clusterName := "test-cluster"
@@ -681,56 +664,22 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	}
 }
 
-func TestIndexMachineHealthCheckByClusterName(t *testing.T) {
-	r := &MachineHealthCheckReconciler{
-		Log: log.Log,
-	}
-
-	testCases := []struct {
-		name     string
-		object   runtime.Object
-		expected []string
-	}{
-		{
-			name:     "when the MachineHealthCheck has no ClusterName",
-			object:   &clusterv1.MachineHealthCheck{},
-			expected: []string{""},
-		},
-		{
-			name: "when the MachineHealthCheck has a ClusterName",
-			object: &clusterv1.MachineHealthCheck{
-				Spec: clusterv1.MachineHealthCheckSpec{
-					ClusterName: "test-cluster",
-				},
-			},
-			expected: []string{"test-cluster"},
-		},
-		{
-			name:     "when the object passed is not a MachineHealthCheck",
-			object:   &corev1.Node{},
-			expected: []string{},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-			got := r.indexMachineHealthCheckByClusterName(tc.object)
-			g.Expect(got).To(ConsistOf(tc.expected))
-		})
-	}
-}
-
 func newTestMachineHealthCheck(name, namespace, cluster string, labels map[string]string) *clusterv1.MachineHealthCheck {
+	l := make(map[string]string, len(labels))
+	for k, v := range labels {
+		l[k] = v
+	}
+	l[clusterv1.ClusterLabelName] = cluster
+
 	return &clusterv1.MachineHealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    labels,
+			Labels:    l,
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			Selector: metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: l,
 			},
 			ClusterName: cluster,
 			UnhealthyConditions: []clusterv1.UnhealthyCondition{
@@ -745,30 +694,13 @@ func newTestMachineHealthCheck(name, namespace, cluster string, labels map[strin
 }
 
 func TestMachineToMachineHealthCheck(t *testing.T) {
-	// This test sets up a proper test env to allow testing of the cache index
-	// that is used as part of the clusterToMachineHealthCheck map function
-
-	// BEGIN: Set up test environment
-	g := NewWithT(t)
-
-	testEnv, err := helpers.NewTestEnvironment()
-	g.Expect(err).ToNot(HaveOccurred())
-
-	defer func() {
-		g.Expect(testEnv.Stop()).To(Succeed())
-	}()
+	_ = clusterv1.AddToScheme(scheme.Scheme)
+	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
 		Log:    log.Log,
-		Client: testEnv.GetClient(),
+		Client: fakeClient,
 	}
-	g.Expect(r.SetupWithManager(testEnv.Manager, controller.Options{})).To(Succeed())
-
-	go func() {
-		g.Expect(testEnv.StartManager()).To(Succeed())
-	}()
-
-	// END: setup test environment
 
 	namespace := defaultNamespaceName
 	clusterName := "test-cluster"
@@ -856,30 +788,13 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 }
 
 func TestNodeToMachineHealthCheck(t *testing.T) {
-	// This test sets up a proper test env to allow testing of the cache index
-	// that is used as part of the clusterToMachineHealthCheck map function
-
-	// BEGIN: Set up test environment
-	g := NewWithT(t)
-
-	testEnv, err := helpers.NewTestEnvironment()
-	g.Expect(err).ToNot(HaveOccurred())
-
-	defer func() {
-		g.Expect(testEnv.Stop()).To(Succeed())
-	}()
+	_ = clusterv1.AddToScheme(scheme.Scheme)
+	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
 		Log:    log.Log,
-		Client: testEnv.GetClient(),
+		Client: fakeClient,
 	}
-	g.Expect(r.SetupWithManager(testEnv.Manager, controller.Options{})).To(Succeed())
-
-	go func() {
-		g.Expect(testEnv.StartManager()).To(Succeed())
-	}()
-
-	// END: setup test environment
 
 	namespace := defaultNamespaceName
 	clusterName := "test-cluster"
@@ -964,7 +879,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 			expected: []reconcile.Request{mhc1Req, mhc2Req},
 		},
 		{
-			name:        "when a MachineHealthCheck exists for the Node, but not in the Machine's namespace",
+			name:        "when a MachineHealthCheck exists for the Node, but not in the Machine's cluster",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc3},
 			mToCreate:   []clusterv1.Machine{*machine1},
 			object: handler.MapObject{

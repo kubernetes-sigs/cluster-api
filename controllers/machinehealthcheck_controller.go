@@ -47,7 +47,6 @@ import (
 )
 
 const (
-	mhcClusterNameIndex  = "spec.clusterName"
 	machineNodeNameIndex = "status.nodeRef.name"
 
 	// Event types
@@ -94,14 +93,6 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
-	}
-
-	// Add index to MachineHealthCheck for listing by Cluster Name
-	if err := mgr.GetCache().IndexField(&clusterv1.MachineHealthCheck{},
-		mhcClusterNameIndex,
-		r.indexMachineHealthCheckByClusterName,
-	); err != nil {
-		return errors.Wrap(err, "error setting index fields")
 	}
 
 	// Add index to Machine for listing by Node reference
@@ -272,16 +263,6 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	return ctrl.Result{}, nil
 }
 
-func (r *MachineHealthCheckReconciler) indexMachineHealthCheckByClusterName(object runtime.Object) []string {
-	mhc, ok := object.(*clusterv1.MachineHealthCheck)
-	if !ok {
-		r.Log.Error(errors.New("incorrect type"), "expected a MachineHealthCheck", "type", fmt.Sprintf("%T", object))
-		return nil
-	}
-
-	return []string{mhc.Spec.ClusterName}
-}
-
 // clusterToMachineHealthCheck maps events from Cluster objects to
 // MachineHealthCheck objects that belong to the Cluster
 func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o handler.MapObject) []reconcile.Request {
@@ -296,7 +277,7 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o handler.Map
 		context.TODO(),
 		mhcList,
 		client.InNamespace(c.Namespace),
-		client.MatchingFields{mhcClusterNameIndex: c.Name},
+		client.MatchingLabels{clusterv1.ClusterLabelName: c.Name},
 	); err != nil {
 		r.Log.Error(err, "Unable to list MachineHealthChecks", "cluster", c.Name, "namespace", c.Namespace)
 		return nil
@@ -324,8 +305,8 @@ func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o handler.Map
 	if err := r.Client.List(
 		context.Background(),
 		mhcList,
-		&client.ListOptions{Namespace: m.Namespace},
-		client.MatchingFields{mhcClusterNameIndex: m.Spec.ClusterName},
+		client.InNamespace(m.Namespace),
+		client.MatchingLabels{clusterv1.ClusterLabelName: m.Spec.ClusterName},
 	); err != nil {
 		r.Log.Error(err, "Unable to list MachineHealthChecks", "machine", m.Name, "namespace", m.Namespace)
 		return nil
@@ -367,10 +348,19 @@ func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clu
 	); err != nil {
 		return nil, errors.Wrap(err, "failed getting machine list")
 	}
-	if len(machineList.Items) != 1 {
-		return nil, errors.Errorf("expecting one machine for node %v, got: %v", nodeName, machineList.Items)
+	// TODO(vincepri): Remove this loop once controller runtime fake client supports
+	// adding indexes on objects.
+	items := []*clusterv1.Machine{}
+	for i := range machineList.Items {
+		machine := &machineList.Items[i]
+		if machine.Status.NodeRef != nil && machine.Status.NodeRef.Name == nodeName {
+			items = append(items, machine)
+		}
 	}
-	return &machineList.Items[0], nil
+	if len(items) != 1 {
+		return nil, errors.Errorf("expecting one machine for node %v, got %v", nodeName, items)
+	}
+	return items[0], nil
 }
 
 func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {

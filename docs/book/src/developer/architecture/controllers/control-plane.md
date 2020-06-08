@@ -199,7 +199,7 @@ spec:
 
 ## Kubeconfig management
 
-Control Plane providers are expected to create and maintain an admin Kubeconfig
+Control Plane providers are expected to create and maintain a Kubeconfig
 secret for operators to gain initial access to the cluster. If a provider uses
 client certificates for authentication in these Kubeconfigs, the client
 certificate should be kept with a reasonably short expiration period and

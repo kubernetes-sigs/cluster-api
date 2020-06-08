@@ -410,7 +410,7 @@ func TestRegenerateClientCerts(t *testing.T) {
 	oldCert, err := certs.DecodeCertPEM(oldConfig.AuthInfos["test1-admin"].ClientCertificateData)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	g.Expect(UpdateSecret(context.Background(), c, validSecret)).To(Succeed())
+	g.Expect(RegenerateSecret(context.Background(), c, validSecret)).To(Succeed())
 
 	newSecret := &corev1.Secret{}
 	g.Expect(c.Get(context.Background(), util.ObjectKey(validSecret), newSecret)).To(Succeed())

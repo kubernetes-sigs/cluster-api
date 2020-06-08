@@ -109,7 +109,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 	}
 
 	BeforeEach(func() {
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(cfg, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
 	})
 
 	It("Should set OwnerReference and cluster name label on external objects", func() {

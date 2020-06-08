@@ -60,7 +60,7 @@ var _ = Describe("KubeadmControlPlaneReconciler", func() {
 
 	Context("Reconcile a KubeadmControlPlane", func() {
 		It("should return error if owner cluster is missing", func() {
-			clusterName, clusterNamespace := "foo", "default"
+			clusterName, clusterNamespace := "foo-1", "default"
 			cluster := newCluster(&types.NamespacedName{Name: clusterName, Namespace: clusterNamespace})
 
 			kcp := &controlplanev1.KubeadmControlPlane{
@@ -83,11 +83,11 @@ var _ = Describe("KubeadmControlPlaneReconciler", func() {
 
 			kcp.Default()
 
-			Expect(k8sClient.Create(context.Background(), kcp)).To(Succeed())
-			Expect(k8sClient.Create(context.Background(), cluster)).To(Succeed())
+			Expect(testEnv.Create(context.Background(), kcp)).To(Succeed())
+			Expect(testEnv.Create(context.Background(), cluster)).To(Succeed())
 
 			r := &KubeadmControlPlaneReconciler{
-				Client:   k8sClient,
+				Client:   testEnv,
 				Log:      log.Log,
 				recorder: record.NewFakeRecorder(32),
 			}
@@ -97,12 +97,12 @@ var _ = Describe("KubeadmControlPlaneReconciler", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			By("Calling reconcile should return error")
-			Expect(k8sClient.Delete(context.Background(), cluster)).To(Succeed())
+			Expect(testEnv.Delete(context.Background(), cluster)).To(Succeed())
 
-			result, err = r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
-
-			Expect(err).To(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
+			Eventually(func() error {
+				_, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+				return err
+			}, 10*time.Second).Should(HaveOccurred())
 		})
 	})
 })

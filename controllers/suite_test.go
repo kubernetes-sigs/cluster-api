@@ -24,8 +24,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
@@ -37,11 +35,6 @@ import (
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-
-func init() {
-	klog.InitFlags(nil)
-	log.SetLogger(klogr.New())
-}
 
 const (
 	timeout = time.Second * 10
@@ -63,9 +56,7 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
-	var err error
-	testEnv, err = helpers.NewTestEnvironment()
-	Expect(err).NotTo(HaveOccurred())
+	testEnv = helpers.NewTestEnvironment()
 
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
@@ -111,6 +102,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	By("starting the manager")
 	go func() {
+		defer GinkgoRecover()
 		Expect(testEnv.StartManager()).To(Succeed())
 	}()
 

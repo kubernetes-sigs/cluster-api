@@ -36,17 +36,17 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 	Context("Reconcile a KubeadmConfig", func() {
 		It("should wait until infrastructure is ready", func() {
 			cluster := newCluster("cluster1")
-			Expect(k8sClient.Create(context.Background(), cluster)).To(Succeed())
+			Expect(testEnv.Create(context.Background(), cluster)).To(Succeed())
 
 			machine := newMachine(cluster, "my-machine")
-			Expect(k8sClient.Create(context.Background(), machine)).To(Succeed())
+			Expect(testEnv.Create(context.Background(), machine)).To(Succeed())
 
 			config := newKubeadmConfig(machine, "my-machine-config")
-			Expect(k8sClient.Create(context.Background(), config)).To(Succeed())
+			Expect(testEnv.Create(context.Background(), config)).To(Succeed())
 
 			reconciler := KubeadmConfigReconciler{
 				Log:    log.Log,
-				Client: k8sClient,
+				Client: testEnv,
 			}
 			By("Calling reconcile should requeue")
 			result, err := reconciler.Reconcile(ctrl.Request{

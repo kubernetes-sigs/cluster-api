@@ -24,11 +24,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	// +kubebuilder:scaffold:imports
 )
@@ -36,13 +33,8 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-func init() {
-	klog.InitFlags(nil)
-	log.SetLogger(klogr.New())
-}
-
 const (
-	timeout = time.Second * 3
+	timeout = time.Second * 10
 )
 
 var (
@@ -60,12 +52,11 @@ func TestPatch(t *testing.T) {
 
 var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
-	var err error
-	testEnv, err = helpers.NewTestEnvironment()
-	Expect(err).NotTo(HaveOccurred())
+	testEnv = helpers.NewTestEnvironment()
 
 	By("starting the manager")
 	go func() {
+		defer GinkgoRecover()
 		Expect(testEnv.StartManager()).To(Succeed())
 	}()
 

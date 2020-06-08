@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 )
 
@@ -124,6 +125,10 @@ type KubeadmConfigStatus struct {
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Conditions defines current service state of the KubeadmConfig.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -138,6 +143,14 @@ type KubeadmConfig struct {
 
 	Spec   KubeadmConfigSpec   `json:"spec,omitempty"`
 	Status KubeadmConfigStatus `json:"status,omitempty"`
+}
+
+func (c *KubeadmConfig) GetConditions() clusterv1.Conditions {
+	return c.Status.Conditions
+}
+
+func (c *KubeadmConfig) SetConditions(conditions clusterv1.Conditions) {
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

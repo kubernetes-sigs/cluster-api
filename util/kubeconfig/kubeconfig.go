@@ -172,8 +172,8 @@ func NeedsClientCertRotation(configSecret *corev1.Secret, threshold time.Duratio
 	return false, nil
 }
 
-// UpdateSecret regenerates the Kubeconfig for the given secret.
-func UpdateSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret) error {
+// RegenerateSecret creates and stores a new Kubeconfig in the given secret.
+func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret) error {
 	clusterName, _, err := secret.ParseSecretName(configSecret.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse secret name")

@@ -51,6 +51,12 @@ spec:
                   to.
                 minLength: 1
                 type: string
+              failureDomains:
+                description: FailureDomains is the list of failure domains this MachinePool
+                  should be attached to.
+                items:
+                  type: string
+                type: array
               minReadySeconds:
                 description: Minimum number of seconds for which a newly created machine
                   instances should be ready. Defaults to 0 (machine instance will

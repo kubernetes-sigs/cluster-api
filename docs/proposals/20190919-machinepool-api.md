@@ -166,6 +166,9 @@ type MachinePoolSpec struct
   - **ClusterName [required]**
     - Type: `string`
     - Description: Name of the Cluster this machine pool belongs to.
+  - **FailureDomains [optional]**
+    - Type: `[]string`
+    - Description: FailureDomains is the list of failure domains this MachinePool should be attached to.
   - **Replicas [optional]**
     - Type: `*int32`
     - Description: Number of desired machine instances. Defaults to 1.
@@ -415,4 +418,3 @@ inconsistent experience across providers.
 10/23/2019: First round of feedback from community
 10/23/2019: Present proposal at a community meeting
 10/31/2019: Open proposal PR
-

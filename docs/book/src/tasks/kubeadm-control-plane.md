@@ -77,3 +77,10 @@ Caveats:
     * `kubeadmConfigSpec.clusterConfiguration.scheduler.extraArgs`
     * Anything underneath `kubeadmConfigSpec.clusterConfiguration.etcd`
     * etc.
+
+### Kubeconfig management
+
+KCP will generate and manage the admin Kubeconfig for clusters. The client
+certificate for the admin user is created with a valid lifespan of a year, and
+will be automatically regenerated when the cluster is reconciled and has less
+than 6 months of validity remaining.

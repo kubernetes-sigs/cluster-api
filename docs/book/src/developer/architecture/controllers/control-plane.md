@@ -196,3 +196,13 @@ spec:
 ```
 
 [scale]: https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#scale-subresource
+
+## Kubeconfig management
+
+Control Plane providers are expected to create and maintain an admin Kubeconfig
+secret for operators to gain initial access to the cluster. If a provider uses
+client certificates for authentication in these Kubeconfigs, the client
+certificate should be kept with a reasonably short expiration period and
+periodically regenerated to keep a valid set of credentials available. As an
+example, the Kubeadm Control Plane provider uses a year of validity and
+refreshes the certificate after 6 months.

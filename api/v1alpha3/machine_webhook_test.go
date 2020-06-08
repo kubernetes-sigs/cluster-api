@@ -35,6 +35,7 @@ func TestMachineDefault(t *testing.T) {
 		},
 		Spec: MachineSpec{
 			Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+			Version:   pointer.StringPtr("1.17.5"),
 		},
 	}
 
@@ -43,6 +44,7 @@ func TestMachineDefault(t *testing.T) {
 	g.Expect(m.Labels[ClusterLabelName]).To(Equal(m.Spec.ClusterName))
 	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
+	g.Expect(*m.Spec.Version).To(Equal("v1.17.5"))
 }
 
 func TestMachineBootstrapValidation(t *testing.T) {
@@ -202,9 +204,9 @@ func TestMachineVersionValidation(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:      "should succeed when given a valid semantic version without 'v'",
+			name:      "should return error when given a valid semantic version without 'v'",
 			version:   "1.17.2",
-			expectErr: false,
+			expectErr: true,
 		},
 		{
 			name:      "should return error when given an invalid semantic version",

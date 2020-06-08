@@ -18,9 +18,9 @@ package v1alpha3
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
-	"github.com/blang/semver"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -40,6 +40,8 @@ func (m *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &Machine{}
 var _ webhook.Defaulter = &Machine{}
 
+var kubeSemver = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
+
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (m *Machine) Default() {
 	if m.Labels == nil {
@@ -53,6 +55,11 @@ func (m *Machine) Default() {
 
 	if len(m.Spec.InfrastructureRef.Namespace) == 0 {
 		m.Spec.InfrastructureRef.Namespace = m.Namespace
+	}
+
+	if m.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Version, "v") {
+		normalizedVersion := "v" + *m.Spec.Version
+		m.Spec.Version = &normalizedVersion
 	}
 }
 
@@ -117,7 +124,7 @@ func (m *Machine) validate(old *Machine) error {
 	}
 
 	if m.Spec.Version != nil {
-		if _, err := semver.Parse(strings.TrimPrefix(strings.TrimSpace(*m.Spec.Version), "v")); err != nil {
+		if !kubeSemver.MatchString(*m.Spec.Version) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), *m.Spec.Version, "must be a valid semantic version"))
 		}
 	}

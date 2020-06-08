@@ -38,11 +38,13 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 		},
 		Spec: KubeadmControlPlaneSpec{
 			InfrastructureTemplate: corev1.ObjectReference{},
+			Version:                "1.18.3",
 		},
 	}
 	kcp.Default()
 
 	g.Expect(kcp.Spec.InfrastructureTemplate.Namespace).To(Equal(kcp.Namespace))
+	g.Expect(kcp.Spec.Version).To(Equal("v1.18.3"))
 }
 
 func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
@@ -81,14 +83,14 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 		},
 	}
 
-	validVersion1 := valid.DeepCopy()
-	validVersion1.Spec.Version = "v1.16.6"
+	validVersion := valid.DeepCopy()
+	validVersion.Spec.Version = "v1.16.6"
 
-	validVersion2 := valid.DeepCopy()
-	validVersion2.Spec.Version = "1.16.6"
+	invalidVersion1 := valid.DeepCopy()
+	invalidVersion1.Spec.Version = "vv1.16.6"
 
-	invalidVersion := valid.DeepCopy()
-	invalidVersion.Spec.Version = "vv1.16.6"
+	invalidVersion2 := valid.DeepCopy()
+	invalidVersion2.Spec.Version = "1.16.6"
 
 	tests := []struct {
 		name      string
@@ -128,17 +130,17 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 		{
 			name:      "should succeed when given a valid semantic version with prepended 'v'",
 			expectErr: false,
-			kcp:       validVersion1,
+			kcp:       validVersion,
 		},
 		{
 			name:      "should succeed when given a valid semantic version without 'v'",
-			expectErr: false,
-			kcp:       validVersion2,
+			expectErr: true,
+			kcp:       invalidVersion2,
 		},
 		{
 			name:      "should return error when given an invalid semantic version",
 			expectErr: true,
-			kcp:       invalidVersion,
+			kcp:       invalidVersion1,
 		},
 	}
 

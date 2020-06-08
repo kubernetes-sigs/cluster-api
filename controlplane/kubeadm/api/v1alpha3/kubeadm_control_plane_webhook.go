@@ -19,12 +19,12 @@ package v1alpha3
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/coredns/corefile-migration/migration"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 
-	"github.com/blang/semver"
 	jsonpatch "github.com/evanphx/json-patch"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,6 +47,8 @@ func (in *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &KubeadmControlPlane{}
 var _ webhook.Validator = &KubeadmControlPlane{}
 
+var kubeSemver = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
+
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (in *KubeadmControlPlane) Default() {
 	if in.Spec.Replicas == nil {
@@ -56,6 +58,10 @@ func (in *KubeadmControlPlane) Default() {
 
 	if in.Spec.InfrastructureTemplate.Namespace == "" {
 		in.Spec.InfrastructureTemplate.Namespace = in.Namespace
+	}
+
+	if !strings.HasPrefix(in.Spec.Version, "v") {
+		in.Spec.Version = "v" + in.Spec.Version
 	}
 }
 
@@ -245,7 +251,7 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 		)
 	}
 
-	if _, err := semver.Parse(strings.TrimPrefix(strings.TrimSpace(in.Spec.Version), "v")); err != nil {
+	if !kubeSemver.MatchString(in.Spec.Version) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), in.Spec.Version, "must be a valid semantic version"))
 	}
 

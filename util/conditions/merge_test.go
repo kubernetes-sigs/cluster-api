@@ -89,12 +89,12 @@ func TestMergeRespectPriority(t *testing.T) {
 		want       *clusterv1.Condition
 	}{
 		{
-			name:       "Aggregate nil list return nil",
+			name:       "aggregate nil list return nil",
 			conditions: nil,
 			want:       nil,
 		},
 		{
-			name:       "Aggregate empty list return nil",
+			name:       "aggregate empty list return nil",
 			conditions: []*clusterv1.Condition{},
 			want:       nil,
 		},

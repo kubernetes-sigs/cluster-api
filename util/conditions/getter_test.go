@@ -120,7 +120,7 @@ func TestMirror(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := Mirror(tt.from, tt.t)
+			got := mirror(tt.from, tt.t)
 			if tt.want == nil {
 				g.Expect(got).To(BeNil())
 				return
@@ -161,7 +161,7 @@ func TestSummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := Summary(tt.from)
+			got := summary(tt.from)
 			if tt.want == nil {
 				g.Expect(got).To(BeNil())
 				return
@@ -205,7 +205,7 @@ func TestAggregate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := Aggregate(tt.from, tt.t)
+			got := aggregate(tt.from, tt.t)
 			if tt.want == nil {
 				g.Expect(got).To(BeNil())
 				return

@@ -79,10 +79,10 @@ var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDs: []runtime.Object{
-			external.TestGenericBootstrapCRD,
-			external.TestGenericBootstrapTemplateCRD,
-			external.TestGenericInfrastructureCRD,
-			external.TestGenericInfrastructureTemplateCRD,
+			external.TestGenericBootstrapCRD.DeepCopy(),
+			external.TestGenericBootstrapTemplateCRD.DeepCopy(),
+			external.TestGenericInfrastructureCRD.DeepCopy(),
+			external.TestGenericInfrastructureTemplateCRD.DeepCopy(),
 		},
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
 	}

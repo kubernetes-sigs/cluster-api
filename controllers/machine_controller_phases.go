@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -113,6 +114,19 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
 		return external.ReconcileOutput{}, err
+	}
+
+	// With the migration from v1alpha2 to v1alpha3, Machine controllers should be the owner for the
+	// infra Machines, hence remove any existing machineset controller owner reference
+	if controller := metav1.GetControllerOf(obj); controller != nil && controller.Kind == "MachineSet" {
+		gv, err := schema.ParseGroupVersion(controller.APIVersion)
+		if err != nil {
+			return external.ReconcileOutput{}, err
+		}
+		if gv.Group == clusterv1.GroupVersion.Group {
+			ownerRefs := util.RemoveOwnerRef(obj.GetOwnerReferences(), *controller)
+			obj.SetOwnerReferences(ownerRefs)
+		}
 	}
 
 	// Set external object ControllerReference to the Machine.

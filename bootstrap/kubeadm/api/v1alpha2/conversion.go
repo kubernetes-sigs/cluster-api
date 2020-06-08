@@ -43,6 +43,7 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.DiskSetup = restored.Spec.DiskSetup
 	dst.Spec.Mounts = restored.Spec.Mounts
 	dst.Spec.Files = restored.Spec.Files
+	dst.Status.Conditions = restored.Status.Conditions
 
 	// Track files successfully up-converted. We need this to dedupe
 	// restored files from user-updated files on up-conversion. We store

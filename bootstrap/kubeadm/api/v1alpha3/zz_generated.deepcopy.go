@@ -22,6 +22,7 @@ package v1alpha3
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 )
 
@@ -276,6 +277,13 @@ func (in *KubeadmConfigStatus) DeepCopyInto(out *KubeadmConfigStatus) {
 		in, out := &in.BootstrapData, &out.BootstrapData
 		*out = make([]byte, len(*in))
 		copy(*out, *in)
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(apiv1alpha3.Conditions, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 }
 

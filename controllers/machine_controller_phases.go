@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -158,6 +159,14 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
 func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) error {
+	// If the bootstrap data is populated, set ready and return.
+	if m.Spec.Bootstrap.DataSecretName != nil {
+		m.Status.BootstrapReady = true
+		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
+		return nil
+	}
+
+	// If the Boostrap ref is nil (and so the machine should use user generated data secret), return.
 	if m.Spec.Bootstrap.ConfigRef == nil {
 		return nil
 	}
@@ -172,12 +181,6 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 	}
 	bootstrapConfig := externalResult.Result
 
-	// If the bootstrap data is populated, set ready and return.
-	if m.Spec.Bootstrap.DataSecretName != nil {
-		m.Status.BootstrapReady = true
-		return nil
-	}
-
 	// If the bootstrap config is being deleted, return early.
 	if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		return nil
@@ -187,7 +190,16 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 	ready, err := external.IsReady(bootstrapConfig)
 	if err != nil {
 		return err
-	} else if !ready {
+	}
+
+	// Report a summary of current status of the bootstrap object defined for this machine.
+	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
+		conditions.UnstructuredGetter(bootstrapConfig),
+		conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+	)
+
+	// If the bootstrap provider is not ready, requeue.
+	if !ready {
 		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
 			"Bootstrap provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
 	}
@@ -236,6 +248,14 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		return err
 	}
 	m.Status.InfrastructureReady = ready
+
+	// Report a summary of current status of the infrastructure object defined for this machine.
+	conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition,
+		conditions.UnstructuredGetter(infraConfig),
+		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+	)
+
+	// If the infrastructure provider is not ready, return early.
 	if !ready {
 		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
 			"Infrastructure provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace,

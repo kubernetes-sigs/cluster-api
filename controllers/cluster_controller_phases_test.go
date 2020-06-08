@@ -130,9 +130,9 @@ func TestClusterReconcilePhases(t *testing.T) {
 				var c client.Client
 				if tt.infraRef != nil {
 					infraConfig := &unstructured.Unstructured{Object: tt.infraRef}
-					c = fake.NewFakeClientWithScheme(scheme.Scheme, external.TestGenericInfrastructureCRD, tt.cluster, infraConfig)
+					c = fake.NewFakeClientWithScheme(scheme.Scheme, external.TestGenericInfrastructureCRD.DeepCopy(), tt.cluster, infraConfig)
 				} else {
-					c = fake.NewFakeClientWithScheme(scheme.Scheme, external.TestGenericInfrastructureCRD, tt.cluster)
+					c = fake.NewFakeClientWithScheme(scheme.Scheme, external.TestGenericInfrastructureCRD.DeepCopy(), tt.cluster)
 				}
 				r := &ClusterReconciler{
 					Client: c,

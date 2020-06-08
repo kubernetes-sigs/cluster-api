@@ -918,6 +918,7 @@ func autoConvert_v1alpha3_MachineStatus_To_v1alpha2_MachineStatus(in *v1alpha3.M
 	out.BootstrapReady = in.BootstrapReady
 	out.InfrastructureReady = in.InfrastructureReady
 	// WARNING: in.ObservedGeneration requires manual conversion: does not exist in peer-type
+	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -43,7 +43,7 @@ spec:
   selector:
     matchLabels:
       nodepool: nodepool-0
-  # Conditions to check on Nodes for matched Machines, if any condition is matched for the duration of its tiemout, the Machine is considered unhealthy
+  # Conditions to check on Nodes for matched Machines, if any condition is matched for the duration of its timeout, the Machine is considered unhealthy
   unhealthyConditions:
   - type: Ready
     status: Unknown

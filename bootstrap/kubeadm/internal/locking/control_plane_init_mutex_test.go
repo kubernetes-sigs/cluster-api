@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -43,10 +42,6 @@ const (
 	clusterName      = "test-cluster"
 	clusterNamespace = "test-namespace"
 )
-
-func init() {
-	klog.InitFlags(nil)
-}
 
 func TestControlPlaneInitMutex_Lock(t *testing.T) {
 	g := NewWithT(t)

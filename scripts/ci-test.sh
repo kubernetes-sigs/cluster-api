@@ -24,9 +24,10 @@ cd "${REPO_ROOT}" || exit 1
 # shellcheck source=./hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
-make generate test
+echo "*** Testing Cluster API ***"
+make test
 
-echo "*** Testing Cluster API Provider Docker ***"
+echo -e "\n*** Testing Cluster API Provider Docker ***\n"
 # Docker provider
 cd test/infrastructure/docker
-make generate test
+make test

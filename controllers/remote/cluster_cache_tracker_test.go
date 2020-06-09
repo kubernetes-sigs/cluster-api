@@ -122,7 +122,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 		BeforeEach(func() {
 			By("Setting up a new manager")
 			var err error
-			mgr, err = manager.New(cfg, manager.Options{
+			mgr, err = manager.New(testEnv.Config, manager.Options{
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})
@@ -154,7 +154,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, testCluster)).To(Succeed())
+			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
 
 			testClusterKey := util.ObjectKey(testCluster)
 			watcher, watcherInfo := newTestWatcher()
@@ -306,7 +306,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 				Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
 
 				By("Creating a test cluster kubeconfig")
-				Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, testCluster)).To(Succeed())
+				Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
 				// Check the secret can be fetch from the API server
 				secretKey := client.ObjectKey{Namespace: testNamespace.GetName(), Name: fmt.Sprintf("%s-kubeconfig", testCluster.GetName())}
 				Eventually(func() error {

@@ -54,7 +54,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 		BeforeEach(func() {
 			By("Setting up a new manager")
 			var err error
-			mgr, err = manager.New(cfg, manager.Options{
+			mgr, err = manager.New(testEnv.Config, manager.Options{
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})
@@ -86,7 +86,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, testCluster)).To(Succeed())
+			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
 
 			testClusterKey = util.ObjectKey(testCluster)
 
@@ -109,7 +109,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			// Ensure the context times out after the consistently below
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
-			config := rest.CopyConfig(cfg)
+			config := rest.CopyConfig(testEnv.Config)
 			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
 
 			// This should succed after 1 second, approx 10 requests to the API
@@ -128,7 +128,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 		It("with an invalid path", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
-			config := rest.CopyConfig(cfg)
+			config := rest.CopyConfig(testEnv.Config)
 			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/foo"})
 
 			// This should succeed after 3 consecutive failed requests
@@ -147,7 +147,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 		It("with an invalid config", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
-			config := rest.CopyConfig(cfg)
+			config := rest.CopyConfig(testEnv.Config)
 
 			// Set the host to a random free port on localhost
 			addr, err := net.ResolveTCPAddr("tcp", "localhost:0")

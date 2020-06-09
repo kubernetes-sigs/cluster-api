@@ -68,7 +68,7 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			}, timeout).Should(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, testCluster)).To(Succeed())
+			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
 			// Check the secret can be fetch from the API server
 			secretKey := client.ObjectKey{Namespace: testNamespace.GetName(), Name: fmt.Sprintf("%s-kubeconfig", testCluster.GetName())}
 			Eventually(func() error {
@@ -106,7 +106,7 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 		BeforeEach(func() {
 			By("Setting up a new manager")
 			var err error
-			mgr, err = manager.New(cfg, manager.Options{
+			mgr, err = manager.New(testEnv.Config, manager.Options{
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})

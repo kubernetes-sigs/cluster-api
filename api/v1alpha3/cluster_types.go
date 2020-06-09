@@ -95,7 +95,7 @@ func (n *NetworkRanges) String() string {
 	if n == nil {
 		return ""
 	}
-	return strings.Join(n.CIDRBlocks, "")
+	return strings.Join(n.CIDRBlocks, ",")
 }
 
 // ANCHOR_END: NetworkRanges

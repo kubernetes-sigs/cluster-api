@@ -232,13 +232,13 @@ type NodeRegistrationOptions struct {
 // Networking contains elements describing cluster's networking configuration
 type Networking struct {
 	// ServiceSubnet is the subnet used by k8s services.
-	// Defaults to the first element of the Cluster object's spec.clusterNetwork.pods.cidrBlocks field, or
+	// Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
 	// to "10.96.0.0/12" if that's unset.
 	// +optional
 	ServiceSubnet string `json:"serviceSubnet,omitempty"`
 	// PodSubnet is the subnet used by pods.
 	// If unset, the API server will not allocate CIDR ranges for every node.
-	// Defaults to the first element of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
+	// Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
 	// +optional
 	PodSubnet string `json:"podSubnet,omitempty"`
 	// DNSDomain is the dns domain used by k8s services. Defaults to "cluster.local".

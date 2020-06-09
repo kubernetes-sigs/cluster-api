@@ -119,21 +119,65 @@ func GetLastTransitionTime(from Getter, t clusterv1.ConditionType) *metav1.Time 
 func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 	conditions := from.GetConditions()
 
-	conditionsInScope := make([]localizedCondition, 0, len(conditions))
-	for i := range conditions {
-		c := conditions[i]
-		if c.Type != clusterv1.ReadyCondition {
-			conditionsInScope = append(conditionsInScope, localizedCondition{
-				Condition: &c,
-				Getter:    from,
-			})
-		}
-	}
-
 	mergeOpt := &mergeOptions{}
 	for _, o := range options {
 		o(mergeOpt)
 	}
+
+	// Identifies the conditions in scope for the Summary by taking all the existing conditions except Ready,
+	// or, if a list of conditions types is specified, only the conditions the condition in that list.
+	conditionsInScope := make([]localizedCondition, 0, len(conditions))
+	for i := range conditions {
+		c := conditions[i]
+		if c.Type == clusterv1.ReadyCondition {
+			continue
+		}
+
+		if mergeOpt.conditionTypes != nil {
+			found := false
+			for _, t := range mergeOpt.conditionTypes {
+				if c.Type == t {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		conditionsInScope = append(conditionsInScope, localizedCondition{
+			Condition: &c,
+			Getter:    from,
+		})
+	}
+
+	// If it is required to add a step counter only if a subset of condition exists, check if the conditions
+	// in scope are included in this subset.
+	if mergeOpt.addStepCounterIfOnlyConditionTypes != nil {
+		mergeOpt.addStepCounter = true
+		for _, c := range conditionsInScope {
+			for _, t := range mergeOpt.addStepCounterIfOnlyConditionTypes {
+				if c.Type != t {
+					mergeOpt.addStepCounter = false
+					break
+				}
+			}
+		}
+	}
+
+	// If it is required to add a step counter, determine the total number of conditions defaulting
+	// to the selected conditions or, if defined, to the total number of conditions type to be considered.
+	if mergeOpt.addStepCounter {
+		mergeOpt.stepCounter = len(conditionsInScope)
+		if mergeOpt.conditionTypes != nil {
+			mergeOpt.stepCounter = len(mergeOpt.conditionTypes)
+		}
+		if mergeOpt.addStepCounterIfOnlyConditionTypes != nil {
+			mergeOpt.stepCounter = len(mergeOpt.addStepCounterIfOnlyConditionTypes)
+		}
+	}
+
 	return merge(conditionsInScope, clusterv1.ReadyCondition, mergeOpt)
 }
 
@@ -200,7 +244,8 @@ func aggregate(from []Getter, targetCondition clusterv1.ConditionType, options .
 	}
 
 	mergeOpt := &mergeOptions{
-		stepCounter: len(from),
+		addStepCounter: true,
+		stepCounter:    len(from),
 	}
 	for _, o := range options {
 		o(mergeOpt)

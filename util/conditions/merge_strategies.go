@@ -26,29 +26,47 @@ import (
 // mergeOptions allows to set strategies for merging a set of conditions into a single condition,
 // and more specifically for computing the target Reason and the target Message.
 type mergeOptions struct {
-	conditionOrder []clusterv1.ConditionType
-	addSourceRef   bool
-	stepCounter    int
+	conditionTypes                     []clusterv1.ConditionType
+	addSourceRef                       bool
+	addStepCounter                     bool
+	addStepCounterIfOnlyConditionTypes []clusterv1.ConditionType
+	stepCounter                        int
 }
 
 // MergeOption defines an option for computing a summary of conditions.
 type MergeOption func(*mergeOptions)
 
-// WithConditionOrder instructs merge about the condition order to be used when
-// merging conditions Reason and Message into the Target Condition.
-// The remaining conditions (not included in this list) will be sorted by type, and in case of
-// two conditions with the same type, by the source object name.
-func WithConditionOrder(t ...clusterv1.ConditionType) MergeOption {
+// WithConditions instructs merge about the condition types to consider when doing a merge operation;
+// if this option is not specified, all the conditions (excepts Ready) will be considered. This is required
+// so we can provide some guarantees about the semantic of the target condition without worrying about
+// side effects if someone or something adds custom conditions to the objects.
+//
+// NOTE: The order of conditions types defines the priority for determining the Reason and Message for the
+// target condition.
+// IMPORTANT: This options works only while generating the Summary condition.
+func WithConditions(t ...clusterv1.ConditionType) MergeOption {
 	return func(c *mergeOptions) {
-		c.conditionOrder = t
+		c.conditionTypes = t
 	}
 }
 
 // WithStepCounter instructs merge to add a "x of y completed" string to the message,
-// where x is the number of conditions with Status=true and y is the number passed to this method.
-func WithStepCounter(to int) MergeOption {
+// where x is the number of conditions with Status=true and y is the number of conditions in scope.
+func WithStepCounter() MergeOption {
 	return func(c *mergeOptions) {
-		c.stepCounter = to
+		c.addStepCounter = true
+	}
+}
+
+// If it is required to add a step counter only if a subset of condition exists, check if the conditions
+// in scope are included in this subset. This applies for example on Machines, where we want to use
+// the step counter notation while provisioning the machine, but then we want to move away from this notation
+// as soon as the machine is provisioned and e.g. a Machine health check condition is generated
+//
+// IMPORTANT: This options works only while generating the Summary condition.
+func WithStepCounterIfOnly(t ...clusterv1.ConditionType) MergeOption {
+	return func(c *mergeOptions) {
+		c.addStepCounterIfOnlyConditionTypes = t
 	}
 }
 
@@ -62,7 +80,7 @@ func AddSourceRef() MergeOption {
 // getReason returns the reason to be applied to the condition resulting by merging a set of condition groups.
 // The reason is computed according to the given mergeOptions.
 func getReason(groups conditionGroups, options *mergeOptions) string {
-	return getFirstReason(groups, options.conditionOrder, options.addSourceRef)
+	return getFirstReason(groups, options.conditionTypes, options.addSourceRef)
 }
 
 // getFirstReason returns the first reason from the ordered list of conditions in the top group.
@@ -91,7 +109,7 @@ func localizeReason(reason string, from Getter) string {
 // summary of existing errors is automatically added.
 func getMessage(groups conditionGroups, options *mergeOptions) string {
 	errorAndWarningSummary := getErrorAndWarningSummary(groups)
-	if options.stepCounter > 0 {
+	if options.addStepCounter {
 		counter := getStepCounterMessage(groups, options.stepCounter)
 		if errorAndWarningSummary != "" {
 			return fmt.Sprintf("%s, %s", counter, errorAndWarningSummary)
@@ -100,7 +118,7 @@ func getMessage(groups conditionGroups, options *mergeOptions) string {
 
 	}
 
-	firstMessage := getFirstMessage(groups, options.conditionOrder)
+	firstMessage := getFirstMessage(groups, options.conditionTypes)
 	if errorAndWarningSummary != "" {
 		return fmt.Sprintf("%s (%s)", firstMessage, errorAndWarningSummary)
 	}

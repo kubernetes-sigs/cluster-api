@@ -117,7 +117,13 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Always attempt to Patch the DockerMachine object and status after each reconciliation.
 	defer func() {
 		// always update the readyCondition; the summary is represented using the "1 of x completed" notation.
-		conditions.SetSummary(dockerMachine, conditions.WithStepCounter(infrav1.ConditionsCount))
+		conditions.SetSummary(dockerMachine,
+			conditions.WithConditions(
+				infrav1.ContainerProvisionedCondition,
+				infrav1.BootstrapExecSucceededCondition,
+			),
+			conditions.WithStepCounter(),
+		)
 
 		if err := patchHelper.Patch(ctx, dockerMachine); err != nil {
 			log.Error(err, "failed to patch DockerMachine")

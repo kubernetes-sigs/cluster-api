@@ -133,12 +133,14 @@ func TestMirror(t *testing.T) {
 func TestSummary(t *testing.T) {
 	foo := TrueCondition("foo")
 	bar := FalseCondition("bar", "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
+	baz := FalseCondition("baz", "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2")
 	existingReady := FalseCondition(clusterv1.ReadyCondition, "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") //NB. existing ready has higher priority than other conditions
 
 	tests := []struct {
-		name string
-		from Getter
-		want *clusterv1.Condition
+		name    string
+		from    Getter
+		options []MergeOption
+		want    *clusterv1.Condition
 	}{
 		{
 			name: "Returns nil when there are no conditions to summarize",
@@ -151,6 +153,42 @@ func TestSummary(t *testing.T) {
 			want: FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
 		},
 		{
+			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounter options)",
+			from:    getterWithConditions(foo, bar),
+			options: []MergeOption{WithStepCounter()},
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
+		},
+		{
+			name:    "Returns ready condition with the summary of selected conditions (using WithConditions options)",
+			from:    getterWithConditions(foo, bar),
+			options: []MergeOption{WithConditions("foo")}, // bar should be ignored
+			want:    TrueCondition(clusterv1.ReadyCondition),
+		},
+		{
+			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounter options)",
+			from:    getterWithConditions(foo, bar, baz),
+			options: []MergeOption{WithConditions("foo", "bar"), WithStepCounter()}, // baz should be ignored, total steps should be 2
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
+		},
+		{
+			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnlyConditions options)",
+			from:    getterWithConditions(bar),
+			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounterIfOnly("bar")}, // there is only bar, the step counter should be set and counts only a subset of conditions
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
+		},
+		{
+			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnlyConditions options)",
+			from:    getterWithConditions(bar, baz),
+			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounterIfOnly("bar")}, // there is also baz, so the step counter should not be set
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+		},
+		{
+			name:    "Ready condition respects merge order",
+			from:    getterWithConditions(bar, baz),
+			options: []MergeOption{WithConditions("baz", "bar")}, // baz should take precedence on bar
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2"),
+		},
+		{
 			name: "Ignores existing Ready condition when computing the summary",
 			from: getterWithConditions(existingReady, foo, bar),
 			want: FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
@@ -161,7 +199,7 @@ func TestSummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := summary(tt.from)
+			got := summary(tt.from, tt.options...)
 			if tt.want == nil {
 				g.Expect(got).To(BeNil())
 				return

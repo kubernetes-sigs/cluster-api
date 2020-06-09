@@ -167,11 +167,17 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	defer func() {
-		// always update the readyCondition with the summary of the machine conditions.
+		// Always update the readyCondition with the summary of the machine conditions.
 		conditions.SetSummary(m,
-			// we want to surface infrastructure problems first, then the others.
-			conditions.WithConditionOrder(clusterv1.InfrastructureReadyCondition),
-			conditions.WithStepCounter(clusterv1.MachineSummaryConditionsCount),
+			conditions.WithConditions(
+				clusterv1.BootstrapReadyCondition,
+				clusterv1.InfrastructureReadyCondition,
+				// TODO: add MHC conditions here
+			),
+			conditions.WithStepCounterIfOnly(
+				clusterv1.BootstrapReadyCondition,
+				clusterv1.InfrastructureReadyCondition,
+			),
 		)
 
 		r.reconcilePhase(ctx, m)

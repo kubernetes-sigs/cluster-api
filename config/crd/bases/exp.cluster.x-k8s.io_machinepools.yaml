@@ -21,6 +21,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - description: MachinePool replicas count
+      jsonPath: .status.replicas
+      name: Replicas
+      type: string
     - description: MachinePool status such as Terminating/Pending/Provisioning/Running/Failed
         etc
       jsonPath: .status.phase
@@ -457,6 +461,9 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
       status: {}
 status:
   acceptedNames:

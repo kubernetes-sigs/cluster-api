@@ -29,9 +29,8 @@ func (p patchType) Key() string {
 }
 
 const (
-	specPatch             patchType = "spec"
-	statusPatch           patchType = "status"
-	statusConditionsPatch patchType = "status.conditions"
+	specPatch   patchType = "spec"
+	statusPatch patchType = "status"
 )
 
 var (

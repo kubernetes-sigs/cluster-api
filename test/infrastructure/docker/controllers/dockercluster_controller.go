@@ -91,7 +91,12 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Always attempt to Patch the DockerCluster object and status after each reconciliation.
 	defer func() {
 		// always update the readyCondition; the summary is represented using the "1 of x completed" notation.
-		conditions.SetSummary(dockerCluster, conditions.WithStepCounter(1))
+		conditions.SetSummary(dockerCluster,
+			conditions.WithConditions(
+				infrav1.LoadBalancerAvailableCondition,
+			),
+			conditions.WithStepCounter(),
+		)
 
 		if err := patchHelper.Patch(ctx, dockerCluster); err != nil {
 			log.Error(err, "failed to patch DockerCluster")

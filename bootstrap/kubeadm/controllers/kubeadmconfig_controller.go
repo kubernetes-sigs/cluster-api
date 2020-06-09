@@ -199,7 +199,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Attempt to Patch the KubeadmConfig object and status after each reconciliation if no error occurs.
 	defer func() {
 		// always update the readyCondition; the summary is represented using the "1 of x completed" notation.
-		conditions.SetSummary(config, conditions.WithStepCounter(1))
+		conditions.SetSummary(config,
+			conditions.WithConditions(
+				bootstrapv1.DataSecretAvailableCondition,
+				bootstrapv1.CertificatesAvailableCondition,
+			),
+			conditions.WithStepCounter(),
+		)
 
 		if err := patchHelper.Patch(ctx, config); err != nil {
 			log.Error(rerr, "Failed to patch config")
@@ -286,7 +292,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// initialize the DataSecretAvailableCondition if missing.
 	// this is required in order to avoid the condition's LastTransitionTime to flicker in case of errors surfacing
 	// using the DataSecretGeneratedFailedReason
-	if !(conditions.Has(scope.Config, bootstrapv1.DataSecretAvailableCondition)) {
+	if conditions.GetReason(scope.Config, bootstrapv1.DataSecretAvailableCondition) != bootstrapv1.DataSecretGenerationFailedReason {
 		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
 	}
 

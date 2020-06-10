@@ -18,7 +18,7 @@ package kubeconfig
 
 import (
 	"context"
-	"crypto/rsa"
+	"crypto"
 	"crypto/x509"
 	"fmt"
 	"time"
@@ -50,7 +50,8 @@ func FromSecret(ctx context.Context, c client.Reader, cluster client.ObjectKey) 
 }
 
 // New creates a new Kubeconfig using the cluster name and specified endpoint.
-func New(clusterName, endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
+func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Signer) (*api.Config, error) {
+
 	cfg := &certs.Config{
 		CommonName:   "kubernetes-admin",
 		Organization: []string{"system:masters"},

@@ -18,6 +18,7 @@ package internal
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -311,7 +312,7 @@ func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, er
 	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), certs.EncodePrivateKeyPEM(privKey))
 }
 
-func newClientCert(caCert *x509.Certificate, key *rsa.PrivateKey, caKey *rsa.PrivateKey) (*x509.Certificate, error) {
+func newClientCert(caCert *x509.Certificate, key *rsa.PrivateKey, caKey crypto.Signer) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "cluster-api.x-k8s.io",
 	}

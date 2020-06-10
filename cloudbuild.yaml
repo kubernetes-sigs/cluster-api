@@ -12,6 +12,15 @@ steps:
     - PULL_BASE_REF=$_PULL_BASE_REF
     args:
     - release-staging
+  - name: 'gcr.io/k8s-testimages/gcb-docker-gcloud:v20190906-745fed4'
+    dir: 'test/infrastructure/docker'
+    entrypoint: make
+    env:
+    - DOCKER_CLI_EXPERIMENTAL=enabled
+    - TAG=$_GIT_TAG
+    - PULL_BASE_REF=$_PULL_BASE_REF
+    args:
+    - release-staging
 substitutions:
   # _GIT_TAG will be filled with a git-based tag for the image, of the form vYYYYMMDD-hash, and
   # can be used as a substitution

@@ -112,9 +112,9 @@ func pbMemberToMember(m *etcdserverpb.Member) *Member {
 }
 
 // NewEtcdClient creates a new etcd client with a custom dialer and is configuration with optional functions.
-func NewEtcdClient(endpoint string, dialer GRPCDial, tlsConfig *tls.Config) (*clientv3.Client, error) {
+func NewEtcdClient(endpoints []string, dialer GRPCDial, tlsConfig *tls.Config) (*clientv3.Client, error) {
 	etcdClient, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{endpoint},
+		Endpoints:   endpoints,
 		DialTimeout: etcdTimeout,
 		DialOptions: []grpc.DialOption{
 			grpc.WithBlock(), // block until the underlying connection is up
@@ -125,7 +125,6 @@ func NewEtcdClient(endpoint string, dialer GRPCDial, tlsConfig *tls.Config) (*cl
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create etcd client")
 	}
-	etcdClient.Endpoints()
 	return etcdClient, nil
 }
 

@@ -57,7 +57,7 @@ func TestWorkload_EtcdIsHealthy(t *testing.T) {
 			},
 		},
 		etcdClientGenerator: &fakeEtcdClientGenerator{
-			forNodeClient: &etcd.Client{
+			forNodesClient: &etcd.Client{
 				EtcdClient: &fake2.FakeEtcdClient{
 					EtcdEndpoints: []string{},
 					MemberListResponse: &clientv3.MemberListResponse{
@@ -228,7 +228,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			name:                "returns an error if it fails to create the etcd client",
 			machine:             machine,
 			objs:                []runtime.Object{cp1, cp2},
-			etcdClientGenerator: &fakeEtcdClientGenerator{forLeaderErr: errors.New("no client")},
+			etcdClientGenerator: &fakeEtcdClientGenerator{forNodesErr: errors.New("no client")},
 			expectErr:           true,
 		},
 		{
@@ -236,7 +236,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forLeaderClient: &etcd.Client{
+				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						ErrorResponse: errors.New("cannot get etcd members"),
 					},
@@ -249,7 +249,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forLeaderClient: &etcd.Client{
+				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						ErrorResponse: errors.New("cannot remove etcd member"),
 						MemberListResponse: &clientv3.MemberListResponse{
@@ -272,7 +272,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			machine: machine,
 			objs:    []runtime.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forLeaderClient: &etcd.Client{
+				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						MemberListResponse: &clientv3.MemberListResponse{
 							Members: []*pb.Member{
@@ -368,7 +368,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				leaderCandidate: defaultMachine(),
 				k8sClient:       &fakeClient{},
 				etcdClientGenerator: &fakeEtcdClientGenerator{
-					forNodeClient: &etcd.Client{
+					forLeaderClient: &etcd.Client{
 						EtcdClient: &fake2.FakeEtcdClient{
 							ErrorResponse: errors.New("cannot get etcd members"),
 						},
@@ -507,17 +507,17 @@ func TestForwardEtcdLeadership(t *testing.T) {
 }
 
 type fakeEtcdClientGenerator struct {
-	forNodeClient   *etcd.Client
+	forNodesClient  *etcd.Client
 	forLeaderClient *etcd.Client
-	forNodeErr      error
+	forNodesErr     error
 	forLeaderErr    error
 }
 
-func (c *fakeEtcdClientGenerator) forNode(_ context.Context, _ string) (*etcd.Client, error) {
-	return c.forNodeClient, c.forNodeErr
+func (c *fakeEtcdClientGenerator) forNodes(_ context.Context, _ []corev1.Node) (*etcd.Client, error) {
+	return c.forNodesClient, c.forNodesErr
 }
 
-func (c *fakeEtcdClientGenerator) forLeader(_ context.Context, _ *corev1.NodeList) (*etcd.Client, error) {
+func (c *fakeEtcdClientGenerator) forLeader(_ context.Context, _ []corev1.Node) (*etcd.Client, error) {
 	return c.forLeaderClient, c.forLeaderErr
 }
 

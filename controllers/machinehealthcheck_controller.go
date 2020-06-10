@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -134,6 +135,8 @@ func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 			m.Spec.ClusterName, m.Name, m.Namespace)
 	}
 
+	logger = r.Log.WithValues("cluster", cluster.Name)
+
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, m) {
 		logger.Info("Reconciliation is paused for this object")
@@ -160,7 +163,7 @@ func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 	}
 	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
 
-	result, err := r.reconcile(ctx, cluster, m)
+	result, err := r.reconcile(ctx, logger, cluster, m)
 	if err != nil {
 		logger.Error(err, "Failed to reconcile MachineHealthCheck")
 		r.recorder.Eventf(m, corev1.EventTypeWarning, "ReconcileError", "%v", err)
@@ -172,7 +175,7 @@ func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 	return result, nil
 }
 
-func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
+func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
 	// Ensure the MachineHealthCheck is owned by the Cluster it belongs to
 	m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -181,34 +184,28 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 		UID:        cluster.UID,
 	})
 
-	logger := r.Log.WithValues("machinehealthcheck", m.Name, "namespace", m.Namespace)
-	logger = logger.WithValues("cluster", cluster.Name)
-
 	// Create client for target cluster
 	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
 	if err != nil {
-		logger.Error(err, "Error building target cluster client")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "Error building target cluster client")
 	}
 
 	if err := r.watchClusterNodes(ctx, cluster); err != nil {
-		logger.Error(err, "Error watching nodes on target cluster")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "Error watching nodes on target cluster")
 	}
 
 	// fetch all targets
 	logger.V(3).Info("Finding targets")
-	targets, err := r.getTargetsFromMHC(clusterClient, cluster, m)
+	targets, err := r.getTargetsFromMHC(clusterClient, m)
 	if err != nil {
-		logger.Error(err, "Failed to fetch targets from MachineHealthCheck")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "Failed to fetch targets from MachineHealthCheck")
 	}
 	totalTargets := len(targets)
 	m.Status.ExpectedMachines = int32(totalTargets)
 
 	// health check all targets and reconcile mhc status
-	currentHealthy, needRemediationTargets, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)
-	m.Status.CurrentHealthy = int32(currentHealthy)
+	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)
+	m.Status.CurrentHealthy = int32(len(healthy))
 
 	// check MHC current health against MaxUnhealthy
 	if !isAllowedRemediation(m) {
@@ -216,7 +213,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 			"Short-circuiting remediation",
 			"total target", totalTargets,
 			"max unhealthy", m.Spec.MaxUnhealthy,
-			"unhealthy targets", totalTargets-currentHealthy,
+			"unhealthy targets", len(unhealthy),
 		)
 
 		r.recorder.Eventf(
@@ -225,31 +222,50 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 			EventRemediationRestricted,
 			"Remediation restricted due to exceeded number of unhealthy machines (total: %v, unhealthy: %v, maxUnhealthy: %v)",
 			totalTargets,
-			totalTargets-currentHealthy,
+			m.Status.CurrentHealthy,
 			m.Spec.MaxUnhealthy,
 		)
+		for _, t := range append(healthy, unhealthy...) {
+			if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "Failed to patch machine status for machine %q", t.Machine.Name)
+			}
+		}
 		return reconcile.Result{Requeue: true}, nil
 	}
 	logger.V(3).Info(
 		"Remediations are allowed",
 		"total target", totalTargets,
 		"max unhealthy", m.Spec.MaxUnhealthy,
-		"unhealthy targets", totalTargets-currentHealthy,
+		"unhealthy targets", len(unhealthy),
 	)
 
-	// remediate
+	// mark for remediation
 	errList := []error{}
-	for _, t := range needRemediationTargets {
+	for _, t := range unhealthy {
 		logger.V(3).Info("Target meets unhealthy criteria, triggers remediation", "target", t.string())
-		if err := t.remediate(ctx, logger, r.Client, r.recorder); err != nil {
-			logger.Error(err, "Error remediating target", "target", t.string())
-			errList = append(errList, err)
+
+		conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediation, clusterv1.ConditionSeverityWarning, "MachineHealthCheck failed")
+		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "Failed to patch unhealthy machine status for machine %q", t.Machine.Name)
+		}
+		r.recorder.Eventf(
+			t.Machine,
+			corev1.EventTypeNormal,
+			EventMachineMarkedUnhealthy,
+			"Machine %v has been marked as unhealthy",
+			t.string(),
+		)
+	}
+	for _, t := range healthy {
+		logger.V(3).Info("patching machine", "machine", t.Machine.GetName())
+		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "Failed to patch healthy machine status for machine %q", t.Machine.Name)
 		}
 	}
 
-	// handle remediation errors
+	// handle update errors
 	if len(errList) > 0 {
-		logger.V(3).Info("Error(s) remediating request, requeueing")
+		logger.V(3).Info("Error(s) marking machine, requeueing")
 		return reconcile.Result{}, kerrors.NewAggregate(errList)
 	}
 

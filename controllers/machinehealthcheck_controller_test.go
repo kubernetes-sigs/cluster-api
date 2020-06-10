@@ -17,6 +17,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -28,13 +29,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -50,7 +55,6 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 
 	var clusterName = "test-cluster"
 	var clusterKubeconfigName = "test-cluster-kubeconfig"
-	var clusterUID types.UID
 	var namespaceName string
 
 	BeforeEach(func() {
@@ -64,7 +68,6 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 		By("Creating the Cluster")
 		testCluster.Namespace = namespaceName
 		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
-		clusterUID = testCluster.UID
 
 		By("Creating the remote Cluster kubeconfig")
 		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
@@ -233,83 +236,65 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 			mhc                 func() *clusterv1.MachineHealthCheck
 			nodes               func() []*corev1.Node
 			machines            func() []*clusterv1.Machine
-			expectRemediated    func() []*clusterv1.Machine
-			expectNotRemediated func() []*clusterv1.Machine
+			expectHealthy       func() []*clusterv1.Machine
+			expectUnhealthy     func() []*clusterv1.Machine
+			expectRemediation   func() []*clusterv1.Machine
+			expectNoRemediation func() []*clusterv1.Machine
 			expectedStatus      clusterv1.MachineHealthCheckStatus
 		}
 
 		var labels = map[string]string{"cluster": clusterName, "nodepool": "foo"}
-		var controlPlaneLabels = map[string]string{"cluster": clusterName, "nodepool": "foo", clusterv1.MachineControlPlaneLabelName: ""}
-		var machineSetOR = metav1.OwnerReference{APIVersion: clusterv1.GroupVersion.String(), Kind: "MachineSet", Name: "machineset", UID: "machinset"}
-		var controlPlaneOR = metav1.OwnerReference{APIVersion: controlplanev1.GroupVersion.String(), Kind: "KubeadmControlPlane", Name: "controlplane", UID: "controlplane"}
 		var healthyNodeCondition = corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionTrue}
 		var unhealthyNodeCondition = corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionUnknown, LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute))}
 
 		// Objects for use in test cases below
-		var testMHC *clusterv1.MachineHealthCheck
-		var healthyNode1, healthyNode2, unhealthyNode1, unhealthyNode2, controlPlaneNode1, unhealthyControlPlaneNode1, unlabelledNode *corev1.Node
-		var healthyMachine1, healthyMachine2, unhealthyMachine1, unhealthyMachine2, noNodeRefMachine1, noNodeRefMachine2, nodeGoneMachine1, controlPlaneMachine1, unhealthyControlPlaneMachine1, unlabelledMachine *clusterv1.Machine
+		var testMHC, testMHCWithMaxUnhealthy *clusterv1.MachineHealthCheck
+		var healthyNode1, healthyNode2, unhealthyNode1, unhealthyNode2, unlabelledNode *corev1.Node
+		var healthyMachine1, healthyMachine2, unhealthyMachine1, unhealthyMachine2, noNodeRefMachine1, noNodeRefMachine2, nodeGoneMachine1, unlabelledMachine *clusterv1.Machine
 
 		BeforeEach(func() {
 			// Set up objects for test cases before each test
 			By("Setting up resources")
 			testMHC = newTestMachineHealthCheck("test-mhc", namespaceName, clusterName, labels)
-			maxUnhealthy := intstr.Parse("40%")
-			testMHC.Spec.MaxUnhealthy = &maxUnhealthy
 			testMHC.Default()
+			testMHCWithMaxUnhealthy = newTestMachineHealthCheck("test-mhc-with-max-unhealthy", namespaceName, clusterName, labels)
+			maxUnhealthy := intstr.Parse("40%")
+			testMHCWithMaxUnhealthy.Spec.MaxUnhealthy = &maxUnhealthy
+			testMHCWithMaxUnhealthy.Default()
 
 			healthyNode1 = newTestNode("healthy-node-1")
 			healthyNode1.Status.Conditions = []corev1.NodeCondition{healthyNodeCondition}
 			healthyMachine1 = newTestMachine("healthy-machine-1", namespaceName, clusterName, healthyNode1.Name, labels)
-			healthyMachine1.SetOwnerReferences([]metav1.OwnerReference{machineSetOR})
 
 			healthyNode2 = newTestNode("healthy-node-2")
 			healthyNode2.Status.Conditions = []corev1.NodeCondition{healthyNodeCondition}
 			healthyMachine2 = newTestMachine("healthy-machine-2", namespaceName, clusterName, healthyNode2.Name, labels)
-			healthyMachine2.SetOwnerReferences([]metav1.OwnerReference{machineSetOR})
 
 			unhealthyNode1 = newTestNode("unhealthy-node-1")
 			unhealthyNode1.Status.Conditions = []corev1.NodeCondition{unhealthyNodeCondition}
 			unhealthyMachine1 = newTestMachine("unhealthy-machine-1", namespaceName, clusterName, unhealthyNode1.Name, labels)
-			unhealthyMachine1.SetOwnerReferences([]metav1.OwnerReference{machineSetOR})
 
 			unhealthyNode2 = newTestNode("unhealthy-node-2")
 			unhealthyNode2.Status.Conditions = []corev1.NodeCondition{unhealthyNodeCondition}
 			unhealthyMachine2 = newTestMachine("unhealthy-machine-2", namespaceName, clusterName, unhealthyNode2.Name, labels)
-			unhealthyMachine2.SetOwnerReferences([]metav1.OwnerReference{machineSetOR})
 
 			noNodeRefMachine1 = newTestMachine("no-node-ref-machine-1", namespaceName, clusterName, "", labels)
 			noNodeRefMachine1.Status.NodeRef = nil
-			noNodeRefMachine1.SetOwnerReferences([]metav1.OwnerReference{machineSetOR})
 			now := metav1.NewTime(time.Now())
 			noNodeRefMachine1.Status.LastUpdated = &now
 
 			noNodeRefMachine2 = newTestMachine("no-node-ref-machine-2", namespaceName, clusterName, "", labels)
 			noNodeRefMachine2.Status.NodeRef = nil
-			noNodeRefMachine2.SetOwnerReferences([]metav1.OwnerReference{machineSetOR})
 			lastUpdatedTwiceNodeStartupTimeout := metav1.NewTime(time.Now().Add(-2 * testMHC.Spec.NodeStartupTimeout.Duration))
 			noNodeRefMachine2.Status.LastUpdated = &lastUpdatedTwiceNodeStartupTimeout
 
 			nodeGoneMachine1 = newTestMachine("node-gone-machine-1", namespaceName, clusterName, "node-gone-node-1", labels)
-			nodeGoneMachine1.SetOwnerReferences([]metav1.OwnerReference{machineSetOR})
-
-			controlPlaneNode1 = newTestNode("control-plane-node-1")
-			controlPlaneNode1.Status.Conditions = []corev1.NodeCondition{healthyNodeCondition}
-			controlPlaneNode1.Labels = map[string]string{nodeControlPlaneLabel: ""}
-			controlPlaneMachine1 = newTestMachine("control-plane-machine-1", namespaceName, clusterName, controlPlaneNode1.Name, controlPlaneLabels)
-			controlPlaneMachine1.SetOwnerReferences([]metav1.OwnerReference{controlPlaneOR})
-
-			unhealthyControlPlaneNode1 = newTestNode("unhealthy-control-plane-node-1")
-			unhealthyControlPlaneNode1.Status.Conditions = []corev1.NodeCondition{unhealthyNodeCondition}
-			unhealthyControlPlaneNode1.Labels = map[string]string{nodeControlPlaneLabel: ""}
-			unhealthyControlPlaneMachine1 = newTestMachine("unhealthy-control-plane-machine-1", namespaceName, clusterName, unhealthyControlPlaneNode1.Name, controlPlaneLabels)
-			unhealthyControlPlaneMachine1.SetOwnerReferences([]metav1.OwnerReference{controlPlaneOR})
 
 			unlabelledNode = newTestNode("unlabelled-node")
 			unlabelledMachine = newTestMachine("unlabelled-machine", namespaceName, clusterName, unlabelledNode.Name, map[string]string{})
 		})
 
-		DescribeTable("should remediate unhealthy nodes",
+		DescribeTable("should mark unhealthy nodes for remediation",
 			func(rtc *reconcileTestCase) {
 				By("Creating Nodes")
 				for _, n := range rtc.nodes() {
@@ -328,32 +313,60 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				mhc.Default()
 				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
 
+				allThatShouldGetConditions := append(rtc.expectNoRemediation(), rtc.expectRemediation()...)
+				allThatShouldGetConditions = append(allThatShouldGetConditions, rtc.expectUnhealthy()...)
+				allThatShouldGetConditions = append(allThatShouldGetConditions, rtc.expectHealthy()...)
+				Eventually(func() []*clusterv1.Machine {
+					var hasCondition []*clusterv1.Machine
+					for _, m := range allThatShouldGetConditions {
+						machine := &clusterv1.Machine{}
+						key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
+						Expect(testEnv.Get(ctx, key, machine)).To(Succeed())
+						if conditions.Has(machine, clusterv1.MachineHealthCheckSuccededCondition) {
+							hasCondition = append(hasCondition, m)
+						}
+					}
+					return hasCondition
+				}, timeout).Should(ConsistOf(allThatShouldGetConditions), "Expected all machines to have received a HealthCheckSucceeded condition")
+				// All machines have been health checked, assume it is safe to continue
+
 				By("Verifying the status has been updated")
 				Eventually(getMHCStatus(namespaceName, rtc.mhc().Name), timeout).Should(Equal(rtc.expectedStatus))
 
-				// Status has been updated, a reconcile has occurred, should no longer need async assertions
-
-				By("Verifying Machine remediations")
-				for _, m := range rtc.expectNotRemediated() {
+				By("Verifying Machine conditions")
+				for _, m := range rtc.expectHealthy() {
 					machine := &clusterv1.Machine{}
 					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
 					Expect(testEnv.Get(ctx, key, machine)).To(Succeed())
-					Expect(machine.GetDeletionTimestamp().IsZero()).To(BeTrue())
+					Expect(conditions.IsTrue(machine, clusterv1.MachineHealthCheckSuccededCondition)).To(BeTrue(), fmt.Sprintf("Expected machine %q to have passed healthcheck", machine.Name))
 				}
-
-				for _, m := range rtc.expectRemediated() {
+				for _, m := range rtc.expectUnhealthy() {
 					machine := &clusterv1.Machine{}
 					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
-					err := testEnv.Get(ctx, key, machine)
-					Expect(apierrors.IsNotFound(err)).To(BeTrue())
+					Expect(testEnv.Get(ctx, key, machine)).To(Succeed())
+					Expect(conditions.IsFalse(machine, clusterv1.MachineHealthCheckSuccededCondition)).To(BeTrue(), fmt.Sprintf("Expected machine %q to have failed healthcheck", machine.Name))
+				}
+				for _, m := range rtc.expectRemediation() {
+					machine := &clusterv1.Machine{}
+					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
+					Expect(testEnv.Get(ctx, key, machine)).To(Succeed())
+					Expect(conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)).To(BeTrue(), fmt.Sprintf("Expected machine %q to need remediation", machine.Name))
+				}
+				for _, m := range rtc.expectNoRemediation() {
+					machine := &clusterv1.Machine{}
+					key := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
+					Expect(testEnv.Get(ctx, key, machine)).To(Succeed())
+					Expect(conditions.Get(machine, clusterv1.MachineOwnerRemediatedCondition)).To(BeNil(), fmt.Sprintf("Expected machine %q to not need remediation", machine.Name))
 				}
 			},
 			Entry("with healthy Machines", &reconcileTestCase{
 				mhc:                 func() *clusterv1.MachineHealthCheck { return testMHC },
 				nodes:               func() []*corev1.Node { return []*corev1.Node{healthyNode1, healthyNode2} },
 				machines:            func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
-				expectRemediated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectUnhealthy:     none,
+				expectRemediation:   none,
+				expectHealthy:       func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectNoRemediation: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
 				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 2, CurrentHealthy: 2},
 			}),
 			Entry("with an unhealthy Machine", &reconcileTestCase{
@@ -362,21 +375,25 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, unhealthyMachine1}
 				},
-				expectRemediated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{unhealthyMachine1} },
-				expectNotRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectUnhealthy:     func() []*clusterv1.Machine { return []*clusterv1.Machine{unhealthyMachine1} },
+				expectRemediation:   func() []*clusterv1.Machine { return []*clusterv1.Machine{unhealthyMachine1} },
+				expectHealthy:       func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectNoRemediation: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
 				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
 			}),
 			Entry("when the unhealthy Machines exceed MaxUnhealthy", &reconcileTestCase{
-				mhc:   func() *clusterv1.MachineHealthCheck { return testMHC },
+				mhc:   func() *clusterv1.MachineHealthCheck { return testMHCWithMaxUnhealthy },
 				nodes: func() []*corev1.Node { return []*corev1.Node{healthyNode1, unhealthyNode1, unhealthyNode2} },
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, unhealthyMachine1, unhealthyMachine2}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
+				expectRemediation: none,
+				expectNoRemediation: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, unhealthyMachine1, unhealthyMachine2}
 				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 1},
+				expectUnhealthy: func() []*clusterv1.Machine { return []*clusterv1.Machine{unhealthyMachine1, unhealthyMachine2} },
+				expectHealthy:   func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1} },
+				expectedStatus:  clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 1},
 			}),
 			Entry("when a Machine has no Node ref for less than the NodeStartupTimeout", &reconcileTestCase{
 				mhc:   func() *clusterv1.MachineHealthCheck { return testMHC },
@@ -384,11 +401,11 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, noNodeRefMachine1}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, noNodeRefMachine1}
-				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
+				expectUnhealthy:     none,
+				expectRemediation:   none,
+				expectHealthy:       func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectNoRemediation: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
 			}),
 			Entry("when a Machine has no Node ref for longer than the NodeStartupTimeout", &reconcileTestCase{
 				mhc:   func() *clusterv1.MachineHealthCheck { return testMHC },
@@ -396,11 +413,11 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, noNodeRefMachine2}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{noNodeRefMachine2} },
-				expectNotRemediated: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2}
-				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
+				expectUnhealthy:     func() []*clusterv1.Machine { return []*clusterv1.Machine{noNodeRefMachine2} },
+				expectRemediation:   func() []*clusterv1.Machine { return []*clusterv1.Machine{noNodeRefMachine2} },
+				expectHealthy:       func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectNoRemediation: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
 			}),
 			Entry("when a Machine's Node has gone away", &reconcileTestCase{
 				mhc:   func() *clusterv1.MachineHealthCheck { return testMHC },
@@ -408,44 +425,20 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				machines: func() []*clusterv1.Machine {
 					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, nodeGoneMachine1}
 				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{nodeGoneMachine1} },
-				expectNotRemediated: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2}
-				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
-			}),
-			Entry("with a healthy control plane Machine", &reconcileTestCase{
-				mhc:   func() *clusterv1.MachineHealthCheck { return testMHC },
-				nodes: func() []*corev1.Node { return []*corev1.Node{healthyNode1, healthyNode2, controlPlaneNode1} },
-				machines: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1}
-				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1}
-				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 3},
-			}),
-			Entry("with an unhealthy control plane Machine", &reconcileTestCase{
-				mhc: func() *clusterv1.MachineHealthCheck { return testMHC },
-				nodes: func() []*corev1.Node {
-					return []*corev1.Node{healthyNode1, healthyNode2, controlPlaneNode1, unhealthyControlPlaneNode1}
-				},
-				machines: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1, unhealthyControlPlaneMachine1}
-				},
-				expectRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine {
-					return []*clusterv1.Machine{healthyMachine1, healthyMachine2, controlPlaneMachine1, unhealthyControlPlaneMachine1}
-				},
-				expectedStatus: clusterv1.MachineHealthCheckStatus{ExpectedMachines: 4, CurrentHealthy: 3},
+				expectUnhealthy:     func() []*clusterv1.Machine { return []*clusterv1.Machine{nodeGoneMachine1} },
+				expectRemediation:   func() []*clusterv1.Machine { return []*clusterv1.Machine{nodeGoneMachine1} },
+				expectHealthy:       func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectNoRemediation: func() []*clusterv1.Machine { return []*clusterv1.Machine{healthyMachine1, healthyMachine2} },
+				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 3, CurrentHealthy: 2},
 			}),
 			Entry("when no Machines are matched by the selector", &reconcileTestCase{
 				mhc:                 func() *clusterv1.MachineHealthCheck { return testMHC },
 				nodes:               func() []*corev1.Node { return []*corev1.Node{unlabelledNode} },
 				machines:            func() []*clusterv1.Machine { return []*clusterv1.Machine{unlabelledMachine} },
-				expectRemediated:    func() []*clusterv1.Machine { return []*clusterv1.Machine{} },
-				expectNotRemediated: func() []*clusterv1.Machine { return []*clusterv1.Machine{unlabelledMachine} },
+				expectUnhealthy:     none,
+				expectRemediation:   none,
+				expectHealthy:       none,
+				expectNoRemediation: none,
 				expectedStatus:      clusterv1.MachineHealthCheckStatus{ExpectedMachines: 0, CurrentHealthy: 0},
 			}),
 		)
@@ -459,9 +452,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 
 				By("Creating a Machine")
 				// Set up the Machine to reduce events triggered by other controllers updating the Machine
-				clusterOR := metav1.OwnerReference{APIVersion: clusterv1.GroupVersion.String(), Kind: "Cluster", Name: clusterName, UID: clusterUID}
 				remoteMachine := newTestMachine("remote-machine-1", namespaceName, clusterName, remoteNode.Name, labels)
-				remoteMachine.SetOwnerReferences([]metav1.OwnerReference{machineSetOR, clusterOR})
 				now := metav1.NewTime(time.Now())
 				remoteMachine.SetFinalizers([]string{"machine.cluster.x-k8s.io"})
 				remoteMachine.Status.LastUpdated = &now
@@ -1061,4 +1052,192 @@ func TestIsAllowedRedmediation(t *testing.T) {
 			g.Expect(isAllowedRemediation(mhc)).To(Equal(tc.allowed))
 		})
 	}
+}
+
+func none() []*clusterv1.Machine {
+	return []*clusterv1.Machine{}
+}
+
+var _ = Describe("MachineSet remediation", func() {
+	It("deletes machines marked with the MHC condition", func() {
+		namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "mhc-test"}}
+		Expect(testEnv.Create(context.Background(), namespace)).To(Succeed())
+		defer cleanup(testEnv, namespace)
+
+		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "test-cluster"}}
+		Expect(testEnv.Create(context.Background(), cluster)).To(Succeed())
+
+		Expect(testEnv.CreateKubeconfigSecret(cluster)).To(Succeed())
+
+		bootstrapTmpl := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       "BootstrapMachineTemplate",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"metadata": map[string]interface{}{
+					"name":      "ms-template",
+					"namespace": namespace.Name,
+				},
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"kind":       "BootstrapMachine",
+						"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+						"metadata":   map[string]interface{}{},
+					},
+				},
+			},
+		}
+		Expect(testEnv.Create(context.Background(), bootstrapTmpl)).To(Succeed())
+
+		infraTmpl := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       "InfrastructureMachineTemplate",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+				"metadata": map[string]interface{}{
+					"name":      "ms-template",
+					"namespace": namespace.Name,
+				},
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"kind":       "InfrastructureMachine",
+						"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+						"metadata":   map[string]interface{}{},
+						"spec": map[string]interface{}{
+							"size":       "3xlarge",
+							"providerID": "test:////id",
+						},
+					},
+				},
+			},
+		}
+		Expect(testEnv.Create(context.Background(), infraTmpl)).To(Succeed())
+
+		instance := &clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "ms-",
+				Namespace:    namespace.Name,
+			},
+			Spec: clusterv1.MachineSetSpec{
+				ClusterName: cluster.Name,
+				Replicas:    pointer.Int32Ptr(1),
+				Selector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"cool": "true",
+					},
+				},
+				Template: clusterv1.MachineTemplateSpec{
+					ObjectMeta: clusterv1.ObjectMeta{
+						Labels: map[string]string{
+							"cool": "true",
+						},
+					},
+					Spec: clusterv1.MachineSpec{
+						ClusterName: cluster.Name,
+						Version:     pointer.StringPtr("1.0.0"),
+						Bootstrap: clusterv1.Bootstrap{
+							ConfigRef: &corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+								Kind:       "BootstrapMachineTemplate",
+								Name:       bootstrapTmpl.GetName(),
+							},
+						},
+						InfrastructureRef: corev1.ObjectReference{
+							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+							Kind:       "InfrastructureMachineTemplate",
+							Name:       infraTmpl.GetName(),
+						},
+					},
+				},
+			},
+		}
+		Expect(testEnv.Create(context.Background(), instance)).To(Succeed())
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-1",
+			},
+		}
+		Expect(testEnv.Create(context.Background(), node)).To(Succeed())
+		defer cleanup(testEnv, node)
+
+		mhc := &clusterv1.MachineHealthCheck{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mhc",
+				Namespace: namespace.Name,
+			},
+			Spec: clusterv1.MachineHealthCheckSpec{
+				ClusterName: cluster.Name,
+				Selector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"cool": "true",
+					},
+				},
+				UnhealthyConditions: []clusterv1.UnhealthyCondition{
+					{
+						Type:    corev1.NodeReady,
+						Status:  corev1.ConditionUnknown,
+						Timeout: metav1.Duration{Duration: 5 * time.Minute},
+					},
+				},
+			},
+		}
+		mhc.Default()
+		Expect(testEnv.Create(context.Background(), mhc)).To(Succeed())
+
+		var nodes corev1.NodeList
+		Expect(testEnv.List(context.Background(), &nodes)).To(Succeed())
+
+		var found bool
+		for i := range nodes.Items {
+			n := nodes.Items[i]
+			if n.Name == node.Name {
+				found = true
+				node = &n
+			}
+		}
+		Expect(found).To(BeTrue())
+
+		var machines clusterv1.MachineList
+		Eventually(func() ([]clusterv1.Machine, error) {
+			if err := testEnv.List(context.Background(), &machines, client.InNamespace(namespace.Name)); err != nil {
+				return nil, err
+			}
+
+			return machines.Items, nil
+		}, 10*time.Second).Should(HaveLen(1))
+
+		machine := &machines.Items[0]
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			APIVersion: node.APIVersion,
+			Kind:       node.Kind,
+			Name:       node.Name,
+			UID:        node.UID,
+		}
+		failureReason := capierrors.MachineStatusError("foo")
+		machine.Status.FailureReason = &failureReason
+		Expect(testEnv.Status().Update(context.Background(), machine)).To(Succeed())
+
+		// add a finalizer so we can observe the deletion
+		patchHelper, err := patch.NewHelper(machine, testEnv)
+		Expect(err).To(BeNil())
+		machine.ObjectMeta.Finalizers = []string{"whatever"}
+		Expect(patchHelper.Patch(context.Background(), machine)).To(Succeed())
+		defer func() {
+			// release finalizer
+			patch := client.MergeFrom(machine.DeepCopy())
+			machine.SetFinalizers(nil)
+			Expect(testEnv.Patch(context.Background(), machine, patch)).To(Succeed())
+		}()
+
+		Eventually(func() (*metav1.Time, error) {
+			if err := testEnv.Get(context.Background(), util.ObjectKey(machine), machine); err != nil {
+				return nil, err
+			}
+
+			return machine.DeletionTimestamp, nil
+		}, 20*time.Second).ShouldNot(BeNil())
+	})
+})
+
+func cleanup(client client.Client, obj runtime.Object) {
+	Expect(client.Delete(context.Background(), obj)).To(Succeed())
 }

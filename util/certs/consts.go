@@ -24,4 +24,8 @@ const (
 
 	// DefaultCertDuration is the default lifespan used when creating certificates.
 	DefaultCertDuration = time.Hour * 24 * 365
+
+	// When client certificates have less than ClientCertificateRenewalDuration
+	// left before expiry, they will be regenerated.
+	ClientCertificateRenewalDuration = DefaultCertDuration / 2
 )

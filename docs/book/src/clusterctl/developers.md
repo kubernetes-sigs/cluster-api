@@ -122,6 +122,9 @@ providers:
 
 If you are using Kind for creating the management cluster, you should:
 
+{{#tabs name:"install-kind" tabs:"v0.7.x,v0.8.x"}}
+{{#tab v0.7.x}}
+
 - Run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
 
 ```bash
@@ -135,13 +138,39 @@ nodes:
         containerPath: /var/run/docker.sock
 EOF
 ```
-
 - Run `kind create cluster --config kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
 
-- Run `kind load docker-image gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev` to make the docker provider image available
-  for the kubelet in the management cluster.
+- Run `kind load docker-image gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev` to make the docker provider image available for the kubelet in the management cluster.
 
 - Run `clusterctl init` command provided as output of the local-overrides hack.
+
+{{#/tab }}
+{{#tab v0.8.x}}
+
+- Export the **KIND_EXPERIMENTAL_DOCKER_NETWORK=bridge** so kind and CAPD can create containers in the same network, since **kind v0.8.0**, kind by default creates the containers in the **kind** network while CAPD is creating them in the **bridge** one.
+```bash
+export KIND_EXPERIMENTAL_DOCKER_NETWORK=bridge
+```
+- Run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
+```bash
+cat > kind-cluster-with-extramounts.yaml <<EOF
+kind: Cluster
+apiVersion: kind.sigs.k8s.io/v1alpha3
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /var/run/docker.sock
+        containerPath: /var/run/docker.sock
+EOF
+```
+- Run `kind create cluster --config kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
+
+- Run `kind load docker-image gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev` to make the docker provider image available for the kubelet in the management cluster.
+
+- Run `clusterctl init` command provided as output of the local-overrides hack.
+
+{{#/tab }}
+{{#/tabs }}
 
 ### Connecting to a workload cluster on docker
 
@@ -163,3 +192,6 @@ sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/t
 # Ignore the CA, because it is not signed for 127.0.0.1
 sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./capi-quickstart.kubeconfig
 ```
+
+<!-- links -->
+[kind]: https://kind.sigs.k8s.io/

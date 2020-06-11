@@ -201,6 +201,10 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	}
 	totalTargets := len(targets)
 	m.Status.ExpectedMachines = int32(totalTargets)
+	m.Status.Targets = make([]string, totalTargets)
+	for i, t := range targets {
+		m.Status.Targets[i] = t.Machine.Name
+	}
 
 	// health check all targets and reconcile mhc status
 	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)

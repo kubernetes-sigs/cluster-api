@@ -302,18 +302,20 @@ var _ = Describe("MachineHealthCheck", func() {
 
 				// Healthy nodes and machines.
 				fakeNodesMachines(2, true, true)
-
+				targetMachines := make([]string, len(machines))
+				for i, m := range machines {
+					targetMachines[i] = m.Name
+				}
 				// Make sure the status matches.
-				Eventually(func() *clusterv1.MachineHealthCheckStatus {
+				Eventually(func() int32 {
 					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 					if err != nil {
-						return nil
+						return -1
 					}
-					return &mhc.Status
-				}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: 2,
-					CurrentHealthy:   2},
-				))
+					return mhc.Status.CurrentHealthy
+				}).Should(Equal(int32(2)))
+				Expect(mhc.Status.ExpectedMachines).To(Equal(int32(2)))
+				Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
 			})
 
 			Specify("when there is one unhealthy Machine", func() {
@@ -324,18 +326,21 @@ var _ = Describe("MachineHealthCheck", func() {
 				fakeNodesMachines(2, true, true)
 				// Unhealthy nodes and machines.
 				fakeNodesMachines(1, false, true)
+				targetMachines := make([]string, len(machines))
+				for i, m := range machines {
+					targetMachines[i] = m.Name
+				}
 
 				// Make sure the status matches.
-				Eventually(func() *clusterv1.MachineHealthCheckStatus {
+				Eventually(func() int32 {
 					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 					if err != nil {
-						return nil
+						return -1
 					}
-					return &mhc.Status
-				}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: 3,
-					CurrentHealthy:   2},
-				))
+					return mhc.Status.CurrentHealthy
+				}).Should(Equal(int32(2)))
+				Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
+				Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
 			})
 
 			Specify("when the unhealthy Machines exceed MaxUnhealthy", func() {
@@ -348,18 +353,21 @@ var _ = Describe("MachineHealthCheck", func() {
 				fakeNodesMachines(1, true, true)
 				// Unhealthy nodes and machines.
 				fakeNodesMachines(2, false, true)
+				targetMachines := make([]string, len(machines))
+				for i, m := range machines {
+					targetMachines[i] = m.Name
+				}
 
 				// Make sure the status matches.
-				Eventually(func() *clusterv1.MachineHealthCheckStatus {
+				Eventually(func() int32 {
 					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 					if err != nil {
-						return nil
+						return -1
 					}
-					return &mhc.Status
-				}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: 3,
-					CurrentHealthy:   1},
-				))
+					return mhc.Status.CurrentHealthy
+				}).Should(Equal(int32(1)))
+				Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
+				Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
 
 				// Calculate how many Machines have health check succeeded = false.
 				Eventually(func() (unhealthy int) {
@@ -407,18 +415,21 @@ var _ = Describe("MachineHealthCheck", func() {
 			fakeNodesMachines(2, true, true)
 			// Unhealthy nodes and machines.
 			fakeNodesMachines(1, false, false)
+			targetMachines := make([]string, len(machines))
+			for i, m := range machines {
+				targetMachines[i] = m.Name
+			}
 
 			// Make sure the status matches.
-			Eventually(func() *clusterv1.MachineHealthCheckStatus {
+			Eventually(func() int32 {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return nil
+					return -1
 				}
-				return &mhc.Status
-			}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 3,
-				CurrentHealthy:   2},
-			))
+				return mhc.Status.CurrentHealthy
+			}).Should(Equal(int32(2)))
+			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
+			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
 
 			// Calculate how many Machines have health check succeeded = false.
 			Eventually(func() (unhealthy int) {
@@ -466,18 +477,21 @@ var _ = Describe("MachineHealthCheck", func() {
 			fakeNodesMachines(2, true, true)
 			// Unhealthy nodes and machines.
 			fakeNodesMachines(1, false, false)
+			targetMachines := make([]string, len(machines))
+			for i, m := range machines {
+				targetMachines[i] = m.Name
+			}
 
 			// Make sure the status matches.
-			Eventually(func() *clusterv1.MachineHealthCheckStatus {
+			Eventually(func() int32 {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return nil
+					return -1
 				}
-				return &mhc.Status
-			}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 3,
-				CurrentHealthy:   2},
-			))
+				return mhc.Status.CurrentHealthy
+			}).Should(Equal(int32(2)))
+			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
+			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
 
 			// Calculate how many Machines have health check succeeded = false.
 			Eventually(func() (unhealthy int) {
@@ -522,6 +536,10 @@ var _ = Describe("MachineHealthCheck", func() {
 
 			// Healthy nodes and machines.
 			fakeNodesMachines(3, true, true)
+			targetMachines := make([]string, len(machines))
+			for i, m := range machines {
+				targetMachines[i] = m.Name
+			}
 
 			// Forcibly remove the last machine's node.
 			Eventually(func() bool {
@@ -533,16 +551,15 @@ var _ = Describe("MachineHealthCheck", func() {
 			}).Should(BeTrue())
 
 			// Make sure the status matches.
-			Eventually(func() *clusterv1.MachineHealthCheckStatus {
+			Eventually(func() int32 {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return nil
+					return -1
 				}
-				return &mhc.Status
-			}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 3,
-				CurrentHealthy:   2},
-			))
+				return mhc.Status.CurrentHealthy
+			}).Should(Equal(int32(2)))
+			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
+			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
 
 			// Calculate how many Machines have health check succeeded = false.
 			Eventually(func() (unhealthy int) {
@@ -587,18 +604,21 @@ var _ = Describe("MachineHealthCheck", func() {
 
 			// Healthy nodes and machines.
 			fakeNodesMachines(1, true, true)
+			targetMachines := make([]string, len(machines))
+			for i, m := range machines {
+				targetMachines[i] = m.Name
+			}
 
 			// Make sure the status matches.
-			Eventually(func() *clusterv1.MachineHealthCheckStatus {
+			Eventually(func() int32 {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return nil
+					return -1
 				}
-				return &mhc.Status
-			}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 1,
-				CurrentHealthy:   1},
-			))
+				return mhc.Status.CurrentHealthy
+			}).Should(Equal(int32(1)))
+			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(1)))
+			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
 
 			// Transition the node to unhealthy.
 			node := nodes[0]
@@ -613,16 +633,15 @@ var _ = Describe("MachineHealthCheck", func() {
 			Expect(testEnv.Status().Patch(ctx, node, nodePatch)).To(Succeed())
 
 			// Make sure the status matches.
-			Eventually(func() *clusterv1.MachineHealthCheckStatus {
+			Eventually(func() int32 {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return nil
+					return -1
 				}
-				return &mhc.Status
-			}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 1,
-				CurrentHealthy:   0},
-			))
+				return mhc.Status.CurrentHealthy
+			}).Should(Equal(int32(0)))
+			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(1)))
+			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
 
 			// Calculate how many Machines have health check succeeded = false.
 			Eventually(func() (unhealthy int) {

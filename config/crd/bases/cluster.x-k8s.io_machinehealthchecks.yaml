@@ -167,6 +167,12 @@ spec:
                   by the controller.
                 format: int64
                 type: integer
+              targets:
+                description: Targets shows the current list of machines the machine
+                  health check is watching
+                items:
+                  type: string
+                type: array
             type: object
         type: object
     served: true

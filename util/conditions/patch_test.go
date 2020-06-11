@@ -18,8 +18,11 @@ package conditions
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
@@ -29,26 +32,26 @@ func TestNewPatch(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		base   Getter
-		target Getter
+		before Getter
+		after  Getter
 		want   Patch
 	}{
 		{
 			name:   "No changes return empty patch",
-			base:   getterWithConditions(),
-			target: getterWithConditions(),
+			before: getterWithConditions(),
+			after:  getterWithConditions(),
 			want:   nil,
 		},
 		{
 			name:   "No changes return empty patch",
-			base:   getterWithConditions(fooTrue),
-			target: getterWithConditions(fooTrue),
+			before: getterWithConditions(fooTrue),
+			after:  getterWithConditions(fooTrue),
 			want:   nil,
 		},
 		{
 			name:   "Detects AddConditionPatch",
-			base:   getterWithConditions(),
-			target: getterWithConditions(fooTrue),
+			before: getterWithConditions(),
+			after:  getterWithConditions(fooTrue),
 			want: Patch{
 				{
 					Base:   nil,
@@ -59,8 +62,8 @@ func TestNewPatch(t *testing.T) {
 		},
 		{
 			name:   "Detects ChangeConditionPatch",
-			base:   getterWithConditions(fooTrue),
-			target: getterWithConditions(fooFalse),
+			before: getterWithConditions(fooTrue),
+			after:  getterWithConditions(fooFalse),
 			want: Patch{
 				{
 					Base:   fooTrue,
@@ -71,8 +74,8 @@ func TestNewPatch(t *testing.T) {
 		},
 		{
 			name:   "Detects RemoveConditionPatch",
-			base:   getterWithConditions(fooTrue),
-			target: getterWithConditions(),
+			before: getterWithConditions(fooTrue),
+			after:  getterWithConditions(),
 			want: Patch{
 				{
 					Base:   fooTrue,
@@ -87,7 +90,7 @@ func TestNewPatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := NewPatch(tt.base, tt.target)
+			got := NewPatch(tt.before, tt.after)
 
 			g.Expect(got).To(Equal(tt.want))
 		})
@@ -101,97 +104,97 @@ func TestApply(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		base    Getter
-		target  Getter
-		source  Setter
+		before  Getter
+		after   Getter
+		latest  Setter
 		want    clusterv1.Conditions
 		wantErr bool
 	}{
 		{
 			name:    "No patch return same list",
-			base:    getterWithConditions(fooTrue),
-			target:  getterWithConditions(fooTrue),
-			source:  setterWithConditions(fooTrue),
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(fooTrue),
+			latest:  setterWithConditions(fooTrue),
 			want:    conditionList(fooTrue),
 			wantErr: false,
 		},
 		{
 			name:    "Add: When a condition does not exists, it should add",
-			base:    getterWithConditions(),
-			target:  getterWithConditions(fooTrue),
-			source:  setterWithConditions(),
+			before:  getterWithConditions(),
+			after:   getterWithConditions(fooTrue),
+			latest:  setterWithConditions(),
 			want:    conditionList(fooTrue),
 			wantErr: false,
 		},
 		{
 			name:    "Add: When a condition already exists but without conflicts, it should add",
-			base:    getterWithConditions(),
-			target:  getterWithConditions(fooTrue),
-			source:  setterWithConditions(fooTrue),
+			before:  getterWithConditions(),
+			after:   getterWithConditions(fooTrue),
+			latest:  setterWithConditions(fooTrue),
 			want:    conditionList(fooTrue),
 			wantErr: false,
 		},
 		{
 			name:    "Add: When a condition already exists but with conflicts, it should error",
-			base:    getterWithConditions(),
-			target:  getterWithConditions(fooTrue),
-			source:  setterWithConditions(fooFalse),
+			before:  getterWithConditions(),
+			after:   getterWithConditions(fooTrue),
+			latest:  setterWithConditions(fooFalse),
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Remove: When a condition was already deleted, it should pass",
-			base:    getterWithConditions(fooTrue),
-			target:  getterWithConditions(),
-			source:  setterWithConditions(),
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(),
+			latest:  setterWithConditions(),
 			want:    conditionList(),
 			wantErr: false,
 		},
 		{
 			name:    "Remove: When a condition already exists but without conflicts, it should delete",
-			base:    getterWithConditions(fooTrue),
-			target:  getterWithConditions(),
-			source:  setterWithConditions(fooTrue),
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(),
+			latest:  setterWithConditions(fooTrue),
 			want:    conditionList(),
 			wantErr: false,
 		},
 		{
 			name:    "Remove: When a condition already exists but with conflicts, it should error",
-			base:    getterWithConditions(fooTrue),
-			target:  getterWithConditions(),
-			source:  setterWithConditions(fooFalse),
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(),
+			latest:  setterWithConditions(fooFalse),
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Change: When a condition exists without conflicts, it should change",
-			base:    getterWithConditions(fooTrue),
-			target:  getterWithConditions(fooFalse),
-			source:  setterWithConditions(fooTrue),
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(fooFalse),
+			latest:  setterWithConditions(fooTrue),
 			want:    conditionList(fooFalse),
 			wantErr: false,
 		},
 		{
 			name:    "Change: When a condition exists with conflicts but there is agreement on the final state, it should change",
-			base:    getterWithConditions(fooFalse),
-			target:  getterWithConditions(fooTrue),
-			source:  setterWithConditions(fooTrue),
+			before:  getterWithConditions(fooFalse),
+			after:   getterWithConditions(fooTrue),
+			latest:  setterWithConditions(fooTrue),
 			want:    conditionList(fooTrue),
 			wantErr: false,
 		},
 		{
 			name:    "Change: When a condition exists with conflicts but there is no agreement on the final state, it should error",
-			base:    getterWithConditions(fooWarning),
-			target:  getterWithConditions(fooFalse),
-			source:  setterWithConditions(fooTrue),
+			before:  getterWithConditions(fooWarning),
+			after:   getterWithConditions(fooFalse),
+			latest:  setterWithConditions(fooTrue),
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Change: When a condition was deleted, it should error",
-			base:    getterWithConditions(fooTrue),
-			target:  getterWithConditions(fooFalse),
-			source:  setterWithConditions(),
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(fooFalse),
+			latest:  setterWithConditions(),
 			want:    nil,
 			wantErr: true,
 		},
@@ -201,16 +204,43 @@ func TestApply(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			patch := NewPatch(tt.base, tt.target)
+			patch := NewPatch(tt.before, tt.after)
 
-			err := patch.Apply(tt.source)
+			err := patch.Apply(tt.latest)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(tt.source.GetConditions()).To(haveSameConditionsOf(tt.want))
+			g.Expect(tt.latest.GetConditions()).To(haveSameConditionsOf(tt.want))
 		})
 	}
+}
+
+func TestApplyDoesNotAlterLastTransitionTime(t *testing.T) {
+	g := NewWithT(t)
+
+	before := &clusterv1.Cluster{}
+	after := &clusterv1.Cluster{
+		Status: clusterv1.ClusterStatus{
+			Conditions: clusterv1.Conditions{
+				clusterv1.Condition{
+					Type:               "foo",
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
+				},
+			},
+		},
+	}
+	latest := &clusterv1.Cluster{}
+
+	// latest has no conditions, so we are actually adding the condition but in this case we should not set the LastTransition Time
+	// but we should preserve the LastTransition set in after
+
+	diff := NewPatch(before, after)
+	err := diff.Apply(latest)
+
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(latest.GetConditions()).To(Equal(after.GetConditions()))
 }

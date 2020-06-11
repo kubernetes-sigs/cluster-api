@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -180,7 +181,7 @@ var _ = Describe("Patch Helper", func() {
 					if err := testEnv.Get(ctx, key, objAfter); err != nil {
 						return false
 					}
-					return reflect.DeepEqual(obj.Status.Conditions, objAfter.Status.Conditions)
+					return cmp.Equal(obj.Status.Conditions, objAfter.Status.Conditions)
 				}, timeout).Should(BeTrue())
 			})
 
@@ -218,8 +219,14 @@ var _ = Describe("Patch Helper", func() {
 					if err := testEnv.Get(ctx, key, objAfter); err != nil {
 						return false
 					}
-					ok, _ := ContainElements(obj.Status.Conditions[0], objCopy.Status.Conditions[0]).Match(objAfter.Status.Conditions)
-					return ok
+
+					testConditionCopy := conditions.Get(objCopy, "TestCondition")
+					testConditionAfter := conditions.Get(objAfter, "TestCondition")
+
+					readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
+					readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+
+					return cmp.Equal(testConditionCopy, testConditionAfter) && cmp.Equal(readyBefore, readyAfter)
 				}, timeout).Should(BeTrue())
 			})
 
@@ -262,8 +269,13 @@ var _ = Describe("Patch Helper", func() {
 						return false
 					}
 
-					ok, _ := ContainElements(obj.Status.Conditions[0], objCopy.Status.Conditions[0]).Match(objAfter.Status.Conditions)
-					return ok &&
+					testConditionCopy := conditions.Get(objCopy, "TestCondition")
+					testConditionAfter := conditions.Get(objAfter, "TestCondition")
+
+					readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
+					readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+
+					return cmp.Equal(testConditionCopy, testConditionAfter) && cmp.Equal(readyBefore, readyAfter) &&
 						obj.Spec.Paused == objAfter.Spec.Paused &&
 						obj.Spec.ControlPlaneEndpoint == objAfter.Spec.ControlPlaneEndpoint &&
 						obj.Status.Phase == objAfter.Status.Phase

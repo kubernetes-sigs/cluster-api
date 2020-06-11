@@ -47,15 +47,15 @@ const (
 	RemoveConditionPatch PatchOperationType = "Remove"
 )
 
-// NewPatch returns the list of Patch required to align source conditions to target conditions.
-func NewPatch(base Getter, target Getter) Patch {
+// NewPatch returns the list of Patch required to align source conditions to after conditions.
+func NewPatch(before Getter, after Getter) Patch {
 	var patch Patch
 
 	// Identify AddCondition and ModifyCondition changes.
-	targetConditions := target.GetConditions()
+	targetConditions := after.GetConditions()
 	for i := range targetConditions {
 		targetCondition := targetConditions[i]
-		currentCondition := Get(base, targetCondition.Type)
+		currentCondition := Get(before, targetCondition.Type)
 		if currentCondition == nil {
 			patch = append(patch, PatchOperation{Op: AddConditionPatch, Target: &targetCondition})
 			continue
@@ -67,10 +67,10 @@ func NewPatch(base Getter, target Getter) Patch {
 	}
 
 	// Identify RemoveCondition changes.
-	baseConditions := base.GetConditions()
+	baseConditions := before.GetConditions()
 	for i := range baseConditions {
 		baseCondition := baseConditions[i]
-		targetCondition := Get(target, baseCondition.Type)
+		targetCondition := Get(after, baseCondition.Type)
 		if targetCondition == nil {
 			patch = append(patch, PatchOperation{Op: RemoveConditionPatch, Base: &baseCondition})
 		}
@@ -79,9 +79,8 @@ func NewPatch(base Getter, target Getter) Patch {
 }
 
 // Apply executes a three-way merge of a list of Patch.
-// When merge conflicts are detected (the source deviated from the original base recorded when creating the patch
-// in an incompatible way), an error is returned.
-func (p Patch) Apply(source Setter) error {
+// When merge conflicts are detected (latest deviated from before in an incompatible way), an error is returned.
+func (p Patch) Apply(latest Setter) error {
 	if len(p) == 0 {
 		return nil
 	}
@@ -89,51 +88,51 @@ func (p Patch) Apply(source Setter) error {
 	for _, conditionPatch := range p {
 		switch conditionPatch.Op {
 		case AddConditionPatch:
-			// If the condition is already on source, check if source and target agree on the change; if not, this is a conflict.
-			if sourceCondition := Get(source, conditionPatch.Target.Type); sourceCondition != nil {
-				// If source and target agree on the change, then it is a conflict.
+			// If the condition is already on latest, check if latest and after agree on the change; if not, this is a conflict.
+			if sourceCondition := Get(latest, conditionPatch.Target.Type); sourceCondition != nil {
+				// If latest and after agree on the change, then it is a conflict.
 				if !hasSameState(sourceCondition, conditionPatch.Target) {
 					return errors.Errorf("error patching conditions: The condition %q on was modified by a different process and this caused a merge/AddCondition conflict", conditionPatch.Target.Type)
 				}
-				// otherwise, the source is already as intended.
-				// NOTE: We are preserving LastTransitionTime from the source in order to avoid altering the existing value.
+				// otherwise, the latest is already as intended.
+				// NOTE: We are preserving LastTransitionTime from the latest in order to avoid altering the existing value.
 				continue
 			}
-			// If the condition does not exists on the source, add the new target condition.
-			Set(source, conditionPatch.Target)
+			// If the condition does not exists on the latest, add the new after condition.
+			Set(latest, conditionPatch.Target)
 
 		case ChangeConditionPatch:
-			sourceCondition := Get(source, conditionPatch.Target.Type)
+			sourceCondition := Get(latest, conditionPatch.Target.Type)
 
-			// If the condition does not exist anymore on the source, this is a conflict.
+			// If the condition does not exist anymore on the latest, this is a conflict.
 			if sourceCondition == nil {
 				return errors.Errorf("error patching conditions: The condition %q on was deleted by a different process and this caused a merge/ChangeCondition conflict", conditionPatch.Target.Type)
 			}
 
-			// If the condition on the source is different from the base condition, check if
-			// the target state corresponds to the desired value. If not this is a conflict.
+			// If the condition on the latest is different from the base condition, check if
+			// the after state corresponds to the desired value. If not this is a conflict.
 			if !reflect.DeepEqual(sourceCondition, conditionPatch.Base) {
 				if !hasSameState(sourceCondition, conditionPatch.Target) {
 					return errors.Errorf("error patching conditions: The condition %q on was modified by a different process and this caused a merge/ChangeCondition conflict", conditionPatch.Target.Type)
 				}
-				// Otherwise the source is already as intended.
-				// NOTE: We are preserving LastTransitionTime from the source in order to avoid altering the existing value.
+				// Otherwise the latest is already as intended.
+				// NOTE: We are preserving LastTransitionTime from the latest in order to avoid altering the existing value.
 				continue
 			}
 
-			// Otherwise apply the new target condition.
-			Set(source, conditionPatch.Target)
+			// Otherwise apply the new after condition.
+			Set(latest, conditionPatch.Target)
 
 		case RemoveConditionPatch:
-			// If the condition is still on the source, check if it is changed in the meantime;
+			// If the condition is still on the latest, check if it is changed in the meantime;
 			// if so then this is a conflict.
-			if sourceCondition := Get(source, conditionPatch.Base.Type); sourceCondition != nil {
+			if sourceCondition := Get(latest, conditionPatch.Base.Type); sourceCondition != nil {
 				if !hasSameState(sourceCondition, conditionPatch.Base) {
 					return errors.Errorf("error patching conditions: The condition %q on was modified by a different process and this caused a merge/RemoveCondition conflict", conditionPatch.Base.Type)
 				}
 			}
-			// Otherwise the source and target agreed on the delete operation, so there's nothing to change.
-			Delete(source, conditionPatch.Base.Type)
+			// Otherwise the latest and after agreed on the delete operation, so there's nothing to change.
+			Delete(latest, conditionPatch.Base.Type)
 		}
 	}
 	return nil

@@ -42,31 +42,38 @@ func Set(to Setter, condition *clusterv1.Condition) {
 		return
 	}
 
+	// Check if the new conditions already exists, and change it only if there is a status
+	// transition (otherwise we should preserve the current last transition time)-
 	conditions := to.GetConditions()
-	newConditions := make(clusterv1.Conditions, 0, len(conditions))
 	exists := false
-	condition.LastTransitionTime = metav1.NewTime(time.Now().Truncate(time.Second))
 	for i := range conditions {
 		existingCondition := conditions[i]
 		if existingCondition.Type == condition.Type {
 			exists = true
 			if !hasSameState(&existingCondition, condition) {
-				newConditions = append(newConditions, *condition)
-				continue
+				condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+				conditions[i] = *condition
+				break
 			}
+			condition.LastTransitionTime = existingCondition.LastTransitionTime
+			break
 		}
-		newConditions = append(newConditions, existingCondition)
 	}
+
+	// If the condition does not exist, add it, setting the transition time only if not already set
 	if !exists {
-		newConditions = append(newConditions, *condition)
+		if condition.LastTransitionTime.IsZero() {
+			condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+		}
+		conditions = append(conditions, *condition)
 	}
 
 	// Sorts conditions for convenience of the consumer, i.e. kubectl.
-	sort.Slice(newConditions, func(i, j int) bool {
-		return lexicographicLess(&newConditions[i], &newConditions[j])
+	sort.Slice(conditions, func(i, j int) bool {
+		return lexicographicLess(&conditions[i], &conditions[j])
 	})
 
-	to.SetConditions(newConditions)
+	to.SetConditions(conditions)
 }
 
 // TrueCondition returns a condition with Status=True and the given type.

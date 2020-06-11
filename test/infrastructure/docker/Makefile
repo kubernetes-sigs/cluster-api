@@ -44,8 +44,7 @@ GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-STAGING_REGISTRY := gcr.io/k8s-staging-capi-docker
-PROD_REGISTRY := us.gcr.io/k8s-artifacts-prod/capi-docker
+STAGING_REGISTRY := gcr.io/k8s-staging-cluster-api
 IMAGE_NAME ?= capd-manager
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 TAG ?= dev
@@ -200,8 +199,8 @@ release: clean-release ## Builds and push container images using the latest git 
 	# Push the release image to the staging bucket first.
 	REGISTRY=$(STAGING_REGISTRY) TAG=$(RELEASE_TAG) \
 		$(MAKE) docker-build-all docker-push-all
-	# Set the manifest image to the production bucket.
-	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+	# Set the manifest image to the staging bucket.
+	MANIFEST_IMG=$(STAGING_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		$(MAKE) set-manifest-image
 	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
 	$(MAKE) release-manifests

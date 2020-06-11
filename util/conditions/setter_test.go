@@ -148,11 +148,19 @@ func TestSetLastTransitionTime(t *testing.T) {
 		LastTransitionTimeCheck func(*WithT, metav1.Time)
 	}{
 		{
-			name: "Set a condition that dos not exists should set the last transition time",
+			name: "Set a condition that does not exists should set the last transition time if not defined",
 			to:   setterWithConditions(),
 			new:  foo,
 			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
 				g.Expect(lastTransitionTime).ToNot(BeZero())
+			},
+		},
+		{
+			name: "Set a condition that does not exists should preserve the last transition time if defined",
+			to:   setterWithConditions(),
+			new:  fooWithLastTransitionTime,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(x))
 			},
 		},
 		{

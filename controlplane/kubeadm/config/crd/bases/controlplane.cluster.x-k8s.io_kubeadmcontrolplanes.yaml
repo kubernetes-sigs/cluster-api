@@ -372,15 +372,15 @@ spec:
                           podSubnet:
                             description: PodSubnet is the subnet used by pods. If
                               unset, the API server will not allocate CIDR ranges
-                              for every node. Defaults to the first element of the
-                              Cluster object's spec.clusterNetwork.services.cidrBlocks
+                              for every node. Defaults to a comma-delimited string
+                              of the Cluster object's spec.clusterNetwork.services.cidrBlocks
                               if that is set
                             type: string
                           serviceSubnet:
                             description: ServiceSubnet is the subnet used by k8s services.
-                              Defaults to the first element of the Cluster object's
-                              spec.clusterNetwork.pods.cidrBlocks field, or to "10.96.0.0/12"
-                              if that's unset.
+                              Defaults to a comma-delimited string of the Cluster
+                              object's spec.clusterNetwork.pods.cidrBlocks, or to
+                              "10.96.0.0/12" if that's unset.
                             type: string
                         type: object
                       scheduler:

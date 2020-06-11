@@ -65,7 +65,7 @@ providers = {
     },
     "docker": {
         "context": "test/infrastructure/docker",
-        "image": "gcr.io/k8s-staging-capi-docker/capd-manager",
+        "image": "gcr.io/k8s-staging-cluster-api/capd-manager",
         "live_reload_deps": [
             "main.go",
             "go.mod",

@@ -102,10 +102,10 @@ The Docker provider is not designed for production use and is intended for devel
 
 Before running the local-overrides hack:
 
-- Run `make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-capi-docker` to build the docker provider image
+- Run `make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-cluster-api` to build the docker provider image
   using a specific REGISTRY (you can choose your own).
 
-- Run `make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-capi-docker` to generate
+- Run `make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-cluster-api` to generate
   the docker provider manifest using the above registry/Image.
 
 Run the local-overrides hack and save the `clusterctl init` command provided in the command output to be used later.
@@ -138,7 +138,7 @@ EOF
 
 - Run `kind create cluster --config kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
 
-- Run `kind load docker-image gcr.io/k8s-staging-capi-docker/capd-manager-amd64:dev` to make the docker provider image available
+- Run `kind load docker-image gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev` to make the docker provider image available
   for the kubelet in the management cluster.
 
 - Run `clusterctl init` command provided as output of the local-overrides hack.

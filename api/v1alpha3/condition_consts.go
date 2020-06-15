@@ -28,9 +28,6 @@ const (
 
 // Conditions and condition Reasons for the Machine object
 
-// MachineSummaryConditionsCount defines the total number of conditions on the Machine object.
-const MachineSummaryConditionsCount = 4
-
 const (
 	// BootstrapReadyCondition reports a summary of current status of the bootstrap object defined for this machine.
 	// This condition is mirrored from the Ready condition in the bootstrap ref object, and

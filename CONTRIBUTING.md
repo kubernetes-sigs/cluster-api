@@ -2,14 +2,20 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
-- [Contributor License Agreements](#contributor-license-agreements)
-- [Finding Things That Need Help](#finding-things-that-need-help)
-- [Contributing a Patch](#contributing-a-patch)
-- [Backporting a Patch](#backporting-a-patch)
-  - [Merge Approval](#merge-approval)
-  - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
-  - [Issue and Pull Request Management](#issue-and-pull-request-management)
+* [Contributing Guidelines](#contributing-guidelines)
+  * [Contributor License Agreements](#contributor-license-agreements)
+  * [Finding Things That Need Help](#finding-things-that-need-help)
+  * [Contributing a Patch](#contributing-a-patch)
+  * [Reviewing a Patch](#reviewing-a-patch)
+    * [Approvals](#approvals)
+  * [Reviews](#reviews)
+  * [Backporting a Patch](#backporting-a-patch)
+  * [Features and bugs](#features-and-bugs)
+  * [Proposal process (CAEP)](#proposal-process-caep)
+  * [Experiments](#experiments)
+  * [Breaking Changes](#breaking-changes)
+  * [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
+  * [Issue and Pull Request Management](#issue-and-pull-request-management)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -48,6 +54,33 @@ come up, including gaps in documentation!
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer
 docs](https://github.com/kubernetes/community/tree/master/contributors/devel). Expect reviewers to request that you
 avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
+
+## Reviewing a Patch
+
+### Approvals
+
+Please see the [Kubernetes community document on pull
+requests](https://git.k8s.io/community/contributors/guide/pull-requests.md) for more information about the merge
+process.
+
+- A PR is approved by one of the project maintainers and owners after reviews.
+- Approvals should be the very last action a maintainer takes on a pull request.
+
+## Reviews
+
+> Parts of the following content have been adapted from https://google.github.io/eng-practices/review.
+
+Any Kubernetes organization member can leave reviews and `/lgtm` a pull request.
+
+Code reviews should generally look at:
+
+- **Design**: Is the code well-designed and consistent with the rest of the system?
+- **Functionality**: Does the code behave as the author (or linked issue) intended? Is the way the code behaves good for its users?
+- **Complexity**: Could the code be made simpler?  Would another developer be able to easily understand and use this code when they come across it in the future?
+- **Tests**: Does the code have correct and well-designed tests?
+- **Naming**: Did the developer choose clear names for variable, types, methods, functions, etc.?
+- **Comments**: Are the comments clear and useful? Do they explain the why rather than what?
+- **Documentation**: Did the developer also update relevant documentation?
 
 ## Backporting a Patch
 
@@ -135,12 +168,6 @@ Examples of breaking changes include:
 There may, at times, need to be exceptions where breaking changes are allowed in release branches. These are at the
 discretion of the project's maintainers, and must be carefully considered before merging. An example of an allowed
 breaking change might be a fix for a behavioral bug that was released in an initial minor version (such as `v0.3.0`).
-
-## Merge Approval
-
-Please see the [Kubernetes community document on pull
-requests](https://git.k8s.io/community/contributors/guide/pull-requests.md) for more information about the merge
-process.
 
 ## Google Doc Viewing Permissions
 

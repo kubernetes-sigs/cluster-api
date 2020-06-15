@@ -71,8 +71,9 @@ var (
 
 // MachineReconciler reconciles a Machine object
 type MachineReconciler struct {
-	Client client.Client
-	Log    logr.Logger
+	Client  client.Client
+	Log     logr.Logger
+	Tracker *remote.ClusterCacheTracker
 
 	config          *rest.Config
 	scheme          *runtime.Scheme
@@ -423,8 +424,7 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
 	logger := r.Log.WithValues("machine", name, "cluster", cluster.Name, "namespace", cluster.Namespace)
 
-	// Create a remote client to delete the node
-	c, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		logger.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
 		return nil
@@ -436,7 +436,7 @@ func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.C
 		},
 	}
 
-	if err := c.Delete(ctx, node); err != nil {
+	if err := remoteClient.Delete(ctx, node); err != nil {
 		return errors.Wrapf(err, "error deleting node %s", name)
 	}
 	return nil

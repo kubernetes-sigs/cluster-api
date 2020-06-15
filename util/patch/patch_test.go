@@ -263,8 +263,8 @@ var _ = Describe("Patch Helper", func() {
 				Expect(patcher.Patch(ctx, obj)).To(Succeed())
 
 				By("Validating the object has been updated")
+				objAfter := obj.DeepCopy()
 				Eventually(func() bool {
-					objAfter := obj.DeepCopy()
 					if err := testEnv.Get(ctx, key, objAfter); err != nil {
 						return false
 					}
@@ -279,7 +279,7 @@ var _ = Describe("Patch Helper", func() {
 						obj.Spec.Paused == objAfter.Spec.Paused &&
 						obj.Spec.ControlPlaneEndpoint == objAfter.Spec.ControlPlaneEndpoint &&
 						obj.Status.Phase == objAfter.Status.Phase
-				}, timeout).Should(BeTrue())
+				}, timeout).Should(BeTrue(), cmp.Diff(obj, objAfter))
 			})
 
 			Specify("should return an error if there is an unresolvable conflict", func() {

@@ -101,109 +101,6 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 		}, timeout).Should(Succeed())
 	})
 
-	type labelTestCase struct {
-		original map[string]string
-		expected map[string]string
-	}
-
-	DescribeTable("should ensure the cluster-name label is correct",
-		func(ltc labelTestCase) {
-			By("Creating a MachineHealthCheck")
-			mhcToCreate := &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-mhc",
-					Namespace: namespaceName,
-					Labels:    ltc.original,
-				},
-				Spec: clusterv1.MachineHealthCheckSpec{
-					ClusterName: clusterName,
-					UnhealthyConditions: []clusterv1.UnhealthyCondition{
-						{
-							Type:    corev1.NodeReady,
-							Status:  corev1.ConditionUnknown,
-							Timeout: metav1.Duration{Duration: 5 * time.Minute},
-						},
-					},
-				},
-			}
-			mhcToCreate.Default()
-			Expect(testEnv.Create(ctx, mhcToCreate)).To(Succeed())
-
-			Eventually(func() map[string]string {
-				mhc := &clusterv1.MachineHealthCheck{}
-				err := testEnv.Get(ctx, util.ObjectKey(mhcToCreate), mhc)
-				if err != nil {
-					return nil
-				}
-				return mhc.GetLabels()
-			}, timeout).Should(Equal(ltc.expected))
-		},
-		Entry("when no existing labels exist", labelTestCase{
-			original: map[string]string{},
-			expected: map[string]string{clusterv1.ClusterLabelName: clusterName},
-		}),
-		Entry("when the label has the wrong value", labelTestCase{
-			original: map[string]string{clusterv1.ClusterLabelName: "wrong"},
-			expected: map[string]string{clusterv1.ClusterLabelName: clusterName},
-		}),
-		Entry("without modifying other labels", labelTestCase{
-			original: map[string]string{"other": "label"},
-			expected: map[string]string{"other": "label", clusterv1.ClusterLabelName: clusterName},
-		}),
-	)
-
-	type ownerReferenceTestCase struct {
-		original []metav1.OwnerReference
-		// Use a function so that runtime information can be populated (eg UID)
-		expected func() []metav1.OwnerReference
-	}
-
-	DescribeTable("should ensure an owner reference is present",
-		func(ortc ownerReferenceTestCase) {
-			By("Creating a MachineHealthCheck")
-			mhcToCreate := &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:            "test-mhc",
-					Namespace:       namespaceName,
-					OwnerReferences: ortc.original,
-				},
-				Spec: clusterv1.MachineHealthCheckSpec{
-					ClusterName: clusterName,
-					UnhealthyConditions: []clusterv1.UnhealthyCondition{
-						{
-							Type:    corev1.NodeReady,
-							Status:  corev1.ConditionUnknown,
-							Timeout: metav1.Duration{Duration: 5 * time.Minute},
-						},
-					},
-				},
-			}
-			mhcToCreate.Default()
-			Expect(testEnv.Create(ctx, mhcToCreate)).To(Succeed())
-
-			Eventually(func() []metav1.OwnerReference {
-				mhc := &clusterv1.MachineHealthCheck{}
-				err := testEnv.Get(ctx, util.ObjectKey(mhcToCreate), mhc)
-				if err != nil {
-					return []metav1.OwnerReference{}
-				}
-				return mhc.GetOwnerReferences()
-			}, timeout).Should(ConsistOf(ortc.expected()))
-		},
-		Entry("when no existing owner references exist", ownerReferenceTestCase{
-			original: []metav1.OwnerReference{},
-			expected: func() []metav1.OwnerReference {
-				return []metav1.OwnerReference{ownerReferenceForCluster(ctx, testCluster)}
-			},
-		}),
-		Entry("when modifying existing owner references", ownerReferenceTestCase{
-			original: []metav1.OwnerReference{{Kind: "Foo", APIVersion: "foo.bar.baz/v1", Name: "Bar", UID: "12345"}},
-			expected: func() []metav1.OwnerReference {
-				return []metav1.OwnerReference{{Kind: "Foo", APIVersion: "foo.bar.baz/v1", Name: "Bar", UID: "12345"}, ownerReferenceForCluster(ctx, testCluster)}
-			},
-		}),
-	)
-
 	Context("when reconciling a MachineHealthCheck", func() {
 
 		// createMachine creates a machine while also maintaining the status that
@@ -218,6 +115,21 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				}
 				m.Status = status
 				return testEnv.Status().Update(ctx, m)
+			}, timeout).Should(Succeed())
+		}
+
+		// createNode creates a Node while also maintaining the status that
+		// has been set on it
+		createNode := func(n *corev1.Node) {
+			status := n.Status
+			Expect(testEnv.Create(ctx, n)).To(Succeed())
+			key := util.ObjectKey(n)
+			Eventually(func() error {
+				if err := testEnv.Get(ctx, key, n); err != nil {
+					return err
+				}
+				n.Status = status
+				return testEnv.Status().Update(ctx, n)
 			}, timeout).Should(Succeed())
 		}
 
@@ -296,22 +208,20 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 
 		DescribeTable("should mark unhealthy nodes for remediation",
 			func(rtc *reconcileTestCase) {
-				By("Creating Nodes")
-				for _, n := range rtc.nodes() {
-					node := *n
-					Expect(testEnv.Create(ctx, &node)).To(Succeed())
-				}
-
-				By("Creating Machines")
-				for _, m := range rtc.machines() {
-					machine := *m
-					createMachine(&machine)
-				}
-
 				By("Creating a MachineHealthCheck")
 				mhc := rtc.mhc()
 				mhc.Default()
 				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
+
+				By("Creating Machines")
+				for _, m := range rtc.machines() {
+					createMachine(m.DeepCopy())
+				}
+
+				By("Creating Nodes")
+				for _, n := range rtc.nodes() {
+					createNode(n.DeepCopy())
+				}
 
 				allThatShouldGetConditions := append(rtc.expectNoRemediation(), rtc.expectRemediation()...)
 				allThatShouldGetConditions = append(allThatShouldGetConditions, rtc.expectUnhealthy()...)
@@ -331,7 +241,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 				// All machines have been health checked, assume it is safe to continue
 
 				By("Verifying the status has been updated")
-				Eventually(getMHCStatus(namespaceName, rtc.mhc().Name), timeout).Should(Equal(rtc.expectedStatus))
+				Eventually(getMHCStatus(namespaceName, rtc.mhc().Name), 20*time.Second).Should(Equal(rtc.expectedStatus))
 
 				By("Verifying Machine conditions")
 				for _, m := range rtc.expectHealthy() {
@@ -556,6 +466,142 @@ func ownerReferenceForCluster(ctx context.Context, c *clusterv1.Cluster) metav1.
 		UID:        cc.UID,
 	}
 }
+
+var _ = Describe("MachineHealthCheck", func() {
+	Context("on reconciliation", func() {
+		var (
+			cluster *clusterv1.Cluster
+			mhc     *clusterv1.MachineHealthCheck
+		)
+
+		BeforeEach(func() {
+			cluster = &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "test-cluster-",
+					Namespace:    "default",
+				},
+			}
+
+			mhc = &clusterv1.MachineHealthCheck{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "test-mhc-",
+					Namespace:    "default",
+				},
+				Spec: clusterv1.MachineHealthCheckSpec{
+					UnhealthyConditions: []clusterv1.UnhealthyCondition{
+						{
+							Type:    corev1.NodeReady,
+							Status:  corev1.ConditionUnknown,
+							Timeout: metav1.Duration{Duration: 5 * time.Minute},
+						},
+					},
+				},
+			}
+			mhc.Default()
+
+			Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+			Expect(testEnv.CreateKubeconfigSecret(cluster)).To(Succeed())
+		})
+
+		AfterEach(func() {
+			Expect(testEnv.Delete(ctx, mhc)).To(Succeed())
+			Expect(testEnv.Delete(ctx, cluster)).To(Succeed())
+		})
+
+		Context("it should ensure the correct cluster-name label", func() {
+			Specify("with no existing labels exist", func() {
+				mhc.Spec.ClusterName = cluster.Name
+				mhc.Labels = map[string]string{}
+				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
+
+				Eventually(func() map[string]string {
+					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
+					if err != nil {
+						return nil
+					}
+					return mhc.GetLabels()
+				}, timeout).Should(HaveKeyWithValue(clusterv1.ClusterLabelName, cluster.Name))
+			})
+
+			Specify("when the label has the wrong value", func() {
+				mhc.Spec.ClusterName = cluster.Name
+				mhc.Labels = map[string]string{
+					clusterv1.ClusterLabelName: "wrong-cluster",
+				}
+				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
+
+				Eventually(func() map[string]string {
+					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
+					if err != nil {
+						return nil
+					}
+					return mhc.GetLabels()
+				}, timeout).Should(HaveKeyWithValue(clusterv1.ClusterLabelName, cluster.Name))
+			})
+
+			Specify("when other labels are present", func() {
+				mhc.Spec.ClusterName = cluster.Name
+				mhc.Labels = map[string]string{
+					"extra-label": "1",
+				}
+				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
+
+				Eventually(func() map[string]string {
+					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
+					if err != nil {
+						return nil
+					}
+					return mhc.GetLabels()
+
+				}, timeout).Should(And(
+					HaveKeyWithValue(clusterv1.ClusterLabelName, cluster.Name),
+					HaveKeyWithValue("extra-label", "1"),
+					HaveLen(2),
+				))
+			})
+		})
+
+		Context("it should ensure an owner reference is present", func() {
+			Specify("when no existing ones exist", func() {
+				mhc.Spec.ClusterName = cluster.Name
+				mhc.OwnerReferences = nil
+				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
+
+				Eventually(func() []metav1.OwnerReference {
+					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
+					if err != nil {
+						return nil
+					}
+					return mhc.GetOwnerReferences()
+				}, timeout).Should(And(
+					ContainElement(ownerReferenceForCluster(ctx, cluster)),
+					HaveLen(1),
+				))
+			})
+
+			Specify("when modifying existing ones", func() {
+				mhc.Spec.ClusterName = cluster.Name
+				mhc.OwnerReferences = []metav1.OwnerReference{
+					{Kind: "Foo", APIVersion: "foo.bar.baz/v1", Name: "Bar", UID: "12345"},
+				}
+				Expect(testEnv.Create(ctx, mhc)).To(Succeed())
+
+				Eventually(func() []metav1.OwnerReference {
+					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
+					if err != nil {
+						return nil
+					}
+					return mhc.GetOwnerReferences()
+				}, timeout).Should(And(
+					ContainElements(
+						metav1.OwnerReference{Kind: "Foo", APIVersion: "foo.bar.baz/v1", Name: "Bar", UID: "12345"},
+						ownerReferenceForCluster(ctx, cluster)),
+					HaveLen(2),
+				))
+			})
+		})
+	})
+})
 
 func TestClusterToMachineHealthCheck(t *testing.T) {
 	_ = clusterv1.AddToScheme(scheme.Scheme)

@@ -43,13 +43,36 @@ export KUBECONFIG=<...>
 [kind] can be used for creating a local Kubernetes cluster for development environments or for
 the creation of a temporary [bootstrap cluster] used to provision a target [management cluster] on the selected infrastructure provider.
 
-  ```bash
-  kind create cluster
-  ```
+{{#tabs name:"install-kind" tabs:"v0.7.x,v0.8.x"}}
+{{#tab v0.7.x}}
+
+Create the kind cluster:
+```bash
+kind create cluster
+```
 Test to ensure the local kind cluster is ready:
 ```
 kubectl cluster-info
 ```
+
+{{#/tab }}
+{{#tab v0.8.x}}
+
+Export the variable **KIND_EXPERIMENTAL_DOCKER_NETWORK=bridge** to let kind run in the default **bridge** network:
+```bash
+export KIND_EXPERIMENTAL_DOCKER_NETWORK=bridge
+```
+Create the kind cluster:
+```bash
+kind create cluster
+```
+Test to ensure the local kind cluster is ready:
+```
+kubectl cluster-info
+```
+
+{{#/tab }}
+{{#/tabs }}
 
 ### Install clusterctl
 The clusterctl CLI tool handles the lifecycle of a Cluster API management cluster.

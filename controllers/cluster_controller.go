@@ -34,6 +34,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/metrics"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -317,6 +319,7 @@ type clusterDescendants struct {
 	machineSets          clusterv1.MachineSetList
 	controlPlaneMachines clusterv1.MachineList
 	workerMachines       clusterv1.MachineList
+	machinePools         expv1alpha3.MachinePoolList
 }
 
 // length returns the number of descendants
@@ -357,10 +360,19 @@ func (c *clusterDescendants) descendantNames() string {
 	if len(workerMachineNames) > 0 {
 		descendants = append(descendants, "Worker machines: "+strings.Join(workerMachineNames, ","))
 	}
+	if feature.Gates.Enabled(feature.MachinePool) {
+		machinePoolNames := make([]string, len(c.machinePools.Items))
+		for i, machinePool := range c.machinePools.Items {
+			machinePoolNames[i] = machinePool.Name
+		}
+		if len(machinePoolNames) > 0 {
+			descendants = append(descendants, "Machine pools: "+strings.Join(machinePoolNames, ","))
+		}
+	}
 	return strings.Join(descendants, ";")
 }
 
-// listDescendants returns a list of all MachineDeployments, MachineSets, and Machines for the cluster.
+// listDescendants returns a list of all MachineDeployments, MachineSets, MachinePools and Machines for the cluster.
 func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *clusterv1.Cluster) (clusterDescendants, error) {
 	var descendants clusterDescendants
 
@@ -377,6 +389,11 @@ func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *cluste
 		return descendants, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
+	if feature.Gates.Enabled(feature.MachinePool) {
+		if err := r.Client.List(ctx, &descendants.machinePools, listOptions...); err != nil {
+			return descendants, errors.Wrapf(err, "failed to list MachineSets for the cluster %s/%s", cluster.Namespace, cluster.Name)
+		}
+	}
 	var machines clusterv1.MachineList
 	if err := r.Client.List(ctx, &machines, listOptions...); err != nil {
 		return descendants, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
@@ -417,6 +434,10 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 		&c.workerMachines,
 		&c.controlPlaneMachines,
 	}
+	if feature.Gates.Enabled(feature.MachinePool) {
+		lists = append([]runtime.Object{&c.machinePools}, lists...)
+	}
+
 	for _, list := range lists {
 		if err := meta.EachListItem(list, eachFunc); err != nil {
 			return nil, errors.Wrapf(err, "error finding owned descendants of cluster %s/%s", cluster.Namespace, cluster.Name)

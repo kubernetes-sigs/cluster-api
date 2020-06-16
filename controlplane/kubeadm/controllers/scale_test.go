@@ -66,7 +66,6 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
-	g.Expect(machineList.Items).NotTo(BeEmpty())
 	g.Expect(machineList.Items).To(HaveLen(1))
 
 	g.Expect(machineList.Items[0].Namespace).To(Equal(cluster.Namespace))

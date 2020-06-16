@@ -200,6 +200,9 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 
 	cloneAnnotations := clone.GetAnnotations()
 	g.Expect(cloneAnnotations).To(HaveKeyWithValue("test", "annotations"))
+
+	g.Expect(cloneAnnotations).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, templateRef.Name))
+	g.Expect(cloneAnnotations).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, templateRef.GroupVersionKind().GroupKind().String()))
 }
 
 func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {

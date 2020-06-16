@@ -382,6 +382,13 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).NotTo(HaveOccurred())
+	// this first requeue is to add finalizer
+	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+	g.Expect(r.Client.Get(context.Background(), util.ObjectKey(kcp), kcp)).To(Succeed())
+	g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
+
+	result, err = r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	g.Expect(err).NotTo(HaveOccurred())
 	// TODO: this should stop to re-queue as soon as we have a proper remote cluster cache in place.
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: false, RequeueAfter: 20 * time.Second}))
 	g.Expect(r.Client.Get(context.Background(), util.ObjectKey(kcp), kcp)).To(Succeed())
@@ -739,9 +746,15 @@ kubernetesVersion: metav1.16.1`,
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).NotTo(HaveOccurred())
+	// this first requeue is to add finalizer
+	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+	g.Expect(r.Client.Get(context.Background(), util.ObjectKey(kcp), kcp)).To(Succeed())
+	g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
+
+	result, err = r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	g.Expect(r.Client.Get(context.Background(), client.ObjectKey{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(Succeed())
-
 	// Expect the referenced infrastructure template to have a Cluster Owner Reference.
 	g.Expect(fakeClient.Get(context.Background(), util.ObjectKey(genericMachineTemplate), genericMachineTemplate)).To(Succeed())
 	g.Expect(genericMachineTemplate.GetOwnerReferences()).To(ContainElement(metav1.OwnerReference{

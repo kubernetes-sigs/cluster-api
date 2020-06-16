@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/workqueue"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -36,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -46,6 +48,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			clusterKey   client.ObjectKey
 			watcher      Watcher
 			kind         runtime.Object
+			gvkForKind   schema.GroupVersionKind
 			eventHandler handler.EventHandler
 			predicates   []predicate.Predicate
 			watcherInfo  chan testWatcherInfo
@@ -78,9 +81,9 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 
 			It("should add a watchInfo for the watch", func() {
 				expectedInfo := watchInfo{
-					watcher:      i.watcher,
-					kind:         i.kind,
-					eventHandler: i.eventHandler,
+					watcher:               i.watcher,
+					gvk:                   i.gvkForKind,
+					eventHandlerSignature: eventHandlerSignature(i.eventHandler),
 				}
 				Expect(func() map[watchInfo]struct{} {
 					i.tracker.watchesLock.RLock()
@@ -117,6 +120,10 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 
 		var testNamespace *corev1.Namespace
 		var input assertWatchInput
+
+		mapper := func(_ handler.MapObject) []reconcile.Request {
+			return []reconcile.Request{}
+		}
 
 		BeforeEach(func() {
 			By("Setting up a new manager")
@@ -161,13 +168,15 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			testClusterKey := util.ObjectKey(testCluster)
 			watcher, watcherInfo := newTestWatcher()
 			kind := &corev1.Node{}
-			eventHandler := &handler.Funcs{}
+			gvkForNode := schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Node"}
+			eventHandler := &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(mapper)}
 
 			input = assertWatchInput{
 				cct,
 				testClusterKey,
 				watcher,
 				kind,
+				gvkForNode,
 				eventHandler,
 				[]predicate.Predicate{
 					&predicate.ResourceVersionChangedPredicate{},
@@ -203,11 +212,19 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 		Context("when Watch is called for a second time with the same input", func() {
 			BeforeEach(func() {
 				By("Calling watch on the test cluster")
+
+				kind := &corev1.Node{}
+				eventHandler := &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(mapper)}
+
+				// Check the second copies match
+				Expect(kind).To(Equal(input.kind))
+				Expect(fmt.Sprintf("%#v", eventHandler)).To(Equal(fmt.Sprintf("%#v", input.eventHandler)))
+
 				Expect(cct.Watch(ctx, WatchInput{
 					Cluster:      input.clusterKey,
 					Watcher:      input.watcher,
-					Kind:         input.kind,
-					EventHandler: input.eventHandler,
+					Kind:         kind,
+					EventHandler: eventHandler,
 					Predicates:   input.predicates,
 				})).To(Succeed())
 			})
@@ -218,7 +235,9 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 		Context("when watch is called with a different Kind", func() {
 			BeforeEach(func() {
 				configMapKind := &corev1.ConfigMap{}
+				configMapGVK := schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"}
 				input.kind = configMapKind
+				input.gvkForKind = configMapGVK
 				input.watchCount = 2
 
 				By("Calling watch on the test cluster")
@@ -284,6 +303,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 					input.clusterKey,
 					input.watcher,
 					input.kind,
+					input.gvkForKind,
 					input.eventHandler,
 					[]predicate.Predicate{
 						&predicate.ResourceVersionChangedPredicate{},

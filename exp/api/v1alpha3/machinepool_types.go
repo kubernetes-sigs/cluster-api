@@ -59,6 +59,9 @@ type MachinePoolSpec struct {
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
+
+	// FailureDomains is the list of failure domains this MachinePool should be attached to.
+	FailureDomains []string `json:"failureDomains,omitempty"`
 }
 
 // ANCHOR_END: MachinePoolSpec

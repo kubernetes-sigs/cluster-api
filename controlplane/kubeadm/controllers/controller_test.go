@@ -43,12 +43,13 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -769,6 +770,7 @@ kubernetesVersion: metav1.16.1`,
 
 	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
+	g.Expect(conditions.IsFalse(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
 
 	s, err := secret.GetFromNamespacedName(context.Background(), fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -1193,7 +1195,7 @@ func newFakeClient(g *WithT, initObjs ...runtime.Object) client.Client {
 	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(Succeed())
 	return &fakeClient{
 		startTime: time.Now(),
-		Client:    fake.NewFakeClientWithScheme(scheme.Scheme, initObjs...),
+		Client:    helpers.NewFakeClientWithScheme(scheme.Scheme, initObjs...),
 	}
 }
 

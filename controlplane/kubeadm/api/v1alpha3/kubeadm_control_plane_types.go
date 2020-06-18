@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"
@@ -114,6 +115,10 @@ type KubeadmControlPlaneStatus struct {
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Conditions defines current service state of the KubeadmControlPlane.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -135,6 +140,14 @@ type KubeadmControlPlane struct {
 
 	Spec   KubeadmControlPlaneSpec   `json:"spec,omitempty"`
 	Status KubeadmControlPlaneStatus `json:"status,omitempty"`
+}
+
+func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
+	return in.Status.Conditions
+}
+
+func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
+	in.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

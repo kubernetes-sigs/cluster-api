@@ -21,10 +21,110 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	admissionregistration "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
+
+func Test_certManagerClient_getManifestObjects(t *testing.T) {
+
+	tests := []struct {
+		name      string
+		expectErr bool
+		assert    func(*testing.T, []unstructured.Unstructured)
+	}{
+		{
+			name:      "it should not contain the cert-manager-leaderelection ClusterRoleBinding",
+			expectErr: false,
+			assert: func(t *testing.T, objs []unstructured.Unstructured) {
+				for _, o := range objs {
+					if o.GetKind() == "ClusterRoleBinding" && o.GetName() == "cert-manager-leaderelection" {
+						t.Error("should not find cert-manager-leaderelection ClusterRoleBinding")
+					}
+				}
+			},
+		},
+		{
+			name:      "the MutatingWebhookConfiguration should have sideEffects set to None ",
+			expectErr: false,
+			assert: func(t *testing.T, objs []unstructured.Unstructured) {
+				found := false
+				for i := range objs {
+					o := objs[i]
+					if o.GetKind() == "MutatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
+						w := &admissionregistration.MutatingWebhookConfiguration{}
+						err := scheme.Scheme.Convert(&o, w, nil)
+						if err != nil {
+							t.Errorf("did not expect err, got %s", err)
+						}
+						if len(w.Webhooks) != 1 {
+							t.Error("expected 1 webhook to be configured")
+						}
+						wh := w.Webhooks[0]
+						if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
+							found = true
+						}
+					}
+				}
+				if !found {
+					t.Error("Expected to find cert-manager-webhook MutatingWebhookConfiguration with sideEffects=None")
+				}
+			},
+		},
+		{
+			name:      "the ValidatingWebhookConfiguration should have sideEffects set to None ",
+			expectErr: false,
+			assert: func(t *testing.T, objs []unstructured.Unstructured) {
+				found := false
+				for i := range objs {
+					o := objs[i]
+					if o.GetKind() == "ValidatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
+						w := &admissionregistration.ValidatingWebhookConfiguration{}
+						err := scheme.Scheme.Convert(&o, w, nil)
+						if err != nil {
+							t.Errorf("did not expect err, got %s", err)
+						}
+						if len(w.Webhooks) != 1 {
+							t.Error("expected 1 webhook to be configured")
+						}
+						wh := w.Webhooks[0]
+						if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
+							found = true
+						}
+					}
+				}
+				if !found {
+					t.Error("Expected to find cert-manager-webhook ValidatingWebhookConfiguration with sideEffects=None")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+				return nil
+			}
+			fakeConfigClient := newFakeConfig("")
+
+			cm := newCertMangerClient(fakeConfigClient, nil, pollImmediateWaiter)
+			objs, err := cm.getManifestObjs()
+
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			tt.assert(t, objs)
+		})
+	}
+
+}
 
 func Test_GetTimeout(t *testing.T) {
 

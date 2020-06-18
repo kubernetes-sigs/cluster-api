@@ -1,3 +1,5 @@
+# syntax = docker/dockerfile:1-experimental
+
 # Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,14 +35,16 @@ RUN go mod download
 COPY ./ ./
 
 # Cache the go build
-RUN go build .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    go build .
 
 # Build
 ARG package=.
 ARG ARCH
 
 # Do not force rebuild of up-to-date packages (do not use -a)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -ldflags '-extldflags "-static"' \
     -o manager ${package}
 

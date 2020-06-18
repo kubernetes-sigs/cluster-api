@@ -1,3 +1,5 @@
+# syntax = docker/dockerfile:1-experimental
+
 # Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,7 +43,8 @@ COPY . .
 WORKDIR /workspace/test/infrastructure/docker
 
 # Build the CAPD manager
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
 
 # Use alpine:latest as minimal base image to package the manager binary and its dependencies
 FROM alpine:latest

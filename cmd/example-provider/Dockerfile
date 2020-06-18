@@ -1,3 +1,5 @@
+# syntax = docker/dockerfile:1-experimental
+
 # Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

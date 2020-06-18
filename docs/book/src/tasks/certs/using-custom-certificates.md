@@ -1,6 +1,6 @@
 ## Using Custom Certificates
 
-Cluster API expects certificates and keys used for bootstrapping to follow the below convention. CAPBK generates new certificates using this convention if they do not already exist.
+Cluster API expects certificates and keys used for bootstrapping to follow the below convention. CABPK generates new certificates using this convention if they do not already exist.
 
 Each certificate must be stored in a single secret named one of:
 

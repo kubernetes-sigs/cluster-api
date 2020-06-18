@@ -101,12 +101,12 @@ func TestMergeRespectPriority(t *testing.T) {
 		{
 			name:       "When there is false/error it returns false/error",
 			conditions: []*clusterv1.Condition{falseError1, falseWarning1, falseInfo1, unknown1, true1},
-			want:       FalseCondition("foo", "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1 (1 error, 1 warning)"),
+			want:       FalseCondition("foo", "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1"),
 		},
 		{
 			name:       "When there is false/warning and no false/error, it returns false/warning",
 			conditions: []*clusterv1.Condition{falseWarning1, falseInfo1, unknown1, true1},
-			want:       FalseCondition("foo", "reason falseWarning1", clusterv1.ConditionSeverityWarning, "message falseWarning1 (1 warning)"),
+			want:       FalseCondition("foo", "reason falseWarning1", clusterv1.ConditionSeverityWarning, "message falseWarning1"),
 		},
 		{
 			name:       "When there is false/info and no false/error or false/warning, it returns false/info",

@@ -108,45 +108,11 @@ func localizeReason(reason string, from Getter) string {
 // The message is computed according to the given mergeOptions, but in case of errors or warning a
 // summary of existing errors is automatically added.
 func getMessage(groups conditionGroups, options *mergeOptions) string {
-	errorAndWarningSummary := getErrorAndWarningSummary(groups)
 	if options.addStepCounter {
-		counter := getStepCounterMessage(groups, options.stepCounter)
-		if errorAndWarningSummary != "" {
-			return fmt.Sprintf("%s, %s", counter, errorAndWarningSummary)
-		}
-		return counter
-
+		return getStepCounterMessage(groups, options.stepCounter)
 	}
 
-	firstMessage := getFirstMessage(groups, options.conditionTypes)
-	if errorAndWarningSummary != "" {
-		return fmt.Sprintf("%s (%s)", firstMessage, errorAndWarningSummary)
-	}
-	return firstMessage
-}
-
-func getErrorAndWarningSummary(groups conditionGroups) string {
-	msgs := []string{}
-	if errorGroup := groups.ErrorGroup(); errorGroup != nil {
-		switch l := len(errorGroup.conditions); l {
-		case 1:
-			msgs = append(msgs, "1 error")
-		default:
-			msgs = append(msgs, fmt.Sprintf("%d errors", len(errorGroup.conditions)))
-		}
-	}
-	if warningGroup := groups.WarningGroup(); warningGroup != nil {
-		switch l := len(warningGroup.conditions); l {
-		case 1:
-			msgs = append(msgs, "1 warning")
-		default:
-			msgs = append(msgs, fmt.Sprintf("%d warnings", len(warningGroup.conditions)))
-		}
-	}
-	if len(msgs) > 0 {
-		return strings.Join(msgs, ", ")
-	}
-	return ""
+	return getFirstMessage(groups, options.conditionTypes)
 }
 
 // getStepCounterMessage returns a message "x of y completed", where x is the number of conditions

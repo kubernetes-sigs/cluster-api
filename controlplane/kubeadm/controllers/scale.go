@@ -146,7 +146,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 
 func selectMachineForScaleDown(controlPlane *internal.ControlPlane) (*clusterv1.Machine, error) {
 	machines := controlPlane.Machines
-	if needingUpgrade := controlPlane.MachinesNeedingUpgrade(); needingUpgrade.Len() > 0 {
+	if needingUpgrade := controlPlane.MachinesNeedingRollout(); needingUpgrade.Len() > 0 {
 		machines = needingUpgrade
 	}
 	return controlPlane.MachineInFailureDomainWithMostMachines(machines)

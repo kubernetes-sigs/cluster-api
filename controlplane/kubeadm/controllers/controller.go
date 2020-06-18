@@ -49,6 +49,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -172,6 +173,17 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 			}
 		}
 
+		// Always update the readyCondition.
+		conditions.SetSummary(kcp,
+			conditions.WithConditions(
+				controlplanev1.MachinesSpecUpToDateCondition,
+				controlplanev1.ResizedCondition,
+				controlplanev1.MachinesReadyCondition,
+				controlplanev1.AvailableCondition,
+				controlplanev1.CertificatesAvailableCondition,
+			),
+		)
+
 		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, kcp); err != nil {
 			logger.Error(err, "Failed to patch KubeadmControlPlane")
@@ -220,8 +232,10 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	controllerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
 	if err := certificates.LookupOrGenerate(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
 		logger.Error(err, "unable to lookup or create cluster certificates")
+		conditions.MarkFalse(kcp, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
 	}
+	conditions.MarkTrue(kcp, controlplanev1.CertificatesAvailableCondition)
 
 	// If ControlPlaneEndpoint is not set, return early
 	if cluster.Spec.ControlPlaneEndpoint.IsZero() {
@@ -255,11 +269,27 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	controlPlane := internal.NewControlPlane(cluster, kcp, ownedMachines)
-	requireUpgrade := controlPlane.MachinesNeedingUpgrade()
-	// Upgrade takes precedence over other operations
-	if len(requireUpgrade) > 0 {
-		logger.Info("Upgrading Control Plane")
+
+	// Aggregate the operational state of all the machines; while aggregating we are adding the
+	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
+	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef())
+
+	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
+	needRollout := controlPlane.MachinesNeedingRollout()
+	switch {
+	case len(needRollout) > 0:
+		logger.Info("Rolling out Control Plane machines")
+		// NOTE: we are using Status.UpdatedReplicas from the previous reconciliation only to provide a meaningful message
+		// and this does not influence any reconciliation logic.
+		conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition, controlplanev1.RollingUpdateInProgressReason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(needRollout), kcp.Status.UpdatedReplicas)
 		return r.upgradeControlPlane(ctx, cluster, kcp, controlPlane)
+	default:
+		// make sure last upgrade operation is marked as completed.
+		// NOTE: we are checking the condition already exists in order to avoid to set this condition at the first
+		// reconciliation/before a rolling upgrade actually starts.
+		if conditions.Has(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition) {
+			conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition)
+		}
 	}
 
 	// If we've made it this far, we can assume that all ownedMachines are up to date
@@ -271,6 +301,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
 		logger.Info("Initializing control plane", "Desired", desiredReplicas, "Existing", numMachines)
+		conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableCondition, controlplanev1.WaitingForKubeadmInitReason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:

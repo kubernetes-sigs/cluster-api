@@ -93,8 +93,11 @@ func (c *ControlPlane) EtcdImageData() (string, string) {
 	return "", ""
 }
 
-// MachinesNeedingUpgrade return a list of machines that need to be upgraded.
-func (c *ControlPlane) MachinesNeedingUpgrade() FilterableMachineCollection {
+// MachinesNeedingRollout return a list of machines that need to be rolled out due to configuration changes.
+//
+// NOTE: Expiration of the spec.UpgradeAfter value forces inclusion of all the machines in this set even if
+// no changes have been made to the KubeadmControlPlane.
+func (c *ControlPlane) MachinesNeedingRollout() FilterableMachineCollection {
 	now := metav1.Now()
 	if c.KCP.Spec.UpgradeAfter != nil && c.KCP.Spec.UpgradeAfter.Before(&now) {
 		return c.Machines.AnyFilter(

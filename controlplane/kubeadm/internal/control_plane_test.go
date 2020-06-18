@@ -89,7 +89,7 @@ var _ = Describe("Control Plane", func() {
 	Describe("MachinesNeedingUpgrade", func() {
 		Context("With no machines", func() {
 			It("should return no machines", func() {
-				Expect(controlPlane.MachinesNeedingUpgrade()).To(HaveLen(0))
+				Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(0))
 			})
 		})
 
@@ -108,7 +108,7 @@ var _ = Describe("Control Plane", func() {
 					controlPlane.Machines.Insert(machine("machine-4", withHash(controlPlane.SpecHash()+"outdated")))
 				})
 				It("should return some machines", func() {
-					Expect(controlPlane.MachinesNeedingUpgrade()).To(HaveLen(1))
+					Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(1))
 				})
 			})
 
@@ -130,7 +130,7 @@ var _ = Describe("Control Plane", func() {
 
 				Context("That has no upgradeAfter value set", func() {
 					It("should return no machines", func() {
-						Expect(controlPlane.MachinesNeedingUpgrade()).To(HaveLen(0))
+						Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(0))
 					})
 				})
 
@@ -141,7 +141,7 @@ var _ = Describe("Control Plane", func() {
 							controlPlane.KCP.Spec.UpgradeAfter = &metav1.Time{Time: future}
 						})
 						It("should return no machines", func() {
-							Expect(controlPlane.MachinesNeedingUpgrade()).To(HaveLen(0))
+							Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(0))
 						})
 					})
 
@@ -151,7 +151,7 @@ var _ = Describe("Control Plane", func() {
 								controlPlane.KCP.Spec.UpgradeAfter = &metav1.Time{Time: time.Date(year-2, 0, 0, 0, 0, 0, 0, time.UTC)}
 							})
 							It("should return no machines", func() {
-								Expect(controlPlane.MachinesNeedingUpgrade()).To(HaveLen(0))
+								Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(0))
 							})
 						})
 
@@ -160,7 +160,7 @@ var _ = Describe("Control Plane", func() {
 								controlPlane.KCP.Spec.UpgradeAfter = &metav1.Time{Time: time.Date(year, 1, 0, 0, 0, 0, 0, time.UTC)}
 							})
 							It("should return all machines older than this date machines", func() {
-								Expect(controlPlane.MachinesNeedingUpgrade()).To(HaveLen(2))
+								Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(2))
 							})
 						})
 					})

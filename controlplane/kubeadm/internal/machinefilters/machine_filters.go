@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -145,6 +146,16 @@ func MatchesConfigurationHash(configHash string) Func {
 			return hash == configHash
 		}
 		return false
+	}
+}
+
+// IsReady returns a filter to find all machines with the ReadyCondition equals to True.
+func IsReady() Func {
+	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
+		return conditions.IsTrue(machine, clusterv1.ReadyCondition)
 	}
 }
 

@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // FilterableMachineCollection is a set of Machines
@@ -133,4 +134,14 @@ func (s FilterableMachineCollection) DeepCopy() FilterableMachineCollection {
 		result.Insert(m.DeepCopy())
 	}
 	return result
+}
+
+// ConditionGetters returns the slice with machines converted into conditions.Getter.
+func (s FilterableMachineCollection) ConditionGetters() []conditions.Getter {
+	res := make([]conditions.Getter, 0, len(s))
+	for _, v := range s {
+		value := *v
+		res = append(res, &value)
+	}
+	return res
 }

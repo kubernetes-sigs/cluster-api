@@ -24,7 +24,35 @@ const (
 	ReadyCondition ConditionType = "Ready"
 )
 
+const (
+	// InfrastructureReadyCondition reports a summary of current status of the infrastructure object defined for this cluster/machine.
+	// This condition is mirrored from the Ready condition in the infrastructure ref object, and
+	// the absence of this condition might signal problems in the reconcile external loops or the fact that
+	// the infrastructure provider does not not implements the Ready condition yet.
+	InfrastructureReadyCondition ConditionType = "InfrastructureReady"
+
+	// WaitingForInfrastructureFallbackReason (Severity=Info) documents a cluster/machine waiting for the cluster/machine infrastructure
+	// to be available.
+	// NOTE: This reason is used only as a fallback when the infrastructure object is not reporting its own ready condition.
+	WaitingForInfrastructureFallbackReason = "WaitingForInfrastructure"
+)
+
 // ANCHOR_END: CommonConditions
+
+// Conditions and condition Reasons for the Cluster object
+
+const (
+	// ControlPlaneReady reports the ready condition from the control plane object defined for this cluster.
+	// This condition is mirrored from the Ready condition in the control plane ref object, and
+	// the absence of this condition might signal problems in the reconcile external loops or the fact that
+	// the control plane provider does not not implements the Ready condition yet.
+	ControlPlaneReadyCondition ConditionType = "ControlPlaneReady"
+
+	// WaitingForControlPlaneFallbackReason (Severity=Info) documents a cluster waiting for the control plane
+	// to be available.
+	// NOTE: This reason is used only as a fallback when the control plane object is not reporting its own ready condition.
+	WaitingForControlPlaneFallbackReason = "WaitingForControlPlane"
+)
 
 // Conditions and condition Reasons for the Machine object
 
@@ -39,19 +67,6 @@ const (
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the bootstrap object is not reporting its own ready condition.
 	WaitingForDataSecretFallbackReason = "WaitingForDataSecret"
-)
-
-const (
-	// InfrastructureReadyCondition reports a summary of current status of the infrastructure object defined for this machine.
-	// This condition is mirrored from the Ready condition in the infrastructure ref object, and
-	// the absence of this condition might signal problems in the reconcile external loops or the fact that
-	// the infrastructure provider does not not implements the Ready condition yet.
-	InfrastructureReadyCondition ConditionType = "InfrastructureReady"
-
-	// WaitingForInfrastructureFallbackReason (Severity=Info) documents a machine waiting for the machine infrastructure
-	// to be available.
-	// NOTE: This reason is used only as a fallback when the infrastructure object is not reporting its own ready condition.
-	WaitingForInfrastructureFallbackReason = "WaitingForInfrastructure"
 )
 
 const (

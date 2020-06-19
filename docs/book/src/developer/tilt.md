@@ -7,8 +7,8 @@ workflow that offers easy deployments and rapid iterative builds.
 
 ## Prerequisites
 
-1. [Docker](https://docs.docker.com/install/)
-1. [kind](https://kind.sigs.k8s.io) v0.6 or newer
+1. [Docker](https://docs.docker.com/install/) v19.03 or newer
+1. [kind](https://kind.sigs.k8s.io) v0.7 or newer
    (other clusters can be used if `preload_images_for_kind` is set to false)
 1. [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md) standalone
    (`kubectl kustomize` does not work because it is missing some features of kustomize v3)

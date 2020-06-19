@@ -57,6 +57,8 @@ avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewCom
 
 ## Reviewing a Patch
 
+See [Code Review in Cluster API](REVIEWING.md). 
+
 ### Approvals
 
 Please see the [Kubernetes community document on pull

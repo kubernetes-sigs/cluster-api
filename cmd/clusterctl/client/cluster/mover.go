@@ -367,6 +367,7 @@ func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error 
 		if namespaces.Has(namespace) {
 			continue
 		}
+
 		namespaces.Insert(namespace)
 
 		if err := retryWithExponentialBackoff(ensureNamespaceBackoff, func() error {
@@ -394,9 +395,10 @@ func (o *objectMover) ensureNamespace(toProxy Proxy, namespace string) error {
 		Name: namespace,
 	}
 
-	if err := cs.Get(ctx, key, ns); err == nil {
+	if err = cs.Get(ctx, key, ns); err == nil {
 		return nil
 	}
+
 	if apierrors.IsForbidden(err) {
 		namespaces := &corev1.NamespaceList{}
 		namespaceExists := false

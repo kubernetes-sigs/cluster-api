@@ -789,35 +789,85 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 	}
 }
 
-func Test_objectsMoverService_ensureNamespaces(t *testing.T) {
-	for _, tt := range moveTests {
+func Test_objectMoverService_ensureNamespace(t *testing.T) {
+	type fields struct {
+		fromProxy Proxy
+	}
+	type args struct {
+		toProxy   Proxy
+		namespace string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "ensureNamespace doesn't fail given an existing namespace",
+			// Create a fake local cluster in namespace-1
+			fields: fields{getObjectGraphWithObjs(test.NewFakeCluster("namespace-1", "cl1").Objs()).proxy},
+			args: args{
+				// Create a fake cluster target with namespace-1 already existing
+				toProxy: getFakeProxyWithCRDs().WithObjs(test.NewFakeCluster("namespace-1", "cl1").Objs()...),
+				// Ensure namespace-1 gets created
+				namespace: "namespace-1",
+			},
+			wantErr: false,
+		},
+		{
+			name:   "ensureNamespace doesn't fail if the namespace does not already exist in the target",
+			fields: fields{getObjectGraphWithObjs(test.NewFakeCluster("namespace-1", "cl1").Objs()).proxy},
+			args: args{
+				// Create a fake cluster target with namespace-1 missing, but namespace-2 existing
+				toProxy: getFakeProxyWithCRDs().WithObjs(test.NewFakeCluster("namespace-1", "cl1").Objs()...),
+				// Ensure namespace-2 gets created
+				namespace: "namespace-2",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
-			graph := getObjectGraphWithObjs(tt.fields.objs)
-
-			// Get all the types to be considered for discovery
-			discoveryTypes, err := getFakeDiscoveryTypes(graph)
-			g.Expect(err).NotTo(HaveOccurred())
-
-			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("ns1", discoveryTypes)).To(Succeed())
-
-			// gets a fakeProxy to an empty cluster with all the required CRDs
-			toProxy := getFakeProxyWithCRDs()
-
-			// Run move
 			mover := objectMover{
-				fromProxy: graph.proxy,
+				fromProxy: tt.fields.fromProxy,
 			}
 
-			err = mover.ensureNamespaces(graph, toProxy)
+			err := mover.ensureNamespace(tt.args.toProxy, tt.args.namespace)
+
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				return
 			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// Check that the namespaces either existed or were created in the
+			// target.
+			csTo, err := tt.args.toProxy.NewClient()
+
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			ns := &corev1.Namespace{}
+			key := client.ObjectKey{
+				// Search for this namespace
+				Name: tt.args.namespace,
+			}
+
+			err = csTo.Get(ctx, key, ns)
+
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
 }

@@ -30,6 +30,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -162,6 +163,13 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		return err
 	}
 	cluster.Status.InfrastructureReady = ready
+
+	// Report a summary of current status of the infrastructure object defined for this cluster.
+	conditions.SetMirror(cluster, clusterv1.InfrastructureReadyCondition,
+		conditions.UnstructuredGetter(infraConfig),
+		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+	)
+
 	if !ready {
 		logger.V(3).Info("Infrastructure provider is not ready yet")
 		return nil
@@ -206,6 +214,19 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 		return nil
 	}
 
+	// Determine if the control plane provider is ready.
+	ready, err := external.IsReady(controlPlaneConfig)
+	if err != nil {
+		return err
+	}
+	cluster.Status.ControlPlaneReady = ready
+
+	// Report a summary of current status of the control plane object defined for this cluster.
+	conditions.SetMirror(cluster, clusterv1.ControlPlaneReadyCondition,
+		conditions.UnstructuredGetter(controlPlaneConfig),
+		conditions.WithFallbackValue(ready, clusterv1.WaitingForControlPlaneFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+	)
+
 	// Update cluster.Status.ControlPlaneInitialized if it hasn't already been set
 	// Determine if the control plane provider is initialized.
 	if !cluster.Status.ControlPlaneInitialized {
@@ -215,13 +236,6 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 		}
 		cluster.Status.ControlPlaneInitialized = initialized
 	}
-
-	// Determine if the control plane provider is ready.
-	ready, err := external.IsReady(controlPlaneConfig)
-	if err != nil {
-		return err
-	}
-	cluster.Status.ControlPlaneReady = ready
 
 	return nil
 }

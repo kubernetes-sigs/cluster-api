@@ -36,6 +36,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -124,6 +125,14 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	defer func() {
+		// Always update the readyCondition with the summary of the cluster conditions.
+		conditions.SetSummary(cluster,
+			conditions.WithConditions(
+				clusterv1.ControlPlaneReadyCondition,
+				clusterv1.InfrastructureReadyCondition,
+			),
+		)
+
 		// Always reconcile the Status.Phase field.
 		r.reconcilePhase(ctx, cluster)
 		r.reconcileMetrics(ctx, cluster)

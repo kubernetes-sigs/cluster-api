@@ -78,26 +78,26 @@ func (co ConfigOwner) IsControlPlaneMachine() bool {
 
 // GetConfigOwner returns the Unstructured object owning the current resource.
 func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
+	allowedGKs := []schema.GroupKind{
+		{
+			Group: clusterv1.GroupVersion.Group,
+			Kind:  "Machine",
+		},
+	}
+
+	if feature.Gates.Enabled(feature.MachinePool) {
+		allowedGKs = append(allowedGKs, schema.GroupKind{
+			Group: expv1.GroupVersion.Group,
+			Kind:  "MachinePool",
+		})
+	}
+
 	for _, ref := range obj.GetOwnerReferences() {
 		refGV, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse GroupVersion from %q", ref.APIVersion)
 		}
 		refGVK := refGV.WithKind(ref.Kind)
-
-		allowedGKs := []schema.GroupKind{
-			{
-				Group: clusterv1.GroupVersion.Group,
-				Kind:  "Machine",
-			},
-		}
-
-		if feature.Gates.Enabled(feature.MachinePool) {
-			allowedGKs = append(allowedGKs, schema.GroupKind{
-				Group: expv1.GroupVersion.Group,
-				Kind:  "MachinePool",
-			})
-		}
 
 		for _, gk := range allowedGKs {
 			if refGVK.Group == gk.Group && refGVK.Kind == gk.Kind {

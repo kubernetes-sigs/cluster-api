@@ -394,7 +394,8 @@ func (o *objectMover) ensureNamespace(toProxy Proxy, namespace string) error {
 		Name: namespace,
 	}
 
-	if err := cs.Get(ctx, key, ns); err == nil {
+	err = cs.Get(ctx, key, ns)
+	if err == nil {
 		return nil
 	}
 	if apierrors.IsForbidden(err) {

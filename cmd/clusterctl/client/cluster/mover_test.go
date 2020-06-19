@@ -788,3 +788,67 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 		})
 	}
 }
+
+func Test_objectMoverService_ensureNamespace(t *testing.T) {
+	type args struct {
+		toProxy   Proxy
+		namespace string
+	}
+
+	namespace1 := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "namespace-1",
+		},
+	}
+
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "ensureNamespace doesn't fail given an existing namespace",
+			args: args{
+				// Create a fake cluster target with namespace-1 already existing
+				toProxy: test.NewFakeProxy().WithObjs(namespace1),
+				// Ensure namespace-1 gets created
+				namespace: "namespace-1",
+			},
+		},
+		{
+			name: "ensureNamespace doesn't fail if the namespace does not already exist in the target",
+			args: args{
+				// Create a fake empty client
+				toProxy: test.NewFakeProxy(),
+				// Ensure namespace-2 gets created
+				namespace: "namespace-2",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mover := objectMover{
+				fromProxy: test.NewFakeProxy(),
+			}
+
+			err := mover.ensureNamespace(tt.args.toProxy, tt.args.namespace)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// Check that the namespaces either existed or were created in the
+			// target.
+			csTo, err := tt.args.toProxy.NewClient()
+			g.Expect(err).ToNot(HaveOccurred())
+
+			ns := &corev1.Namespace{}
+			key := client.ObjectKey{
+				// Search for this namespace
+				Name: tt.args.namespace,
+			}
+
+			err = csTo.Get(ctx, key, ns)
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}

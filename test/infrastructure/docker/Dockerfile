@@ -42,7 +42,7 @@ COPY . .
 # Essentially, change directories into CAPD
 WORKDIR /workspace/test/infrastructure/docker
 
-# Build the CAPD manager
+# Build the CAPD manager using the compiler cache folder
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
 

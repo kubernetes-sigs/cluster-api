@@ -20,14 +20,14 @@ Other providers may have additional steps you need to follow to get up and runni
 ### Docker
 
 Iterating on the cluster API involves repeatedly building Docker containers.
-You'll need the [docker daemon][docker] available.
+You'll need the [docker daemon][docker] v19.03 or newer available.
 
 [docker]: https://docs.docker.com/install/
 
 ### A Cluster
 
 You'll likely want an existing cluster as your [management cluster][mcluster].
-The easiest way to do this is with [kind], as explained in the quick start.
+The easiest way to do this is with [kind] v0.7 or newer, as explained in the quick start.
 
 Make sure your cluster is set as the default for `kubectl`.
 If it's not, you will need to modify subsequent `kubectl` commands below.

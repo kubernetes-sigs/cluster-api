@@ -1,4 +1,4 @@
-# syntax = docker/dockerfile:1-experimental
+# syntax=docker/dockerfile:experimental
 
 # Copyright 2018 The Kubernetes Authors.
 #

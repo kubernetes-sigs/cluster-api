@@ -19,6 +19,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -111,9 +113,23 @@ type Watcher interface {
 
 // watchInfo is used as a map key to uniquely identify a watch. Because predicates is a slice, it cannot be included.
 type watchInfo struct {
-	watcher      Watcher
-	kind         runtime.Object
-	eventHandler handler.EventHandler
+	watcher Watcher
+	gvk     schema.GroupVersionKind
+
+	// Comparing the eventHandler as an interface doesn't work because reflect.DeepEqual
+	// will assert functions are false if they are non-nil.
+	// Use a signature string representation instead as this can be compared.
+	// The signature function is expected to produce a unique output for each unique handler
+	// function that is passed to it.
+	// In combination with the watcher, this should be enough to identify unique watches.
+	eventHandlerSignature string
+}
+
+// eventHandlerSignature generates a unique identifier for the given eventHandler by
+// printing it to a string using "%#v".
+// Eg "&handler.EnqueueRequestsFromMapFunc{ToRequests:(handler.ToRequestsFunc)(0x271afb0)}"
+func eventHandlerSignature(h handler.EventHandler) string {
+	return fmt.Sprintf("%#v", h)
 }
 
 // watchExists returns true if watch has already been established. This does NOT hold any lock.
@@ -123,8 +139,12 @@ func (m *ClusterCacheTracker) watchExists(cluster client.ObjectKey, watch watchI
 		return false
 	}
 
-	_, watchFound := watchesForCluster[watch]
-	return watchFound
+	for w := range watchesForCluster {
+		if reflect.DeepEqual(w, watch) {
+			return true
+		}
+	}
+	return false
 }
 
 // deleteWatchesForCluster removes the watches for cluster from the tracker.
@@ -156,10 +176,15 @@ type WatchInput struct {
 // Watch watches a remote cluster for resource events. If the watch already exists based on cluster, watcher,
 // kind, and eventHandler, then this is a no-op.
 func (m *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error {
+	gvk, err := apiutil.GVKForObject(input.Kind, m.scheme)
+	if err != nil {
+		return err
+	}
+
 	wi := watchInfo{
-		watcher:      input.Watcher,
-		kind:         input.Kind,
-		eventHandler: input.EventHandler,
+		watcher:               input.Watcher,
+		gvk:                   gvk,
+		eventHandlerSignature: eventHandlerSignature(input.EventHandler),
 	}
 
 	// First, check if the watch already exists

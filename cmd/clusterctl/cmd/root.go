@@ -57,7 +57,9 @@ func Execute() {
 				}
 			}
 		}
-		// TODO: print cmd help if validation error
+		if RootCmd.CalledAs() != "clusterctl" {
+			RootCmd.Help()
+		}
 		os.Exit(1)
 	}
 }

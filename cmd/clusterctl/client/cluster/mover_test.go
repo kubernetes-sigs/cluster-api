@@ -852,3 +852,111 @@ func Test_objectMoverService_ensureNamespace(t *testing.T) {
 		})
 	}
 }
+
+func Test_objectMoverService_ensureNamespaces(t *testing.T) {
+	type args struct {
+		toProxy Proxy
+	}
+	type fields struct {
+		objs []runtime.Object
+	}
+
+	// Create some test runtime objects to be used in the tests
+	namespace1 := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "namespace-1",
+		},
+	}
+
+	cluster1 := test.NewFakeCluster("namespace-1", "cluster-1")
+	cluster2 := test.NewFakeCluster("namespace-2", "cluster-2")
+
+	clustersObjs := append(cluster1.Objs(), cluster2.Objs()...)
+
+	tests := []struct {
+		name               string
+		fields             fields
+		args               args
+		expectedNamespaces []string
+	}{
+		{
+			name: "ensureNamespaces doesn't fail given an existing namespace",
+			fields: fields{
+				objs: cluster1.Objs(),
+			},
+			args: args{
+				toProxy: test.NewFakeProxy(),
+			},
+			expectedNamespaces: []string{"namespace-1"},
+		},
+		{
+			name: "ensureNamespaces moves namespace-1 and namespace-2 to target",
+			fields: fields{
+				objs: clustersObjs,
+			},
+			args: args{
+				toProxy: test.NewFakeProxy(),
+			},
+			expectedNamespaces: []string{"namespace-1", "namespace-2"},
+		},
+		{
+
+			name: "ensureNamespaces moves namespace-2 to target which already has namespace-1",
+			fields: fields{
+				objs: cluster2.Objs(),
+			},
+			args: args{
+				toProxy: test.NewFakeProxy().WithObjs(namespace1),
+			},
+			expectedNamespaces: []string{"namespace-1", "namespace-2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			graph := getObjectGraphWithObjs(tt.fields.objs)
+
+			// Get all the types to be considered for discovery
+			discoveryTypes, err := getFakeDiscoveryTypes(graph)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// Trigger discovery the content of the source cluster
+			g.Expect(graph.Discovery("", discoveryTypes)).To(Succeed())
+
+			mover := objectMover{
+				fromProxy: graph.proxy,
+			}
+
+			err = mover.ensureNamespaces(graph, tt.args.toProxy)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// Check that the namespaces either existed or were created in the
+			// target.
+			csTo, err := tt.args.toProxy.NewClient()
+			g.Expect(err).ToNot(HaveOccurred())
+
+			namespaces := &corev1.NamespaceList{}
+
+			err = csTo.List(ctx, namespaces, client.Continue(namespaces.Continue))
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Loop through each expected result to ensure that it is found in
+			// the actual results.
+			for _, expected := range tt.expectedNamespaces {
+				exists := false
+				for _, item := range namespaces.Items {
+					if item.Name == expected {
+						exists = true
+					}
+				}
+				// If at any point a namespace was not found, it must have not
+				// been moved to the target successfully.
+				if !exists {
+					t.Errorf("namespace: %v not found in target cluster", expected)
+				}
+			}
+		})
+	}
+}

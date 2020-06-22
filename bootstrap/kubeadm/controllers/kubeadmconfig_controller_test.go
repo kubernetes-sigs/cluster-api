@@ -467,6 +467,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(cfg.Status.Ready).To(BeTrue())
 	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 	assertHasTrueCondition(g, myclient, request, bootstrapv1.CertificatesAvailableCondition)
 	assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableCondition)
 
@@ -631,6 +632,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cfg.Status.Ready).To(BeTrue())
 			g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+			g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 			assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableCondition)
 
 			l := &corev1.SecretList{}
@@ -708,6 +710,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cfg.Status.Ready).To(BeTrue())
 			g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+			g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 
 			l := &corev1.SecretList{}
 			err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
@@ -788,6 +791,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(cfg.Status.Ready).To(BeTrue())
 	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 }
 
 func TestBootstrapTokenTTLExtension(t *testing.T) {
@@ -835,6 +839,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(cfg.Status.Ready).To(BeTrue())
 	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 
 	request = ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -851,6 +856,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(cfg.Status.Ready).To(BeTrue())
 	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 
 	l := &corev1.SecretList{}
 	err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
@@ -1468,6 +1474,7 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 	g.Expect(err).NotTo(HaveOccurred())
 	// check if the kubeadm config has been patched
 	g.Expect(cfg.Spec.InitConfiguration).ToNot(BeNil())
+	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 }
 
 // test utils

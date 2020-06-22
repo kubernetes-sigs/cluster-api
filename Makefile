@@ -112,7 +112,7 @@ help:  ## Display this help
 
 .PHONY: test
 test: ## Run tests
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./... $(TEST_ARGS)
 
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Rebuild all Cluster API provider images to be used in the e2e tests

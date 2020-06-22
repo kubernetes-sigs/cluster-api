@@ -105,11 +105,15 @@ var _ = Describe("MachineHealthCheck", func() {
 					Expect(testEnv.Create(ctx, machine)).To(Succeed())
 
 					node := node.DeepCopy()
+					nodeStatus := node.Status
 					Expect(testEnv.Create(ctx, node)).To(Succeed())
-					Expect(testEnv.Status().Update(ctx, node)).To(Succeed())
+					nodePatch := client.MergeFrom(node.DeepCopy())
+					node.Status = nodeStatus
+					Expect(testEnv.Status().Patch(ctx, node, nodePatch)).To(Succeed())
 					nodes = append(nodes, node)
 
 					if nodeRef {
+						machinePatch := client.MergeFrom(machine.DeepCopy())
 						machine.Status = machineStatus
 						machine.Status.NodeRef = &corev1.ObjectReference{
 							Name: node.Name,
@@ -117,7 +121,7 @@ var _ = Describe("MachineHealthCheck", func() {
 
 						now := metav1.NewTime(time.Now())
 						machine.Status.LastUpdated = &now
-						Expect(testEnv.Status().Update(ctx, machine)).To(Succeed())
+						Expect(testEnv.Status().Patch(ctx, machine, machinePatch)).To(Succeed())
 					}
 
 					machines = append(machines, machine)
@@ -439,8 +443,9 @@ var _ = Describe("MachineHealthCheck", func() {
 
 			// Fake an earlier NodeStartupTimeout.
 			lastUpdatedTwiceNodeStartupTimeout := metav1.NewTime(time.Now().Add(-2 * mhc.Spec.NodeStartupTimeout.Duration))
+			machinePatch := client.MergeFrom(machines[2].DeepCopy())
 			machines[2].Status.LastUpdated = &lastUpdatedTwiceNodeStartupTimeout
-			Expect(testEnv.Status().Update(ctx, machines[2]))
+			Expect(testEnv.Status().Patch(ctx, machines[2], machinePatch))
 
 			// Make sure the status matches.
 			Eventually(func() *clusterv1.MachineHealthCheckStatus {
@@ -577,6 +582,7 @@ var _ = Describe("MachineHealthCheck", func() {
 
 			// Transition the node to unhealthy.
 			node := nodes[0]
+			nodePatch := client.MergeFrom(node.DeepCopy())
 			node.Status.Conditions = []corev1.NodeCondition{
 				{
 					Type:               corev1.NodeReady,
@@ -584,7 +590,7 @@ var _ = Describe("MachineHealthCheck", func() {
 					LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 				},
 			}
-			Expect(testEnv.Status().Update(ctx, node)).To(Succeed())
+			Expect(testEnv.Status().Patch(ctx, node, nodePatch)).To(Succeed())
 
 			// Make sure the status matches.
 			Eventually(func() *clusterv1.MachineHealthCheckStatus {

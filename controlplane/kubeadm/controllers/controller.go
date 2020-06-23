@@ -158,12 +158,14 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	if !controllerutil.ContainsFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer) {
 		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
+		// patch and return right away instead of reusing the main defer,
+		// because the main defer may take too much time to get cluster status
 		if err := patchHelper.Patch(ctx, kcp); err != nil {
 			logger.Error(err, "Failed to patch KubeadmControlPlane to add finalizer")
 			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, nil
 	}
 
 	defer func() {

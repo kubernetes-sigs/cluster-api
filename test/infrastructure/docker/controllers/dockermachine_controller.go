@@ -133,6 +133,12 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
+	// Add finalizer first if not exist to avoid the race condition between init and delete
+	if !controllerutil.ContainsFinalizer(dockerMachine, infrav1.MachineFinalizer) {
+		controllerutil.AddFinalizer(dockerMachine, infrav1.MachineFinalizer)
+		return ctrl.Result{}, nil
+	}
+
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
 	if !cluster.Status.InfrastructureReady {
 		log.Info("Waiting for DockerCluster Controller to create cluster infrastructure")
@@ -165,9 +171,6 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 }
 
 func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (res ctrl.Result, retErr error) {
-	// If the DockerMachine doesn't have finalizer, add it.
-	controllerutil.AddFinalizer(dockerMachine, infrav1.MachineFinalizer)
-
 	// if the machine is already provisioned, return
 	if dockerMachine.Spec.ProviderID != nil {
 		// ensure ready state is set.

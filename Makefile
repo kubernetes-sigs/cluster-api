@@ -472,6 +472,7 @@ release-binary: $(RELEASE_DIR)
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.
+	docker pull docker.io/docker/dockerfile:experimental
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
 RELEASE_ALIAS_TAG=$(PULL_BASE_REF)

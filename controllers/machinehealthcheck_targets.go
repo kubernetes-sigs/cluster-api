@@ -197,17 +197,20 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Re
 //getMachinesFromMHC fetches Machines matched by the MachineHealthCheck's
 // label selector
 func (r *MachineHealthCheckReconciler) getMachinesFromMHC(mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
-	selector, err := metav1.LabelSelectorAsSelector(&mhc.Spec.Selector)
+	selector, err := metav1.LabelSelectorAsSelector(metav1.CloneSelectorAndAddLabel(
+		&mhc.Spec.Selector, clusterv1.ClusterLabelName, mhc.Spec.ClusterName,
+	))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build selector")
 	}
 
-	options := client.ListOptions{
-		LabelSelector: selector,
-		Namespace:     mhc.GetNamespace(),
-	}
-	machineList := &clusterv1.MachineList{}
-	if err := r.Client.List(context.Background(), machineList, &options); err != nil {
+	var machineList clusterv1.MachineList
+	if err := r.Client.List(
+		context.Background(),
+		&machineList,
+		client.MatchingLabelsSelector{Selector: selector},
+		client.InNamespace(mhc.GetNamespace()),
+	); err != nil {
 		return nil, errors.Wrap(err, "failed to list machines")
 	}
 	return machineList.Items, nil

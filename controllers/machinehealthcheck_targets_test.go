@@ -48,6 +48,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			Namespace: namespace,
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
+			ClusterName: clusterName,
 			Selector: metav1.LabelSelector{
 				MatchLabels: mhcSelector,
 			},
@@ -72,7 +73,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 	testNode3 := newTestNode("node3")
 	testMachine3 := newTestMachine("machine3", namespace, clusterName, testNode3.Name, mhcSelector)
 	testNode4 := newTestNode("node4")
-	testMachine4 := newTestMachine("machine4", namespace, clusterName, testNode4.Name, mhcSelector)
+	testMachine4 := newTestMachine("machine4", namespace, "other-cluster", testNode4.Name, mhcSelector)
 
 	testCases := []struct {
 		desc            string
@@ -97,7 +98,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			},
 		},
 		{
-			desc:     "when a machine's labels do not match",
+			desc:     "when a machine's labels do not match the selector",
 			toCreate: append(baseObjects, testMachine1, testMachine2, testNode1),
 			expectedTargets: []healthCheckTarget{
 				{
@@ -120,11 +121,6 @@ func TestGetTargetsFromMHC(t *testing.T) {
 					Machine: testMachine3,
 					MHC:     testMHC,
 					Node:    testNode3,
-				},
-				{
-					Machine: testMachine4,
-					MHC:     testMHC,
-					Node:    testNode4,
 				},
 			},
 		},

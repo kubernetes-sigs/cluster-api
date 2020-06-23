@@ -373,7 +373,7 @@ func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clu
 		}
 	}
 	if len(items) != 1 {
-		return nil, errors.Errorf("expecting one machine for node %v, got %v", nodeName, items)
+		return nil, errors.Errorf("expecting one machine for node %v, got %v", nodeName, machineNames(items))
 	}
 	return items[0], nil
 }
@@ -423,4 +423,12 @@ func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) bool {
 	// If unhealthy is above maxUnhealthy, short circuit any further remediation
 	unhealthy := mhc.Status.ExpectedMachines - mhc.Status.CurrentHealthy
 	return int(unhealthy) <= maxUnhealthy
+}
+
+func machineNames(machines []*clusterv1.Machine) []string {
+	result := make([]string, 0, len(machines))
+	for _, m := range machines {
+		result = append(result, m.Name)
+	}
+	return result
 }

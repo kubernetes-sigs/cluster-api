@@ -106,6 +106,12 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		)
 	}
 
+	if clusterName, ok := m.Spec.Selector.MatchLabels[ClusterLabelName]; ok && clusterName != m.Spec.ClusterName {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "selector"), m.Spec.Selector, "cannot specify a cluster selector other than the one specified by ClusterName"))
+	}
+
 	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
 		allErrs = append(
 			allErrs,

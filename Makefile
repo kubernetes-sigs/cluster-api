@@ -473,7 +473,7 @@ release-binary: $(RELEASE_DIR)
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.
 	docker pull docker.io/docker/dockerfile:experimental
-	docker pull golang:1.13.12
+	docker pull docker.io/library/golang:1.13.12
 	docker pull gcr.io/distroless/static:latest
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 

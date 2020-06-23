@@ -554,7 +554,7 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 
 	for i := range secrets.Items {
 		s := secrets.Items[i]
-		if !util.IsControlledBy(&s, currentOwner) {
+		if !util.IsOwnedByObject(&s, currentOwner) {
 			continue
 		}
 		// avoid taking ownership of the bootstrap data secret

@@ -33,6 +33,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	cluster *clusterv1.Cluster,
 	kcp *controlplanev1.KubeadmControlPlane,
 	controlPlane *internal.ControlPlane,
+	machinesRequireUpgrade internal.FilterableMachineCollection,
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
@@ -94,5 +95,5 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		// scaleUp ensures that we don't continue scaling up while waiting for Machines to have NodeRefs
 		return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
 	}
-	return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane)
+	return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, machinesRequireUpgrade)
 }

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -33,6 +34,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -241,8 +243,36 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 		},
 	}
 
+	// Machine's bootstrap config may be missing ClusterConfiguration if it is not the first machine in the control plane.
+	// We store ClusterConfiguration as annotation here to detect any changes in KCP ClusterConfiguration and rollout the machine if any.
+	clusterConfig, err := json.Marshal(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal cluster configuration")
+	}
+	machine.SetAnnotations(map[string]string{controlplanev1.KubeadmClusterConfigurationAnnotation: string(clusterConfig)})
+
 	if err := r.Client.Create(ctx, machine); err != nil {
-		return errors.Wrap(err, "Failed to create machine")
+		return errors.Wrap(err, "failed to create machine")
 	}
 	return nil
+}
+
+// machinesNeedingRollout return a list of machines that need to be rolled out.
+func (r *KubeadmControlPlaneReconciler) machinesNeedingRollout(ctx context.Context, c *internal.ControlPlane) internal.FilterableMachineCollection {
+	now := metav1.Now()
+
+	// Ignore machines to be deleted.
+	machines := c.Machines.Filter(machinefilters.Not(machinefilters.HasDeletionTimestamp))
+
+	// Return machines if their creation timestamp is older than the KCP.Spec.UpgradeAfter, or any machine with an outdated configuration.
+	if c.KCP.Spec.UpgradeAfter != nil && c.KCP.Spec.UpgradeAfter.Before(&now) {
+		return machines.Filter(machinefilters.Or(
+			// Machines that are old.
+			machinefilters.OlderThan(c.KCP.Spec.UpgradeAfter),
+			// Machines that do not match with KCP config.
+			machinefilters.Not(machinefilters.MatchesKCPConfiguration(ctx, r.Client, *c.KCP, *c.Cluster)),
+		))
+	}
+
+	return machines.Filter(machinefilters.Not(machinefilters.MatchesKCPConfiguration(ctx, r.Client, *c.KCP, *c.Cluster)))
 }

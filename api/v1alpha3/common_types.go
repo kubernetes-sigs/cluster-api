@@ -39,11 +39,11 @@ const (
 	PausedAnnotation = "cluster.x-k8s.io/paused"
 
 	// TemplateClonedFromNameAnnotation is the infrastructure machine annotation that stores the name of the infrastructure template resource
-	// that was cloned for the machine.
+	// that was cloned for the machine. This annotation is set only during cloning a template. Older/adopted machines will not have this annotation.
 	TemplateClonedFromNameAnnotation = "cluster.x-k8s.io/cloned-from-name"
 
 	// TemplateClonedFromGroupKindAnnotation is the infrastructure machine annotation that stores the group-kind of the infrastructure template resource
-	// that was cloned for the machine.
+	// that was cloned for the machine. This annotation is set only during cloning a template. Older/adopted machines will not have this annotation.
 	TemplateClonedFromGroupKindAnnotation = "cluster.x-k8s.io/cloned-from-groupkind"
 
 	// ClusterSecretType defines the type of secret created by core components

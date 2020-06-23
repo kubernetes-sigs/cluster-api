@@ -215,7 +215,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		Machines: machines,
 	}
 
-	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane)
+	_, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
 	g.Expect(err).ToNot(HaveOccurred())
 }
 
@@ -250,22 +250,25 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name            string
-		cp              *internal.ControlPlane
-		expectErr       bool
-		expectedMachine clusterv1.Machine
+		name             string
+		cp               *internal.ControlPlane
+		outDatedMachines internal.FilterableMachineCollection
+		expectErr        bool
+		expectedMachine  clusterv1.Machine
 	}{
 		{
-			name:            "when there are are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
-			cp:              needsUpgradeControlPlane,
-			expectErr:       false,
-			expectedMachine: clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-5"}},
+			name:             "when there are are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
+			cp:               needsUpgradeControlPlane,
+			outDatedMachines: internal.NewFilterableMachineCollection(m5),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-5"}},
 		},
 		{
-			name:            "when there are no outdated machines, it returns the oldest machine in the largest failure domain",
-			cp:              upToDateControlPlane,
-			expectErr:       false,
-			expectedMachine: clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}},
+			name:             "when there are no outdated machines, it returns the oldest machine in the largest failure domain",
+			cp:               upToDateControlPlane,
+			outDatedMachines: internal.NewFilterableMachineCollection(),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}},
 		},
 	}
 
@@ -275,7 +278,7 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
-			selectedMachine, err := selectMachineForScaleDown(tc.cp)
+			selectedMachine, err := selectMachineForScaleDown(tc.cp, tc.outDatedMachines)
 
 			if tc.expectErr {
 				g.Expect(err).To(HaveOccurred())

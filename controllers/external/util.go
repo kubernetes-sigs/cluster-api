@@ -83,6 +83,7 @@ func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectR
 	}
 	generateTemplateInput := &GenerateTemplateInput{
 		Template:    from,
+		TemplateRef: in.TemplateRef,
 		Namespace:   in.Namespace,
 		ClusterName: in.ClusterName,
 		OwnerRef:    in.OwnerRef,
@@ -106,6 +107,10 @@ type GenerateTemplateInput struct {
 	// Template is the TemplateRef turned into an unstructured.
 	// +required
 	Template *unstructured.Unstructured
+
+	// TemplateRef is a reference to the template that needs to be cloned.
+	// +required
+	TemplateRef *corev1.ObjectReference
 
 	// Namespace is the Kuberentes namespace the cloned object should be created into.
 	// +required
@@ -140,6 +145,14 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 	to.SetSelfLink("")
 	to.SetName(names.SimpleNameGenerator.GenerateName(in.Template.GetName() + "-"))
 	to.SetNamespace(in.Namespace)
+
+	if to.GetAnnotations() == nil {
+		to.SetAnnotations(map[string]string{})
+	}
+	annotations := to.GetAnnotations()
+	annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.TemplateRef.Name
+	annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.TemplateRef.GroupVersionKind().GroupKind().String()
+	to.SetAnnotations(annotations)
 
 	// Set labels.
 	labels := to.GetLabels()

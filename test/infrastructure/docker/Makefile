@@ -136,7 +136,7 @@ modules: ## Runs go mod to ensure modules are up to date.
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	DOCKER_BUILDKIT=1 docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) ../../.. -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
+	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) ../../.. -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
@@ -212,6 +212,9 @@ release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a rele
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.
+	docker pull docker.io/docker/dockerfile:experimental
+	docker pull docker.io/library/golang:1.13.12
+	docker pull gcr.io/distroless/static:latest
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
 RELEASE_ALIAS_TAG=$(PULL_BASE_REF)

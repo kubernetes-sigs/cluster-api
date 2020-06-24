@@ -82,6 +82,25 @@ spec:
           status:
             description: DockerMachineStatus defines the observed state of DockerMachine
             properties:
+              addresses:
+                description: Addresses contains the associated addresses for the docker
+                  machine.
+                items:
+                  description: MachineAddress contains information for the node's
+                    address.
+                  properties:
+                    address:
+                      description: The machine address.
+                      type: string
+                    type:
+                      description: Machine address type, one of Hostname, ExternalIP
+                        or InternalIP.
+                      type: string
+                  required:
+                  - address
+                  - type
+                  type: object
+                type: array
               conditions:
                 description: Conditions defines current service state of the DockerMachine.
                 items:

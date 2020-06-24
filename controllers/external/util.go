@@ -58,7 +58,7 @@ type CloneTemplateInput struct {
 	// +required
 	TemplateRef *corev1.ObjectReference
 
-	// Namespace is the Kuberentes namespace the cloned object should be created into.
+	// Namespace is the Kubernetes namespace the cloned object should be created into.
 	// +required
 	Namespace string
 
@@ -112,7 +112,7 @@ type GenerateTemplateInput struct {
 	// +required
 	TemplateRef *corev1.ObjectReference
 
-	// Namespace is the Kuberentes namespace the cloned object should be created into.
+	// Namespace is the Kubernetes namespace the cloned object should be created into.
 	// +required
 	Namespace string
 

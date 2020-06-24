@@ -358,7 +358,7 @@ spec:
                       kubernetesVersion:
                         description: 'KubernetesVersion is the target version of the
                           control plane. NB: This value defaults to the Machine object
-                          spec.kuberentesVersion'
+                          spec.kubernetesVersion'
                         type: string
                       networking:
                         description: 'Networking holds configuration for the networking

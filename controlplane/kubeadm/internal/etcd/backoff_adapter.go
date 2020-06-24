@@ -22,7 +22,7 @@ import (
 
 	"go.etcd.io/etcd/clientv3"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 )
 
 // Log is the global logger used. Global var can be swapped out if necessary.

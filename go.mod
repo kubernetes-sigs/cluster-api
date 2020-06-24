@@ -35,7 +35,7 @@ require (
 	k8s.io/client-go v0.17.7
 	k8s.io/cluster-bootstrap v0.17.7
 	k8s.io/component-base v0.17.7
-	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.1.0
 	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	sigs.k8s.io/controller-runtime v0.5.7
 	sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802

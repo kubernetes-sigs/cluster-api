@@ -104,6 +104,10 @@ var (
 									Type:                   "object",
 									XPreserveUnknownFields: pointer.BoolPtr(true),
 								},
+								"status": {
+									Type:                   "object",
+									XPreserveUnknownFields: pointer.BoolPtr(true),
+								},
 							},
 						},
 					},
@@ -146,6 +150,10 @@ var (
 									Type:                   "object",
 									XPreserveUnknownFields: pointer.BoolPtr(true),
 								},
+								"status": {
+									Type:                   "object",
+									XPreserveUnknownFields: pointer.BoolPtr(true),
+								},
 							},
 						},
 					},
@@ -185,6 +193,10 @@ var (
 							Type: "object",
 							Properties: map[string]apiextensionsv1.JSONSchemaProps{
 								"spec": {
+									Type:                   "object",
+									XPreserveUnknownFields: pointer.BoolPtr(true),
+								},
+								"status": {
 									Type:                   "object",
 									XPreserveUnknownFields: pointer.BoolPtr(true),
 								},

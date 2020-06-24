@@ -268,7 +268,7 @@ func (r *MachineDeploymentReconciler) getMachineDeploymentsForMachineSet(ms *clu
 	logger := r.Log.WithValues("machineset", ms.Name, "namespace", ms.Namespace)
 
 	if len(ms.Labels) == 0 {
-		logger.Info("No MachineDeployments found for MachineSet because it has no labels", "machineset", ms.Name)
+		logger.V(2).Info("No MachineDeployments found for MachineSet because it has no labels", "machineset", ms.Name)
 		return nil
 	}
 

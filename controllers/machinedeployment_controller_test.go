@@ -122,8 +122,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
-				"size":       "3xlarge",
-				"providerID": "test:////id",
+				"size": "3xlarge",
 			},
 		}
 		infraTmpl := &unstructured.Unstructured{
@@ -296,8 +295,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 				if !metav1.IsControlledBy(&m, thirdMachineSet) {
 					continue
 				}
-				fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
-				fakeMachineNodeRef(&m)
+				providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
+				fakeMachineNodeRef(&m, providerID)
 			}
 
 			if err := testEnv.List(ctx, machineSets, msListOpts...); err != nil {
@@ -351,8 +350,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 				if !metav1.IsControlledBy(&m, &newms) {
 					continue
 				}
-				fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
-				fakeMachineNodeRef(&m)
+				providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
+				fakeMachineNodeRef(&m, providerID)
 			}
 
 			listOpts := client.MatchingLabels(newLabels)

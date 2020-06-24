@@ -46,6 +46,8 @@ var (
 )
 
 func TestAPIs(t *testing.T) {
+	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
+	SetDefaultEventuallyTimeout(30 * time.Second)
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,

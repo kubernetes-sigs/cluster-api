@@ -71,6 +71,9 @@ var _ = Describe("MachineSet Reconciler", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "ms-",
 				Namespace:    namespace.Name,
+				Labels: map[string]string{
+					"label-1": "true",
+				},
 			},
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: testCluster.Name,
@@ -131,8 +134,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
-				"size":       "3xlarge",
-				"providerID": "test:////id",
+				"size": "3xlarge",
 			},
 		}
 		infraTmpl := &unstructured.Unstructured{
@@ -196,6 +198,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
+			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource)
 			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
 		}
 
@@ -237,8 +240,9 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 			Expect(m.Spec.Version).ToNot(BeNil())
 			Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
-			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
-			fakeMachineNodeRef(&m)
+			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource)
+			providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
+			fakeMachineNodeRef(&m, providerID)
 		}
 
 		// Verify that all Machines are Ready.

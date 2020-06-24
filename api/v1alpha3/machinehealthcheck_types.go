@@ -87,6 +87,10 @@ type MachineHealthCheckStatus struct {
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Targets shows the current list of machines the machine health check is watching
+	// +optional
+	Targets []string `json:"targets,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCheckStatus

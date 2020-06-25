@@ -53,6 +53,14 @@ var deleteCmd = &cobra.Command{
 		# Please note, if there are multiple instances of the AWS provider installed in the cluster,
 		# global/shared resources (e.g. ClusterRoles), are not deleted in order to preserve
 		# the functioning of the remaining instances.
+		#
+		# WARNING: There is a known bug where deleting an infrastructure component from a namespace that share
+		# the same prefix with other namespaces (e.g. 'foo' and 'foo-bar') will result
+		# in erroneous deletion of cluster scoped objects such as 'ClusterRole' and
+		# 'ClusterRoleBindings' that share the same namespace prefix.
+		# This is true if the prefix before a dash '-' is same. That is, namespaces such
+		# as 'foo' and 'foobar' are fine however namespaces such as 'foo' and 'foo-bar'
+		# are not. See CAPI issue 3119 for more details.
 		clusterctl delete --infrastructure aws --namespace=foo
 
 		# Deletes all the providers

@@ -42,6 +42,7 @@ type FakeCluster struct {
 	machineDeployments []*FakeMachineDeployment
 	machineSets        []*FakeMachineSet
 	machines           []*FakeMachine
+	principal          *fakeinfrastructure.DummyInfrastructurePrincipal
 }
 
 // NewFakeCluster return a FakeCluster that can generate a cluster object, all its own ancillary objects:
@@ -82,6 +83,11 @@ func (f *FakeCluster) WithMachines(fakeMachine ...*FakeMachine) *FakeCluster {
 	return f
 }
 
+func (f *FakeCluster) WithPrincipal(name *fakeinfrastructure.DummyInfrastructurePrincipal) *FakeCluster {
+	f.principal = name
+	return f
+}
+
 func (f *FakeCluster) Objs() []runtime.Object {
 	clusterInfrastructure := &fakeinfrastructure.DummyInfrastructureCluster{
 		TypeMeta: metav1.TypeMeta{
@@ -119,6 +125,7 @@ func (f *FakeCluster) Objs() []runtime.Object {
 	// Ensure the cluster gets a UID to be used by dependant objects for creating OwnerReferences.
 	setUID(cluster)
 
+	// Sets owner reference (and labels) for the cluster infrastructure
 	clusterInfrastructure.SetOwnerReferences([]metav1.OwnerReference{
 		{
 			APIVersion: cluster.APIVersion,
@@ -127,6 +134,15 @@ func (f *FakeCluster) Objs() []runtime.Object {
 			UID:        cluster.UID,
 		},
 	})
+	if f.principal != nil {
+		// if there is a principal, it should be owner of the clusterInfrastructure as well
+		clusterInfrastructure.OwnerReferences = append(clusterInfrastructure.OwnerReferences, metav1.OwnerReference{
+			APIVersion: f.principal.APIVersion,
+			Kind:       f.principal.Kind,
+			Name:       f.principal.Name,
+			UID:        f.principal.UID,
+		})
+	}
 	clusterInfrastructure.SetLabels(map[string]string{
 		clusterv1.ClusterLabelName: cluster.Name,
 	})
@@ -903,6 +919,22 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 	return objs
 }
 
+// NewInfrastructurePrincipal return a DummyInfrastructurePrincipal
+func NewInfrastructurePrincipal(name string) *fakeinfrastructure.DummyInfrastructurePrincipal {
+	principal := &fakeinfrastructure.DummyInfrastructurePrincipal{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: fakeinfrastructure.GroupVersion.String(),
+			Kind:       "DummyInfrastructurePrincipal",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	setUID(principal)
+
+	return principal
+}
+
 // setUID assigns a UID to the object, so test objects are uniquely identified.
 // NB. In order to make debugging easier we are using a human readable, deterministic string (instead of a random UID).
 func setUID(obj runtime.Object) {
@@ -915,7 +947,7 @@ func setUID(obj runtime.Object) {
 }
 
 // FakeCustomResourceDefinition returns a fake CRD object for the given group/versions/kind.
-func FakeCustomResourceDefinition(group string, kind string, versions ...string) *apiextensionslv1.CustomResourceDefinition {
+func FakeCustomResourceDefinition(group string, kind string, scope apiextensionslv1.ResourceScope, versions ...string) *apiextensionslv1.CustomResourceDefinition {
 	crd := &apiextensionslv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       apiextensionslv1.SchemeGroupVersion.String(),
@@ -932,6 +964,7 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 			Names: apiextensionslv1.CustomResourceDefinitionNames{
 				Kind: kind,
 			},
+			Scope: scope,
 		},
 	}
 
@@ -952,16 +985,17 @@ func FakeCRDList() []*apiextensionslv1.CustomResourceDefinition {
 	version := "v1alpha3"
 
 	return []*apiextensionslv1.CustomResourceDefinition{
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Cluster", version),
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Machine", version),
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
-		FakeCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", version),
-		FakeCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "DummyControlPlane", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureCluster", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureMachine", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureMachineTemplate", version),
-		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "DummyBootstrapConfig", version),
-		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "DummyBootstrapConfigTemplate", version),
+		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Cluster", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Machine", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "DummyControlPlane", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureCluster", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureMachine", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureMachineTemplate", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructurePrincipal", apiextensionslv1.ClusterScoped, version),
+		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "DummyBootstrapConfig", apiextensionslv1.NamespaceScoped, version),
+		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "DummyBootstrapConfigTemplate", apiextensionslv1.NamespaceScoped, version),
 	}
 }

@@ -68,10 +68,26 @@ type DummyInfrastructureMachineTemplateList struct {
 	Items           []DummyInfrastructureMachineTemplate `json:"items"`
 }
 
+// +kubebuilder:object:root=true
+
+type DummyInfrastructurePrincipal struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+type DummyInfrastructurePrincipalList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []DummyInfrastructureMachineTemplate `json:"items"`
+}
+
 func init() {
 	SchemeBuilder.Register(
 		&DummyInfrastructureCluster{}, &DummyInfrastructureClusterList{},
 		&DummyInfrastructureMachine{}, &DummyInfrastructureMachineList{},
 		&DummyInfrastructureMachineTemplate{}, &DummyInfrastructureMachineTemplateList{},
+		&DummyInfrastructurePrincipal{}, &DummyInfrastructurePrincipalList{},
 	)
 }

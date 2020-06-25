@@ -17,6 +17,8 @@ limitations under the License.
 package cluster
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -83,6 +85,10 @@ func (n *node) isSoftOwnedBy(other *node) bool {
 	return ok
 }
 
+func (n *node) isGlobal() bool {
+	return n.identity.Namespace == ""
+}
+
 // objectGraph manages the Kubernetes object graph that is generated during the discovery phase for the move operation.
 type objectGraph struct {
 	proxy     Proxy
@@ -98,7 +104,7 @@ func newObjectGraph(proxy Proxy) *objectGraph {
 
 // addObj adds a Kubernetes object to the object graph that is generated during the move discovery phase.
 // During add, OwnerReferences are processed in order to create the dependency graph.
-func (o *objectGraph) addObj(obj *unstructured.Unstructured) {
+func (o *objectGraph) addObj(obj *unstructured.Unstructured, types discoveryTypeMetas) {
 	// Adds the node to the Graph.
 	newNode := o.objToNode(obj)
 
@@ -106,7 +112,13 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) {
 	for _, ownerReference := range obj.GetOwnerReferences() {
 		ownerNode, ok := o.uidToNode[ownerReference.UID]
 		if !ok {
-			ownerNode = o.ownerToVirtualNode(ownerReference, newNode.identity.Namespace)
+			// When creating a virtual node, we are assuming it is the same namespace of the current obj
+			// unless the GVK of the virtual node is globally scoped.
+			namespace := newNode.identity.Namespace
+			if types.isTypeGlobal(ownerReference.APIVersion, ownerReference.Kind) {
+				namespace = ""
+			}
+			ownerNode = o.ownerToVirtualNode(ownerReference, namespace)
 		}
 
 		newNode.addOwner(ownerNode, ownerReferenceAttributes{
@@ -165,10 +177,28 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 	return newNode
 }
 
+// discoveryTypeMeta holds information about types to be considered during discovery
+type discoveryTypeMeta struct {
+	Kind       string
+	APIVersion string
+	Scope      apiextensionsv1.ResourceScope
+}
+
+type discoveryTypeMetas []discoveryTypeMeta
+
+func (t discoveryTypeMetas) isTypeGlobal(apiVersion, kind string) bool {
+	for _, t := range t {
+		if t.APIVersion == apiVersion && strings.TrimSuffix(t.Kind, "List") == kind {
+			return t.Scope == apiextensionsv1.ClusterScoped
+		}
+	}
+	return false
+}
+
 // getDiscoveryTypes returns the list of TypeMeta to be considered for the the move discovery phase.
 // This list includes all the types defines by the CRDs installed by clusterctl and the ConfigMap/Secret core types.
-func (o *objectGraph) getDiscoveryTypes() ([]metav1.TypeMeta, error) {
-	discoveredTypes := []metav1.TypeMeta{}
+func (o *objectGraph) getDiscoveryTypes() (discoveryTypeMetas, error) {
+	discoveredTypes := discoveryTypeMetas{}
 
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	getDiscoveryTypesBackoff := newReadBackoff()
@@ -184,18 +214,19 @@ func (o *objectGraph) getDiscoveryTypes() ([]metav1.TypeMeta, error) {
 				continue
 			}
 
-			discoveredTypes = append(discoveredTypes, metav1.TypeMeta{
+			discoveredTypes = append(discoveredTypes, discoveryTypeMeta{
 				Kind: crd.Spec.Names.Kind,
 				APIVersion: metav1.GroupVersion{
 					Group:   crd.Spec.Group,
 					Version: version.Name,
 				}.String(),
+				Scope: crd.Spec.Scope,
 			})
 		}
 	}
 
-	discoveredTypes = append(discoveredTypes, metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"})
-	discoveredTypes = append(discoveredTypes, metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"})
+	discoveredTypes = append(discoveredTypes, discoveryTypeMeta{Kind: "Secret", APIVersion: "v1", Scope: apiextensionsv1.NamespaceScoped})
+	discoveredTypes = append(discoveredTypes, discoveryTypeMeta{Kind: "ConfigMap", APIVersion: "v1", Scope: apiextensionsv1.NamespaceScoped})
 
 	return discoveredTypes, nil
 }
@@ -214,19 +245,20 @@ func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionLi
 
 // Discovery reads all the Kubernetes objects existing in a namespace (or in all namespaces if empty) for the types received in input, and then adds
 // everything to the objects graph.
-func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error {
+func (o *objectGraph) Discovery(namespace string, types discoveryTypeMetas) error {
 	log := logf.Log
 	log.Info("Discovering Cluster API objects")
-
-	selectors := []client.ListOption{}
-	if namespace != "" {
-		selectors = append(selectors, client.InNamespace(namespace))
-	}
 
 	discoveryBackoff := newReadBackoff()
 	for i := range types {
 		typeMeta := types[i]
 		objList := new(unstructured.UnstructuredList)
+
+		selectors := []client.ListOption{}
+		// adds namespace selector if the resource is NamespaceScoped and namespace value is not empty.
+		if typeMeta.Scope == apiextensionsv1.NamespaceScoped && namespace != "" {
+			selectors = append(selectors, client.InNamespace(namespace))
+		}
 
 		if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
 			return getObjList(o.proxy, typeMeta, selectors, objList)
@@ -241,7 +273,7 @@ func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error
 		log.V(5).Info(typeMeta.Kind, "Count", len(objList.Items))
 		for i := range objList.Items {
 			obj := objList.Items[i]
-			o.addObj(&obj)
+			o.addObj(&obj, types)
 		}
 	}
 
@@ -254,10 +286,13 @@ func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error
 	// Completes the graph by setting for each node the list of Clusters the node belong to.
 	o.setClusterTenants()
 
+	// Completes the graph by identifying cluster principals.
+	o.setClusterPrincipalsTenants()
+
 	return nil
 }
 
-func getObjList(proxy Proxy, typeMeta metav1.TypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
+func getObjList(proxy Proxy, typeMeta discoveryTypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
 	c, err := proxy.NewClient()
 	if err != nil {
 		return err
@@ -368,4 +403,50 @@ func (o *objectGraph) setClusterTenant(node, tenant *node) {
 			o.setClusterTenant(other, tenant)
 		}
 	}
+}
+
+// setClusterPrincipalsTenants sets the cluster tenants for the clusters principal.
+// NOTE: Cluster principals are defined as infrastructure specific objects, globally scoped;
+// In case a cluster principal is used, clusterctl discovery can rely on a OwnerReference on the
+// infrastructure cluster object for identifying the cluster principal
+func (o *objectGraph) setClusterPrincipalsTenants() {
+	for _, cluster := range o.getClusters() {
+		if infrastructureCluster := o.getInfrastructureCluster(cluster); infrastructureCluster != nil {
+			if principal := o.getPrincipal(infrastructureCluster); principal != nil {
+				principal.tenantClusters[cluster] = empty{}
+			}
+		}
+	}
+}
+
+// getInfrastructureCluster identifies the InfrastructureCluster object among all the nodes owned by a cluster.
+// NOTE: This assumes the infrastructure provider following a common naming convention.
+func (o *objectGraph) getInfrastructureCluster(cluster *node) *node {
+	for _, n := range o.getNodes() {
+		if !n.isOwnedBy(cluster) {
+			continue
+		}
+		if strings.HasSuffix(n.identity.Kind, "Cluster") {
+			return n
+		}
+	}
+	return nil
+}
+
+// getPrincipal identifies the Principal among all the nodes owned by a InfrastructureCluster.
+// NOTE: This assumes the infrastructure provider following a common naming convention.
+func (o *objectGraph) getPrincipal(infrastructureCluster *node) *node {
+	for _, n := range o.getNodes() {
+		if !n.isGlobal() {
+			continue
+		}
+		if !infrastructureCluster.isOwnedBy(n) {
+			continue
+		}
+
+		if strings.HasSuffix(n.identity.Kind, "Principal") {
+			return n
+		}
+	}
+	return nil
 }

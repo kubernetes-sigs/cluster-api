@@ -22,12 +22,12 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
@@ -39,7 +39,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    []metav1.TypeMeta
+		want    []discoveryTypeMeta
 		wantErr bool
 	}{
 		{
@@ -47,15 +47,17 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 			fields: fields{
 				proxy: test.NewFakeProxy().
 					WithObjs(
-						test.FakeCustomResourceDefinition("foo", "Bar", "v2", "v1"), // NB. foo/v1 Bar is not a storage version, so it should be ignored
-						test.FakeCustomResourceDefinition("foo", "Baz", "v1"),
+						test.FakeCustomResourceDefinition("foo", "Bar", apiextensionsv1.NamespaceScoped, "v2", "v1"), // NB. foo/v1 Bar is not a storage version, so it should be ignored
+						test.FakeCustomResourceDefinition("foo", "Baz", apiextensionsv1.NamespaceScoped, "v1"),
+						test.FakeCustomResourceDefinition("foo", "Qux", apiextensionsv1.ClusterScoped, "v1"),
 					),
 			},
-			want: []metav1.TypeMeta{
-				{APIVersion: "foo/v2", Kind: "Bar"},
-				{APIVersion: "foo/v1", Kind: "Baz"},
-				{APIVersion: "v1", Kind: "Secret"},
-				{APIVersion: "v1", Kind: "ConfigMap"},
+			want: []discoveryTypeMeta{
+				{APIVersion: "foo/v2", Kind: "Bar", Scope: apiextensionsv1.NamespaceScoped},
+				{APIVersion: "foo/v1", Kind: "Baz", Scope: apiextensionsv1.NamespaceScoped},
+				{APIVersion: "foo/v1", Kind: "Qux", Scope: apiextensionsv1.ClusterScoped},
+				{APIVersion: "v1", Kind: "Secret", Scope: apiextensionsv1.NamespaceScoped},
+				{APIVersion: "v1", Kind: "ConfigMap", Scope: apiextensionsv1.NamespaceScoped},
 			},
 			wantErr: false,
 		},
@@ -307,7 +309,7 @@ func TestObjectGraph_addObj(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			graph := newObjectGraph(nil)
 			for _, o := range tt.args.objs {
-				graph.addObj(o)
+				graph.addObj(o, nil)
 			}
 
 			assertGraph(t, graph, tt.want)
@@ -852,18 +854,92 @@ var objectGraphsTests = []struct {
 			},
 		},
 	},
+	{
+		name: "Two cluster with the same principal",
+		args: objectGraphTestArgs{
+			objs: func() []runtime.Object {
+				principal := test.NewInfrastructurePrincipal("principal")
+				objs := []runtime.Object{principal}
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithPrincipal(principal).Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster2").WithPrincipal(principal).Objs()...)
+				return objs
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructurePrincipal, /principal", // the principal should be owner of the infrastructure cluster
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster2": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
+						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructurePrincipal, /principal", // the principal should be owner of the infrastructure cluster
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster2-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2", //NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructurePrincipal, /principal": {},
+			},
+		},
+	},
 }
 
 func getDetachedObjectGraphWihObjs(objs []runtime.Object) (*objectGraph, error) {
+	types := getDetachedTypesList()
 	graph := newObjectGraph(nil) // detached from any cluster
 	for _, o := range objs {
 		u := &unstructured.Unstructured{}
 		if err := test.FakeScheme.Convert(o, u, nil); err != nil {
 			return nil, errors.Wrap(err, "failed to convert object in unstructured")
 		}
-		graph.addObj(u)
+		graph.addObj(u, types)
 	}
 	return graph, nil
+}
+
+func getDetachedTypesList() discoveryTypeMetas {
+	t := discoveryTypeMetas{}
+	for _, crd := range test.FakeCRDList() {
+		for _, version := range crd.Spec.Versions {
+			if !version.Storage {
+				continue
+			}
+			t = append(t, discoveryTypeMeta{
+				Kind: crd.Spec.Names.Kind,
+				APIVersion: metav1.GroupVersion{
+					Group:   crd.Spec.Group,
+					Version: version.Name,
+				}.String(),
+				Scope: crd.Spec.Scope,
+			})
+		}
+	}
+	t = append(t, discoveryTypeMeta{Kind: "Secret", APIVersion: "v1", Scope: apiextensionsv1.NamespaceScoped})
+	t = append(t, discoveryTypeMeta{Kind: "ConfigMap", APIVersion: "v1", Scope: apiextensionsv1.NamespaceScoped})
+	return t
 }
 
 func TestObjectGraph_addObj_WithFakeObjects(t *testing.T) {
@@ -901,7 +977,7 @@ func getFakeProxyWithCRDs() *test.FakeProxy {
 	return proxy
 }
 
-func getFakeDiscoveryTypes(graph *objectGraph) ([]metav1.TypeMeta, error) {
+func getFakeDiscoveryTypes(graph *objectGraph) ([]discoveryTypeMeta, error) {
 	discoveryTypes, err := graph.getDiscoveryTypes()
 	if err != nil {
 		return nil, err
@@ -1245,6 +1321,34 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Two cluster with the same principal",
+			fields: fields{
+				objs: func() []runtime.Object {
+					principal := test.NewInfrastructurePrincipal("principal")
+					objs := []runtime.Object{principal}
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithPrincipal(principal).Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster2").WithPrincipal(principal).Objs()...)
+					return objs
+				}(),
+			},
+			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
+					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructurePrincipal, /principal", // the principal should list both clusters as tenants
+				},
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2", // the cluster should be tenant of itself
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster2",
+					"/v1, Kind=Secret, ns1/cluster2-ca", // the ca secret is a soft owned
+					"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructurePrincipal, /principal", // the principal should list both clusters as tenants
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1256,8 +1360,11 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			// we want to check that soft dependent nodes are considered part of the cluster, so we make sure to call SetSoftDependants before SetClusterTenants
 			gb.setSoftOwnership()
 
-			// finally test SetClusterTenants
+			// SetClusterTenants
 			gb.setClusterTenants()
+
+			// we want to check that principal are considered part of the cluster, so we make sure to call setClusterPrincipalsTenants
+			gb.setClusterPrincipalsTenants()
 
 			gotClusters := gb.getClusters()
 			sort.Slice(gotClusters, func(i, j int) bool {

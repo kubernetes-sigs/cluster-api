@@ -356,6 +356,35 @@ var moveTests = []struct {
 			},
 		},
 	},
+	{
+		name: "Two cluster with the same principal",
+		fields: moveTestsFields{
+			objs: func() []runtime.Object {
+				principal := test.NewInfrastructurePrincipal("principal")
+				objs := []runtime.Object{principal}
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithPrincipal(principal).Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster2").WithPrincipal(principal).Objs()...)
+				return objs
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ //group 1
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructurePrincipal, /principal", // the principal should be moved before the infrastructure clusters
+			},
+			{ //group 2 (objects with ownerReferences in group 1)
+				// owned by Clusters
+				"/v1, Kind=Secret, ns1/cluster1-ca",
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+				"/v1, Kind=Secret, ns1/cluster2-ca",
+				"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster2",
+			},
+		},
+		wantErr: false,
+	},
 }
 
 func Test_getMoveSequence(t *testing.T) {

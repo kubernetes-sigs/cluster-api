@@ -34,8 +34,6 @@ import (
 
 // Helper is a utility for ensuring the proper patching of objects.
 type Helper struct {
-	opts *HelperOptions
-
 	client       client.Client
 	beforeObject runtime.Object
 	before       *unstructured.Unstructured
@@ -46,18 +44,12 @@ type Helper struct {
 }
 
 // NewHelper returns an initialized Helper
-func NewHelper(obj runtime.Object, crClient client.Client, opts ...Option) (*Helper, error) {
+func NewHelper(obj runtime.Object, crClient client.Client) (*Helper, error) {
 	// Return early if the object is nil.
 	// If you're wondering why we need reflection to do this check, see https://golang.org/doc/faq#nil_error.
 	// TODO(vincepri): Remove this check and let it panic if used improperly in a future minor release.
 	if obj == nil || (reflect.ValueOf(obj).IsValid() && reflect.ValueOf(obj).IsNil()) {
 		return nil, errors.Errorf("expected non-nil object")
-	}
-
-	// Calculate the options to pass to the helper.
-	options := &HelperOptions{}
-	for _, opt := range opts {
-		opt.ApplyToHelper(options)
 	}
 
 	// Convert the object to unstructured to compare against our before copy.
@@ -71,7 +63,6 @@ func NewHelper(obj runtime.Object, crClient client.Client, opts ...Option) (*Hel
 	_, canInterfaceConditions := obj.(conditions.Setter)
 
 	return &Helper{
-		opts:               options,
 		client:             crClient,
 		before:             unstructuredObj,
 		beforeObject:       obj.DeepCopyObject(),
@@ -80,9 +71,15 @@ func NewHelper(obj runtime.Object, crClient client.Client, opts ...Option) (*Hel
 }
 
 // Patch will attempt to patch the given object, including its status.
-func (h *Helper) Patch(ctx context.Context, obj runtime.Object) error {
+func (h *Helper) Patch(ctx context.Context, obj runtime.Object, opts ...Option) error {
 	if obj == nil {
 		return errors.Errorf("expected non-nil object")
+	}
+
+	// Calculate the options.
+	options := &HelperOptions{}
+	for _, opt := range opts {
+		opt.ApplyToHelper(options)
 	}
 
 	// Convert the object to unstructured to compare against our before copy.
@@ -94,7 +91,7 @@ func (h *Helper) Patch(ctx context.Context, obj runtime.Object) error {
 
 	// Determine if the object has status.
 	if unstructuredHasStatus(h.after) {
-		if h.opts.IncludeStatusObservedGeneration {
+		if options.IncludeStatusObservedGeneration {
 			// Set status.observedGeneration if we're asked to do so.
 			if err := unstructured.SetNestedField(h.after.Object, h.after.GetGeneration(), "status", "observedGeneration"); err != nil {
 				return err

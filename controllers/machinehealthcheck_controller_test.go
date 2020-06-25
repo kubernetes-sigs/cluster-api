@@ -307,15 +307,17 @@ var _ = Describe("MachineHealthCheck", func() {
 					targetMachines[i] = m.Name
 				}
 				// Make sure the status matches.
-				Eventually(func() int32 {
+				Eventually(func() *clusterv1.MachineHealthCheckStatus {
 					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 					if err != nil {
-						return -1
+						return nil
 					}
-					return mhc.Status.CurrentHealthy
-				}).Should(Equal(int32(2)))
-				Expect(mhc.Status.ExpectedMachines).To(Equal(int32(2)))
-				Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
+					return &mhc.Status
+				}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
+					ExpectedMachines: 2,
+					CurrentHealthy:   2,
+					Targets:          targetMachines},
+				))
 			})
 
 			Specify("when there is one unhealthy Machine", func() {
@@ -332,15 +334,17 @@ var _ = Describe("MachineHealthCheck", func() {
 				}
 
 				// Make sure the status matches.
-				Eventually(func() int32 {
+				Eventually(func() *clusterv1.MachineHealthCheckStatus {
 					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 					if err != nil {
-						return -1
+						return nil
 					}
-					return mhc.Status.CurrentHealthy
-				}).Should(Equal(int32(2)))
-				Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
-				Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
+					return &mhc.Status
+				}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+					ExpectedMachines: 3,
+					CurrentHealthy:   2,
+					Targets:          targetMachines,
+				}))
 			})
 
 			Specify("when the unhealthy Machines exceed MaxUnhealthy", func() {
@@ -359,15 +363,17 @@ var _ = Describe("MachineHealthCheck", func() {
 				}
 
 				// Make sure the status matches.
-				Eventually(func() int32 {
+				Eventually(func() *clusterv1.MachineHealthCheckStatus {
 					err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 					if err != nil {
-						return -1
+						return nil
 					}
-					return mhc.Status.CurrentHealthy
-				}).Should(Equal(int32(1)))
-				Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
-				Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
+					return &mhc.Status
+				}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+					ExpectedMachines: 3,
+					CurrentHealthy:   1,
+					Targets:          targetMachines},
+				))
 
 				// Calculate how many Machines have health check succeeded = false.
 				Eventually(func() (unhealthy int) {
@@ -421,15 +427,17 @@ var _ = Describe("MachineHealthCheck", func() {
 			}
 
 			// Make sure the status matches.
-			Eventually(func() int32 {
+			Eventually(func() *clusterv1.MachineHealthCheckStatus {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return -1
+					return nil
 				}
-				return mhc.Status.CurrentHealthy
-			}).Should(Equal(int32(2)))
-			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
-			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
+				return &mhc.Status
+			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+				ExpectedMachines: 3,
+				CurrentHealthy:   2,
+				Targets:          targetMachines},
+			))
 
 			// Calculate how many Machines have health check succeeded = false.
 			Eventually(func() (unhealthy int) {
@@ -483,15 +491,17 @@ var _ = Describe("MachineHealthCheck", func() {
 			}
 
 			// Make sure the status matches.
-			Eventually(func() int32 {
+			Eventually(func() *clusterv1.MachineHealthCheckStatus {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return -1
+					return nil
 				}
-				return mhc.Status.CurrentHealthy
-			}).Should(Equal(int32(2)))
-			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
-			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
+				return &mhc.Status
+			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+				ExpectedMachines: 3,
+				CurrentHealthy:   2,
+				Targets:          targetMachines},
+			))
 
 			// Calculate how many Machines have health check succeeded = false.
 			Eventually(func() (unhealthy int) {
@@ -551,15 +561,17 @@ var _ = Describe("MachineHealthCheck", func() {
 			}).Should(BeTrue())
 
 			// Make sure the status matches.
-			Eventually(func() int32 {
+			Eventually(func() *clusterv1.MachineHealthCheckStatus {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return -1
+					return nil
 				}
-				return mhc.Status.CurrentHealthy
-			}).Should(Equal(int32(2)))
-			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(3)))
-			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
+				return &mhc.Status
+			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+				ExpectedMachines: 3,
+				CurrentHealthy:   2,
+				Targets:          targetMachines},
+			))
 
 			// Calculate how many Machines have health check succeeded = false.
 			Eventually(func() (unhealthy int) {
@@ -610,15 +622,17 @@ var _ = Describe("MachineHealthCheck", func() {
 			}
 
 			// Make sure the status matches.
-			Eventually(func() int32 {
+			Eventually(func() *clusterv1.MachineHealthCheckStatus {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return -1
+					return nil
 				}
-				return mhc.Status.CurrentHealthy
-			}).Should(Equal(int32(1)))
-			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(1)))
-			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
+				return &mhc.Status
+			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+				ExpectedMachines: 1,
+				CurrentHealthy:   1,
+				Targets:          targetMachines},
+			))
 
 			// Transition the node to unhealthy.
 			node := nodes[0]
@@ -633,15 +647,17 @@ var _ = Describe("MachineHealthCheck", func() {
 			Expect(testEnv.Status().Patch(ctx, node, nodePatch)).To(Succeed())
 
 			// Make sure the status matches.
-			Eventually(func() int32 {
+			Eventually(func() *clusterv1.MachineHealthCheckStatus {
 				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
 				if err != nil {
-					return -1
+					return nil
 				}
-				return mhc.Status.CurrentHealthy
-			}).Should(Equal(int32(0)))
-			Expect(mhc.Status.ExpectedMachines).To(Equal(int32(1)))
-			Expect(mhc.Status.Targets).To(ConsistOf(targetMachines))
+				return &mhc.Status
+			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+				ExpectedMachines: 1,
+				CurrentHealthy:   0,
+				Targets:          targetMachines},
+			))
 
 			// Calculate how many Machines have health check succeeded = false.
 			Eventually(func() (unhealthy int) {

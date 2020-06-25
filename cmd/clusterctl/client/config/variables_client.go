@@ -16,8 +16,6 @@ limitations under the License.
 
 package config
 
-import "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-
 const (
 	// GitHubTokenVariable defines a variable hosting the GitHub access token
 	GitHubTokenVariable = "github-token"
@@ -34,9 +32,6 @@ type VariablesClient interface {
 	// e.g. It is used to set an override from a flag value over environment/config file variables.
 	Set(key, values string)
 }
-
-// Ensures the FakeVariableClient implements VariablesClient
-var _ VariablesClient = &test.FakeVariableClient{}
 
 // variablesClient implements VariablesClient.
 type variablesClient struct {

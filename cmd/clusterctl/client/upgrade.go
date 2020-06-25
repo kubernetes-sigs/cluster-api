@@ -33,7 +33,7 @@ type PlanUpgradeOptions struct {
 
 func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
-	cluster, err := c.clusterClientFactory(options.Kubeconfig)
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ type ApplyUpgradeOptions struct {
 
 func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	// Get the client for interacting with the management cluster.
-	clusterClient, err := c.clusterClientFactory(options.Kubeconfig)
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}

@@ -21,10 +21,12 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
@@ -69,11 +71,13 @@ func Test_componentsClient_Get(t *testing.T) {
 	type fields struct {
 		provider   config.Provider
 		repository Repository
+		processor  yaml.Processor
 	}
 	type args struct {
 		version           string
 		targetNamespace   string
 		watchingNamespace string
+		skipVariables     bool
 	}
 	type want struct {
 		provider          config.Provider
@@ -90,7 +94,7 @@ func Test_componentsClient_Get(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Pass",
+			name: "successfully gets the components",
 			fields: fields{
 				provider: p1,
 				repository: test.NewFakeRepository().
@@ -102,6 +106,30 @@ func Test_componentsClient_Get(t *testing.T) {
 				version:           "v1.0.0",
 				targetNamespace:   "",
 				watchingNamespace: "",
+			},
+			want: want{
+				provider:          p1,
+				version:           "v1.0.0",      // version detected
+				targetNamespace:   namespaceName, // default targetNamespace detected
+				watchingNamespace: "",
+				variables:         []string{variableName}, // variable detected
+			},
+			wantErr: false,
+		},
+		{
+			name: "successfully gets the components even with SkipVariables defined",
+			fields: fields{
+				provider: p1,
+				repository: test.NewFakeRepository().
+					WithPaths("root", "components.yaml").
+					WithDefaultVersion("v1.0.0").
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
+			},
+			args: args{
+				version:           "v1.0.0",
+				targetNamespace:   "",
+				watchingNamespace: "",
+				skipVariables:     true,
 			},
 			want: want{
 				provider:          p1,
@@ -228,6 +256,41 @@ func Test_componentsClient_Get(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Fails if yaml processor cannot get Variables",
+			fields: fields{
+				provider: p1,
+				repository: test.NewFakeRepository().
+					WithPaths("root", "components.yaml").
+					WithDefaultVersion("v1.0.0").
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
+				processor: test.NewFakeProcessor().WithGetVariablesErr(errors.New("cannot get vars")),
+			},
+			args: args{
+				version:           "v1.0.0",
+				targetNamespace:   "default",
+				watchingNamespace: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if yaml processor cannot process the raw yaml",
+			fields: fields{
+				provider: p1,
+				repository: test.NewFakeRepository().
+					WithPaths("root", "components.yaml").
+					WithDefaultVersion("v1.0.0").
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
+
+				processor: test.NewFakeProcessor().WithProcessErr(errors.New("cannot process")),
+			},
+			args: args{
+				version:           "v1.0.0",
+				targetNamespace:   "default",
+				watchingNamespace: "",
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -237,8 +300,12 @@ func Test_componentsClient_Get(t *testing.T) {
 				Version:           tt.args.version,
 				TargetNamespace:   tt.args.targetNamespace,
 				WatchingNamespace: tt.args.watchingNamespace,
+				SkipVariables:     tt.args.skipVariables,
 			}
 			f := newComponentsClient(tt.fields.provider, tt.fields.repository, configClient)
+			if tt.fields.processor != nil {
+				f.processor = tt.fields.processor
+			}
 			got, err := f.Get(options)
 			if tt.wantErr {
 				gs.Expect(err).To(HaveOccurred())
@@ -259,8 +326,16 @@ func Test_componentsClient_Get(t *testing.T) {
 				return
 			}
 
-			if len(tt.want.variables) > 0 {
+			if !tt.args.skipVariables && len(tt.want.variables) > 0 {
 				gs.Expect(yaml).To(ContainSubstring(variableValue))
+			}
+
+			// Verify that when SkipVariables is set we have all the variables
+			// in the template without the values processed.
+			if tt.args.skipVariables {
+				for _, v := range tt.want.variables {
+					gs.Expect(yaml).To(ContainSubstring(v))
+				}
 			}
 
 			for _, o := range got.InstanceObjs() {

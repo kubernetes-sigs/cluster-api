@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
@@ -69,24 +70,35 @@ func (t *template) Yaml() ([]byte, error) {
 	return utilyaml.FromUnstructured(t.objs)
 }
 
+type TemplateInput struct {
+	RawArtifact           []byte
+	ConfigVariablesClient config.VariablesClient
+	Processor             yaml.Processor
+	TargetNamespace       string
+	ListVariablesOnly     bool
+}
+
 // NewTemplate returns a new objects embedding a cluster template YAML file.
-func NewTemplate(rawYaml []byte, configVariablesClient config.VariablesClient, targetNamespace string, listVariablesOnly bool) (*template, error) {
-	// Inspect variables and replace with values from the configuration.
-	variables := inspectVariables(rawYaml)
-	if listVariablesOnly {
+func NewTemplate(input TemplateInput) (*template, error) {
+	variables, err := input.Processor.GetVariables(input.RawArtifact)
+	if err != nil {
+		return nil, err
+	}
+
+	if input.ListVariablesOnly {
 		return &template{
 			variables:       variables,
-			targetNamespace: targetNamespace,
+			targetNamespace: input.TargetNamespace,
 		}, nil
 	}
 
-	yaml, err := replaceVariables(rawYaml, variables, configVariablesClient, false)
+	processedYaml, err := input.Processor.Process(input.RawArtifact, input.ConfigVariablesClient.Get)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to perform variable substitution")
+		return nil, err
 	}
 
 	// Transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes).
-	objs, err := utilyaml.ToUnstructured(yaml)
+	objs, err := utilyaml.ToUnstructured(processedYaml)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse yaml")
 	}
@@ -94,11 +106,11 @@ func NewTemplate(rawYaml []byte, configVariablesClient config.VariablesClient, t
 	// Ensures all the template components are deployed in the target namespace (applies only to namespaced objects)
 	// This is required in order to ensure a cluster and all the related objects are in a single namespace, that is a requirement for
 	// the clusterctl move operation (and also for many controller reconciliation loops).
-	objs = fixTargetNamespace(objs, targetNamespace)
+	objs = fixTargetNamespace(objs, input.TargetNamespace)
 
 	return &template{
 		variables:       variables,
-		targetNamespace: targetNamespace,
+		targetNamespace: input.TargetNamespace,
 		objs:            objs,
 	}, nil
 }

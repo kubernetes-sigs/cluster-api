@@ -24,6 +24,12 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
+// Ensures FakeReader implements the Reader interface.
+var _ Reader = &test.FakeReader{}
+
+// Ensures the FakeVariableClient implements VariablesClient
+var _ VariablesClient = &test.FakeVariableClient{}
+
 func Test_variables_Get(t *testing.T) {
 	reader := test.NewFakeReader().WithVar("foo", "bar")
 

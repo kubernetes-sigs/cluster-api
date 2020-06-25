@@ -24,6 +24,7 @@ import (
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
@@ -68,6 +69,60 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 
 			var expected *localRepository
 			gs.Expect(repoClient.repository).To(BeAssignableToTypeOf(expected))
+		})
+	}
+}
+
+func Test_newRepositoryClient_YamlProcesor(t *testing.T) {
+	tests := []struct {
+		name   string
+		opts   []Option
+		assert func(*WithT, yaml.Processor)
+	}{
+		{
+			name: "it creates a repository client with simple yaml processor by default",
+			assert: func(g *WithT, p yaml.Processor) {
+				_, ok := (p).(*yaml.SimpleProcessor)
+				g.Expect(ok).To(BeTrue())
+			},
+		},
+		{
+			name: "it creates a repository client with specified yaml processor",
+			opts: []Option{InjectYamlProcessor(test.NewFakeProcessor())},
+			assert: func(g *WithT, p yaml.Processor) {
+				_, ok := (p).(*yaml.SimpleProcessor)
+				g.Expect(ok).To(BeFalse())
+				_, ok = (p).(*test.FakeProcessor)
+				g.Expect(ok).To(BeTrue())
+			},
+		},
+		{
+			name: "it creates a repository with simple yaml processor even if injected with nil processor",
+			opts: []Option{InjectYamlProcessor(nil)},
+			assert: func(g *WithT, p yaml.Processor) {
+				g.Expect(p).ToNot(BeNil())
+				_, ok := (p).(*yaml.SimpleProcessor)
+				g.Expect(ok).To(BeTrue())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			configProvider := config.NewProvider("fakeProvider", "", clusterctlv1.CoreProviderType)
+			configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
+			g.Expect(err).NotTo(HaveOccurred())
+
+			tt.opts = append(tt.opts, InjectRepository(test.NewFakeRepository()))
+
+			repoClient, err := newRepositoryClient(
+				configProvider,
+				configClient,
+				tt.opts...,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			tt.assert(g, repoClient.processor)
 		})
 	}
 }

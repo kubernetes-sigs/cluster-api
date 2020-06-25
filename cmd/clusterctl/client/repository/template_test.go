@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
@@ -39,6 +40,7 @@ func Test_newTemplate(t *testing.T) {
 	type args struct {
 		rawYaml               []byte
 		configVariablesClient config.VariablesClient
+		processor             yaml.Processor
 		targetNamespace       string
 		listVariablesOnly     bool
 	}
@@ -57,6 +59,7 @@ func Test_newTemplate(t *testing.T) {
 			args: args{
 				rawYaml:               templateMapYaml,
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
+				processor:             yaml.NewSimpleProcessor(),
 				targetNamespace:       "ns1",
 				listVariablesOnly:     false,
 			},
@@ -71,6 +74,7 @@ func Test_newTemplate(t *testing.T) {
 			args: args{
 				rawYaml:               templateMapYaml,
 				configVariablesClient: test.NewFakeVariableClient(),
+				processor:             yaml.NewSimpleProcessor(),
 				targetNamespace:       "ns1",
 				listVariablesOnly:     true,
 			},
@@ -85,7 +89,13 @@ func Test_newTemplate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := NewTemplate(tt.args.rawYaml, tt.args.configVariablesClient, tt.args.targetNamespace, tt.args.listVariablesOnly)
+			got, err := NewTemplate(TemplateInput{
+				RawArtifact:           tt.args.rawYaml,
+				ConfigVariablesClient: tt.args.configVariablesClient,
+				Processor:             tt.args.processor,
+				TargetNamespace:       tt.args.targetNamespace,
+				ListVariablesOnly:     tt.args.listVariablesOnly,
+			})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 )
 
 // Alias creates local aliases for types defined in the low-level libraries.
@@ -42,3 +43,7 @@ type UpgradePlan cluster.UpgradePlan
 
 // Kubeconfig is a type that specifies inputs related to the actual kubeconfig.
 type Kubeconfig cluster.Kubeconfig
+
+// Processor defines the methods necessary for creating a specific yaml
+// processor.
+type Processor yaml.Processor

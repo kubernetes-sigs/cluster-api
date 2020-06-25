@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -278,10 +279,18 @@ func TestMachineOwnerReference(t *testing.T) {
 				scheme: scheme.Scheme,
 			}
 
-			_, _ = mr.Reconcile(tc.request)
-
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual clusterv1.Machine
+
+			// this first requeue is to add finalizer
+			result, err := mr.Reconcile(tc.request)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(result).To(Equal(ctrl.Result{}))
+			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
+			g.Expect(actual.Finalizers).To(ContainElement(clusterv1.MachineFinalizer))
+
+			_, _ = mr.Reconcile(tc.request)
+
 			if len(tc.expectedOR) > 0 {
 				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 				g.Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))

@@ -81,6 +81,10 @@ type DockerMachineStatus struct {
 	// +optional
 	LoadBalancerConfigured bool `json:"loadBalancerConfigured,omitempty"`
 
+	// Addresses contains the associated addresses for the docker machine.
+	// +optional
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+
 	// Conditions defines current service state of the DockerMachine.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`

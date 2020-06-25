@@ -104,6 +104,15 @@ func (m *Machine) ProviderID() string {
 	return fmt.Sprintf("docker:////%s", m.ContainerName())
 }
 
+func (m *Machine) Address(ctx context.Context) (string, error) {
+	ipv4, _, err := m.container.IP(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return ipv4, nil
+}
+
 // Create creates a docker container hosting a Kubernetes node.
 func (m *Machine) Create(ctx context.Context, role string, version *string, mounts []infrav1.Mount) error {
 	// Create if not exists.

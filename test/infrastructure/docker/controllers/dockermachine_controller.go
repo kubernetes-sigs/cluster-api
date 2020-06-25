@@ -267,6 +267,28 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	// Update the BootstrapExecSucceededCondition condition
 	conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
 
+	// set address in machine status
+	machineAddress, err := externalMachine.Address(ctx)
+	if err != nil {
+		r.Log.Error(err, "failed to get the machine address")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	dockerMachine.Status.Addresses = []clusterv1.MachineAddress{
+		{
+			Type:    clusterv1.MachineHostName,
+			Address: externalMachine.ContainerName(),
+		},
+		{
+			Type:    clusterv1.MachineInternalIP,
+			Address: machineAddress,
+		},
+		{
+			Type:    clusterv1.MachineExternalIP,
+			Address: machineAddress,
+		},
+	}
+
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.
 	// Requeue if there is an error, as this is likely momentary load balancer
 	// state changes during control plane provisioning.

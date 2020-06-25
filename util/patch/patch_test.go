@@ -530,14 +530,14 @@ var _ = Describe("Patch Helper", func() {
 			}()
 
 			By("Creating a new patch helper")
-			patcher, err := NewHelper(obj, testEnv, WithStatusObservedGeneration{})
+			patcher, err := NewHelper(obj, testEnv)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Updating the object spec")
 			obj.Spec.Replicas = pointer.Int32Ptr(10)
 
 			By("Patching the object")
-			Expect(patcher.Patch(ctx, obj)).To(Succeed())
+			Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
 
 			By("Validating the object has been updated")
 			Eventually(func() bool {
@@ -562,7 +562,7 @@ var _ = Describe("Patch Helper", func() {
 			}()
 
 			By("Creating a new patch helper")
-			patcher, err := NewHelper(obj, testEnv, WithStatusObservedGeneration{})
+			patcher, err := NewHelper(obj, testEnv)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Updating the object spec")
@@ -578,7 +578,7 @@ var _ = Describe("Patch Helper", func() {
 			}
 
 			By("Patching the object")
-			Expect(patcher.Patch(ctx, obj)).To(Succeed())
+			Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
 
 			By("Validating the object has been updated")
 			Eventually(func() bool {
@@ -607,11 +607,11 @@ var _ = Describe("Patch Helper", func() {
 			Expect(testEnv.Status().Update(ctx, obj))
 
 			By("Creating a new patch helper")
-			patcher, err := NewHelper(obj, testEnv, WithStatusObservedGeneration{})
+			patcher, err := NewHelper(obj, testEnv)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Patching the object")
-			Expect(patcher.Patch(ctx, obj)).To(Succeed())
+			Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
 
 			By("Validating the object has been updated")
 			Eventually(func() bool {

@@ -292,6 +292,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
 	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef())
 
+	if result, err := r.remediateUnhealthy(ctx, logger, controlPlane); err != nil || !result.IsZero() {
+		return ctrl.Result{}, err
+	}
+
+	if result, err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
+
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
 	needRollout := controlPlane.MachinesNeedingRollout()
 	switch {
@@ -425,6 +433,10 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 // It removes any etcd members that do not have a corresponding node.
 // Also, as a final step, checks if there is any machines that is being deleted.
 func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	if controlPlane.Machines.Len() == 0 {
+		return ctrl.Result{}, nil
+	}
+
 	logger := controlPlane.Logger()
 
 	// Do a health check of the Control Plane components
@@ -573,4 +585,53 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 	}
 
 	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) remediateUnhealthy(ctx context.Context, logger logr.Logger, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	if !controlPlane.RemediationAllowed() || !controlPlane.HasUnhealthyMachine() || controlPlane.Machines.Len() < int(*controlPlane.KCP.Spec.Replicas) {
+		return ctrl.Result{}, nil
+	}
+
+	if controlPlane.HasDeletingMachine() {
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(controlPlane.Cluster))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to create workload cluster client")
+	}
+
+	etcdStatus, err := workloadCluster.EtcdStatus(ctx)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to fetch etcd status")
+	}
+
+	if etcdStatus.FailureTolerance() == 0 {
+		logger.Info("refusing to remediate unhealthy machines, cluster has no failure tolerance")
+		return ctrl.Result{}, nil
+	}
+
+	machine := controlPlane.UnhealthyMachines().Oldest()
+
+	logger.Info("remediating unhealthy machine",
+		"machine", machine.Name,
+		"reason", conditions.GetReason(machine, clusterv1.MachineHealthCheckSuccededCondition),
+		"message", conditions.GetMessage(machine, clusterv1.MachineHealthCheckSuccededCondition),
+	)
+
+	if err := r.Client.Delete(ctx, machine); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to delete unhealthy machine")
+	}
+
+	patchHelper, err := patch.NewHelper(machine, r.Client)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to initialize patch helper")
+	}
+
+	conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
+	if err := patchHelper.Patch(ctx, machine); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to patch unhealthy machine")
+	}
+
+	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 }

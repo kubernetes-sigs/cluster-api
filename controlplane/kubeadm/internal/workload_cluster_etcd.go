@@ -289,3 +289,37 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 	}
 	return nil
 }
+
+// EtcdStatus returns the current status of the etcd cluster
+func (w *Workload) EtcdStatus(ctx context.Context) (EtcdStatus, error) {
+	nodes, err := w.getControlPlaneNodes(ctx)
+	if err != nil {
+		return EtcdStatus{}, errors.Wrap(err, "failed to list control plane nodes")
+	}
+
+	etcdClient, err := w.etcdClientGenerator.forNodes(ctx, nodes.Items)
+	if err != nil {
+		return EtcdStatus{}, errors.Wrap(err, "failed to create etcd client")
+	}
+
+	members, err := etcdClient.Members(ctx)
+	if err != nil {
+		return EtcdStatus{}, errors.Wrap(err, "failed to list etcd members using etcd client")
+	}
+
+	return EtcdStatus{
+		Members: members,
+	}, nil
+}
+
+// EtcdStatus is a snapshot of the etcd cluster's status
+type EtcdStatus struct {
+	Members []*etcd.Member
+}
+
+// FailureTolerance is the amount of members the etcd cluster can afford to
+// lose without losing quorum.
+// Ref: https://github.com/etcd-io/etcd/blob/master/Documentation/faq.md#what-is-failure-tolerance
+func (e *EtcdStatus) FailureTolerance() int {
+	return len(e.Members) - (len(e.Members)/2.0 + 1)
+}

@@ -387,3 +387,20 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 		machineConfig.Spec.JoinConfiguration.TypeMeta = kcpConfig.JoinConfiguration.TypeMeta
 	}
 }
+
+// NeedsRemediation returns whether the machine has the
+// MachineOwnerRemediatedCondition set to false.
+func NeedsRemediation(m *clusterv1.Machine) bool {
+	return conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
+}
+
+// IsProvisioning returns whether the machine is missing its NodeRef or does
+// not have InfrastructureReady set to true.
+func IsProvisioning(m *clusterv1.Machine) bool {
+	return m.Status.NodeRef == nil || !m.Status.InfrastructureReady
+}
+
+// IsFailed returns whether the machine has a FailureMessage or a FailureReason.
+func IsFailed(m *clusterv1.Machine) bool {
+	return m.Status.FailureMessage != nil || m.Status.FailureReason != nil
+}

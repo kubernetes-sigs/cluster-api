@@ -81,7 +81,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 }
 
 func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
-	t.Run("creates a control plane Machine if health checks pass", func(t *testing.T) {
+	t.Run("creates a control plane Machine", func(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
@@ -121,71 +121,6 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(3))
-	})
-	t.Run("does not create a control plane Machine if health checks fail", func(t *testing.T) {
-		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
-		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
-
-		beforeMachines := internal.NewFilterableMachineCollection()
-		for i := 0; i < 2; i++ {
-			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster.DeepCopy(), kcp.DeepCopy(), true)
-			beforeMachines.Insert(m)
-			initObjs = append(initObjs, m.DeepCopy())
-		}
-
-		testCases := []struct {
-			name                  string
-			etcdUnHealthy         bool
-			controlPlaneUnHealthy bool
-		}{
-			{
-				name:          "etcd health check fails",
-				etcdUnHealthy: true,
-			},
-			{
-				name:                  "controlplane component health check fails",
-				controlPlaneUnHealthy: true,
-			},
-		}
-		for _, tc := range testCases {
-			g := NewWithT(t)
-
-			fakeClient := newFakeClient(g, initObjs...)
-			fmc := &fakeManagementCluster{
-				Machines:            beforeMachines.DeepCopy(),
-				ControlPlaneHealthy: !tc.controlPlaneUnHealthy,
-				EtcdHealthy:         !tc.etcdUnHealthy,
-			}
-
-			r := &KubeadmControlPlaneReconciler{
-				Client:                    fakeClient,
-				managementCluster:         fmc,
-				managementClusterUncached: fmc,
-				Log:                       log.Log,
-				recorder:                  record.NewFakeRecorder(32),
-			}
-			controlPlane := &internal.ControlPlane{
-				KCP:      kcp,
-				Cluster:  cluster,
-				Machines: beforeMachines,
-			}
-
-			result, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), controlPlane)
-			g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}))
-			g.Expect(err).To(BeNil())
-
-			controlPlaneMachines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())
-			g.Expect(controlPlaneMachines.Items).To(HaveLen(len(beforeMachines)))
-
-			endMachines := internal.NewFilterableMachineCollectionFromMachineList(controlPlaneMachines)
-			for _, m := range endMachines {
-				bm, ok := beforeMachines[m.Name]
-				bm.SetResourceVersion("1")
-				g.Expect(ok).To(BeTrue())
-				g.Expect(m).To(Equal(bm))
-			}
-		}
 	})
 }
 

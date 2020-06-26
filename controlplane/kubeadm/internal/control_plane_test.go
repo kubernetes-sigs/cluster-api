@@ -29,6 +29,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestControlPlane(t *testing.T) {
@@ -106,6 +107,18 @@ var _ = Describe("Control Plane", func() {
 	})
 })
 
+func TestUnhealthyMachines(t *testing.T) {
+	g := NewWithT(t)
+	kcp := &controlplanev1.KubeadmControlPlane{}
+	cp := &ControlPlane{KCP: kcp}
+	cp.Machines = NewFilterableMachineCollection(
+		machine("1", withNeedsRemediationCondition()),
+		machine("2", withNodeRef(), withInfrastructureReady()),
+		machine("3"),
+	)
+	g.Expect(cp.UnhealthyMachines().Names()).To(ConsistOf("1"))
+}
+
 func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
 	return clusterv1.FailureDomainSpec{
 		ControlPlane: controlPlane,
@@ -115,5 +128,23 @@ func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
 func withFailureDomain(fd string) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.Spec.FailureDomain = &fd
+	}
+}
+
+func withNeedsRemediationCondition() machineOpt {
+	return func(m *clusterv1.Machine) {
+		conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, "some reason", "some severity", "")
+	}
+}
+
+func withNodeRef() machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Status.NodeRef = &corev1.ObjectReference{}
+	}
+}
+
+func withInfrastructureReady() machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Status.InfrastructureReady = true
 	}
 }

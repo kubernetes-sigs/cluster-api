@@ -59,6 +59,7 @@ type WorkloadCluster interface {
 	ClusterStatus(ctx context.Context) (ClusterStatus, error)
 	ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult, error)
 	EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
+	EtcdStatus(ctx context.Context) (EtcdStatus, error)
 
 	// Upgrade related tasks.
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error

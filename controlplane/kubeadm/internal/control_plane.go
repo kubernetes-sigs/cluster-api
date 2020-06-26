@@ -34,6 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// MachineHealthCheck remediation is only supported on clusters with >= 3 machines to avoid disrupting etcd consensus
+const minimumClusterSizeForRemediation = 3
+
 // ControlPlane holds business logic around control planes.
 // It should never need to connect to a service, that responsibility lies outside of this struct.
 // Going forward we should be trying to add more logic to here and reduce the amount of logic in the reconciler.
@@ -242,6 +245,21 @@ func (c *ControlPlane) MachinesNeedingRollout() FilterableMachineCollection {
 // plane's configuration and therefore do not require rollout.
 func (c *ControlPlane) UpToDateMachines() FilterableMachineCollection {
 	return c.Machines.Difference(c.MachinesNeedingRollout())
+}
+
+// RemediationAllowed returns whether the cluster is large enough to support MHC remediation.
+// Clusters < minimumClusterSizeForRemediation do not have sufficient etcd failure tolerance.
+func (c *ControlPlane) RemediationAllowed() bool {
+	return c.Machines.Len() >= minimumClusterSizeForRemediation
+}
+
+// UnhealthyMachines returns the machines that need remediation.
+func (c *ControlPlane) UnhealthyMachines() FilterableMachineCollection {
+	return c.Machines.Filter(machinefilters.NeedsRemediation)
+}
+
+func (c *ControlPlane) HasUnhealthyMachine() bool {
+	return c.UnhealthyMachines().Len() > 0
 }
 
 // getInfraResources fetches the external infrastructure resource for each machine in the collection and returns a map of machine.Name -> infraResource.

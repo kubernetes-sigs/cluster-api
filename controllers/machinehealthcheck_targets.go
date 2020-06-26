@@ -96,13 +96,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	now := time.Now()
 
 	if t.Machine.Status.FailureReason != nil {
-		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailure, clusterv1.ConditionSeverityWarning, "FailureReason: %v", t.Machine.Status.FailureReason)
+		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailure, clusterv1.ConditionSeverityWarning, "FailureReason: %v", *t.Machine.Status.FailureReason)
 		logger.V(3).Info("Target is unhealthy", "failureReason", t.Machine.Status.FailureReason)
 		return true, time.Duration(0)
 	}
 
 	if t.Machine.Status.FailureMessage != nil {
-		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailure, clusterv1.ConditionSeverityWarning, "FailureMessage: %v", t.Machine.Status.FailureMessage)
+		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailure, clusterv1.ConditionSeverityWarning, "FailureMessage: %v", *t.Machine.Status.FailureMessage)
 		logger.V(3).Info("Target is unhealthy", "failureMessage", t.Machine.Status.FailureMessage)
 		return true, time.Duration(0)
 	}

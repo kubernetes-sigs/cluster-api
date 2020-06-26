@@ -86,15 +86,6 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	bothMachines := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(context.Background(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(bothMachines.Items).To(HaveLen(2))
-
-	// run upgrade a second time, simulate that the node has not appeared yet but the machine exists
-	r.managementCluster.(*fakeManagementCluster).ControlPlaneHealthy = false
-	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, controlPlane, needingUpgrade)
-	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}))
-	g.Expect(err).To(BeNil())
-	g.Expect(fakeClient.List(context.Background(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
-	g.Expect(bothMachines.Items).To(HaveLen(2))
-
 	controlPlane.Machines = internal.NewFilterableMachineCollectionFromMachineList(bothMachines)
 
 	// manually increase number of nodes, make control plane healthy again

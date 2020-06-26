@@ -563,3 +563,27 @@ func defaultMachine(transforms ...func(m *clusterv1.Machine)) *clusterv1.Machine
 	}
 	return m
 }
+
+func TestEtcdStatusFailureTolerance(t *testing.T) {
+	g := NewWithT(t)
+	status := EtcdStatus{
+		Members: []*etcd.Member{
+			{
+				Name: "1",
+			},
+		},
+	}
+	g.Expect(status.FailureTolerance()).To(Equal(0))
+	status.Members = append(status.Members, &etcd.Member{Name: "2"})
+	g.Expect(status.FailureTolerance()).To(Equal(0))
+	status.Members = append(status.Members, &etcd.Member{Name: "3"})
+	g.Expect(status.FailureTolerance()).To(Equal(1))
+	status.Members = append(status.Members, &etcd.Member{Name: "4"})
+	g.Expect(status.FailureTolerance()).To(Equal(1))
+	status.Members = append(status.Members, &etcd.Member{Name: "5"})
+	g.Expect(status.FailureTolerance()).To(Equal(2))
+	status.Members = append(status.Members, &etcd.Member{Name: "6"})
+	g.Expect(status.FailureTolerance()).To(Equal(2))
+	status.Members = append(status.Members, &etcd.Member{Name: "7"})
+	g.Expect(status.FailureTolerance()).To(Equal(3))
+}

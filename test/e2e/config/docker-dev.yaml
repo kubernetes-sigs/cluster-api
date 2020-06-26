@@ -48,6 +48,8 @@ providers:
       new: "imagePullPolicy: IfNotPresent"
     - old: "--enable-leader-election"
       new: "--enable-leader-election=false"
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
 
 - name: kubeadm
   type: BootstrapProvider
@@ -60,6 +62,8 @@ providers:
       new: "imagePullPolicy: IfNotPresent"
     - old: "--enable-leader-election"
       new: "--enable-leader-election=false"
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -72,6 +76,8 @@ providers:
       new: "imagePullPolicy: IfNotPresent"
     - old: "--enable-leader-election"
       new: "--enable-leader-election=false"
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
 
 - name: docker
   type: InfrastructureProvider
@@ -84,6 +90,8 @@ providers:
       new: "imagePullPolicy: IfNotPresent"
     - old: "--enable-leader-election"
       new: "--enable-leader-election=false"
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
   files:
   # Add a metadata for docker provider
   - sourcePath: "../data/infrastructure-docker/metadata.yaml"

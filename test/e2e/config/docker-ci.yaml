@@ -32,6 +32,9 @@ providers:
   - name: v0.3.0
   # Use manifest from source files
     value: ../../../config
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
 
 - name: kubeadm
   type: BootstrapProvider
@@ -39,6 +42,9 @@ providers:
   - name: v0.3.0
   # Use manifest from source files
     value: ../../../bootstrap/kubeadm/config
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -46,6 +52,9 @@ providers:
   - name: v0.3.0
   # Use manifest from source files
     value: ../../../controlplane/kubeadm/config
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
 
 - name: docker
   type: InfrastructureProvider
@@ -53,6 +62,9 @@ providers:
   - name: v0.3.0
   # Use manifest from source files
     value: ../../../test/infrastructure/docker/config
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
   files:
   # Add a metadata for docker provider
   - sourcePath: "../data/infrastructure-docker/metadata.yaml"

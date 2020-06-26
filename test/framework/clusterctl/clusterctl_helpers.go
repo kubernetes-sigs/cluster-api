@@ -33,10 +33,11 @@ import (
 
 // InitManagementClusterAndWatchControllerLogsInput is the input type for InitManagementClusterAndWatchControllerLogs.
 type InitManagementClusterAndWatchControllerLogsInput struct {
-	ClusterProxy            framework.ClusterProxy
-	ClusterctlConfigPath    string
-	InfrastructureProviders []string
-	LogFolder               string
+	ClusterProxy             framework.ClusterProxy
+	ClusterctlConfigPath     string
+	InfrastructureProviders  []string
+	LogFolder                string
+	DisableMetricsCollection bool
 }
 
 // InitManagementClusterAndWatchControllerLogs initializes a management using clusterctl and setup watches for controller logs.
@@ -86,6 +87,16 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			ClientSet:  input.ClusterProxy.GetClientSet(),
 			Deployment: deployment,
 			LogPath:    filepath.Join(input.LogFolder, "controllers"),
+		})
+
+		if input.DisableMetricsCollection {
+			return
+		}
+		framework.WatchPodMetrics(ctx, framework.WatchPodMetricsInput{
+			GetLister:   client,
+			ClientSet:   input.ClusterProxy.GetClientSet(),
+			Deployment:  deployment,
+			MetricsPath: filepath.Join(input.LogFolder, "controllers"),
 		})
 	}
 }

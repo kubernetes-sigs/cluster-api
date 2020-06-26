@@ -1,0 +1,61 @@
+@startuml kubeadm-control-plane-machines-resources
+
+skinparam nodesep 80
+skinparam ranksep 80
+skinparam object {
+    backgroundColor<< infrastructure.cluster.x-k8s.io >> #D9EAD3
+    backgroundColor<< controlplane.cluster.x-k8s.io/v1alpha3 >> #EBF6F7
+    backgroundColor<< bootstrap.cluster.x-k8s.io/v1alpha3 >> #FEF4F4
+}
+
+' cluster.x-k8s.io/v1alpha3
+object Cluster << cluster.x-k8s.io/v1alpha3 >> {
+    <font color="Green">spec.infrastructureRef</font>
+    spec.controlPlaneRef
+}
+object MachineHealthCheck << cluster.x-k8s.io/v1alpha3 >> {
+    spec.clusterName
+    spec.selector
+}
+object Machine << cluster.x-k8s.io/v1alpha3 >> {
+    <font color="Green">spec.infrastructureRef</font>
+    spec.bootstrap.configRef
+}
+
+' controlplane.cluster.x-k8s.io/v1alpha3
+object KubeadmControlPlane << controlplane.cluster.x-k8s.io/v1alpha3 >> {
+    <font color="Green">spec.infrastructureTemplate</font>
+    <font color="Red">spec.KubeadmConfigSpec</font>
+}
+
+' bootstrap.cluster.x-k8s.io/v1alpha3
+object BarBootstrapConfig << bootstrap.cluster.x-k8s.io/v1alpha3 >> 
+
+' Infrastructure provider CRD
+object FooCluster << infrastructure.cluster.x-k8s.io >>
+object FooMachineTemplate << infrastructure.cluster.x-k8s.io >>
+object FooMachine << infrastructure.cluster.x-k8s.io >>
+
+' The straight lines (-->) represent "management". For example, "MachineSet
+' manages Machines". The dotted line (..>)represents "reference". For example,
+' "Machine `spec.infrastructureRef` field references FooMachine".
+'
+' The direction of the arrows indicates the direction of "management" or
+' "reference". For example, "the relationship between MachineSet and Machine is
+' management from MachineSet to Machine", so the arrow points from MachineSet
+' to Machine.
+
+' A relationship between MachineHealthCheck and KubeadmControlPlane will be
+' added in https://github.com/kubernetes-sigs/cluster-api/pull/3185.
+MachineHealthCheck "0..*" .right.>  "1" Cluster
+MachineHealthCheck "0..*" ..> "0..*" Machine
+Cluster "1" ..> "0..1" KubeadmControlPlane
+Cluster "1" ..> "1" FooCluster
+KubeadmControlPlane "1" ..> "1" FooMachineTemplate
+KubeadmControlPlane "1" --> "1..*" Machine
+KubeadmControlPlane "1" --> "1..*" BarBootstrapConfig
+KubeadmControlPlane "1" --> "1..*" FooMachine
+Machine "1" ..> "1" BarBootstrapConfig
+Machine "1" ..> "1" FooMachine
+
+@endurl

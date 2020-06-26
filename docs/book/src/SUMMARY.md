@@ -47,6 +47,7 @@
           - [Create API](./developer/providers/implementers-guide/create_api.md)
           - [Controllers and Reconciliation](./developer/providers/implementers-guide/controllers_and_reconciliation.md)
           - [Building, Running, Testing](./developer/providers/implementers-guide/building_running_and_testing.md)
+    - [CustomResourceDefinitions relationships](./developer/crd-relationships.md)
 - [Troubleshooting](./user/troubleshooting.md)
 - [Reference](./reference/reference.md)
     - [Glossary](./reference/glossary.md)

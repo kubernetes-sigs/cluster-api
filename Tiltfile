@@ -186,7 +186,10 @@ def enable_provider(name):
     for substitution in substitutions:
         value = substitutions[substitution]
         yaml = yaml.replace("${" + substitution + "}", value)
-    k8s_yaml(blob(yaml))
+    if yaml.count("${") == 0:
+        k8s_yaml(blob(yaml))
+    else:
+        fail("unsubstituted fields in the input config, make sure your kustomize_substitutions parameters are complete")
 
 # Prepull all the cert-manager images to your local environment and then load them directly into kind. This speeds up
 # setup if you're repeatedly destroying and recreating your kind cluster, as it doesn't have to pull the images over

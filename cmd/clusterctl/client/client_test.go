@@ -163,6 +163,7 @@ func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *
 	fake := &fakeClusterClient{
 		kubeconfig:   kubeconfig,
 		repositories: map[string]repository.Client{},
+		certManager:  newFakeCertManagerClient(nil, nil),
 	}
 
 	fake.fakeProxy = test.NewFakeProxy()
@@ -180,23 +181,31 @@ func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *
 			return fake.repositories[provider.Name()], nil
 		}),
 	)
-
 	return fake
 }
 
+// newFakeCertManagerClient creates a new CertManagerClient
+// allows the caller to define which images are needed for the manager to run
+func newFakeCertManagerClient(imagesReturnImages []string, imagesReturnError error) cluster.CertManagerClient {
+	return &fakeCertManagerClient{
+		images:      imagesReturnImages,
+		imagesError: imagesReturnError,
+	}
+}
+
 type fakeCertManagerClient struct {
+	images      []string
+	imagesError error
 }
 
 var _ cluster.CertManagerClient = &fakeCertManagerClient{}
 
 func (p *fakeCertManagerClient) EnsureWebhook() error {
-	// For unit test, we are not installing the cert-manager Webhook so we always return no error without doing additional steps.
 	return nil
 }
 
 func (p *fakeCertManagerClient) Images() ([]string, error) {
-	// For unit test, we are not installing the cert-manager.
-	return nil, nil
+	return p.images, p.imagesError
 }
 
 type fakeClusterClient struct {
@@ -205,6 +214,7 @@ type fakeClusterClient struct {
 	fakeObjectMover cluster.ObjectMover
 	repositories    map[string]repository.Client
 	internalclient  cluster.Client
+	certManager     cluster.CertManagerClient
 }
 
 var _ cluster.Client = &fakeClusterClient{}
@@ -218,7 +228,7 @@ func (f fakeClusterClient) Proxy() cluster.Proxy {
 }
 
 func (f *fakeClusterClient) CertManager() cluster.CertManagerClient {
-	return &fakeCertManagerClient{}
+	return f.certManager
 }
 
 func (f fakeClusterClient) ProviderComponents() cluster.ComponentsClient {
@@ -265,6 +275,11 @@ func (f *fakeClusterClient) WithRepository(repositoryClient repository.Client) *
 
 func (f *fakeClusterClient) WithObjectMover(mover cluster.ObjectMover) *fakeClusterClient {
 	f.fakeObjectMover = mover
+	return f
+}
+
+func (f *fakeClusterClient) WithCertManagerClient(client cluster.CertManagerClient) *fakeClusterClient {
+	f.certManager = client
 	return f
 }
 

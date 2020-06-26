@@ -92,7 +92,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         PacketProviderName,
-			url:          "https://github.com/packethost/cluster-api-provider-packet/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

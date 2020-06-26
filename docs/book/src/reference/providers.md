@@ -20,7 +20,7 @@ support v1alpha3 API types.
 - [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
-- [Packet](https://github.com/packethost/cluster-api-provider-packet)
+- [Packet](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
 - [**vSphere**](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
 - [Alibaba Cloud](https://github.com/oam-oss/cluster-api-provider-alicloud)

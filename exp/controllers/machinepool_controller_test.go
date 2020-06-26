@@ -337,6 +337,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					NodeRefs: []corev1.ObjectReference{
 						{Name: "test"},
 					},
+					ObservedGeneration: 1,
 				},
 			},
 			expected: expected{
@@ -372,6 +373,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					NodeRefs: []corev1.ObjectReference{
 						{Name: "test"},
 					},
+					ObservedGeneration: 1,
 				},
 			},
 			expected: expected{

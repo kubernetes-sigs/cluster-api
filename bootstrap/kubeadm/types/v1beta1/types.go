@@ -64,7 +64,7 @@ type ClusterConfiguration struct {
 	Networking Networking `json:"networking,omitempty"`
 
 	// KubernetesVersion is the target version of the control plane.
-	// NB: This value defaults to the Machine object spec.Version
+	// NB: This value defaults to the Machine object spec.version
 	// +optional
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 

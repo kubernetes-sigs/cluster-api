@@ -21,9 +21,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -130,6 +132,81 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 					log.Logf("Got error while streaming logs for pod %s/%s, container %s: %v", input.Deployment.Namespace, pod.Name, container.Name, err)
 				}
 			}(pod, container)
+		}
+	}
+}
+
+type WatchPodMetricsInput struct {
+	GetLister   GetLister
+	ClientSet   *kubernetes.Clientset
+	Deployment  *appsv1.Deployment
+	MetricsPath string
+}
+
+// WatchPodMetrics captures metrics from all pods every 5s. It expects to find port 8080 open on the controller.
+// Use replacements in an e2econfig to enable metrics scraping without kube-rbac-proxy, e.g:
+//     - new: --metrics-addr=:8080
+//       old: --metrics-addr=127.0.0.1:8080
+func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
+	// Dump machine metrics every 5 seconds
+	ticker := time.NewTicker(time.Second * 5)
+	Expect(ctx).NotTo(BeNil(), "ctx is required for dumpContainerMetrics")
+	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for dumpContainerMetrics")
+	Expect(input.Deployment).NotTo(BeNil(), "input.Deployment is required for dumpContainerMetrics")
+
+	deployment := &appsv1.Deployment{}
+	key, err := client.ObjectKeyFromObject(input.Deployment)
+	Expect(err).NotTo(HaveOccurred(), "Failed to get key for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Expect(input.GetLister.Get(ctx, key, deployment)).To(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	pods := &corev1.PodList{}
+	Expect(input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))).To(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	go func() {
+		defer GinkgoRecover()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				dumpPodMetrics(input.ClientSet, input.MetricsPath, deployment.Name, pods)
+			}
+		}
+	}()
+}
+
+// dumpPodMetrics captures metrics from all pods. It expects to find port 8080 open on the controller.
+// Use replacements in an e2econfig to enable metrics scraping without kube-rbac-proxy, e.g:
+//     - new: --metrics-addr=:8080
+//       old: --metrics-addr=127.0.0.1:8080
+func dumpPodMetrics(client *kubernetes.Clientset, metricsPath string, deploymentName string, pods *corev1.PodList) {
+	for _, pod := range pods.Items {
+
+		metricsDir := path.Join(metricsPath, deploymentName, pod.Name)
+		metricsFile := path.Join(metricsDir, "metrics.txt")
+		Expect(os.MkdirAll(metricsDir, 0750)).To(Succeed())
+
+		res := client.CoreV1().RESTClient().Get().
+			Namespace(pod.Namespace).
+			Resource("pods").
+			Name(fmt.Sprintf("%s:8080", pod.Name)).
+			SubResource("proxy").
+			Suffix("metrics").
+			Do()
+		data, err := res.Raw()
+
+		if err != nil {
+			// Failing to dump metrics should not cause the test to fail
+			data = []byte(fmt.Sprintf("Error retrieving metrics for pod %s/%s: %v\n%s", pod.Namespace, pod.Name, err, string(data)))
+			metricsFile = path.Join(metricsDir, "metrics-error.txt")
+		}
+
+		if err := ioutil.WriteFile(metricsFile, data, 0600); err != nil {
+			// Failing to dump metrics should not cause the test to fail
+			log.Logf("Error writing metrics for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}
 	}
 }

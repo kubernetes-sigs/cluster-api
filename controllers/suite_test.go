@@ -18,12 +18,17 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
+	"github.com/onsi/gomega/types"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -118,3 +123,42 @@ var _ = AfterSuite(func() {
 		Expect(testEnv.Stop()).To(Succeed())
 	}
 })
+
+func ContainRefOfGroupKind(group, kind string) types.GomegaMatcher {
+	return &refGroupKindMatcher{
+		kind:  kind,
+		group: group,
+	}
+}
+
+type refGroupKindMatcher struct {
+	kind  string
+	group string
+}
+
+func (matcher *refGroupKindMatcher) Match(actual interface{}) (success bool, err error) {
+	ownerRefs, ok := actual.([]metav1.OwnerReference)
+	if !ok {
+		return false, errors.Errorf("expected []metav1.OwnerReference; got %T", actual)
+	}
+
+	for _, ref := range ownerRefs {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return false, nil
+		}
+		if ref.Kind == matcher.kind && gv.Group == clusterv1.GroupVersion.Group {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (matcher *refGroupKindMatcher) FailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf("Expected %+v to contain refs of Group %s and Kind %s", actual, matcher.group, matcher.kind)
+}
+
+func (matcher *refGroupKindMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf("Expected %+v not to contain refs of Group %s and Kind %s", actual, matcher.group, matcher.kind)
+}

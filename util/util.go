@@ -389,6 +389,14 @@ func ReplaceOwnerRef(ownerReferences []metav1.OwnerReference, source metav1.Obje
 	return ownerReferences
 }
 
+// RemoveOwnerRef returns the slice of owner references after removing the supplied owner ref
+func RemoveOwnerRef(ownerReferences []metav1.OwnerReference, inputRef metav1.OwnerReference) []metav1.OwnerReference {
+	if index := indexOwnerRef(ownerReferences, inputRef); index != -1 {
+		return append(ownerReferences[:index], ownerReferences[index+1:]...)
+	}
+	return ownerReferences
+}
+
 // indexOwnerRef returns the index of the owner reference in the slice if found, or -1.
 func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) int {
 	for index, r := range ownerReferences {

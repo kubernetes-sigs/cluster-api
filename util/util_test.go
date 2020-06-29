@@ -823,3 +823,47 @@ func TestIsSupportedVersionSkew(t *testing.T) {
 		})
 	}
 }
+
+func TestRemoveOwnerRef(t *testing.T) {
+	g := NewWithT(t)
+	ownerRefs := []metav1.OwnerReference{
+		{
+			APIVersion: "dazzlings.info/v1",
+			Kind:       "Twilight",
+			Name:       "m4g1c",
+		},
+		{
+			APIVersion: "bar.cluster.x-k8s.io/v1alpha3",
+			Kind:       "TestCluster",
+			Name:       "bar-1",
+		},
+	}
+
+	tests := []struct {
+		name        string
+		toBeRemoved metav1.OwnerReference
+	}{
+		{
+			name: "owner reference present",
+			toBeRemoved: metav1.OwnerReference{
+				APIVersion: "dazzlings.info/v1",
+				Kind:       "Twilight",
+				Name:       "m4g1c",
+			},
+		},
+		{
+			name: "owner reference not present",
+			toBeRemoved: metav1.OwnerReference{
+				APIVersion: "dazzlings.info/v1",
+				Kind:       "Twilight",
+				Name:       "abcdef",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			newOwnerRefs := RemoveOwnerRef(ownerRefs, tt.toBeRemoved)
+			g.Expect(HasOwnerRef(newOwnerRefs, tt.toBeRemoved)).NotTo(BeTrue())
+		})
+	}
+}

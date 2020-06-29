@@ -101,7 +101,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
 
 	if r.managementCluster == nil {
-		r.managementCluster = &internal.Management{Client: r.Client}
+		r.managementCluster = &internal.Management{Client: r.Client, Log: r.Log}
 	}
 	if r.managementClusterUncached == nil {
 		r.managementClusterUncached = &internal.Management{Client: mgr.GetAPIReader()}
@@ -606,12 +606,12 @@ func (r *KubeadmControlPlaneReconciler) remediateUnhealthy(ctx context.Context, 
 		return ctrl.Result{}, errors.Wrap(err, "failed to fetch etcd status")
 	}
 
-	if etcdStatus.FailureTolerance() == 0 {
-		logger.Info("refusing to remediate unhealthy machines, cluster has no failure tolerance")
+	machine := controlPlane.UnhealthyMachines().Oldest()
+
+	if etcdStatus.FailureTolerance(machine) == 0 {
+		logger.Info("cluster has no failure tolerance, skipping remediation")
 		return ctrl.Result{}, nil
 	}
-
-	machine := controlPlane.UnhealthyMachines().Oldest()
 
 	logger.Info("remediating unhealthy machine",
 		"machine", machine.Name,

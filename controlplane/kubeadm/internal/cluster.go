@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,6 +51,7 @@ type ManagementCluster interface {
 // Management holds operations on the management cluster.
 type Management struct {
 	Client ctrlclient.Reader
+	Log    logr.Logger
 }
 
 // RemoteClusterConnectionError represents a failure to connect to a remote cluster
@@ -137,6 +139,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 			restConfig: restConfig,
 			tlsConfig:  cfg,
 		},
+		Log: m.Log,
 	}, nil
 }
 

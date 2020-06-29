@@ -564,26 +564,71 @@ func defaultMachine(transforms ...func(m *clusterv1.Machine)) *clusterv1.Machine
 	return m
 }
 
-func TestEtcdStatusFailureTolerance(t *testing.T) {
+func TestEtcdStatusFailureTolerance_allResponsive(t *testing.T) {
 	g := NewWithT(t)
 	status := EtcdStatus{
-		Members: []*etcd.Member{
-			{
-				Name: "1",
+		Members: map[string]EtcdMemberStatus{
+			"one": {
+				Responsive: true,
 			},
 		},
 	}
-	g.Expect(status.FailureTolerance()).To(Equal(0))
-	status.Members = append(status.Members, &etcd.Member{Name: "2"})
-	g.Expect(status.FailureTolerance()).To(Equal(0))
-	status.Members = append(status.Members, &etcd.Member{Name: "3"})
-	g.Expect(status.FailureTolerance()).To(Equal(1))
-	status.Members = append(status.Members, &etcd.Member{Name: "4"})
-	g.Expect(status.FailureTolerance()).To(Equal(1))
-	status.Members = append(status.Members, &etcd.Member{Name: "5"})
-	g.Expect(status.FailureTolerance()).To(Equal(2))
-	status.Members = append(status.Members, &etcd.Member{Name: "6"})
-	g.Expect(status.FailureTolerance()).To(Equal(2))
-	status.Members = append(status.Members, &etcd.Member{Name: "7"})
-	g.Expect(status.FailureTolerance()).To(Equal(3))
+	machine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "one"}}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(0))
+
+	status.Members["two"] = EtcdMemberStatus{Responsive: true}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(0))
+
+	status.Members["three"] = EtcdMemberStatus{Responsive: true}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+
+	status.Members["four"] = EtcdMemberStatus{Responsive: true}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+
+	status.Members["five"] = EtcdMemberStatus{Responsive: true}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(2))
+
+	status.Members["six"] = EtcdMemberStatus{Responsive: true}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(2))
+
+	status.Members["seven"] = EtcdMemberStatus{Responsive: true}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(3))
+}
+
+func TestEtcdStatusFailureTolerance_unresponsive(t *testing.T) {
+	g := NewWithT(t)
+	status := EtcdStatus{
+		Members: map[string]EtcdMemberStatus{
+			"one": {
+				Responsive: true,
+			},
+			"two": {
+				Responsive: true,
+			},
+			"three": {
+				Responsive: true,
+			},
+		},
+	}
+
+	// a machine without a noderef gets default tolerance
+	machine := &clusterv1.Machine{}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+
+	// a machine that is not a member gets default tolerance
+	machine.Status = clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Name: "foo"}}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+
+	// a responsive machine gets default tolerance calculation
+	machine.Status.NodeRef.Name = "one"
+	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+
+	// this member is not responsive, so removing it will not reduce the failure tolerance
+	status.Members["one"] = EtcdMemberStatus{Responsive: false}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+
+	// this member is responsive but another member is not, removing it will reduce failure tolerance
+	status.Members["one"] = EtcdMemberStatus{Responsive: true}
+	status.Members["two"] = EtcdMemberStatus{Responsive: false}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(0))
 }

@@ -307,19 +307,55 @@ func (w *Workload) EtcdStatus(ctx context.Context) (EtcdStatus, error) {
 		return EtcdStatus{}, errors.Wrap(err, "failed to list etcd members using etcd client")
 	}
 
+	statuses := map[string]EtcdMemberStatus{}
+	for _, member := range members {
+		status := EtcdMemberStatus{Member: member, Responsive: true}
+
+		_, err := etcdClient.EtcdClient.Status(ctx, staticPodName("etcd", member.Name))
+		if err != nil {
+			status.Responsive = false
+			w.Log.Error(err, "error fetching etcd status for member", "member", member.Name)
+		}
+		statuses[member.Name] = status
+	}
+
 	return EtcdStatus{
-		Members: members,
+		Members: statuses,
 	}, nil
 }
 
 // EtcdStatus is a snapshot of the etcd cluster's status
 type EtcdStatus struct {
-	Members []*etcd.Member
+	Members map[string]EtcdMemberStatus
+}
+
+// EtcdMemberStatus is a snapshot of a etcd member's status
+type EtcdMemberStatus struct {
+	*etcd.Member
+	Responsive bool
 }
 
 // FailureTolerance is the amount of members the etcd cluster can afford to
 // lose without losing quorum.
 // Ref: https://github.com/etcd-io/etcd/blob/master/Documentation/faq.md#what-is-failure-tolerance
-func (e *EtcdStatus) FailureTolerance() int {
-	return len(e.Members) - (len(e.Members)/2.0 + 1)
+func (e *EtcdStatus) FailureTolerance(machine *clusterv1.Machine) int {
+	var responsive int
+	for _, m := range e.Members {
+		if m.Responsive {
+			responsive++
+		}
+	}
+
+	defaultTolerance := responsive - (responsive/2.0 + 1)
+
+	if machine.Status.NodeRef == nil {
+		return defaultTolerance
+	}
+
+	member, found := e.Members[machine.Status.NodeRef.Name]
+	if !found || member.Responsive {
+		return defaultTolerance
+	}
+
+	return defaultTolerance + 1
 }

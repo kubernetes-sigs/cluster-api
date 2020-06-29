@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -114,7 +115,7 @@ func (h *Helper) Patch(ctx context.Context, obj runtime.Object, opts ...Option) 
 	return kerrors.NewAggregate([]error{
 		h.patch(ctx, obj),
 		h.patchStatus(ctx, obj),
-		h.patchStatusConditions(ctx, obj),
+		h.patchStatusConditions(ctx, obj, options.OwnedConditions),
 	})
 }
 
@@ -151,7 +152,7 @@ func (h *Helper) patchStatus(ctx context.Context, obj runtime.Object) error {
 //
 // Condition changes are then applied to the latest version of the object, and if there are
 // no unresolvable conflicts, the patch is sent again.
-func (h *Helper) patchStatusConditions(ctx context.Context, obj runtime.Object) error {
+func (h *Helper) patchStatusConditions(ctx context.Context, obj runtime.Object, ownedConditions []clusterv1.ConditionType) error {
 	// Nothing to do if the object isn't a condition patcher.
 	if !h.isConditionsSetter {
 		return nil
@@ -211,7 +212,7 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj runtime.Object) 
 		conditionsPatch := client.MergeFromWithOptions(latest.DeepCopyObject(), client.MergeFromWithOptimisticLock{})
 
 		// Set the condition patch previously created on the new object.
-		if err := diff.Apply(latest); err != nil {
+		if err := diff.Apply(latest, conditions.WithOwnedConditions(ownedConditions...)); err != nil {
 			return false, err
 		}
 

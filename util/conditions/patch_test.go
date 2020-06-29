@@ -54,8 +54,8 @@ func TestNewPatch(t *testing.T) {
 			after:  getterWithConditions(fooTrue),
 			want: Patch{
 				{
-					Base:   nil,
-					Target: fooTrue,
+					Before: nil,
+					After:  fooTrue,
 					Op:     AddConditionPatch,
 				},
 			},
@@ -66,8 +66,8 @@ func TestNewPatch(t *testing.T) {
 			after:  getterWithConditions(fooFalse),
 			want: Patch{
 				{
-					Base:   fooTrue,
-					Target: fooFalse,
+					Before: fooTrue,
+					After:  fooFalse,
 					Op:     ChangeConditionPatch,
 				},
 			},
@@ -78,8 +78,8 @@ func TestNewPatch(t *testing.T) {
 			after:  getterWithConditions(),
 			want: Patch{
 				{
-					Base:   fooTrue,
-					Target: nil,
+					Before: fooTrue,
+					After:  nil,
 					Op:     RemoveConditionPatch,
 				},
 			},
@@ -107,6 +107,7 @@ func TestApply(t *testing.T) {
 		before  Getter
 		after   Getter
 		latest  Setter
+		options []ApplyOption
 		want    clusterv1.Conditions
 		wantErr bool
 	}{
@@ -143,6 +144,15 @@ func TestApply(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "Add: When a condition already exists but with conflicts, it should not error if the condition is owned",
+			before:  getterWithConditions(),
+			after:   getterWithConditions(fooTrue),
+			latest:  setterWithConditions(fooFalse),
+			options: []ApplyOption{WithOwnedConditions("foo")},
+			want:    conditionList(fooTrue), // after condition should be kept in case of error
+			wantErr: false,
+		},
+		{
 			name:    "Remove: When a condition was already deleted, it should pass",
 			before:  getterWithConditions(fooTrue),
 			after:   getterWithConditions(),
@@ -165,6 +175,15 @@ func TestApply(t *testing.T) {
 			latest:  setterWithConditions(fooFalse),
 			want:    nil,
 			wantErr: true,
+		},
+		{
+			name:    "Remove: When a condition already exists but with conflicts, it should not error if the condition is owned",
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(),
+			latest:  setterWithConditions(fooFalse),
+			options: []ApplyOption{WithOwnedConditions("foo")},
+			want:    conditionList(), // after condition should be kept in case of error
+			wantErr: false,
 		},
 		{
 			name:    "Change: When a condition exists without conflicts, it should change",
@@ -191,12 +210,30 @@ func TestApply(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "Change: When a condition exists with conflicts but there is no agreement on the final state, it should not error if the condition is owned",
+			before:  getterWithConditions(fooWarning),
+			after:   getterWithConditions(fooFalse),
+			latest:  setterWithConditions(fooTrue),
+			options: []ApplyOption{WithOwnedConditions("foo")},
+			want:    conditionList(fooFalse), // after condition should be kept in case of error
+			wantErr: false,
+		},
+		{
 			name:    "Change: When a condition was deleted, it should error",
 			before:  getterWithConditions(fooTrue),
 			after:   getterWithConditions(fooFalse),
 			latest:  setterWithConditions(),
 			want:    nil,
 			wantErr: true,
+		},
+		{
+			name:    "Change: When a condition was deleted, it should not error if the condition is owned",
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(fooFalse),
+			latest:  setterWithConditions(),
+			options: []ApplyOption{WithOwnedConditions("foo")},
+			want:    conditionList(fooFalse), // after condition should be kept in case of error
+			wantErr: false,
 		},
 	}
 
@@ -206,7 +243,7 @@ func TestApply(t *testing.T) {
 
 			patch := NewPatch(tt.before, tt.after)
 
-			err := patch.Apply(tt.latest)
+			err := patch.Apply(tt.latest, tt.options...)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

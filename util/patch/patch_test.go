@@ -321,6 +321,48 @@ var _ = Describe("Patch Helper", func() {
 				}, timeout).Should(BeTrue())
 			})
 
+			Specify("should return not an error if there is an unresolvable conflict but the conditions is owned by the controller", func() {
+				obj := obj.DeepCopy()
+
+				By("Creating the object")
+				Expect(testEnv.Create(ctx, obj)).ToNot(HaveOccurred())
+				key := client.ObjectKey{Name: obj.Name, Namespace: obj.Namespace}
+				defer func() {
+					Expect(testEnv.Delete(ctx, obj)).To(Succeed())
+				}()
+				objCopy := obj.DeepCopy()
+
+				By("Marking a custom condition to be false")
+				conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+				Expect(testEnv.Status().Update(ctx, objCopy)).To(Succeed())
+
+				By("Validating that the local object's resource version is behind")
+				Expect(obj.ResourceVersion).ToNot(Equal(objCopy.ResourceVersion))
+
+				By("Creating a new patch helper")
+				patcher, err := NewHelper(obj, testEnv)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Marking Ready=True")
+				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+
+				By("Patching the object")
+				Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
+
+				By("Validating the object has been updated")
+				Eventually(func() bool {
+					objAfter := obj.DeepCopy()
+					if err := testEnv.Get(ctx, key, objAfter); err != nil {
+						return false
+					}
+
+					readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
+					readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+
+					return cmp.Equal(readyBefore, readyAfter)
+				}, timeout).Should(BeTrue())
+			})
+
 		})
 	})
 

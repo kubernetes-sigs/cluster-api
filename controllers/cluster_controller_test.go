@@ -100,7 +100,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
 			cluster.Spec.ControlPlaneRef = &v1.ObjectReference{Name: "test-too"}
-			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
+			Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -143,7 +143,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			ph, err := patch.NewHelper(cluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
-			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
+			Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -186,7 +186,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
-			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
+			Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -230,7 +230,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			ph, err := patch.NewHelper(cluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.SetFinalizers([]string{})
-			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
+			Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
 			return true
 		}, timeout).Should(BeTrue())
 

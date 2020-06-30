@@ -77,6 +77,7 @@ var _ = Describe("MachineHealthCheck", func() {
 						InfrastructureReady: true,
 						BootstrapReady:      true,
 						Phase:               string(clusterv1.MachinePhaseRunning),
+						ObservedGeneration:  1,
 					},
 				}
 
@@ -313,10 +314,11 @@ var _ = Describe("MachineHealthCheck", func() {
 						return nil
 					}
 					return &mhc.Status
-				}).Should(Equal(&clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: 2,
-					CurrentHealthy:   2,
-					Targets:          targetMachines},
+				}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+					ExpectedMachines:   2,
+					CurrentHealthy:     2,
+					ObservedGeneration: 1,
+					Targets:            targetMachines},
 				))
 			})
 
@@ -341,9 +343,10 @@ var _ = Describe("MachineHealthCheck", func() {
 					}
 					return &mhc.Status
 				}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: 3,
-					CurrentHealthy:   2,
-					Targets:          targetMachines,
+					ExpectedMachines:   3,
+					CurrentHealthy:     2,
+					ObservedGeneration: 1,
+					Targets:            targetMachines,
 				}))
 			})
 
@@ -370,9 +373,10 @@ var _ = Describe("MachineHealthCheck", func() {
 					}
 					return &mhc.Status
 				}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: 3,
-					CurrentHealthy:   1,
-					Targets:          targetMachines},
+					ExpectedMachines:   3,
+					CurrentHealthy:     1,
+					ObservedGeneration: 1,
+					Targets:            targetMachines},
 				))
 
 				// Calculate how many Machines have health check succeeded = false.
@@ -434,9 +438,10 @@ var _ = Describe("MachineHealthCheck", func() {
 				}
 				return &mhc.Status
 			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 3,
-				CurrentHealthy:   2,
-				Targets:          targetMachines},
+				ExpectedMachines:   3,
+				CurrentHealthy:     2,
+				ObservedGeneration: 1,
+				Targets:            targetMachines},
 			))
 
 			// Calculate how many Machines have health check succeeded = false.
@@ -498,9 +503,10 @@ var _ = Describe("MachineHealthCheck", func() {
 				}
 				return &mhc.Status
 			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 3,
-				CurrentHealthy:   2,
-				Targets:          targetMachines},
+				ExpectedMachines:   3,
+				CurrentHealthy:     2,
+				ObservedGeneration: 1,
+				Targets:            targetMachines},
 			))
 
 			// Calculate how many Machines have health check succeeded = false.
@@ -568,9 +574,10 @@ var _ = Describe("MachineHealthCheck", func() {
 				}
 				return &mhc.Status
 			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 3,
-				CurrentHealthy:   2,
-				Targets:          targetMachines},
+				ExpectedMachines:   3,
+				CurrentHealthy:     2,
+				ObservedGeneration: 1,
+				Targets:            targetMachines},
 			))
 
 			// Calculate how many Machines have health check succeeded = false.
@@ -629,9 +636,10 @@ var _ = Describe("MachineHealthCheck", func() {
 				}
 				return &mhc.Status
 			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 1,
-				CurrentHealthy:   1,
-				Targets:          targetMachines},
+				ExpectedMachines:   1,
+				CurrentHealthy:     1,
+				ObservedGeneration: 1,
+				Targets:            targetMachines},
 			))
 
 			// Transition the node to unhealthy.
@@ -654,9 +662,10 @@ var _ = Describe("MachineHealthCheck", func() {
 				}
 				return &mhc.Status
 			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-				ExpectedMachines: 1,
-				CurrentHealthy:   0,
-				Targets:          targetMachines},
+				ExpectedMachines:   1,
+				CurrentHealthy:     0,
+				ObservedGeneration: 1,
+				Targets:            targetMachines},
 			))
 
 			// Calculate how many Machines have health check succeeded = false.
@@ -1223,11 +1232,12 @@ func TestIndexMachineByNodeName(t *testing.T) {
 
 func TestIsAllowedRemediation(t *testing.T) {
 	testCases := []struct {
-		name             string
-		maxUnhealthy     *intstr.IntOrString
-		expectedMachines int32
-		currentHealthy   int32
-		allowed          bool
+		name               string
+		maxUnhealthy       *intstr.IntOrString
+		expectedMachines   int32
+		currentHealthy     int32
+		allowed            bool
+		observedGeneration int64
 	}{
 		{
 			name:             "when maxUnhealthy is not set",
@@ -1296,8 +1306,9 @@ func TestIsAllowedRemediation(t *testing.T) {
 					MaxUnhealthy: tc.maxUnhealthy,
 				},
 				Status: clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: tc.expectedMachines,
-					CurrentHealthy:   tc.currentHealthy,
+					ExpectedMachines:   tc.expectedMachines,
+					CurrentHealthy:     tc.currentHealthy,
+					ObservedGeneration: tc.observedGeneration,
 				},
 			}
 

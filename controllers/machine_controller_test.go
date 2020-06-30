@@ -362,6 +362,7 @@ func TestReconcileRequest(t *testing.T) {
 					NodeRef: &corev1.ObjectReference{
 						Name: "test",
 					},
+					ObservedGeneration: 1,
 				},
 			},
 			expected: expected{
@@ -389,6 +390,7 @@ func TestReconcileRequest(t *testing.T) {
 					NodeRef: &corev1.ObjectReference{
 						Name: "test",
 					},
+					ObservedGeneration: 1,
 				},
 			},
 			expected: expected{

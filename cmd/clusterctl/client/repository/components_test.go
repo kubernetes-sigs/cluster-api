@@ -486,6 +486,134 @@ func Test_fixRBAC(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "ClusterRoleBinding with subjects IN capi-webhook-system get fixed (without changing the subject namespace)",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"kind":       "ClusterRoleBinding",
+							"apiVersion": "rbac.authorization.k8s.io/v1",
+							"metadata": map[string]interface{}{
+								"name": "foo",
+							},
+							"roleRef": map[string]interface{}{
+								"apiGroup": "",
+								"kind":     "",
+								"name":     "bar",
+							},
+							"subjects": []interface{}{
+								map[string]interface{}{
+									"kind":      "ServiceAccount",
+									"name":      "baz",
+									"namespace": "capi-webhook-system",
+								},
+							},
+						},
+					},
+					{
+						Object: map[string]interface{}{
+							"kind":       "ClusterRole",
+							"apiVersion": "rbac.authorization.k8s.io/v1",
+							"metadata": map[string]interface{}{
+								"name": "bar",
+							},
+						},
+					},
+				},
+				targetNamespace: "target",
+			},
+			want: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind":       "ClusterRoleBinding",
+						"apiVersion": "rbac.authorization.k8s.io/v1",
+						"metadata": map[string]interface{}{
+							"name":              "target-foo", // ClusterRoleBinding name fixed!
+							"creationTimestamp": nil,
+						},
+						"roleRef": map[string]interface{}{
+							"apiGroup": "",
+							"kind":     "",
+							"name":     "target-bar", // ClusterRole name fixed!
+						},
+						"subjects": []interface{}{
+							map[string]interface{}{
+								"kind":      "ServiceAccount",
+								"name":      "baz",
+								"namespace": "capi-webhook-system", // Subjects namespace get preserved!
+							},
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"kind":       "ClusterRole",
+						"apiVersion": "rbac.authorization.k8s.io/v1",
+						"metadata": map[string]interface{}{
+							"name": "target-bar", // ClusterRole fixed!
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "RoleBinding with subjects IN capi-webhook-system get fixed (without changing the subject namespace)",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"kind":       "RoleBinding",
+							"apiVersion": "rbac.authorization.k8s.io/v1",
+							"metadata": map[string]interface{}{
+								"name":      "foo",
+								"namespace": "target",
+							},
+							"roleRef": map[string]interface{}{
+								"apiGroup": "",
+								"kind":     "",
+								"name":     "bar",
+							},
+							"subjects": []interface{}{
+								map[string]interface{}{
+									"kind":      "ServiceAccount",
+									"name":      "baz",
+									"namespace": "capi-webhook-system",
+								},
+							},
+						},
+					},
+				},
+				targetNamespace: "target",
+			},
+			want: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind":       "RoleBinding",
+						"apiVersion": "rbac.authorization.k8s.io/v1",
+						"metadata": map[string]interface{}{
+							"name":              "foo",
+							"namespace":         "target",
+							"creationTimestamp": nil,
+						},
+						"roleRef": map[string]interface{}{
+							"apiGroup": "",
+							"kind":     "",
+							"name":     "bar",
+						},
+						"subjects": []interface{}{
+							map[string]interface{}{
+								"kind":      "ServiceAccount",
+								"name":      "baz",
+								"namespace": "capi-webhook-system", // Subjects namespace get preserved!
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

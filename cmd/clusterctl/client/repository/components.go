@@ -431,9 +431,11 @@ func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstru
 			// assign a namespaced name
 			b.Name = fmt.Sprintf("%s-%s", targetNamespace, b.Name)
 
-			// ensure that namespaced subjects refers to targetNamespace
+			// ensure that namespaced subjects refers to targetNamespace; the only exception
+			// for this rule are the namespaced subjects located in the capi-webhook-system, which are
+			// not affected by the targetNamespace value
 			for k := range b.Subjects {
-				if b.Subjects[k].Namespace != "" {
+				if b.Subjects[k].Namespace != "" && b.Subjects[k].Namespace != WebhookNamespaceName {
 					b.Subjects[k].Namespace = targetNamespace
 				}
 			}
@@ -456,9 +458,11 @@ func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstru
 				return nil, err
 			}
 
-			// ensure that namespaced subjects refers to targetNamespace
+			// ensure that namespaced subjects refers to targetNamespace; the only exception
+			// for this rule are the namespaced subjects located in the capi-webhook-system, which are
+			// not affected by the targetNamespace value
 			for k := range b.Subjects {
-				if b.Subjects[k].Namespace != "" {
+				if b.Subjects[k].Namespace != "" && b.Subjects[k].Namespace != WebhookNamespaceName {
 					b.Subjects[k].Namespace = targetNamespace
 				}
 			}

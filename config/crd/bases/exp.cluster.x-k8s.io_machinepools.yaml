@@ -439,6 +439,11 @@ spec:
                       type: string
                   type: object
                 type: array
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
               phase:
                 description: Phase represents the current phase of cluster actuation.
                   E.g. Pending, Running, Terminating, Failed etc.

@@ -339,14 +339,14 @@ type EtcdMemberStatus struct {
 // lose without losing quorum.
 // Ref: https://github.com/etcd-io/etcd/blob/master/Documentation/faq.md#what-is-failure-tolerance
 func (e *EtcdStatus) FailureTolerance(machine *clusterv1.Machine) int {
-	var responsive int
+	var unresponsive int
 	for _, m := range e.Members {
-		if m.Responsive {
-			responsive++
+		if !m.Responsive {
+			unresponsive++
 		}
 	}
 
-	defaultTolerance := responsive - (responsive/2.0 + 1)
+	defaultTolerance := len(e.Members) - (len(e.Members)/2.0 + 1) - unresponsive
 
 	if machine.Status.NodeRef == nil {
 		return defaultTolerance

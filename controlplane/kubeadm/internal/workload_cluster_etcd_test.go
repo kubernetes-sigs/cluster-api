@@ -599,13 +599,31 @@ func TestEtcdStatusFailureTolerance_unresponsive(t *testing.T) {
 	g := NewWithT(t)
 	status := EtcdStatus{
 		Members: map[string]EtcdMemberStatus{
-			"one": {
+			"1": {
 				Responsive: true,
 			},
-			"two": {
+			"2": {
 				Responsive: true,
 			},
-			"three": {
+			"3": {
+				Responsive: true,
+			},
+			"4": {
+				Responsive: true,
+			},
+			"5": {
+				Responsive: true,
+			},
+			"6": {
+				Responsive: true,
+			},
+			"7": {
+				Responsive: true,
+			},
+			"8": {
+				Responsive: true,
+			},
+			"9": {
 				Responsive: true,
 			},
 		},
@@ -613,22 +631,27 @@ func TestEtcdStatusFailureTolerance_unresponsive(t *testing.T) {
 
 	// a machine without a noderef gets default tolerance
 	machine := &clusterv1.Machine{}
-	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+	g.Expect(status.FailureTolerance(machine)).To(Equal(4))
 
 	// a machine that is not a member gets default tolerance
 	machine.Status = clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Name: "foo"}}
-	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+	g.Expect(status.FailureTolerance(machine)).To(Equal(4))
 
 	// a responsive machine gets default tolerance calculation
-	machine.Status.NodeRef.Name = "one"
-	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+	machine.Status.NodeRef.Name = "1"
+	g.Expect(status.FailureTolerance(machine)).To(Equal(4))
 
 	// this member is not responsive, so removing it will not reduce the failure tolerance
-	status.Members["one"] = EtcdMemberStatus{Responsive: false}
-	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
+	status.Members["1"] = EtcdMemberStatus{Responsive: false}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(4))
 
 	// this member is responsive but another member is not, removing it will reduce failure tolerance
-	status.Members["one"] = EtcdMemberStatus{Responsive: true}
-	status.Members["two"] = EtcdMemberStatus{Responsive: false}
-	g.Expect(status.FailureTolerance(machine)).To(Equal(0))
+	status.Members["1"] = EtcdMemberStatus{Responsive: true}
+	status.Members["2"] = EtcdMemberStatus{Responsive: false}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(3))
+
+	// 3 unresponsive members
+	status.Members["3"] = EtcdMemberStatus{Responsive: false}
+	status.Members["4"] = EtcdMemberStatus{Responsive: false}
+	g.Expect(status.FailureTolerance(machine)).To(Equal(1))
 }

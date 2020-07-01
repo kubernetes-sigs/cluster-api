@@ -40,6 +40,9 @@ type Client interface {
 	// GetClusterTemplate returns a workload cluster template.
 	GetClusterTemplate(options GetClusterTemplateOptions) (Template, error)
 
+	// GetKubeconfig returns the kubeconfig
+	GetKubeconfig(options GetKubeconfigOptions) error
+
 	// Delete deletes providers from a management cluster.
 	Delete(options DeleteOptions) error
 

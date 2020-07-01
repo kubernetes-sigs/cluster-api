@@ -282,7 +282,7 @@ spec:
                     type: string
                   kubernetesVersion:
                     description: 'KubernetesVersion is the target version of the control
-                      plane. NB: This value defaults to the Machine object spec.kubernetesVersion'
+                      plane. NB: This value defaults to the Machine object spec.version'
                     type: string
                   networking:
                     description: 'Networking holds configuration for the networking
@@ -1088,7 +1088,7 @@ spec:
                     type: string
                   kubernetesVersion:
                     description: 'KubernetesVersion is the target version of the control
-                      plane. NB: This value defaults to the Machine object spec.kubernetesVersion'
+                      plane. NB: This value defaults to the Machine object spec.version'
                     type: string
                   networking:
                     description: 'Networking holds configuration for the networking

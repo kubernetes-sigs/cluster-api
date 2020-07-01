@@ -8,8 +8,8 @@ reviewers:
   - "@detiber"
   - "@ncdc"
 creation-date: 2020-06-02
-last-updated: 2020-06-02
-status: implementable
+last-updated: 2020-08-07
+status: implemented
 ---
 
 # Machine Deletion Phase Hooks

@@ -37,6 +37,18 @@ const (
 
 	// MachineDeploymentLabelName is the label set on machines if they're controlled by MachineDeployment
 	MachineDeploymentLabelName = "cluster.x-k8s.io/deployment-name"
+
+	// PreDrainDeleteHookAnnotationPrefix annotation specifies the prefix we
+	// search each annotation for during the pre-drain.delete lifecycle hook
+	// to pause reconciliation of deletion. These hooks will prevent removal of
+	// draining the associated node until all are removed.
+	PreDrainDeleteHookAnnotationPrefix = "pre-drain.delete.hook.machine.cluster.x-k8s.io"
+
+	// PreTerminateDeleteHookAnnotationPrefix annotation specifies the prefix we
+	// search each annotation for during the pre-terminate.delete lifecycle hook
+	// to pause reconciliation of deletion. These hooks will prevent removal of
+	// an instance from an infrastructure provider until all are removed.
+	PreTerminateDeleteHookAnnotationPrefix = "pre-terminate.delete.hook.machine.cluster.x-k8s.io"
 )
 
 // ANCHOR: MachineSpec

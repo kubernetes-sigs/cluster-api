@@ -290,6 +290,11 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	}
 
 	if isDeleteNodeAllowed {
+		// pre-drain.delete lifecycle hook
+		// Return early without error, will requeue if/when the hook owner removes the annotation.
+		if annotations.HasWithPrefix(clusterv1.PreDrainDeleteHookAnnotationPrefix, m.ObjectMeta.Annotations) {
+			return ctrl.Result{}, nil
+		}
 		// Drain node before deletion.
 		if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; !exists {
 			logger.Info("Draining node", "node", m.Status.NodeRef.Name)
@@ -299,6 +304,12 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			}
 			r.recorder.Eventf(m, corev1.EventTypeNormal, "SuccessfulDrainNode", "success draining Machine's node %q", m.Status.NodeRef.Name)
 		}
+	}
+
+	// pre-term.delete lifecycle hook
+	// Return early without error, will requeue if/when the hook owner removes the annotation.
+	if annotations.HasWithPrefix(clusterv1.PreTerminateDeleteHookAnnotationPrefix, m.ObjectMeta.Annotations) {
+		return ctrl.Result{}, nil
 	}
 
 	if ok, err := r.reconcileDeleteExternal(ctx, m); !ok || err != nil {

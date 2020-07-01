@@ -81,6 +81,10 @@ func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Templ
 	return f.internalClient.GetClusterTemplate(options)
 }
 
+func (f fakeClient) GetKubeconfig(options GetKubeconfigOptions) (string, error) {
+	return f.internalClient.GetKubeconfig(options)
+}
+
 func (f fakeClient) Init(options InitOptions) ([]Components, error) {
 	return f.internalClient.Init(options)
 }
@@ -260,6 +264,10 @@ func (f *fakeClusterClient) ProviderUpgrader() cluster.ProviderUpgrader {
 
 func (f *fakeClusterClient) Template() cluster.TemplateClient {
 	return f.internalclient.Template()
+}
+
+func (f *fakeClusterClient) WorkloadCluster() cluster.WorkloadCluster {
+	return f.internalclient.WorkloadCluster()
 }
 
 func (f *fakeClusterClient) WithObjs(objs ...runtime.Object) *fakeClusterClient {

@@ -93,24 +93,6 @@ func (c *ControlPlane) EtcdImageData() (string, string) {
 	return "", ""
 }
 
-// MachinesNeedingRollout return a list of machines that need to be rolled out due to configuration changes.
-//
-// NOTE: Expiration of the spec.UpgradeAfter value forces inclusion of all the machines in this set even if
-// no changes have been made to the KubeadmControlPlane.
-func (c *ControlPlane) MachinesNeedingRollout() FilterableMachineCollection {
-	now := metav1.Now()
-	if c.KCP.Spec.UpgradeAfter != nil && c.KCP.Spec.UpgradeAfter.Before(&now) {
-		return c.Machines.AnyFilter(
-			machinefilters.Not(machinefilters.MatchesConfigurationHash(c.SpecHash())),
-			machinefilters.OlderThan(c.KCP.Spec.UpgradeAfter),
-		)
-	}
-
-	return c.Machines.Filter(
-		machinefilters.Not(machinefilters.MatchesConfigurationHash(c.SpecHash())),
-	)
-}
-
 // MachineInFailureDomainWithMostMachines returns the first matching failure domain with machines that has the most control-plane machines on it.
 func (c *ControlPlane) MachineInFailureDomainWithMostMachines(machines FilterableMachineCollection) (*clusterv1.Machine, error) {
 	fd := c.FailureDomainWithMostMachines(machines)

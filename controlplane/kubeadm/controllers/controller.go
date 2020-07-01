@@ -291,14 +291,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef())
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
-	needRollout := controlPlane.MachinesNeedingRollout()
+	needRollout := r.machinesNeedingRollout(ctx, controlPlane)
 	switch {
 	case len(needRollout) > 0:
 		logger.Info("Rolling out Control Plane machines")
 		// NOTE: we are using Status.UpdatedReplicas from the previous reconciliation only to provide a meaningful message
 		// and this does not influence any reconciliation logic.
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition, controlplanev1.RollingUpdateInProgressReason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(needRollout), kcp.Status.UpdatedReplicas)
-		return r.upgradeControlPlane(ctx, cluster, kcp, controlPlane)
+		return r.upgradeControlPlane(ctx, cluster, kcp, controlPlane, needRollout)
 	default:
 		// make sure last upgrade operation is marked as completed.
 		// NOTE: we are checking the condition already exists in order to avoid to set this condition at the first
@@ -327,7 +327,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// We are scaling down
 	case numMachines > desiredReplicas:
 		logger.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
-		return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane)
+		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
+		return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, internal.FilterableMachineCollection{})
 	}
 
 	// Get the workload cluster client.

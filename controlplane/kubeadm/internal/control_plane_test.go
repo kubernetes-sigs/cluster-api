@@ -18,10 +18,10 @@ package internal
 
 import (
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -86,89 +86,6 @@ var _ = Describe("Control Plane", func() {
 		})
 	})
 
-	Describe("MachinesNeedingUpgrade", func() {
-		Context("With no machines", func() {
-			It("should return no machines", func() {
-				Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(0))
-			})
-		})
-
-		Context("With machines", func() {
-			BeforeEach(func() {
-				controlPlane.KCP.Spec.Version = "2"
-				controlPlane.Machines = FilterableMachineCollection{
-					"machine-1": machine("machine-1", withHash(controlPlane.SpecHash())),
-					"machine-2": machine("machine-2", withHash(controlPlane.SpecHash())),
-					"machine-3": machine("machine-3", withHash(controlPlane.SpecHash())),
-				}
-			})
-
-			Context("That have an old configuration", func() {
-				JustBeforeEach(func() {
-					controlPlane.Machines.Insert(machine("machine-4", withHash(controlPlane.SpecHash()+"outdated")))
-				})
-				It("should return some machines", func() {
-					Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(1))
-				})
-			})
-
-			Context("That have an up-to-date configuration", func() {
-				year := 2000
-				BeforeEach(func() {
-					controlPlane.Machines = FilterableMachineCollection{
-						"machine-1": machine("machine-1",
-							withCreationTimestamp(metav1.Time{Time: time.Date(year-1, 0, 0, 0, 0, 0, 0, time.UTC)}),
-							withHash(controlPlane.SpecHash())),
-						"machine-2": machine("machine-2",
-							withCreationTimestamp(metav1.Time{Time: time.Date(year, 0, 0, 0, 0, 0, 0, time.UTC)}),
-							withHash(controlPlane.SpecHash())),
-						"machine-3": machine("machine-3",
-							withCreationTimestamp(metav1.Time{Time: time.Date(year+1, 0, 0, 0, 0, 0, 0, time.UTC)}),
-							withHash(controlPlane.SpecHash())),
-					}
-				})
-
-				Context("That has no upgradeAfter value set", func() {
-					It("should return no machines", func() {
-						Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(0))
-					})
-				})
-
-				Context("That has an upgradeAfter value set", func() {
-					Context("That is in the future", func() {
-						BeforeEach(func() {
-							future := time.Date(year+1000, 0, 0, 0, 0, 0, 0, time.UTC)
-							controlPlane.KCP.Spec.UpgradeAfter = &metav1.Time{Time: future}
-						})
-						It("should return no machines", func() {
-							Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(0))
-						})
-					})
-
-					Context("That is in the past", func() {
-						Context("That is before machine creation time", func() {
-							JustBeforeEach(func() {
-								controlPlane.KCP.Spec.UpgradeAfter = &metav1.Time{Time: time.Date(year-2, 0, 0, 0, 0, 0, 0, time.UTC)}
-							})
-							It("should return no machines", func() {
-								Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(0))
-							})
-						})
-
-						Context("That is after machine creation time", func() {
-							JustBeforeEach(func() {
-								controlPlane.KCP.Spec.UpgradeAfter = &metav1.Time{Time: time.Date(year, 1, 0, 0, 0, 0, 0, time.UTC)}
-							})
-							It("should return all machines older than this date machines", func() {
-								Expect(controlPlane.MachinesNeedingRollout()).To(HaveLen(2))
-							})
-						})
-					})
-				})
-			})
-		})
-	})
-
 	Describe("Generating components", func() {
 		Context("That is after machine creation time", func() {
 			BeforeEach(func() {
@@ -209,11 +126,5 @@ func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
 func withFailureDomain(fd string) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.Spec.FailureDomain = &fd
-	}
-}
-
-func withHash(hash string) machineOpt {
-	return func(m *clusterv1.Machine) {
-		m.SetLabels(map[string]string{controlplanev1.KubeadmControlPlaneHashLabelKey: hash})
 	}
 }

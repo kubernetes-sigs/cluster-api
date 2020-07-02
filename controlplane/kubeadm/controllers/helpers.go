@@ -259,20 +259,14 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 
 // machinesNeedingRollout return a list of machines that need to be rolled out.
 func (r *KubeadmControlPlaneReconciler) machinesNeedingRollout(ctx context.Context, c *internal.ControlPlane) internal.FilterableMachineCollection {
-	now := metav1.Now()
-
 	// Ignore machines to be deleted.
 	machines := c.Machines.Filter(machinefilters.Not(machinefilters.HasDeletionTimestamp))
 
-	// Return machines if their creation timestamp is older than the KCP.Spec.UpgradeAfter, or any machine with an outdated configuration.
-	if c.KCP.Spec.UpgradeAfter != nil && c.KCP.Spec.UpgradeAfter.Before(&now) {
-		return machines.Filter(machinefilters.Or(
-			// Machines that are old.
-			machinefilters.OlderThan(c.KCP.Spec.UpgradeAfter),
-			// Machines that do not match with KCP config.
-			machinefilters.Not(machinefilters.MatchesKCPConfiguration(ctx, r.Client, *c.KCP, *c.Cluster)),
-		))
-	}
-
-	return machines.Filter(machinefilters.Not(machinefilters.MatchesKCPConfiguration(ctx, r.Client, *c.KCP, *c.Cluster)))
+	// Return machines if they are scheduled for rollout or if with an outdated configuration.
+	return machines.AnyFilter(
+		// Machines that are scheduled for rollout (KCP.Spec.UpgradeAfter set, the UpgradeAfter deadline is expired, and the machine was created before the deadline).
+		machinefilters.ShouldRolloutAfter(c.KCP.Spec.UpgradeAfter),
+		// Machines that do not match with KCP config.
+		machinefilters.Not(machinefilters.MatchesKCPConfiguration(ctx, r.Client, *c.KCP, *c.Cluster)),
+	)
 }

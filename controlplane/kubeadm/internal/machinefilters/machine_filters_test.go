@@ -118,27 +118,33 @@ func TestMatchesConfigurationHash(t *testing.T) {
 	})
 }
 
-func TestOlderThan(t *testing.T) {
-	t.Run("machine with creation timestamp older than given returns true", func(t *testing.T) {
+func TestShouldRolloutAfter(t *testing.T) {
+	t.Run("if upgradeAfter is nil, return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		m.SetCreationTimestamp(metav1.NewTime(time.Now().Add(-1 * time.Hour)))
-		now := metav1.Now()
-		g.Expect(machinefilters.OlderThan(&now)(m)).To(BeTrue())
+		m.SetCreationTimestamp(metav1.NewTime(time.Now().Add(-2 * time.Hour)))
+		g.Expect(machinefilters.ShouldRolloutAfter(nil)(m)).To(BeFalse())
 	})
-	t.Run("machine with creation timestamp equal to given returns false", func(t *testing.T) {
+	t.Run("if upgradeAfter is in the future, return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		now := metav1.Now()
-		m.SetCreationTimestamp(now)
-		g.Expect(machinefilters.OlderThan(&now)(m)).To(BeFalse())
+		m.SetCreationTimestamp(metav1.NewTime(time.Now().Add(-2 * time.Hour)))
+		upgradeAfter := metav1.NewTime(time.Now().Add(+1 * time.Hour)) // upgrade after in the future
+		g.Expect(machinefilters.ShouldRolloutAfter(&upgradeAfter)(m)).To(BeFalse())
 	})
-	t.Run("machine with creation timestamp after given returns false", func(t *testing.T) {
+	t.Run("if upgradeAfter is in the past and the machine was created before upgradeAfter, return true", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		m.SetCreationTimestamp(metav1.NewTime(time.Now().Add(+1 * time.Hour)))
-		now := metav1.Now()
-		g.Expect(machinefilters.OlderThan(&now)(m)).To(BeFalse())
+		m.SetCreationTimestamp(metav1.NewTime(time.Now().Add(-2 * time.Hour))) // machine was created before upgradeAfter
+		upgradeAfter := metav1.NewTime(time.Now().Add(-1 * time.Hour))         // upgrade after in the past
+		g.Expect(machinefilters.ShouldRolloutAfter(&upgradeAfter)(m)).To(BeTrue())
+	})
+	t.Run("if upgradeAfter is in the past and the machine was created after upgradeAfter, return false", func(t *testing.T) {
+		g := NewWithT(t)
+		m := &clusterv1.Machine{}
+		m.SetCreationTimestamp(metav1.NewTime(time.Now().Add(+1 * time.Hour))) // machine was created after upgradeAfter
+		upgradeAfter := metav1.NewTime(time.Now().Add(-1 * time.Hour))         // upgrade after in the past
+		g.Expect(machinefilters.ShouldRolloutAfter(&upgradeAfter)(m)).To(BeFalse())
 	})
 }
 

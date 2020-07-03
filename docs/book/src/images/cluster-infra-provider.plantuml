@@ -21,7 +21,7 @@ else (no)
         if (Error?) then (yes)
             stop
         elseif (Created load balancer?) then (yes)
-            :Set status.controlPlaneEndpoint;
+            :Set spec.controlPlaneEndpoint;
         else (no)
         endif
         :Set status.ready to true;

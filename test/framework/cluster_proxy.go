@@ -183,7 +183,7 @@ func (p *clusterProxy) GetWorkloadCluster(ctx context.Context, namespace, name s
 	// gets the kubeconfig from the cluster
 	config := p.getKubeconfig(ctx, namespace, name)
 
-	// if we are on mac and the cluster is a DockerCluster, it is required to fix the master address
+	// if we are on mac and the cluster is a DockerCluster, it is required to fix the control plane address
 	// by using localhost:load-balancer-host-port instead of the address used in the docker network.
 	if goruntime.GOOS == "darwin" && p.isDockerCluster(ctx, namespace, name) {
 		p.fixConfig(ctx, name, config)
@@ -226,12 +226,12 @@ func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.C
 	port, err := findLoadBalancerPort(ctx, name)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get load balancer port")
 
-	masterURL := &url.URL{
+	controlPlaneURL := &url.URL{
 		Scheme: "https",
 		Host:   "127.0.0.1:" + port,
 	}
 	currentCluster := config.Contexts[config.CurrentContext].Cluster
-	config.Clusters[currentCluster].Server = masterURL.String()
+	config.Clusters[currentCluster].Server = controlPlaneURL.String()
 }
 
 func findLoadBalancerPort(ctx context.Context, name string) (string, error) {

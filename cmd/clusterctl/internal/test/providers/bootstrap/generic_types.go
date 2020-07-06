@@ -15,63 +15,53 @@ limitations under the License.
 */
 
 /*
-package infrastructure defines the types for dummy infrastructure provider used for tests
+package bootstrap defines the types for a generic bootstrap provider used for tests
 */
-package infrastructure
+package bootstrap
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type GenericBootstrapConfigStatus struct {
+	// +optional
+	DataSecretName *string `json:"dataSecretName,omitempty"`
+}
+
 // +kubebuilder:object:root=true
 
-type DummyInfrastructureCluster struct {
+type GenericBootstrapConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Status            GenericBootstrapConfigStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+type GenericBootstrapConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []GenericBootstrapConfig `json:"items"`
+}
+
+// +kubebuilder:object:root=true
+
+type GenericBootstrapConfigTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-type DummyInfrastructureClusterList struct {
+type GenericBootstrapConfigTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DummyInfrastructureCluster `json:"items"`
-}
-
-// +kubebuilder:object:root=true
-
-type DummyInfrastructureMachine struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-}
-
-// +kubebuilder:object:root=true
-
-type DummyInfrastructureMachineList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DummyInfrastructureMachine `json:"items"`
-}
-
-// +kubebuilder:object:root=true
-
-type DummyInfrastructureMachineTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-}
-
-// +kubebuilder:object:root=true
-
-type DummyInfrastructureMachineTemplateList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DummyInfrastructureMachineTemplate `json:"items"`
+	Items           []GenericBootstrapConfigTemplate `json:"items"`
 }
 
 func init() {
 	SchemeBuilder.Register(
-		&DummyInfrastructureCluster{}, &DummyInfrastructureClusterList{},
-		&DummyInfrastructureMachine{}, &DummyInfrastructureMachineList{},
-		&DummyInfrastructureMachineTemplate{}, &DummyInfrastructureMachineTemplateList{},
+		&GenericBootstrapConfig{}, &GenericBootstrapConfigList{},
+		&GenericBootstrapConfigTemplate{}, &GenericBootstrapConfigTemplateList{},
 	)
 }

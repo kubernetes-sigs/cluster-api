@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /*
-package controlplane defines the types for dummy control plane provider used for tests
+package controlplane defines the types for a generic control plane provider used for tests
 */
 package controlplane
 
@@ -24,28 +24,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type DummyControlPlaneSpec struct {
+type GenericControlPlaneSpec struct {
 	InfrastructureTemplate corev1.ObjectReference `json:"infrastructureTemplate"`
 }
 
 // +kubebuilder:object:root=true
 
-type DummyControlPlane struct {
+type GenericControlPlane struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              DummyControlPlaneSpec `json:"spec,omitempty"`
+	Spec              GenericControlPlaneSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-type DummyControlPlaneList struct {
+type GenericControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DummyControlPlane `json:"items"`
+	Items           []GenericControlPlane `json:"items"`
 }
 
 func init() {
 	SchemeBuilder.Register(
-		&DummyControlPlane{}, &DummyControlPlaneList{},
+		&GenericControlPlane{}, &GenericControlPlaneList{},
 	)
 }

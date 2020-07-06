@@ -333,7 +333,7 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -364,7 +364,7 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -380,7 +380,7 @@ var objectGraphsTests = []struct {
 					},
 				},
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster2": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster2": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
 					},
@@ -409,7 +409,7 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -430,24 +430,24 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/m1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1",
+						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-sa": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1",
+						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -465,7 +465,7 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -486,12 +486,12 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/ms1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/ms1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/ms1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/ms1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -502,19 +502,19 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/ms1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/m1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1",
+						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -537,7 +537,7 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -558,12 +558,12 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/md1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/md1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/md1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -580,19 +580,19 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/ms1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/m1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1",
+						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -612,7 +612,7 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -623,45 +623,45 @@ var objectGraphsTests = []struct {
 					},
 				},
 
-				"controlplane.cluster.x-k8s.io/v1alpha3, Kind=DummyControlPlane, ns1/cp1": {
+				"controlplane.cluster.x-k8s.io/v1alpha3, Kind=GenericControlPlane, ns1/cp1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/cp1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/cp1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-sa": {
 					owners: []string{
-						"controlplane.cluster.x-k8s.io/v1alpha3, Kind=DummyControlPlane, ns1/cp1",
+						"controlplane.cluster.x-k8s.io/v1alpha3, Kind=GenericControlPlane, ns1/cp1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"controlplane.cluster.x-k8s.io/v1alpha3, Kind=DummyControlPlane, ns1/cp1",
+						"controlplane.cluster.x-k8s.io/v1alpha3, Kind=GenericControlPlane, ns1/cp1",
 					},
 				},
 
 				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1": {
 					owners: []string{
-						"controlplane.cluster.x-k8s.io/v1alpha3, Kind=DummyControlPlane, ns1/cp1",
+						"controlplane.cluster.x-k8s.io/v1alpha3, Kind=GenericControlPlane, ns1/cp1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/m1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1",
+						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -678,7 +678,7 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -699,12 +699,12 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/mp1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/mp1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/mp1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/mp1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -746,7 +746,7 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/shared": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/shared": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
@@ -754,7 +754,7 @@ var objectGraphsTests = []struct {
 				},
 
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -775,7 +775,7 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/cluster1-ms1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/cluster1-ms1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 					},
@@ -786,23 +786,23 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/cluster1-ms1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/cluster1-m1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/cluster1-m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/cluster1-m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/cluster1-m1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/cluster1-m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/cluster1-m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/cluster1-m1",
+						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/cluster1-m1",
 					},
 				},
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster2": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster2": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
 					},
@@ -823,7 +823,7 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/cluster2-ms1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/cluster2-ms1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
 					},
@@ -834,19 +834,19 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/cluster2-ms1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/cluster2-m1": {
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/cluster2-m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/cluster2-m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/cluster2-m1": {
+				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/cluster2-m1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/cluster2-m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/cluster2-m1",
+						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/cluster2-m1",
 					},
 				},
 			},
@@ -965,7 +965,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
 					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
 							"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 						},
@@ -981,7 +981,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 						},
 					},
 					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns2/cluster1": {},
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns2/cluster1": {
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns2/cluster1": {
 						owners: []string{
 							"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns2/cluster1",
 						},
@@ -1013,7 +1013,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
 					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
 							"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
 						},
@@ -1135,7 +1135,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo": {
 					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/foo",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
 				},
@@ -1154,7 +1154,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo": {
 					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/foo",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
 				},
@@ -1173,13 +1173,13 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo": {
 					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/foo",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
 				},
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/bar": {
 					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/bar", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/bar",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/bar",
 					"/v1, Kind=Secret, ns1/bar-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/bar-kubeconfig",
 				},
@@ -1218,29 +1218,29 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
-					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",                                         // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",                                           // the cluster should be tenant of itself
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 					"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/cluster1-ms1",
-					"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/cluster1-ms1",
+					"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/cluster1-ms1",
 					"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/cluster1-m1",
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/cluster1-m1",
-					"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/cluster1-m1",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/cluster1-m1",
+					"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/cluster1-m1",
 					"/v1, Kind=Secret, ns1/cluster1-m1",
 				},
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
-					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",                                         // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster2",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",                                           // the cluster should be tenant of itself
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster2",
 					"/v1, Kind=Secret, ns1/cluster2-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
 					"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/cluster2-ms1",
-					"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/cluster2-ms1",
+					"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/cluster2-ms1",
 					"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/cluster2-m1",
-					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/cluster2-m1",
-					"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/cluster2-m1",
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/cluster2-m1",
+					"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/cluster2-m1",
 					"/v1, Kind=Secret, ns1/cluster2-m1",
 				},
 			},

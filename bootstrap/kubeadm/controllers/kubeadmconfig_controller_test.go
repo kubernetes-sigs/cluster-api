@@ -953,10 +953,10 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
-	dummyCAHash := []string{"...."}
+	caHash := []string{"...."}
 	bootstrapToken := kubeadmv1beta1.Discovery{
 		BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-			CACertHashes: dummyCAHash,
+			CACertHashes: caHash,
 		},
 	}
 	goodcluster := &clusterv1.Cluster{
@@ -1018,7 +1018,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 						Discovery: kubeadmv1beta1.Discovery{
 							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-								CACertHashes:      dummyCAHash,
+								CACertHashes:      caHash,
 								APIServerEndpoint: "bar.com:6443",
 							},
 						},
@@ -1039,7 +1039,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 						Discovery: kubeadmv1beta1.Discovery{
 							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-								CACertHashes: dummyCAHash,
+								CACertHashes: caHash,
 								Token:        "abcdef.0123456789abcdef",
 							},
 						},
@@ -1060,7 +1060,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 						Discovery: kubeadmv1beta1.Discovery{
 							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-								CACertHashes: dummyCAHash,
+								CACertHashes: caHash,
 							},
 						},
 					},
@@ -1068,7 +1068,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				g.Expect(reflect.DeepEqual(d.BootstrapToken.CACertHashes, dummyCAHash)).To(BeTrue())
+				g.Expect(reflect.DeepEqual(d.BootstrapToken.CACertHashes, caHash)).To(BeTrue())
 				return nil
 			},
 		},

@@ -82,7 +82,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)")
 
 	fs.DurationVar(&leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second,
-		"Duration that the acting master will retry refreshing leadership before giving up (duration string)")
+		"Duration that the leading controller manager will retry refreshing leadership before giving up (duration string)")
 
 	fs.DurationVar(&leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second,
 		"Duration the LeaderElector clients should wait between tries of actions (duration string)")

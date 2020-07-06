@@ -37,7 +37,7 @@ const (
 	// Event types
 
 	// EventSkippedControlPlane is emitted in case an unhealthy node (or a machine
-	// associated with the node) has the `master` role
+	// associated with the node) has the `control-plane` role
 	// Deprecated: no longer in use
 	EventSkippedControlPlane string = "SkippedControlPlane"
 	// EventMachineDeletionFailed is emitted in case remediation of a machine

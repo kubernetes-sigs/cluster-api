@@ -44,9 +44,9 @@ import (
 )
 
 const (
-	kubeProxyKey        = "kube-proxy"
-	kubeadmConfigKey    = "kubeadm-config"
-	labelNodeRoleMaster = "node-role.kubernetes.io/master"
+	kubeProxyKey              = "kube-proxy"
+	kubeadmConfigKey          = "kubeadm-config"
+	labelNodeRoleControlPlane = "node-role.kubernetes.io/master"
 )
 
 var (
@@ -89,7 +89,7 @@ type Workload struct {
 func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
 	nodes := &corev1.NodeList{}
 	labels := map[string]string{
-		labelNodeRoleMaster: "",
+		labelNodeRoleControlPlane: "",
 	}
 
 	if err := w.Client.List(ctx, nodes, ctrlclient.MatchingLabels(labels)); err != nil {

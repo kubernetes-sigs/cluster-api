@@ -483,7 +483,7 @@ func TestClusterStatus(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node1",
 			Labels: map[string]string{
-				labelNodeRoleMaster: "",
+				labelNodeRoleControlPlane: "",
 			},
 		},
 		Status: corev1.NodeStatus{
@@ -497,7 +497,7 @@ func TestClusterStatus(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node2",
 			Labels: map[string]string{
-				labelNodeRoleMaster: "",
+				labelNodeRoleControlPlane: "",
 			},
 		},
 		Status: corev1.NodeStatus{

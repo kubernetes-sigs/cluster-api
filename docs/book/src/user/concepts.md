@@ -23,7 +23,7 @@ The Bootstrap Provider is responsible for:
 
 1. Generating the cluster certificates, if not otherwise specified
 1. Initializing the control plane, and gating the creation of other nodes until it is complete
-1. Joining master and worker nodes to the cluster
+1. Joining control plane and worker nodes to the cluster
 
 ### Control plane
 

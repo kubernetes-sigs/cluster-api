@@ -183,7 +183,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			Name:      "cp1",
 			Namespace: "cp1",
 			Labels: map[string]string{
-				labelNodeRoleMaster: "",
+				labelNodeRoleControlPlane: "",
 			},
 		},
 	}

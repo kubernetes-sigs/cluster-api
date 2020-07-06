@@ -166,11 +166,15 @@ func IsReady() Func {
 	}
 }
 
-// OlderThan returns a filter to find all machines
-// that have a CreationTimestamp earlier than the given time.
-func OlderThan(t *metav1.Time) Func {
+// ShouldRolloutAfter returns a filter to find all machines
+// that should rollout after the given time.
+func ShouldRolloutAfter(t *metav1.Time) Func {
+	now := metav1.Now()
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
+			return false
+		}
+		if t == nil || !t.Before(&now) {
 			return false
 		}
 		return machine.CreationTimestamp.Before(t)

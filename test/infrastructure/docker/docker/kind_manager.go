@@ -157,12 +157,12 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 
 // helper used to get a free TCP port for the API server
 func getPort() (int32, error) {
-	dummyListener, err := net.Listen("tcp", ":0") //nolint:gosec
+	listener, err := net.Listen("tcp", ":0") //nolint:gosec
 	if err != nil {
 		return 0, err
 	}
-	port := dummyListener.Addr().(*net.TCPAddr).Port
-	if err := dummyListener.Close(); err != nil {
+	port := listener.Addr().(*net.TCPAddr).Port
+	if err := listener.Close(); err != nil {
 		return 0, err
 	}
 	return int32(port), nil

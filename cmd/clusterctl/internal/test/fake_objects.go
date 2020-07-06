@@ -83,10 +83,10 @@ func (f *FakeCluster) WithMachines(fakeMachine ...*FakeMachine) *FakeCluster {
 }
 
 func (f *FakeCluster) Objs() []runtime.Object {
-	clusterInfrastructure := &fakeinfrastructure.DummyInfrastructureCluster{
+	clusterInfrastructure := &fakeinfrastructure.GenericInfrastructureCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),
-			Kind:       "DummyInfrastructureCluster",
+			Kind:       "GenericInfrastructureCluster",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -233,10 +233,10 @@ func (f *FakeControlPlane) WithMachines(fakeMachine ...*FakeMachine) *FakeContro
 
 func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []runtime.Object {
 
-	controlPlaneInfrastructure := &fakeinfrastructure.DummyInfrastructureMachineTemplate{
+	controlPlaneInfrastructure := &fakeinfrastructure.GenericInfrastructureMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),
-			Kind:       "DummyInfrastructureMachineTemplate",
+			Kind:       "GenericInfrastructureMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -253,10 +253,10 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []runtime.Object {
 		},
 	}
 
-	controlPlane := &fakecontrolplane.DummyControlPlane{
+	controlPlane := &fakecontrolplane.GenericControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakecontrolplane.GroupVersion.String(),
-			Kind:       "DummyControlPlane",
+			Kind:       "GenericControlPlane",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -273,7 +273,7 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []runtime.Object {
 				clusterv1.ClusterLabelName: cluster.Name,
 			},
 		},
-		Spec: fakecontrolplane.DummyControlPlaneSpec{
+		Spec: fakecontrolplane.GenericControlPlaneSpec{
 			InfrastructureTemplate: corev1.ObjectReference{
 				APIVersion: controlPlaneInfrastructure.APIVersion,
 				Kind:       controlPlaneInfrastructure.Kind,
@@ -351,10 +351,10 @@ func NewFakeMachinePool(name string) *FakeMachinePool {
 }
 
 func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []runtime.Object {
-	machinePoolInfrastructure := &fakeinfrastructure.DummyInfrastructureMachineTemplate{
+	machinePoolInfrastructure := &fakeinfrastructure.GenericInfrastructureMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),
-			Kind:       "DummyInfrastructureMachineTemplate",
+			Kind:       "GenericInfrastructureMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -371,10 +371,10 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []runtime.Object {
 		},
 	}
 
-	machinePoolBootstrap := &fakebootstrap.DummyBootstrapConfigTemplate{
+	machinePoolBootstrap := &fakebootstrap.GenericBootstrapConfigTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakebootstrap.GroupVersion.String(),
-			Kind:       "DummyBootstrapConfigTemplate",
+			Kind:       "GenericBootstrapConfigTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -446,11 +446,11 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []runtime.Object {
 	return objs
 }
 
-func NewFakeInfrastructureTemplate(name string) *fakeinfrastructure.DummyInfrastructureMachineTemplate {
-	return &fakeinfrastructure.DummyInfrastructureMachineTemplate{
+func NewFakeInfrastructureTemplate(name string) *fakeinfrastructure.GenericInfrastructureMachineTemplate {
+	return &fakeinfrastructure.GenericInfrastructureMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),
-			Kind:       "DummyInfrastructureMachineTemplate",
+			Kind:       "GenericInfrastructureMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -463,7 +463,7 @@ func NewFakeInfrastructureTemplate(name string) *fakeinfrastructure.DummyInfrast
 type FakeMachineDeployment struct {
 	name                         string
 	machineSets                  []*FakeMachineSet
-	sharedInfrastructureTemplate *fakeinfrastructure.DummyInfrastructureMachineTemplate
+	sharedInfrastructureTemplate *fakeinfrastructure.GenericInfrastructureMachineTemplate
 }
 
 // NewFakeMachineDeployment return a FakeMachineDeployment that can generate a MachineDeployment object, all its own ancillary objects:
@@ -481,7 +481,7 @@ func (f *FakeMachineDeployment) WithMachineSets(fakeMachineSet ...*FakeMachineSe
 	return f
 }
 
-func (f *FakeMachineDeployment) WithInfrastructureTemplate(infrastructureTemplate *fakeinfrastructure.DummyInfrastructureMachineTemplate) *FakeMachineDeployment {
+func (f *FakeMachineDeployment) WithInfrastructureTemplate(infrastructureTemplate *fakeinfrastructure.GenericInfrastructureMachineTemplate) *FakeMachineDeployment {
 	f.sharedInfrastructureTemplate = infrastructureTemplate
 	return f
 }
@@ -503,10 +503,10 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []runtime.Objec
 	)
 	setUID(machineDeploymentInfrastructure)
 
-	machineDeploymentBootstrap := &fakebootstrap.DummyBootstrapConfigTemplate{
+	machineDeploymentBootstrap := &fakebootstrap.GenericBootstrapConfigTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakebootstrap.GroupVersion.String(),
-			Kind:       "DummyBootstrapConfigTemplate",
+			Kind:       "GenericBootstrapConfigTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -589,7 +589,7 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []runtime.Objec
 type FakeMachineSet struct {
 	name                         string
 	machines                     []*FakeMachine
-	sharedInfrastructureTemplate *fakeinfrastructure.DummyInfrastructureMachineTemplate
+	sharedInfrastructureTemplate *fakeinfrastructure.GenericInfrastructureMachineTemplate
 }
 
 // NewFakeMachineSet return a FakeMachineSet that can generate a MachineSet object, all its own ancillary objects:
@@ -607,7 +607,7 @@ func (f *FakeMachineSet) WithMachines(fakeMachine ...*FakeMachine) *FakeMachineS
 	return f
 }
 
-func (f *FakeMachineSet) WithInfrastructureTemplate(infrastructureTemplate *fakeinfrastructure.DummyInfrastructureMachineTemplate) *FakeMachineSet {
+func (f *FakeMachineSet) WithInfrastructureTemplate(infrastructureTemplate *fakeinfrastructure.GenericInfrastructureMachineTemplate) *FakeMachineSet {
 	f.sharedInfrastructureTemplate = infrastructureTemplate
 	return f
 }
@@ -680,10 +680,10 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 			Namespace:  machineSetInfrastructure.Namespace,
 		}
 
-		machineSetBootstrap := &fakebootstrap.DummyBootstrapConfigTemplate{
+		machineSetBootstrap := &fakebootstrap.GenericBootstrapConfigTemplate{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: fakebootstrap.GroupVersion.String(),
-				Kind:       "DummyBootstrapConfigTemplate",
+				Kind:       "GenericBootstrapConfigTemplate",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      f.name,
@@ -738,12 +738,12 @@ func NewFakeMachine(name string) *FakeMachine {
 	}
 }
 
-func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, controlPlane *fakecontrolplane.DummyControlPlane) []runtime.Object {
+func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, controlPlane *fakecontrolplane.GenericControlPlane) []runtime.Object {
 
-	machineInfrastructure := &fakeinfrastructure.DummyInfrastructureMachine{
+	machineInfrastructure := &fakeinfrastructure.GenericInfrastructureMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),
-			Kind:       "DummyInfrastructureMachine",
+			Kind:       "GenericInfrastructureMachine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -755,10 +755,10 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 
 	bootstrapDataSecretName := f.name
 
-	machineBootstrap := &fakebootstrap.DummyBootstrapConfig{
+	machineBootstrap := &fakebootstrap.GenericBootstrapConfig{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakebootstrap.GroupVersion.String(),
-			Kind:       "DummyBootstrapConfig",
+			Kind:       "GenericBootstrapConfig",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -766,7 +766,7 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 			// OwnerReferences: machine, Added by the machine controller (see below) -- RECONCILED
 			// Labels: cluster.x-k8s.io/cluster-name=cluster, Added by the machine controller (see below) -- RECONCILED
 		},
-		Status: fakebootstrap.DummyBootstrapConfigStatus{
+		Status: fakebootstrap.GenericBootstrapConfigStatus{
 			DataSecretName: &bootstrapDataSecretName,
 		},
 	}
@@ -957,11 +957,11 @@ func FakeCRDList() []*apiextensionslv1.CustomResourceDefinition {
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
 		FakeCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", version),
-		FakeCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "DummyControlPlane", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureCluster", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureMachine", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureMachineTemplate", version),
-		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "DummyBootstrapConfig", version),
-		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "DummyBootstrapConfigTemplate", version),
+		FakeCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlane", version),
+		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureCluster", version),
+		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachine", version),
+		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachineTemplate", version),
+		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "GenericBootstrapConfig", version),
+		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "GenericBootstrapConfigTemplate", version),
 	}
 }

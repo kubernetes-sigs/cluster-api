@@ -633,5 +633,5 @@ func (r *KubeadmControlPlaneReconciler) remediateUnhealthy(ctx context.Context, 
 		return ctrl.Result{}, errors.Wrap(err, "failed to patch unhealthy machine")
 	}
 
-	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	return ctrl.Result{}, nil
 }

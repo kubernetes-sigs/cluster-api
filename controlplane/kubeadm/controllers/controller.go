@@ -588,6 +588,8 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 }
 
 func (r *KubeadmControlPlaneReconciler) remediateUnhealthy(ctx context.Context, logger logr.Logger, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	// No remediation while cluster is below remediation threshold, or if the cluster is scaling up
+	// This is to prevent multiple remediations from happening before replacements are created.
 	if !controlPlane.RemediationAllowed() || !controlPlane.HasUnhealthyMachine() || controlPlane.Machines.Len() < int(*controlPlane.KCP.Spec.Replicas) {
 		return ctrl.Result{}, nil
 	}
@@ -608,7 +610,7 @@ func (r *KubeadmControlPlaneReconciler) remediateUnhealthy(ctx context.Context, 
 
 	machine := controlPlane.UnhealthyMachines().Oldest()
 
-	if etcdStatus.FailureTolerance(machine) == 0 {
+	if etcdStatus.FailureTolerance(machine) <= 0 {
 		logger.Info("cluster has no failure tolerance, skipping remediation")
 		return ctrl.Result{}, nil
 	}

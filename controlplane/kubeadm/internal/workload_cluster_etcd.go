@@ -337,6 +337,11 @@ type EtcdMemberStatus struct {
 
 // FailureTolerance is the amount of members the etcd cluster can afford to
 // lose without losing quorum.
+// It accepts a machine as an argument in order to answer whether this specific
+// machine can be safely deleted. For example, a 3-machine cluster has a
+// failure tolerance of 1, but if member A is unresponsive and we are
+// considering deleting member B, this method will give a failure tolerance of
+// 0. Given member A, it would return 1.
 // Ref: https://github.com/etcd-io/etcd/blob/master/Documentation/faq.md#what-is-failure-tolerance
 func (e *EtcdStatus) FailureTolerance(machine *clusterv1.Machine) int {
 	var unresponsive int
@@ -346,16 +351,29 @@ func (e *EtcdStatus) FailureTolerance(machine *clusterv1.Machine) int {
 		}
 	}
 
+	// Calculate the default cluster failure tolerance as number-of-members / 2 + 1.
+	// Subtract unresponsive members to represent that they are already potentially failed
+	// and shouldn't be counted as contributing towards quorum.
 	defaultTolerance := len(e.Members) - (len(e.Members)/2.0 + 1) - unresponsive
 
+	// If a machine does not have a NodeRef we have no way of correlating it to
+	// an etcd member. It is unlikely that it is an etcd member yet, but either
+	// way we have no way of determining if it is responsive or not.
 	if machine.Status.NodeRef == nil {
 		return defaultTolerance
 	}
 
 	member, found := e.Members[machine.Status.NodeRef.Name]
+	// If the nodeRef isn't in the map this member is not running etcd for some
+	// reason, this is an edge case.
+	// If the member is responsive, use the normal tolerance calculation to
+	// determine if it is deletable.
 	if !found || member.Responsive {
 		return defaultTolerance
 	}
 
+	// If this machine is unresponsive, add 1 to the default tolerance since we
+	// have already subtracted unresponsive machines from the default tolerance but removing this
+	// machine will not further reduce quorum.
 	return defaultTolerance + 1
 }

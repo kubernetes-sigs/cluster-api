@@ -211,16 +211,16 @@ func ControlPlaneSelectorForCluster(clusterName string) labels.Selector {
 
 // MatchesKCPConfiguration returns a filter to find all machines that matches with KCP config and do not require any rollout.
 // Kubernetes version, infrastructure template, and KubeadmConfig field need to be equivalent.
-func MatchesKCPConfiguration(ctx context.Context, c client.Client, kcp controlplanev1.KubeadmControlPlane, cluster clusterv1.Cluster) func(machine *clusterv1.Machine) bool {
+func MatchesKCPConfiguration(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
 	return And(
 		MatchesKubernetesVersion(kcp.Spec.Version),
-		MatchesKubeadmBootstrapConfig(ctx, c, kcp, cluster),
+		MatchesKubeadmBootstrapConfig(ctx, c, kcp),
 		MatchesTemplateClonedFrom(ctx, c, kcp),
 	)
 }
 
 // MatchesTemplateClonedFrom returns a filter to find all machines that match a given KCP infra template.
-func MatchesTemplateClonedFrom(ctx context.Context, c client.Client, kcp controlplanev1.KubeadmControlPlane) Func {
+func MatchesTemplateClonedFrom(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
@@ -263,91 +263,133 @@ func MatchesKubernetesVersion(kubernetesVersion string) Func {
 }
 
 // MatchesKubeadmBootstrapConfig checks if machine's KubeadmConfigSpec is equivalent with KCP's KubeadmConfigSpec.
-func MatchesKubeadmBootstrapConfig(ctx context.Context, c client.Client, kcp controlplanev1.KubeadmControlPlane, cluster clusterv1.Cluster) Func {
+func MatchesKubeadmBootstrapConfig(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
 		}
-		bootstrapRef := machine.Spec.Bootstrap.ConfigRef
-		if bootstrapRef == nil {
-			// Missing bootstrap reference should not be considered as unmatching.
-			// This is a safety precaution to avoid selecting machines that are broken, which in the future should be remediated separately.
-			return true
+
+		// Check if KCP and machine ClusterConfiguration matches, if not return
+		if match := matchClusterConfiguration(kcp, machine); !match {
+			return false
 		}
 
-		bootstrapObj := &bootstrapv1.KubeadmConfig{}
-		if err := c.Get(ctx, client.ObjectKey{Name: bootstrapRef.Name, Namespace: machine.Namespace}, bootstrapObj); err != nil {
-			// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
-			// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
-			return true
-		}
+		// Check if KCP and machine InitConfiguration or JoinConfiguration matches
+		// NOTE: only one between init configuration and join configuration is set on a machine, depending
+		// on the fact that the machine was the initial control plane node or a joining control plane node.
+		return matchInitOrJoinConfiguration(ctx, c, kcp, machine)
+	}
+}
 
-		kcpConfigSpecLocal := kcp.Spec.KubeadmConfigSpec.DeepCopy()
-
-		// Machine's init configuration is nil when machine is the control plane is already initialized.
-		if bootstrapObj.Spec.InitConfiguration == nil {
-			kcpConfigSpecLocal.InitConfiguration = nil
+// matchClusterConfiguration verifies if KCP and machine ClusterConfiguration matches.
+// NOTE: Machines that have KubeadmClusterConfigurationAnnotation will have to match with KCP ClusterConfiguration.
+// If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes
+// made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
+// Users should use KCP.Spec.UpgradeAfter field to force a rollout in this case.
+func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) bool {
+	machineClusterConfigStr, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]
+	if ok {
+		machineClusterConfig := &kubeadmv1.ClusterConfiguration{}
+		// ClusterConfiguration annotation is not correct, only solution is to rollout.
+		if err := json.Unmarshal([]byte(machineClusterConfigStr), machineClusterConfig); err != nil {
+			return false
 		}
+		return reflect.DeepEqual(machineClusterConfig, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
+	}
 
-		// Machine's join configuration is nil when a machine is the first machine in the control plane.
-		if bootstrapObj.Spec.JoinConfiguration == nil {
-			kcpConfigSpecLocal.JoinConfiguration = nil
-		} else if kcpConfigSpecLocal.JoinConfiguration == nil {
-			// If KCP join configuration is not present, set machine join configuration to nil (nothing can trigger rollout here).
-			bootstrapObj.Spec.JoinConfiguration = nil
-		}
+	// We don't have enough information to make a decision; don't' trigger a roll out.
+	return true
+}
 
-		// Clear up the TypeMeta information from the comparison. Today, the kubeadm types are embedded in CABPK and KCP types don't carry this information.
-		if bootstrapObj.Spec.InitConfiguration != nil && kcpConfigSpecLocal.InitConfiguration != nil {
-			bootstrapObj.Spec.InitConfiguration.TypeMeta = kcpConfigSpecLocal.InitConfiguration.TypeMeta
-		}
-		if bootstrapObj.Spec.JoinConfiguration != nil && kcpConfigSpecLocal.JoinConfiguration != nil {
-			bootstrapObj.Spec.JoinConfiguration.TypeMeta = kcpConfigSpecLocal.JoinConfiguration.TypeMeta
-		}
+// matchInitOrJoinConfiguration verifies if KCP and machine InitConfiguration or JoinConfiguration matches.
+// NOTE: By extension this method takes care of detecting changes in other fields of the KubeadmConfig configuration (e.g. Files, Mounts etc.)
+func matchInitOrJoinConfiguration(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) bool {
+	bootstrapRef := machine.Spec.Bootstrap.ConfigRef
+	if bootstrapRef == nil {
+		// Missing bootstrap reference should not be considered as unmatching.
+		// This is a safety precaution to avoid selecting machines that are broken, which in the future should be remediated separately.
+		return true
+	}
 
-		// Machines that have KubeadmClusterConfigurationAnnotation will have to match with KCP ClusterConfiguration.
-		// If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes
-		// made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
-		// Users should use KCP.Spec.UpgradeAfter field to force a rollout in this case.
-		machineClusterConfigStr, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]
-		if ok {
-			machineClusterConfig := &kubeadmv1.ClusterConfiguration{}
-			// ClusterConfiguration annotation is not correct, only solution is to rollout.
-			if err := json.Unmarshal([]byte(machineClusterConfigStr), machineClusterConfig); err != nil {
-				return false
-			}
-			if !reflect.DeepEqual(machineClusterConfig, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration) {
-				return false
-			}
-		}
+	machineConfig := &bootstrapv1.KubeadmConfig{}
+	if err := c.Get(ctx, client.ObjectKey{Name: bootstrapRef.Name, Namespace: machine.Namespace}, machineConfig); err != nil {
+		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
+		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
+		return true
+	}
 
-		// KCP ClusterConfiguration will only be compared with a machine's ClusterConfiguration annotation.
-		// To skip ClusterConfiguration merge during SemanticMerge(), set both Machine's and KCP's ClusterConfigurations to nil here.
-		kcpConfigSpecLocal.ClusterConfiguration = nil
-		bootstrapObj.Spec.ClusterConfiguration = nil
+	// takes the KubeadmConfigSpec from KCP and applies the transformations required
+	// to allow a comparison with the KubeadmConfig referenced from the machine.
+	kcpConfig := getAdjustedKcpConfig(kcp, machineConfig)
 
-		// Machine's JoinConfiguration Discovery is set to an empty object by KubeadmConfig controller if KCP is Discovery is nil, also
-		// adopted machines may have an unrelated discovery setting so ignore discovery completely when comparing JoinConfigurations.
-		emptyDiscovery := kubeadmv1.Discovery{}
-		if kcpConfigSpecLocal.JoinConfiguration != nil {
-			kcpConfigSpecLocal.JoinConfiguration.Discovery = emptyDiscovery
-		}
-		if bootstrapObj.Spec.JoinConfiguration != nil {
-			bootstrapObj.Spec.JoinConfiguration.Discovery = emptyDiscovery
-		}
+	// cleanups all the fields that are not relevant for the comparison.
+	cleanupConfigFields(kcpConfig, machineConfig)
 
-		// Machine's JoinConfiguration ControlPlane is set to an empty object by KubeadmConfig controller if KCP is ControlPlane is nil.
-		// Set Machine's ControlPlane to nil to avoid
-		if kcpConfigSpecLocal.JoinConfiguration != nil && kcpConfigSpecLocal.JoinConfiguration.ControlPlane == nil {
-			bootstrapObj.Spec.JoinConfiguration.ControlPlane = nil
-		}
+	return reflect.DeepEqual(&machineConfig.Spec, kcpConfig)
+}
 
-		// If KCP's join NodeRegistration is empty, set machine's node registration to empty as no changes should trigger rollout.
-		emptyNodeRegistration := kubeadmv1.NodeRegistrationOptions{}
-		if kcpConfigSpecLocal.JoinConfiguration != nil && reflect.DeepEqual(kcpConfigSpecLocal.JoinConfiguration.NodeRegistration, emptyNodeRegistration) {
-			bootstrapObj.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
-		}
+// getAdjustedKcpConfig takes the KubeadmConfigSpec from KCP and applies the transformations required
+// to allow a comparison with the KubeadmConfig referenced from the machine.
+// NOTE: The KCP controller applies a set of transformations when creating a KubeadmConfig referenced from the machine,
+// mostly depending on the fact that the machine was the initial control plane node or a joining control plane node.
+// In this function we don't have such information, so we are making the KubeadmConfigSpec similar to the KubeadmConfig.
+func getAdjustedKcpConfig(kcp *controlplanev1.KubeadmControlPlane, machineConfig *bootstrapv1.KubeadmConfig) *bootstrapv1.KubeadmConfigSpec {
+	kcpConfig := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 
-		return reflect.DeepEqual(bootstrapObj.Spec, *kcpConfigSpecLocal)
+	// Machine's join configuration is nil when it is the first machine in the control plane.
+	if machineConfig.Spec.JoinConfiguration == nil {
+		kcpConfig.JoinConfiguration = nil
+	}
+
+	// Machine's init configuration is nil when the control plane is already initialized.
+	if machineConfig.Spec.InitConfiguration == nil {
+		kcpConfig.InitConfiguration = nil
+	}
+
+	return kcpConfig
+}
+
+// cleanupConfigFields cleanups all the fields that are not relevant for the comparison.
+func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig *bootstrapv1.KubeadmConfig) {
+	// KCP ClusterConfiguration will only be compared with a machine's ClusterConfiguration annotation, so
+	// we are cleaning up from the reflect.DeepEqual comparison.
+	kcpConfig.ClusterConfiguration = nil
+	machineConfig.Spec.ClusterConfiguration = nil
+
+	// If KCP JoinConfiguration is not present, set machine JoinConfiguration to nil (nothing can trigger rollout here).
+	// NOTE: this is required because CABPK applies an empty joinConfiguration in case no one is provided.
+	if kcpConfig.JoinConfiguration == nil {
+		machineConfig.Spec.JoinConfiguration = nil
+	}
+
+	// Cleanup JoinConfiguration.Discovery from kcpConfig and machineConfig, because those info are relevant only for
+	// the join process and not for comparing the configuration of the machine.
+	emptyDiscovery := kubeadmv1.Discovery{}
+	if kcpConfig.JoinConfiguration != nil {
+		kcpConfig.JoinConfiguration.Discovery = emptyDiscovery
+	}
+	if machineConfig.Spec.JoinConfiguration != nil {
+		machineConfig.Spec.JoinConfiguration.Discovery = emptyDiscovery
+	}
+
+	// If KCP JoinConfiguration.ControlPlane is not present, set machine join configuration to nil (nothing can trigger rollout here).
+	// NOTE: this is required because CABPK applies an empty joinConfiguration.ControlPlane in case no one is provided.
+	if kcpConfig.JoinConfiguration != nil && kcpConfig.JoinConfiguration.ControlPlane == nil {
+		machineConfig.Spec.JoinConfiguration.ControlPlane = nil
+	}
+
+	// If KCP's join NodeRegistration is empty, set machine's node registration to empty as no changes should trigger rollout.
+	emptyNodeRegistration := kubeadmv1.NodeRegistrationOptions{}
+	if kcpConfig.JoinConfiguration != nil && reflect.DeepEqual(kcpConfig.JoinConfiguration.NodeRegistration, emptyNodeRegistration) {
+		machineConfig.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
+	}
+
+	// Clear up the TypeMeta information from the comparison.
+	// NOTE: KCP types don't carry this information.
+	if machineConfig.Spec.InitConfiguration != nil && kcpConfig.InitConfiguration != nil {
+		machineConfig.Spec.InitConfiguration.TypeMeta = kcpConfig.InitConfiguration.TypeMeta
+	}
+	if machineConfig.Spec.JoinConfiguration != nil && kcpConfig.JoinConfiguration != nil {
+		machineConfig.Spec.JoinConfiguration.TypeMeta = kcpConfig.JoinConfiguration.TypeMeta
 	}
 }

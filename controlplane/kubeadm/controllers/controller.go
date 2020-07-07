@@ -39,12 +39,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/equality"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -528,22 +526,6 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 		if err := controllerutil.SetControllerReference(kcp, m, r.scheme); err != nil {
 			return err
 		}
-
-		// 0. get machine.Spec.Version - the easy answer
-		machineKubernetesVersion := ""
-		if m.Spec.Version != nil {
-			machineKubernetesVersion = *m.Spec.Version
-		}
-
-		// 1. hash the version (kubernetes version) and kubeadm_controlplane's Spec.infrastructureTemplate
-		syntheticSpec := controlplanev1.KubeadmControlPlaneSpec{
-			Version:                machineKubernetesVersion,
-			InfrastructureTemplate: kcp.Spec.InfrastructureTemplate,
-			KubeadmConfigSpec:      equality.SemanticMerge(cfg.Spec, kcp.Spec.KubeadmConfigSpec, cluster),
-		}
-		newConfigurationHash := hash.Compute(&syntheticSpec)
-		// 2. add kubeadm.controlplane.cluster.x-k8s.io/hash as a label in each machine
-		m.Labels[controlplanev1.KubeadmControlPlaneHashLabelKey] = newConfigurationHash
 
 		// Note that ValidateOwnerReferences() will reject this patch if another
 		// OwnerReference exists with controller=true.

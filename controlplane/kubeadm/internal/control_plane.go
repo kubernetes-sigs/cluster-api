@@ -25,7 +25,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 )
 
@@ -67,11 +66,6 @@ func (c *ControlPlane) Version() *string {
 // InfrastructureTemplate returns the KubeadmControlPlane's infrastructure template.
 func (c *ControlPlane) InfrastructureTemplate() *corev1.ObjectReference {
 	return &c.KCP.Spec.InfrastructureTemplate
-}
-
-// SpecHash returns the hash of the KubeadmControlPlane spec.
-func (c *ControlPlane) SpecHash() string {
-	return hash.Compute(&c.KCP.Spec)
 }
 
 // AsOwnerReference returns an owner reference to the KubeadmControlPlane.
@@ -159,7 +153,7 @@ func (c *ControlPlane) GenerateKubeadmConfig(spec *bootstrapv1.KubeadmConfigSpec
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            names.SimpleNameGenerator.GenerateName(c.KCP.Name + "-"),
 			Namespace:       c.KCP.Namespace,
-			Labels:          ControlPlaneLabelsForClusterWithHash(c.Cluster.Name, c.SpecHash()),
+			Labels:          ControlPlaneLabelsForCluster(c.Cluster.Name),
 			OwnerReferences: []metav1.OwnerReference{owner},
 		},
 		Spec: *spec,
@@ -173,7 +167,7 @@ func (c *ControlPlane) NewMachine(infraRef, bootstrapRef *corev1.ObjectReference
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      names.SimpleNameGenerator.GenerateName(c.KCP.Name + "-"),
 			Namespace: c.KCP.Namespace,
-			Labels:    ControlPlaneLabelsForClusterWithHash(c.Cluster.Name, c.SpecHash()),
+			Labels:    ControlPlaneLabelsForCluster(c.Cluster.Name),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(c.KCP, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},

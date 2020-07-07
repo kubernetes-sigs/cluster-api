@@ -142,20 +142,6 @@ func HasDeletionTimestamp(machine *clusterv1.Machine) bool {
 	return !machine.DeletionTimestamp.IsZero()
 }
 
-// MatchesConfigurationHash returns a filter to find all machines
-// that match a given KubeadmControlPlane configuration hash.
-func MatchesConfigurationHash(configHash string) Func {
-	return func(machine *clusterv1.Machine) bool {
-		if machine == nil {
-			return false
-		}
-		if hash, ok := machine.Labels[controlplanev1.KubeadmControlPlaneHashLabelKey]; ok {
-			return hash == configHash
-		}
-		return false
-	}
-}
-
 // IsReady returns a filter to find all machines with the ReadyCondition equals to True.
 func IsReady() Func {
 	return func(machine *clusterv1.Machine) bool {

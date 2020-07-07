@@ -105,7 +105,6 @@ var _ = Describe("Control Plane", func() {
 				spec := &bootstrapv1.KubeadmConfigSpec{}
 				kubeadmConfig := controlPlane.GenerateKubeadmConfig(spec)
 				Expect(kubeadmConfig.Labels["cluster.x-k8s.io/cluster-name"]).To(Equal("test-cluster"))
-				Expect(kubeadmConfig.Labels["kubeadm.controlplane.cluster.x-k8s.io/hash"]).ToNot(BeEmpty())
 				Expect(kubeadmConfig.OwnerReferences[0].Controller).To(BeNil())
 			})
 			It("should generate new machine with controller reference", func() {

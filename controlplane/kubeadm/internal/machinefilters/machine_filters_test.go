@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 )
 
@@ -95,26 +94,6 @@ func TestHasDeletionTimestamp(t *testing.T) {
 		zero := metav1.NewTime(time.Time{})
 		m.SetDeletionTimestamp(&zero)
 		g.Expect(machinefilters.HasDeletionTimestamp(m)).To(BeFalse())
-	})
-}
-
-func TestMatchesConfigurationHash(t *testing.T) {
-	t.Run("machine with configuration hash returns true", func(t *testing.T) {
-		g := NewWithT(t)
-		m := &clusterv1.Machine{}
-		m.SetLabels(internal.ControlPlaneLabelsForClusterWithHash("test", "hashValue"))
-		g.Expect(machinefilters.MatchesConfigurationHash("hashValue")(m)).To(BeTrue())
-	})
-	t.Run("machine with wrong configuration hash returns false", func(t *testing.T) {
-		g := NewWithT(t)
-		m := &clusterv1.Machine{}
-		m.SetLabels(internal.ControlPlaneLabelsForClusterWithHash("test", "notHashValue"))
-		g.Expect(machinefilters.MatchesConfigurationHash("hashValue")(m)).To(BeFalse())
-	})
-	t.Run("machine without configuration hash returns false", func(t *testing.T) {
-		g := NewWithT(t)
-		m := &clusterv1.Machine{}
-		g.Expect(machinefilters.MatchesConfigurationHash("hashValue")(m)).To(BeFalse())
 	})
 }
 

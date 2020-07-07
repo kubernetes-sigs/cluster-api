@@ -18,16 +18,7 @@ package internal
 
 import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
-
-// ControlPlaneLabelsForClusterWithHash returns a set of labels to add to a control plane machine for this specific
-// cluster and configuration hash
-func ControlPlaneLabelsForClusterWithHash(clusterName string, hash string) map[string]string {
-	labels := ControlPlaneLabelsForCluster(clusterName)
-	labels[controlplanev1.KubeadmControlPlaneHashLabelKey] = hash
-	return labels
-}
 
 // ControlPlaneLabelsForCluster returns a set of labels to add to a control plane machine for this specific cluster.
 func ControlPlaneLabelsForCluster(clusterName string) map[string]string {

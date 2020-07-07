@@ -32,7 +32,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -224,11 +223,11 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{},
 	}
 	startDate := time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC)
-	m1 := machine("machine-1", withFailureDomain("one"), withTimestamp(startDate.Add(time.Hour)), withValidHash(kcp.Spec))
-	m2 := machine("machine-2", withFailureDomain("one"), withTimestamp(startDate.Add(-3*time.Hour)), withValidHash(kcp.Spec))
-	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)), withValidHash(kcp.Spec))
-	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)), withValidHash(kcp.Spec))
-	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)), withHash("shrug"))
+	m1 := machine("machine-1", withFailureDomain("one"), withTimestamp(startDate.Add(time.Hour)))
+	m2 := machine("machine-2", withFailureDomain("one"), withTimestamp(startDate.Add(-3*time.Hour)))
+	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)))
+	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)))
+	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)))
 
 	mc3 := internal.NewFilterableMachineCollection(m1, m2, m3, m4, m5)
 	fd := clusterv1.FailureDomains{
@@ -306,17 +305,5 @@ func withFailureDomain(fd string) machineOpt {
 func withTimestamp(t time.Time) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.CreationTimestamp = metav1.NewTime(t)
-	}
-}
-
-func withValidHash(kcp controlplanev1.KubeadmControlPlaneSpec) machineOpt {
-	return func(m *clusterv1.Machine) {
-		withHash(hash.Compute(&kcp))(m)
-	}
-}
-
-func withHash(hash string) machineOpt {
-	return func(m *clusterv1.Machine) {
-		m.SetLabels(map[string]string{controlplanev1.KubeadmControlPlaneHashLabelKey: hash})
 	}
 }

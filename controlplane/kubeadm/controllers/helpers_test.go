@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -345,7 +344,6 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	machine := machineList.Items[0]
 	g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 	g.Expect(machine.Namespace).To(Equal(kcp.Namespace))
-	g.Expect(machine.Labels).To(Equal(internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec))))
 	g.Expect(machine.OwnerReferences).To(HaveLen(1))
 	g.Expect(machine.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 	g.Expect(machine.Spec).To(Equal(expectedMachineSpec))
@@ -395,7 +393,6 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 	bootstrapConfig := &bootstrapv1.KubeadmConfig{}
 	key := client.ObjectKey{Name: got.Name, Namespace: got.Namespace}
 	g.Expect(fakeClient.Get(context.Background(), key, bootstrapConfig)).To(Succeed())
-	g.Expect(bootstrapConfig.Labels).To(Equal(internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec))))
 	g.Expect(bootstrapConfig.OwnerReferences).To(HaveLen(1))
 	g.Expect(bootstrapConfig.OwnerReferences).To(ContainElement(expectedOwner))
 	g.Expect(bootstrapConfig.Spec).To(Equal(spec))

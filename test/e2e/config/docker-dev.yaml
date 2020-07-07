@@ -47,7 +47,9 @@ providers:
     - old: "imagePullPolicy: Always"
       new: "imagePullPolicy: IfNotPresent"
     - old: "--enable-leader-election"
-      new: "--enable-leader-election=false"
+      new: "--enable-leader-election=false\n        - --feature-gates=ClusterResourceSet=true"
+    - old: "--webhook-port=9443"
+      new: "--webhook-port=9443\n        - --feature-gates=ClusterResourceSet=true"
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
 
@@ -98,6 +100,7 @@ providers:
   # Add cluster templates
   - sourcePath: "../data/infrastructure-docker/cluster-template.yaml"
   - sourcePath: "../data/infrastructure-docker/cluster-template-kcp-adoption.yaml"
+  - sourcePath: "../data/infrastructure-docker/cluster-template-clusterresourceset.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"

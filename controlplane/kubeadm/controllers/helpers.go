@@ -267,6 +267,6 @@ func (r *KubeadmControlPlaneReconciler) machinesNeedingRollout(ctx context.Conte
 		// Machines that are scheduled for rollout (KCP.Spec.UpgradeAfter set, the UpgradeAfter deadline is expired, and the machine was created before the deadline).
 		machinefilters.ShouldRolloutAfter(c.KCP.Spec.UpgradeAfter),
 		// Machines that do not match with KCP config.
-		machinefilters.Not(machinefilters.MatchesKCPConfiguration(ctx, r.Client, *c.KCP, *c.Cluster)),
+		machinefilters.Not(machinefilters.MatchesKCPConfiguration(ctx, r.Client, c.KCP)),
 	)
 }

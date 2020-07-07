@@ -23,10 +23,10 @@ import (
 
 // SetLogger sets a concrete logging implementation for all deferred Loggers.
 func SetLogger(l logr.Logger) {
-	Log.Fulfill(l)
+	Log = l
 }
 
 // Log is the base logger used by kubebuilder.  It delegates
 // to another logr.Logger.  You *must* call SetLogger to
 // get any actual logging.
-var Log = log.NewDelegatingLogger(log.NullLogger{})
+var Log logr.Logger = log.NullLogger{}

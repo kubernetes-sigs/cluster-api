@@ -186,12 +186,12 @@ See the [AWS provider prerequisites] document for more details.
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure provider prerequisites] document.
 
 ```bash
-export AZURE_SUBSCRIPTION_ID=<SubscriptionId>
+export AZURE_SUBSCRIPTION_ID="<SubscriptionId>"
 
 # Create an Azure Service Principal and paste the output here
-export AZURE_TENANT_ID=<Tenant>
-export AZURE_CLIENT_ID=<AppId>
-export AZURE_CLIENT_SECRET=<Password>
+export AZURE_TENANT_ID="<Tenant>"
+export AZURE_CLIENT_ID="<AppId>"
+export AZURE_CLIENT_SECRET="<Password>"
 
 # Azure cloud settings
 # To use the default public cloud, otherwise set to AzureChinaCloud|AzureGermanCloud|AzureUSGovernmentCloud
@@ -375,6 +375,27 @@ rm -f "${SSH_KEY_FILE}" 2>/dev/null
 ssh-keygen -t rsa -b 2048 -f "${SSH_KEY_FILE}" -N '' 1>/dev/null
 echo "Machine SSH key generated in ${SSH_KEY_FILE}"
 export AZURE_SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
+
+# To populate secret in azure.json file.
+export AZURE_JSON_B64=$(echo "{
+    "cloud": "${AZURE_ENVIRONMENT}",
+    "tenantId": "${AZURE_TENANT_ID}",
+    "subscriptionId": "${AZURE_SUBSCRIPTION_ID}",
+    "aadClientId": "${AZURE_CLIENT_ID}",
+    "aadClientSecret": "${AZURE_CLIENT_SECRET}",
+    "resourceGroup": "${CLUSTER_NAME}",
+    "securityGroupName": "${CLUSTER_NAME}-node-nsg",
+    "location": "${AZURE_LOCATION}",
+    "vmType": "vmss",
+    "vnetName": "${AZURE_VNET_NAME}",
+    "vnetResourceGroup": "${CLUSTER_NAME}",
+    "subnetName": "${CLUSTER_NAME}-node-subnet",
+    "routeTableName": "${CLUSTER_NAME}-node-routetable",
+    "loadBalancerSku": "standard",
+    "maximumLoadBalancerRuleCount": 250,
+    "useManagedIdentityExtension": false,
+    "useInstanceMetadata": true
+}" | base64 | tr -d '\r\n')
 ```
 
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure provider prerequisites] document.

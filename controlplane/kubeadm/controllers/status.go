@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -41,7 +40,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}
 
-	currentMachines := ownedMachines.Filter(machinefilters.MatchesConfigurationHash(hash.Compute(&kcp.Spec)))
+	currentMachines := ownedMachines.Filter(machinefilters.MatchesKCPConfiguration(ctx, r.Client, kcp))
 	kcp.Status.UpdatedReplicas = int32(len(currentMachines))
 
 	replicas := int32(len(ownedMachines))

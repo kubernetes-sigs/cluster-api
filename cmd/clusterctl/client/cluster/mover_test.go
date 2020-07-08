@@ -356,6 +356,42 @@ var moveTests = []struct {
 			},
 		},
 	},
+	{
+		name: "A ClusterResourceSet applied to a cluster",
+		fields: moveTestsFields{
+			objs: func() []runtime.Object {
+				objs := []runtime.Object{}
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+
+				objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
+					WithSecret("resource-s1").
+					WithConfigMap("resource-c1").
+					ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster1")).
+					Objs()...)
+
+				return objs
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ //group 1
+				// Cluster
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+				// ClusterResourceSet
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
+			},
+			{ //group 2 (objects with ownerReferences in group 1)
+				// owned by Clusters
+				"/v1, Kind=Secret, ns1/cluster1-ca",
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				// owned by ClusterResourceSet
+				"/v1, Kind=Secret, ns1/resource-s1",
+				"/v1, Kind=ConfigMap, ns1/resource-c1",
+				// owned by ClusterResourceSet & Cluster
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1",
+			},
+		},
+	},
 }
 
 func Test_getMoveSequence(t *testing.T) {

@@ -22,6 +22,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 )
 
 var (
@@ -34,4 +35,5 @@ func init() {
 	_ = clusterctlv1.AddToScheme(Scheme)
 	_ = clusterv1.AddToScheme(Scheme)
 	_ = apiextensionsv1.AddToScheme(Scheme)
+	_ = addonsv1alpha3.AddToScheme(Scheme)
 }

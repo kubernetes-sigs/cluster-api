@@ -100,7 +100,7 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 
 	for uid, wantNode := range want.nodes {
 		gotNode, ok := got.uidToNode[types.UID(uid)]
-		g.Expect(ok).To(BeTrue())
+		g.Expect(ok).To(BeTrue(), "node ", uid, " not found")
 		g.Expect(gotNode.virtual).To(Equal(wantNode.virtual))
 		g.Expect(gotNode.owners).To(HaveLen(len(wantNode.owners)))
 
@@ -852,6 +852,133 @@ var objectGraphsTests = []struct {
 			},
 		},
 	},
+	{
+		name: "A ClusterResourceSet applied to a cluster",
+		args: objectGraphTestArgs{
+			objs: func() []runtime.Object {
+				objs := []runtime.Object{}
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+
+				objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
+					WithSecret("resource-s1").
+					WithConfigMap("resource-c1").
+					ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster1")).
+					Objs()...)
+
+				return objs
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1": {},
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1": {
+					owners: []string{
+						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/resource-s1": {
+					owners: []string{
+						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
+					},
+				},
+				"/v1, Kind=ConfigMap, ns1/resource-c1": {
+					owners: []string{
+						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "A ClusterResourceSet applied to two clusters",
+		args: objectGraphTestArgs{
+			objs: func() []runtime.Object {
+				objs := []runtime.Object{}
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster2").Objs()...)
+
+				objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
+					WithSecret("resource-s1").
+					WithConfigMap("resource-c1").
+					ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster1")).
+					ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster2")).
+					Objs()...)
+
+				return objs
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster2": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster2-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2", //NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
+					},
+				},
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1": {},
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1": {
+					owners: []string{
+						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
+					},
+				},
+				"/v1, Kind=Secret, ns1/resource-s1": {
+					owners: []string{
+						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
+					},
+				},
+				"/v1, Kind=ConfigMap, ns1/resource-c1": {
+					owners: []string{
+						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
+					},
+				},
+			},
+		},
+	},
 }
 
 func getDetachedObjectGraphWihObjs(objs []runtime.Object) (*objectGraph, error) {
@@ -1245,6 +1372,67 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "A ClusterResourceSet applied to a cluster",
+			fields: fields{
+				objs: func() []runtime.Object {
+					objs := []runtime.Object{}
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+
+					objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
+						WithSecret("resource-s1").
+						WithConfigMap("resource-c1").
+						ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster1")).
+						Objs()...)
+
+					return objs
+				}(),
+			},
+			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
+					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by the cluster
+				},
+			},
+		},
+		{
+			name: "A ClusterResourceSet applied to two clusters",
+			fields: fields{
+				objs: func() []runtime.Object {
+					objs := []runtime.Object{}
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster2").Objs()...)
+
+					objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
+						WithSecret("resource-s1").
+						WithConfigMap("resource-c1").
+						ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster1")).
+						ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster2")).
+						Objs()...)
+
+					return objs
+				}(),
+			},
+			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
+					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by the cluster
+				},
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2", // the cluster should be tenant of itself
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster2",
+					"/v1, Kind=Secret, ns1/cluster2-ca", // the ca secret is a soft owned
+					"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by the cluster
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1274,6 +1462,103 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				for _, node := range gb.uidToNode {
 					for c := range node.tenantClusters {
 						if c.identity.UID == cluster.identity.UID {
+							gotTenants = append(gotTenants, string(node.identity.UID))
+						}
+					}
+				}
+
+				g.Expect(gotTenants).To(ConsistOf(wantTenants))
+			}
+		})
+	}
+}
+
+func Test_objectGraph_setCRSTenants(t *testing.T) {
+	type fields struct {
+		objs []runtime.Object
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		wantCRSs map[string][]string
+	}{
+		{
+			name: "A ClusterResourceSet applied to a cluster",
+			fields: fields{
+				objs: func() []runtime.Object {
+					objs := []runtime.Object{}
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+
+					objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
+						WithSecret("resource-s1").
+						WithConfigMap("resource-c1").
+						ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster1")).
+						Objs()...)
+
+					return objs
+				}(),
+			},
+			wantCRSs: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1": {
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",        // the ClusterResourceSet should be tenant of itself
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by ClusterResourceSet
+					"/v1, Kind=Secret, ns1/resource-s1",                                          // resource are owned by ClusterResourceSet
+					"/v1, Kind=ConfigMap, ns1/resource-c1",                                       // resource are owned by ClusterResourceSet
+				},
+			},
+		},
+		{
+			name: "A ClusterResourceSet applied to two clusters",
+			fields: fields{
+				objs: func() []runtime.Object {
+					objs := []runtime.Object{}
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster2").Objs()...)
+
+					objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
+						WithSecret("resource-s1").
+						WithConfigMap("resource-c1").
+						ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster1")).
+						ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster2")).
+						Objs()...)
+
+					return objs
+				}(),
+			},
+			wantCRSs: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1": {
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",        // the ClusterResourceSet should be tenant of itself
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by ClusterResourceSet
+					"/v1, Kind=Secret, ns1/resource-s1",                                          // resource are owned by ClusterResourceSet
+					"/v1, Kind=ConfigMap, ns1/resource-c1",                                       // resource are owned by ClusterResourceSet
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			gb, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gb.setCRSTenants()
+
+			gotCRSs := gb.getCRSs()
+			sort.Slice(gotCRSs, func(i, j int) bool {
+				return gotCRSs[i].identity.UID < gotCRSs[j].identity.UID
+			})
+
+			g.Expect(gotCRSs).To(HaveLen(len(tt.wantCRSs)))
+
+			for _, crs := range gotCRSs {
+				wantTenants, ok := tt.wantCRSs[string(crs.identity.UID)]
+				g.Expect(ok).To(BeTrue())
+
+				gotTenants := []string{}
+				for _, node := range gb.uidToNode {
+					for c := range node.tenantCRSs {
+						if c.identity.UID == crs.identity.UID {
 							gotTenants = append(gotTenants, string(node.identity.UID))
 						}
 					}

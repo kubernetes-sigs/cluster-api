@@ -27,6 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	secretutil "sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -58,6 +59,10 @@ type node struct {
 	// tenantClusters define the list of Clusters which are tenant for the node, no matter if the node has a direct OwnerReference to the Cluster or if
 	// the node is linked to a Cluster indirectly in the OwnerReference chain.
 	tenantClusters map[*node]empty
+
+	// tenantCRSs define the list of ClusterResourceSet which are tenant for the node, no matter if the node has a direct OwnerReference to the ClusterResourceSet or if
+	// the node is linked to a ClusterResourceSet indirectly in the OwnerReference chain.
+	tenantCRSs map[*node]empty
 }
 
 // markObserved marks the fact that a node was observed as a concrete object.
@@ -130,6 +135,7 @@ func (o *objectGraph) ownerToVirtualNode(owner metav1.OwnerReference, namespace 
 		owners:         make(map[*node]ownerReferenceAttributes),
 		softOwners:     make(map[*node]empty),
 		tenantClusters: make(map[*node]empty),
+		tenantCRSs:     make(map[*node]empty),
 		virtual:        true,
 	}
 
@@ -158,6 +164,7 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 		owners:         make(map[*node]ownerReferenceAttributes),
 		softOwners:     make(map[*node]empty),
 		tenantClusters: make(map[*node]empty),
+		tenantCRSs:     make(map[*node]empty),
 		virtual:        false,
 	}
 
@@ -254,6 +261,9 @@ func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error
 	// Completes the graph by setting for each node the list of Clusters the node belong to.
 	o.setClusterTenants()
 
+	// Completes the graph by setting for each node the list of ClusterResourceSet the node belong to.
+	o.setCRSTenants()
+
 	return nil
 }
 
@@ -306,11 +316,22 @@ func (o *objectGraph) getNodes() []*node {
 	return nodes
 }
 
-// getNodesWithClusterTenants returns the list of nodes existing in the object graph that belong at least to one Cluster.
-func (o *objectGraph) getNodesWithClusterTenants() []*node {
+// getCRSs returns the list of ClusterResourceSet existing in the object graph.
+func (o *objectGraph) getCRSs() []*node {
+	clusters := []*node{}
+	for _, node := range o.uidToNode {
+		if node.identity.GroupVersionKind().GroupKind() == addonsv1alpha3.GroupVersion.WithKind("ClusterResourceSet").GroupKind() {
+			clusters = append(clusters, node)
+		}
+	}
+	return clusters
+}
+
+// getNodesWithTenants returns the list of nodes existing in the object graph that belong at least to one Cluster or to a ClusterResourceSet.
+func (o *objectGraph) getNodesWithTenants() []*node {
 	nodes := []*node{}
 	for _, node := range o.uidToNode {
-		if len(node.tenantClusters) > 0 {
+		if len(node.tenantClusters) > 0 || len(node.tenantCRSs) > 0 {
 			nodes = append(nodes, node)
 		}
 	}
@@ -360,12 +381,29 @@ func (o *objectGraph) setClusterTenants() {
 	}
 }
 
-// setNodeTenant sets a tenant for a node and for its own dependents/sofDependents.
+// setNodeTenant sets a cluster tenant for a node and for its own dependents/sofDependents.
 func (o *objectGraph) setClusterTenant(node, tenant *node) {
 	node.tenantClusters[tenant] = empty{}
 	for _, other := range o.getNodes() {
 		if other.isOwnedBy(node) || other.isSoftOwnedBy(node) {
 			o.setClusterTenant(other, tenant)
+		}
+	}
+}
+
+// setClusterTenants sets the ClusterResourceSet tenants for the ClusterResourceSet itself and all their dependent object tree.
+func (o *objectGraph) setCRSTenants() {
+	for _, crs := range o.getCRSs() {
+		o.setCRSTenant(crs, crs)
+	}
+}
+
+// setCRSTenant sets a ClusterResourceSet tenant for a node and for its own dependents/sofDependents.
+func (o *objectGraph) setCRSTenant(node, tenant *node) {
+	node.tenantCRSs[tenant] = empty{}
+	for _, other := range o.getNodes() {
+		if other.isOwnedBy(node) {
+			o.setCRSTenant(other, tenant)
 		}
 	}
 }

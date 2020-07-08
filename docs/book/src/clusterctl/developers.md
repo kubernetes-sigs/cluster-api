@@ -177,9 +177,7 @@ EOF
 The command for getting the kubeconfig file for connecting to a workload cluster is the following:
 
 ```bash
-kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o jsonpath={.data.value} \
-  | base64 --decode \
-  > ./capi-quickstart.kubeconfig
+clusterctl get kubeconfig capi-quickstart
 ```
 
 When using docker-for-mac MacOS, you will need to do a couple of additional

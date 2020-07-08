@@ -21,13 +21,12 @@ import (
 	"fmt"
 	"path/filepath"
 
-	. "github.com/onsi/ginkgo"
-
 	"github.com/blang/semver"
 	"github.com/onsi/gomega/types"
 	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -42,8 +41,9 @@ const (
 	CoreDNSVersionUpgradeTo      = "COREDNS_VERSION_UPGRADE_TO"
 )
 
+// Byf is deprecated. Use "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions" as dot import instead.
 func Byf(format string, a ...interface{}) {
-	By(fmt.Sprintf(format, a...))
+	ginkgoextensions.Byf(format, a...)
 }
 
 func setupSpecNamespace(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string) (*corev1.Namespace, context.CancelFunc) {

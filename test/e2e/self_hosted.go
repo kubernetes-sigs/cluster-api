@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -137,7 +136,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			Namespace:            namespace.Name,
 		})
 
-		log.Logf("Waiting for the cluster infrastructure to be provisioned")
+		By("Waiting for the cluster infrastructure to be provisioned")
 		selfHostedCluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 			Getter:    selfHostedClusterProxy.GetClient(),
 			Namespace: selfHostedNamespace.Name,
@@ -174,7 +173,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				Namespace:            selfHostedNamespace.Name,
 			})
 
-			log.Logf("Waiting for the cluster infrastructure to be provisioned")
+			By("Waiting for the cluster infrastructure to be provisioned")
 			cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 				Getter:    input.BootstrapClusterProxy.GetClient(),
 				Namespace: namespace.Name,

@@ -14,14 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package log
+package ginkgoextensions
 
 import (
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/go-logr/logr"
+	"github.com/onsi/ginkgo"
+	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 )
 
-func Logf(format string, a ...interface{}) {
-	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
+var Log logr.Logger
+
+func init() {
+	klog.InitFlags(nil)
+	Log = klogr.New()
+	klog.SetOutput(ginkgo.GinkgoWriter)
+}
+
+func Byf(format string, a ...interface{}) {
+	ginkgo.By(fmt.Sprintf(format, a...))
 }

@@ -385,9 +385,18 @@ func (c *E2EConfig) GetIntervals(spec, key string) []interface{} {
 
 // GetVariable returns a variable from the e2e config file.
 func (c *E2EConfig) GetVariable(varName string) string {
-	version, ok := c.Variables[varName]
+	variable, ok := c.Variables[varName]
 	Expect(ok).NotTo(BeFalse())
-	return version
+	return variable
+}
+
+// GetStringVariableWithDefault returns a variable from the e2e config file, but can return a default string.
+func (c *E2EConfig) GetStringVariableWithDefault(varName string, defaultValue string) string {
+	variable, ok := c.Variables[varName]
+	if !ok {
+		return defaultValue
+	}
+	return variable
 }
 
 // GetVariable returns an Int64Ptr variable from the e2e config file.

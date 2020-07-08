@@ -4,7 +4,7 @@
 
 Before attempting to configure a MachineHealthCheck, you should have a working [management cluster] with at least one MachineDeployment or MachineSet deployed.
 
-<aside class="note warn">
+<aside class="note warning">
 
 <h1> Important </h1>
 
@@ -52,6 +52,15 @@ spec:
     status: "False"
     timeout: 300s
 ```
+
+<aside class="note warning">
+
+<h1> Important </h1>
+
+If you are defining more than one `MachineHealthCheck` for the same Cluster, make sure that the selectors **do not overlap**
+n order to prevent conflicts or unexpected behaviors when trying to remediate the same set of machines.
+
+</aside>
 
 ## Remediation short-circuiting
 

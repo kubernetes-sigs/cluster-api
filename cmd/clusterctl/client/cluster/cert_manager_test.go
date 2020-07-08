@@ -17,6 +17,8 @@ limitations under the License.
 package cluster
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,9 +27,23 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	manifests "sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
+
+func Test_VersionMarkerUpToDate(t *testing.T) {
+	yaml, err := manifests.Asset(embeddedCertManagerManifestPath)
+	if err != nil {
+		t.Fatalf("Failed to get cert-manager.yaml asset data: %v", err)
+	}
+
+	actualHash := fmt.Sprintf("%x", sha256.Sum256(yaml))
+	_, embeddedHash := embeddedCertManagerVersion()
+	if actualHash != embeddedHash {
+		t.Errorf("The cert-manager.yaml asset data has changed, but the version marker embeddedCertManagerManifestVersion has not been updated. Expected hash to be: %s", actualHash)
+	}
+}
 
 func Test_certManagerClient_getManifestObjects(t *testing.T) {
 

@@ -204,7 +204,7 @@ type fakeCertManagerClient struct {
 
 var _ cluster.CertManagerClient = &fakeCertManagerClient{}
 
-func (p *fakeCertManagerClient) EnsureWebhook() error {
+func (p *fakeCertManagerClient) EnsureInstalled() error {
 	return nil
 }
 

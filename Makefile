@@ -114,6 +114,12 @@ help:  ## Display this help
 test: ## Run tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./... $(TEST_ARGS)
 
+.PHONY: test-cover
+test-cover: ## Run tests with code coverage and code generate  reports
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -coverprofile=out/coverage.out ./... $(TEST_ARGS)
+	go tool cover -func=out/coverage.out -o out/coverage.txt
+	go tool cover -html=out/coverage.out -o out/coverage.html
+
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Rebuild all Cluster API provider images to be used in the e2e tests
 	make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent

@@ -20,10 +20,20 @@ The Cluster API is a Kubernetes project to bring declarative, Kubernetes-style
 APIs to cluster creation, configuration, and management. It provides optional,
 additive functionality on top of core Kubernetes.
 
-__NB__: Cluster API is still in a prototype stage while we get
-feedback on the API types themselves. All of the code here is to experiment with
-the API and demo its abilities, in order to drive more technical feedback to the
-API design. Because of this, all of the codebase is rapidly changing.
+__NB__: Cluster API is still in a alpha stage in order to drive more technical feedback to the
+API design. Because of this, the codebase could change rapidly.
+
+## Compatibility with Cluster API and Kubernetes Versions
+
+This Cluster API's versions are able to install and manage the following versions of Kubernetes:
+
+||Kubernetes 1.13|Kubernetes 1.14|Kubernetes 1.15|Kubernetes 1.16|Kubernetes 1.17|Kubernetes 1.18|
+|-|-|-|-|-|-|-|
+|v1alpha1 (v0.1)|✓|✓|✓||||
+|v1alpha2 (v0.2)|✓|✓|✓|✓|✓||
+|v1alpha3 (v0.3)||||✓|✓|✓|
+
+**NOTE:** Additional restrictions might apply depending on the Cluster API providers installed in a cluster.
 
 <!-- ANCHOR: Community -->
 

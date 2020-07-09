@@ -17,8 +17,7 @@ limitations under the License.
 package cluster
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
 	kc "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -26,7 +25,7 @@ import (
 // WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
 type WorkloadCluster interface {
 	//Get workload cluster kubeconfig
-	GetKubeconfig(name string) error
+	GetKubeconfig(workloadClusterName string, namespace string) (string, error)
 }
 
 // workloadCluster implements WorkloadCluster.
@@ -34,21 +33,22 @@ type workloadCluster struct {
 	proxy Proxy
 }
 
-func (p *workloadCluster) GetKubeconfig(name string) error {
+func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace string) (string, error) {
 	cs, err := p.proxy.NewClient()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	obj := client.ObjectKey{
-		Namespace: "default",
-		Name:      name,
+		Namespace: namespace,
+		Name:      workloadClusterName,
 	}
 	dataBytes, err := kc.FromSecret(ctx, cs, obj)
-
+	if err != nil {
+		return "", errors.Errorf("\"%v-kubeconfig\" not found in namespace \"%v\"", workloadClusterName, namespace)
+	}
 	data := string(dataBytes)
-	fmt.Println(data)
-	return err
+	return data, err
 }
 
 // newWorkloadCluster returns a workloadCluster.

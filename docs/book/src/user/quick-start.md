@@ -560,7 +560,7 @@ The control planes won't be `Ready` until we install a CNI in the next step.
 After the first control plane node is up and running, we can retrieve the [workload cluster] Kubeconfig:
 
 ```bash
-clusterctl get kubeconfig capi-quickstart
+clusterctl get kubeconfig capi-quickstart --namespace=default
 ```
 
 ### Deploy a CNI solution

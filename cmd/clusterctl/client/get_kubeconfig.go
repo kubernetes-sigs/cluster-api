@@ -16,22 +16,39 @@ limitations under the License.
 
 package client
 
+import "github.com/pkg/errors"
+
 //GetKubeconfigOptions carries all the options supported by GetKubeconfig
 type GetKubeconfigOptions struct {
 	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
 	// default rules for kubeconfig discovery will be used.
 	Kubeconfig Kubeconfig
 
-	// Name is the name of the workload cluster.
-	Name string
+	// Namespace is the namespace in which secret is placed.
+	Namespace string
+
+	// WrokloadClusterName is the name of the workload cluster.
+	WorkloadClusterName string
 }
 
-func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) error {
+func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, error) {
 	// gets access to the management cluster
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return clusterClient.WorkloadCluster().GetKubeconfig(options.Name)
+	if options.Namespace == "" {
+		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
+		if err != nil {
+			return "", err
+		}
+		if currentNamespace == "" {
+			return "", errors.New("failed to identify the current namespace. Please specify the namespace where the workload cluster exists")
+		}
+		options.Namespace = currentNamespace
+	}
+
+	return clusterClient.WorkloadCluster().GetKubeconfig(options.WorkloadClusterName, options.Namespace)
+
 }

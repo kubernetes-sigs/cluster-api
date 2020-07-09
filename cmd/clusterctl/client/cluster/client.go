@@ -87,7 +87,7 @@ type Client interface {
 	// Template has methods to work with templates stored in the cluster.
 	Template() TemplateClient
 
-	// WorkloadCluster has methods to make
+	// WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
 	WorkloadCluster() WorkloadCluster
 }
 

@@ -81,7 +81,7 @@ func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Templ
 	return f.internalClient.GetClusterTemplate(options)
 }
 
-func (f fakeClient) GetKubeconfig(options GetKubeconfigOptions) error {
+func (f fakeClient) GetKubeconfig(options GetKubeconfigOptions) (string, error) {
 	return f.internalClient.GetKubeconfig(options)
 }
 

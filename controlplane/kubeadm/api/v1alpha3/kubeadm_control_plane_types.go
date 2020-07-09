@@ -34,6 +34,9 @@ const (
 	// SkipCoreDNSAnnotation annotation explicitly skips reconciling CoreDNS if set
 	SkipCoreDNSAnnotation = "controlplane.cluster.x-k8s.io/skip-coredns"
 
+	// SkipKubeProxyAnnotation annotation explicitly skips reconciling kube-proxy if set
+	SkipKubeProxyAnnotation = "controlplane.cluster.x-k8s.io/skip-kube-proxy"
+
 	// KubeadmClusterConfigurationAnnotation is a machine annotation that stores the json-marshalled string of KCP ClusterConfiguration.
 	// This annotation is used to detect any changes in ClusterConfiguration and trigger machine rollout in KCP.
 	KubeadmClusterConfigurationAnnotation = "controlplane.cluster.x-k8s.io/kubeadm-cluster-configuration"

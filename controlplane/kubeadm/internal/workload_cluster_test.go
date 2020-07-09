@@ -123,6 +123,21 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 					},
 				}},
 		},
+		{
+			name:        "does not update image repository when no kube-proxy update is requested",
+			ds:          newKubeProxyDSWithImage(""), // Using the same image name that would otherwise lead to an error
+			expectErr:   false,
+			expectImage: "",
+			KCP: &v1alpha3.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						v1alpha3.SkipKubeProxyAnnotation: "",
+					},
+				},
+				Spec: v1alpha3.KubeadmControlPlaneSpec{
+					Version: "v1.16.3",
+				}},
+		},
 	}
 
 	ctx := context.Background()

@@ -371,6 +371,11 @@ func checkNodeNoExecuteCondition(node corev1.Node) error {
 
 // UpdateKubeProxyImageInfo updates kube-proxy image in the kube-proxy DaemonSet.
 func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
+	// Return early if we've been asked to skip kube-proxy upgrades entirely.
+	if _, ok := kcp.Annotations[controlplanev1.SkipKubeProxyAnnotation]; ok {
+		return nil
+	}
+
 	ds := &appsv1.DaemonSet{}
 
 	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {

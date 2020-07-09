@@ -67,7 +67,7 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: generate lint ## Run tests
+test: generate lint-full ## Run tests
 	go test -v ./...
 
 .PHONY: test-integration
@@ -104,10 +104,7 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 ## Linting
 ## --------------------------------------
 
-.PHONY: lint
-lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v
-
+.PHONY: lint-full
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false
 

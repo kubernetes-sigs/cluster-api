@@ -1021,18 +1021,22 @@ func (f *FakeClusterResourceSet) Objs() []runtime.Object {
 	}
 
 	// Ensures all the binding with the clusters where resources are applied.
-	if len(f.clusters) > 0 {
+	for _, cluster := range f.clusters {
 		binding := &addonsv1alpha3.ClusterResourceSetBinding{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ClusterResourceSetBinding",
 				APIVersion: addonsv1alpha3.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      f.name,
-				Namespace: f.namespace,
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
 			},
 			Spec: addonsv1alpha3.ClusterResourceSetBindingSpec{
-				Bindings: map[string]addonsv1alpha3.ResourcesSetBinding{},
+				Bindings: []*addonsv1alpha3.ResourceSetBinding{
+					{
+						ClusterResourceSetName: crs.Name,
+					},
+				},
 			},
 		}
 
@@ -1048,31 +1052,34 @@ func (f *FakeClusterResourceSet) Objs() []runtime.Object {
 
 		objs = append(objs, binding)
 
-		// creates map entries for each cluster
-		for _, cluster := range f.clusters {
-			// binding are owned by the Cluster / ownership set by the ClusterResourceSet controller
-			binding.SetOwnerReferences(append(binding.OwnerReferences, metav1.OwnerReference{
-				APIVersion: cluster.APIVersion,
-				Kind:       cluster.Kind,
-				Name:       cluster.Name,
-				UID:        cluster.UID,
-			}))
+		// binding are owned by the Cluster / ownership set by the ClusterResourceSet controller
+		binding.SetOwnerReferences(append(binding.OwnerReferences, metav1.OwnerReference{
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		}))
 
-			binding.Spec.Bindings[cluster.Name] = addonsv1alpha3.ResourcesSetBinding{
-				Resources: map[string]addonsv1alpha3.ResourceBinding{},
-			}
+		resourceSetBinding := addonsv1alpha3.ResourceSetBinding{
+			ClusterResourceSetName: crs.Name,
+			Resources:              []addonsv1alpha3.ResourceBinding{},
+		}
+		binding.Spec.Bindings = append(binding.Spec.Bindings, &resourceSetBinding)
 
-			// creates map entries for each cluster/resource of type Secret
-			for _, secret := range f.secrets {
-				key := fmt.Sprintf("%s/%s", secret.Kind, secret.Name)
-				binding.Spec.Bindings[cluster.Name].Resources[key] = addonsv1alpha3.ResourceBinding{}
-			}
+		// creates map entries for each cluster/resource of type Secret
+		for _, secret := range f.secrets {
+			resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1alpha3.ResourceBinding{ResourceRef: addonsv1alpha3.ResourceRef{
+				Name: secret.Name,
+				Kind: "Secret",
+			}})
+		}
 
-			// creates map entries for each cluster/resource of type ConfigMap
-			for _, configMap := range f.configMaps {
-				key := fmt.Sprintf("%s/%s", configMap.Kind, configMap.Name)
-				binding.Spec.Bindings[cluster.Name].Resources[key] = addonsv1alpha3.ResourceBinding{}
-			}
+		// creates map entries for each cluster/resource of type ConfigMap
+		for _, configMap := range f.configMaps {
+			resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1alpha3.ResourceBinding{ResourceRef: addonsv1alpha3.ResourceRef{
+				Name: configMap.Name,
+				Kind: "ConfigMap",
+			}})
 		}
 	}
 

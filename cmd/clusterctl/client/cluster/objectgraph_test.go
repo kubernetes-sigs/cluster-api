@@ -887,7 +887,7 @@ var objectGraphsTests = []struct {
 					},
 				},
 				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1": {},
-				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1": {
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster1": {
 					owners: []string{
 						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
@@ -959,10 +959,15 @@ var objectGraphsTests = []struct {
 					},
 				},
 				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1": {},
-				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1": {
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster1": {
 					owners: []string{
 						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster2": {
+					owners: []string{
+						"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
 						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
 					},
 				},
@@ -1394,7 +1399,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by the cluster
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by the cluster
 				},
 			},
 		},
@@ -1422,14 +1427,14 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by the cluster
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by the cluster
 				},
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {
 					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2", // the cluster should be tenant of itself
 					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster2",
 					"/v1, Kind=Secret, ns1/cluster2-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
-					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by the cluster
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster2", // ClusterResourceSetBinding are owned by the cluster
 				},
 			},
 		},
@@ -1500,10 +1505,10 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			},
 			wantCRSs: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
 				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1": {
-					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",        // the ClusterResourceSet should be tenant of itself
-					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by ClusterResourceSet
-					"/v1, Kind=Secret, ns1/resource-s1",                                          // resource are owned by ClusterResourceSet
-					"/v1, Kind=ConfigMap, ns1/resource-c1",                                       // resource are owned by ClusterResourceSet
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be tenant of itself
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by ClusterResourceSet
+					"/v1, Kind=Secret, ns1/resource-s1",                                              // resource are owned by ClusterResourceSet
+					"/v1, Kind=ConfigMap, ns1/resource-c1",                                           // resource are owned by ClusterResourceSet
 				},
 			},
 		},
@@ -1527,10 +1532,11 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			},
 			wantCRSs: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
 				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1": {
-					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",        // the ClusterResourceSet should be tenant of itself
-					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1", // ClusterResourceSetBinding are owned by ClusterResourceSet
-					"/v1, Kind=Secret, ns1/resource-s1",                                          // resource are owned by ClusterResourceSet
-					"/v1, Kind=ConfigMap, ns1/resource-c1",                                       // resource are owned by ClusterResourceSet
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be tenant of itself
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by ClusterResourceSet
+					"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster2", // ClusterResourceSetBinding are owned by ClusterResourceSet
+					"/v1, Kind=Secret, ns1/resource-s1",                                              // resource are owned by ClusterResourceSet
+					"/v1, Kind=ConfigMap, ns1/resource-c1",                                           // resource are owned by ClusterResourceSet
 				},
 			},
 		},

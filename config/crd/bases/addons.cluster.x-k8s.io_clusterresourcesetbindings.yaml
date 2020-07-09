@@ -41,12 +41,19 @@ spec:
               ClusterResourceSetBinding
             properties:
               bindings:
-                additionalProperties:
-                  description: ResourcesSetBinding keeps info on all of the resources
+                description: Bindings is a list of ClusterResourceSets and their resources.
+                items:
+                  description: ResourceSetBinding keeps info on all of the resources
                     in a ClusterResourceSet.
                   properties:
+                    clusterResourceSetName:
+                      description: ClusterResourceSetName is the name of the ClusterResourceSet
+                        that is applied to the owner cluster of the binding.
+                      type: string
                     resources:
-                      additionalProperties:
+                      description: Resources is a list of resources that the ClusterResourceSet
+                        has.
+                      items:
                         description: ResourceBinding shows the status of a resource
                           that belongs to a ClusterResourceSet matched by the owner
                           cluster of the ClusterResourceSetBinding object.
@@ -61,22 +68,33 @@ spec:
                               "ApplyOnce" ClusterResourceSet.spec.strategy, this is
                               no-op as that strategy does not act on change.
                             type: string
+                          kind:
+                            description: 'Kind of the resource. Supported kinds are:
+                              Secrets and ConfigMaps.'
+                            enum:
+                            - Secret
+                            - ConfigMap
+                            type: string
                           lastAppliedTime:
                             description: LastAppliedTime identifies when this resource
                               was last applied to the cluster.
                             format: date-time
                             type: string
+                          name:
+                            description: Name of the resource that is in the same
+                              namespace with ClusterResourceSet object.
+                            minLength: 1
+                            type: string
                         required:
                         - applied
+                        - kind
+                        - name
                         type: object
-                      description: 'Resources is a map of Secrets/ConfigMaps and their
-                        ResourceBinding. The map''s key is a concatenated string of
-                        form: <resource-type>/<resource-name>.'
-                      type: object
+                      type: array
+                  required:
+                  - clusterResourceSetName
                   type: object
-                description: Bindings is a map of ClusterResourceSet name and its
-                  resources which is also a map.
-                type: object
+                type: array
             type: object
         type: object
     served: true

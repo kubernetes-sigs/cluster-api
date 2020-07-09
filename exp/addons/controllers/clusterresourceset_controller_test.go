@@ -132,8 +132,11 @@ apiVersion: v1`,
 			if err != nil {
 				return false
 			}
-			//|| (len(binding.Spec.Bindings) == 1 && len(binding.Spec.Bindings["ConfigMap/"+configmapName].Resources) != 2
+
 			if len(binding.Spec.Bindings) != 1 {
+				return false
+			}
+			if len(binding.Spec.Bindings[0].Resources) != 1 {
 				return false
 			}
 

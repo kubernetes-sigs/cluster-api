@@ -130,6 +130,7 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 		})
 		clusterResourceSetBinding.OwnerReferences = util.EnsureOwnerRef(clusterResourceSetBinding.OwnerReferences, *metav1.NewControllerRef(clusterResourceSet, clusterResourceSet.GroupVersionKind()))
 
+		clusterResourceSetBinding.Spec.Bindings = []*addonsv1.ResourceSetBinding{}
 		if err := r.Client.Create(ctx, clusterResourceSetBinding); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				if err = r.Client.Get(ctx, clusterResourceSetBindingKey, clusterResourceSetBinding); err != nil {
@@ -142,19 +143,6 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 	}
 
 	return clusterResourceSetBinding, nil
-}
-
-// initClusterResourceSetBinding initializes ClusterResourceSetBinding object for a ClusterResourceSet if not initialized already.
-// clusterResourceSetBinding should not be nil
-func initClusterResourceSetBinding(clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet) {
-	if clusterResourceSetBinding.Spec.Bindings == nil {
-		clusterResourceSetBinding.Spec.Bindings = map[string]addonsv1.ResourcesSetBinding{}
-	}
-
-	// Add ClusterResourceSet to clusterResourceSetBinding if not exist
-	if _, ok := clusterResourceSetBinding.Spec.Bindings[clusterResourceSet.Name]; !ok {
-		clusterResourceSetBinding.Spec.Bindings[clusterResourceSet.Name] = addonsv1.ResourcesSetBinding{Resources: map[string]addonsv1.ResourceBinding{}}
-	}
 }
 
 // getConfigMap retrieves any ConfigMap from the given name and namespace.

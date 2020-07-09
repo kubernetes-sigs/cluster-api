@@ -51,10 +51,15 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 			Name:      testClusterWithBinding.Name,
 		},
 		Spec: addonsv1.ClusterResourceSetBindingSpec{
-			Bindings: map[string]addonsv1.ResourcesSetBinding{
-				"test-clusterResourceSet": {
-					Resources: map[string]addonsv1.ResourceBinding{
-						"mySecret": {
+			Bindings: []*addonsv1.ResourceSetBinding{
+				{
+					ClusterResourceSetName: "test-clusterResourceSet",
+					Resources: []addonsv1.ResourceBinding{
+						{
+							ResourceRef: addonsv1.ResourceRef{
+								Name: "mySecret",
+								Kind: "Secret",
+							},
 							Applied:         true,
 							Hash:            "xyz",
 							LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
@@ -105,64 +110,6 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 			gs.Expect(err).NotTo(HaveOccurred())
 
 			gs.Expect(len(clusterResourceSetBinding.Spec.Bindings)).To(Equal(tt.numOfClusterResourceSets))
-		})
-	}
-}
-
-func TestInitClusterResourceSetBinding(t *testing.T) {
-	testClusterResourceSet := &addonsv1.ClusterResourceSet{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-clusterResourceSet",
-		},
-		Spec: addonsv1.ClusterResourceSetSpec{
-			Resources: []addonsv1.ResourceRef{{Name: "test-configmap", Kind: "ConfigMap"}},
-		},
-	}
-	testClusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{
-		Spec: addonsv1.ClusterResourceSetBindingSpec{
-
-			Bindings: map[string]addonsv1.ResourcesSetBinding{
-				"test-clusterResourceSet": {
-					Resources: map[string]addonsv1.ResourceBinding{
-						"mySecret": {
-							Applied:         true,
-							Hash:            "xyz",
-							LastAppliedTime: nil,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	tests := []struct {
-		name                      string
-		clusterResourceSet        *addonsv1.ClusterResourceSet
-		clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding
-		resourceNumber            int
-	}{
-		{
-			name:                      "should not initialize ClusterResourceSetBinding with ClusterResourceSet if already exists",
-			clusterResourceSet:        testClusterResourceSet,
-			clusterResourceSetBinding: testClusterResourceSetBinding,
-			resourceNumber:            1,
-		},
-		{
-			name:                      "should not initialize ClusterResourceSetBinding with ClusterResourceSet if not exists",
-			clusterResourceSet:        testClusterResourceSet,
-			clusterResourceSetBinding: &addonsv1.ClusterResourceSetBinding{},
-			resourceNumber:            0,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			initClusterResourceSetBinding(tt.clusterResourceSetBinding, tt.clusterResourceSet)
-
-			g.Expect(len(tt.clusterResourceSetBinding.Spec.Bindings[tt.clusterResourceSet.Name].Resources)).To(Equal(tt.resourceNumber))
 		})
 	}
 }

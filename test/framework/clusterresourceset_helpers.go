@@ -19,7 +19,6 @@ package framework
 import (
 	"context"
 	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -134,7 +133,8 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 				secret := &corev1.Secret{}
 				err := input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: resource.Name, Namespace: input.ClusterResourceSet.Namespace}, secret)
 				if err == nil {
-					if !binding.Spec.Bindings[input.ClusterResourceSet.Name].Resources["Secret/"+resource.Name].Applied {
+
+					if !binding.Spec.Bindings[0].IsApplied(resource) {
 						return false
 					}
 				}
@@ -142,7 +142,7 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 				configMap := &corev1.ConfigMap{}
 				err := input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: resource.Name, Namespace: input.ClusterResourceSet.Namespace}, configMap)
 				if err == nil {
-					if !binding.Spec.Bindings[input.ClusterResourceSet.Name].Resources["ConfigMap/"+resource.Name].Applied {
+					if !binding.Spec.Bindings[0].IsApplied(resource) {
 						return false
 					}
 				}

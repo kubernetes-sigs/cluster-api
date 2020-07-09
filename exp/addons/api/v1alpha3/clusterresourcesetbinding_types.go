@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,6 +26,9 @@ import (
 
 // ResourceBinding shows the status of a resource that belongs to a ClusterResourceSet matched by the owner cluster of the ClusterResourceSetBinding object.
 type ResourceBinding struct {
+	// ResourceRef specifies a resource.
+	ResourceRef `json:",inline"`
+
 	// Hash is the hash of a resource's data. This can be used to decide if a resource is changed.
 	// For "ApplyOnce" ClusterResourceSet.spec.strategy, this is no-op as that strategy does not act on change.
 	Hash string `json:"hash,omitempty"`
@@ -38,11 +43,50 @@ type ResourceBinding struct {
 
 // ANCHOR_END: ResourceBinding
 
-// ResourcesSetBinding keeps info on all of the resources in a ClusterResourceSet.
-type ResourcesSetBinding struct {
-	// Resources is a map of Secrets/ConfigMaps and their ResourceBinding.
-	// The map's key is a concatenated string of form: <resource-type>/<resource-name>.
-	Resources map[string]ResourceBinding `json:"resources,omitempty"`
+// ResourceSetBinding keeps info on all of the resources in a ClusterResourceSet.
+type ResourceSetBinding struct {
+	// ClusterResourceSetName is the name of the ClusterResourceSet that is applied to the owner cluster of the binding.
+	ClusterResourceSetName string `json:"clusterResourceSetName"`
+
+	// Resources is a list of resources that the ClusterResourceSet has.
+	Resources []ResourceBinding `json:"resources,omitempty"`
+}
+
+// IsApplied returns true if the resource is applied to the cluster by checking the cluster's binding.
+func (r *ResourceSetBinding) IsApplied(resourceRef ResourceRef) bool {
+	for _, resource := range r.Resources {
+		if reflect.DeepEqual(resource.ResourceRef, resourceRef) {
+			if resource.Applied {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// SetBinding sets resourceBinding for a resource in resourceSetbinding either by updating the existing one or
+// creating a new one.
+func (r *ResourceSetBinding) SetBinding(resourceBinding ResourceBinding) {
+	for i := range r.Resources {
+		if reflect.DeepEqual(r.Resources[i].ResourceRef, resourceBinding.ResourceRef) {
+			r.Resources[i] = resourceBinding
+			return
+		}
+	}
+	r.Resources = append(r.Resources, resourceBinding)
+}
+
+// GetOrCreateBinding returns the ResourceSetBinding for a given ClusterResourceSet if exists,
+// otherwise creates one and updates ClusterResourceSet with it.
+func (c *ClusterResourceSetBinding) GetOrCreateBinding(clusterResourceSet *ClusterResourceSet) *ResourceSetBinding {
+	for _, binding := range c.Spec.Bindings {
+		if binding.ClusterResourceSetName == clusterResourceSet.Name {
+			return binding
+		}
+	}
+	binding := &ResourceSetBinding{ClusterResourceSetName: clusterResourceSet.Name, Resources: []ResourceBinding{}}
+	c.Spec.Bindings = append(c.Spec.Bindings, binding)
+	return binding
 }
 
 // +kubebuilder:object:root=true
@@ -61,8 +105,8 @@ type ClusterResourceSetBinding struct {
 
 // ClusterResourceSetBindingSpec defines the desired state of ClusterResourceSetBinding
 type ClusterResourceSetBindingSpec struct {
-	// Bindings is a map of ClusterResourceSet name and its resources which is also a map.
-	Bindings map[string]ResourcesSetBinding `json:"bindings,omitempty"`
+	// Bindings is a list of ClusterResourceSets and their resources.
+	Bindings []*ResourceSetBinding `json:"bindings,omitempty"`
 }
 
 // ANCHOR_END: ClusterResourceSetBindingSpec

@@ -388,7 +388,7 @@ var moveTests = []struct {
 				"/v1, Kind=Secret, ns1/resource-s1",
 				"/v1, Kind=ConfigMap, ns1/resource-c1",
 				// owned by ClusterResourceSet & Cluster
-				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/crs1",
+				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster1",
 			},
 		},
 	},

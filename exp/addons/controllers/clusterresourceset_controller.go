@@ -195,22 +195,14 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		}
 	}()
 
-	// Initializes the maps in ClusterResourceSetBinding object if they are uninitialized.
-	initClusterResourceSetBinding(clusterResourceSetBinding, clusterResourceSet)
-
-	var ok bool
 	errList := []error{}
-	bindings := clusterResourceSetBinding.Spec.Bindings[clusterResourceSet.Name]
+	resourceSetBinding := clusterResourceSetBinding.GetOrCreateBinding(clusterResourceSet)
 
 	// Iterate all resources and apply them to the cluster and update the resource status in the ClusterResourceSetBinding object.
 	for _, resource := range clusterResourceSet.Spec.Resources {
-		resourceKindName := generateResourceKindName(resource)
 		// If resource is already applied successfully and clusterResourceSet mode is "ApplyOnce", continue. (No need to check hash changes here)
-		binding := addonsv1.ResourceBinding{}
-		if binding, ok = bindings.Resources[resourceKindName]; ok {
-			if clusterResourceSet.Spec.Strategy == string(addonsv1.ClusterResourceSetStrategyApplyOnce) && binding.Applied {
-				continue
-			}
+		if resourceSetBinding.IsApplied(resource) {
+			continue
 		}
 
 		unstructuredObj, err := r.getResource(resource, cluster.GetNamespace())
@@ -226,11 +218,12 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 
 		// Set status in ClusterResourceSetBinding in case of early continue due to a failure.
 		// Set only when resource is retrieved successfully.
-		bindings.Resources[resourceKindName] = addonsv1.ResourceBinding{
+		resourceSetBinding.SetBinding(addonsv1.ResourceBinding{
+			ResourceRef:     resource,
 			Hash:            "",
 			Applied:         false,
 			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
-		}
+		})
 
 		if err := r.patchOwnerRefToResource(ctx, clusterResourceSet, unstructuredObj); err != nil {
 			logger.Error(err, "Failed to patch ClusterResourceSet as resource owner reference",
@@ -283,13 +276,12 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			}
 		}
 
-		binding = addonsv1.ResourceBinding{
+		resourceSetBinding.SetBinding(addonsv1.ResourceBinding{
+			ResourceRef:     resource,
 			Hash:            computeHash(dataList),
 			Applied:         isSuccessful,
 			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
-		}
-
-		bindings.Resources[resourceKindName] = binding
+		})
 	}
 	if len(errList) > 0 {
 		return kerrors.NewAggregate(errList)
@@ -353,11 +345,6 @@ func (r *ClusterResourceSetReconciler) patchOwnerRefToResource(ctx context.Conte
 		return r.Client.Patch(ctx, resource, patch)
 	}
 	return nil
-}
-
-// generateResourceKindName generates a unique name to identify resources that is used in resources map in ClusterResourceSetBinding.
-func generateResourceKindName(resource addonsv1.ResourceRef) string {
-	return resource.Kind + "/" + resource.Name
 }
 
 // clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet

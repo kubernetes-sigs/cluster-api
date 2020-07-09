@@ -391,7 +391,7 @@ func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *cluste
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := r.Client.List(ctx, &descendants.machinePools, listOptions...); err != nil {
-			return descendants, errors.Wrapf(err, "failed to list MachineSets for the cluster %s/%s", cluster.Namespace, cluster.Name)
+			return descendants, errors.Wrapf(err, "failed to list MachinePools for the cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
 	var machines clusterv1.MachineList

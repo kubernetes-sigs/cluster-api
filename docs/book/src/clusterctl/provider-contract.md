@@ -150,8 +150,32 @@ will look for objects to reconcile.
 
 #### Variables
 
-The components YAML can contain environment variables matching the regexp `\${\s*([A-Z0-9_]+)\s*}`; it is highly
-recommended to prefix the variable name with the provider name e.g. `${ AWS_CREDENTIALS }`
+The components YAML can contain environment variables matching the format ${VAR}; it is highly
+recommended to prefix the variable name with the provider name e.g. `${AWS_CREDENTIALS}`
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+`clusterctl` currently supports variables with leading/trailing spaces such
+as: `${ VAR }`, `${ VAR}`,`${VAR }`. However, these formats will be deprecated
+in the near future. e.g. v1alpha4.
+
+Formats such as `${VAR$FOO}` is not supported.
+</aside>
+
+`clusterctl` uses the library [drone/envsubst][drone-envsubst] to perform
+variable substitution.
+
+```bash
+# If `VAR` is not set or empty, the default value is used. This is true for
+all the following formats.
+${VAR:=default}
+${VAR=default}
+${VAR:-default}
+```
+Other functions such as substring replacement are also supported by the
+library. See [drone/envsubst][drone-envsubst] for more information.
 
 Additionally, each provider should create user facing documentation with the list of required variables and with all the additional
 notes that are required to assist the user in defining the value for each variable.
@@ -215,10 +239,10 @@ Templates writers should use the common variables to ensure consistency across p
 
 | CLI flag                | Variable name     | Note                                        |
 | ---------------------- | ----------------- | ------------------------------------------- |
-|`--target-namespace`| `${ NAMESPACE }` | The namespace where the workload cluster should be deployed |
-|`--kubernetes-version`| `${ KUBERNETES_VERSION }` | The Kubernetes version to use for the workload cluster |
-|`--controlplane-machine-count`| `${ CONTROL_PLANE_MACHINE_COUNT }` | The number of control plane machines to be added to the workload cluster |
-|`--worker-machine-count`| `${ WORKER_MACHINE_COUNT }` | The number of worker machines to be added to the workload cluster |
+|`--target-namespace`| `${NAMESPACE}` | The namespace where the workload cluster should be deployed |
+|`--kubernetes-version`| `${KUBERNETES_VERSION}` | The Kubernetes version to use for the workload cluster |
+|`--controlplane-machine-count`| `${CONTROL_PLANE_MACHINE_COUNT}` | The number of control plane machines to be added to the workload cluster |
+|`--worker-machine-count`| `${WORKER_MACHINE_COUNT}` | The number of worker machines to be added to the workload cluster |
 
 Additionally, value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will 
 be applied to every occurrence of the `${ CLUSTER_NAME }` variable.
@@ -295,5 +319,8 @@ If moving some of excluded object is required, the provider authors should creat
 the exact move sequence to be executed by the user.
 
 Additionally, provider authors should be aware that `clusterctl move` assumes all the provider's Controllers respect the
-`Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification. 
- 
+`Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification.
+
+
+<!--LINKS-->
+[drone-envsubst]: https://github.com/drone/envsubst

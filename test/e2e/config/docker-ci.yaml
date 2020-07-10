@@ -35,10 +35,6 @@ providers:
     replacements:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
-    - old: "--enable-leader-election"
-      new: "--enable-leader-election=false\n        - --feature-gates=ClusterResourceSet=true"
-    - old: "--webhook-port=9443"
-      new: "--webhook-port=9443\n        - --feature-gates=ClusterResourceSet=true"
 
 - name: kubeadm
   type: BootstrapProvider
@@ -89,6 +85,7 @@ variables:
   # IMPORTANT! This values should match the one used by the CNI provider
   DOCKER_POD_CIDRS: "192.168.0.0/16"
   CNI: "./data/cni/kindnet/kindnet.yaml"
+  EXP_CLUSTER_RESOURSE_SET: "true"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

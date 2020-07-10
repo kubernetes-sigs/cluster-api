@@ -33,7 +33,9 @@ type InitConfiguration struct {
 	// +optional
 	BootstrapTokens []BootstrapToken `json:"bootstrapTokens,omitempty"`
 
-	// NodeRegistration holds fields that relate to registering the new control-plane node to the cluster
+	// NodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
+	// When used in the context of control plane nodes, NodeRegistration should remain consistent
+	// across both InitConfiguration and JoinConfiguration
 	// +optional
 	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 
@@ -325,7 +327,9 @@ type ExternalEtcd struct {
 type JoinConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// NodeRegistration holds fields that relate to registering the new control-plane node to the cluster
+	// NodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
+	// When used in the context of control plane nodes, NodeRegistration should remain consistent
+	// across both InitConfiguration and JoinConfiguration
 	// +optional
 	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 

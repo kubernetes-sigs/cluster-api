@@ -80,6 +80,9 @@ const (
 	spec                 = "spec"
 	kubeadmConfigSpec    = "kubeadmConfigSpec"
 	clusterConfiguration = "clusterConfiguration"
+	initConfiguration    = "initConfiguration"
+	joinConfiguration    = "joinConfiguration"
+	nodeRegistration     = "nodeRegistration"
 	preKubeadmCommands   = "preKubeadmCommands"
 	postKubeadmCommands  = "postKubeadmCommands"
 	files                = "files"
@@ -96,6 +99,8 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageTag"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "imageRepository"},
+		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration, "*"},
+		{spec, kubeadmConfigSpec, joinConfiguration, nodeRegistration, "*"},
 		{spec, kubeadmConfigSpec, preKubeadmCommands},
 		{spec, kubeadmConfigSpec, postKubeadmCommands},
 		{spec, kubeadmConfigSpec, files},

@@ -50,6 +50,9 @@ type node struct {
 	// E.g. secrets are soft-owned by a cluster via a naming convention, but without an explicit OwnerReference.
 	softOwners map[*node]empty
 
+	// moveLabel is set if the labels on the node contain the move label (clusterctl.cluster.x-k8s.io/move)
+	moveLabel bool
+
 	// virtual records if this node was discovered indirectly, e.g. by processing an OwnerRef, but not yet observed as a concrete object.
 	virtual bool
 
@@ -166,6 +169,11 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 		tenantClusters: make(map[*node]empty),
 		tenantCRSs:     make(map[*node]empty),
 		virtual:        false,
+	}
+
+	objLabels := obj.GetLabels()
+	if _, ok := objLabels[clusterctlv1.ClusterctlMoveLabelName]; ok {
+		newNode.moveLabel = true
 	}
 
 	o.uidToNode[newNode.identity.UID] = newNode
@@ -327,14 +335,18 @@ func (o *objectGraph) getCRSs() []*node {
 	return clusters
 }
 
-// getNodesWithTenants returns the list of nodes existing in the object graph that belong at least to one Cluster or to a ClusterResourceSet.
-func (o *objectGraph) getNodesWithTenants() []*node {
+// getMoveNodes returns the list of nodes existing in the object graph that belong at least to one Cluster or
+// to a ClusterResourceSet, as well as any nodes with the forceMove bool set.
+func (o *objectGraph) getMoveNodes() []*node {
 	nodes := []*node{}
 	for _, node := range o.uidToNode {
-		if len(node.tenantClusters) > 0 || len(node.tenantCRSs) > 0 {
+		if len(node.tenantClusters) > 0 ||
+			len(node.tenantCRSs) > 0 ||
+			node.moveLabel {
 			nodes = append(nodes, node)
 		}
 	}
+
 	return nodes
 }
 

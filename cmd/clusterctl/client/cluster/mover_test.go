@@ -42,6 +42,30 @@ var moveTests = []struct {
 	wantErr        bool
 }{
 	{
+		name: "Cluster + external object with force-move label",
+		fields: moveTestsFields{
+			func() []runtime.Object {
+				objs := []runtime.Object{}
+				objs = append(objs, test.NewFakeCluster("ns1", "foo").Objs()...)
+				objs = append(objs, test.NewFakeExternalObject("ns1", "externalTest").Objs()...)
+				return objs
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group1
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo",
+				"external.cluster.x-k8s.io/v1alpha3, Kind=GenericExternalObject, ns1/externalTest",
+			},
+			{ //group 2 (objects with ownerReferences in group 1)
+				// owned by Clusters
+				"/v1, Kind=Secret, ns1/foo-ca",
+				"/v1, Kind=Secret, ns1/foo-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
+			},
+		},
+		wantErr: false,
+	},
+	{
 		name: "Cluster",
 		fields: moveTestsFields{
 			objs: test.NewFakeCluster("ns1", "foo").Objs(),
@@ -906,6 +930,7 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 
 	cluster1 := test.NewFakeCluster("namespace-1", "cluster-1")
 	cluster2 := test.NewFakeCluster("namespace-2", "cluster-2")
+	externalObj := test.NewFakeExternalObject("", "eo-1")
 
 	clustersObjs := append(cluster1.Objs(), cluster2.Objs()...)
 
@@ -945,6 +970,15 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 				toProxy: test.NewFakeProxy().WithObjs(namespace1),
 			},
 			expectedNamespaces: []string{"namespace-1", "namespace-2"},
+		},
+		{
+			name: "ensureNamespaces doesn't fail if no namespace is specified (cluster-wide)",
+			fields: fields{
+				objs: externalObj.Objs(),
+			},
+			args: args{
+				toProxy: test.NewFakeProxy(),
+			},
 		},
 	}
 

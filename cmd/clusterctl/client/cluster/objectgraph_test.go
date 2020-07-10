@@ -326,6 +326,38 @@ var objectGraphsTests = []struct {
 	wantErr bool
 }{
 	{
+		name: "Cluster and External Object",
+		args: objectGraphTestArgs{
+			func() []runtime.Object {
+				objs := []runtime.Object{}
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+				objs = append(objs, test.NewFakeExternalObject("ns1", "externalObject1").Objs()...)
+				return objs
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"external.cluster.x-k8s.io/v1alpha3, Kind=GenericExternalObject, ns1/externalObject1": {},
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1":                               {},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+			},
+		},
+	},
+	{
 		name: "Cluster",
 		args: objectGraphTestArgs{
 			objs: test.NewFakeCluster("ns1", "cluster1").Objs(),

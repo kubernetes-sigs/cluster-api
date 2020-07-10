@@ -306,15 +306,17 @@ functioning of all the `clusterctl` features both in single tenancy or multi-ten
 
 Provider authors should be aware that `clusterctl move` command implements a discovery mechanism that considers:
 
-* All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init`. 
+* All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init`.
 * `Secret` and `ConfigMap` objects.
-* the `OwnerReference` chain of the above objects.
+* The `OwnerReference` chain of the above objects.
+* Any object with the with the "move" label (`clusterctl.cluster.x-k8s.io/move`) attached to it.
+Note that any child objects that are tied the object mentioned should **also** be tagged with the "move" label if they are to be moved as well.
 
 `clusterctl move` does NOT consider any objects:
 
 * Not included in the set of objects defined above.
-* Included in the set of objects defined above, but not directly or indirectly to a `Cluster` object through the `OwnerReference` chain.
- 
+* Included in the set of objects defined above, but not directly or indirectly tied to a `Cluster` object through the `OwnerReference` chain.
+
 If moving some of excluded object is required, the provider authors should create documentation describing the
 the exact move sequence to be executed by the user.
 

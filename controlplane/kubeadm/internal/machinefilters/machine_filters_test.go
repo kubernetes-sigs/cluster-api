@@ -183,3 +183,40 @@ func TestInFailureDomain(t *testing.T) {
 		g.Expect(machinefilters.InFailureDomains(pointer.StringPtr("foo"), pointer.StringPtr("test"))(m)).To(BeTrue())
 	})
 }
+
+func TestMatchesKubernetesVersion(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(machinefilters.MatchesKubernetesVersion("some_ver")(nil)).To(BeFalse())
+	})
+	t.Run("nil machine.Spec.Version returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				Version: nil,
+			},
+		}
+		g.Expect(machinefilters.MatchesKubernetesVersion("some_ver")(machine)).To(BeFalse())
+	})
+	t.Run("machine.Spec.Version returns true if matches", func(t *testing.T) {
+		g := NewWithT(t)
+		kversion := "some_ver"
+		machine := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				Version: &kversion,
+			},
+		}
+		g.Expect(machinefilters.MatchesKubernetesVersion("some_ver")(machine)).To(BeTrue())
+	})
+	t.Run("machine.Spec.Version returns false if does not match", func(t *testing.T) {
+		g := NewWithT(t)
+		kversion := "some_ver_2"
+		machine := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				Version: &kversion,
+			},
+		}
+		g.Expect(machinefilters.MatchesKubernetesVersion("some_ver")(machine)).To(BeFalse())
+	})
+
+}

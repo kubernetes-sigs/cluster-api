@@ -19,6 +19,7 @@ metadata:
   name: '${ CLUSTER_NAME }'
   labels:
     initial: ''
+    cni: "${CLUSTER_NAME}-crs-0"
 spec:
   clusterNetwork:
     services:
@@ -92,6 +93,7 @@ metadata:
   name: '${ CLUSTER_NAME }'
   labels:
     kcp: ''
+    cni: "${CLUSTER_NAME}-crs-0"
 spec:
   clusterNetwork:
     services:
@@ -149,3 +151,29 @@ spec:
         criSocket: /var/run/containerd/containerd.sock
         kubeletExtraArgs: {eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'}
   version: "${KUBERNETES_VERSION}"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "cni-${CLUSTER_NAME}-crs-0"
+  labels:
+    initial: ''
+    kcp: ''
+data: ${CNI_RESOURCES}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha3
+kind: ClusterResourceSet
+metadata:
+  name:  "${CLUSTER_NAME}-crs-0"
+  labels:
+    initial: ''
+    kcp: ''
+spec:
+  strategy: ApplyOnce
+  clusterSelector:
+    matchLabels:
+      cni: "${CLUSTER_NAME}-crs-0"
+  resources:
+    - name: "cni-${CLUSTER_NAME}-crs-0"
+      kind: ConfigMap
+---

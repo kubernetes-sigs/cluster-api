@@ -35,6 +35,7 @@ import (
 const (
 	KubernetesVersion            = "KUBERNETES_VERSION"
 	CNIPath                      = "CNI"
+	CNIResources                 = "CNI_RESOURCES"
 	KubernetesVersionUpgradeFrom = "KUBERNETES_VERSION_UPGRADE_FROM"
 	KubernetesVersionUpgradeTo   = "KUBERNETES_VERSION_UPGRADE_TO"
 	EtcdVersionUpgradeTo         = "ETCD_VERSION_UPGRADE_TO"

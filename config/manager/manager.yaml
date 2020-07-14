@@ -21,7 +21,7 @@ spec:
         - /manager
         args:
         - --enable-leader-election
-        - --feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},ClusterResourceSet=${EXP_CLUSTER_RESOURSE_SET:=false}
+        - --feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},ClusterResourceSet=${EXP_CLUSTER_RESOURCE_SET:=false}
         image: controller:latest
         name: manager
         ports:

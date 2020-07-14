@@ -392,6 +392,32 @@ var moveTests = []struct {
 			},
 		},
 	},
+	{
+		name: "Cluster and global + namespaced external objects with force-move label",
+		fields: moveTestsFields{
+			func() []runtime.Object {
+				objs := []runtime.Object{}
+				objs = append(objs, test.NewFakeCluster("ns1", "foo").Objs()...)
+				objs = append(objs, test.NewFakeExternalObject("ns1", "externalTest1").Objs()...)
+				objs = append(objs, test.NewFakeExternalObject("", "externalTest2").Objs()...)
+				return objs
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group1
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo",
+				"external.cluster.x-k8s.io/v1alpha3, Kind=GenericExternalObject, ns1/externalTest1",
+				"external.cluster.x-k8s.io/v1alpha3, Kind=GenericExternalObject, /externalTest2",
+			},
+			{ //group 2 (objects with ownerReferences in group 1)
+				// owned by Clusters
+				"/v1, Kind=Secret, ns1/foo-ca",
+				"/v1, Kind=Secret, ns1/foo-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
+			},
+		},
+		wantErr: false,
+	},
 }
 
 func Test_getMoveSequence(t *testing.T) {
@@ -404,11 +430,11 @@ func Test_getMoveSequence(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			discoveryTypes, err := getFakeDiscoveryTypes(graph)
+			err := getFakeDiscoveryTypes(graph)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("ns1", discoveryTypes)).To(Succeed())
+			g.Expect(graph.Discovery("")).To(Succeed())
 
 			moveSequence := getMoveSequence(graph)
 			g.Expect(moveSequence.groups).To(HaveLen(len(tt.wantMoveGroups)))
@@ -436,11 +462,11 @@ func Test_objectMover_move(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			discoveryTypes, err := getFakeDiscoveryTypes(graph)
+			err := getFakeDiscoveryTypes(graph)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("ns1", discoveryTypes)).To(Succeed())
+			g.Expect(graph.Discovery("")).To(Succeed())
 
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
@@ -478,10 +504,11 @@ func Test_objectMover_move(t *testing.T) {
 
 				err := csFrom.Get(ctx, key, oFrom)
 				if err == nil {
-					t.Errorf("%v not deleted in source cluster", key)
-					continue
-				}
-				if !apierrors.IsNotFound(err) {
+					if oFrom.GetNamespace() != "" {
+						t.Errorf("%v not deleted in source cluster", key)
+						continue
+					}
+				} else if !apierrors.IsNotFound(err) {
 					t.Errorf("error = %v when checking for %v deleted in source cluster", err, key)
 					continue
 				}
@@ -676,11 +703,11 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			discoveryTypes, err := getFakeDiscoveryTypes(graph)
+			err := getFakeDiscoveryTypes(graph)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("ns1", discoveryTypes)).To(Succeed())
+			g.Expect(graph.Discovery("")).To(Succeed())
 
 			o := &objectMover{
 				fromProxy: graph.proxy,
@@ -906,6 +933,7 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 
 	cluster1 := test.NewFakeCluster("namespace-1", "cluster-1")
 	cluster2 := test.NewFakeCluster("namespace-2", "cluster-2")
+	globalObj := test.NewFakeExternalObject("", "eo-1")
 
 	clustersObjs := append(cluster1.Objs(), cluster2.Objs()...)
 
@@ -946,6 +974,15 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 			},
 			expectedNamespaces: []string{"namespace-1", "namespace-2"},
 		},
+		{
+			name: "ensureNamespaces doesn't fail if no namespace is specified (cluster-wide)",
+			fields: fields{
+				objs: globalObj.Objs(),
+			},
+			args: args{
+				toProxy: test.NewFakeProxy(),
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -955,11 +992,11 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			discoveryTypes, err := getFakeDiscoveryTypes(graph)
+			err := getFakeDiscoveryTypes(graph)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			// Trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("", discoveryTypes)).To(Succeed())
+			g.Expect(graph.Discovery("")).To(Succeed())
 
 			mover := objectMover{
 				fromProxy: graph.proxy,
@@ -977,6 +1014,10 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 
 			err = csTo.List(ctx, namespaces, client.Continue(namespaces.Continue))
 			g.Expect(err).ToNot(HaveOccurred())
+
+			// Ensure length of namespaces matches what's expected to ensure we're handling
+			// cluster-wide (namespace of "") objects
+			g.Expect(namespaces.Items).To(HaveLen(len(tt.expectedNamespaces)))
 
 			// Loop through each expected result to ensure that it is found in
 			// the actual results.

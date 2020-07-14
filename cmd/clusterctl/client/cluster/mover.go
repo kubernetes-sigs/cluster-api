@@ -60,7 +60,7 @@ func (o *objectMover) Move(namespace string, toCluster Client) error {
 	}
 
 	// Gets all the types defines by the CRDs installed by clusterctl plus the ConfigMap/Secret core types.
-	types, err := objectGraph.getDiscoveryTypes()
+	err := objectGraph.getDiscoveryTypes()
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (o *objectMover) Move(namespace string, toCluster Client) error {
 	// Discovery the object graph for the selected types:
 	// - Nodes are defined the Kubernetes objects (Clusters, Machines etc.) identified during the discovery process.
 	// - Edges are derived by the OwnerReferences between nodes.
-	if err := objectGraph.Discovery(namespace, types); err != nil {
+	if err := objectGraph.Discovery(namespace); err != nil {
 		return err
 	}
 
@@ -275,7 +275,8 @@ func getMoveSequence(graph *objectGraph) *moveSequence {
 		// NB. it is necessary to filter out nodes not belonging to a cluster because e.g. discovery reads all the secrets,
 		// but only few of them are related to Clusters/Machines etc.
 		moveGroup := moveGroup{}
-		for _, n := range graph.getNodesWithTenants() {
+
+		for _, n := range graph.getMoveNodes() {
 			// If the node was already included in the moveSequence, skip it.
 			if moveSequence.hasNode(n) {
 				continue
@@ -360,7 +361,13 @@ func patchCluster(proxy Proxy, cluster *node, patch client.Patch) error {
 func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error {
 	ensureNamespaceBackoff := newWriteBackoff()
 	namespaces := sets.NewString()
-	for _, node := range graph.getNodesWithTenants() {
+	for _, node := range graph.getMoveNodes() {
+
+		// ignore global/cluster-wide objects
+		if node.isGlobal {
+			continue
+		}
+
 		namespace := node.identity.Namespace
 
 		// If the namespace was already processed, skip it.
@@ -564,6 +571,11 @@ func (o *objectMover) deleteGroup(group moveGroup) error {
 	errList := []error{}
 	for i := range group {
 		nodeToDelete := group[i]
+
+		// Don't delete cluster-wide nodes
+		if nodeToDelete.isGlobal {
+			continue
+		}
 
 		// Delete the Kubernetes object corresponding to the current node.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.

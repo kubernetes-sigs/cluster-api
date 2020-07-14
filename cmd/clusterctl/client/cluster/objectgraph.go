@@ -17,6 +17,9 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -50,6 +53,13 @@ type node struct {
 	// E.g. secrets are soft-owned by a cluster via a naming convention, but without an explicit OwnerReference.
 	softOwners map[*node]empty
 
+	// forceMove is set to true if the CRD of this object has the "move" label attached.
+	// This ensures the node is moved, regardless of its owner refs.
+	forceMove bool
+
+	// isGlobal gets set to true if this object is a global resource (no namespace).
+	isGlobal bool
+
 	// virtual records if this node was discovered indirectly, e.g. by processing an OwnerRef, but not yet observed as a concrete object.
 	virtual bool
 
@@ -63,6 +73,11 @@ type node struct {
 	// tenantCRSs define the list of ClusterResourceSet which are tenant for the node, no matter if the node has a direct OwnerReference to the ClusterResourceSet or if
 	// the node is linked to a ClusterResourceSet indirectly in the OwnerReference chain.
 	tenantCRSs map[*node]empty
+}
+
+type discoveryTypeInfo struct {
+	typeMeta  metav1.TypeMeta
+	forceMove bool
 }
 
 // markObserved marks the fact that a node was observed as a concrete object.
@@ -92,6 +107,7 @@ func (n *node) isSoftOwnedBy(other *node) bool {
 type objectGraph struct {
 	proxy     Proxy
 	uidToNode map[types.UID]*node
+	types     map[string]*discoveryTypeInfo
 }
 
 func newObjectGraph(proxy Proxy) *objectGraph {
@@ -124,6 +140,11 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) {
 // ownerToVirtualNode creates a virtual node as a placeholder for the Kubernetes owner object received in input.
 // The virtual node will be eventually converted to an actual node when the node will be visited during discovery.
 func (o *objectGraph) ownerToVirtualNode(owner metav1.OwnerReference, namespace string) *node {
+	isGlobal := false
+	if namespace == "" {
+		isGlobal = true
+	}
+
 	ownerNode := &node{
 		identity: corev1.ObjectReference{
 			APIVersion: owner.APIVersion,
@@ -137,6 +158,8 @@ func (o *objectGraph) ownerToVirtualNode(owner metav1.OwnerReference, namespace 
 		tenantClusters: make(map[*node]empty),
 		tenantCRSs:     make(map[*node]empty),
 		virtual:        true,
+		forceMove:      o.getForceMove(owner.Kind, owner.APIVersion),
+		isGlobal:       isGlobal,
 	}
 
 	o.uidToNode[ownerNode.identity.UID] = ownerNode
@@ -153,6 +176,11 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 		return existingNode
 	}
 
+	isGlobal := false
+	if obj.GetNamespace() == "" {
+		isGlobal = true
+	}
+
 	newNode := &node{
 		identity: corev1.ObjectReference{
 			APIVersion: obj.GetAPIVersion(),
@@ -166,24 +194,35 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 		tenantClusters: make(map[*node]empty),
 		tenantCRSs:     make(map[*node]empty),
 		virtual:        false,
+		forceMove:      o.getForceMove(obj.GetKind(), obj.GetAPIVersion()),
+		isGlobal:       isGlobal,
 	}
 
 	o.uidToNode[newNode.identity.UID] = newNode
 	return newNode
 }
 
+func (o *objectGraph) getForceMove(kind string, apiVersion string) bool {
+	kindAPIStr := getKindAPIString(metav1.TypeMeta{Kind: kind, APIVersion: apiVersion})
+
+	if discoveryType, ok := o.types[kindAPIStr]; ok {
+		return discoveryType.forceMove
+	}
+	return false
+}
+
 // getDiscoveryTypes returns the list of TypeMeta to be considered for the the move discovery phase.
 // This list includes all the types defines by the CRDs installed by clusterctl and the ConfigMap/Secret core types.
-func (o *objectGraph) getDiscoveryTypes() ([]metav1.TypeMeta, error) {
-	discoveredTypes := []metav1.TypeMeta{}
-
+func (o *objectGraph) getDiscoveryTypes() error {
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	getDiscoveryTypesBackoff := newReadBackoff()
 	if err := retryWithExponentialBackoff(getDiscoveryTypesBackoff, func() error {
 		return getCRDList(o.proxy, crdList)
 	}); err != nil {
-		return nil, err
+		return err
 	}
+
+	o.types = make(map[string]*discoveryTypeInfo)
 
 	for _, crd := range crdList.Items {
 		for _, version := range crd.Spec.Versions {
@@ -191,20 +230,41 @@ func (o *objectGraph) getDiscoveryTypes() ([]metav1.TypeMeta, error) {
 				continue
 			}
 
-			discoveredTypes = append(discoveredTypes, metav1.TypeMeta{
+			forceMove := false
+			if _, ok := crd.Labels[clusterctlv1.ClusterctlMoveLabelName]; ok {
+				forceMove = true
+			}
+
+			typeMeta := metav1.TypeMeta{
 				Kind: crd.Spec.Names.Kind,
 				APIVersion: metav1.GroupVersion{
 					Group:   crd.Spec.Group,
 					Version: version.Name,
 				}.String(),
-			})
+			}
+
+			o.types[getKindAPIString(typeMeta)] = &discoveryTypeInfo{
+				typeMeta:  typeMeta,
+				forceMove: forceMove,
+			}
+
 		}
 	}
 
-	discoveredTypes = append(discoveredTypes, metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"})
-	discoveredTypes = append(discoveredTypes, metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"})
+	secretTypeMeta := metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"}
+	o.types[getKindAPIString(secretTypeMeta)] = &discoveryTypeInfo{typeMeta: secretTypeMeta}
 
-	return discoveredTypes, nil
+	configMapTypeMeta := metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"}
+	o.types[getKindAPIString(configMapTypeMeta)] = &discoveryTypeInfo{typeMeta: configMapTypeMeta}
+
+	return nil
+}
+
+// getKindAPIString returns a concatenated string of the API name and the plural of the kind
+// Ex: KIND=Foo API NAME=foo.bar.domain.tld => foos.foo.bar.domain.tld
+func getKindAPIString(typeMeta metav1.TypeMeta) string {
+	api := strings.Split(typeMeta.APIVersion, "/")[0]
+	return fmt.Sprintf("%ss.%s", strings.ToLower(typeMeta.Kind), api)
 }
 
 func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionList) error {
@@ -221,7 +281,7 @@ func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionLi
 
 // Discovery reads all the Kubernetes objects existing in a namespace (or in all namespaces if empty) for the types received in input, and then adds
 // everything to the objects graph.
-func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error {
+func (o *objectGraph) Discovery(namespace string) error {
 	log := logf.Log
 	log.Info("Discovering Cluster API objects")
 
@@ -231,8 +291,8 @@ func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error
 	}
 
 	discoveryBackoff := newReadBackoff()
-	for i := range types {
-		typeMeta := types[i]
+	for _, discoveryType := range o.types {
+		typeMeta := discoveryType.typeMeta
 		objList := new(unstructured.UnstructuredList)
 
 		if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
@@ -327,11 +387,12 @@ func (o *objectGraph) getCRSs() []*node {
 	return clusters
 }
 
-// getNodesWithTenants returns the list of nodes existing in the object graph that belong at least to one Cluster or to a ClusterResourceSet.
-func (o *objectGraph) getNodesWithTenants() []*node {
+// getMoveNodes returns the list of nodes existing in the object graph that belong at least to one Cluster or to a ClusterResourceSet
+// or to a CRD containing the "move" label.
+func (o *objectGraph) getMoveNodes() []*node {
 	nodes := []*node{}
 	for _, node := range o.uidToNode {
-		if len(node.tenantClusters) > 0 || len(node.tenantCRSs) > 0 {
+		if len(node.tenantClusters) > 0 || len(node.tenantCRSs) > 0 || node.forceMove {
 			nodes = append(nodes, node)
 		}
 	}

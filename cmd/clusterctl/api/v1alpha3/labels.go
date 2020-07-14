@@ -30,6 +30,9 @@ const (
 	// Example: resources shared between instances of the same provider:  CRDs,
 	// ValidatingWebhookConfiguration, MutatingWebhookConfiguration, and so on.
 	ClusterctlResourceLifecyleLabelName = "clusterctl.cluster.x-k8s.io/lifecycle"
+
+	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move that are not part of a cluster
+	ClusterctlMoveLabelName = "clusterctl.cluster.x-k8s.io/move"
 )
 
 // ResourceLifecycle configures the lifecycle of a resource

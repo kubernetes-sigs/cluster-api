@@ -17,13 +17,19 @@ limitations under the License.
 package helpers
 
 import (
+	"context"
+	"fmt"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
 
 	"github.com/onsi/ginkgo"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -129,4 +135,40 @@ func (t *TestEnvironment) Stop() error {
 
 func (t *TestEnvironment) CreateKubeconfigSecret(cluster *clusterv1.Cluster) error {
 	return kubeconfig.CreateEnvTestSecret(t.Client, t.Config, cluster)
+}
+
+func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...runtime.Object) error {
+	errs := []error{}
+	for _, o := range objs {
+		err := t.Client.Delete(ctx, o)
+		if apierrors.IsNotFound(err) {
+			// If the object is not found, it must've been garbage collected
+			// already. For example, if we delete namespace first and then
+			// objects within it.
+			continue
+		}
+		errs = append(errs, err)
+	}
+	return kerrors.NewAggregate(errs)
+}
+
+// CreateObj wraps around client.Create and creates the object.
+func (t *TestEnvironment) CreateObj(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+	return t.Client.Create(ctx, obj, opts...)
+}
+
+func (t *TestEnvironment) CreateNamespace(ctx context.Context, generateName string) (*corev1.Namespace, error) {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-", generateName),
+			Labels: map[string]string{
+				"testenv/original-name": generateName,
+			},
+		},
+	}
+	if err := t.Client.Create(ctx, ns); err != nil {
+		return nil, err
+	}
+
+	return ns, nil
 }

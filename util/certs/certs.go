@@ -70,7 +70,7 @@ func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
 func DecodeCertPEM(encoded []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(encoded)
 	if block == nil {
-		return nil, nil
+		return nil, errors.New("unable to decode PEM data")
 	}
 
 	return x509.ParseCertificate(block.Bytes)
@@ -81,7 +81,7 @@ func DecodeCertPEM(encoded []byte) (*x509.Certificate, error) {
 func DecodePrivateKeyPEM(encoded []byte) (crypto.Signer, error) {
 	block, _ := pem.Decode(encoded)
 	if block == nil {
-		return nil, nil
+		return nil, errors.New("unable to decode PEM data")
 	}
 
 	errs := []error{}

@@ -671,7 +671,10 @@ spec:
                         type: object
                       nodeRegistration:
                         description: NodeRegistration holds fields that relate to
-                          registering the new control-plane node to the cluster
+                          registering the new control-plane node to the cluster. When
+                          used in the context of control plane nodes, NodeRegistration
+                          should remain consistent across both InitConfiguration and
+                          JoinConfiguration
                         properties:
                           criSocket:
                             description: CRISocket is used to retrieve container runtime
@@ -855,7 +858,10 @@ spec:
                         type: string
                       nodeRegistration:
                         description: NodeRegistration holds fields that relate to
-                          registering the new control-plane node to the cluster
+                          registering the new control-plane node to the cluster. When
+                          used in the context of control plane nodes, NodeRegistration
+                          should remain consistent across both InitConfiguration and
+                          JoinConfiguration
                         properties:
                           criSocket:
                             description: CRISocket is used to retrieve container runtime

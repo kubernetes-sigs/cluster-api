@@ -175,6 +175,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 						AdvertiseAddress: "127.0.0.1",
 						BindPort:         int32(443),
 					},
+					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						Name: "test",
+					},
 				},
 				ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
 					ClusterName: "test",
@@ -186,6 +189,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					},
 				},
 				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+					Discovery: kubeadmv1beta1.Discovery{
+						Timeout: &metav1.Duration{
+							Duration: 10 * time.Minute,
+						},
+					},
 					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
 						Name: "test",
 					},
@@ -209,11 +217,17 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	invalidUpdateKubeadmConfigInit := before.DeepCopy()
 	invalidUpdateKubeadmConfigInit.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{}
 
+	validUpdateKubeadmConfigInit := before.DeepCopy()
+	validUpdateKubeadmConfigInit.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration = kubeadmv1beta1.NodeRegistrationOptions{}
+
 	invalidUpdateKubeadmConfigCluster := before.DeepCopy()
 	invalidUpdateKubeadmConfigCluster.Spec.KubeadmConfigSpec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
 
+	invalidUpdateKubeadmConfigJoin := before.DeepCopy()
+	invalidUpdateKubeadmConfigJoin.Spec.KubeadmConfigSpec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{}
+
 	validUpdateKubeadmConfigJoin := before.DeepCopy()
-	validUpdateKubeadmConfigJoin.Spec.KubeadmConfigSpec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{}
+	validUpdateKubeadmConfigJoin.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration = kubeadmv1beta1.NodeRegistrationOptions{}
 
 	validUpdate := before.DeepCopy()
 	validUpdate.Labels = map[string]string{"blue": "green"}
@@ -430,6 +444,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       invalidUpdateKubeadmConfigInit,
 		},
 		{
+			name:      "should not return an error when trying to mutate the kubeadmconfigspec initconfiguration noderegistration",
+			expectErr: false,
+			before:    before,
+			kcp:       validUpdateKubeadmConfigInit,
+		},
+		{
 			name:      "should return error when trying to mutate the kubeadmconfigspec clusterconfiguration",
 			expectErr: true,
 			before:    before,
@@ -438,6 +458,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		{
 			name:      "should return error when trying to mutate the kubeadmconfigspec joinconfiguration",
 			expectErr: true,
+			before:    before,
+			kcp:       invalidUpdateKubeadmConfigJoin,
+		},
+		{
+			name:      "should not return an error when trying to mutate the kubeadmconfigspec joinconfiguration noderegistration",
+			expectErr: false,
 			before:    before,
 			kcp:       validUpdateKubeadmConfigJoin,
 		},

@@ -17,9 +17,6 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"errors"
-	"reflect"
-
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -42,10 +39,6 @@ func (m *DockerMachineTemplate) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (m *DockerMachineTemplate) ValidateUpdate(old runtime.Object) error {
-	oldCRS := old.(*DockerMachineTemplate)
-	if !reflect.DeepEqual(m.Spec, oldCRS.Spec) {
-		return errors.New("DockerMachineTemplateSpec is immutable")
-	}
 	return nil
 }
 

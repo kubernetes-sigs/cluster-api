@@ -85,7 +85,7 @@ variables:
   # IMPORTANT! This values should match the one used by the CNI provider
   DOCKER_POD_CIDRS: "192.168.0.0/16"
   CNI: "./data/cni/kindnet/kindnet.yaml"
-  EXP_CLUSTER_RESOURSE_SET: "true"
+  EXP_CLUSTER_RESOURCE_SET: "true"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

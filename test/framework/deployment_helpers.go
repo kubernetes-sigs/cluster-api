@@ -116,7 +116,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 					Follow:    true,
 				}
 
-				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream()
+				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream(ctx)
 				if err != nil {
 					// Failing to stream logs should not cause the test to fail
 					log.Logf("Error starting logs stream for pod %s/%s, container %s: %v", input.Deployment.Namespace, pod.Name, container.Name, err)
@@ -172,7 +172,7 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				dumpPodMetrics(input.ClientSet, input.MetricsPath, deployment.Name, pods)
+				dumpPodMetrics(ctx, input.ClientSet, input.MetricsPath, deployment.Name, pods)
 			}
 		}
 	}()
@@ -182,7 +182,7 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 // Use replacements in an e2econfig to enable metrics scraping without kube-rbac-proxy, e.g:
 //     - new: --metrics-addr=:8080
 //       old: --metrics-addr=127.0.0.1:8080
-func dumpPodMetrics(client *kubernetes.Clientset, metricsPath string, deploymentName string, pods *corev1.PodList) {
+func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPath string, deploymentName string, pods *corev1.PodList) {
 	for _, pod := range pods.Items {
 
 		metricsDir := path.Join(metricsPath, deploymentName, pod.Name)
@@ -195,7 +195,7 @@ func dumpPodMetrics(client *kubernetes.Clientset, metricsPath string, deployment
 			Name(fmt.Sprintf("%s:8080", pod.Name)).
 			SubResource("proxy").
 			Suffix("metrics").
-			Do()
+			Do(ctx)
 		data, err := res.Raw()
 
 		if err != nil {

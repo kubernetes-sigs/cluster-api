@@ -17,6 +17,7 @@ limitations under the License.
 package drain
 
 import (
+	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -30,9 +31,9 @@ import (
 
 // RunNodeDrain shows the canonical way to drain a node.
 // You should first cordon the node, e.g. using RunCordonOrUncordon
-func RunNodeDrain(drainer *Helper, nodeName string) error {
+func RunNodeDrain(ctx context.Context, drainer *Helper, nodeName string) error {
 	// TODO(justinsb): Ensure we have adequate e2e coverage of this function in library consumers
-	list, errs := drainer.GetPodsForDeletion(nodeName)
+	list, errs := drainer.GetPodsForDeletion(ctx, nodeName)
 	if errs != nil {
 		return utilerrors.NewAggregate(errs)
 	}
@@ -40,7 +41,7 @@ func RunNodeDrain(drainer *Helper, nodeName string) error {
 		fmt.Fprintf(drainer.ErrOut, "WARNING: %s\n", warnings)
 	}
 
-	if err := drainer.DeleteOrEvictPods(list.Pods()); err != nil {
+	if err := drainer.DeleteOrEvictPods(ctx, list.Pods()); err != nil {
 		// Maybe warn about non-deleted pods here
 		return err
 	}
@@ -48,7 +49,7 @@ func RunNodeDrain(drainer *Helper, nodeName string) error {
 }
 
 // RunCordonOrUncordon demonstrates the canonical way to cordon or uncordon a Node
-func RunCordonOrUncordon(drainer *Helper, node *corev1.Node, desired bool) error {
+func RunCordonOrUncordon(ctx context.Context, drainer *Helper, node *corev1.Node, desired bool) error {
 	// TODO(justinsb): Ensure we have adequate e2e coverage of this function in library consumers
 	c := NewCordonHelper(node)
 
@@ -57,7 +58,7 @@ func RunCordonOrUncordon(drainer *Helper, node *corev1.Node, desired bool) error
 		return nil
 	}
 
-	err, patchErr := c.PatchOrReplace(drainer.Client)
+	err, patchErr := c.PatchOrReplace(ctx, drainer.Client)
 	if patchErr != nil {
 		return patchErr
 	}

@@ -96,7 +96,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	}
 
 	// Add index to Machine for listing by Node reference
-	if err := mgr.GetCache().IndexField(&clusterv1.Machine{},
+	if err := mgr.GetCache().IndexField(context.Background(), &clusterv1.Machine{},
 		machineNodeNameIndex,
 		r.indexMachineByNodeName,
 	); err != nil {

@@ -376,7 +376,7 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		return nil
 	}
 
-	node, err := kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	node, err := kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
@@ -413,13 +413,13 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		drainer.SkipWaitForDeleteTimeoutSeconds = 60 * 5 // 5 minutes
 	}
 
-	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {
+	if err := kubedrain.RunCordonOrUncordon(ctx, drainer, node, true); err != nil {
 		// Machine will be re-reconciled after a cordon failure.
 		logger.Error(err, "Cordon failed")
 		return errors.Errorf("unable to cordon node %s: %v", node.Name, err)
 	}
 
-	if err := kubedrain.RunNodeDrain(drainer, node.Name); err != nil {
+	if err := kubedrain.RunNodeDrain(ctx, drainer, node.Name); err != nil {
 		// Machine will be re-reconciled after a drain failure.
 		logger.Error(err, "Drain failed")
 		return &capierrors.RequeueAfterError{RequeueAfter: 20 * time.Second}

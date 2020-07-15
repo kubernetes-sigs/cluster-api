@@ -17,6 +17,7 @@ limitations under the License.
 package drain
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -95,7 +96,7 @@ type podDeleteStatus struct {
 }
 
 // Takes a pod and returns a PodDeleteStatus
-type podFilter func(corev1.Pod) podDeleteStatus
+type podFilter func(context.Context, corev1.Pod) podDeleteStatus
 
 const (
 	podDeleteStatusTypeOkay    = "Okay"
@@ -136,7 +137,7 @@ func makePodDeleteStatusWithError(message string) podDeleteStatus {
 
 // The filters are applied in a specific order, only the last filter's
 // message will be retained if there are any warnings.
-func (d *Helper) makeFilters() []podFilter {
+func (d *Helper) makeFilters(ctx context.Context) []podFilter {
 	return []podFilter{
 		d.skipDeletedFilter,
 		d.daemonSetFilter,
@@ -156,7 +157,7 @@ func hasLocalStorage(pod corev1.Pod) bool {
 	return false
 }
 
-func (d *Helper) daemonSetFilter(pod corev1.Pod) podDeleteStatus {
+func (d *Helper) daemonSetFilter(ctx context.Context, pod corev1.Pod) podDeleteStatus {
 	// Note that we return false in cases where the pod is DaemonSet managed,
 	// regardless of flags.
 	//
@@ -172,7 +173,7 @@ func (d *Helper) daemonSetFilter(pod corev1.Pod) podDeleteStatus {
 		return makePodDeleteStatusOkay()
 	}
 
-	if _, err := d.Client.AppsV1().DaemonSets(pod.Namespace).Get(controllerRef.Name, metav1.GetOptions{}); err != nil {
+	if _, err := d.Client.AppsV1().DaemonSets(pod.Namespace).Get(ctx, controllerRef.Name, metav1.GetOptions{}); err != nil {
 		// remove orphaned pods with a warning if --force is used
 		if apierrors.IsNotFound(err) && d.Force {
 			return makePodDeleteStatusWithWarning(true, err.Error())
@@ -188,14 +189,14 @@ func (d *Helper) daemonSetFilter(pod corev1.Pod) podDeleteStatus {
 	return makePodDeleteStatusWithWarning(false, daemonSetWarning)
 }
 
-func (d *Helper) mirrorPodFilter(pod corev1.Pod) podDeleteStatus {
+func (d *Helper) mirrorPodFilter(_ context.Context, pod corev1.Pod) podDeleteStatus {
 	if _, found := pod.ObjectMeta.Annotations[corev1.MirrorPodAnnotationKey]; found {
 		return makePodDeleteStatusSkip()
 	}
 	return makePodDeleteStatusOkay()
 }
 
-func (d *Helper) localStorageFilter(pod corev1.Pod) podDeleteStatus {
+func (d *Helper) localStorageFilter(ctx context.Context, pod corev1.Pod) podDeleteStatus {
 	if !hasLocalStorage(pod) {
 		return makePodDeleteStatusOkay()
 	}
@@ -213,7 +214,7 @@ func (d *Helper) localStorageFilter(pod corev1.Pod) podDeleteStatus {
 	return makePodDeleteStatusWithWarning(true, localStorageWarning)
 }
 
-func (d *Helper) unreplicatedFilter(pod corev1.Pod) podDeleteStatus {
+func (d *Helper) unreplicatedFilter(_ context.Context, pod corev1.Pod) podDeleteStatus {
 	// any finished pod can be removed
 	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
 		return makePodDeleteStatusOkay()
@@ -235,7 +236,7 @@ func shouldSkipPod(pod corev1.Pod, skipDeletedTimeoutSeconds int) bool {
 		int(time.Now().Sub(pod.ObjectMeta.GetDeletionTimestamp().Time).Seconds()) > skipDeletedTimeoutSeconds
 }
 
-func (d *Helper) skipDeletedFilter(pod corev1.Pod) podDeleteStatus {
+func (d *Helper) skipDeletedFilter(_ context.Context, pod corev1.Pod) podDeleteStatus {
 	if shouldSkipPod(pod, d.SkipWaitForDeleteTimeoutSeconds) {
 		return makePodDeleteStatusSkip()
 	}

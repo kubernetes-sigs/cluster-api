@@ -113,7 +113,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			config := rest.CopyConfig(testEnv.Config)
-			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
+			go cct.healthCheckCluster(ctx, &healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
 
 			// This should succed after 1 second, approx 10 requests to the API
 			Consistently(func() *clusterCache {
@@ -132,7 +132,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 			config := rest.CopyConfig(testEnv.Config)
-			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/foo"})
+			go cct.healthCheckCluster(ctx, &healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/foo"})
 
 			// This should succeed after N consecutive failed requests.
 			Eventually(func() *clusterCache {
@@ -160,7 +160,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			l.Close()
 			config.Host = fmt.Sprintf("http://127.0.0.1:%d", l.Addr().(*net.TCPAddr).Port)
 
-			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
+			go cct.healthCheckCluster(ctx, &healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
 
 			// This should succeed after N consecutive failed requests.
 			Eventually(func() *clusterCache {

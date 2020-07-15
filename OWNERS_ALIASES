@@ -25,6 +25,7 @@ aliases:
   - detiber
   - ncdc
   - vincepri
+  - CecileRobertMichon
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:

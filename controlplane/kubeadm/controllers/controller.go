@@ -292,8 +292,13 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
 	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef())
 
+	// Wait for machines to finish deleting before performing reconciliation to simplify subsequent logic
+	if controlPlane.HasDeletingMachine() {
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}
+	}
+
 	if result, err := r.remediateUnhealthy(ctx, logger, controlPlane); err != nil || !result.IsZero() {
-		return ctrl.Result{}, err
+		return result, err
 	}
 
 	if result, err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
@@ -465,13 +470,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 		return ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}, nil
 	}
 
-	// We need this check for scale up as well as down to avoid scaling up when there is a machine being deleted.
-	// This should be at the end of this method as no need to wait for machine to be completely deleted to reconcile etcd.
-	// TODO: Revisit during machine remediation implementation which may need to cover other machine phases.
-	if controlPlane.HasDeletingMachine() {
-		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
-	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -592,10 +590,6 @@ func (r *KubeadmControlPlaneReconciler) remediateUnhealthy(ctx context.Context, 
 	// This is to prevent multiple remediations from happening before replacements are created.
 	if !controlPlane.RemediationAllowed() || !controlPlane.HasUnhealthyMachine() || controlPlane.Machines.Len() < int(*controlPlane.KCP.Spec.Replicas) {
 		return ctrl.Result{}, nil
-	}
-
-	if controlPlane.HasDeletingMachine() {
-		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(controlPlane.Cluster))

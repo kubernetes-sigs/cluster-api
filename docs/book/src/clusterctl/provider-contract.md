@@ -289,7 +289,9 @@ Provider authors should be aware that `clusterctl move` command implements a dis
 `clusterctl move` does NOT consider any objects:
 
 * Not included in the set of objects defined above.
-* Included in the set of objects defined above, but not directly or indirectly to a `Cluster` object through the `OwnerReference` chain.
+* Included in the set of objects defined above, but not:
+  * Directly or indirectly linked to a `Cluster` object through the `OwnerReference` chain.
+  * Directly or indirectly linked to a `ClusterResourceSet` object through the `OwnerReference` chain.
  
 If moving some of excluded object is required, the provider authors should create documentation describing the
 the exact move sequence to be executed by the user.

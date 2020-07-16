@@ -87,7 +87,9 @@ COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
     },
 }
 
-# Reads a provider's tilt-provider.json file and merges it into the providers map. An example file looks like this:
+# Reads a provider's tilt-provider.json file and merges it into the providers map.
+# A list of dictionaries is also supported by enclosing it in brackets []
+# An example file looks like this:
 # {
 #     "name": "aws",
 #     "config": {
@@ -103,10 +105,16 @@ def load_provider_tiltfiles():
     for repo in provider_repos:
         file = repo + "/tilt-provider.json"
         provider_details = read_json(file, default = {})
-        provider_name = provider_details["name"]
-        provider_config = provider_details["config"]
-        provider_config["context"] = repo
-        providers[provider_name] = provider_config
+        if type(provider_details) != type([]):
+            provider_details = [provider_details]
+        for item in provider_details:
+            provider_name = item["name"]
+            provider_config = item["config"]
+            if "context" in provider_config:
+                provider_config["context"] = repo + "/" + provider_config["context"]
+            else:
+                provider_config["context"] = repo
+            providers[provider_name] = provider_config
 
 tilt_helper_dockerfile_header = """
 # Tilt image

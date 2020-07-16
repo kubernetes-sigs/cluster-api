@@ -50,6 +50,8 @@ LINK_CHECKER_BIN := bin/liche
 LINK_CHECKER := $(TOOLS_DIR)/$(LINK_CHECKER_BIN)
 GO_APIDIFF_BIN := bin/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
+ENVSUBST_BIN := bin/envsubst
+ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
 
 # Binaries.
 # Need to use abspath so we can invoke these from subdirectories
@@ -57,6 +59,7 @@ KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
+ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
 
 # Bindata.
 GOBINDATA := $(abspath $(TOOLS_BIN_DIR)/go-bindata)
@@ -172,6 +175,11 @@ $(LINK_CHECKER): $(TOOLS_DIR)/go.mod
 
 $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
+
+$(ENVSUBST): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/cmd/envsubst
+
+envsubst: $(ENVSUBST)
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework

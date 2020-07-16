@@ -20,6 +20,7 @@ limitations under the License.
 package tools
 
 import (
+	_ "github.com/drone/envsubst/cmd/envsubst"
 	_ "github.com/go-bindata/go-bindata"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/joelanford/go-apidiff"

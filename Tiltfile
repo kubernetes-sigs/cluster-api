@@ -2,6 +2,8 @@
 
 # set defaults
 
+envsubst_cmd = "./hack/tools/bin/envsubst"
+
 settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
@@ -189,11 +191,12 @@ def enable_provider(name):
     )
 
     # Apply the kustomized yaml for this provider
-    yaml = str(kustomize(context + "/config"))
+    yaml = str(kustomize_with_envsubst(context + "/config"))
     substitutions = settings.get("kustomize_substitutions", {})
     for substitution in substitutions:
         value = substitutions[substitution]
         yaml = yaml.replace("${" + substitution + "}", value)
+
     if yaml.count("${") == 0:
         k8s_yaml(blob(yaml))
     else:
@@ -226,10 +229,14 @@ def include_user_tilt_files():
 
 # Enable core cluster-api plus everything listed in 'enable_providers' in tilt-settings.json
 def enable_providers():
+    local("make envsubst")
     user_enable_providers = settings.get("enable_providers", [])
     union_enable_providers = {k: "" for k in user_enable_providers + always_enable_providers}.keys()
     for name in union_enable_providers:
         enable_provider(name)
+
+def kustomize_with_envsubst(path):
+    return str(local("kustomize build {} | {}".format(path, envsubst_cmd), quiet = True))
 
 ##############################
 # Actual work happens here

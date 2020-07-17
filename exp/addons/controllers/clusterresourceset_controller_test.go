@@ -18,17 +18,18 @@ package controllers
 
 import (
 	"fmt"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -50,8 +51,6 @@ var _ = Describe("ClusterResourceSet Reconciler", func() {
 		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
 	})
 	AfterEach(func() {
-		By("Deleting the Cluster")
-		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 		By("Deleting the Kubeconfigsecret")
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -72,25 +71,25 @@ var _ = Describe("ClusterResourceSet Reconciler", func() {
 			},
 			Data: map[string]string{
 				"cm": `metadata:
- name: resource-configmap
- namespace: default
+name: resource-configmap
+namespace: default
 kind: ConfigMap
 apiVersion: v1
 ---
 metadata:
- name: resource-configmap2
- namespace: default
+name: resource-configmap2
+namespace: default
 kind: ConfigMap
 apiVersion: v1`,
 				"cm2": `metadata:
- name: resource-configmap3
- namespace: default
+name: resource-configmap3
+namespace: default
 kind: ConfigMap
 apiVersion: v1
 ---
 metadata:
- name: resource-configmap4
- namespace: default
+name: resource-configmap4
+namespace: default
 kind: ConfigMap
 apiVersion: v1`,
 			},
@@ -147,6 +146,8 @@ apiVersion: v1`,
 				UID:        testCluster.UID,
 			})
 		}, timeout).Should(BeTrue())
+		By("Deleting the Cluster")
+		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 	})
 
 	It("Should reconcile a cluster when its labels are changed to match a ClusterResourceSet's selector", func() {
@@ -192,6 +193,28 @@ apiVersion: v1`,
 				UID:        testCluster.UID,
 			})
 		}, timeout).Should(BeTrue())
-	})
 
+		// Wait until ClusterResourceSetBinding is created for the Cluster
+		clusterResourceSetBindingKey := client.ObjectKey{
+			Namespace: testCluster.Namespace,
+			Name:      testCluster.Name,
+		}
+		Eventually(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+
+			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
+			return err == nil
+		}, timeout).Should(BeTrue())
+
+		By("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
+		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
+
+		Eventually(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+
+			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
+
+			return apierrors.IsNotFound(err)
+		}, timeout).Should(BeTrue())
+	})
 })

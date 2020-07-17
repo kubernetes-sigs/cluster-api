@@ -274,17 +274,31 @@ func MatchesKubeadmBootstrapConfig(ctx context.Context, c client.Client, kcp *co
 // Users should use KCP.Spec.UpgradeAfter field to force a rollout in this case.
 func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) bool {
 	machineClusterConfigStr, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]
-	if ok {
-		machineClusterConfig := &kubeadmv1.ClusterConfiguration{}
-		// ClusterConfiguration annotation is not correct, only solution is to rollout.
-		if err := json.Unmarshal([]byte(machineClusterConfigStr), machineClusterConfig); err != nil {
-			return false
-		}
-		return reflect.DeepEqual(machineClusterConfig, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
+	if !ok {
+		// We don't have enough information to make a decision; don't' trigger a roll out.
+		return true
 	}
 
-	// We don't have enough information to make a decision; don't' trigger a roll out.
-	return true
+	machineClusterConfig := &kubeadmv1.ClusterConfiguration{}
+	// ClusterConfiguration annotation is not correct, only solution is to rollout.
+	// The call to json.Unmarshal has to take a pointer to the pointer struct defined above,
+	// otherwise we won't be able to handle a nil ClusterConfiguration (that is serialized into "null").
+	// See https://github.com/kubernetes-sigs/cluster-api/issues/3353.
+	if err := json.Unmarshal([]byte(machineClusterConfigStr), &machineClusterConfig); err != nil {
+		return false
+	}
+
+	// If any of the compared values are nil, treat them the same as an empty ClusterConfiguration.
+	if machineClusterConfig == nil {
+		machineClusterConfig = &kubeadmv1.ClusterConfiguration{}
+	}
+	kcpLocalClusterConfiguration := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
+	if kcpLocalClusterConfiguration == nil {
+		kcpLocalClusterConfiguration = &kubeadmv1.ClusterConfiguration{}
+	}
+
+	// Compare and return.
+	return reflect.DeepEqual(machineClusterConfig, kcpLocalClusterConfiguration)
 }
 
 // matchInitOrJoinConfiguration verifies if KCP and machine InitConfiguration or JoinConfiguration matches.

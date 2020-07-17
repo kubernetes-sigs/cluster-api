@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/drone/envsubst v1.0.3-0.20200709231038-aa43e1c1a629
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/golangci/golangci-lint v1.27.0
 	github.com/joelanford/go-apidiff v0.0.0-20191206194835-106bcff5f060

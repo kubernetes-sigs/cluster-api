@@ -20,6 +20,7 @@ spec:
         - /manager
         args:
         - --enable-leader-election
+        - --feature-gates=MachinePool=${EXP_MACHINE_POOL:=false}
         image: controller:latest
         name: manager
       terminationGracePeriodSeconds: 10

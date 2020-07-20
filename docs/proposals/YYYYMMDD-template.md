@@ -45,29 +45,32 @@ any additional information provided beyond the standard proposal template.
 
 - [Title](#title)
   - [Table of Contents](#table-of-contents)
+  - [Glossary](#glossary)
   - [Summary](#summary)
   - [Motivation](#motivation)
     - [Goals](#goals)
-    - [Non-Goals](#non-goals)
+    - [Non-Goals/Future Work](#non-goalsfuture-work)
   - [Proposal](#proposal)
-    - [User Stories [optional]](#user-stories-optional)
+    - [User Stories](#user-stories)
       - [Story 1](#story-1)
       - [Story 2](#story-2)
-    - [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
+    - [Requirements (Optional)](#requirements-optional)
+      - [Functional Requirements](#functional-requirements)
+        - [FR1](#fr1)
+        - [FR2](#fr2)
+      - [Non-Functional Requirements](#non-functional-requirements)
+        - [NFR1](#nfr1)
+        - [NFR2](#nfr2)
+    - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [Security Model](#security-model)
     - [Risks and Mitigations](#risks-and-mitigations)
-  - [Design Details](#design-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-      - [Examples](#examples)
-        - [Alpha -> Beta Graduation](#alpha---beta-graduation)
-        - [Beta -> GA Graduation](#beta---ga-graduation)
-        - [Removing a deprecated flag](#removing-a-deprecated-flag)
-    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
-    - [Version Skew Strategy](#version-skew-strategy)
+  - [Alternatives](#alternatives)
+  - [Upgrade Strategy](#upgrade-strategy)
+  - [Additional Details](#additional-details)
+    - [Test Plan [optional]](#test-plan-optional)
+    - [Graduation Criteria [optional]](#graduation-criteria-optional)
+    - [Version Skew Strategy [optional]](#version-skew-strategy-optional)
   - [Implementation History](#implementation-history)
-  - [Drawbacks [optional]](#drawbacks-optional)
-  - [Alternatives [optional]](#alternatives-optional)
-  - [Infrastructure Needed [optional]](#infrastructure-needed-optional)
 
 ## Glossary
 
@@ -92,12 +95,12 @@ to demonstrate the interest in a proposal within the wider Kubernetes community.
 
 ### Goals
 
-- List the specific goals of the proposal.
+- List the specific high-level goals of the proposal.
 - How will we know that this has succeeded?
 
 ### Non-Goals/Future Work
 
-- What is out of scope for this proposal?
+- What high-levels are out of scope for this proposal?
 - Listing non-goals helps to focus discussion and make progress.
 
 ## Proposal
@@ -122,12 +125,53 @@ place your `.plantuml` files under `images/` and run `make diagrams` from the do
 
 #### Story 2
 
+### Requirements (Optional)
+
+Some authors may wish to use requirements in addition to user stories.
+Technical requirements should derived from user stories, and provide a trace from
+use case to design, implementation and test case. Requirements can be prioritised
+using the MoSCoW (MUST, SHOULD, COULD, WON'T) criteria.
+
+The FR and NFR notation is intended to be used as cross-references across a CAEP.
+
+The difference between goals and requirements is that between an executive summary
+and the body of a document. Each requirement should be in support of a goal,
+but narrowly scoped in a way that is verifiable or ideally - testable.
+
+#### Functional Requirements
+
+Functional requirements are the properties that this design should include.
+
+##### FR1
+
+##### FR2
+
+#### Non-Functional Requirements
+
+Non-functional requirements are user expectations of the solution. Include
+considerations for performance, reliability and security.
+
+##### NFR1
+
+##### NFR2
+
 ### Implementation Details/Notes/Constraints
 
 - What are some important details that didn't come across above.
 - What are the caveats to the implementation?
 - Go in to as much detail as necessary here.
 - Talk about core concepts and how they releate.
+
+### Security Model
+
+Document the intended security model for the proposal, including implications
+on the Kubernetes RBAC model. Questions you may want to answer include:
+
+* Does this proposal implement security controls or require the need to do so?
+  * If so, consider describing the different roles and permissions with tables.
+* Are their adequate security warnings where appropriate (see https://adam.shostack.org/ReederEtAl_NEATatMicrosoft.pdf for guidance).
+* Are regex expressions going to be used, and are their appropriate defenses against DOS.
+* Is any sensitive data being stored in a secret, and only exists for as long as necessary?
 
 ### Risks and Mitigations
 

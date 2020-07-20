@@ -90,6 +90,22 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		}
 		g.Expect(matchClusterConfiguration(kcp, m)).To(gomega.BeFalse())
 	})
+	t.Run("Return true if cluster configuration is nil (special case)", func(t *testing.T) {
+		g := gomega.NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
+			},
+		}
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					controlplanev1.KubeadmClusterConfigurationAnnotation: "null",
+				},
+			},
+		}
+		g.Expect(matchClusterConfiguration(kcp, m)).To(gomega.BeTrue())
+	})
 }
 
 func TestGetAdjustedKcpConfig(t *testing.T) {

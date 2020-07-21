@@ -41,11 +41,12 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # Build
 ARG package=.
 ARG ARCH
+ARG ldflags
 
 # Do not force rebuild of up-to-date packages (do not use -a) and use the compiler cache folder
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
-    go build -ldflags '-extldflags "-static"' \
+    go build -ldflags "${ldflags} -extldflags '-static'" \
     -o manager ${package}
 
 # Production image

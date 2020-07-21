@@ -454,6 +454,12 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 	cluster, err := GetOwnerCluster(context.TODO(), c, objm)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(cluster).NotTo(BeNil())
+
+	// Make sure API version does not matter
+	objm.OwnerReferences[0].APIVersion = "cluster.x-k8s.io/v1alpha1234"
+	cluster, err = GetOwnerCluster(context.TODO(), c, objm)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(cluster).NotTo(BeNil())
 }
 
 func TestGetOwnerMachineSuccessByName(t *testing.T) {

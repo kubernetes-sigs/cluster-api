@@ -32,6 +32,7 @@ type FakeEtcdClient struct {
 	StatusResponse       *clientv3.StatusResponse
 	ErrorResponse        error
 	MovedLeader          uint64
+	RemovedMember        uint64
 }
 
 func (c *FakeEtcdClient) Endpoints() []string {
@@ -54,7 +55,8 @@ func (c *FakeEtcdClient) AlarmList(_ context.Context) (*clientv3.AlarmResponse, 
 func (c *FakeEtcdClient) MemberList(_ context.Context) (*clientv3.MemberListResponse, error) {
 	return c.MemberListResponse, c.ErrorResponse
 }
-func (c *FakeEtcdClient) MemberRemove(_ context.Context, _ uint64) (*clientv3.MemberRemoveResponse, error) {
+func (c *FakeEtcdClient) MemberRemove(_ context.Context, i uint64) (*clientv3.MemberRemoveResponse, error) {
+	c.RemovedMember = i
 	return c.MemberRemoveResponse, c.ErrorResponse
 }
 func (c *FakeEtcdClient) MemberUpdate(_ context.Context, _ uint64, _ []string) (*clientv3.MemberUpdateResponse, error) {

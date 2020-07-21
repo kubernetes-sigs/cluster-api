@@ -899,6 +899,7 @@ func Convert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(
 func autoConvert_v1alpha3_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in *MachineHealthCheckStatus, out *v1alpha4.MachineHealthCheckStatus, s conversion.Scope) error {
 	out.ExpectedMachines = in.ExpectedMachines
 	out.CurrentHealthy = in.CurrentHealthy
+	out.RemediationsAllowed = in.RemediationsAllowed
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Targets = *(*[]string)(unsafe.Pointer(&in.Targets))
 	out.Conditions = *(*v1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
@@ -913,6 +914,7 @@ func Convert_v1alpha3_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckSta
 func autoConvert_v1alpha4_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in *v1alpha4.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s conversion.Scope) error {
 	out.ExpectedMachines = in.ExpectedMachines
 	out.CurrentHealthy = in.CurrentHealthy
+	out.RemediationsAllowed = in.RemediationsAllowed
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Targets = *(*[]string)(unsafe.Pointer(&in.Targets))
 	out.Conditions = *(*Conditions)(unsafe.Pointer(&in.Conditions))

@@ -148,3 +148,15 @@ const (
 	// ExternalRemediationRequestCreationFailed is the reason used when a machine health check fails to create external remediation request.
 	ExternalRemediationRequestCreationFailed = "ExternalRemediationRequestCreationFailed"
 )
+
+// Conditions and condition Reasons for the MachineHealthCheck object
+
+const (
+	// RemediationAllowedCondition is set on MachineHealthChecks to show the status of whether the MachineHealthCheck is
+	// allowed to remediate any Machines or whether it is blocked from remediating any further.
+	RemediationAllowedCondition ConditionType = "RemediationAllowed"
+
+	// TooManyUnhealthy is the reason used when too many Machines are unhealthy and the MachineHealthCheck is blocked
+	// from making any further remediations.
+	TooManyUnhealthyReason = "TooManyUnhealthy"
+)

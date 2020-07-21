@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // MatchMachineHealthCheckStatus returns a custom matcher to check equality of clusterv1.MachineHealthCheckStatus
@@ -49,7 +50,15 @@ func (m machineHealthCheckStatusMatcher) Match(actual interface{}) (success bool
 	if !ok {
 		return ok, err
 	}
+	ok, err = Equal(m.expected.RemediationsAllowed).Match(actualStatus.RemediationsAllowed)
+	if !ok {
+		return ok, err
+	}
 	ok, err = ConsistOf(m.expected.Targets).Match(actualStatus.Targets)
+	if !ok {
+		return ok, err
+	}
+	ok, err = conditions.MatchConditions(m.expected.Conditions).Match(actualStatus.Conditions)
 	return ok, err
 }
 

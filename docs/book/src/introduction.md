@@ -8,7 +8,7 @@ Started by the Kubernetes Special Interest Group (SIG) Cluster Lifecycle, the Cl
 * [Quick start](./user/quick-start.md)
 * [Concepts](./user/concepts.md)
 * [Developer guide](./developer/guide.md)
-* [Contributing](./contributing.md)
+* [Contributing](./CONTRIBUTING.md)
 
 **Using Cluster API v1alpha2?** See the [legacy
 documentation](https://release-0-2.cluster-api.sigs.k8s.io).

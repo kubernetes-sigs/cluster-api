@@ -190,17 +190,15 @@ def enable_provider(name):
         ],
     )
 
+    # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
+    # are not available and their placeholders will be replaced with the empty string when we call kustomize +
+    # envsubst below.
+    substitutions = settings.get("kustomize_substitutions", {})
+    os.environ.update(substitutions)
+
     # Apply the kustomized yaml for this provider
     yaml = str(kustomize_with_envsubst(context + "/config"))
-    substitutions = settings.get("kustomize_substitutions", {})
-    for substitution in substitutions:
-        value = substitutions[substitution]
-        yaml = yaml.replace("${" + substitution + "}", value)
-
-    if yaml.count("${") == 0:
-        k8s_yaml(blob(yaml))
-    else:
-        fail("unsubstituted fields in the input config, make sure your kustomize_substitutions parameters are complete")
+    k8s_yaml(blob(yaml))
 
 # Prepull all the cert-manager images to your local environment and then load them directly into kind. This speeds up
 # setup if you're repeatedly destroying and recreating your kind cluster, as it doesn't have to pull the images over

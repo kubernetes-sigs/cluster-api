@@ -19,6 +19,7 @@ package conditions
 import (
 	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -128,7 +129,7 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 			if latestCondition := Get(latest, conditionPatch.After.Type); latestCondition != nil {
 				// If latest and after agree on the change, then it is a conflict.
 				if !hasSameState(latestCondition, conditionPatch.After) {
-					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/AddCondition conflict", conditionPatch.After.Type)
+					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/AddCondition conflict: %v", conditionPatch.After.Type, cmp.Diff(conditionPatch.Before, conditionPatch.After))
 				}
 				// otherwise, the latest is already as intended.
 				// NOTE: We are preserving LastTransitionTime from the latest in order to avoid altering the existing value.
@@ -148,14 +149,14 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 
 			// If the condition does not exist anymore on the latest, this is a conflict.
 			if latestCondition == nil {
-				return errors.Errorf("error patching conditions: The condition %q was deleted by a different process and this caused a merge/ChangeCondition conflict", conditionPatch.After.Type)
+				return errors.Errorf("error patching conditions: The condition %q was deleted by a different process and this caused a merge/ChangeCondition conflict: %v", conditionPatch.After.Type, cmp.Diff(conditionPatch.Before, conditionPatch.After))
 			}
 
 			// If the condition on the latest is different from the base condition, check if
 			// the after state corresponds to the desired value. If not this is a conflict (unless we should ignore conflicts for this condition type).
 			if !reflect.DeepEqual(latestCondition, conditionPatch.Before) {
 				if !hasSameState(latestCondition, conditionPatch.After) {
-					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/ChangeCondition conflict", conditionPatch.After.Type)
+					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/ChangeCondition conflict: %v", conditionPatch.After.Type, cmp.Diff(conditionPatch.Before, conditionPatch.After))
 				}
 				// Otherwise the latest is already as intended.
 				// NOTE: We are preserving LastTransitionTime from the latest in order to avoid altering the existing value.
@@ -175,7 +176,7 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 			// if so then this is a conflict.
 			if latestCondition := Get(latest, conditionPatch.Before.Type); latestCondition != nil {
 				if !hasSameState(latestCondition, conditionPatch.Before) {
-					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/RemoveCondition conflict", conditionPatch.Before.Type)
+					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/RemoveCondition conflict: %v", conditionPatch.Before.Type, cmp.Diff(conditionPatch.Before, conditionPatch.After))
 				}
 			}
 			// Otherwise the latest and after agreed on the delete operation, so there's nothing to change.

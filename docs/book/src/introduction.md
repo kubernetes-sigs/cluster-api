@@ -16,7 +16,7 @@ documentation](https://release-0-2.cluster-api.sigs.k8s.io).
 
 ## Why build Cluster API?
 
-Kubernetes is a complex system that relies on several components correctly configured to have a working cluster. Recognizing this complexity as a stumbling block for users, the community focused on simplifying the bootstrapping process. Today, over [100 Kubernetes distributions and installers](https://www.cncf.io/certification/software-conformance/) have been created, each with different default configurations for clusters and supported infrastructure providers. SIG Cluster Lifecycle saw a need for a single tool to address a set of common overlapping installation concerns and started kubeadm.
+Kubernetes is a complex system that relies on several components being configured correctly to have a working cluster. Recognizing this as a potential stumbling block for users, the community focused on simplifying the bootstrapping process. Today, over [100 Kubernetes distributions and installers](https://www.cncf.io/certification/software-conformance/) have been created, each with different default configurations for clusters and supported infrastructure providers. SIG Cluster Lifecycle saw a need for a single tool to address a set of common overlapping installation concerns and started kubeadm.
 
 [Kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/) was designed as a focused tool for bootstrapping a best-practices Kubernetes cluster. The core tenet behind the kubeadm project was to create a tool that other installers can leverage and ultimately alleviate the amount of configuration that an individual installer needed to maintain. Since it began, kubeadm has become the underlying bootstrapping tool for several other applications, including Kubespray, Minikube, kind, etc.
 
@@ -26,7 +26,7 @@ However, while kubeadm and other bootstrap providers reduce installation complex
 * How can I automate cluster lifecycle management, including things like upgrades and cluster deletion?
 * How can I scale these processes to manage any number of clusters?
 
-SIG Cluster Lifecycle began the Cluster API project as a way to address these gaps. By building declarative, Kubernetes-style APIs, Cluster API enables an automated way to manage cluster creation, configuration and management. Like kubeadm, it offers a best-practice foundation for other tools to build on.
+SIG Cluster Lifecycle began the Cluster API project as a way to address these gaps by building declarative, Kubernetes-style APIs, that automate cluster creation, configuration, and management. Using this model, Cluster API can also be extended to support any infrastructure provider (AWS, GCE, vSphere, etc.) or bootstrap provider (kubeadm is default) you need. See the growing list of [available providers](/reference/providers.html).
 
 {{#include ../../scope-and-objectives.md:Goals}}
 

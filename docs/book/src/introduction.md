@@ -7,8 +7,8 @@ Started by the Kubernetes Special Interest Group (SIG) Cluster Lifecycle, the Cl
 ### Getting started
 * [Quick start](./user/quick-start.md)
 * [Concepts](./user/concepts.md)
-* [Developer guide](./developer/guide.html)
-* [Contributing](/contributing.md)
+* [Developer guide](./developer/guide.md)
+* [Contributing](./contributing.md)
 
 **Using Cluster API v1alpha2?** See the [legacy
 documentation](https://release-0-2.cluster-api.sigs.k8s.io).
@@ -26,7 +26,7 @@ However, while kubeadm and other bootstrap providers reduce installation complex
 * How can I automate cluster lifecycle management, including things like upgrades and cluster deletion?
 * How can I scale these processes to manage any number of clusters?
 
-SIG Cluster Lifecycle began the Cluster API project as a way to address these gaps by building declarative, Kubernetes-style APIs, that automate cluster creation, configuration, and management. Using this model, Cluster API can also be extended to support any infrastructure provider (AWS, Azure, vSphere, etc.) or bootstrap provider (kubeadm is default) you need. See the growing list of [available providers](/reference/providers.html).
+SIG Cluster Lifecycle began the Cluster API project as a way to address these gaps by building declarative, Kubernetes-style APIs, that automate cluster creation, configuration, and management. Using this model, Cluster API can also be extended to support any infrastructure provider (AWS, Azure, vSphere, etc.) or bootstrap provider (kubeadm is default) you need. See the growing list of [available providers](./reference/providers.md).
 
 {{#include ../../scope-and-objectives.md:Goals}}
 

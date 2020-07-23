@@ -64,8 +64,8 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	logger := controlPlane.Logger()
 
 	// reconcileHealth returns err if there is a machine being delete which is a required condition to check before scaling up
-	if err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil {
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
+	if result, err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
+		return result, err
 	}
 
 	// Create the bootstrap configuration
@@ -90,8 +90,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
-	if err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil {
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
+	if result, err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
+		return result, err
 	}
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))

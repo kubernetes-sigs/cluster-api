@@ -32,7 +32,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -171,9 +170,9 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 				Machines: beforeMachines,
 			}
 
-			_, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), controlPlane)
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}))
+			result, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), controlPlane)
+			g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}))
+			g.Expect(err).To(BeNil())
 
 			controlPlaneMachines := &clusterv1.MachineList{}
 			g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())

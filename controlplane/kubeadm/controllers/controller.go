@@ -420,7 +420,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 // reconcileHealth performs health checks for control plane components and etcd
 // It removes any etcd members that do not have a corresponding node.
 // Also, as a final step, checks if there is any machines that is being deleted.
-func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) error {
+func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
 	// Do a health check of the Control Plane components
@@ -428,7 +428,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 		logger.V(2).Info("Waiting for control plane to pass control plane health check to continue reconciliation", "cause", err)
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass control plane health check to continue reconciliation: %v", err)
-		return &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
+		return ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}, nil
 	}
 
 	// Ensure etcd is healthy
@@ -437,7 +437,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 		// This will solve issues related to manual control-plane machine deletion.
 		workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 		if err := workloadCluster.ReconcileEtcdMembers(ctx); err != nil {
 			logger.V(2).Info("Failed attempt to remove potential hanging etcd members to pass etcd health check to continue reconciliation", "cause", err)
@@ -446,17 +446,17 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 		logger.V(2).Info("Waiting for control plane to pass etcd health check to continue reconciliation", "cause", err)
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
-		return &capierrors.RequeueAfterError{RequeueAfter: healthCheckFailedRequeueAfter}
+		return ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}, nil
 	}
 
 	// We need this check for scale up as well as down to avoid scaling up when there is a machine being deleted.
 	// This should be at the end of this method as no need to wait for machine to be completely deleted to reconcile etcd.
 	// TODO: Revisit during machine remediation implementation which may need to cover other machine phases.
 	if controlPlane.HasDeletingMachine() {
-		return &capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machines internal.FilterableMachineCollection, cluster *clusterv1.Cluster) error {

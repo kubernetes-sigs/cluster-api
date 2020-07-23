@@ -42,7 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -1184,15 +1183,16 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 		}
 
-		_, err := r.reconcileDelete(context.Background(), cluster, kcp)
-		g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}))
+		result, err := r.reconcileDelete(context.Background(), cluster, kcp)
+		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
+		g.Expect(err).To(BeNil())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(BeEmpty())
 
-		result, err := r.reconcileDelete(context.Background(), cluster, kcp)
+		result, err = r.reconcileDelete(context.Background(), cluster, kcp)
 		g.Expect(result).To(Equal(ctrl.Result{}))
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
@@ -1235,8 +1235,9 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 		}
 
-		_, err := r.reconcileDelete(context.Background(), cluster, kcp)
-		g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: deleteRequeueAfter}))
+		result, err := r.reconcileDelete(context.Background(), cluster, kcp)
+		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
+		g.Expect(err).To(BeNil())
 
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 

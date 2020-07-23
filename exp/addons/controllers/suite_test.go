@@ -23,9 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
@@ -35,10 +33,6 @@ import (
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-
-func init() {
-	_ = addonsv1.AddToScheme(scheme.Scheme)
-}
 
 var (
 	testEnv *helpers.TestEnvironment
@@ -62,6 +56,10 @@ var _ = BeforeSuite(func(done Done) {
 		Client:  testEnv,
 		Log:     log.Log,
 		Tracker: trckr,
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+	Expect((&ClusterResourceSetBindingReconciler{
+		Client: testEnv,
+		Log:    log.Log,
 	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 
 	By("starting the manager")

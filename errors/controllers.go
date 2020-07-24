@@ -26,6 +26,13 @@ import (
 // HasRequeueAfterError represents that an actuator managed object should
 // be requeued for further processing after the given RequeueAfter time has
 // passed.
+//
+// DEPRECATED: This error is deprecated and should not be used for new code.
+// See https://github.com/kubernetes-sigs/cluster-api/issues/3370 for more information.
+//
+// Users should switch their methods and functions to return a (ctrl.Result, error) pair,
+// instead of relying on this error. Controller runtime exposes a Result.IsZero() (from 0.5.9, and 0.6.2)
+// which can be used from callers to see if reconciliation should be stopped or continue.
 type HasRequeueAfterError interface {
 	// GetRequeueAfter gets the duration to wait until the managed object is
 	// requeued for further processing.
@@ -35,6 +42,13 @@ type HasRequeueAfterError interface {
 // RequeueAfterError represents that an actuator managed object should be
 // requeued for further processing after the given RequeueAfter time has
 // passed.
+//
+// DEPRECATED: This error is deprecated and should not be used for new code.
+// See https://github.com/kubernetes-sigs/cluster-api/issues/3370 for more information.
+//
+// Users should switch their methods and functions to return a (ctrl.Result, error) pair,
+// instead of relying on this error. Controller runtime exposes a Result.IsZero() (from 0.5.9, and 0.6.2)
+// which can be used from callers to see if reconciliation should be stopped or continue.
 type RequeueAfterError struct {
 	RequeueAfter time.Duration
 }
@@ -51,6 +65,13 @@ func (e *RequeueAfterError) GetRequeueAfter() time.Duration {
 }
 
 // IsRequeueAfter returns true if the error satisfies the interface HasRequeueAfterError.
+//
+// DEPRECATED: This error is deprecated and should not be used for new code.
+// See https://github.com/kubernetes-sigs/cluster-api/issues/3370 for more information.
+//
+// Users should switch their methods and functions to return a (ctrl.Result, error) pair,
+// instead of relying on this error. Controller runtime exposes a Result.IsZero() (from 0.5.9, and 0.6.2)
+// which can be used from callers to see if reconciliation should be stopped or continue.
 func IsRequeueAfter(err error) bool {
 	_, ok := errors.Cause(err).(HasRequeueAfterError)
 	return ok

@@ -19,10 +19,12 @@ package framework
 import (
 	"context"
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
@@ -129,23 +131,23 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 		Expect(input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: input.Cluster.Name, Namespace: input.Cluster.Namespace}, binding)).To(Succeed())
 
 		for _, resource := range input.ClusterResourceSet.Spec.Resources {
-			if resource.Kind == string(addonsv1.SecretClusterResourceSetResourceKind) {
-				secret := &corev1.Secret{}
-				err := input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: resource.Name, Namespace: input.ClusterResourceSet.Namespace}, secret)
-				if err == nil {
+			var configSource runtime.Object
 
-					if !binding.Spec.Bindings[0].IsApplied(resource) {
-						return false
-					}
-				}
-			} else if resource.Kind == string(addonsv1.ConfigMapClusterResourceSetResourceKind) {
-				configMap := &corev1.ConfigMap{}
-				err := input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: resource.Name, Namespace: input.ClusterResourceSet.Namespace}, configMap)
-				if err == nil {
-					if !binding.Spec.Bindings[0].IsApplied(resource) {
-						return false
-					}
-				}
+			switch resource.Kind {
+			case string(addonsv1.SecretClusterResourceSetResourceKind):
+				configSource = &corev1.Secret{}
+			case string(addonsv1.ConfigMapClusterResourceSetResourceKind):
+				configSource = &corev1.ConfigMap{}
+			}
+
+			if err := input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: resource.Name, Namespace: input.ClusterResourceSet.Namespace}, configSource); err != nil {
+				// If the resource is missing, CRS will not requeue but retry at each reconcile,
+				// because this is not an error. So, we are only interested in seeing the resources that exist to be applied by CRS.
+				continue
+			}
+
+			if len(binding.Spec.Bindings) == 0 || !binding.Spec.Bindings[0].IsApplied(resource) {
+				return false
 			}
 		}
 		return true

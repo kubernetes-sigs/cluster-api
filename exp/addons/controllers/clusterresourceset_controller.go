@@ -121,9 +121,7 @@ func (r *ClusterResourceSetReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 
 	for _, cluster := range clusters {
 		if err := r.ApplyClusterResourceSet(ctx, cluster, clusterResourceSet); err != nil {
-			// The reason of not requeuing in case of errors if applying resources are failed is to avoid retries in case resources are missing.
-			// In the next reconcile, failed resources will be retried.
-			logger.Error(err, "Failed applying resources to cluster", "Cluster", cluster.Name)
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -211,6 +209,11 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.WrongSecretTypeReason, clusterv1.ConditionSeverityWarning, err.Error())
 			} else {
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RetrievingResourceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+
+				// Continue without adding the error to the aggregate if we can't find the resource.
+				if apierrors.IsNotFound(err) {
+					continue
+				}
 			}
 			errList = append(errList, err)
 			continue

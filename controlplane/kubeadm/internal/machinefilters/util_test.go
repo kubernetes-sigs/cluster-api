@@ -17,18 +17,15 @@ limitations under the License.
 package machinefilters
 
 import (
-	"context"
 	"testing"
 
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestMatchClusterConfiguration(t *testing.T) {
@@ -273,13 +270,11 @@ func TestCleanupConfigFields(t *testing.T) {
 }
 
 func TestMatchInitOrJoinConfiguration(t *testing.T) {
-	scheme := runtime.NewScheme()
-	_ = bootstrapv1.AddToScheme(scheme)
-	t.Run("returns true if the machine does not have bootstrap config", func(t *testing.T) {
+	t.Run("returns true if the machine does not have a bootstrap config", func(t *testing.T) {
 		g := gomega.NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		m := &clusterv1.Machine{}
-		g.Expect(matchInitOrJoinConfiguration(context.TODO(), nil, kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(nil, kcp, m)).To(gomega.BeTrue())
 	})
 	t.Run("returns true if the there are problems reading the bootstrap config", func(t *testing.T) {
 		g := gomega.NewWithT(t)
@@ -291,8 +286,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme)
-		g.Expect(matchInitOrJoinConfiguration(context.TODO(), client, kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(nil, kcp, m)).To(gomega.BeTrue())
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
 		g := gomega.NewWithT(t)
@@ -325,21 +319,22 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		g.Expect(matchInitOrJoinConfiguration(context.TODO(), client, kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeTrue())
 	})
 	t.Run("returns false if InitConfiguration is NOT equal", func(t *testing.T) {
 		g := gomega.NewWithT(t)
@@ -376,21 +371,22 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		g.Expect(matchInitOrJoinConfiguration(context.TODO(), client, kcp, m)).To(gomega.BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeFalse())
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
 		g := gomega.NewWithT(t)
@@ -423,21 +419,22 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		g.Expect(matchInitOrJoinConfiguration(context.TODO(), client, kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeTrue())
 	})
 	t.Run("returns false if JoinConfiguration is NOT equal", func(t *testing.T) {
 		g := gomega.NewWithT(t)
@@ -474,21 +471,22 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		g.Expect(matchInitOrJoinConfiguration(context.TODO(), client, kcp, m)).To(gomega.BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeFalse())
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
 		g := gomega.NewWithT(t)
@@ -522,27 +520,26 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		g.Expect(matchInitOrJoinConfiguration(context.TODO(), client, kcp, m)).To(gomega.BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeFalse())
 	})
 }
 
 func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
-	scheme := runtime.NewScheme()
-	_ = bootstrapv1.AddToScheme(scheme)
 	t.Run("returns true if ClusterConfiguration is equal", func(t *testing.T) {
 		g := gomega.NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
@@ -561,9 +558,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		f := MatchesKubeadmBootstrapConfig(context.TODO(), client, kcp)
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {},
+		}
+		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
 		g.Expect(f(m)).To(gomega.BeTrue())
 	})
 	t.Run("returns false if ClusterConfiguration is NOT equal", func(t *testing.T) {
@@ -584,9 +582,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		f := MatchesKubeadmBootstrapConfig(context.TODO(), client, kcp)
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {},
+		}
+		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
 		g.Expect(f(m)).To(gomega.BeFalse())
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
@@ -620,21 +619,22 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		f := MatchesKubeadmBootstrapConfig(context.TODO(), client, kcp)
+		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
 		g.Expect(f(m)).To(gomega.BeTrue())
 	})
 	t.Run("returns false if InitConfiguration is NOT equal", func(t *testing.T) {
@@ -672,21 +672,22 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		f := MatchesKubeadmBootstrapConfig(context.TODO(), client, kcp)
+		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
 		g.Expect(f(m)).To(gomega.BeFalse())
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
@@ -720,21 +721,22 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		f := MatchesKubeadmBootstrapConfig(context.TODO(), client, kcp)
+		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
 		g.Expect(f(m)).To(gomega.BeTrue())
 	})
 	t.Run("returns false if JoinConfiguration is NOT equal", func(t *testing.T) {
@@ -772,21 +774,22 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		f := MatchesKubeadmBootstrapConfig(context.TODO(), client, kcp)
+		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
 		g.Expect(f(m)).To(gomega.BeFalse())
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
@@ -821,21 +824,22 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
-				APIVersion: bootstrapv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
+				},
 			},
 		}
-		client := fake.NewFakeClientWithScheme(scheme, machineConfig)
-		f := MatchesKubeadmBootstrapConfig(context.TODO(), client, kcp)
+		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
 		g.Expect(f(m)).To(gomega.BeFalse())
 	})
 }

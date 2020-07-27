@@ -17,21 +17,19 @@ limitations under the License.
 package machinefilters
 
 import (
-	"context"
 	"encoding/json"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -152,18 +150,14 @@ func IsReady() Func {
 	}
 }
 
-// ShouldRolloutAfter returns a filter to find all machines
-// that should rollout after the given time.
-func ShouldRolloutAfter(t *metav1.Time) Func {
-	now := metav1.Now()
+// ShouldRolloutAfter returns a filter to find all machines where
+// CreationTimestamp < rolloutAfter < reconciliationTIme
+func ShouldRolloutAfter(reconciliationTime, rolloutAfter *metav1.Time) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
 		}
-		if t == nil || !t.Before(&now) {
-			return false
-		}
-		return machine.CreationTimestamp.Before(t)
+		return machine.CreationTimestamp.Before(rolloutAfter) && rolloutAfter.Before(reconciliationTime)
 	}
 }
 
@@ -197,23 +191,23 @@ func ControlPlaneSelectorForCluster(clusterName string) labels.Selector {
 
 // MatchesKCPConfiguration returns a filter to find all machines that matches with KCP config and do not require any rollout.
 // Kubernetes version, infrastructure template, and KubeadmConfig field need to be equivalent.
-func MatchesKCPConfiguration(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
+func MatchesKCPConfiguration(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
 	return And(
 		MatchesKubernetesVersion(kcp.Spec.Version),
-		MatchesKubeadmBootstrapConfig(ctx, c, kcp),
-		MatchesTemplateClonedFrom(ctx, c, kcp),
+		MatchesKubeadmBootstrapConfig(machineConfigs, kcp),
+		MatchesTemplateClonedFrom(infraConfigs, kcp),
 	)
 }
 
 // MatchesTemplateClonedFrom returns a filter to find all machines that match a given KCP infra template.
-func MatchesTemplateClonedFrom(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane) Func {
+func MatchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructured, kcp *controlplanev1.KubeadmControlPlane) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
 		}
-		infraObj, err := external.Get(ctx, c, &machine.Spec.InfrastructureRef, kcp.Namespace)
-		// Return true here because failing to get infrastructure machine should not be considered as unmatching.
-		if err != nil {
+		infraObj, found := infraConfigs[machine.Name]
+		if !found {
+			// Return true here because failing to get infrastructure machine should not be considered as unmatching.
 			return true
 		}
 
@@ -249,7 +243,7 @@ func MatchesKubernetesVersion(kubernetesVersion string) Func {
 }
 
 // MatchesKubeadmBootstrapConfig checks if machine's KubeadmConfigSpec is equivalent with KCP's KubeadmConfigSpec.
-func MatchesKubeadmBootstrapConfig(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane) Func {
+func MatchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
@@ -263,7 +257,7 @@ func MatchesKubeadmBootstrapConfig(ctx context.Context, c client.Client, kcp *co
 		// Check if KCP and machine InitConfiguration or JoinConfiguration matches
 		// NOTE: only one between init configuration and join configuration is set on a machine, depending
 		// on the fact that the machine was the initial control plane node or a joining control plane node.
-		return matchInitOrJoinConfiguration(ctx, c, kcp, machine)
+		return matchInitOrJoinConfiguration(machineConfigs, kcp, machine)
 	}
 }
 
@@ -303,7 +297,7 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 
 // matchInitOrJoinConfiguration verifies if KCP and machine InitConfiguration or JoinConfiguration matches.
 // NOTE: By extension this method takes care of detecting changes in other fields of the KubeadmConfig configuration (e.g. Files, Mounts etc.)
-func matchInitOrJoinConfiguration(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) bool {
+func matchInitOrJoinConfiguration(machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) bool {
 	bootstrapRef := machine.Spec.Bootstrap.ConfigRef
 	if bootstrapRef == nil {
 		// Missing bootstrap reference should not be considered as unmatching.
@@ -311,8 +305,8 @@ func matchInitOrJoinConfiguration(ctx context.Context, c client.Client, kcp *con
 		return true
 	}
 
-	machineConfig := &bootstrapv1.KubeadmConfig{}
-	if err := c.Get(ctx, client.ObjectKey{Name: bootstrapRef.Name, Namespace: machine.Namespace}, machineConfig); err != nil {
+	machineConfig, found := machineConfigs[machine.Name]
+	if !found {
 		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
 		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
 		return true

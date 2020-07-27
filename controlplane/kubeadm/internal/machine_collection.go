@@ -56,14 +56,21 @@ func NewFilterableMachineCollectionFromMachineList(machineList *clusterv1.Machin
 }
 
 // Insert adds items to the set.
-func (s FilterableMachineCollection) Insert(machines ...*clusterv1.Machine) FilterableMachineCollection {
+func (s FilterableMachineCollection) Insert(machines ...*clusterv1.Machine) {
 	for i := range machines {
 		if machines[i] != nil {
 			m := machines[i]
 			s[m.Name] = m
 		}
 	}
-	return s
+}
+
+// Difference returns a copy without machines that are in the given collection
+func (s FilterableMachineCollection) Difference(machines FilterableMachineCollection) FilterableMachineCollection {
+	return s.Filter(func(m *clusterv1.Machine) bool {
+		_, found := machines[m.Name]
+		return !found
+	})
 }
 
 // SortedByCreationTimestamp returns the machines sorted by creation timestamp
@@ -144,4 +151,14 @@ func (s FilterableMachineCollection) ConditionGetters() []conditions.Getter {
 		res = append(res, &value)
 	}
 	return res
+}
+
+// Names returns a slice of the names of each machine in the collection.
+// Useful for logging and test assertions.
+func (s FilterableMachineCollection) Names() []string {
+	names := make([]string, 0, s.Len())
+	for _, m := range s {
+		names = append(names, m.Name)
+	}
+	return names
 }

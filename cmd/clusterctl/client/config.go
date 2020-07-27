@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"io"
+	"io/ioutil"
 	"strconv"
 
 	"k8s.io/utils/pointer"
@@ -26,6 +28,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 )
 
 func (c *clusterctlClient) GetProvidersConfig() ([]Provider, error) {
@@ -56,6 +59,61 @@ func (c *clusterctlClient) GetProviderComponents(provider string, providerType c
 		return nil, err
 	}
 	return components, nil
+}
+
+// ReaderSourceOptions define the options to be used when reading a template
+// from an arbitrary reader
+type ReaderSourceOptions struct {
+	Reader io.Reader
+}
+
+// ProcessYAMLOptions are the options supported by ProcessYAML.
+type ProcessYAMLOptions struct {
+	ReaderSource *ReaderSourceOptions
+	// URLSource to be used for reading the template
+	URLSource *URLSourceOptions
+
+	// ListVariablesOnly return the list of variables expected by the template
+	// without executing any further processing.
+	ListVariablesOnly bool
+}
+
+func (c *clusterctlClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error) {
+	if options.ReaderSource != nil {
+		// NOTE: Beware of potentially reading in large files all at once
+		// since this is inefficient and increases memory utilziation.
+		content, err := ioutil.ReadAll(options.ReaderSource.Reader)
+		if err != nil {
+			return nil, err
+		}
+		return repository.NewTemplate(repository.TemplateInput{
+			RawArtifact:           content,
+			ConfigVariablesClient: c.configClient.Variables(),
+			Processor:             yaml.NewSimpleProcessor(),
+			TargetNamespace:       "",
+			ListVariablesOnly:     options.ListVariablesOnly,
+		})
+	}
+
+	// Technically we do not need to connect to the cluster. However, we are
+	// leveraging the template client which exposes GetFromURL() is available
+	// on the cluster client so we create a cluster client with default
+	// configs to access it.
+	cluster, err := c.clusterClientFactory(
+		ClusterClientFactoryInput{
+			// use the default kubeconfig
+			kubeconfig: Kubeconfig{},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if options.URLSource != nil {
+		return c.getTemplateFromURL(cluster, *options.URLSource, "", options.ListVariablesOnly)
+	}
+
+	return nil, errors.New("unable to read custom template. Please specify a template source")
 }
 
 // GetClusterTemplateOptions carries the options supported by GetClusterTemplate.

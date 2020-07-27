@@ -55,6 +55,20 @@ type Client interface {
 
 	// ApplyUpgrade executes an upgrade plan.
 	ApplyUpgrade(options ApplyUpgradeOptions) error
+
+	// ProcessYAML provides a direct way to process a yaml and inspect its
+	// variables.
+	ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error)
+}
+
+// YamlPrinter exposes methods that prints the processed template and
+// variables.
+type YamlPrinter interface {
+	// Variables required by the template.
+	Variables() []string
+
+	// Yaml returns yaml defining all the cluster template objects as a byte array.
+	Yaml() ([]byte, error)
 }
 
 // clusterctlClient implements Client.

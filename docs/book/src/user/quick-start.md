@@ -378,23 +378,23 @@ export AZURE_SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
 
 # To populate secret in azure.json file.
 export AZURE_JSON_B64=$(echo "{
-    "cloud": "${AZURE_ENVIRONMENT}",
-    "tenantId": "${AZURE_TENANT_ID}",
-    "subscriptionId": "${AZURE_SUBSCRIPTION_ID}",
-    "aadClientId": "${AZURE_CLIENT_ID}",
-    "aadClientSecret": "${AZURE_CLIENT_SECRET}",
-    "resourceGroup": "${CLUSTER_NAME}",
-    "securityGroupName": "${CLUSTER_NAME}-node-nsg",
-    "location": "${AZURE_LOCATION}",
-    "vmType": "vmss",
-    "vnetName": "${AZURE_VNET_NAME}",
-    "vnetResourceGroup": "${CLUSTER_NAME}",
-    "subnetName": "${CLUSTER_NAME}-node-subnet",
-    "routeTableName": "${CLUSTER_NAME}-node-routetable",
-    "loadBalancerSku": "standard",
-    "maximumLoadBalancerRuleCount": 250,
-    "useManagedIdentityExtension": false,
-    "useInstanceMetadata": true
+    \"cloud\": \"${AZURE_ENVIRONMENT}\",
+    \"tenantId\": \"${AZURE_TENANT_ID}\",
+    \"subscriptionId\": \"${AZURE_SUBSCRIPTION_ID}\",
+    \"aadClientId\": \"${AZURE_CLIENT_ID}\",
+    \"aadClientSecret\": \"${AZURE_CLIENT_SECRET}\",
+    \"resourceGroup\": \"${CLUSTER_NAME}\",
+    \"securityGroupName\": \"${CLUSTER_NAME}-node-nsg\",
+    \"location\": \"${AZURE_LOCATION}\",
+    \"vmType\": \"vmss\",
+    \"vnetName\": \"${AZURE_VNET_NAME}\",
+    \"vnetResourceGroup\": \"${CLUSTER_NAME}\",
+    \"subnetName\": \"${CLUSTER_NAME}-node-subnet\",
+    \"routeTableName\": \"${CLUSTER_NAME}-node-routetable\",
+    \"loadBalancerSku\": \"standard\",
+    \"maximumLoadBalancerRuleCount\": 250,
+    \"useManagedIdentityExtension\": false,
+    \"useInstanceMetadata\": true
 }" | base64 | tr -d '\r\n')
 ```
 

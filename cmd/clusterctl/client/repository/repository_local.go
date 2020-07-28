@@ -97,7 +97,7 @@ func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
 
 	f, err := os.Stat(absolutePath)
 	if err != nil {
-		return nil, errors.Errorf("failed to read file %q from local release %s", absolutePath, version)
+		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
 	}
 	if f.IsDir() {
 		return nil, errors.Errorf("invalid path: file %q is actually a directory %q", fileName, absolutePath)

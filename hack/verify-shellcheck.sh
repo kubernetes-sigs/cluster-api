@@ -17,7 +17,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-VERSION="shellcheck-v0.7.0"
+VERSION="v0.7.0"
 
 OS="unknown"
 if [[ "${OSTYPE}" == "linux"* ]]; then
@@ -32,6 +32,7 @@ ROOT_PATH=$(get_root_path)
 
 # create a temporary directory
 TMP_DIR=$(mktemp -d)
+OUT="${TMP_DIR}/out.log"
 
 # cleanup on exit
 cleanup() {
@@ -53,17 +54,16 @@ SHELLCHECK="./$(dirname "$0")/tools/bin/shellcheck/${VERSION}/shellcheck"
 if [ ! -f "$SHELLCHECK" ]; then
   # install buildifier
   cd "${TMP_DIR}" || exit
-  DOWNLOAD_FILE="${VERSION}.${OS}.x86_64.tar.xz"
-  curl -L https://storage.googleapis.com/shellcheck/"${DOWNLOAD_FILE}" -o "${TMP_DIR}/shellcheck.tar.xz"
+  DOWNLOAD_FILE="shellcheck-${VERSION}.${OS}.x86_64.tar.xz"
+  curl -L "https://github.com/koalaman/shellcheck/releases/download/${VERSION}/${DOWNLOAD_FILE}" -o "${TMP_DIR}/shellcheck.tar.xz"
   tar xf "${TMP_DIR}/shellcheck.tar.xz"
   cd "${ROOT_PATH}"
   mkdir -p "$(dirname "$0")/tools/bin/shellcheck/${VERSION}"
-  mv "${TMP_DIR}/${VERSION}/shellcheck" "$SHELLCHECK"
+  mv "${TMP_DIR}/shellcheck-${VERSION}/shellcheck" "$SHELLCHECK"
 fi
 
 echo "Running shellcheck..."
 cd "${ROOT_PATH}" || exit
-OUT="${TMP_DIR}/out.log"
 IGNORE_FILES=$(find . -name "*.sh" | grep third_party)
 echo "Ignoring shellcheck on ${IGNORE_FILES}"
 FILES=$(find . -name "*.sh" | grep -v third_party)

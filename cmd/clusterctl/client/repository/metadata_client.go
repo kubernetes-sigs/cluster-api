@@ -263,6 +263,7 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					// v1alpha3 release series
+					{Major: 0, Minor: 7, Contract: "v1alpha3"},
 					{Major: 0, Minor: 6, Contract: "v1alpha3"},
 					// v1alpha2 release series are supported only for upgrades
 					{Major: 0, Minor: 5, Contract: "v1alpha2"},

@@ -587,7 +587,7 @@ func (r *MachineSetReconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 
 func (r *MachineSetReconciler) calculateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) (*clusterv1.MachineSetStatus, error) {
 	logger := r.Log.WithValues("machineset", ms.Name, "namespace", ms.Namespace)
-	newStatus := ms.Status.DeepCopy()
+	newMS := ms.DeepCopy()
 
 	// Copy label selector to its status counterpart in string format.
 	// This is necessary for CRDs including scale subresources.
@@ -595,7 +595,7 @@ func (r *MachineSetReconciler) calculateStatus(ctx context.Context, cluster *clu
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to calculate status for MachineSet %s/%s", ms.Namespace, ms.Name)
 	}
-	newStatus.Selector = selector.String()
+	newMS.Status.Selector = selector.String()
 
 	// Count the number of machines that have labels matching the labels of the machine
 	// template of the replica set, the matching machines may have more
@@ -631,11 +631,28 @@ func (r *MachineSetReconciler) calculateStatus(ctx context.Context, cluster *clu
 		}
 	}
 
-	newStatus.Replicas = int32(len(filteredMachines))
-	newStatus.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
-	newStatus.ReadyReplicas = int32(readyReplicasCount)
-	newStatus.AvailableReplicas = int32(availableReplicasCount)
-	return newStatus, nil
+	newMS.Status.Replicas = int32(len(filteredMachines))
+	newMS.Status.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
+	newMS.Status.ReadyReplicas = int32(readyReplicasCount)
+	newMS.Status.AvailableReplicas = int32(availableReplicasCount)
+
+	message := fmt.Sprintf("Replicas: %v; FullyLabeledReplicas: %v; ReadyReplicas: %v; AvailableReplicas: %v",
+		newMS.Status.Replicas,
+		newMS.Status.FullyLabeledReplicas,
+		newMS.Status.ReadyReplicas,
+		newMS.Status.AvailableReplicas,
+	)
+
+	// This will only update timestamp if our message is different or the
+	// condition is not present.
+	replicasUpdatedCondition := clusterv1.CreateReplicasUpdatedCondition(message)
+	conditions.Set(newMS, &replicasUpdatedCondition)
+	return &newMS.Status, nil
+}
+
+func replicaCountsDifferent(ms1 *clusterv1.MachineSetStatus, ms2 *clusterv1.MachineSetStatus) bool {
+	return ms1.Replicas != ms2.Replicas || ms1.FullyLabeledReplicas != ms2.FullyLabeledReplicas ||
+		ms1.ReadyReplicas != ms2.ReadyReplicas || ms1.AvailableReplicas != ms2.AvailableReplicas
 }
 
 // patchMachineSetStatus attempts to update the Status.Replicas of the given MachineSet.
@@ -645,11 +662,7 @@ func (r *MachineSetReconciler) patchMachineSetStatus(ctx context.Context, ms *cl
 	// This is the steady state. It happens when the MachineSet doesn't have any expectations, since
 	// we do a periodic relist every 10 minutes. If the generations differ but the replicas are
 	// the same, a caller might've resized to the same replica count.
-	if ms.Status.Replicas == newStatus.Replicas &&
-		ms.Status.FullyLabeledReplicas == newStatus.FullyLabeledReplicas &&
-		ms.Status.ReadyReplicas == newStatus.ReadyReplicas &&
-		ms.Status.AvailableReplicas == newStatus.AvailableReplicas &&
-		ms.Generation == ms.Status.ObservedGeneration {
+	if ms.Generation == ms.Status.ObservedGeneration && !replicaCountsDifferent(&ms.Status, newStatus) {
 		return ms, nil
 	}
 

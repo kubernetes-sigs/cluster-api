@@ -69,6 +69,18 @@ const (
 	WaitingForDataSecretFallbackReason = "WaitingForDataSecret"
 )
 
+// Conditions and condition Reasons for the MachineSet object
+
+const (
+	// ReplicasUpdated reports the last time any replica count was updated
+	// in the MachineSet status.
+	// Only LastTransitionTime for this condition changes, all other fields
+	// are static.
+	ReplicasUpdated ConditionType = "ReplicasUpdated"
+
+	ReplicasUpdatedReason = "ReplicasUpdatingOk"
+)
+
 const (
 	// MachineHealthCheckSuccededCondition is set on machines that have passed a healthcheck by the MachineHealthCheck controller.
 	// In the event that the health check fails it will be set to False.

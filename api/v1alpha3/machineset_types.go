@@ -156,6 +156,10 @@ type MachineSetStatus struct {
 	FailureReason *capierrors.MachineSetStatusError `json:"failureReason,omitempty"`
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
+
+	// Conditions defines current service state of the MachineSet.
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachineSetStatus
@@ -199,6 +203,16 @@ type MachineSet struct {
 
 	Spec   MachineSetSpec   `json:"spec,omitempty"`
 	Status MachineSetStatus `json:"status,omitempty"`
+}
+
+// GetConditions retrieves all Status Conditions.
+func (m *MachineSet) GetConditions() Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions sets all Status Conditions.
+func (m *MachineSet) SetConditions(conditions Conditions) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

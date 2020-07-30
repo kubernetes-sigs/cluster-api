@@ -95,3 +95,14 @@ type Condition struct {
 type Conditions []Condition
 
 // ANCHOR_END: Conditions
+
+// CreateReplicasUpdatedCondition creates a static ReplicasUpdated Condition
+func CreateReplicasUpdatedCondition(message string) Condition {
+	return Condition{
+		Type:     ReplicasUpdated,
+		Status:   corev1.ConditionTrue,
+		Severity: ConditionSeverityInfo,
+		Reason:   ReplicasUpdatedReason,
+		Message:  message,
+	}
+}

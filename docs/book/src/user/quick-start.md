@@ -398,6 +398,9 @@ export AZURE_JSON_B64=$(echo "{
 }" | base64 | tr -d '\r\n')
 ```
 
+NOTE: `CLUSTER_NAME` can only include letters, numbers, and hyphens and can't be longer than 44 characters to allow for cluster name 
+to be used as a prefix for VMs and other resources that have [Azure naming rules and restrictions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules)
+
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure provider prerequisites] document.
 
 {{#/tab }}

@@ -75,15 +75,6 @@ var _ = Describe("Control Plane", func() {
 				})
 			})
 		})
-
-		Describe("With fewest machines", func() {
-			Context("With machines all in the known failure domains", func() {
-				It("should return the failure domain that has the fewest number of machines", func() {
-					Expect(*controlPlane.FailureDomainWithFewestMachines()).To(Equal("three"))
-				})
-			})
-
-		})
 	})
 
 	Describe("Generating components", func() {
@@ -113,7 +104,6 @@ var _ = Describe("Control Plane", func() {
 			})
 		})
 	})
-
 })
 
 func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {

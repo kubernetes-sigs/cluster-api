@@ -1393,7 +1393,15 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},
 		},
-		Spec: clusterv1.MachineSpec{ClusterName: cluster.Name},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: cluster.Name,
+			InfrastructureRef: corev1.ObjectReference{
+				Kind:       external.TestGenericInfrastructureCRD.Kind,
+				APIVersion: external.TestGenericInfrastructureCRD.APIVersion,
+				Name:       external.TestGenericInfrastructureCRD.Name,
+				Namespace:  external.TestGenericInfrastructureCRD.Namespace,
+			},
+		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{
 				Kind:       "Node",

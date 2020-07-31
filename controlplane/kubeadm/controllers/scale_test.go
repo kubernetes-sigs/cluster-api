@@ -95,7 +95,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		for i := 0; i < 2; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
-			fmc.Machines = fmc.Machines.Insert(m)
+			fmc.Machines.Insert(m)
 			initObjs = append(initObjs, m.DeepCopy())
 		}
 
@@ -129,7 +129,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		beforeMachines := internal.NewFilterableMachineCollection()
 		for i := 0; i < 2; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster.DeepCopy(), kcp.DeepCopy(), true)
-			beforeMachines = beforeMachines.Insert(m)
+			beforeMachines.Insert(m)
 			initObjs = append(initObjs, m.DeepCopy())
 		}
 

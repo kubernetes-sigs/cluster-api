@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -254,18 +253,4 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 		return errors.Wrap(err, "failed to create machine")
 	}
 	return nil
-}
-
-// machinesNeedingRollout return a list of machines that need to be rolled out.
-func (r *KubeadmControlPlaneReconciler) machinesNeedingRollout(ctx context.Context, c *internal.ControlPlane) internal.FilterableMachineCollection {
-	// Ignore machines to be deleted.
-	machines := c.Machines.Filter(machinefilters.Not(machinefilters.HasDeletionTimestamp))
-
-	// Return machines if they are scheduled for rollout or if with an outdated configuration.
-	return machines.AnyFilter(
-		// Machines that are scheduled for rollout (KCP.Spec.UpgradeAfter set, the UpgradeAfter deadline is expired, and the machine was created before the deadline).
-		machinefilters.ShouldRolloutAfter(c.KCP.Spec.UpgradeAfter),
-		// Machines that do not match with KCP config.
-		machinefilters.Not(machinefilters.MatchesKCPConfiguration(ctx, r.Client, c.KCP)),
-	)
 }

@@ -21,9 +21,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -597,4 +599,115 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			gs.Expect(gotYaml).To(Equal(tt.want.yaml))
 		})
 	}
+}
+
+func Test_clusterctlClient_ProcessYAML(t *testing.T) {
+	g := NewWithT(t)
+	template := `v1: ${VAR1:=default1}
+v2: ${VAR2=default2}
+v3: ${VAR3:-default3}`
+	dir, err := ioutil.TempDir("", "clusterctl")
+	g.Expect(err).NotTo(HaveOccurred())
+	defer os.RemoveAll(dir)
+
+	templateFile := filepath.Join(dir, "template.yaml")
+	g.Expect(ioutil.WriteFile(templateFile, []byte(template), 0600)).To(Succeed())
+
+	inputReader := strings.NewReader(template)
+
+	tests := []struct {
+		name         string
+		options      ProcessYAMLOptions
+		expectErr    bool
+		expectedYaml string
+		expectedVars []string
+	}{
+		{
+			name: "returns the expected yaml and variables",
+			options: ProcessYAMLOptions{
+				URLSource: &URLSourceOptions{
+					URL: templateFile,
+				},
+				ListVariablesOnly: false,
+			},
+			expectErr: false,
+			expectedYaml: `v1: default1
+v2: default2
+v3: default3`,
+			expectedVars: []string{"VAR1", "VAR2", "VAR3"},
+		},
+		{
+			name: "returns the expected variables only if ListVariablesOnly is set",
+			options: ProcessYAMLOptions{
+				URLSource: &URLSourceOptions{
+					URL: templateFile,
+				},
+				ListVariablesOnly: true,
+			},
+			expectErr:    false,
+			expectedYaml: ``,
+			expectedVars: []string{"VAR1", "VAR2", "VAR3"},
+		},
+		{
+			name:      "returns error if no source was specified",
+			options:   ProcessYAMLOptions{},
+			expectErr: true,
+		},
+		{
+			name: "processes yaml from specified reader",
+			options: ProcessYAMLOptions{
+				ReaderSource: &ReaderSourceOptions{
+					Reader: inputReader,
+				},
+				ListVariablesOnly: false,
+			},
+			expectErr: false,
+			expectedYaml: `v1: default1
+v2: default2
+v3: default3`,
+			expectedVars: []string{"VAR1", "VAR2", "VAR3"},
+		},
+		{
+			name: "returns error if unable to read from reader",
+			options: ProcessYAMLOptions{
+				ReaderSource: &ReaderSourceOptions{
+					Reader: &errReader{},
+				},
+				ListVariablesOnly: false,
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config1 := newFakeConfig().
+				WithProvider(infraProviderConfig)
+			cluster1 := newFakeCluster(cluster.Kubeconfig{}, config1)
+
+			client := newFakeClient(config1).WithCluster(cluster1)
+
+			printer, err := client.ProcessYAML(tt.options)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			expectedYaml, err := printer.Yaml()
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(string(expectedYaml)).To(Equal(tt.expectedYaml))
+
+			expectedVars := printer.Variables()
+			g.Expect(expectedVars).To(ConsistOf(tt.expectedVars))
+
+		})
+	}
+
+}
+
+// errReader returns a non-EOF error on the first read.
+type errReader struct{}
+
+func (e *errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("read error")
 }

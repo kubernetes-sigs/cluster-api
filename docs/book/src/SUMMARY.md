@@ -16,6 +16,7 @@
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)
         - [config cluster](clusterctl/commands/config-cluster.md)
+        - [generate yaml](clusterctl/commands/generate-yaml.md)
         - [move](./clusterctl/commands/move.md)
         - [upgrade](clusterctl/commands/upgrade.md)
         - [delete](clusterctl/commands/delete.md)

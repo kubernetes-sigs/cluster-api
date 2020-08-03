@@ -84,11 +84,22 @@ releaseSeries:
 <h1> Embedded metadata </h1>
 
 The `clusterctl` command can ship with embedded metadata for pre-defined providers.
-If, as a provider implementer, you are interested to this feature, please send a PR to the Cluster API repository.
+If, as a provider implementer, you are interested to this feature, please send a PR to the [Cluster API repository](https://sigs.k8s.io/cluster-api).
 
 </aside>
 
-### Components YAML 
+<aside class="note">
+
+<h1> Note on user experience </h1>
+
+If provider implementers only update the clusterctl's built-in metadata and don't
+provide a `metadata.yaml` in a new release, users are forced to update `clusterctl`
+to the latest released version in order to properly install the provider.
+
+As a related example, see the details in [issue 3418].
+</aside>
+
+### Components YAML
 
 The provider is required to generate a **components YAML** file and publish it to the provider's repository.
 This file is a single YAML with _all_ the components required for installing the provider itself (CRDs, Controller, RBAC etc.). 
@@ -326,3 +337,4 @@ Additionally, provider authors should be aware that `clusterctl move` assumes al
 
 <!--LINKS-->
 [drone-envsubst]: https://github.com/drone/envsubst
+[issue 3418]: https://github.com/kubernetes-sigs/cluster-api/issues/3418

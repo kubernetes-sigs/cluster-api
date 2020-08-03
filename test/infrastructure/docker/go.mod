@@ -17,7 +17,3 @@ require (
 )
 
 replace sigs.k8s.io/cluster-api => ../../..
-
-// TODO(vincepri): Remove this replace once upstream requires this commit directly.
-// See context in https://github.com/kubernetes-sigs/controller-runtime/pull/985.
-replace github.com/evanphx/json-patch => github.com/evanphx/json-patch v0.0.0-20190815234213-e83c0a1c26c8

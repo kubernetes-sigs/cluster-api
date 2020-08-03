@@ -16,34 +16,39 @@
 
 ## What is the Cluster API?
 
-The Cluster API is a Kubernetes project to bring declarative, Kubernetes-style
-APIs to cluster creation, configuration, and management. It provides optional,
-additive functionality on top of core Kubernetes.
+Cluster API is a Kubernetes sub-project focused on providing declarative APIs and tooling to simplify provisioning, upgrading, and operating multiple Kubernetes clusters.
+
+Started by the Kubernetes Special Interest Group (SIG) Cluster Lifecycle, the Cluster API project uses Kubernetes-style APIs and patterns to automate cluster lifecycle management for platform operators. The supporting infrastructure, like virtual machines, networks, load balancers, and VPCs, as well as the Kubernetes cluster configuration are all defined in the same way that application developers operate deploying and managing their workloads. This enables consistent and repeatable cluster deployments across a wide variety of infrastructure environments.
 
 __NB__: Cluster API is still in a prototype stage while we get
 feedback on the API types themselves. All of the code here is to experiment with
 the API and demo its abilities, in order to drive more technical feedback to the
 API design. Because of this, all of the codebase is rapidly changing.
 
+### Providers
+
+Cluster API can be extended to support any infrastructure provider (AWS, Azure, vSphere, etc.) or bootstrap provider (kubeadm is default) you need. There is a growing list of [supported providers](https://cluster-api.sigs.k8s.io/reference/providers.html) available.
+
 <!-- ANCHOR: Community -->
 
 ## Community, discussion, contribution, and support
 
+Cluster API is developed in the open, and is constantly being improved by our users, contributors, and maintainers. It is because of you that we are able to automate cluster lifecycle management for the community. Join us!
+
+If you have questions or what to get the latest project news, you can connect with us in the following ways:
+
 - Chat with us on the Kubernetes [Slack](http://slack.k8s.io/) in the [#cluster-api][#cluster-api slack] channel
 - Subscribe to the [SIG Cluster Lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) Google Group for access to documents and calendars
 - Participate in the conversations on [Kubernetes Discuss][kubernetes discuss]
-- Join our Cluster API working group sessions where we share the latest project news, demos, answer questions, and triage issues 
+- Join our Cluster API working group sessions where we share the latest project news, demos, answer questions, and triage issues
     - Weekly on Wednesdays @ 10:00 PT on [Zoom][zoomMeeting]
     - Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
-- Provider implementers office hours where you can ask questions related to developing providers for Cluster API
-    - Weekly on Tuesdays @ 12:00 PT ([Zoom][providerZoomMeetingTues]) and Wednesdays @ 15:00 CET ([Zoom][providerZoomMeetingWed])
-    - Previous meetings: \[ [notes][implementerNotes] \]
 
 Pull Requests and feedback on issues are very welcome!
 See the [issue tracker] if you're unsure where to start, especially the [Good first issue] and [Help wanted] tags, and
 also feel free to reach out to discuss.
 
-See also: our own [contributor guide](CONTRIBUTING.md) and the Kubernetes [community page].
+See also our [contributor guide](CONTRIBUTING.md) and the Kubernetes [community page] for more details on how to get involved.
 
 ### Code of conduct
 

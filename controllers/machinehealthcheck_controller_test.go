@@ -815,6 +815,101 @@ var _ = Describe("MachineHealthCheck", func() {
 				return apierrors.IsNotFound(err) || !machine.DeletionTimestamp.IsZero()
 			})
 		})
+
+		Specify("when a machine is paused", func() {
+			mhc.Spec.ClusterName = cluster.Name
+			Expect(testEnv.Create(ctx, mhc)).To(Succeed())
+
+			// Healthy nodes and machines.
+			fakeNodesMachines(1, true, true)
+			targetMachines := make([]string, len(machines))
+			for i, m := range machines {
+				targetMachines[i] = m.Name
+			}
+
+			// Make sure the status matches.
+			Eventually(func() *clusterv1.MachineHealthCheckStatus {
+				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
+				if err != nil {
+					return nil
+				}
+				return &mhc.Status
+			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+				ExpectedMachines:   1,
+				CurrentHealthy:     1,
+				ObservedGeneration: 1,
+				Targets:            targetMachines},
+			))
+
+			// Pause the machine
+			machinePatch := client.MergeFrom(machines[0].DeepCopy())
+			machines[0].Annotations = map[string]string{
+				clusterv1.PausedAnnotation: "",
+			}
+			Expect(testEnv.Patch(ctx, machines[0], machinePatch)).To(Succeed())
+
+			// Transition the node to unhealthy.
+			node := nodes[0]
+			nodePatch := client.MergeFrom(node.DeepCopy())
+			node.Status.Conditions = []corev1.NodeCondition{
+				{
+					Type:               corev1.NodeReady,
+					Status:             corev1.ConditionUnknown,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+				},
+			}
+			Expect(testEnv.Status().Patch(ctx, node, nodePatch)).To(Succeed())
+
+			// Make sure the status matches.
+			Eventually(func() *clusterv1.MachineHealthCheckStatus {
+				err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
+				if err != nil {
+					return nil
+				}
+				return &mhc.Status
+			}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+				ExpectedMachines:   1,
+				CurrentHealthy:     0,
+				ObservedGeneration: 1,
+				Targets:            targetMachines},
+			))
+
+			// Calculate how many Machines have health check succeeded = false.
+			Eventually(func() (unhealthy int) {
+				machines := &clusterv1.MachineList{}
+				err := testEnv.List(ctx, machines, client.MatchingLabels{
+					"selector": mhc.Spec.Selector.MatchLabels["selector"],
+				})
+				if err != nil {
+					return -1
+				}
+
+				for i := range machines.Items {
+					if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSuccededCondition) {
+						unhealthy++
+					}
+				}
+				return
+			}).Should(Equal(1))
+
+			// Calculate how many Machines have been remediated.
+			Eventually(func() (remediated int) {
+				machines := &clusterv1.MachineList{}
+				err := testEnv.List(ctx, machines, client.MatchingLabels{
+					"selector": mhc.Spec.Selector.MatchLabels["selector"],
+				})
+				if err != nil {
+					return -1
+				}
+
+				for i := range machines.Items {
+					if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
+						remediated++
+					}
+				}
+				return
+			}).Should(Equal(0))
+		})
 	})
 })
 

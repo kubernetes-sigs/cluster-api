@@ -247,10 +247,13 @@ func (c *ControlPlane) UpToDateMachines() FilterableMachineCollection {
 	return c.Machines.Difference(c.MachinesNeedingRollout())
 }
 
-// RemediationAllowed returns whether the cluster is large enough to support MHC remediation.
+// RemediationAllowed returns whether the cluster is large enough to support MHC remediation and has reached the desired number of replicas.
 // Clusters < minimumClusterSizeForRemediation do not have sufficient etcd failure tolerance.
+// We check to ensure that we have finished scaling up to avoid multiple remediations from happening before replacement machines have been created.
+// This has the downside that KCP may get stuck if it encounters a failed machine during a scale-up operation,
+// since remediation will not be allowed and KCP's own health checks will prevent it from reaching the full number of replicas.
 func (c *ControlPlane) RemediationAllowed() bool {
-	return c.Machines.Len() >= minimumClusterSizeForRemediation
+	return c.Machines.Len() >= minimumClusterSizeForRemediation && c.Machines.Len() >= int(*c.KCP.Spec.Replicas)
 }
 
 // UnhealthyMachines returns the machines that need remediation.

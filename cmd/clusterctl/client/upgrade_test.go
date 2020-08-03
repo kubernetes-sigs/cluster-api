@@ -206,7 +206,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 					Kind:       "ProviderList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
+				Items: []clusterctlv1.Provider{
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
 					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-system"),
 				},
@@ -281,8 +281,8 @@ func fakeClientForUpgrade() *fakeClient {
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		WithRepository(repository1).
 		WithRepository(repository2).
-		WithProviderInventory(core.Name(), core.Type(), "v1.0.0", "cluster-api-system", "").
-		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system", "")
+		WithProviderInventory(core.Name(), core.Type(), "v1.0.0", "cluster-api-system", "watchingNS").
+		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system", "watchingNS")
 
 	client := newFakeClient(config1).
 		WithRepository(repository1).
@@ -310,7 +310,7 @@ func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, 
 		ProviderName:     name,
 		Type:             string(providerType),
 		Version:          version,
-		WatchedNamespace: "",
+		WatchedNamespace: "watchingNS",
 	}
 }
 

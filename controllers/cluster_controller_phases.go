@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
@@ -72,9 +73,8 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return external.ReconcileOutput{}, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
-				"could not find %v %q for Cluster %q in namespace %q, requeuing",
-				ref.GroupVersionKind(), ref.Name, cluster.Name, cluster.Namespace)
+			logger.Info("Could not find external object for cluster, requeuing", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
+			return external.ReconcileOutput{RequeueAfter: 30 * time.Second}, nil
 		}
 		return external.ReconcileOutput{}, err
 	}
@@ -134,33 +134,37 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
-func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) error {
+func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
 	if cluster.Spec.InfrastructureRef == nil {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, cluster.Spec.InfrastructureRef)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
-	// if the external object is paused, return without any further processing
+	// Return early if we need to requeue.
+	if infraReconcileResult.RequeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: infraReconcileResult.RequeueAfter}, nil
+	}
+	// If the external object is paused, return without any further processing.
 	if infraReconcileResult.Paused {
-		return nil
+		return ctrl.Result{}, nil
 	}
 	infraConfig := infraReconcileResult.Result
 
 	// There's no need to go any further if the Cluster is marked for deletion.
 	if !infraConfig.GetDeletionTimestamp().IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Determine if the infrastructure provider is ready.
 	ready, err := external.IsReady(infraConfig)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 	cluster.Status.InfrastructureReady = ready
 
@@ -172,52 +176,56 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 
 	if !ready {
 		logger.V(3).Info("Infrastructure provider is not ready yet")
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Get and parse Spec.ControlPlaneEndpoint field from the infrastructure provider.
 	if cluster.Spec.ControlPlaneEndpoint.IsZero() {
 		if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Spec.ControlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil {
-			return errors.Wrapf(err, "failed to retrieve Spec.ControlPlaneEndpoint from infrastructure provider for Cluster %q in namespace %q",
+			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ControlPlaneEndpoint from infrastructure provider for Cluster %q in namespace %q",
 				cluster.Name, cluster.Namespace)
 		}
 	}
 
 	// Get and parse Status.FailureDomains from the infrastructure provider.
 	if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Status.FailureDomains, "status", "failureDomains"); err != nil && err != util.ErrUnstructuredFieldNotFound {
-		return errors.Wrapf(err, "failed to retrieve Status.FailureDomains from infrastructure provider for Cluster %q in namespace %q",
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Status.FailureDomains from infrastructure provider for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // reconcileControlPlane reconciles the Spec.ControlPlaneRef object on a Cluster.
-func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) error {
+func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	if cluster.Spec.ControlPlaneRef == nil {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Call generic external reconciler.
 	controlPlaneReconcileResult, err := r.reconcileExternal(ctx, cluster, cluster.Spec.ControlPlaneRef)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
-	// if the external object is paused, return without any further processing
+	// Return early if we need to requeue.
+	if controlPlaneReconcileResult.RequeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: controlPlaneReconcileResult.RequeueAfter}, nil
+	}
+	// If the external object is paused, return without any further processing.
 	if controlPlaneReconcileResult.Paused {
-		return nil
+		return ctrl.Result{}, nil
 	}
 	controlPlaneConfig := controlPlaneReconcileResult.Result
 
 	// There's no need to go any further if the control plane resource is marked for deletion.
 	if !controlPlaneConfig.GetDeletionTimestamp().IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Determine if the control plane provider is ready.
 	ready, err := external.IsReady(controlPlaneConfig)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 	cluster.Status.ControlPlaneReady = ready
 
@@ -232,24 +240,26 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 	if !cluster.Status.ControlPlaneInitialized {
 		initialized, err := external.IsInitialized(controlPlaneConfig)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 		cluster.Status.ControlPlaneInitialized = initialized
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) error {
+func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	if cluster.Spec.ControlPlaneEndpoint.IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Do not generate the Kubeconfig if there is a ControlPlaneRef, since the Control Plane provider is
 	// responsible for the management of the Kubeconfig. We continue to manage it here only for backward
 	// compatibility when a Control Plane provider is not in use.
 	if cluster.Spec.ControlPlaneRef != nil {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	_, err := secret.Get(ctx, r.Client, util.ObjectKey(cluster), secret.Kubeconfig)
@@ -257,15 +267,14 @@ func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *cl
 	case apierrors.IsNotFound(err):
 		if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
 			if err == kubeconfig.ErrDependentCertificateNotFound {
-				return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
-					"could not find secret %q for Cluster %q in namespace %q, requeuing",
-					secret.ClusterCA, cluster.Name, cluster.Namespace)
+				logger.Info("could not find secret for cluster, requeuing", "secret", secret.ClusterCA)
+				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 			}
-			return err
+			return ctrl.Result{}, err
 		}
 	case err != nil:
-		return errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }

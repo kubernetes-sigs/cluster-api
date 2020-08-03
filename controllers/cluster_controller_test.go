@@ -659,6 +659,8 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	r := &ClusterReconciler{
 		Log: log.Log,
 	}
-	g.Expect(r.reconcileControlPlaneInitialized(context.Background(), c)).To(Succeed())
+	res, err := r.reconcileControlPlaneInitialized(context.Background(), c)
+	g.Expect(res.IsZero()).To(BeTrue())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(c.Status.ControlPlaneInitialized).To(BeFalse())
 }

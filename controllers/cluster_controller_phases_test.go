@@ -31,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -60,10 +61,11 @@ func TestClusterReconcilePhases(t *testing.T) {
 		}
 
 		tests := []struct {
-			name      string
-			cluster   *clusterv1.Cluster
-			infraRef  map[string]interface{}
-			expectErr bool
+			name         string
+			cluster      *clusterv1.Cluster
+			infraRef     map[string]interface{}
+			expectErr    bool
+			expectResult ctrl.Result
 		}{
 			{
 				name:      "returns no error if infrastructure ref is nil",
@@ -71,9 +73,10 @@ func TestClusterReconcilePhases(t *testing.T) {
 				expectErr: false,
 			},
 			{
-				name:      "returns error if unable to reconcile infrastructure ref",
-				cluster:   cluster,
-				expectErr: true,
+				name:         "returns error if unable to reconcile infrastructure ref",
+				cluster:      cluster,
+				expectErr:    false,
+				expectResult: ctrl.Result{RequeueAfter: 30 * time.Second},
 			},
 			{
 				name:    "returns no error if infra config is marked for deletion",
@@ -140,7 +143,8 @@ func TestClusterReconcilePhases(t *testing.T) {
 					scheme: scheme.Scheme,
 				}
 
-				err := r.reconcileInfrastructure(context.Background(), tt.cluster)
+				res, err := r.reconcileInfrastructure(context.Background(), tt.cluster)
+				g.Expect(res).To(Equal(tt.expectResult))
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
 				} else {
@@ -187,9 +191,9 @@ func TestClusterReconcilePhases(t *testing.T) {
 				wantErr: false,
 			},
 			{
-				name:        "kubeconfig secret not found, should return RequeueAfterError",
+				name:        "kubeconfig secret not found, should requeue",
 				cluster:     cluster,
-				wantErr:     true,
+				wantErr:     false,
 				wantRequeue: true,
 			},
 			{
@@ -215,15 +219,18 @@ func TestClusterReconcilePhases(t *testing.T) {
 				r := &ClusterReconciler{
 					Client: c,
 					scheme: scheme.Scheme,
+					Log:    log.Log,
 				}
-				err := r.reconcileKubeconfig(context.Background(), tt.cluster)
+				res, err := r.reconcileKubeconfig(context.Background(), tt.cluster)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 				} else {
 					g.Expect(err).NotTo(HaveOccurred())
 				}
 
-				g.Expect(capierrors.IsRequeueAfter(err)).To(Equal(tt.wantRequeue))
+				if tt.wantRequeue {
+					g.Expect(res.RequeueAfter).To(BeNumerically(">=", 0))
+				}
 			})
 		}
 	})

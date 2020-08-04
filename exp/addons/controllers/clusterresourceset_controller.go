@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -143,12 +144,65 @@ func (r *ClusterResourceSetReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 		return ctrl.Result{}, err
 	}
 
+	// Add finalizer first if not exist to avoid the race condition between init and delete
+	if !controllerutil.ContainsFinalizer(clusterResourceSet, addonsv1.ClusterResourceSetFinalizer) {
+		controllerutil.AddFinalizer(clusterResourceSet, addonsv1.ClusterResourceSetFinalizer)
+		return ctrl.Result{}, nil
+	}
+
+	// Handle deletion reconciliation loop.
+	if !clusterResourceSet.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, clusters, clusterResourceSet)
+	}
+
 	for _, cluster := range clusters {
 		if err := r.ApplyClusterResourceSet(ctx, cluster, clusterResourceSet); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
+	return ctrl.Result{}, nil
+}
+
+// reconcileDelete removes the deleted ClusterResourceSet from all the ClusterResourceSetBindings it is added to.
+func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clusters []*clusterv1.Cluster, crs *addonsv1.ClusterResourceSet) (ctrl.Result, error) {
+	logger := r.Log.WithValues("clusterresourceset", crs.Name, "namespace", crs.Namespace)
+
+	for _, cluster := range clusters {
+		clusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{}
+		clusterResourceSetBindingKey := client.ObjectKey{
+			Namespace: cluster.Namespace,
+			Name:      cluster.Name,
+		}
+		if err := r.Client.Get(ctx, clusterResourceSetBindingKey, clusterResourceSetBinding); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to get ClusterResourceSetBinding during ClusterResourceSet deletion")
+			}
+			controllerutil.RemoveFinalizer(crs, addonsv1.ClusterResourceSetFinalizer)
+			return ctrl.Result{}, nil
+		}
+
+		// Initialize the patch helper.
+		patchHelper, err := patch.NewHelper(clusterResourceSetBinding, r.Client)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		clusterResourceSetBinding.DeleteBinding(crs)
+
+		// If CRS list is empty in the binding, delete the binding else
+		// attempt to Patch the ClusterResourceSetBinding object after delete reconciliation if there is at least 1 binding left.
+		if len(clusterResourceSetBinding.Spec.Bindings) == 0 {
+			if r.Client.Delete(ctx, clusterResourceSetBinding) != nil {
+				logger.Error(err, "failed to delete empty ClusterResourceSetBinding")
+			}
+		} else if err := patchHelper.Patch(ctx, clusterResourceSetBinding); err != nil {
+			logger.Error(err, "failed to patch ClusterResourceSetBinding")
+			return ctrl.Result{}, err
+		}
+	}
+
+	controllerutil.RemoveFinalizer(crs, addonsv1.ClusterResourceSetFinalizer)
 	return ctrl.Result{}, nil
 }
 

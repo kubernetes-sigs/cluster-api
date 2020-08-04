@@ -209,6 +209,10 @@ func (r *localRepository) getLatestRelease() (string, error) {
 		if err != nil {
 			continue
 		}
+		// ignore pre-releases when getting latest release
+		if sv.PreRelease() != "" {
+			continue
+		}
 		if latestReleaseVersion == nil || latestReleaseVersion.LessThan(sv) {
 			latestTag = v
 			latestReleaseVersion = sv

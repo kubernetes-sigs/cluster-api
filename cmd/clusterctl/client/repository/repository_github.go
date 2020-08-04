@@ -243,6 +243,12 @@ func (g *gitHubRepository) getLatestRelease() (string, error) {
 			// discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases)
 			continue
 		}
+
+		// ignore pre-releases when getting latest release
+		if sv.PreRelease() != "" {
+			continue
+		}
+
 		if latestReleaseVersion == nil || latestReleaseVersion.LessThan(sv) {
 			latestTag = v
 			latestReleaseVersion = sv

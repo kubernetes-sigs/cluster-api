@@ -1078,7 +1078,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
+			res, err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
+			g.Expect(res.IsZero()).To(BeTrue())
 			g.Expect(err).NotTo(HaveOccurred())
 
 			err = tc.validateDiscovery(g, tc.config)
@@ -1088,7 +1089,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 }
 
 // Test failure cases for the discovery reconcile function.
-func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t *testing.T) {
+func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t *testing.T) {
 	k := &KubeadmConfigReconciler{
 		Log:    log.Log,
 		Client: nil,
@@ -1098,9 +1099,12 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 		name    string
 		cluster *clusterv1.Cluster
 		config  *bootstrapv1.KubeadmConfig
+
+		result ctrl.Result
+		err    error
 	}{
 		{
-			name:    "Fail if cluster has not ControlPlaneEndpoint",
+			name:    "Should requeue if cluster has not ControlPlaneEndpoint",
 			cluster: &clusterv1.Cluster{}, // cluster without endpoints
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -1113,6 +1117,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 					},
 				},
 			},
+			result: ctrl.Result{RequeueAfter: 10 * time.Second},
 		},
 	}
 
@@ -1120,8 +1125,13 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
-			g.Expect(err).To(HaveOccurred())
+			res, err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
+			g.Expect(res).To(Equal(tc.result))
+			if tc.err == nil {
+				g.Expect(err).To(BeNil())
+			} else {
+				g.Expect(err).To(Equal(tc.err))
+			}
 		})
 	}
 }

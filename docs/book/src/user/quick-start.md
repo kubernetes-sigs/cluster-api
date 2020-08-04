@@ -357,17 +357,19 @@ See the [AWS provider prerequisites] document for more details.
 {{#/tab }}
 {{#tab Azure}}
 
+NOTE: `CLUSTER_NAME` can only include letters, numbers, and hyphens and can't be longer than 44 characters to allow for cluster name 
+to be used as a prefix for VMs and other resources that have [Azure naming rules and restrictions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules)
+
 ```bash
 export CLUSTER_NAME="capi-quickstart"
-# Name of the virtual network in which to provision the cluster.
-export AZURE_VNET_NAME=${CLUSTER_NAME}-vnet
-# Name of the resource group to provision into
-export AZURE_RESOURCE_GROUP=${CLUSTER_NAME}
-# Name of the Azure datacenter location
+
+# Name of the Azure datacenter location.
 export AZURE_LOCATION="centralus"
-# Select machine types
+
+# Select VM types.
 export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"
 export AZURE_NODE_MACHINE_TYPE="Standard_D2s_v3"
+
 # Generate SSH key.
 # If you want to provide your own key, skip this step and set AZURE_SSH_PUBLIC_KEY to your existing public key.
 SSH_KEY_FILE=.sshkey
@@ -375,31 +377,7 @@ rm -f "${SSH_KEY_FILE}" 2>/dev/null
 ssh-keygen -t rsa -b 2048 -f "${SSH_KEY_FILE}" -N '' 1>/dev/null
 echo "Machine SSH key generated in ${SSH_KEY_FILE}"
 export AZURE_SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
-
-# To populate secret in azure.json file.
-export AZURE_JSON_B64=$(echo "{
-    \"cloud\": \"${AZURE_ENVIRONMENT}\",
-    \"tenantId\": \"${AZURE_TENANT_ID}\",
-    \"subscriptionId\": \"${AZURE_SUBSCRIPTION_ID}\",
-    \"aadClientId\": \"${AZURE_CLIENT_ID}\",
-    \"aadClientSecret\": \"${AZURE_CLIENT_SECRET}\",
-    \"resourceGroup\": \"${CLUSTER_NAME}\",
-    \"securityGroupName\": \"${CLUSTER_NAME}-node-nsg\",
-    \"location\": \"${AZURE_LOCATION}\",
-    \"vmType\": \"vmss\",
-    \"vnetName\": \"${AZURE_VNET_NAME}\",
-    \"vnetResourceGroup\": \"${CLUSTER_NAME}\",
-    \"subnetName\": \"${CLUSTER_NAME}-node-subnet\",
-    \"routeTableName\": \"${CLUSTER_NAME}-node-routetable\",
-    \"loadBalancerSku\": \"standard\",
-    \"maximumLoadBalancerRuleCount\": 250,
-    \"useManagedIdentityExtension\": false,
-    \"useInstanceMetadata\": true
-}" | base64 | tr -d '\r\n')
 ```
-
-NOTE: `CLUSTER_NAME` can only include letters, numbers, and hyphens and can't be longer than 44 characters to allow for cluster name 
-to be used as a prefix for VMs and other resources that have [Azure naming rules and restrictions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules)
 
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure provider prerequisites] document.
 

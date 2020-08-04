@@ -11,7 +11,7 @@ development purposes.
 clusterctl ships with a simple yaml processor that performs variable
 substitution that takes into account of default values.
 Under the hood, clusterctl's yaml processor uses
-[drone/envsubst][drone-envsusbt] to replace variables and uses the defaults if
+[drone/envsubst][drone-envsubst] to replace variables and uses the defaults if
 necessary.
 
 Variable values are either sourced from the clusterctl config file or
@@ -39,4 +39,4 @@ cat ~/workspace/cluster-template.yaml | clusterctl generate yaml
 ```
 
 <!-- Links -->
-[drone-envsusbt]: https://github.com/drone/envsusbt
+[drone-envsubst]: https://github.com/drone/envsubst

@@ -30,10 +30,11 @@ Checking new release availability...
 
 Management group: capi-system/cluster-api, latest release available for the v1alpha3 API Version of Cluster API (contract):
 
-NAME                NAMESPACE                       TYPE                     CURRENT VERSION   TARGET VERSION
-cluster-api         capi-system                     CoreProvider             v0.3.0            v0.3.1
-kubeadm             capi-kubeadm-bootstrap-system   BootstrapProvider        v0.3.0            v0.3.1
-docker              capd-system                     InfrastructureProvider   v0.3.0            v0.3.1
+NAME                NAMESPACE                          TYPE                     CURRENT VERSION   TARGET VERSION
+cluster-api         capi-system                        CoreProvider             v0.3.0            v0.3.1
+kubeadm             capi-kubeadm-bootstrap-system      BootstrapProvider        v0.3.0            v0.3.1
+kubeadm             capi-kubeadm-control-plane-system  ControlPlaneProvider     v0.3.0            v0.3.1
+docker              capd-system                        InfrastructureProvider   v0.3.0            v0.3.1
 
 
 You can now apply the upgrade by executing the following command:
@@ -71,3 +72,47 @@ components YAML/at the installation time.
 User is required to re-apply flag values after the upgrade completes.
 
 </aside>
+
+
+## Upgrading a Multi-tenancy management cluster
+
+[Multi-tenancy](init.md#multi-tenancy) for Cluster API means a management cluster where multiple instances of the same
+provider are installed, and this is achieved by multiple calls to `clusterctl init`, and in most cases, each one with
+different environment variables for customizing the provider instances.
+
+In order to upgrade a multi-tenancy management cluster, and preserve the instance specific settings, you should do
+the same during upgrades and execute multiple calls to `clusterctl upgrade apply`, each one with different environment
+variables. 
+
+For instance, in case of a management cluster with n>1 instances of an infrastructure provider, and only one instance
+of Cluster API core provider, bootstrap provider and control plane provider, you should:
+
+Run once `clusterctl upgrade apply` for the core provider, the bootstrap provider and the control plane provider; 
+this can be achieved by using the `--core`, `--bootstrap` and `--control-plane` flags followed by the upgrade target 
+for each one of those providers, e.g.
+  
+```shell
+clusterctl upgrade apply --management-group capi-system/cluster-api \
+    --core capi-system/cluster-api:v0.3.1 \
+    --bootstrap capi-kubeadm-bootstrap-system/kubeadm:v0.3.1 \
+    --control-plane capi-kubeadm-control-plane-system/kubeadm:v0.3.1 
+```
+
+Run `clusterctl upgrade apply` for each infrastructure provider instance, using the `--infrastructure` flag, 
+taking care to provide different environment variables for each call (as in the initial setup), e.g.
+  
+Set the environment variables for instance 1 and then run:
+
+```shell
+clusterctl upgrade apply --management-group capi-system/cluster-api \
+    --infrastructure instance1/docker:v0.3.1  
+```
+  
+Afterwards, set the environment variables for instance 2 and then run:
+  
+```shell
+clusterctl upgrade apply --management-group capi-system/cluster-api \
+    --infrastructure instance2/docker:v0.3.1  
+```
+  
+etc.

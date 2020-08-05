@@ -116,3 +116,13 @@ clusterctl upgrade apply --management-group capi-system/cluster-api \
 ```
   
 etc.
+
+<aside class="note warning">
+
+<h1>tips</h1>
+
+As alternative of using multiple set of env variables it is possible to use 
+multiple config files and pass them to the different `clusterctl upgrade apply` calls 
+using the `--config` flag.
+
+</aside>

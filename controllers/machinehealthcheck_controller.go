@@ -251,9 +251,13 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	errList := []error{}
 	for _, t := range unhealthy {
 		condition := conditions.Get(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
-		logger.Info("Target has failed health check, marking for remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)
 
-		conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediation, clusterv1.ConditionSeverityWarning, "MachineHealthCheck failed")
+		if annotations.IsPaused(cluster, t.Machine) {
+			logger.Info("Machine has failed health check, but machine is paused so skipping remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)
+		} else {
+			logger.Info("Target has failed health check, marking for remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)
+			conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediation, clusterv1.ConditionSeverityWarning, "MachineHealthCheck failed")
+		}
 		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "Failed to patch unhealthy machine status for machine %q", t.Machine.Name)
 		}

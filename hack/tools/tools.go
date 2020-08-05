@@ -25,7 +25,6 @@ import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/joelanford/go-apidiff"
 	_ "github.com/onsi/ginkgo/ginkgo"
-	_ "github.com/raviqqe/liche"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	_ "sigs.k8s.io/kustomize/kustomize/v3"

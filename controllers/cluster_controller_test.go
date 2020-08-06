@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/gogo/protobuf/proto"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,10 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -333,142 +330,6 @@ var _ = Describe("Cluster Reconciler", func() {
 })
 
 func TestClusterReconciler(t *testing.T) {
-	t.Run("metrics", func(t *testing.T) {
-
-		failureReason := capierrors.ClusterStatusError("foo")
-		tests := []struct {
-			name            string
-			cs              clusterv1.ClusterStatus
-			secret          *corev1.Secret
-			expectedMetrics map[string]float64
-		}{
-			{
-				name: "cluster control plane metric is 1 if cluster status is true ",
-				cs: clusterv1.ClusterStatus{
-					ControlPlaneInitialized: true,
-				},
-				expectedMetrics: map[string]float64{"capi_cluster_control_plane_ready": 1},
-			},
-			{
-				name: "cluster control plane metric is 0 if cluster status is false ",
-				cs: clusterv1.ClusterStatus{
-					ControlPlaneInitialized: false,
-				},
-				expectedMetrics: map[string]float64{"capi_cluster_control_plane_ready": 0},
-			},
-			{
-				name: "cluster infrastructure metric is 1 if cluster status is true ",
-				cs: clusterv1.ClusterStatus{
-					InfrastructureReady: true,
-				},
-				expectedMetrics: map[string]float64{"capi_cluster_infrastructure_ready": 1},
-			},
-			{
-				name: "cluster infrastructure metric is 0 if cluster status is false ",
-				cs: clusterv1.ClusterStatus{
-					InfrastructureReady: false,
-				},
-				expectedMetrics: map[string]float64{"capi_cluster_infrastructure_ready": 0},
-			},
-			{
-				name:            "cluster kubeconfig metric is 0 if secret is unavailable",
-				cs:              clusterv1.ClusterStatus{},
-				expectedMetrics: map[string]float64{"capi_cluster_kubeconfig_ready": 0},
-			},
-			{
-				name: "cluster kubeconfig metric is 1 if secret is available and ready",
-				cs:   clusterv1.ClusterStatus{},
-				secret: &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-cluster-kubeconfig",
-					},
-				},
-				expectedMetrics: map[string]float64{"capi_cluster_kubeconfig_ready": 1},
-			},
-			{
-				name: "cluster error metric is 1 if FailureReason is set",
-				cs: clusterv1.ClusterStatus{
-					FailureReason: &failureReason,
-				},
-				expectedMetrics: map[string]float64{"capi_cluster_failure_set": 1},
-			},
-			{
-				name: "cluster error metric is 1 if FailureMessage is set",
-				cs: clusterv1.ClusterStatus{
-					FailureMessage: proto.String("some-error"),
-				},
-				expectedMetrics: map[string]float64{"capi_cluster_failure_set": 1},
-			},
-			{
-				name: "cluster is ready",
-				cs: clusterv1.ClusterStatus{
-					InfrastructureReady:     true,
-					ControlPlaneInitialized: true,
-				},
-				secret: &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-cluster-kubeconfig",
-					},
-				},
-				expectedMetrics: map[string]float64{
-					"capi_cluster_control_plane_ready":  1,
-					"capi_cluster_infrastructure_ready": 1,
-					"capi_cluster_kubeconfig_ready":     1,
-					"capi_cluster_failure_set":          0,
-				},
-			},
-		}
-
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				g := NewWithT(t)
-
-				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
-				var objs []runtime.Object
-
-				c := &clusterv1.Cluster{
-					TypeMeta: metav1.TypeMeta{
-						Kind: "Cluster",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-cluster",
-					},
-					Spec:   clusterv1.ClusterSpec{},
-					Status: tt.cs,
-				}
-				objs = append(objs, c)
-
-				if tt.secret != nil {
-					objs = append(objs, tt.secret)
-				}
-
-				r := &ClusterReconciler{
-					Client: fake.NewFakeClientWithScheme(scheme.Scheme, objs...),
-					Log:    log.Log,
-				}
-
-				r.reconcileMetrics(context.TODO(), c)
-
-				for em, ev := range tt.expectedMetrics {
-					mr, err := metrics.Registry.Gather()
-					g.Expect(err).ToNot(HaveOccurred())
-					mf := getMetricFamily(mr, em)
-					g.Expect(mf).ToNot(BeNil())
-					for _, m := range mf.GetMetric() {
-						for _, l := range m.GetLabel() {
-							// ensure that the metric has a matching label
-							if l.GetName() == "cluster" && l.GetValue() == c.Name {
-								g.Expect(m.GetGauge().GetValue()).To(Equal(ev))
-							}
-						}
-					}
-				}
-
-			})
-		}
-	})
-
 	t.Run("machine to cluster", func(t *testing.T) {
 		cluster := &clusterv1.Cluster{
 			TypeMeta: metav1.TypeMeta{

@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	dto "github.com/prometheus/client_model/go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -1020,13 +1019,4 @@ func TestReconcileInfrastructure(t *testing.T) {
 			}
 		})
 	}
-}
-
-func getMetricFamily(list []*dto.MetricFamily, metricName string) *dto.MetricFamily {
-	for _, mf := range list {
-		if mf.GetName() == metricName {
-			return mf
-		}
-	}
-	return nil
 }

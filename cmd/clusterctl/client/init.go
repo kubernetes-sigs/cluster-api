@@ -105,7 +105,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	}
 
 	// Before installing the providers, ensure the cert-manager Webhook is in place.
-	if err := cluster.CertManager().EnsureWebhook(); err != nil {
+	if err := cluster.CertManager().EnsureInstalled(); err != nil {
 		return nil, err
 	}
 

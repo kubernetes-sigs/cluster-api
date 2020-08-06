@@ -57,17 +57,6 @@ avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewCom
 
 ## Reviewing a Patch
 
-See [Code Review in Cluster API](REVIEWING.md). 
-
-### Approvals
-
-Please see the [Kubernetes community document on pull
-requests](https://git.k8s.io/community/contributors/guide/pull-requests.md) for more information about the merge
-process.
-
-- A PR is approved by one of the project maintainers and owners after reviews.
-- Approvals should be the very last action a maintainer takes on a pull request.
-
 ## Reviews
 
 > Parts of the following content have been adapted from https://google.github.io/eng-practices/review.
@@ -83,6 +72,17 @@ Code reviews should generally look at:
 - **Naming**: Did the developer choose clear names for variable, types, methods, functions, etc.?
 - **Comments**: Are the comments clear and useful? Do they explain the why rather than what?
 - **Documentation**: Did the developer also update relevant documentation?
+
+See [Code Review in Cluster API](REVIEWING.md) for a more focused list of review items. 
+
+### Approvals
+
+Please see the [Kubernetes community document on pull
+requests](https://git.k8s.io/community/contributors/guide/pull-requests.md) for more information about the merge
+process.
+
+- A PR is approved by one of the project maintainers and owners after reviews.
+- Approvals should be the very last action a maintainer takes on a pull request.
 
 ## Backporting a Patch
 

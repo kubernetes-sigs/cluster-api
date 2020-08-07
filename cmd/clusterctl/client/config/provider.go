@@ -48,7 +48,7 @@ type Provider interface {
 	Less(other Provider) bool
 }
 
-// provider implements provider
+// provider implements Provider
 type provider struct {
 	name         string
 	url          string

@@ -121,3 +121,10 @@ This makes any change that can impact the Cluster API contract critical and usua
 
 - For CAPI controllers see [Kubernetes logging conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md).
 - For clusterctl see [clusterctl logging conventions](https://github.com/kubernetes-sigs/cluster-api/blob/master/cmd/clusterctl/log/doc.go).
+
+### Testing
+
+Testing plays an crucial role in ensuring the long term maintainability of the project.
+
+In Cluster API we are committed to have a good test coverage and also to have a nice and consistent style in implementing
+tests. For more information see [testing Cluster API](https://cluster-api.sigs.k8s.io/developer/testing.html).  

@@ -8,7 +8,7 @@ reviewers:
  - "@ncdc"
  - "@fabriziopandini"
 creation-date: 2020-02-20
-last-updated: 2020-05-11
+last-updated: 2020-08-05
 status: experimental
 ---
 
@@ -54,12 +54,14 @@ Users today must manually add these components to every cluster they create.
 
 Having a mechanism to apply an initial set of default resources after clusters are created makes clusters created with Cluster API functional and ready for workloads from the beginning, without requiring additional user intervention.
 
-To achieve this, ClusterResourceSet CRD is introduced that will be responsible for applying a set resources defined by users to the matching clusters.
+To achieve this, ClusterResourceSet CRD is introduced that will be responsible for applying a set resources defined by users to the matching clusters (`label selectors` will be used to select clusters that the ClusterResourceSet resources will applied to.)
+
 
 ### Goals
 
 - Provide a means to specify a set of resources to apply automatically to newly-created and existing Clusters. Resources will be applied only once.
 - Support additions to the resource list by applying the new added resources to both new and existing matching clusters.
+- Provide a way to see which ClusterResourceSets are applied to a particular cluster using a new CRD, `ClusterResourceSetBinding`.
 - Support both json and yaml resources.
 
 ### Non-Goals/Future Work
@@ -76,15 +78,15 @@ To achieve this, ClusterResourceSet CRD is introduced that will be responsible f
 
 #### Story 1
 
-As someone creating multiple clusters, I want all my clusters to have a CNI provider of my choosing installed automatically, so I don’t have to manually repeat the installation for each new cluster.
+As someone creating multiple clusters, I want some/all my clusters to have a CNI provider of my choosing installed automatically, so I don’t have to manually repeat the installation for each new cluster.
 
 #### Story 2
 
-As someone creating multiple clusters, I want all my clusters to have a StorageClass installed automatically, so I don't have to manually repeat the installation for each new cluster.
+As someone creating multiple clusters, I want some/all my clusters to have a StorageClass installed automatically, so I don't have to manually repeat the installation for each new cluster.
 
 #### Story 3
 
-As someone creating multiple clusters, I want to be able to provide different values for some fields in the resources for different clusters. For example, CNIs podCIDRs  may be required to be distinct for each cluster, hence some templating mechanism for variable substitution in the resources is needed.
+As someone creating multiple clusters and using ClusterResourceSet to install some resources, I want to see which resources are applied to my clusters, when they are applied, and if applied successfully.
 
 ### Implementation Details/Notes/Constraints
 
@@ -94,105 +96,167 @@ None. We are planning to implement this feature without modifying any of the exi
 
 #### ClusterResourceSet Object Definition
 
-This is the CRD that has a set of components to be applied to clusters that match the label selector in it.
+This is the CRD that has a set of components (resources) to be applied to clusters that match the label selector in it.
 
-The resources field is a list of secrets/configmaps in the same namespace. The clusterSelector field is a Kubernetes [label selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements) that matches against labels on clusters (only the clusters in the same namespace with the ClusterResourceSet resource).
+The resources field is a list of `Secrets`/`ConfigMaps` which should be in the same namespace with `ClusterResourceSet`. The clusterSelector field is a Kubernetes [label selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements) that matches against labels on clusters (only the clusters in the same namespace with the ClusterResourceSet resource).
 ClusterResourceSet is namespace-scoped, all resources and clusters needs to be in the same namespace as the ClusterResourceSet.
 *Sample ClusterResourceSet YAML*
 
 ```yaml
 ---
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: addons.cluster.x-k8s.io/v1alpha3
 kind: ClusterResourceSet
 metadata:
- name: crs-conf
+ name: crs1
  namespace: default
 spec:
  mode: "ApplyOnce"
  clusterSelector:
    matchLabels:
-     postcreatelabelcni: calico
+     cni: calico
  resources:
-   - name: calico-addon
+   - name: db-secret
      kind: Secret
-   - name: network-policy-addon
+   - name: calico-addon
      kind: ConfigMap
-status:
- LastUpdated:  "2020-05-05T08:24:17Z"
 ```
 
 Initially, the only supported mode will be `ApplyOnce` and it will be the default mode if no mode is provided. In the future, we may consider adding a `Reconcile` mode that reapplies the resources on resource hash change and/or periodically.
 If ClusterResourceSet resources will be managed by an operator after they are applied by ClusterResourceSet controller, "ApplyOnce" mode must be used so that reconciliation on those resources can be delegated to the operator.
 
-Each item in the resources specifies a kind (must be either ConfigMap or Secret) and a name. Each referenced ConfigMap/Secret  contains yaml/json content as value.
+Each item in the resources specifies a kind (must be either ConfigMap or Secret) and a name. Each referenced ConfigMap/Secret contains yaml/json content as value.
+`ClusterResourceSet` object will be added as owner to its resources.
 
-*Sample Secret Format*
+*** Secrets as Resources***
+
+Both `Secrets` and `ConfigMaps` `data` fields can be a list of key-value pairs. Any key is acceptable, and as value, there can be multiple objects in yaml or json format.
+
+For preventing all secrets to be reached by all clusters in a namespace, only secrets with type `addons.cluster.x-k8s.io/resource-set` can be accessed by ClusterResourceSet controller.
+Secrets are preferred if the data includes sensitive information.
+
+An easy way to create resource `Secrets` is to have a yaml or json file with the components.
+
+E.g., this is `db.yaml` that has multiple objects:
+```
+kind: Secret
+apiVersion: v1
+metadata:
+ name: mysql-access
+ namespace: system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+ name: db-admin
+ namespace: system
+```
+
+We can create a secret that has these components in its data field to be used in `ClusterResourceSet`:
+
+` #kubectl create secret generic db-secret --from-file=db.yaml --type=addons.cluster.x-k8s.io/resource-set`
+
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: db-secret
-type: clusterresourceset
+type: addons.cluster.x-k8s.io/resource-set
 stringData:
-  value: |-
+  db.yaml: |-
     kind: Secret
     apiVersion: v1
     metadata:
-     name: mysql-secret
+     name: mysql-access
+     namespace: system
+    ---
+    kind: ClusterRole
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+     name: db-admin
+     namespace: system
 ```
 
-For preventing all secrets to be reached by all clusters in a namespace, only secrets with type "clusterresourceset" can be accessed by ClusterResourceSet controller.
+*** ConfigMaps as Resources***
 
-*Sample ConfigMap Format*
+Similar to `Secrets`, `ConfigMaps` can be created using a yaml/json file: `kubectl create configmap calico-addon --from-file=calico1.yaml,calico2.yaml`
+Multiple keys in the data field and then multiple objects in each value are supported.
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: calico-addon
 data:
-  value: |-
-    kind: ConfigMap
-    apiVersion: v1
-    metadata:
-     name: calico-conf
+  calico1.yaml: |-
+     kind: Secret
+     apiVersion: v1
+     metadata:
+      name: calico-secret1
+      namespace: mysecrets
+      ---
+     kind: Secret
+     apiVersion: v1
+     metadata:
+      name: calico-secret2
+      namespace: mysecrets
+  calico2.yaml: |-
+     kind: ConfigMap
+     apiVersion: v1
+     metadata:
+      name: calico-configmap
+      namespace: myconfigmaps
 ```
 
-The resources in ClusterResourceSet will be applied to matching clusters.
-There is many-to-many mapping between Clusters and ClusterResourceSets: Multiple ClusterResourceSets can match with a cluster; and multiple clusters can match with a single ClusterResourceSet.
-To keep information on which resources applied to which clusters, a new CRD is used, ClusterResourceSetBinding will be created in the management cluster. There will be one ClusterResourceSetBinding per workload cluster.
+#### ClusterResourceSetBinding Object Definition
+The resources in `ClusterResourceSet` will be applied to matching clusters.
+There is many-to-many mapping between Clusters and `ClusterResourceSets`: Multiple `ClusterResourceSets` can match with a cluster; and multiple clusters can match with a single `ClusterResourceSet`.
+To keep information on which resources applied to which clusters, a new CRD is used, `ClusterResourceSetBinding` will be created in the management cluster. There will be one `ClusterResourceSetBinding` per workload cluster.
+ClusterResourceBinding's name will be same with the `Cluster` name. Both `Cluster` and the matching `ClusterResourceSets` will be added as owners to the ClusterResourceBinding.
 
-Example:
+Example `ClusterResourceBinding` object:
 ```yaml
 apiVersion: v1
 kind: ClusterResourceBinding
 metadata:
   name: <cluster-name>
   namespace: <cluster-namespace>
-clusterresourcesets:
-  <ClusterResourceSet-name1>:   
-    <secret-name1>:
+ ownerReferences:
+  - apiVersion: cluster.x-k8s.io/v1alpha3
+    kind: Cluster
+    name: <cluster-name>
+    uid: e3a503a8-9be1-4264-8fa2-d536532687f9
+  - apiVersion: addons.cluster.x-k8s.io/v1alpha3
+    blockOwnerDeletion: true
+    controller: true
+    kind: ClusterResourceSet
+    name: crs1
+    uid: 62c77639-92d8-46d2-ba21-a880f62f7719
+spec:
+  bindings:
+  - clusterResourceSetName: crs1
+    resources:
+    - applied: true
+      hash: sha256:a3473f4e92ee5a2277ff37d5c559666d61d24332a497b554e65ae18e82727245
       kind: Secret
-      hash: <>
-      status: success
-      error: ""
-      lastAppliedTime: "2020-04-05T08:24:17Z"
-    <configmap-name1>:
+      lastAppliedTime: "2020-07-02T05:47:38Z"
+      name: db-secret
+    - applied: true
+      hash: sha256:c1d0dc7e51bb05945a2f99e6745dc4b1043f8a03f37ad21391fe92353a02066e
       kind: ConfigMap
-      hash: <>
-      status: failed
-      error: "some error"
-      lastAppliedTime: "2020-05-05T08:24:17Z"
-  <ClusterResourceSet-name2>:  
-    <secret-name2>:
-      kind: Secret
-      hash: <>
-      status: success
-      error: ""
-      lastAppliedTime: "2020-04-05T08:24:17Z"
-Status: InProgress/Completed
+      lastAppliedTime: "2020-07-02T05:47:39Z"
+      name: calico-addon
 ```
-Status will be `Completed` when all matching ClusterResourceSet reconciles are completed for that cluster. In case of new resource addition to a matching ClusterResourceSet, Status becomes `InProgress`
-Also, the errors / overall progress will be tracked in the ClusterResourceSet’s status.
+When a cluster is deleted, the associated `ClusterResourceBinding` will also be cleaned up.
+When a `ClusterResourceSet` is deleted, it will be removed from the `bindings` list of all `ClusterResourceBindings` that it is listed.
+
+`ClusterResourceSet` will use `ClusterResourceSetBinding` to decide to apply a new resource or retry to apply an old one. In `ApplyOnce` mode, if a `resource/applied` is true,
+ that resource will never be reapplied. If applying a resource is failed, `ClusterResourceSet` controller will reconcile it and use the `controller-runtime`'s exponential back-off to retry applying failed resources.
+In case of new resource addition to a `ClusterResourceSet`, that `ClusterResourceSet` will be reconciled immediately and the new resource will be applied to all matching clusters because
+the new resource does not exist in any `ClusterResourceBinding` lists.
+
+When the same resource exist in multiple `ClusterResourceSets`, only the first one will be applied but the resource will appear as applied in all `ClusterResourceSets` in the `ClusterResourceSetsBinding/bindings`.
+Similarly, if a resource is manually created in the workload cluster, when a `ClusterResourceSet` is applied with that resource, it will not update the existing resource to avoid any overwrites but in `ClusterResourceSetBinding`, that resource will show as applied.
+
+As a note, if providing different values for some fields in the resources for different clusters is needed such as CNIs podCIDRs, some templating mechanism for variable substitution in the resources can be used, but not provided by `ClusterResourceSet`.
 
 ### Risks and Mitigations
 
@@ -208,7 +272,7 @@ This is an experimental feature supported by a new CRD and controller so there i
 
 ### Test Plan [optional]
 
-Extensive unit testing for all the cases supported when applying ClusterResourceSet resources.
+Extensive unit testing for all the cases supported when applying `ClusterResourceSet` resources.
 e2e testing as part of the cluster-api e2e test suite.
 
 ### Graduation Criteria [optional]

@@ -14,9 +14,11 @@
 
 # Directories.
 ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-TOOLS_DIR := ../../hack/tools
+TOOLS_DIR := $(realpath ../../hack/tools)
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+
+export PATH := $(TOOLS_BIN_DIR):$(PATH)
 
 # Binaries.
 TABULATE := $(TOOLS_BIN_DIR)/mdbook-tabulate
@@ -31,6 +33,18 @@ RELEASELINK := $(TOOLS_BIN_DIR)/mdbook-releaselink
 $(RELEASELINK): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-releaselink ./mdbook/releaselink
 
+MDBOOK := $(TOOLS_BIN_DIR)/mdbook
+$(MDBOOK):
+	curl -LSfs https://japaric.github.io/trust/install.sh | sh -s -- --git rust-lang/mdBook --tag v0.4.1 --to $(TOOLS_BIN_DIR) --force
+
+MDBOOK_LINKCHECK := $(TOOLS_BIN_DIR)/mdbook-linkcheck
+$(MDBOOK_LINKCHECK):
+	curl -LSfs https://japaric.github.io/trust/install.sh | sh -s -- --git Michael-F-Bryan/mdbook-linkcheck --tag v0.7.0 --to $(TOOLS_BIN_DIR) --force
+
 .PHONY: serve
-serve:
-	mdbook serve
+serve: $(MDBOOK)
+	$(MDBOOK) serve
+
+.PHONY: build
+build: $(MDBOOK) $(MDBOOK_LINKCHECK)
+	$(MDBOOK) build

@@ -27,6 +27,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	fakebootstrap "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/bootstrap"
 	fakecontrolplane "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/controlplane"
+	fakeexternal "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/external"
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
 	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
@@ -54,6 +55,7 @@ func init() {
 
 	_ = fakebootstrap.AddToScheme(FakeScheme)
 	_ = fakecontrolplane.AddToScheme(FakeScheme)
+	_ = fakeexternal.AddToScheme(FakeScheme)
 	_ = fakeinfrastructure.AddToScheme(FakeScheme)
 }
 

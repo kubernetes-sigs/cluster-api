@@ -319,7 +319,16 @@ Provider authors should be aware that `clusterctl move` command implements a dis
 
 * All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init`. 
 * `Secret` and `ConfigMap` objects.
-* the `OwnerReference` chain of the above objects.
+* The `OwnerReference` chain of the above objects.
+* Any object of Kind in which its CRD has the "move" label (`clusterctl.cluster.x-k8s.io/move`) attached to it.
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+When using the "move" label, if the CRD is a global resource, the object is copied to the target cluster but not removed from the source cluster. It is up to the user to remove the source object as necessary.
+
+</aside>
 
 `clusterctl move` does NOT consider any objects:
 
@@ -327,7 +336,7 @@ Provider authors should be aware that `clusterctl move` command implements a dis
 * Included in the set of objects defined above, but not:
   * Directly or indirectly linked to a `Cluster` object through the `OwnerReference` chain.
   * Directly or indirectly linked to a `ClusterResourceSet` object through the `OwnerReference` chain.
- 
+
 If moving some of excluded object is required, the provider authors should create documentation describing the
 the exact move sequence to be executed by the user.
 

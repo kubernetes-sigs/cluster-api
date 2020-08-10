@@ -24,8 +24,8 @@ import (
 // +kubebuilder:resource:path=providers,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
-// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".provider"
-// +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".type"
+// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".type"
+// +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".providerName"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".version"
 // +kubebuilder:printcolumn:name="Watch Namespace",type="string",JSONPath=".watchedNamespace"
 

@@ -19,10 +19,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .provider
+    - jsonPath: .type
       name: Type
       type: string
-    - jsonPath: .type
+    - jsonPath: .providerName
       name: Provider
       type: string
     - jsonPath: .version

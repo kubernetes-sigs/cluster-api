@@ -1,6 +1,6 @@
 # Netlify build instructions
 [build]
-    command = "./docs/book/install-and-build.sh"
+    command = "make -C docs/book build"
     publish = "docs/book/book"
 
 # Standard Netlify redirects

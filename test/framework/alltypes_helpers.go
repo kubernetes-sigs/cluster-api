@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -171,4 +172,13 @@ func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInp
 			return input.Creator.Create(ctx, obj)
 		}, intervals...).Should(Succeed())
 	}
+}
+
+// PrettyPrint returns a formatted JSON version of the object given.
+func PrettyPrint(v interface{}) string {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err.Error()
+	}
+	return string(b)
 }

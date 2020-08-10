@@ -25,6 +25,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -49,8 +50,8 @@ type WaitForDeploymentsAvailableInput struct {
 // This can be used to check if Cluster API controllers installed in the management cluster are working.
 func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAvailableInput, intervals ...interface{}) {
 	By(fmt.Sprintf("waiting for deployment %s/%s to be available", input.Deployment.GetNamespace(), input.Deployment.GetName()))
+	deployment := &appsv1.Deployment{}
 	Eventually(func() bool {
-		deployment := &appsv1.Deployment{}
 		key := client.ObjectKey{
 			Namespace: input.Deployment.GetNamespace(),
 			Name:      input.Deployment.GetName(),
@@ -65,7 +66,20 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 		}
 		return false
 
-	}, intervals...).Should(BeTrue(), "Deployment %s/%s failed to get status.Available = True condition", input.Deployment.GetNamespace(), input.Deployment.GetName())
+	}, intervals...).Should(BeTrue(), func() string { return DescribeFailedDeployment(input, deployment) })
+}
+
+// DescribeFailedDeployment returns detailed output to help debug a deployment failure in e2e.
+func DescribeFailedDeployment(input WaitForDeploymentsAvailableInput, deployment *appsv1.Deployment) string {
+	b := strings.Builder{}
+	b.WriteString(fmt.Sprintf("Deployment %s/%s failed to get status.Available = True condition",
+		input.Deployment.GetNamespace(), input.Deployment.GetName()))
+	if deployment == nil {
+		b.WriteString("\nDeployment: nil\n")
+	} else {
+		b.WriteString(fmt.Sprintf("\nDeployment:\n%s\n", PrettyPrint(deployment)))
+	}
+	return b.String()
 }
 
 // WatchDeploymentLogsInput is the input for WatchDeploymentLogs.

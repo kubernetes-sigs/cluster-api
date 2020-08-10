@@ -86,6 +86,9 @@ type Client interface {
 
 	// Template has methods to work with templates stored in the cluster.
 	Template() TemplateClient
+
+	// WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
+	WorkloadCluster() WorkloadCluster
 }
 
 // PollImmediateWaiter tries a condition func until it returns true, an error, or the timeout is reached.
@@ -140,6 +143,10 @@ func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {
 
 func (c *clusterClient) Template() TemplateClient {
 	return newTemplateClient(TemplateClientInput{c.proxy, c.configClient, c.processor})
+}
+
+func (c *clusterClient) WorkloadCluster() WorkloadCluster {
+	return newWorkloadCluster(c.proxy)
 }
 
 // Option is a configuration option supplied to New

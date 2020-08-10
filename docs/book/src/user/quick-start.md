@@ -357,7 +357,7 @@ See the [AWS provider prerequisites] document for more details.
 {{#/tab }}
 {{#tab Azure}}
 
-NOTE: `CLUSTER_NAME` can only include letters, numbers, and hyphens and can't be longer than 44 characters to allow for cluster name 
+NOTE: `CLUSTER_NAME` can only include letters, numbers, and hyphens and can't be longer than 44 characters to allow for cluster name
 to be used as a prefix for VMs and other resources that have [Azure naming rules and restrictions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules)
 
 ```bash
@@ -562,9 +562,7 @@ The control planes won't be `Ready` until we install a CNI in the next step.
 After the first control plane node is up and running, we can retrieve the [workload cluster] Kubeconfig:
 
 ```bash
-kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o jsonpath={.data.value} \
-  | base64 --decode \
-  > ./capi-quickstart.kubeconfig
+clusterctl get kubeconfig capi-quickstart
 ```
 
 ### Deploy a CNI solution

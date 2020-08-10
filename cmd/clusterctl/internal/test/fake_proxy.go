@@ -35,8 +35,9 @@ import (
 )
 
 type FakeProxy struct {
-	cs   client.Client
-	objs []runtime.Object
+	cs        client.Client
+	namespace string
+	objs      []runtime.Object
 }
 
 var (
@@ -57,7 +58,7 @@ func init() {
 }
 
 func (f *FakeProxy) CurrentNamespace() (string, error) {
-	return "default", nil
+	return f.namespace, nil
 }
 
 func (f *FakeProxy) ValidateKubernetesVersion() error {
@@ -121,11 +122,18 @@ func (f *FakeProxy) ListResources(labels map[string]string, namespaces ...string
 }
 
 func NewFakeProxy() *FakeProxy {
-	return &FakeProxy{}
+	return &FakeProxy{
+		namespace: "default",
+	}
 }
 
 func (f *FakeProxy) WithObjs(objs ...runtime.Object) *FakeProxy {
 	f.objs = append(f.objs, objs...)
+	return f
+}
+
+func (f *FakeProxy) WithNamespace(n string) *FakeProxy {
+	f.namespace = n
 	return f
 }
 

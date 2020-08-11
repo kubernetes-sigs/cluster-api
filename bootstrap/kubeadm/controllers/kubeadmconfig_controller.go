@@ -389,7 +389,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config, certificates.AsFiles()...)
+	files, err := r.resolveFiles(ctx, scope.Config)
 	if err != nil {
 		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
@@ -541,7 +541,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config, certificates.AsFiles()...)
+	files, err := r.resolveFiles(ctx, scope.Config)
 	if err != nil {
 		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
@@ -577,11 +577,11 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 
 // resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references
 // along the way.
-func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, merge ...bootstrapv1.File) ([]bootstrapv1.File, error) {
-	collected := append(cfg.Spec.Files, merge...)
+func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig) ([]bootstrapv1.File, error) {
+	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
 
-	for i := range collected {
-		in := collected[i]
+	for i := range cfg.Spec.Files {
+		in := cfg.Spec.Files[i]
 		if in.ContentFrom != nil {
 			data, err := r.resolveSecretFileContent(ctx, cfg.Namespace, in)
 			if err != nil {
@@ -589,9 +589,8 @@ func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstr
 			}
 			in.ContentFrom = nil
 			in.Content = string(data)
-			collected[i] = in
 		}
-
+		collected = append(collected, in)
 	}
 
 	return collected, nil

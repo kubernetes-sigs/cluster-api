@@ -99,7 +99,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 
 	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
 		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
-			"NodeRefs != ReadyReplicas [%q != %q] for MachinePool %q in namespace %q", len(nodeRefsResult.references), mp.Status.ReadyReplicas, mp.Name, mp.Namespace)
+			"NodeRefs != ReadyReplicas [%d != %d] for MachinePool %q in namespace %q", len(nodeRefsResult.references), mp.Status.ReadyReplicas, mp.Name, mp.Namespace)
 	}
 	return nil
 }

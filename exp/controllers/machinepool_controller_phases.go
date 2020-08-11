@@ -60,9 +60,19 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseProvisioned)
 	}
 
-	// Set the phase to "running" if there is a NodeRef field.
-	if mp.Status.InfrastructureReady && len(mp.Status.NodeRefs) == int(mp.Status.ReadyReplicas) {
+	// Set the phase to "running" if the number of ready replicas is equal to desired replicas.
+	if mp.Status.InfrastructureReady && *mp.Spec.Replicas == mp.Status.ReadyReplicas {
 		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseRunning)
+	}
+
+	// Set the phase to "scalingUp" if the infrastructure is scaling up.
+	if mp.Status.InfrastructureReady && *mp.Spec.Replicas > mp.Status.ReadyReplicas {
+		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScalingUp)
+	}
+
+	// Set the phase to "scalingDown" if the infrastructure is scaling down.
+	if mp.Status.InfrastructureReady && *mp.Spec.Replicas < mp.Status.ReadyReplicas {
+		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScalingDown)
 	}
 
 	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.

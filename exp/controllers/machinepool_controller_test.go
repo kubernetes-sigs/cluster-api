@@ -56,7 +56,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						Data: &bootstrapData,
+						DataSecretName: &bootstrapData,
 					},
 				},
 			},
@@ -75,7 +75,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						Data: &bootstrapData,
+						DataSecretName: &bootstrapData,
 					},
 				},
 			},
@@ -152,6 +152,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: expv1.MachinePoolSpec{
+			Replicas:    pointer.Int32Ptr(1),
 			ClusterName: "invalid",
 		},
 	}
@@ -162,10 +163,11 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: expv1.MachinePoolSpec{
+			Replicas: pointer.Int32Ptr(1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						Data: &bootstrapData,
+						DataSecretName: &bootstrapData,
 					},
 				},
 			},
@@ -182,10 +184,11 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			},
 		},
 		Spec: expv1.MachinePoolSpec{
+			Replicas: pointer.Int32Ptr(1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						Data: &bootstrapData,
+						DataSecretName: &bootstrapData,
 					},
 				},
 			},
@@ -327,7 +330,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 						},
 					},
 				},
@@ -363,7 +366,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 						},
 					},
 				},
@@ -402,7 +405,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 						},
 					},
 				},
@@ -598,7 +601,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 			},
 		},

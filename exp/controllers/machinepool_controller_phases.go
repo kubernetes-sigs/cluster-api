@@ -23,6 +23,9 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/cluster-api/util"
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +35,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -93,8 +95,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return external.ReconcileOutput{}, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
-				"could not find %v %q for MachinePool %q in namespace %q, requeuing",
+			return external.ReconcileOutput{}, errors.Wrapf(err, "could not find %v %q for MachinePool %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
 		}
 		return external.ReconcileOutput{}, err
@@ -164,17 +165,19 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a MachinePool.
-func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool) error {
+func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool) (ctrl.Result, error) {
+	logger := r.Log.WithValues("cluster", cluster.Name, "machinepool", m.Name, "namespace", m.Namespace)
+
 	// Call generic external reconciler if we have an external reference.
 	var bootstrapConfig *unstructured.Unstructured
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
 		bootstrapReconcileResult, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Template.Spec.Bootstrap.ConfigRef)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 		// if the external object is paused, return without any further processing
 		if bootstrapReconcileResult.Paused {
-			return nil
+			return ctrl.Result{}, nil
 		}
 		bootstrapConfig = bootstrapReconcileResult.Result
 	}
@@ -182,92 +185,91 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 	// If the bootstrap data secret is populated, set ready and return.
 	if m.Spec.Template.Spec.Bootstrap.Data != nil || m.Spec.Template.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// If the bootstrap config is being deleted, return early.
 	if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Determine if the bootstrap provider is ready.
 	ready, err := external.IsReady(bootstrapConfig)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	} else if !ready {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
-			"Bootstrap provider for MachinePool %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
+		logger.V(2).Info("Bootstrap provider is not ready, requeuing")
+		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	// Get and set the name of the secret containing the bootstrap data.
 	secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "dataSecretName")
 	if err != nil {
-		return errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
 	} else if secretName == "" {
-		return errors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	m.Spec.Template.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
 	m.Status.BootstrapReady = true
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a MachinePool.
-func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) error {
+func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+	logger := r.Log.WithValues("cluster", cluster.Name, "machinepool", mp.Name, "namespace", mp.Namespace)
+
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, mp, &mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
 		if mp.Status.InfrastructureReady && strings.Contains(err.Error(), "could not find") {
 			// Infra object went missing after the machine pool was up and running
-			r.Log.Error(err, "MachinePool infrastructure reference has been deleted after being ready, setting failure state")
+			logger.Error(err, "MachinePool infrastructure reference has been deleted after being ready, setting failure state")
 			mp.Status.FailureReason = capierrors.MachinePoolStatusErrorPtr(capierrors.InvalidConfigurationMachinePoolError)
 			mp.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
 				mp.Spec.Template.Spec.InfrastructureRef.GroupVersionKind(), mp.Spec.Template.Spec.InfrastructureRef.Name))
 		}
-		return err
+		return ctrl.Result{}, err
 	}
 	// if the external object is paused, return without any further processing
 	if infraReconcileResult.Paused {
-		return nil
+		return ctrl.Result{}, nil
 	}
 	infraConfig := infraReconcileResult.Result
 
 	if !infraConfig.GetDeletionTimestamp().IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	ready, err := external.IsReady(infraConfig)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	mp.Status.InfrastructureReady = ready
 	if !mp.Status.InfrastructureReady {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
-			"Infrastructure provider for MachinePool %q in namespace %q is not ready, requeuing", mp.Name, mp.Namespace,
-		)
+		logger.Info("Infrastructure provider is not ready, requeuing")
+		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	var providerIDList []string
 	// Get Spec.ProviderIDList from the infrastructure provider.
 	if err := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList"); err != nil {
-		return errors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	} else if len(providerIDList) == 0 {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
-			"retrieved empty Spec.ProviderIDList from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace,
-		)
+		logger.Info("Retrieved empty Spec.ProviderIDList from infrastructure provider")
+		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	// Get and set Status.Replicas from the infrastructure provider.
 	err = util.UnstructuredUnmarshalField(infraConfig, &mp.Status.Replicas, "status", "replicas")
 	if err != nil {
 		if err != util.ErrUnstructuredFieldNotFound {
-			return errors.Wrapf(err, "failed to retrieve replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 		}
 	} else if mp.Status.Replicas == 0 {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
-			"retrieved unset Status.Replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace,
-		)
+		logger.Info("Retrieved unset Status.Replicas from infrastructure provider")
+		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	if !reflect.DeepEqual(mp.Spec.ProviderIDList, providerIDList) {
@@ -277,5 +279,5 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 		mp.Status.UnavailableReplicas = mp.Status.Replicas
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }

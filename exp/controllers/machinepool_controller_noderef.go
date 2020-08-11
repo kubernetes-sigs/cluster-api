@@ -21,13 +21,14 @@ import (
 	"fmt"
 	"time"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,22 +44,22 @@ type getNodeReferencesResult struct {
 	ready      int
 }
 
-func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) error {
-	logger := r.Log.WithValues("machinepool", mp.Name, "namespace", mp.Namespace)
+func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+	logger := r.Log.WithValues("cluster", cluster.Name, "machinepool", mp.Name, "namespace", mp.Namespace)
 	// Check that the MachinePool hasn't been deleted or in the process.
 	if !mp.DeletionTimestamp.IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Check that the Machine doesn't already have a NodeRefs.
 	if mp.Status.Replicas == mp.Status.ReadyReplicas && len(mp.Status.NodeRefs) == int(mp.Status.ReadyReplicas) {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Check that Cluster isn't nil.
 	if cluster == nil {
 		logger.V(2).Info("MachinePool doesn't have a linked cluster, won't assign NodeRef")
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	logger = logger.WithValues("cluster", cluster.Name)
@@ -66,27 +67,27 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	// Check that the MachinePool has valid ProviderIDList.
 	if len(mp.Spec.ProviderIDList) == 0 {
 		logger.V(2).Info("MachinePool doesn't have any ProviderIDs yet")
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	if err = r.deleteRetiredNodes(ctx, clusterClient, mp.Status.NodeRefs, mp.Spec.ProviderIDList); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	// Get the Node references.
 	nodeRefsResult, err := r.getNodeReferences(ctx, clusterClient, mp.Spec.ProviderIDList)
 	if err != nil {
 		if err == ErrNoAvailableNodes {
-			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
-				"cannot assign NodeRefs to MachinePool, no matching Nodes")
+			r.Log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		r.recorder.Event(mp, apicorev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
-		return errors.Wrapf(err, "failed to get node references")
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get node references")
 	}
 
 	mp.Status.ReadyReplicas = int32(nodeRefsResult.ready)
@@ -98,10 +99,10 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	r.recorder.Event(mp, apicorev1.EventTypeNormal, "SuccessfulSetNodeRefs", fmt.Sprintf("%+v", mp.Status.NodeRefs))
 
 	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
-			"NodeRefs != ReadyReplicas [%d != %d] for MachinePool %q in namespace %q", len(nodeRefsResult.references), mp.Status.ReadyReplicas, mp.Name, mp.Namespace)
+		r.Log.Info("NodeRefs != ReadyReplicas", "NodeRefs", len(nodeRefsResult.references), "ReadyReplicas", mp.Status.ReadyReplicas)
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // deleteRetiredNodes deletes nodes that don't have a corresponding ProviderID in Spec.ProviderIDList.

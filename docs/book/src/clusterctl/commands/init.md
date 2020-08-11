@@ -53,13 +53,27 @@ Note it is not possible to skip automatic installation of the `cluster-api` core
 
 #### Provider version
 
-The `clusterctl init` command by default installs the latest version available for each selected provider.
+The `clusterctl init` command by default installs the latest version available
+for each selected provider.
 
 <aside class="note">
 
 <h1> Is it possible to install a specific version of a provider? </h1>
 
 You can specify the provider version by appending a version tag to the provider name, e.g. `aws:v0.4.1`.
+
+</aside>
+
+<aside class="note">
+
+<h1> Pre-release provider versions </h1>
+
+`clusterctl init` does not install pre-release versions by default. For
+example, if a provider has releases `v0.7.0-alpha.0` and `v0.6.6`, the latest
+release installed will be `v0.6.6`.
+
+You can specify the provider version by appending a version tag to the
+provider name, e.g. `vsphere:v0.7.0-alpha.0`.
 
 </aside>
 

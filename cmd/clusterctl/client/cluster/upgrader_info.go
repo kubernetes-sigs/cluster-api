@@ -72,6 +72,7 @@ func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgr
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse available version for the %s provider", provider.InstanceName())
 		}
+
 		if latestVersion == nil || latestVersion.LessThan(availableSemVersion) {
 			latestVersion = availableSemVersion
 		}
@@ -92,7 +93,9 @@ func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgr
 		return nil, errors.Errorf("invalid provider metadata: version %s (the current version) for the provider %s does not match any release series", provider.Version, provider.InstanceName())
 	}
 
-	// Filters the versions to be considered for upgrading the provider (next versions) and checks if the releaseSeries defined in metadata includes all of them.
+	// Filters the versions to be considered for upgrading the provider (next
+	// versions) and checks if the releaseSeries defined in metadata includes
+	// all of them.
 	nextVersions := []version.Version{}
 	for _, repositoryVersion := range repositoryVersions {
 		// we are ignoring the conversion error here because a first check already passed above
@@ -170,8 +173,11 @@ func (i *upgradeInfo) getLatestNextVersion(contract string) *version.Version {
 		for j := range i.nextVersions {
 			nextVersion := &i.nextVersions[j]
 
-			// Drop the nextVersion version if not linked with the current release series
-			if nextVersion.Major() != releaseSeries.Major || nextVersion.Minor() != releaseSeries.Minor {
+			// Drop the nextVersion version if not linked with the current
+			// release series or if it is a pre-release.
+			if nextVersion.Major() != releaseSeries.Major ||
+				nextVersion.Minor() != releaseSeries.Minor ||
+				nextVersion.PreRelease() != "" {
 				continue
 			}
 

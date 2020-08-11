@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"testing"
 
 	"github.com/google/go-github/github"
 )
@@ -47,10 +46,4 @@ func NewFakeGitHub() (client *github.Client, mux *http.ServeMux, teardown func()
 	client.UploadURL = url
 
 	return client, mux, server.Close
-}
-
-func TestMethod(t *testing.T, r *http.Request, want string) {
-	if got := r.Method; got != want {
-		t.Errorf("Request method: %v, want %v", got, want)
-	}
 }

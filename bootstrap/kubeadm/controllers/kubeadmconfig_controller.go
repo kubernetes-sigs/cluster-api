@@ -621,7 +621,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 
 	c, ok := o.Object.(*clusterv1.Cluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get Machine for Cluster")
+		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get KubeadmConfigs for Cluster")
 		return nil
 	}
 
@@ -643,6 +643,22 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 			m.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
 			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
+		}
+	}
+
+	if feature.Gates.Enabled(feature.MachinePool) {
+		machinePoolList := &expv1.MachinePoolList{}
+		if err := r.Client.List(context.Background(), machinePoolList, selectors...); err != nil {
+			r.Log.Error(err, "failed to list MachinePools", "Cluster", c.Name, "Namespace", c.Namespace)
+			return nil
+		}
+
+		for _, mp := range machinePoolList.Items {
+			if mp.Spec.Template.Spec.Bootstrap.ConfigRef != nil &&
+				mp.Spec.Template.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
+				name := client.ObjectKey{Namespace: mp.Namespace, Name: mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name}
+				result = append(result, ctrl.Request{NamespacedName: name})
+			}
 		}
 	}
 

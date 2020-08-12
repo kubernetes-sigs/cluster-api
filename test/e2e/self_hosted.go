@@ -103,10 +103,10 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		// this approach because this allows to have a single source of truth for images, the e2e config
 		cluster := clusterResources.Cluster
 		if cluster.Spec.InfrastructureRef.Kind == "DockerCluster" {
-			bootstrap.LoadImagesToKindCluster(context.TODO(), bootstrap.LoadImagesToKindClusterInput{
+			Expect(bootstrap.LoadImagesToKindCluster(context.TODO(), bootstrap.LoadImagesToKindClusterInput{
 				Name:   cluster.Name,
 				Images: input.E2EConfig.Images,
-			})
+			})).To(Succeed())
 		}
 
 		// Get a ClusterBroker so we can interact with the workload cluster

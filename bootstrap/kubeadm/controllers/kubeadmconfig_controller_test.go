@@ -1316,6 +1316,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 // If a cluster object changes then all associated KubeadmConfigs should be re-reconciled.
 // This allows us to not requeue a kubeadm config while we wait for InfrastructureReady.
 func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
+	_ = feature.MutableGates.Set("MachinePool=true")
 	g := NewWithT(t)
 
 	cluster := newCluster("my-cluster")
@@ -1328,6 +1329,13 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 		expectedNames = append(expectedNames, configName)
 		objs = append(objs, m, c)
 	}
+	for i := 3; i < 6; i++ {
+		mp := newMachinePool(cluster, fmt.Sprintf("my-machinepool-%d", i))
+		configName := fmt.Sprintf("my-config-%d", i)
+		c := newMachinePoolKubeadmConfig(mp, configName)
+		expectedNames = append(expectedNames, configName)
+		objs = append(objs, mp, c)
+	}
 	fakeClient := helpers.NewFakeClientWithScheme(setupScheme(), objs...)
 	reconciler := &KubeadmConfigReconciler{
 		Log:    log.Log,
@@ -1337,7 +1345,7 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 		Object: cluster,
 	}
 	configs := reconciler.ClusterToKubeadmConfigs(o)
-	names := make([]string, 3)
+	names := make([]string, 6)
 	for i := range configs {
 		names[i] = configs[i].Name
 	}

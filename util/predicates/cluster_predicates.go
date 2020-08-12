@@ -76,7 +76,7 @@ func ClusterCreateNotPaused(logger logr.Logger) predicate.Funcs {
 				return true
 			}
 
-			log.V(4).Info("Cluster is not paused, blocking further processing")
+			log.V(4).Info("Cluster is paused, blocking further processing")
 			return false
 		},
 		UpdateFunc:  func(e event.UpdateEvent) bool { return false },

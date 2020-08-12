@@ -46,6 +46,23 @@ var RootCmd = &cobra.Command{
 	Long: LongDesc(`
 		Get started with Cluster API using clusterctl to create a management cluster,
 		install providers, and create templates for your workload cluster.`),
+	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+		// Check if clusterctl needs an upgrade "AFTER" running each command
+		// and sub-command.
+		configClient, err := config.New(cfgFile)
+		if err != nil {
+			return err
+		}
+		output, err := newVersionChecker(configClient.Variables()).Check()
+		if err != nil {
+			return errors.Wrap(err, "unable to verify clusterctl version")
+		}
+		if len(output) != 0 {
+			// Print the output in yellow so it is more visible.
+			fmt.Fprintf(os.Stderr, "\033[33m%s\033[0m", output)
+		}
+		return nil
+	},
 }
 
 func Execute() {

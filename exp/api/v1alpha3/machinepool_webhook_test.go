@@ -46,6 +46,8 @@ func TestMachinePoolDefault(t *testing.T) {
 	m.Default()
 
 	g.Expect(m.Labels[clusterv1.ClusterLabelName]).To(Equal(m.Spec.ClusterName))
+	g.Expect(m.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
+	g.Expect(m.Spec.MinReadySeconds).To(Equal(pointer.Int32Ptr(0)))
 	g.Expect(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(m.Spec.Template.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
 }

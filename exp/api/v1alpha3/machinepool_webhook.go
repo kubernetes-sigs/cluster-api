@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	"k8s.io/utils/pointer"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -45,6 +46,14 @@ func (m *MachinePool) Default() {
 		m.Labels = make(map[string]string)
 	}
 	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
+
+	if m.Spec.Replicas == nil {
+		m.Spec.Replicas = pointer.Int32Ptr(1)
+	}
+
+	if m.Spec.MinReadySeconds == nil {
+		m.Spec.MinReadySeconds = pointer.Int32Ptr(0)
+	}
 
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
 		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace

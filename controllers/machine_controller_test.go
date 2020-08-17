@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -611,96 +610,6 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	var actual clusterv1.Machine
 	g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 	g.Expect(actual.ObjectMeta.Finalizers).To(BeEmpty())
-}
-
-func TestReconcileMetrics(t *testing.T) {
-	tests := []struct {
-		name            string
-		ms              clusterv1.MachineStatus
-		expectedMetrics map[string]float64
-	}{
-		{
-			name: "machine bootstrap metric is set to 1 if ready",
-			ms: clusterv1.MachineStatus{
-				BootstrapReady: true,
-			},
-			expectedMetrics: map[string]float64{"capi_machine_bootstrap_ready": 1},
-		},
-		{
-			name: "machine bootstrap metric is set to 0 if not ready",
-			ms: clusterv1.MachineStatus{
-				BootstrapReady: false,
-			},
-			expectedMetrics: map[string]float64{"capi_machine_bootstrap_ready": 0},
-		},
-		{
-			name: "machine infrastructure metric is set to 1 if ready",
-			ms: clusterv1.MachineStatus{
-				InfrastructureReady: true,
-			},
-			expectedMetrics: map[string]float64{"capi_machine_infrastructure_ready": 1},
-		},
-		{
-			name: "machine infrastructure metric is set to 0 if not ready",
-			ms: clusterv1.MachineStatus{
-				InfrastructureReady: false,
-			},
-			expectedMetrics: map[string]float64{"capi_machine_infrastructure_ready": 0},
-		},
-		{
-			name: "machine node metric is set to 1 if node ref exists",
-			ms: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
-					Name: "test",
-				},
-			},
-			expectedMetrics: map[string]float64{"capi_machine_node_ready": 1},
-		},
-		{
-			name:            "machine infrastructure metric is set to 0 if not ready",
-			ms:              clusterv1.MachineStatus{},
-			expectedMetrics: map[string]float64{"capi_machine_node_ready": 0},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			var objs []runtime.Object
-			machine := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-machine",
-				},
-				Spec:   clusterv1.MachineSpec{},
-				Status: tt.ms,
-			}
-			objs = append(objs, machine)
-
-			r := &MachineReconciler{
-				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
-			}
-
-			r.reconcileMetrics(context.TODO(), machine)
-
-			for em, ev := range tt.expectedMetrics {
-				mr, err := metrics.Registry.Gather()
-				g.Expect(err).ToNot(HaveOccurred())
-				mf := getMetricFamily(mr, em)
-				g.Expect(mf).ToNot(BeNil())
-				for _, m := range mf.GetMetric() {
-					for _, l := range m.GetLabel() {
-						// ensure that the metric has a matching label
-						if l.GetName() == "machine" && l.GetValue() == machine.Name {
-							g.Expect(m.GetGauge().GetValue()).To(Equal(ev))
-						}
-					}
-				}
-			}
-		})
-	}
 }
 
 func Test_clusterToActiveMachines(t *testing.T) {

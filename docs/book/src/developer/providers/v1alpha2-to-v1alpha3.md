@@ -80,20 +80,6 @@
 
  - The machine Status.Phase is set back to `Provisioned` if the infrastructure is not ready. This is only applicable if the infrastructure node status does not have any errors set.
 
-## Metrics
-
-- The cluster and machine controllers expose the following prometheus metrics.
-  - `capi_cluster_control_plane_ready`: Cluster control plane is ready if set to 1 and not if 0.
-  - `capi_cluster_infrastructure_ready`: Cluster infrastructure is ready if set to 1 and not if 0.
-  - `capi_cluster_kubeconfig_ready`: Cluster kubeconfig is ready if set to 1 and not if 0.
-  - `capi_cluster_failure_set`: Cluster FailureMesssage or FailureReason is set if metric is 1.
-  - `capi_machine_bootstrap_ready`: Machine Boostrap is ready if set to 1 and not if 0.
-  - `capi_machine_infrastructure_ready`: Machine InfrastructureRef is ready if set to 1 and not if 0.
-  - `capi_machine_node_ready`: Machine NodeRef is ready if set to 1 and not if 0.
-
-  They can be accessed by default via the `8080` metrics port on the cluster
-  api controller manager.
-
 ## Cluster `Status.Phase` transition to `Provisioned` additionally needs at least one APIEndpoint to be available.
 
 - Previously, the sole requirement to transition a Cluster's `Status.Phase` to `Provisioned` was a `true` value of `Status.InfrastructureReady`. Now, there are two requirements: a `true` value of `Status.InfrastructureReady` and at least one entry in `Status.APIEndpoints`.
@@ -183,7 +169,7 @@ outside of the existing module.
   NB: You need to have `cluster.x-k8s.io/cluster-name` applied to all your objects for the mapper to function.
 - In some cases, you'll want to not just watch on Cluster.Spec.Paused changes, but also on
   Cluster.Status.InfrastructureReady. For those cases `predicates.ClusterUnpausedAndInfrastructureReady` should be used
-  instead. 
+  instead.
   ```go
   // Add a watch on clusterv1.Cluster object for paused and infrastructureReady notifications.
   clusterToObjectFunc, err := util.ClusterToObjectsMapper(mgr.GetClient(), <List object here>, mgr.GetScheme())

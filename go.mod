@@ -11,7 +11,7 @@ require (
 	github.com/drone/envsubst v1.0.3-0.20200709223903-efdb65b94e5a
 	github.com/evanphx/json-patch v4.5.0+incompatible
 	github.com/go-logr/logr v0.1.0
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/google/go-cmp v0.4.1
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect
@@ -20,8 +20,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.5.1
-	github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/client_golang v1.5.1 // indirect
 	github.com/spf13/cobra v0.0.6
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.2

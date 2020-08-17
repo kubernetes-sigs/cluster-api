@@ -32,7 +32,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/controllers/metrics"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/feature"
@@ -41,7 +40,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -137,7 +135,6 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 		// Always reconcile the Status.Phase field.
 		r.reconcilePhase(ctx, cluster)
-		r.reconcileMetrics(ctx, cluster)
 
 		// Always attempt to Patch the Cluster object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
@@ -194,34 +191,6 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		errs = append(errs, err)
 	}
 	return res, kerrors.NewAggregate(errs)
-}
-
-func (r *ClusterReconciler) reconcileMetrics(_ context.Context, cluster *clusterv1.Cluster) {
-
-	if cluster.Status.ControlPlaneInitialized {
-		metrics.ClusterControlPlaneReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
-	} else {
-		metrics.ClusterControlPlaneReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
-	}
-
-	if cluster.Status.InfrastructureReady {
-		metrics.ClusterInfrastructureReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
-	} else {
-		metrics.ClusterInfrastructureReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
-	}
-
-	_, err := secret.Get(context.Background(), r.Client, util.ObjectKey(cluster), secret.Kubeconfig)
-	if err != nil {
-		metrics.ClusterKubeconfigReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
-	} else {
-		metrics.ClusterKubeconfigReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
-	}
-
-	if cluster.Status.FailureReason != nil || cluster.Status.FailureMessage != nil {
-		metrics.ClusterFailureSet.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
-	} else {
-		metrics.ClusterFailureSet.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
-	}
 }
 
 // reconcileDelete handles cluster deletion.

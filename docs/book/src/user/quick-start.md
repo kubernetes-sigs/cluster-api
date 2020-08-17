@@ -486,7 +486,7 @@ export FACILITY="ewr1"
 export NODE_OS="ubuntu_18_04"
 # The ssh key name you loaded in Packet Portal
 export SSH_KEY="my-ssh"
-export POD_CIDR="172.25.0.0/16"
+export POD_CIDR="192.168.0.0/16"
 export SERVICE_CIDR="172.26.0.0/16"
 export CONTROLPLANE_NODE_TYPE="t1.small"
 export WORKER_NODE_TYPE="t1.small"

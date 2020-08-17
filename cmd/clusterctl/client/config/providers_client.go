@@ -36,6 +36,7 @@ const (
 	Metal3ProviderName    = "metal3"
 	OpenStackProviderName = "openstack"
 	PacketProviderName    = "packet"
+	SideroProviderName    = "sidero"
 	VSphereProviderName   = "vsphere"
 
 	// Bootstrap providers
@@ -114,6 +115,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         OpenStackProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         SideroProviderName,
+			url:          "https://github.com/talos-systems/sidero/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

@@ -255,6 +255,18 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					{Major: 0, Minor: 3, Contract: "v1alpha3"},
 				},
 			}
+		case config.SideroProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 1, Contract: "v1alpha3"},
+					// there are no older versions for Sidero
+				},
+			}
 		case config.VSphereProviderName:
 			return &clusterctlv1.Metadata{
 				TypeMeta: metav1.TypeMeta{

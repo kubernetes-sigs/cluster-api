@@ -111,6 +111,7 @@ metal3              InfrastructureProvider   https://github.com/metal3-io/cluste
 my-infra-provider   InfrastructureProvider   /home/.cluster-api/overrides/infrastructure-docker/latest/                                   infrastructure-components.yaml
 openstack           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/           infrastructure-components.yaml
 packet              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/              infrastructure-components.yaml
+sidero              InfrastructureProvider   https://github.com/talos-systems/sidero/releases/latest/                                     infrastructure-components.yaml
 vsphere             InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/             infrastructure-components.yaml
 `
 
@@ -162,6 +163,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: packet
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/
+- File: infrastructure-components.yaml
+  Name: sidero
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/talos-systems/sidero/releases/latest/
 - File: infrastructure-components.yaml
   Name: vsphere
   ProviderType: InfrastructureProvider

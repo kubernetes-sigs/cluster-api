@@ -153,6 +153,14 @@ const (
 	// have become Kubernetes Nodes in the Ready state.
 	MachinePoolPhaseRunning = MachinePoolPhase("Running")
 
+	// MachinePoolPhaseRunning is the MachinePool state when the
+	// MachinePool infrastructure is scaling up.
+	MachinePoolPhaseScalingUp = MachinePoolPhase("ScalingUp")
+
+	// MachinePoolPhaseRunning is the MachinePool state when the
+	// MachinePool infrastructure is scaling down.
+	MachinePoolPhaseScalingDown = MachinePoolPhase("ScalingDown")
+
 	// MachinePoolPhaseDeleting is the MachinePool state when a delete
 	// request has been sent to the API Server,
 	// but its infrastructure has not yet been fully deleted.
@@ -180,6 +188,8 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 		MachinePoolPhaseProvisioning,
 		MachinePoolPhaseProvisioned,
 		MachinePoolPhaseRunning,
+		MachinePoolPhaseScalingUp,
+		MachinePoolPhaseScalingDown,
 		MachinePoolPhaseDeleting,
 		MachinePoolPhaseFailed:
 		return phase

@@ -7,6 +7,7 @@ The Control Plane controller's main responsibilities are:
 * Managing a set of machines that represent a Kubernetes control plane.
 * Provide information about the state of the control plane to downstream
   consumers.
+* Create/manage a secret with the kubeconfig file for accessing the workload cluster.
 
 A reference implementation is managed within the core Cluster API project as the
 Kubeadm control plane controller (`KubeadmControlPlane`). In this document,

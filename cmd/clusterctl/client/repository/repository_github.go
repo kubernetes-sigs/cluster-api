@@ -66,6 +66,14 @@ type gitHubRepository struct {
 
 var _ Repository = &gitHubRepository{}
 
+type githubRepositoryOption func(*gitHubRepository)
+
+func injectGithubClient(c *github.Client) githubRepositoryOption {
+	return func(g *gitHubRepository) {
+		g.injectClient = c
+	}
+}
+
 // DefaultVersion returns defaultVersion field of gitHubRepository struct
 func (g *gitHubRepository) DefaultVersion() string {
 	return g.defaultVersion
@@ -107,7 +115,7 @@ func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
 }
 
 // newGitHubRepository returns a gitHubRepository implementation
-func newGitHubRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient) (*gitHubRepository, error) {
+func newGitHubRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient, opts ...githubRepositoryOption) (*gitHubRepository, error) {
 	if configVariablesClient == nil {
 		return nil, errors.New("invalid arguments: configVariablesClient can't be nil")
 	}
@@ -151,6 +159,11 @@ func newGitHubRepository(providerConfig config.Provider, configVariablesClient c
 		defaultVersion:        defaultVersion,
 		rootPath:              rootPath,
 		componentsPath:        componentsPath,
+	}
+
+	// process githubRepositoryOptions
+	for _, o := range opts {
+		o(repo)
 	}
 
 	if token, err := configVariablesClient.Get(config.GitHubTokenVariable); err == nil {

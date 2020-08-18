@@ -74,17 +74,17 @@ const (
 	// In the event that the health check fails it will be set to False.
 	MachineHealthCheckSuccededCondition ConditionType = "HealthCheckSucceeded"
 
-	// MachineHasFailure is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
-	MachineHasFailure = "MachineHasFailure"
+	// MachineHasFailureReason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
+	MachineHasFailureReason = "MachineHasFailure"
 
-	// NodeNotFound is the reason used when a machine's node has previously been observed but is now gone.
-	NodeNotFound = "NodeNotFound"
+	// NodeNotFoundReason is the reason used when a machine's node has previously been observed but is now gone.
+	NodeNotFoundReason = "NodeNotFound"
 
-	// NodeStartupTimeout is the reason used when a machine's node does not appear within the specified timeout.
-	NodeStartupTimeout = "NodeStartupTimeout"
+	// NodeStartupTimeoutReason is the reason used when a machine's node does not appear within the specified timeout.
+	NodeStartupTimeoutReason = "NodeStartupTimeout"
 
-	// UnhealthyNodeCondition is the reason used when a machine's node has one of the MachineHealthCheck's unhealthy conditions.
-	UnhealthyNodeCondition = "UnhealthyNode"
+	// UnhealthyNodeConditionReason is the reason used when a machine's node has one of the MachineHealthCheck's unhealthy conditions.
+	UnhealthyNodeConditionReason = "UnhealthyNode"
 )
 
 const (
@@ -92,6 +92,6 @@ const (
 	// MachineOwnerRemediatedCondition is set to False after a health check fails, but should be changed to True by the owning controller after remediation succeeds.
 	MachineOwnerRemediatedCondition ConditionType = "OwnerRemediated"
 
-	// WaitingForRemediation is the reason used when a machine fails a health check and remediation is needed.
-	WaitingForRemediation = "WaitingForRemediation"
+	// WaitingForRemediationReason is the reason used when a machine fails a health check and remediation is needed.
+	WaitingForRemediationReason = "WaitingForRemediation"
 )

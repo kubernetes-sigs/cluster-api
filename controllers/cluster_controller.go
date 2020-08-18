@@ -32,7 +32,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
@@ -164,31 +163,25 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 // reconcile handles cluster reconciliation.
 func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
-	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
-
-	// Call the inner reconciliation methods.
-	reconciliationErrors := []error{
-		r.reconcileInfrastructure(ctx, cluster),
-		r.reconcileControlPlane(ctx, cluster),
-		r.reconcileKubeconfig(ctx, cluster),
-		r.reconcileControlPlaneInitialized(ctx, cluster),
+	phases := []func(context.Context, *clusterv1.Cluster) (ctrl.Result, error){
+		r.reconcileInfrastructure,
+		r.reconcileControlPlane,
+		r.reconcileKubeconfig,
+		r.reconcileControlPlaneInitialized,
 	}
 
-	// Parse the errors, making sure we record if there is a RequeueAfterError.
 	res := ctrl.Result{}
 	errs := []error{}
-	for _, err := range reconciliationErrors {
-		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-			// Only record and log the first RequeueAfterError.
-			if !res.Requeue {
-				res.Requeue = true
-				res.RequeueAfter = requeueErr.GetRequeueAfter()
-				logger.Error(err, "Reconciliation for Cluster asked to requeue")
-			}
+	for _, phase := range phases {
+		// Call the inner reconciliation methods.
+		phaseResult, err := phase(ctx, cluster)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if len(errs) > 0 {
 			continue
 		}
-
-		errs = append(errs, err)
+		res = util.LowestNonZeroResult(res, phaseResult)
 	}
 	return res, kerrors.NewAggregate(errs)
 }
@@ -448,32 +441,32 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 	return controlplanes, nodes
 }
 
-func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) error {
+func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
 	// Skip checking if the control plane is initialized when using a Control Plane Provider
 	if cluster.Spec.ControlPlaneRef != nil {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	if cluster.Status.ControlPlaneInitialized {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
 	if err != nil {
 		logger.Error(err, "Error getting machines in cluster")
-		return err
+		return ctrl.Result{}, err
 	}
 
 	for _, m := range machines {
 		if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
 			cluster.Status.ControlPlaneInitialized = true
-			return nil
+			return ctrl.Result{}, nil
 		}
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation

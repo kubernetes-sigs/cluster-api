@@ -17,12 +17,21 @@ limitations under the License.
 package external
 
 import (
+	"time"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ReconcileOutput is a return type of the external reconciliation
 // of referenced objects
 type ReconcileOutput struct {
+	// RequeueAfter if greater than 0, tells the Controller to requeue the reconcile key after the Duration.
+	// Implies that Requeue is true, there is no need to set Requeue to true at the same time as RequeueAfter.
+	//
+	// TODO(vincepri): Remove this field here and try to return a better struct that embeds ctrl.Result,
+	// we can't do that today because the field would conflict with the current `Result` field,
+	// which should probably be renamed to `Object` or something similar.
+	RequeueAfter time.Duration
 	// Details of the referenced external object.
 	// +optional
 	Result *unstructured.Unstructured

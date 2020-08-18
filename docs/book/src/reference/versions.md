@@ -78,6 +78,13 @@ The Kubeadm Control Plane Provider talks to the API server and etcd members of e
 
 The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
 
+#### clusterctl
+
+It is strongly recommended to always use the latest version of [clusterctl](../clusterctl/overview.md), in order to 
+get all the fixes/latest changes. 
+
+In case of upgrades, clusterctl should be upgraded first and then used to upgrade all the other components.
+
 ## Providers Maintained By Independent Teams
 
 In general, if a Provider version M says it is compatible with Cluster API version N, then version M must be compatible with a subset of the Kubernetes versions supported by Cluster API version N.

@@ -110,6 +110,7 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			resetCaches()
 
 			gitHub, err := newGitHubRepository(tt.field.providerConfig, tt.field.variableClient)
 			if tt.wantErr {
@@ -147,6 +148,7 @@ func Test_githubRepository_getComponentsPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			resetCaches()
 
 			g.Expect(getComponentsPath(tt.path, tt.rootPath)).To(Equal(tt.want))
 		})
@@ -208,11 +210,10 @@ func Test_githubRepository_getFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			resetCaches()
 
-			gitHub, err := newGitHubRepository(providerConfig, configVariablesClient)
+			gitHub, err := newGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
-
-			gitHub.injectClient = client
 
 			got, err := gitHub.GetFile(tt.release, tt.fileName)
 			if tt.wantErr {
@@ -265,11 +266,10 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			resetCaches()
 
-			gitHub, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
+			gitHub, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
-
-			gitHub.injectClient = client
 
 			got, err := gitHub.getVersions()
 			if tt.wantErr {
@@ -335,11 +335,10 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			resetCaches()
 
-			gRepo, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
+			gRepo, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
-
-			gRepo.injectClient = client
 
 			got, err := gRepo.getLatestRelease()
 			if tt.wantErr {
@@ -396,11 +395,10 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			resetCaches()
 
-			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient)
+			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
-
-			gRepo.injectClient = client
 
 			got, err := gRepo.getReleaseByTag(tt.args.tag)
 			if tt.wantErr {
@@ -503,11 +501,10 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			resetCaches()
 
-			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient)
+			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
-
-			gRepo.injectClient = client
 
 			got, err := gRepo.downloadFilesFromRelease(tt.args.release, tt.args.fileName)
 			if tt.wantErr {
@@ -525,4 +522,11 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 	if got := r.Method; got != want {
 		t.Errorf("Request method: %v, want %v", got, want)
 	}
+}
+
+// resetCaches is called repeatedly throughout tests to help avoid cross-test pollution
+func resetCaches() {
+	cacheVersions = map[string][]string{}
+	cacheReleases = map[string]*github.RepositoryRelease{}
+	cacheFiles = map[string][]byte{}
 }

@@ -1495,6 +1495,148 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 }
 
+func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
+	testSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "source",
+		},
+		Data: map[string][]byte{
+			"key": []byte("foo"),
+		},
+	}
+
+	cases := map[string]struct {
+		cfg     *bootstrapv1.KubeadmConfig
+		objects []runtime.Object
+		expect  []bootstrapv1.File
+	}{
+		"content should pass through": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Content:     "foo",
+							Path:        "/path",
+							Owner:       "root:root",
+							Permissions: "0600",
+						},
+					},
+				},
+			},
+			expect: []bootstrapv1.File{
+				{
+					Content:     "foo",
+					Path:        "/path",
+					Owner:       "root:root",
+					Permissions: "0600",
+				},
+			},
+		},
+		"contentFrom should convert correctly": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							ContentFrom: &bootstrapv1.FileSource{
+								Secret: bootstrapv1.SecretFileSource{
+									Name: "source",
+									Key:  "key",
+								},
+							},
+							Path:        "/path",
+							Owner:       "root:root",
+							Permissions: "0600",
+						},
+					},
+				},
+			},
+			expect: []bootstrapv1.File{
+				{
+					Content:     "foo",
+					Path:        "/path",
+					Owner:       "root:root",
+					Permissions: "0600",
+				},
+			},
+			objects: []runtime.Object{testSecret},
+		},
+		"multiple files should work correctly": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Content:     "bar",
+							Path:        "/bar",
+							Owner:       "root:root",
+							Permissions: "0600",
+						},
+						{
+							ContentFrom: &bootstrapv1.FileSource{
+								Secret: bootstrapv1.SecretFileSource{
+									Name: "source",
+									Key:  "key",
+								},
+							},
+							Path:        "/path",
+							Owner:       "root:root",
+							Permissions: "0600",
+						},
+					},
+				},
+			},
+			expect: []bootstrapv1.File{
+				{
+					Content:     "bar",
+					Path:        "/bar",
+					Owner:       "root:root",
+					Permissions: "0600",
+				},
+				{
+					Content:     "foo",
+					Path:        "/path",
+					Owner:       "root:root",
+					Permissions: "0600",
+				},
+			},
+			objects: []runtime.Object{testSecret},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			myclient := helpers.NewFakeClientWithScheme(setupScheme(), tc.objects...)
+			k := &KubeadmConfigReconciler{
+				Log:             log.Log,
+				Client:          myclient,
+				KubeadmInitLock: &myInitLocker{},
+			}
+
+			// make a list of files we expect to be sourced from secrets
+			// after we resolve files, assert that the original spec has
+			// not been mutated and all paths we expected to be sourced
+			// from secrets still are.
+			contentFrom := map[string]bool{}
+			for _, file := range tc.cfg.Spec.Files {
+				if file.ContentFrom != nil {
+					contentFrom[file.Path] = true
+				}
+			}
+
+			files, err := k.resolveFiles(context.Background(), tc.cfg)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(files).To(Equal(tc.expect))
+			for _, file := range tc.cfg.Spec.Files {
+				if contentFrom[file.Path] {
+					g.Expect(file.ContentFrom).NotTo(BeNil())
+					g.Expect(file.Content).To(Equal(""))
+				}
+			}
+		})
+	}
+}
+
 // test utils
 
 // newCluster return a CAPI cluster object

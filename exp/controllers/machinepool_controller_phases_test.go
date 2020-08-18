@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
 	"time"
 
@@ -126,7 +127,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(machinepool)
 
@@ -154,7 +155,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(machinepool)
 		Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhasePending))
@@ -180,7 +181,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(machinepool)
 		Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseProvisioning))
@@ -222,7 +223,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		// Set ReadyReplicas
 		machinepool.Status.ReadyReplicas = 1
@@ -276,7 +277,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		// Set ReadyReplicas
 		machinepool.Status.ReadyReplicas = 1
@@ -308,7 +309,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(machinepool)
 		Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseProvisioned))
@@ -347,7 +348,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		// Set ReadyReplicas
 		machinepool.Status.ReadyReplicas = 1
@@ -399,7 +400,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		// Set ReadyReplicas
 		machinepool.Status.ReadyReplicas = 4
@@ -499,6 +500,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		bootstrapConfig map[string]interface{}
 		machinepool     *expv1.MachinePool
 		expectError     bool
+		expectResult    ctrl.Result
 		expected        func(g *WithT, m *expv1.MachinePool)
 	}{
 		{
@@ -555,7 +557,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				"spec":   map[string]interface{}{},
 				"status": map[string]interface{}{},
 			},
-			expectError: true,
+			expectError:  false,
+			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
 			},
@@ -697,7 +700,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				scheme: scheme.Scheme,
 			}
 
-			err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machinepool)
+			res, err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machinepool)
+			g.Expect(res).To(Equal(tc.expectResult))
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
@@ -843,7 +847,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				"metadata":   map[string]interface{}{},
 			},
 			expectError:        true,
-			expectRequeueAfter: true,
+			expectRequeueAfter: false,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
 				g.Expect(m.Status.FailureMessage).ToNot(BeNil())
@@ -907,7 +911,10 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				scheme: scheme.Scheme,
 			}
 
-			err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machinepool)
+			res, err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machinepool)
+			if tc.expectRequeueAfter {
+				g.Expect(res.RequeueAfter).To(BeNumerically(">=", 0))
+			}
 			r.reconcilePhase(tc.machinepool)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())

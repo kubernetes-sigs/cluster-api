@@ -18,6 +18,7 @@ package clusterctl
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -61,6 +62,19 @@ func LoadE2EConfig(ctx context.Context, input LoadE2EConfigInput) *E2EConfig {
 	Expect(config.Validate()).To(Succeed(), "The e2e test config file is not valid")
 
 	return config
+}
+
+// SetCNIEnvVar read CNI from cniManifestPath and sets an environmental variable that keeps CNI resources.
+// A ClusterResourceSet can be used to apply CNI using this environmental variable.
+func SetCNIEnvVar(cniManifestPath string, cniEnvVar string) {
+	cniData, err := ioutil.ReadFile(cniManifestPath)
+	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test CNI file")
+	Expect(cniData).ToNot(BeEmpty(), "CNI file should not be empty")
+	data := map[string]interface{}{}
+	data["resources"] = string(cniData)
+	marshalledData, err := json.Marshal(data)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(os.Setenv(cniEnvVar, string(marshalledData))).NotTo(HaveOccurred())
 }
 
 // E2EConfig defines the configuration of an e2e test environment.

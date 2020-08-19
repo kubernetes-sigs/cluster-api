@@ -98,7 +98,6 @@ providers:
   # Add cluster templates
   - sourcePath: "../data/infrastructure-docker/cluster-template.yaml"
   - sourcePath: "../data/infrastructure-docker/cluster-template-kcp-adoption.yaml"
-  - sourcePath: "../data/infrastructure-docker/cluster-template-clusterresourceset.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"

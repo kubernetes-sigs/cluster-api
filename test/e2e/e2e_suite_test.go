@@ -158,6 +158,11 @@ func initScheme() *runtime.Scheme {
 func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
+
+	// Read CNI file and set CNI_RESOURCES environmental variable
+	Expect(config.Variables).To(HaveKey(CNIPath), "Missing %s variable in the config", CNIPath)
+	clusterctl.SetCNIEnvVar(config.GetVariable(CNIPath), CNIResources)
+
 	return config
 }
 

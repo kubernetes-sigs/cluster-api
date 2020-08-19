@@ -72,7 +72,6 @@ providers:
   - sourcePath: "../data/infrastructure-docker/cluster-template-ci.yaml"
     targetName: "cluster-template.yaml"
   - sourcePath: "../data/infrastructure-docker/cluster-template-kcp-adoption.yaml"
-  - sourcePath: "../data/infrastructure-docker/cluster-template-clusterresourceset.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"

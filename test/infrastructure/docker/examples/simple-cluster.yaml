@@ -85,8 +85,6 @@ apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: worker-md-0
-  labels:
-    cluster.x-k8s.io/cluster-name: my-cluster
 spec:
   clusterName: my-cluster
   replicas: 1
@@ -94,9 +92,6 @@ spec:
     matchLabels:
       cluster.x-k8s.io/cluster-name: my-cluster
   template:
-    metadata:
-      labels:
-        cluster.x-k8s.io/cluster-name: my-cluster
     spec:
       version: v1.18.6
       clusterName: my-cluster

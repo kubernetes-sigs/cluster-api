@@ -342,16 +342,11 @@ func (u *providerUpgrader) getUpgradeComponents(provider UpgradeItem) (repositor
 }
 
 func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
-	log := logf.Log
-	log.Info("Performing upgrade...")
-
 	for _, upgradeItem := range upgradePlan.Providers {
 		// If there is not a specified next version, skip it (we are already up-to-date).
 		if upgradeItem.NextVersion == "" {
 			continue
 		}
-
-		log.Info("Upgrading", "Provider", upgradeItem.InstanceName(), "CurrentVersion", upgradeItem.Version, "TargetVersion", upgradeItem.NextVersion)
 
 		// Gets the provider components for the target version.
 		components, err := u.getUpgradeComponents(upgradeItem)

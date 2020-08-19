@@ -67,8 +67,9 @@ clusterctl upgrade apply \
   --contract v1alpha3
 ```
 
-The upgrade process is composed by two steps:
+The upgrade process is composed by three steps:
 
+* Check the cert-manager version, and if necessary, upgrade it.
 * Delete the current version of the provider components, while preserving the namespace where the provider components
   are hosted and the provider's CRDs.
 * Install the new version of the provider components.

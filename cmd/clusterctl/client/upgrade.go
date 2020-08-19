@@ -107,6 +107,14 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	}
 	coreProvider := coreUpgradeItem.Provider
 
+	// Ensures the latest version of cert-manager.
+	// NOTE: it is safe to upgrade to latest version of cert-manager given that it provides
+	// conversion web-hooks around Issuer/Certificate kinds, so installing an older versions of providers
+	// should continue to work with the latest cert-manager.
+	if err := clusterClient.CertManager().EnsureLatestVersion(); err != nil {
+		return err
+	}
+
 	// Check if the user want a custom upgrade
 	isCustomUpgrade := options.CoreProvider != "" ||
 		len(options.BootstrapProviders) > 0 ||

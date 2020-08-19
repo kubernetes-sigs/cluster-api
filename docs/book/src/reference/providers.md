@@ -21,6 +21,7 @@ support v1alpha3 API types.
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Packet](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
+- [**Sidero**](https://github.com/talos-systems/sidero)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
 - [**vSphere**](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
 - [Alibaba Cloud](https://github.com/oam-oss/cluster-api-provider-alicloud)

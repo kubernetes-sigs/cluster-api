@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
@@ -161,8 +162,12 @@ func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([
 	}
 
 	// Get all the API resources in the cluster.
-	resourceList, err := cs.Discovery().ServerPreferredResources()
-	if err != nil {
+	resourceListBackoff := newReadBackoff()
+	var resourceList []*metav1.APIResourceList
+	if err := retryWithExponentialBackoff(resourceListBackoff, func() error {
+		resourceList, err = cs.Discovery().ServerPreferredResources()
+		return err
+	}); err != nil {
 		return nil, errors.Wrap(err, "failed to list api resources")
 	}
 

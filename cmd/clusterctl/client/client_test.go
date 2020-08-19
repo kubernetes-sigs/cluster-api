@@ -212,6 +212,10 @@ func (p *fakeCertManagerClient) EnsureInstalled() error {
 	return nil
 }
 
+func (p *fakeCertManagerClient) EnsureLatestVersion() error {
+	return nil
+}
+
 func (p *fakeCertManagerClient) Images() ([]string, error) {
 	return p.images, p.imagesError
 }

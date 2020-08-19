@@ -24,12 +24,21 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	manifests "sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Test_VersionMarkerUpToDate(t *testing.T) {
@@ -39,14 +48,11 @@ func Test_VersionMarkerUpToDate(t *testing.T) {
 	}
 
 	actualHash := fmt.Sprintf("%x", sha256.Sum256(yaml))
-	_, embeddedHash := embeddedCertManagerVersion()
-	if actualHash != embeddedHash {
-		t.Errorf("The cert-manager.yaml asset data has changed, but the version marker embeddedCertManagerManifestVersion has not been updated. Expected hash to be: %s", actualHash)
-	}
+	g := NewWithT(t)
+	g.Expect(actualHash).To(Equal(embeddedCertManagerManifestHash), "The cert-manager.yaml asset data has changed, but embeddedCertManagerManifestVersion and embeddedCertManagerManifestHash has not been updated.")
 }
 
 func Test_certManagerClient_getManifestObjects(t *testing.T) {
-
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -143,7 +149,6 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 }
 
 func Test_GetTimeout(t *testing.T) {
-
 	pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
 		return nil
 	}
@@ -182,6 +187,352 @@ func Test_GetTimeout(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_shouldUpgrade(t *testing.T) {
+	type args struct {
+		objs []unstructured.Unstructured
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantVersion string
+		want        bool
+		wantErr     bool
+	}{
+		{
+			name: "Version is not defined (e.g. cluster created with clusterctl < v0.3.9), should upgrade",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{},
+					},
+				},
+			},
+			wantVersion: "v0.11.0",
+			want:        true,
+			wantErr:     false,
+		},
+		{
+			name: "Version & hash are equal, should not upgrade",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									certmanagerVersionAnnotation: embeddedCertManagerManifestVersion,
+									certmanagerHashAnnotation:    embeddedCertManagerManifestHash,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantVersion: embeddedCertManagerManifestVersion,
+			want:        false,
+			wantErr:     false,
+		},
+		{
+			name: "Version is equal, hash is different, should upgrade",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									certmanagerVersionAnnotation: embeddedCertManagerManifestVersion,
+									certmanagerHashAnnotation:    "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantVersion: fmt.Sprintf("%s (%s)", embeddedCertManagerManifestVersion, "foo"),
+			want:        true,
+			wantErr:     false,
+		},
+		{
+			name: "Version is older, should upgrade",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									certmanagerVersionAnnotation: "v0.11.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantVersion: "v0.11.0",
+			want:        true,
+			wantErr:     false,
+		},
+		{
+			name: "Version is newer, should not upgrade",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									certmanagerVersionAnnotation: "v100.0.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantVersion: "v100.0.0",
+			want:        false,
+			wantErr:     false,
+		},
+		{
+			name: "Endpoint are ignored",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"kind": "Endpoints",
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									certmanagerVersionAnnotation: "v0.11.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantVersion: "",
+			want:        false,
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			gotVersion, got, err := shouldUpgrade(tt.args.objs)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(got).To(Equal(tt.want))
+			g.Expect(gotVersion).To(Equal(tt.wantVersion))
+		})
+	}
+}
+
+func Test_certManagerClient_deleteObjs(t *testing.T) {
+	type fields struct {
+		objs []runtime.Object
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    []string // Define the list of "Kind, Namespace/Name" that should still exist after delete
+		wantErr bool
+	}{
+		{
+			name: "CRD should not be deleted",
+			fields: fields{
+				objs: []runtime.Object{
+					&apiextensionsv1.CustomResourceDefinition{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "CustomResourceDefinition",
+							APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "foo",
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						},
+					},
+				},
+			},
+			want:    []string{"CustomResourceDefinition, /foo"},
+			wantErr: false,
+		},
+		{
+			name: "Namespace should not be deleted",
+			fields: fields{
+				objs: []runtime.Object{
+					&corev1.Namespace{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Namespace",
+							APIVersion: corev1.SchemeGroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "foo",
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						},
+					},
+				},
+			},
+			want:    []string{"Namespace, /foo"},
+			wantErr: false,
+		},
+		{
+			name: "MutatingWebhookConfiguration should not be deleted",
+			fields: fields{
+				objs: []runtime.Object{
+					&admissionregistration.MutatingWebhookConfiguration{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "MutatingWebhookConfiguration",
+							APIVersion: admissionregistration.SchemeGroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "foo",
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						},
+					},
+				},
+			},
+			want:    []string{"MutatingWebhookConfiguration, /foo"},
+			wantErr: false,
+		},
+		{
+			name: "ValidatingWebhookConfiguration should not be deleted",
+			fields: fields{
+				objs: []runtime.Object{
+					&admissionregistration.ValidatingWebhookConfiguration{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "ValidatingWebhookConfiguration",
+							APIVersion: admissionregistration.SchemeGroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "foo",
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						},
+					},
+				},
+			},
+			want:    []string{"ValidatingWebhookConfiguration, /foo"},
+			wantErr: false,
+		},
+		{
+			name: "Other resources should be deleted",
+			fields: fields{
+				objs: []runtime.Object{
+					&corev1.ServiceAccount{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "ServiceAccount",
+							APIVersion: corev1.SchemeGroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "foo",
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						},
+					},
+					&appsv1.Deployment{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Deployment",
+							APIVersion: appsv1.SchemeGroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "bar",
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
+			cm := &certManagerClient{
+				pollImmediateWaiter: fakePollImmediateWaiter,
+				proxy:               proxy,
+			}
+
+			objBefore, err := proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			err = cm.deleteObjs(objBefore)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			for _, obj := range tt.fields.objs {
+				accessor, err := meta.Accessor(obj)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				objShouldStillExist := false
+				for _, want := range tt.want {
+					if fmt.Sprintf("%s, %s/%s", obj.GetObjectKind().GroupVersionKind().Kind, accessor.GetNamespace(), accessor.GetName()) == want {
+						objShouldStillExist = true
+					}
+				}
+
+				cl, err := proxy.NewClient()
+				g.Expect(err).ToNot(HaveOccurred())
+
+				key, err := client.ObjectKeyFromObject(obj)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				err = cl.Get(ctx, key, obj)
+				switch objShouldStillExist {
+				case true:
+					g.Expect(err).ToNot(HaveOccurred())
+				case false:
+					g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				}
+			}
+		})
+	}
+}
+
+func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
+	type fields struct {
+		proxy Proxy
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(
+					&corev1.Namespace{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{},
+						},
+					},
+				),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cm := &certManagerClient{
+				proxy: tt.fields.proxy,
+			}
+
+			err := cm.EnsureLatestVersion()
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
 }
 
 func newFakeConfig(timeout string) fakeConfigClient {

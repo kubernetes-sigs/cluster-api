@@ -61,7 +61,7 @@ spec:
       controllerManager:
         extraArgs: {enable-hostpath-provisioner: 'true'}
       apiServer:
-        certSANs: [localhost, 127.0.0.1]
+        certSANs: [localhost, 127.0.0.1, 0.0.0.0]
     initConfiguration:
       nodeRegistration:
         criSocket: /var/run/containerd/containerd.sock

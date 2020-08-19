@@ -390,7 +390,7 @@ func (c *E2EConfig) GetVariable(varName string) string {
 	return version
 }
 
-// GetVariable returns an Int64Ptr variable from the e2e config file.
+// GetInt64PtrVariable returns an Int64Ptr variable from the e2e config file.
 func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 	wCountStr := c.GetVariable(varName)
 	if wCountStr == "" {
@@ -400,4 +400,16 @@ func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
 	Expect(err).NotTo(HaveOccurred())
 	return pointer.Int64Ptr(wCount)
+}
+
+// GetInt32PtrVariable returns an Int32Ptr variable from the e2e config file.
+func (c *E2EConfig) GetInt32PtrVariable(varName string) *int32 {
+	wCountStr := c.GetVariable(varName)
+	if wCountStr == "" {
+		return nil
+	}
+
+	wCount, err := strconv.ParseUint(wCountStr, 10, 32)
+	Expect(err).NotTo(HaveOccurred())
+	return pointer.Int32Ptr(int32(wCount))
 }

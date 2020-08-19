@@ -27,7 +27,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -45,11 +45,11 @@ type MachineRemediationSpecInput struct {
 // MachineRemediationSpec implements a test that verifies that Machines are remediated by MHC during unhealthy conditions.
 func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemediationSpecInput) {
 	var (
-		specName      = "mhc-remediation"
-		input         MachineRemediationSpecInput
-		namespace     *corev1.Namespace
-		cancelWatches context.CancelFunc
-		cluster       *clusterv1.Cluster
+		specName         = "mhc-remediation"
+		input            MachineRemediationSpecInput
+		namespace        *corev1.Namespace
+		cancelWatches    context.CancelFunc
+		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
 	)
 
 	BeforeEach(func() {
@@ -69,7 +69,7 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 
 		By("Creating a workload cluster")
 
-		cluster, _, _ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+		clusterResources = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
@@ -91,7 +91,7 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 		By("Waiting for MachineHealthCheck remediation")
 		framework.DiscoverMachineHealthChecksAndWaitForRemediation(ctx, framework.DiscoverMachineHealthCheckAndWaitForRemediationInput{
 			ClusterProxy:              input.BootstrapClusterProxy,
-			Cluster:                   cluster,
+			Cluster:                   clusterResources.Cluster,
 			WaitForMachineRemediation: input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"),
 		})
 
@@ -100,6 +100,6 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

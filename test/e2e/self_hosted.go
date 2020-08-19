@@ -48,11 +48,11 @@ type SelfHostedSpecInput struct {
 // SelfHostedSpec implements a test that verifies Cluster API creating a cluster, pivoting to a self-hosted cluster.
 func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput) {
 	var (
-		specName      = "self-hosted"
-		input         SelfHostedSpecInput
-		namespace     *corev1.Namespace
-		cancelWatches context.CancelFunc
-		cluster       *clusterv1.Cluster
+		specName         = "self-hosted"
+		input            SelfHostedSpecInput
+		namespace        *corev1.Namespace
+		cancelWatches    context.CancelFunc
+		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
 
 		selfHostedClusterProxy  framework.ClusterProxy
 		selfHostedNamespace     *corev1.Namespace
@@ -77,7 +77,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 
 		By("Creating a workload cluster")
 
-		cluster, _, _ = clusterctl.ApplyClusterTemplateAndWait(context.TODO(), clusterctl.ApplyClusterTemplateAndWaitInput{
+		clusterResources = clusterctl.ApplyClusterTemplateAndWait(context.TODO(), clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
@@ -101,6 +101,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		// In case of the cluster id a DockerCluster, we should load controller images into the nodes.
 		// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
 		// this approach because this allows to have a single source of truth for images, the e2e config
+		cluster := clusterResources.Cluster
 		if cluster.Spec.InfrastructureRef.Kind == "DockerCluster" {
 			bootstrap.LoadImagesToKindCluster(context.TODO(), bootstrap.LoadImagesToKindClusterInput{
 				Name:   cluster.Name,
@@ -172,7 +173,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
 				Lister:    selfHostedClusterProxy.GetClient(),
 				Namespace: namespace.Name,
-				LogPath:   filepath.Join(input.ArtifactFolder, "clusters", cluster.Name, "resources"),
+				LogPath:   filepath.Join(input.ArtifactFolder, "clusters", clusterResources.Cluster.Name, "resources"),
 			})
 		}
 		if selfHostedCluster != nil {
@@ -191,7 +192,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 
 			By("Moving the cluster back to bootstrap")
 			clusterctl.Move(ctx, clusterctl.MoveInput{
-				LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+				LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", clusterResources.Cluster.Name),
 				ClusterctlConfigPath: input.ClusterctlConfigPath,
 				FromKubeconfigPath:   selfHostedClusterProxy.GetKubeconfigPath(),
 				ToKubeconfigPath:     input.BootstrapClusterProxy.GetKubeconfigPath(),
@@ -199,10 +200,10 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			})
 
 			log.Logf("Waiting for the cluster to be reconciled after moving back to booststrap")
-			cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+			clusterResources.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 				Getter:    input.BootstrapClusterProxy.GetClient(),
 				Namespace: namespace.Name,
-				Name:      cluster.Name,
+				Name:      clusterResources.Cluster.Name,
 			}, input.E2EConfig.GetIntervals(specName, "wait-cluster")...)
 		}
 		if selfHostedCancelWatches != nil {
@@ -210,6 +211,6 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		}
 
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

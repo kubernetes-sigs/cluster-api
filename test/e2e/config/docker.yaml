@@ -70,6 +70,7 @@ providers:
   - sourcePath: "../data/infrastructure-docker/cluster-template.yaml"
   - sourcePath: "../data/infrastructure-docker/cluster-template-mhc.yaml"
   - sourcePath: "../data/infrastructure-docker/cluster-template-kcp-adoption.yaml"
+  - sourcePath: "../data/infrastructure-docker/cluster-template-machine-pool.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"
@@ -83,12 +84,15 @@ variables:
   DOCKER_POD_CIDRS: "192.168.0.0/16"
   CNI: "./data/cni/kindnet/kindnet.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
+  EXP_MACHINE_POOL: "true"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
   default/wait-cluster: ["5m", "10s"]
   default/wait-control-plane: ["10m", "10s"]
   default/wait-worker-nodes: ["5m", "10s"]
+  default/wait-machine-pool-nodes: ["5m", "10s"]
   default/wait-delete-cluster: ["3m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]
+  default/wait-machine-pool-upgrade: ["5m", "10s"]
   default/wait-machine-remediation: ["5m", "10s"]

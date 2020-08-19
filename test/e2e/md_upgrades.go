@@ -27,7 +27,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -45,11 +45,11 @@ type MachineDeploymentUpgradesSpecInput struct {
 // MachineDeploymentUpgradesSpec implements a test that verifies that MachineDeployment upgrades are successful.
 func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() MachineDeploymentUpgradesSpecInput) {
 	var (
-		specName      = "md-upgrades"
-		input         MachineDeploymentUpgradesSpecInput
-		namespace     *corev1.Namespace
-		cancelWatches context.CancelFunc
-		cluster       *clusterv1.Cluster
+		specName         = "md-upgrades"
+		input            MachineDeploymentUpgradesSpecInput
+		namespace        *corev1.Namespace
+		cancelWatches    context.CancelFunc
+		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
 	)
 
 	BeforeEach(func() {
@@ -71,9 +71,7 @@ func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() Machi
 	It("Should successfully upgrade Machines upon changes in relevant MachineDeployment fields", func() {
 
 		By("Creating a workload cluster")
-
-		var mds []*clusterv1.MachineDeployment
-		cluster, _, mds = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+		clusterResources = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
@@ -95,24 +93,24 @@ func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() Machi
 		By("Upgrading MachineDeployment's Kubernetes version to a valid version")
 		framework.UpgradeMachineDeploymentsAndWait(context.TODO(), framework.UpgradeMachineDeploymentsAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,
-			Cluster:                     cluster,
+			Cluster:                     clusterResources.Cluster,
 			UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersion),
 			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			MachineDeployments:          mds,
+			MachineDeployments:          clusterResources.MachineDeployments,
 		})
 
 		By("Upgrading MachineDeployment Infrastructure ref and wait for rolling upgrade")
 		framework.UpgradeMachineDeploymentInfrastructureRefAndWait(context.TODO(), framework.UpgradeMachineDeploymentInfrastructureRefAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,
-			Cluster:                     cluster,
+			Cluster:                     clusterResources.Cluster,
 			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			MachineDeployments:          mds,
+			MachineDeployments:          clusterResources.MachineDeployments,
 		})
 		By("PASSED!")
 	})
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

@@ -1,3 +1,5 @@
+// +build e2e
+
 /*
 Copyright 2020 The Kubernetes Authors.
 
@@ -33,8 +35,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// QuickStartSpecInput is the input for QuickStartSpec.
-type QuickStartSpecInput struct {
+// MachinePoolInput is the input for MachinePoolSpec
+type MachinePoolInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -42,13 +44,11 @@ type QuickStartSpecInput struct {
 	SkipCleanup           bool
 }
 
-// QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
-// creating a workload cluster.
-// This test is meant to provide a first, fast signal to detect regression; it is recommended to use it as a PR blocker test.
-func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput) {
+// MachinePoolSpec implements a test that verifies MachinePool scale up, down and version update
+func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 	var (
-		specName         = "quick-start"
-		input            QuickStartSpecInput
+		specName         = "machine-pool"
+		input            MachinePoolInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -61,17 +61,16 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0755)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
-
-		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
+		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeTo))
+		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeFrom))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 	})
 
-	It("Should create a workload cluster", func() {
-
+	It("Should successfully create a cluster with machine pool machines", func() {
 		By("Creating a workload cluster")
-
+		workerMachineCount := int32(2)
 		clusterResources = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -79,16 +78,43 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   clusterctl.DefaultFlavor,
+				Flavor:                   "machine-pool",
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
-				WorkerMachineCount:       pointer.Int64Ptr(1),
+				WorkerMachineCount:       pointer.Int64Ptr(int64(workerMachineCount)),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			WaitForMachinePools:          input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+		})
+
+		By("Scaling the machine pool up")
+		framework.ScaleMachinePoolAndWait(context.TODO(), framework.ScaleMachinePoolAndWaitInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   clusterResources.Cluster,
+			Replicas:                  workerMachineCount + 1,
+			MachinePools:              clusterResources.MachinePools,
+			WaitForMachinePoolToScale: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+		})
+
+		By("Scaling the machine pool down")
+		framework.ScaleMachinePoolAndWait(context.TODO(), framework.ScaleMachinePoolAndWaitInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   clusterResources.Cluster,
+			Replicas:                  workerMachineCount - 1,
+			MachinePools:              clusterResources.MachinePools,
+			WaitForMachinePoolToScale: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+		})
+
+		By("Upgrading the instances")
+		framework.UpgradeMachinePoolAndWait(context.TODO(), framework.UpgradeMachinePoolAndWaitInput{
+			ClusterProxy:                   input.BootstrapClusterProxy,
+			Cluster:                        clusterResources.Cluster,
+			UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+			WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+			MachinePools:                   clusterResources.MachinePools,
 		})
 
 		By("PASSED!")

@@ -34,13 +34,15 @@ type Node struct {
 	Name        string
 	ClusterRole string
 	InternalIP  string
+	Image       string
 	Commander   *containerCmder
 }
 
 // NewNode returns a Node with defaults.
-func NewNode(name, role string) *Node {
+func NewNode(name, image, role string) *Node {
 	return &Node{
 		Name:        name,
+		Image:       image,
 		ClusterRole: role,
 		Commander:   ContainerCmder(name),
 	}

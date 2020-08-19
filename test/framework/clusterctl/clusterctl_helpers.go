@@ -27,6 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 )
@@ -109,11 +110,19 @@ type ApplyClusterTemplateAndWaitInput struct {
 	WaitForClusterIntervals      []interface{}
 	WaitForControlPlaneIntervals []interface{}
 	WaitForMachineDeployments    []interface{}
+	WaitForMachinePools          []interface{}
+}
+
+type ApplyClusterTemplateAndWaitResult struct {
+	Cluster            *clusterv1.Cluster
+	ControlPlane       *controlplanev1.KubeadmControlPlane
+	MachineDeployments []*clusterv1.MachineDeployment
+	MachinePools       []*clusterv1exp.MachinePool
 }
 
 // ApplyClusterTemplateAndWait gets a cluster template using clusterctl, and waits for the cluster to be ready.
 // Important! this method assumes the cluster uses a KubeadmControlPlane and MachineDeployments.
-func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplateAndWaitInput) (*clusterv1.Cluster, *controlplanev1.KubeadmControlPlane, []*clusterv1.MachineDeployment) {
+func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplateAndWaitInput) *ApplyClusterTemplateAndWaitResult {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ApplyClusterTemplateAndWait")
@@ -174,11 +183,23 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		ControlPlane: controlPlane,
 	}, input.WaitForControlPlaneIntervals...)
 
-	log.Logf("Waiting for the worker machines to be provisioned")
+	log.Logf("Waiting for the machine deployments to be provisioned")
 	machineDeployments := framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: cluster,
 	}, input.WaitForMachineDeployments...)
 
-	return cluster, controlPlane, machineDeployments
+	log.Logf("Waiting for the machine pools to be provisioned")
+	machinePools := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
+		Getter:  input.ClusterProxy.GetClient(),
+		Lister:  input.ClusterProxy.GetClient(),
+		Cluster: cluster,
+	}, input.WaitForMachineDeployments...)
+
+	return &ApplyClusterTemplateAndWaitResult{
+		Cluster:            cluster,
+		ControlPlane:       controlPlane,
+		MachineDeployments: machineDeployments,
+		MachinePools:       machinePools,
+	}
 }

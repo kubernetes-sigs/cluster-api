@@ -142,10 +142,12 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 	}
 
 	// gets the path part of the url and check it is an absolute path
-	// in case of windows, we should take care of removing the additional / which is required by the URI standard
-	// for windows local paths. see https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/ for more details
-	path := url.EscapedPath()
+	path := url.Path
 	if runtime.GOOS == "windows" {
+		// in case of windows, we should take care of removing the additional / which is required by the URI standard
+		// for windows local paths. see https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/ for more details.
+		// Encoded file paths are not required in Windows 10 versions <1803 and are unsupported in Windows 10 >=1803
+		// https://support.microsoft.com/en-us/help/4467268/url-encoded-unc-paths-not-url-decoded-in-windows-10-version-1803-later
 		path = strings.TrimPrefix(path, "/")
 		path = filepath.FromSlash(path)
 	}

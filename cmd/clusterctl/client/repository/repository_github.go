@@ -249,7 +249,11 @@ func (g *gitHubRepository) getLatestRelease() (string, error) {
 	// Search for the latest release according to semantic version ordering.
 	// Releases with tag name that are not in semver format are ignored.
 	var latestTag string
+	var latestPrereleaseTag string
+
 	var latestReleaseVersion *version.Version
+	var latestPrereleaseVersion *version.Version
+
 	for _, v := range versions {
 		sv, err := version.ParseSemantic(v)
 		if err != nil {
@@ -257,8 +261,12 @@ func (g *gitHubRepository) getLatestRelease() (string, error) {
 			continue
 		}
 
-		// ignore pre-releases when getting latest release
+		// track prereleases separately
 		if sv.PreRelease() != "" {
+			if latestPrereleaseVersion == nil || latestPrereleaseVersion.LessThan(sv) {
+				latestPrereleaseTag = v
+				latestPrereleaseVersion = sv
+			}
 			continue
 		}
 
@@ -268,8 +276,13 @@ func (g *gitHubRepository) getLatestRelease() (string, error) {
 		}
 	}
 
+	// Fall back to returning latest prereleases if no release has been cut or bail if it's also empty
 	if latestTag == "" {
-		return "", errors.New("failed to find releases tagged with a valid semantic version number")
+		if latestPrereleaseTag == "" {
+			return "", errors.New("failed to find releases tagged with a valid semantic version number")
+		}
+
+		return latestPrereleaseTag, nil
 	}
 	return latestTag, nil
 }

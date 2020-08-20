@@ -304,6 +304,16 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 		//no releases
 	})
 
+	// setup an handler for returning fake prereleases only
+	mux.HandleFunc("/repos/o/r3/releases", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `[`)
+		fmt.Fprint(w, `{"id":1, "tag_name": "v0.1.0-alpha.0"},`)
+		fmt.Fprint(w, `{"id":2, "tag_name": "v0.1.0-alpha.1"},`)
+		fmt.Fprint(w, `{"id":3, "tag_name": "v0.1.0-alpha.2"}`)
+		fmt.Fprint(w, `]`)
+	})
+
 	configVariablesClient := test.NewFakeVariableClient()
 
 	type field struct {
@@ -330,6 +340,14 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 			},
 			want:    "",
 			wantErr: true,
+		},
+		{
+			name: "Falls back to latest prerelease when no official release present",
+			field: field{
+				providerConfig: config.NewProvider("test", "https://github.com/o/r3/releases/latest/path", clusterctlv1.CoreProviderType),
+			},
+			want:    "v0.1.0-alpha.2",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

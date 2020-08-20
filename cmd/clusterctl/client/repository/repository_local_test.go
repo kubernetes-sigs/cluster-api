@@ -190,6 +190,10 @@ func Test_localRepository_GetFile(t *testing.T) {
 	p2URLLatestAbs := filepath.Join(tmpDir, p2URLLatest)
 	p2 := config.NewProvider("bar", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
 
+	// Provider 3: URL is for only prerelease available
+	dst3 := createLocalTestProviderFile(t, tmpDir, "bootstrap-baz/v1.0.0-alpha.0/bootstrap-components.yaml", "version: v1.0.0-alpha.0")
+	p3 := config.NewProvider("baz", dst3, clusterctlv1.BootstrapProviderType)
+
 	type fields struct {
 		provider              config.Provider
 		configVariablesClient config.VariablesClient
@@ -265,6 +269,21 @@ func Test_localRepository_GetFile(t *testing.T) {
 			},
 			want: want{
 				contents: "version: v2.0.0-alpha.0", // We use the file contents to determine data was read from latest release
+			},
+			wantErr: false,
+		},
+		{
+			name: "Get file from latest prerelease directory if no releases",
+			fields: fields{
+				provider:              p3,
+				configVariablesClient: test.NewFakeVariableClient(),
+			},
+			args: args{
+				version:  "latest",
+				fileName: "bootstrap-components.yaml",
+			},
+			want: want{
+				contents: "version: v1.0.0-alpha.0", // We use the file contents to determine data was read from latest prerelease
 			},
 			wantErr: false,
 		},

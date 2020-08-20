@@ -38,7 +38,7 @@ metadata:
   name: controlplane-0
   namespace: default
 spec:
-  version: "v1.14.2"
+  version: v1.18.6
   clusterName: my-cluster
   bootstrap:
     configRef:
@@ -68,40 +68,46 @@ spec:
         eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: DockerMachine
+kind: DockerMachineTemplate
 metadata:
-  name: worker-0
-  namespace: default
----
-apiVersion: cluster.x-k8s.io/v1alpha3
-kind: Machine
-metadata:
-  labels:
-    cluster.x-k8s.io/cluster-name: my-cluster
-  name: worker-0
+  name: worker
   namespace: default
 spec:
-  version: "v1.14.2"
-  clusterName: my-cluster
-  bootstrap:
-    configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-      kind: KubeadmConfig
-      name: worker-0-config
-      namespace: default
-  infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: DockerMachine
-    name: worker-0
-    namespace: default
+  template:
+    spec: {}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-kind: KubeadmConfig
+kind: KubeadmConfigTemplate
 metadata:
-  name: worker-0-config
-  namespace: default
+  name: worker
 spec:
-  joinConfiguration:
-    nodeRegistration:
-      kubeletExtraArgs:
-        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineDeployment
+metadata:
+  name: worker-md-0
+spec:
+  clusterName: my-cluster
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: my-cluster
+  template:
+    spec:
+      version: v1.18.6
+      clusterName: my-cluster
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          kind: KubeadmConfigTemplate
+          name: worker
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        kind: DockerMachineTemplate
+        name: worker

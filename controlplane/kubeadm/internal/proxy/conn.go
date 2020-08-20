@@ -20,11 +20,13 @@ import (
 	"net"
 	"time"
 
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 )
 
 // Conn is a Kubernetes API server proxied type of net/conn
 type Conn struct {
+	connection    httpstream.Connection
 	stream        httpstream.Stream
 	readDeadline  time.Time
 	writeDeadline time.Time
@@ -37,7 +39,7 @@ func (c Conn) Read(b []byte) (n int, err error) {
 
 // Close the underlying proxied connection
 func (c Conn) Close() error {
-	return c.stream.Close()
+	return kerrors.NewAggregate([]error{c.stream.Close(), c.connection.Close()})
 }
 
 // Write to the connection
@@ -77,8 +79,9 @@ func (c Conn) SetReadDeadline(t time.Time) error {
 
 // NewConn creates a new net/conn interface based on an underlying Kubernetes
 // API server proxy connection
-func NewConn(stream httpstream.Stream) Conn {
+func NewConn(connection httpstream.Connection, stream httpstream.Stream) Conn {
 	return Conn{
-		stream: stream,
+		connection: connection,
+		stream:     stream,
 	}
 }

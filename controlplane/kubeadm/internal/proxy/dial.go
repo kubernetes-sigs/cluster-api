@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
@@ -93,33 +94,55 @@ func (d *Dialer) DialContext(_ context.Context, network string, addr string) (ne
 
 	dialer := spdy.NewDialer(d.upgrader, &http.Client{Transport: d.proxyTransport}, "POST", req.URL())
 
-	p, _, err := dialer.Dial(portforward.PortForwardProtocolV1Name)
+	// Create a new connection from the dialer.
+	//
+	// Warning: Any early return should close this connection, otherwise we're going to leak them.
+	connection, _, err := dialer.Dial(portforward.PortForwardProtocolV1Name)
 	if err != nil {
 		return nil, errors.Wrap(err, "error upgrading connection")
 	}
+
+	// Create the headers.
 	headers := http.Header{}
-	headers.Set(corev1.StreamType, corev1.StreamTypeError)
+
+	// Set the header port number to match the proxy one.
 	headers.Set(corev1.PortHeader, fmt.Sprintf("%d", d.proxy.Port))
+
 	// We only create a single stream over the connection
 	headers.Set(corev1.PortForwardRequestIDHeader, "0")
-	errorStream, err := p.CreateStream(headers)
-	if err != nil {
-		return nil, err
-	}
 
+	// Create the error stream.
+	headers.Set(corev1.StreamType, corev1.StreamTypeError)
+	errorStream, err := connection.CreateStream(headers)
+	if err != nil {
+		return nil, kerrors.NewAggregate([]error{
+			err,
+			connection.Close(),
+		})
+	}
+	// Close the error stream right away, we're not writing to it.
 	if err := errorStream.Close(); err != nil {
-		return nil, err
+		return nil, kerrors.NewAggregate([]error{
+			err,
+			connection.Close(),
+		})
 	}
 
+	// Create the data stream.
+	//
+	// NOTE: Given that we're reusing the headers,
+	// we need to overwrite the stream type before creating it.
 	headers.Set(corev1.StreamType, corev1.StreamTypeData)
-	dataStream, err := p.CreateStream(headers)
+	dataStream, err := connection.CreateStream(headers)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating forwarding stream")
+		return nil, kerrors.NewAggregate([]error{
+			errors.Wrap(err, "error creating forwarding stream"),
+			connection.Close(),
+		})
 	}
 
-	c := NewConn(dataStream)
-
-	return c, nil
+	// Create the net.Conn and return.
+	return NewConn(connection, dataStream), nil
 }
 
 // DialTimeout sets the timeout

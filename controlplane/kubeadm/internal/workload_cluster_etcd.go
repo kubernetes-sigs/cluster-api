@@ -83,6 +83,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 			response[name] = errors.Wrap(err, "failed to create etcd client")
 			continue
 		}
+		defer etcdClient.Close()
 
 		// List etcd members. This checks that the member is healthy, because the request goes through consensus.
 		members, err := etcdClient.Members(ctx)
@@ -147,6 +148,7 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context) error {
 		if err != nil {
 			continue
 		}
+		defer etcdClient.Close()
 
 		members, err := etcdClient.Members(ctx)
 		if err != nil {
@@ -226,6 +228,7 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}
+	defer etcdClient.Close()
 
 	// List etcd members. This checks that the member is healthy, because the request goes through consensus.
 	members, err := etcdClient.Members(ctx)
@@ -267,6 +270,7 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}
+	defer etcdClient.Close()
 
 	members, err := etcdClient.Members(ctx)
 	if err != nil {

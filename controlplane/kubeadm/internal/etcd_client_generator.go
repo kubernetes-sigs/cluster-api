@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"crypto/tls"
+
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -48,19 +49,7 @@ func (c *etcdClientGenerator) forNodes(ctx context.Context, nodes []corev1.Node)
 		TLSConfig:  c.tlsConfig,
 		Port:       2379,
 	}
-	dialer, err := proxy.NewDialer(p)
-	if err != nil {
-		return nil, err
-	}
-	etcdclient, err := etcd.NewEtcdClient(endpoints, dialer.DialContextWithAddr, c.tlsConfig)
-	if err != nil {
-		return nil, err
-	}
-	customClient, err := etcd.NewClientWithEtcd(ctx, etcdclient)
-	if err != nil {
-		return nil, err
-	}
-	return customClient, nil
+	return etcd.NewClient(ctx, endpoints, p, c.tlsConfig)
 }
 
 // forLeader takes a list of nodes and returns a client to the leader node

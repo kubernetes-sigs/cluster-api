@@ -241,7 +241,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			Path: "abc",
 		},
 	}
-	validUpdate.Spec.Version = "v1.16.6"
+	validUpdate.Spec.Version = "v1.17.1"
 	validUpdate.Spec.InfrastructureTemplate.Name = "orange"
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
 	now := metav1.NewTime(time.Now())
@@ -288,6 +288,14 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	kubernetesVersion := before.DeepCopy()
 	kubernetesVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.KubernetesVersion = "some kubernetes version"
+
+	prevKCPWithVersion := func(version string) *KubeadmControlPlane {
+		prev := before.DeepCopy()
+		prev.Spec.Version = version
+		return prev
+	}
+	skipMinorControlPlaneVersion := prevKCPWithVersion("v1.18.1")
+	emptyControlPlaneVersion := prevKCPWithVersion("")
 
 	controlPlaneEndpoint := before.DeepCopy()
 	controlPlaneEndpoint.Spec.KubeadmConfigSpec.ClusterConfiguration.ControlPlaneEndpoint = "some control plane endpoint"
@@ -664,6 +672,24 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    withoutClusterConfiguration,
 			kcp:       withoutClusterConfiguration,
+		},
+		{
+			name:      "should fail when skipping control plane minor versions",
+			expectErr: true,
+			before:    before,
+			kcp:       skipMinorControlPlaneVersion,
+		},
+		{
+			name:      "should fail when no control plane version is passed",
+			expectErr: true,
+			before:    before,
+			kcp:       emptyControlPlaneVersion,
+		},
+		{
+			name:      "should pass if control plane version is the same",
+			expectErr: false,
+			before:    before,
+			kcp:       before.DeepCopy(),
 		},
 	}
 

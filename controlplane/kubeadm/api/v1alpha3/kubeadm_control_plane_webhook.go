@@ -22,13 +22,14 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/coredns/corefile-migration/migration"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
-
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/container"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -148,6 +149,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		}
 	}
 
+	allErrs = append(allErrs, in.validateVersion(prev.Spec.Version)...)
 	allErrs = append(allErrs, in.validateEtcd(prev)...)
 	allErrs = append(allErrs, in.validateCoreDNSVersion(prev)...)
 
@@ -379,6 +381,47 @@ func (in *KubeadmControlPlane) validateEtcd(prev *KubeadmControlPlane) (allErrs 
 				),
 			)
 		}
+	}
+
+	return allErrs
+}
+
+func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs field.ErrorList) {
+	fromVersion, err := util.ParseMajorMinorPatch(previousVersion)
+	if err != nil {
+		allErrs = append(allErrs,
+			field.InternalError(
+				field.NewPath("spec", "version"),
+				errors.Wrapf(err, "failed to parse current kubeadmcontrolplane version: %s", previousVersion),
+			),
+		)
+		return allErrs
+	}
+
+	toVersion, err := util.ParseMajorMinorPatch(in.Spec.Version)
+	if err != nil {
+		allErrs = append(allErrs,
+			field.InternalError(
+				field.NewPath("spec", "version"),
+				errors.Wrapf(err, "failed to parse updated kubeadmcontrolplane version: %s", in.Spec.Version),
+			),
+		)
+		return allErrs
+	}
+
+	// since upgrades to the next minor version are allowed, irrespective of the patch version
+	ceilVersion := semver.Version{
+		Major: fromVersion.Major,
+		Minor: fromVersion.Minor + 2,
+		Patch: 0,
+	}
+	if toVersion.GTE(ceilVersion) {
+		allErrs = append(allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "version"),
+				fmt.Sprintf("cannot update Kubernetes version from %s to %s", previousVersion, in.Spec.Version),
+			),
+		)
 	}
 
 	return allErrs

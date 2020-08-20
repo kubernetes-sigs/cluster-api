@@ -52,14 +52,14 @@ const (
 	// NOTE: // If the cert-manager.yaml asset is modified, this line **MUST** be updated
 	// accordingly else future upgrades of the cert-manager component will not
 	// be possible, as there'll be no record of the version installed.
-	embeddedCertManagerManifestVersion = "v0.16.0"
+	embeddedCertManagerManifestVersion = "v0.16.1"
 
 	// NOTE: The hash is used to ensure that when the cert-manager.yaml file is updated,
 	// the version number marker here is _also_ updated.
 	// You can either generate the SHA256 hash of the file, or alternatively
 	// run `go test` against this package. THe Test_VersionMarkerUpToDate will output
 	// the expected hash if it does not match the hash here.
-	embeddedCertManagerManifestHash = "5770f5f01c10a902355b3522b8ce44508ebb6ec88955efde9a443afe5b3969d7"
+	embeddedCertManagerManifestHash = "af8c08a8eb65d102ba98889a89f4ad1d3db5d302edb5b8f8f3e69bb992faa211"
 )
 
 // CertManagerClient has methods to work with cert-manager components in the cluster.

@@ -44,7 +44,8 @@ var controllerYaml = []byte("apiVersion: apps/v1\n" +
 	"  template:\n" +
 	"    spec:\n" +
 	"      containers:\n" +
-	"      - name: manager\n")
+	"      - name: manager\n" +
+	"        image: docker.io/library/image:latest\n")
 
 const namespaceName = "capa-system"
 

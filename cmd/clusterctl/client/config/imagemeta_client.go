@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -50,24 +51,29 @@ func newImageMetaClient(reader Reader) *imageMetaClient {
 	}
 }
 
-func (p *imageMetaClient) AlterImage(component, image string) (string, error) {
-	// Gets the image meta that applies to the selected component; if none, returns early
-	meta, err := p.getImageMetaByComponent(component)
+func (p *imageMetaClient) AlterImage(component, imageString string) (string, error) {
+	image, err := container.ImageFromString(imageString)
+	if err != nil {
+		return "", err
+	}
+
+	// Gets the image meta that applies to the selected component/image; if none, returns early
+	meta, err := p.getImageMeta(component, image.Name)
 	if err != nil {
 		return "", err
 	}
 	if meta == nil {
-		return image, nil
+		return imageString, nil
 	}
 
 	// Apply the image meta to image name
-	return meta.ApplyToImage(image)
+	return meta.ApplyToImage(image), nil
 }
 
-// getImageMetaByComponent returns the image meta that applies to the selected component
-func (p *imageMetaClient) getImageMetaByComponent(component string) (*imageMeta, error) {
+// getImageMeta returns the image meta that applies to the selected component/image
+func (p *imageMetaClient) getImageMeta(component, imageName string) (*imageMeta, error) {
 	// if the image meta for the component is already known, return it
-	if im, ok := p.imageMetaCache[component]; ok {
+	if im, ok := p.imageMetaCache[imageMetaCacheKey(component, imageName)]; ok {
 		return im, nil
 	}
 
@@ -79,21 +85,35 @@ func (p *imageMetaClient) getImageMetaByComponent(component string) (*imageMeta,
 
 	// If there are not image override configurations, return.
 	if meta == nil {
-		p.imageMetaCache[component] = nil
+		p.imageMetaCache[imageMetaCacheKey(component, imageName)] = nil
 		return nil, nil
 	}
 
-	// Gets the image configuration and to the specific component, and returns the union of the two.
+	// Gets the image configuration for:
+	//	- all the components,
+	//	- the component (and to all its images)
+	//	- the selected component/image
+	//	and returns the union of all the above.
 	m := &imageMeta{}
 	if allMeta, ok := meta[allImageConfig]; ok {
 		m.Union(&allMeta)
 	}
+
 	if componentMeta, ok := meta[component]; ok {
 		m.Union(&componentMeta)
 	}
-
 	p.imageMetaCache[component] = m
+
+	if imageNameMeta, ok := meta[imageMetaCacheKey(component, imageName)]; ok {
+		m.Union(&imageNameMeta)
+	}
+	p.imageMetaCache[imageMetaCacheKey(component, imageName)] = m
+
 	return m, nil
+}
+
+func imageMetaCacheKey(component, imageName string) string {
+	return fmt.Sprintf("%s/%s", component, imageName)
 }
 
 // imageMeta allows to define transformations to apply to the image contained in the YAML manifests.
@@ -117,21 +137,15 @@ func (i *imageMeta) Union(other *imageMeta) {
 }
 
 // ApplyToImage changes an image name applying the transformations defined in the current imageMeta.
-func (i *imageMeta) ApplyToImage(image string) (string, error) {
-
-	newImage, err := container.ImageFromString(image)
-	if err != nil {
-		return "", err
-	}
-
+func (i *imageMeta) ApplyToImage(image container.Image) string {
 	// apply transformations
 	if i.Repository != "" {
-		newImage.Repository = strings.TrimSuffix(i.Repository, "/")
+		image.Repository = strings.TrimSuffix(i.Repository, "/")
 	}
 	if i.Tag != "" {
-		newImage.Tag = i.Tag
+		image.Tag = i.Tag
 	}
 
 	// returns the resulting image name
-	return newImage.String(), nil
+	return image.String()
 }

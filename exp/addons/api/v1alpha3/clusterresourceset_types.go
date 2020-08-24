@@ -25,6 +25,9 @@ import (
 const (
 	// ClusterResourceSetSecretType is the only accepted type of secret in resources
 	ClusterResourceSetSecretType corev1.SecretType = "addons.cluster.x-k8s.io/resource-set" //nolint:gosec
+
+	// ClusterResourceSetFinalizer is added to the ClusterResourceSet object for additional cleanup logic on deletion.
+	ClusterResourceSetFinalizer = "addons.cluster.x-k8s.io"
 )
 
 // ANCHOR: ClusterResourceSetSpec

@@ -89,6 +89,17 @@ func (c *ClusterResourceSetBinding) GetOrCreateBinding(clusterResourceSet *Clust
 	return binding
 }
 
+// DeleteBinding removes the ClusterResourceSet from the ClusterResourceSetBinding Bindings list
+func (c *ClusterResourceSetBinding) DeleteBinding(clusterResourceSet *ClusterResourceSet) {
+	for i, binding := range c.Spec.Bindings {
+		if binding.ClusterResourceSetName == clusterResourceSet.Name {
+			copy(c.Spec.Bindings[i:], c.Spec.Bindings[i+1:])
+			c.Spec.Bindings = c.Spec.Bindings[:len(c.Spec.Bindings)-1]
+			break
+		}
+	}
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterresourcesetbindings,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status

@@ -432,22 +432,24 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 		return ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}, nil
 	}
 
-	// Ensure etcd is healthy
-	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {
-		// If there are any etcd members that do not have corresponding nodes, remove them from etcd and from the kubeadm configmap.
-		// This will solve issues related to manual control-plane machine deletion.
-		workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := workloadCluster.ReconcileEtcdMembers(ctx); err != nil {
-			logger.V(2).Info("Failed attempt to remove potential hanging etcd members to pass etcd health check to continue reconciliation", "cause", err)
-		}
+	// If KCP should manage etcd, ensure etcd is healthy.
+	if controlPlane.IsEtcdManaged() {
+		if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {
+			// If there are any etcd members that do not have corresponding nodes, remove them from etcd and from the kubeadm configmap.
+			// This will solve issues related to manual control-plane machine deletion.
+			workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := workloadCluster.ReconcileEtcdMembers(ctx); err != nil {
+				logger.V(2).Info("Failed attempt to remove potential hanging etcd members to pass etcd health check to continue reconciliation", "cause", err)
+			}
 
-		logger.V(2).Info("Waiting for control plane to pass etcd health check to continue reconciliation", "cause", err)
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
-			"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
-		return ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}, nil
+			logger.V(2).Info("Waiting for control plane to pass etcd health check to continue reconciliation", "cause", err)
+			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
+				"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
+			return ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}, nil
+		}
 	}
 
 	// We need this check for scale up as well as down to avoid scaling up when there is a machine being deleted.

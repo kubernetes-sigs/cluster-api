@@ -505,7 +505,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		scope.Config.Spec.JoinConfiguration.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
 	}
 
-	certificates := secret.NewCertificatesForJoiningControlPlane()
+	certificates := secret.NewControlPlaneJoinCerts(scope.Config.Spec.ClusterConfiguration)
 	err := certificates.Lookup(
 		ctx,
 		r.Client,

@@ -102,27 +102,30 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
 	}
 
-	etcdCASecret := &corev1.Secret{}
-	etcdCAObjectKey := ctrlclient.ObjectKey{
-		Namespace: clusterKey.Namespace,
-		Name:      fmt.Sprintf("%s-etcd", clusterKey.Name),
-	}
-	if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
-		return nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
-	}
-	crtData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
-	if !ok {
-		return nil, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
-	}
-	keyData, ok := etcdCASecret.Data[secret.TLSKeyDataName]
-	if !ok {
-		return nil, errors.Errorf("etcd tls key does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
-	}
-
-	clientCert, err := generateClientCert(crtData, keyData)
+	// Retrieves the etcd CA key Pair
+	crtData, keyData, err := m.getEtcdCAKeyPair(ctx, clusterKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// If the CA key is defined, the cluster is using a managed etcd, and so we can generate a new
+	// etcd client certificate for the controllers.
+	// Otherwise the cluster is using an external etcd; in this case the only option to connect to etcd is to re-use
+	// the apiserver-etcd-client certificate.
+	// TODO: consider if we can detect if we are using external etcd in a more explicit way (e.g. looking at the config instead of deriving from the existing certificates)
+	var clientCert tls.Certificate
+	if keyData != nil {
+		clientCert, err = generateClientCert(crtData, keyData)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		clientCert, err = m.getApiServerEtcdClientCert(ctx, clusterKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(crtData)
 	cfg := &tls.Config{
@@ -138,6 +141,43 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 			tlsConfig:  cfg,
 		},
 	}, nil
+}
+
+func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey ctrlclient.ObjectKey) ([]byte, []byte, error) {
+	etcdCASecret := &corev1.Secret{}
+	etcdCAObjectKey := ctrlclient.ObjectKey{
+		Namespace: clusterKey.Namespace,
+		Name:      fmt.Sprintf("%s-etcd", clusterKey.Name),
+	}
+	if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+	}
+	crtData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
+	if !ok {
+		return nil, nil, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+	}
+	keyData := etcdCASecret.Data[secret.TLSKeyDataName]
+	return crtData, keyData, nil
+}
+
+func (m *Management) getApiServerEtcdClientCert(ctx context.Context, clusterKey ctrlclient.ObjectKey) (tls.Certificate, error) {
+	apiServerEtcdClientCertificateSecret := &corev1.Secret{}
+	apiServerEtcdClientCertificateObjectKey := ctrlclient.ObjectKey{
+		Namespace: clusterKey.Namespace,
+		Name:      fmt.Sprintf("%s-apiserver-etcd-client", clusterKey.Name),
+	}
+	if err := m.Client.Get(ctx, apiServerEtcdClientCertificateObjectKey, apiServerEtcdClientCertificateSecret); err != nil {
+		return tls.Certificate{}, errors.Wrapf(err, "failed to get secret; etcd apiserver-etcd-client %s/%s", apiServerEtcdClientCertificateObjectKey.Namespace, apiServerEtcdClientCertificateObjectKey.Name)
+	}
+	crtData, ok := apiServerEtcdClientCertificateSecret.Data[secret.TLSCrtDataName]
+	if !ok {
+		return tls.Certificate{}, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+	}
+	keyData, ok := apiServerEtcdClientCertificateSecret.Data[secret.TLSKeyDataName]
+	if !ok {
+		return tls.Certificate{}, errors.Errorf("etcd tls key does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+	}
+	return tls.X509KeyPair(crtData, keyData)
 }
 
 type healthCheck func(context.Context) (HealthCheckResult, error)

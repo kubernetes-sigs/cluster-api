@@ -110,15 +110,17 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
 	}
 
-	// If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
-	etcdLeaderCandidate := controlPlane.Machines.Newest()
-	if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate); err != nil {
-		logger.Error(err, "Failed to move leadership to candidate machine", "candidate", etcdLeaderCandidate.Name)
-		return ctrl.Result{}, err
-	}
-	if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToDelete); err != nil {
-		logger.Error(err, "Failed to remove etcd member for machine")
-		return ctrl.Result{}, err
+	// If KCP should manage etcd, If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
+	if controlPlane.IsEtcdManaged() {
+		etcdLeaderCandidate := controlPlane.Machines.Newest()
+		if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate); err != nil {
+			logger.Error(err, "Failed to move leadership to candidate machine", "candidate", etcdLeaderCandidate.Name)
+			return ctrl.Result{}, err
+		}
+		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToDelete); err != nil {
+			logger.Error(err, "Failed to remove etcd member for machine")
+			return ctrl.Result{}, err
+		}
 	}
 
 	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {

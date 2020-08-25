@@ -160,7 +160,9 @@ func (c *ControlPlane) InitialControlPlaneConfig() *bootstrapv1.KubeadmConfigSpe
 func (c *ControlPlane) JoinControlPlaneConfig() *bootstrapv1.KubeadmConfigSpec {
 	bootstrapSpec := c.KCP.Spec.KubeadmConfigSpec.DeepCopy()
 	bootstrapSpec.InitConfiguration = nil
-	bootstrapSpec.ClusterConfiguration = nil
+	// NOTE: For the joining we are preserving the ClusterConfiguration in order to determine if the
+	// cluster is using an external etcd in the kubeadm bootstrap provider (even if this is not required by kubeadm Join).
+	// TODO: Determine if this copy of cluster configuration can be used for rollouts (thus allowing to remove the annotation at machine level)
 	return bootstrapSpec
 }
 
@@ -278,4 +280,9 @@ func getKubeadmConfigs(ctx context.Context, cl client.Client, machines Filterabl
 		result[m.Name] = machineConfig
 	}
 	return result, nil
+}
+
+// IsEtcdManaged returns true if the control plane relies on a managed etcd.
+func (c *ControlPlane) IsEtcdManaged() bool {
+	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
 }

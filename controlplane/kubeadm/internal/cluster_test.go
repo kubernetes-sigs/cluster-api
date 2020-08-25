@@ -18,9 +18,15 @@ package internal
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -33,20 +39,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
+	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func podReady(isReady corev1.ConditionStatus) corev1.PodCondition {
-	return corev1.PodCondition{
-		Type:   corev1.PodReady,
-		Status: isReady,
-	}
-}
-
-type checkStaticPodReadyConditionTest struct {
-	name       string
-	conditions []corev1.PodCondition
-}
 
 func TestCheckStaticPodReadyCondition(t *testing.T) {
 	table := []checkStaticPodReadyConditionTest{
@@ -128,28 +125,6 @@ func TestControlPlaneIsHealthy(t *testing.T) {
 	g.Expect(health).To(HaveLen(len(nodeListForTestControlPlaneIsHealthy().Items)))
 }
 
-func nodeNamed(name string, options ...func(n corev1.Node) corev1.Node) corev1.Node {
-	node := corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-	for _, opt := range options {
-		node = opt(node)
-	}
-	return node
-}
-
-func nodeListForTestControlPlaneIsHealthy() *corev1.NodeList {
-	return &corev1.NodeList{
-		Items: []corev1.Node{
-			nodeNamed("first-control-plane"),
-			nodeNamed("second-control-plane"),
-			nodeNamed("third-control-plane"),
-		},
-	}
-}
-
 func TestGetMachinesForCluster(t *testing.T) {
 	g := NewWithT(t)
 
@@ -176,6 +151,198 @@ func TestGetMachinesForCluster(t *testing.T) {
 	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.ControlPlaneMachines("my-cluster"), nameFilter)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
+}
+
+func TestGetWorkloadCluster(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := testEnv.CreateNamespace(ctx, "workload-cluster")
+	g.Expect(err).ToNot(HaveOccurred())
+	defer func() {
+		g.Expect(testEnv.Cleanup(ctx, ns)).To(Succeed())
+	}()
+
+	// Create an etcd secret with valid certs
+	key, err := certs.NewPrivateKey()
+	g.Expect(err).ToNot(HaveOccurred())
+	cert, err := getTestCACert(key)
+	g.Expect(err).ToNot(HaveOccurred())
+	etcdSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-cluster-etcd",
+			Namespace: ns.Name,
+		},
+		Data: map[string][]byte{
+			secret.TLSCrtDataName: certs.EncodeCertPEM(cert),
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(key),
+		},
+	}
+	emptyCrtEtcdSecret := etcdSecret.DeepCopy()
+	delete(emptyCrtEtcdSecret.Data, secret.TLSCrtDataName)
+	emptyKeyEtcdSecret := etcdSecret.DeepCopy()
+	delete(emptyKeyEtcdSecret.Data, secret.TLSKeyDataName)
+	badCrtEtcdSecret := etcdSecret.DeepCopy()
+	badCrtEtcdSecret.Data[secret.TLSCrtDataName] = []byte("bad cert")
+
+	// Create kubeconfig secret
+	// Store the envtest config as the contents of the kubeconfig secret.
+	// This way we are using the envtest environment as both the
+	// management and the workload cluster.
+	testEnvKubeconfig := kubeconfig.FromEnvTestConfig(testEnv.GetConfig(), &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-cluster",
+			Namespace: ns.Name,
+		},
+	})
+	kubeconfigSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-cluster-kubeconfig",
+			Namespace: ns.Name,
+		},
+		Data: map[string][]byte{
+			secret.KubeconfigDataName: testEnvKubeconfig,
+		},
+	}
+	clusterKey := client.ObjectKey{
+		Name:      "my-cluster",
+		Namespace: ns.Name,
+	}
+
+	tests := []struct {
+		name       string
+		clusterKey client.ObjectKey
+		objs       []runtime.Object
+		expectErr  bool
+	}{
+		{
+			name:       "returns a workload cluster",
+			clusterKey: clusterKey,
+			objs:       []runtime.Object{etcdSecret.DeepCopy(), kubeconfigSecret.DeepCopy()},
+			expectErr:  false,
+		},
+		{
+			name:       "returns error if cannot get rest.Config from kubeconfigSecret",
+			clusterKey: clusterKey,
+			objs:       []runtime.Object{etcdSecret.DeepCopy()},
+			expectErr:  true,
+		},
+		{
+			name:       "returns error if unable to find the etcd secret",
+			clusterKey: clusterKey,
+			objs:       []runtime.Object{kubeconfigSecret.DeepCopy()},
+			expectErr:  true,
+		},
+		{
+			name:       "returns error if unable to find the certificate in the etcd secret",
+			clusterKey: clusterKey,
+			objs:       []runtime.Object{emptyCrtEtcdSecret.DeepCopy(), kubeconfigSecret.DeepCopy()},
+			expectErr:  true,
+		},
+		{
+			name:       "returns error if unable to find the key in the etcd secret",
+			clusterKey: clusterKey,
+			objs:       []runtime.Object{emptyKeyEtcdSecret.DeepCopy(), kubeconfigSecret.DeepCopy()},
+			expectErr:  true,
+		},
+		{
+			name:       "returns error if unable to generate client cert",
+			clusterKey: clusterKey,
+			objs:       []runtime.Object{badCrtEtcdSecret.DeepCopy(), kubeconfigSecret.DeepCopy()},
+			expectErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			for _, o := range tt.objs {
+				g.Expect(testEnv.CreateObj(ctx, o)).To(Succeed())
+				defer func(do runtime.Object) {
+					g.Expect(testEnv.Cleanup(ctx, do)).To(Succeed())
+				}(o)
+			}
+
+			m := Management{
+				Client: testEnv,
+			}
+
+			workloadCluster, err := m.GetWorkloadCluster(context.Background(), tt.clusterKey)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(workloadCluster).To(BeNil())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(workloadCluster).ToNot(BeNil())
+		})
+	}
+
+}
+
+func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
+	cfg := certs.Config{
+		CommonName: "kubernetes",
+	}
+
+	now := time.Now().UTC()
+
+	tmpl := x509.Certificate{
+		SerialNumber: new(big.Int).SetInt64(0),
+		Subject: pkix.Name{
+			CommonName:   cfg.CommonName,
+			Organization: cfg.Organization,
+		},
+		NotBefore:             now.Add(time.Minute * -5),
+		NotAfter:              now.Add(time.Hour * 24), // 1 day
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		MaxPathLenZero:        true,
+		BasicConstraintsValid: true,
+		MaxPathLen:            0,
+		IsCA:                  true,
+	}
+
+	b, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, key.Public(), key)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := x509.ParseCertificate(b)
+	return c, err
+}
+
+func podReady(isReady corev1.ConditionStatus) corev1.PodCondition {
+	return corev1.PodCondition{
+		Type:   corev1.PodReady,
+		Status: isReady,
+	}
+}
+
+type checkStaticPodReadyConditionTest struct {
+	name       string
+	conditions []corev1.PodCondition
+}
+
+func nodeListForTestControlPlaneIsHealthy() *corev1.NodeList {
+	return &corev1.NodeList{
+		Items: []corev1.Node{
+			nodeNamed("first-control-plane"),
+			nodeNamed("second-control-plane"),
+			nodeNamed("third-control-plane"),
+		},
+	}
+}
+
+func nodeNamed(name string, options ...func(n corev1.Node) corev1.Node) corev1.Node {
+	node := corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	for _, opt := range options {
+		node = opt(node)
+	}
+	return node
 }
 
 func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
@@ -243,6 +410,8 @@ func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Ob
 		l.DeepCopyInto(obj.(*appsv1.DaemonSet))
 	case *corev1.ConfigMap:
 		l.DeepCopyInto(obj.(*corev1.ConfigMap))
+	case *corev1.Secret:
+		l.DeepCopyInto(obj.(*corev1.Secret))
 	case nil:
 		return apierrors.NewNotFound(schema.GroupResource{}, key.Name)
 	default:

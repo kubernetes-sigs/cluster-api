@@ -23,16 +23,16 @@ import (
 )
 
 type decodeTest struct {
+	name        string
 	key         []byte
 	expectError bool
 }
 
 func TestDecodePrivateKeyPEM(t *testing.T) {
-	g := NewWithT(t)
 
 	cases := []decodeTest{
-		// PKCS1 private key
 		{
+			name: "successfully processes PKCS1 private key",
 			key: []byte(`
 -----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgQCgcTrC6rTj6KV5GeUyEODguAY+RMxX0ZzskOZBUFuUn1ADj7qK
@@ -51,8 +51,8 @@ I8eun6k9HNyEieJTVaB9AVnykoZ78UbCQaipm9W7i4Q=
 -----END RSA PRIVATE KEY-----
 			`),
 		},
-		// PKCS8 private key
 		{
+			name: "successfully processes PKCS8 private key",
 			key: []byte(`
 -----BEGIN PRIVATE KEY-----
 MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKBxOsLqtOPopXkZ
@@ -72,8 +72,8 @@ RsJBqKmb1buLhA==
 -----END PRIVATE KEY-----
 			`),
 		},
-		// EC private key
 		{
+			name: "successfully processes EC private key",
 			key: []byte(`
 -----BEGIN EC PRIVATE KEY-----
 MHcCAQEEIOsVFUX30MNP7e+MFRTbdknxaC3q3S8fYvmXtrM9tPJJoAoGCCqGSM49
@@ -82,8 +82,8 @@ X9ZN2FCDgn06wSq/cZvLOl2tGPRt5wSMug==
 -----END EC PRIVATE KEY-----
 			`),
 		},
-		// Bad format private key
 		{
+			name: "return error for bad format private key",
 			key: []byte(`
 -----BEGIN RSA PRIVATE KEY-----
 sxcvMIICXAIBAAKBgQCgcTrC6rTj6KV5GeUyEODguAY+RMxX0ZzskOZBUFuUn1ADj7qK
@@ -103,14 +103,45 @@ I8eun6k9HNyEieJTVaB9AVnykoZ78UbCQaipm9W7i4Q=
 			`),
 			expectError: true,
 		},
+		{
+			name:        "return error for un-decodeable key",
+			key:         []byte("un-decodeable"),
+			expectError: true,
+		},
 	}
 
 	for _, tc := range cases {
-		_, err := DecodePrivateKeyPEM(tc.key)
-		if tc.expectError {
-			g.Expect(err).To(HaveOccurred())
-		} else {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			_, err := DecodePrivateKeyPEM(tc.key)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
 			g.Expect(err).NotTo(HaveOccurred())
-		}
+		})
 	}
+}
+
+func TestDecodeCertPEM(t *testing.T) {
+	cases := []decodeTest{
+		{
+			name:        "return error for un-decodeable cert",
+			key:         []byte("un-decodeable"),
+			expectError: true,
+		},
+	}
+
+	for _, tc := range cases {
+		g := NewWithT(t)
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := DecodeCertPEM(tc.key)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+
 }

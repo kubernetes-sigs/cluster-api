@@ -21,14 +21,14 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: KubeadmControlPlane API Server is ready to receive requests
-      jsonPath: .status.ready
-      name: Ready
-      type: boolean
     - description: This denotes whether or not the control plane has the uploaded
         kubeadm-config configmap
       jsonPath: .status.initialized
       name: Initialized
+      type: boolean
+    - description: KubeadmControlPlane API Server is ready to receive requests
+      jsonPath: .status.ready
+      name: API Server Available
       type: boolean
     - description: Total number of non-terminated machines targeted by this control
         plane
@@ -37,16 +37,16 @@ spec:
       type: integer
     - description: Total number of fully running and ready control plane machines
       jsonPath: .status.readyReplicas
-      name: Ready Replicas
+      name: Ready
       type: integer
     - description: Total number of non-terminated machines targeted by this control
         plane that have the desired template spec
       jsonPath: .status.updatedReplicas
-      name: Updated Replicas
+      name: Updated
       type: integer
     - description: Total number of unavailable machines targeted by this control plane
       jsonPath: .status.unavailableReplicas
-      name: Unavailable Replicas
+      name: Unavailable
       type: integer
     name: v1alpha3
     schema:

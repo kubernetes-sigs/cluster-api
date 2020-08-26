@@ -370,7 +370,7 @@ var _ = Describe("Patch Helper", func() {
 		obj := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-",
-				Namespace:    "default",
+				Namespace:    "test-namespace",
 			},
 		}
 
@@ -439,6 +439,7 @@ var _ = Describe("Patch Helper", func() {
 
 		Specify("updating spec", func() {
 			obj := obj.DeepCopy()
+			obj.ObjectMeta.Namespace = "test-namespace"
 
 			By("Creating the object")
 			Expect(testEnv.Create(ctx, obj)).ToNot(HaveOccurred())
@@ -506,6 +507,7 @@ var _ = Describe("Patch Helper", func() {
 
 		Specify("updating both spec and status", func() {
 			obj := obj.DeepCopy()
+			obj.ObjectMeta.Namespace = "test-namespace"
 
 			By("Creating the object")
 			Expect(testEnv.Create(ctx, obj)).ToNot(HaveOccurred())

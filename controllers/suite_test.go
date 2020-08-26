@@ -114,8 +114,10 @@ var _ = BeforeSuite(func(done Done) {
 		Expect(testEnv.StartManager()).To(Succeed())
 	}()
 
+	// wait for webhook port to be open prior to running tests
+	testEnv.WaitForWebhooks()
 	close(done)
-}, 60)
+}, 80)
 
 var _ = AfterSuite(func() {
 	if testEnv != nil {

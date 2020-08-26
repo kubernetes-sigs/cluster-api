@@ -89,8 +89,6 @@ TAG ?= dev
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
-GINKGO_NODES ?= 1
-
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
@@ -114,7 +112,7 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: ## Run tests
+test: ## Run tests. 
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./... $(TEST_ARGS)
 
 .PHONY: test-cover
@@ -601,3 +599,4 @@ diagrams: ## Build proposal diagrams
 .PHONY: serve-book
 serve-book: ## Build and serve the book with live-reloading enabled
 	$(MAKE) -C docs/book serve
+

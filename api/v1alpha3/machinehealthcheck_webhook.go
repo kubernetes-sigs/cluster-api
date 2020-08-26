@@ -36,7 +36,18 @@ var (
 	// 10 minutes should allow the instance to start and the node to join the
 	// cluster on most providers.
 	defaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}
+	// Minimum time allowed for a node to start up
+	minNodeStartupTimeout = metav1.Duration{Duration: 30 * time.Second}
 )
+
+// SetMinNodeStartupTimeout allows users to optionally set a custom timeout
+// for the validation webhook.
+//
+// This function is mostly used within envtest (integration tests), and should
+// never be used in a production environment.
+func SetMinNodeStartupTimeout(d metav1.Duration) {
+	minNodeStartupTimeout = d
+}
 
 func (m *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -119,10 +130,10 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		)
 	}
 
-	if m.Spec.NodeStartupTimeout != nil && m.Spec.NodeStartupTimeout.Seconds() < 30 {
+	if m.Spec.NodeStartupTimeout != nil && m.Spec.NodeStartupTimeout.Seconds() < minNodeStartupTimeout.Seconds() {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout, "must be at least 30s"),
+			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout.Seconds(), "must be at least 30s"),
 		)
 	}
 
@@ -145,6 +156,5 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 	if len(allErrs) == 0 {
 		return nil
 	}
-
 	return apierrors.NewInvalid(GroupVersion.WithKind("MachineHealthCheck").GroupKind(), m.Name, allErrs)
 }

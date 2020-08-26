@@ -632,7 +632,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [clusterctl config cluster]: ../clusterctl/commands/config-cluster.md
 [clusterctl]: ../clusterctl/overview.md
 [Docker]: https://www.docker.com/
-[docker-provider]: ../clusterctl/developers.md#additional-steps-in-order-to-use-the-docker-provider
+[docker-provider]: ../clusterctl/developers.md#additional-steps-for-the-docker-provider
 [GCP provider]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
 [kind]: https://kind.sigs.k8s.io/

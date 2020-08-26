@@ -20,6 +20,9 @@ import (
 	"fmt"
 	"time"
 
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -28,8 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -392,12 +393,18 @@ metadata:
 	})
 	It("Should add finalizer after reconcile", func() {
 		dt := metav1.Now()
+		labels := map[string]string{"foo": "bar"}
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "test-clusterresourceset",
 				Namespace:         defaultNamespaceName,
 				Finalizers:        []string{addonsv1.ClusterResourceSetFinalizer},
 				DeletionTimestamp: &dt,
+			},
+			Spec: addonsv1.ClusterResourceSetSpec{
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: labels,
+				},
 			},
 		}
 		// Create the ClusterResourceSet.

@@ -17,6 +17,8 @@ limitations under the License.
 package annotations
 
 import (
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -37,4 +39,13 @@ func HasPausedAnnotation(o metav1.Object) bool {
 	}
 	_, ok := annotations[clusterv1.PausedAnnotation]
 	return ok
+}
+
+func HasWithPrefix(prefix string, annotations map[string]string) bool {
+	for key := range annotations {
+		if strings.HasPrefix(key, prefix) {
+			return true
+		}
+	}
+	return false
 }

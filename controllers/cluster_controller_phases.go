@@ -49,7 +49,7 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
-	if cluster.Status.InfrastructureReady && !cluster.Spec.ControlPlaneEndpoint.IsZero() {
+	if cluster.Status.InfrastructureReady && cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 
@@ -180,7 +180,7 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	}
 
 	// Get and parse Spec.ControlPlaneEndpoint field from the infrastructure provider.
-	if cluster.Spec.ControlPlaneEndpoint.IsZero() {
+	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Spec.ControlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ControlPlaneEndpoint from infrastructure provider for Cluster %q in namespace %q",
 				cluster.Name, cluster.Namespace)
@@ -251,7 +251,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
-	if cluster.Spec.ControlPlaneEndpoint.IsZero() {
+	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		return ctrl.Result{}, nil
 	}
 

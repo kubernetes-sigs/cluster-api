@@ -178,9 +178,14 @@ type APIEndpoint struct {
 	Port int32 `json:"port"`
 }
 
-// IsZero returns true if host and the port are zero values.
+// IsZero returns true if both host and port are zero values.
 func (v APIEndpoint) IsZero() bool {
 	return v.Host == "" && v.Port == 0
+}
+
+// IsValid returns true if both host and port are non-zero values.
+func (v APIEndpoint) IsValid() bool {
+	return v.Host != "" && v.Port != 0
 }
 
 // String returns a formatted version HOST:PORT of this APIEndpoint.

@@ -435,6 +435,10 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 	// If KCP should manage etcd, ensure etcd is healthy.
 	if controlPlane.IsEtcdManaged() {
 		if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {
+			logger.V(2).Info("Waiting for control plane to pass etcd health check to continue reconciliation", "cause", err)
+			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
+				"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
+
 			// If there are any etcd members that do not have corresponding nodes, remove them from etcd and from the kubeadm configmap.
 			// This will solve issues related to manual control-plane machine deletion.
 			workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
@@ -445,9 +449,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 				logger.V(2).Info("Failed attempt to remove potential hanging etcd members to pass etcd health check to continue reconciliation", "cause", err)
 			}
 
-			logger.V(2).Info("Waiting for control plane to pass etcd health check to continue reconciliation", "cause", err)
-			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
-				"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
 			return ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}, nil
 		}
 	}

@@ -184,7 +184,7 @@ set-manifest-pull-policy:
 ## Release
 ## --------------------------------------
 
-GIT_TAG := $(shell git describe --match "test/infrastructure/docker/*" --abbrev=0 2>/dev/null)
+GIT_TAG := $(shell git describe --abbrev=0 2>/dev/null)
 RELEASE_TAG := $(lastword $(subst /, ,$(GIT_TAG)))
 RELEASE_DIR := out
 
@@ -196,19 +196,15 @@ release: clean-release ## Builds and push container images using the latest git 
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
 	git checkout "${GIT_TAG}"
-	# Push the release image to the staging bucket first.
-	REGISTRY=$(STAGING_REGISTRY) TAG=$(RELEASE_TAG) \
-		$(MAKE) docker-build-all docker-push-all
 	# Set the manifest image to the staging bucket.
 	MANIFEST_IMG=$(STAGING_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		$(MAKE) set-manifest-image
 	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
 	$(MAKE) release-manifests
-	$(MAKE) release-binaries
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
-	kustomize build config/ > $(RELEASE_DIR)/provider-components.yaml
+	kustomize build config/ > $(RELEASE_DIR)/infrastructure-components.yaml
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.

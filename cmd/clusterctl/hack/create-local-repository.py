@@ -43,6 +43,7 @@ from __future__ import unicode_literals
 import json
 import subprocess
 import os
+from distutils.dir_util import copy_tree
 import errno
 import sys
 
@@ -51,40 +52,28 @@ settings = {}
 providers = {
       'cluster-api': {
               'componentsFile': 'core-components.yaml',
-              'nextVersion': 'v0.3.0',
+              'nextVersion': 'v0.3.8',
               'type': 'CoreProvider',
       },
       'bootstrap-kubeadm': {
             'componentsFile': 'bootstrap-components.yaml',
-            'nextVersion': 'v0.3.0',
+            'nextVersion': 'v0.3.8',
             'type': 'BootstrapProvider',
             'configFolder': 'bootstrap/kubeadm/config',
       },
       'control-plane-kubeadm': {
             'componentsFile': 'control-plane-components.yaml',
-            'nextVersion': 'v0.3.0',
+            'nextVersion': 'v0.3.8',
             'type': 'ControlPlaneProvider',
             'configFolder': 'controlplane/kubeadm/config',
       },
       'infrastructure-docker': {
           'componentsFile': 'infrastructure-components.yaml',
-          'nextVersion': 'v0.3.0',
+          'nextVersion': 'v0.3.8',
           'type': 'InfrastructureProvider',
           'configFolder': 'test/infrastructure/docker/config',
       },
 }
-
-docker_metadata_yaml = """\
-apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3
-kind: Metadata
-releaseSeries:
-- major: 0
-  minor: 2
-  contract: v1alpha2
-- major: 0
-  minor: 3
-  contract: v1alpha3
-"""
 
 def load_settings():
     global settings
@@ -123,33 +112,32 @@ def execCmd(args):
 def get_home():
     return os.path.expanduser('~')
 
-def write_local_override(provider, version, components_file, components_yaml):
+def get_repository_folder():
+    home = get_home()
+    return os.path.join(home, '.cluster-api', 'dev-repository')
+
+def write_local_repository(provider, version, components_file, components_yaml):
     try:
-        home = get_home()
-        overrides_folder = os.path.join(home, '.cluster-api', 'overrides')
-        provider_overrides_folder = os.path.join(overrides_folder, provider, version)
+        repository_folder = get_repository_folder()
+        provider_folder = os.path.join(repository_folder, provider, version)
         try:
-            os.makedirs(provider_overrides_folder)
+            os.makedirs(provider_folder)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        f = open(os.path.join(provider_overrides_folder, components_file), 'wb')
+        components_path = os.path.join(provider_folder, components_file)
+        f = open(components_path, 'wb')
         f.write(components_yaml)
         f.close()
-    except Exception as e:
-        raise Exception('failed to write {} to {}: {}'.format(components_file, provider_overrides_folder, e))
 
-def write_docker_metadata(version):
-    try:
-        home = get_home()
-        docker_folder = os.path.join(home, '.cluster-api', 'overrides', 'infrastructure-docker', version)
-        f = open(os.path.join(docker_folder, "metadata.yaml"), 'w')
-        f.write(docker_metadata_yaml)
-        f.close()
-    except Exception as e:
-        raise Exception('failed to write {} to {}: {}'.format("metadata.yaml", metadata_folder, e))
+        if provider == "infrastructure-docker":
+            copy_tree("test/infrastructure/docker/templates", provider_folder)
 
-def create_local_overrides():
+        return components_path
+    except Exception as e:
+        raise Exception('failed to write {} to {}: {}'.format(components_file, provider_folder, e))
+
+def create_local_repositories():
     providerList = settings.get('providers', [])
     assert providerList is not None, 'invalid configuration: please define the list of providers to override'
     assert len(providerList)>0, 'invalid configuration: please define at least one provider to override'
@@ -171,12 +159,31 @@ def create_local_overrides():
         assert components_file is not None, 'invalid configuration for provider {}: please provide componentsFile value'.format(provider)
 
         components_yaml = execCmd(['kustomize', 'build', os.path.join(repo, config_folder)])
-        write_local_override(provider, next_version, components_file, components_yaml)
+        components_path = write_local_repository(provider, next_version, components_file, components_yaml)
 
-        if provider == 'infrastructure-docker':
-            write_docker_metadata(next_version)
+        yield name, type, next_version, components_path
 
-        yield name, type, next_version
+def injectLatest(path):
+    head, tail = os.path.split(path)
+    return '{}/latest/{}'.format(head, tail)
+
+def create_dev_config(repos):
+    yaml = "providers:\n"
+    for name, type, next_version, components_path in repos:
+        yaml += "- name: \"{}\"\n".format(name)
+        yaml += "  type: \"{}\"\n".format(type)
+        yaml += "  url: \"{}\"\n".format(components_path)
+    yaml += "overridesFolder: \"{}/overrides\"\n".format(get_repository_folder())
+
+    try:
+        repository_folder = get_repository_folder()
+        config_path = os.path.join(repository_folder, "config.yaml")
+        f = open(config_path, 'wb')
+        f.write(yaml)
+        f.close()
+        return components_path
+    except Exception as e:
+        raise Exception('failed to write {}: {}'.format(config_path, e))
 
 def splitNameAndType(provider):
     if provider == 'cluster-api':
@@ -211,14 +218,15 @@ def type_to_flag(type):
     func = switcher.get(type, lambda: 'Invalid type')
     return func()
 
-def print_instructions(overrides):
+def print_instructions(repos):
     providerList = settings.get('providers', [])
     print ('clusterctl local overrides generated from local repositories for the {} providers.'.format(', '.join(providerList)))
     print ('in order to use them, please run:')
     print
-    cmd = 'clusterctl init'
-    for name, type, next_version in overrides:
-        cmd += ' {} {}:{}'.format(type_to_flag(type), name, next_version)
+    cmd = "clusterctl init \\\n"
+    for name, type, next_version, components_path in repos:
+        cmd += "   {} {}:{} \\\n".format(type_to_flag(type), name, next_version)
+    cmd += "   --config ~/.cluster-api/dev-repository/config.yaml"
     print (cmd)
     print
     if 'infrastructure-docker' in providerList:
@@ -230,6 +238,8 @@ load_settings()
 
 load_providers()
 
-overrides = create_local_overrides()
+repos = list(create_local_repositories())
 
-print_instructions(overrides)
+create_dev_config(repos)
+
+print_instructions(repos)

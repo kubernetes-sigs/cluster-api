@@ -326,7 +326,7 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 			allErrs,
 			field.Forbidden(
 				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
-				fmt.Sprintf("cannot migrate CoreDNS up to '%v' from '%v'", toVersion, fromVersion),
+				fmt.Sprintf("cannot migrate CoreDNS up to '%v' from '%v': %v", toVersion, fromVersion, err),
 			),
 		)
 	}

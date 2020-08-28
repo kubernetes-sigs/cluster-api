@@ -124,14 +124,6 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	defer func() {
-		// Always update the readyCondition with the summary of the cluster conditions.
-		conditions.SetSummary(cluster,
-			conditions.WithConditions(
-				clusterv1.ControlPlaneReadyCondition,
-				clusterv1.InfrastructureReadyCondition,
-			),
-		)
-
 		// Always reconcile the Status.Phase field.
 		r.reconcilePhase(ctx, cluster)
 
@@ -141,7 +133,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		if reterr == nil {
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
-		if err := patchHelper.Patch(ctx, cluster, patchOpts...); err != nil {
+		if err := patchCluster(ctx, patchHelper, cluster, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
@@ -159,6 +151,28 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 	// Handle normal reconciliation loop.
 	return r.reconcile(ctx, cluster)
+}
+
+func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clusterv1.Cluster, options ...patch.Option) error {
+	// Always update the readyCondition by summarizing the state of other conditions.
+	conditions.SetSummary(cluster,
+		conditions.WithConditions(
+			clusterv1.ControlPlaneReadyCondition,
+			clusterv1.InfrastructureReadyCondition,
+		),
+	)
+
+	// Patch the object, ignoring conflicts on the conditions owned by this controller.
+	// Also, if requested, we are adding additional options like e.g. Patch ObservedGeneration when issuing the
+	// patch at the end of the reconcile loop.
+	options = append(options,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			clusterv1.ControlPlaneReadyCondition,
+			clusterv1.InfrastructureReadyCondition,
+		}},
+	)
+	return patchHelper.Patch(ctx, cluster, options...)
 }
 
 // reconcile handles cluster reconciliation.
@@ -246,11 +260,18 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		switch {
 		case apierrors.IsNotFound(errors.Cause(err)):
 			// All good - the control plane resource has been deleted
+			conditions.MarkFalse(cluster, clusterv1.ControlPlaneReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		case err != nil:
 			return reconcile.Result{}, errors.Wrapf(err, "failed to get %s %q for Cluster %s/%s",
 				path.Join(cluster.Spec.ControlPlaneRef.APIVersion, cluster.Spec.ControlPlaneRef.Kind),
 				cluster.Spec.ControlPlaneRef.Name, cluster.Namespace, cluster.Name)
 		default:
+			// Report a summary of current status of the control plane object defined for this cluster.
+			conditions.SetMirror(cluster, clusterv1.ControlPlaneReadyCondition,
+				conditions.UnstructuredGetter(obj),
+				conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, ""),
+			)
+
 			// Issue a deletion request for the control plane object.
 			// Once it's been deleted, the cluster will get processed again.
 			if err := r.Client.Delete(ctx, obj); err != nil {
@@ -270,11 +291,18 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		switch {
 		case apierrors.IsNotFound(errors.Cause(err)):
 			// All good - the infra resource has been deleted
+			conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		case err != nil:
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get %s %q for Cluster %s/%s",
 				path.Join(cluster.Spec.InfrastructureRef.APIVersion, cluster.Spec.InfrastructureRef.Kind),
 				cluster.Spec.InfrastructureRef.Name, cluster.Namespace, cluster.Name)
 		default:
+			// Report a summary of current status of the infrastructure object defined for this cluster.
+			conditions.SetMirror(cluster, clusterv1.InfrastructureReadyCondition,
+				conditions.UnstructuredGetter(obj),
+				conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, ""),
+			)
+
 			// Issue a deletion request for the infrastructure object.
 			// Once it's been deleted, the cluster will get processed again.
 			if err := r.Client.Delete(ctx, obj); err != nil {

@@ -471,17 +471,6 @@ func TestReconcileDeleteExternal(t *testing.T) {
 		},
 	}
 
-	infraConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
-			"metadata": map[string]interface{}{
-				"name":      "delete-infra",
-				"namespace": "default",
-			},
-		},
-	}
-
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "delete",
@@ -489,11 +478,6 @@ func TestReconcileDeleteExternal(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-				Kind:       "InfrastructureMachine",
-				Name:       "delete-infra",
-			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
@@ -507,36 +491,29 @@ func TestReconcileDeleteExternal(t *testing.T) {
 	testCases := []struct {
 		name            string
 		bootstrapExists bool
-		infraExists     bool
-		expected        bool
 		expectError     bool
+		expected        *unstructured.Unstructured
 	}{
 		{
-			name:            "should continue to reconcile delete of external refs since both refs exists",
+			name:            "should continue to reconcile delete of external refs if exists",
 			bootstrapExists: true,
-			infraExists:     true,
-			expected:        false,
-			expectError:     false,
+			expected: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+					"kind":       "BootstrapConfig",
+					"metadata": map[string]interface{}{
+						"name":            "delete-bootstrap",
+						"namespace":       "default",
+						"resourceVersion": "1",
+					},
+				},
+			},
+			expectError: false,
 		},
 		{
-			name:            "should continue to reconcile delete of external refs since infra ref exist",
+			name:            "should no longer reconcile deletion of external refs since it doesn't exist",
 			bootstrapExists: false,
-			infraExists:     true,
-			expected:        false,
-			expectError:     false,
-		},
-		{
-			name:            "should continue to reconcile delete of external refs since bootstrap ref exist",
-			bootstrapExists: true,
-			infraExists:     false,
-			expected:        false,
-			expectError:     false,
-		},
-		{
-			name:            "should no longer reconcile deletion of external refs since both don't exist",
-			bootstrapExists: false,
-			infraExists:     false,
-			expected:        true,
+			expected:        nil,
 			expectError:     false,
 		},
 	}
@@ -551,18 +528,14 @@ func TestReconcileDeleteExternal(t *testing.T) {
 				objs = append(objs, bootstrapConfig)
 			}
 
-			if tc.infraExists {
-				objs = append(objs, infraConfig)
-			}
-
 			r := &MachineReconciler{
 				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
 				Log:    log.Log,
 				scheme: scheme.Scheme,
 			}
 
-			ok, err := r.reconcileDeleteExternal(ctx, machine)
-			g.Expect(ok).To(Equal(tc.expected))
+			obj, err := r.reconcileDeleteExternal(ctx, machine, machine.Spec.Bootstrap.ConfigRef)
+			g.Expect(obj).To(Equal(tc.expected))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

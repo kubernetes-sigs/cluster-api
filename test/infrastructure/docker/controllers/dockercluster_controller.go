@@ -84,21 +84,13 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(dockerCluster, r)
+	patchHelper, err := patch.NewHelper(dockerCluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// Always attempt to Patch the DockerCluster object and status after each reconciliation.
 	defer func() {
-		// always update the readyCondition; the summary is represented using the "1 of x completed" notation.
-		conditions.SetSummary(dockerCluster,
-			conditions.WithConditions(
-				infrav1.LoadBalancerAvailableCondition,
-			),
-			conditions.WithStepCounter(),
-		)
-
-		if err := patchHelper.Patch(ctx, dockerCluster); err != nil {
+		if err := patchDockerCluster(ctx, patchHelper, dockerCluster); err != nil {
 			log.Error(err, "failed to patch DockerCluster")
 			if rerr == nil {
 				rerr = err
@@ -119,14 +111,35 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Handle deleted clusters
 	if !dockerCluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(ctx, dockerCluster, externalLoadBalancer)
+		return r.reconcileDelete(ctx, dockerCluster, externalLoadBalancer)
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(ctx, dockerCluster, externalLoadBalancer)
+	return r.reconcileNormal(ctx, dockerCluster, externalLoadBalancer)
 }
 
-func reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCluster *infrav1.DockerCluster) error {
+	// Always update the readyCondition by summarizing the state of other conditions.
+	// A step counter is added to represent progress during the provisioning process (instead we are hiding it during the deletion process).
+	conditions.SetSummary(dockerCluster,
+		conditions.WithConditions(
+			infrav1.LoadBalancerAvailableCondition,
+		),
+		conditions.WithStepCounterIf(dockerCluster.ObjectMeta.DeletionTimestamp.IsZero()),
+	)
+
+	// Patch the object, ignoring conflicts on the conditions owned by this controller.
+	return patchHelper.Patch(
+		ctx,
+		dockerCluster,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			infrav1.LoadBalancerAvailableCondition,
+		}},
+	)
+}
+
+func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
 	//Create the docker container hosting the load balancer
 	if err := externalLoadBalancer.Create(); err != nil {
 		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
@@ -152,7 +165,20 @@ func reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, 
 	return ctrl.Result{}, nil
 }
 
-func reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+	// Set the LoadBalancerAvailableCondition reporting delete is started, and issue a patch in order to make
+	// this visible to the users.
+	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
+	// nevertheless we are issuing a patch so we can test a pattern that will be used by other providers as well
+	patchHelper, err := patch.NewHelper(dockerCluster, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := patchDockerCluster(ctx, patchHelper, dockerCluster); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to patch DockerCluster")
+	}
+
 	// Delete the docker container hosting the load balancer
 	if err := externalLoadBalancer.Delete(ctx); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete load balancer")

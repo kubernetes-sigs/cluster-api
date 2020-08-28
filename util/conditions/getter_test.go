@@ -159,6 +159,30 @@ func TestSummary(t *testing.T) {
 			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
 		},
 		{
+			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf options)",
+			from:    getterWithConditions(foo, bar),
+			options: []MergeOption{WithStepCounterIf(false)},
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+		},
+		{
+			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf options)",
+			from:    getterWithConditions(foo, bar),
+			options: []MergeOption{WithStepCounterIf(true)},
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
+		},
+		{
+			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf and WithStepCounterIfOnly options)",
+			from:    getterWithConditions(bar),
+			options: []MergeOption{WithStepCounter(), WithStepCounterIfOnly("bar")},
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
+		},
+		{
+			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf and WithStepCounterIfOnly options)",
+			from:    getterWithConditions(foo, bar),
+			options: []MergeOption{WithStepCounter(), WithStepCounterIfOnly("foo")},
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+		},
+		{
 			name:    "Returns ready condition with the summary of selected conditions (using WithConditions options)",
 			from:    getterWithConditions(foo, bar),
 			options: []MergeOption{WithConditions("foo")}, // bar should be ignored
@@ -171,15 +195,15 @@ func TestSummary(t *testing.T) {
 			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
 		},
 		{
-			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnlyConditions options)",
+			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnly options)",
 			from:    getterWithConditions(bar),
-			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounterIfOnly("bar")}, // there is only bar, the step counter should be set and counts only a subset of conditions
+			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounter(), WithStepCounterIfOnly("bar")}, // there is only bar, the step counter should be set and counts only a subset of conditions
 			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
 		},
 		{
-			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnlyConditions options)",
+			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnly options)",
 			from:    getterWithConditions(bar, baz),
-			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounterIfOnly("bar")}, // there is also baz, so the step counter should not be set
+			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounter(), WithStepCounterIfOnly("bar")}, // there is also baz, so the step counter should not be set
 			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
 		},
 		{

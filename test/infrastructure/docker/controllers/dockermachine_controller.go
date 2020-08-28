@@ -116,16 +116,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 	// Always attempt to Patch the DockerMachine object and status after each reconciliation.
 	defer func() {
-		// always update the readyCondition; the summary is represented using the "1 of x completed" notation.
-		conditions.SetSummary(dockerMachine,
-			conditions.WithConditions(
-				infrav1.ContainerProvisionedCondition,
-				infrav1.BootstrapExecSucceededCondition,
-			),
-			conditions.WithStepCounter(),
-		)
-
-		if err := patchHelper.Patch(ctx, dockerMachine); err != nil {
+		if err := patchDockerMachine(ctx, patchHelper, dockerMachine); err != nil {
 			log.Error(err, "failed to patch DockerMachine")
 			if rerr == nil {
 				rerr = err
@@ -168,6 +159,29 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Handle non-deleted machines
 	return r.reconcileNormal(ctx, machine, dockerMachine, externalMachine, externalLoadBalancer, log)
+}
+
+func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMachine *infrav1.DockerMachine) error {
+	// Always update the readyCondition by summarizing the state of other conditions.
+	// A step counter is added to represent progress during the provisioning process (instead we are hiding the step counter during the deletion process).
+	conditions.SetSummary(dockerMachine,
+		conditions.WithConditions(
+			infrav1.ContainerProvisionedCondition,
+			infrav1.BootstrapExecSucceededCondition,
+		),
+		conditions.WithStepCounterIf(dockerMachine.ObjectMeta.DeletionTimestamp.IsZero()),
+	)
+
+	// Patch the object, ignoring conflicts on the conditions owned by this controller.
+	return patchHelper.Patch(
+		ctx,
+		dockerMachine,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			infrav1.ContainerProvisionedCondition,
+			infrav1.BootstrapExecSucceededCondition,
+		}},
+	)
 }
 
 func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (res ctrl.Result, retErr error) {
@@ -217,9 +231,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		}
 	}
 
-	// Update the ContainerProvisionedCondition condition
-	conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
-
 	// Preload images into the container
 	if len(dockerMachine.Spec.PreLoadImages) > 0 {
 		if err := externalMachine.PreloadLoadImages(ctx, dockerMachine.Spec.PreLoadImages); err != nil {
@@ -237,13 +248,24 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		dockerMachine.Status.LoadBalancerConfigured = true
 	}
 
+	// Update the ContainerProvisionedCondition condition
+	// NOTE: it is required to create the patch helper before this change otherwise it wont surface if
+	// we issue a patch down in the code (because if we create patch helper after this point the ContainerProvisionedCondition=True exists both on before and after).
+	patchHelper, err := patch.NewHelper(dockerMachine, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
+
 	// At, this stage, we are ready for bootstrap. However, if the BootstrapExecSucceededCondition is missing we add it and we
-	// requeue so the user can see the change of state before the bootstrap actually starts.
+	// issue an patch so the user can see the change of state before the bootstrap actually starts.
 	// NOTE: usually controller should not rely on status they are setting, but on the observed state; however
 	// in this case we are doing this because we explicitly want to give a feedback to users.
 	if !conditions.Has(dockerMachine, infrav1.BootstrapExecSucceededCondition) {
 		conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrappingReason, clusterv1.ConditionSeverityInfo, "")
-		return ctrl.Result{Requeue: true}, nil
+		if err := patchDockerMachine(ctx, patchHelper, dockerMachine); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to patch DockerMachine")
+		}
 	}
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
@@ -306,9 +328,18 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 }
 
 func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
-	// Long lived CAPD clusters (unadvised) that are using Machine resources for the control plane machines
-	// will have to manually keep the kubeadm config-map on the workload cluster up to date.
-	// This is automated when using the KubeadmControlPlane.
+	// Set the ContainerProvisionedCondition reporting delete is started, and issue a patch in order to make
+	// this visible to the users.
+	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
+	// nevertheless we are issuing a patch so we can test a pattern that will be used by other providers as well
+	patchHelper, err := patch.NewHelper(dockerMachine, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := patchDockerMachine(ctx, patchHelper, dockerMachine); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to patch DockerMachine")
+	}
 
 	// delete the machine
 	if err := externalMachine.Delete(ctx); err != nil {

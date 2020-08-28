@@ -187,19 +187,8 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 			}
 		}
 
-		// Always update the readyCondition.
-		conditions.SetSummary(kcp,
-			conditions.WithConditions(
-				controlplanev1.MachinesSpecUpToDateCondition,
-				controlplanev1.ResizedCondition,
-				controlplanev1.MachinesReadyCondition,
-				controlplanev1.AvailableCondition,
-				controlplanev1.CertificatesAvailableCondition,
-			),
-		)
-
 		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.
-		if err := patchHelper.Patch(ctx, kcp); err != nil {
+		if err := patchKubeadmControlPlane(ctx, patchHelper, kcp); err != nil {
 			logger.Error(err, "Failed to patch KubeadmControlPlane")
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
@@ -221,6 +210,33 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 
 	// Handle normal reconciliation loop.
 	return r.reconcile(ctx, cluster, kcp)
+}
+
+func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *controlplanev1.KubeadmControlPlane) error {
+	// Always update the readyCondition by summarizing the state of other conditions.
+	conditions.SetSummary(kcp,
+		conditions.WithConditions(
+			controlplanev1.MachinesSpecUpToDateCondition,
+			controlplanev1.ResizedCondition,
+			controlplanev1.MachinesReadyCondition,
+			controlplanev1.AvailableCondition,
+			controlplanev1.CertificatesAvailableCondition,
+		),
+	)
+
+	// Patch the object, ignoring conflicts on the conditions owned by this controller.
+	return patchHelper.Patch(
+		ctx,
+		kcp,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			controlplanev1.MachinesSpecUpToDateCondition,
+			controlplanev1.ResizedCondition,
+			controlplanev1.MachinesReadyCondition,
+			controlplanev1.AvailableCondition,
+			controlplanev1.CertificatesAvailableCondition,
+		}},
+	)
 }
 
 // reconcile handles KubeadmControlPlane reconciliation.
@@ -375,9 +391,16 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 		return ctrl.Result{}, nil
 	}
 
+	// Aggregate the operational state of all the machines; while aggregating we are adding the
+	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
+	// However, during delete we are hiding the counter (1 of x) because it does not make sense given that
+	// all the machines are deleted in parallel.
+	conditions.SetAggregate(kcp, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef(), conditions.WithStepCounterIf(false))
+
 	// Verify that only control plane machines remain
 	if len(allMachines) != len(ownedMachines) {
-		logger.V(2).Info("Waiting for worker nodes to be deleted first")
+		logger.Info("Waiting for worker nodes to be deleted first")
+		conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "Waiting for worker nodes to be deleted first")
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -398,6 +421,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 			"Failed to delete control plane Machines for cluster %s/%s control plane: %v", cluster.Namespace, cluster.Name, err)
 		return ctrl.Result{}, err
 	}
+	conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 }
 

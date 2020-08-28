@@ -58,11 +58,22 @@ func WithStepCounter() MergeOption {
 	}
 }
 
-// If it is required to add a step counter only if a subset of condition exists, check if the conditions
-// in scope are included in this subset. This applies for example on Machines, where we want to use
+// WithStepCounterIf adds a step counter if the value is true.
+// This can be used e.g. to add a step counter only if the object is not being deleted.
+//
+// IMPORTANT: This options works only while generating the Summary condition.
+func WithStepCounterIf(value bool) MergeOption {
+	return func(c *mergeOptions) {
+		c.addStepCounter = value
+	}
+}
+
+// WithStepCounterIfOnly ensure a step counter is show only if a subset of condition exists.
+// This applies for example on Machines, where we want to use
 // the step counter notation while provisioning the machine, but then we want to move away from this notation
 // as soon as the machine is provisioned and e.g. a Machine health check condition is generated
 //
+// IMPORTANT: This options requires WithStepCounter or WithStepCounterIf to be set.
 // IMPORTANT: This options works only while generating the Summary condition.
 func WithStepCounterIfOnly(t ...clusterv1.ConditionType) MergeOption {
 	return func(c *mergeOptions) {
@@ -101,7 +112,7 @@ func localizeReason(reason string, from Getter) string {
 	if strings.Contains(reason, "@") {
 		return reason
 	}
-	return fmt.Sprintf("%s@%s/%s", reason, from.GetObjectKind().GroupVersionKind().Kind, from.GetName())
+	return fmt.Sprintf("%s @ %s/%s", reason, from.GetObjectKind().GroupVersionKind().Kind, from.GetName())
 }
 
 // getMessage returns the message to be applied to the condition resulting by merging a set of condition groups.

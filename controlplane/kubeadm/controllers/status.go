@@ -57,13 +57,19 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	kcp.Status.ReadyReplicas = 0
 	kcp.Status.UnavailableReplicas = replicas
 
+	// Return early if the deletion timestamp is set, because we don't want to try to connect to the workload cluster
+	// and we don't want to report resize condition (because it is set to deleting into reconcile delete).
+	if !kcp.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
 	switch {
 	// We are scaling up
 	case replicas < desiredReplicas:
-		conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, controlplanev1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up to %d replicas (actual %d)", desiredReplicas, replicas)
+		conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, controlplanev1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up control plane to %d replicas (actual %d)", desiredReplicas, replicas)
 	// We are scaling down
 	case replicas > desiredReplicas:
-		conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down to %d replicas (actual %d)", desiredReplicas, replicas)
+		conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down control plane to %d replicas (actual %d)", desiredReplicas, replicas)
 	default:
 		// make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
@@ -72,11 +78,6 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		if int32(len(readyMachines)) == replicas {
 			conditions.MarkTrue(kcp, controlplanev1.ResizedCondition)
 		}
-	}
-
-	// Return early if the deletion timestamp is set, we don't want to try to connect to the workload cluster.
-	if !kcp.DeletionTimestamp.IsZero() {
-		return nil
 	}
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))

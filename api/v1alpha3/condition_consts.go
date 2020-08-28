@@ -24,6 +24,15 @@ const (
 	ReadyCondition ConditionType = "Ready"
 )
 
+// Common ConditionReason used by Cluster API objects.
+const (
+	// DeletingReason (Severity=Info) documents an condition not in Status=True because the underlying object it is currently being deleted.
+	DeletingReason = "Deleting"
+
+	// DeletedReason (Severity=Info) documents an condition not in Status=True because the underlying object was deleted.
+	DeletedReason = "Deleted"
+)
+
 const (
 	// InfrastructureReadyCondition reports a summary of current status of the infrastructure object defined for this cluster/machine.
 	// This condition is mirrored from the Ready condition in the infrastructure ref object, and
@@ -67,6 +76,25 @@ const (
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the bootstrap object is not reporting its own ready condition.
 	WaitingForDataSecretFallbackReason = "WaitingForDataSecret"
+
+	// DrainingSucceededCondition provide evidence of the status of the node drain operation which happens during the machine
+	// deletion process.
+	DrainingSucceededCondition ConditionType = "DrainingSucceeded"
+
+	// DrainingReason (Severity=Info) documents a machine node being drained.
+	DrainingReason = "Draining"
+
+	// DrainingFailedReason (Severity=Warning) documents a machine node drain operation failed.
+	DrainingFailedReason = "DrainingFailed"
+
+	// PreDrainDeleteHookSucceededCondition reports a machine waiting for a PreDrainDeleteHook before being delete.
+	PreDrainDeleteHookSucceededCondition ConditionType = "PreDrainDeleteHookSucceeded"
+
+	// PreTerminateDeleteHookSucceededCondition reports a machine waiting for a PreDrainDeleteHook before being delete.
+	PreTerminateDeleteHookSucceededCondition ConditionType = "PreTerminateDeleteHookSucceeded"
+
+	// WaitingExternalHookReason (Severity=Info) provide evidence that we are waiting for an external hook to complete.
+	WaitingExternalHookReason = "WaitingExternalHook"
 )
 
 const (

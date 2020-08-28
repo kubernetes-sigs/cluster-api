@@ -56,11 +56,11 @@ func TestLocalizeReason(t *testing.T) {
 
 	// localize should reason location
 	got := localizeReason("foo", getter)
-	g.Expect(got).To(Equal("foo@Cluster/test-cluster"))
+	g.Expect(got).To(Equal("foo @ Cluster/test-cluster"))
 
 	// localize should not alter existing location
-	got = localizeReason("foo@SomeKind/some-name", getter)
-	g.Expect(got).To(Equal("foo@SomeKind/some-name"))
+	got = localizeReason("foo @ SomeKind/some-name", getter)
+	g.Expect(got).To(Equal("foo @ SomeKind/some-name"))
 }
 
 func TestGetFirstReasonAndMessage(t *testing.T) {
@@ -106,5 +106,5 @@ func TestGetFirstReasonAndMessage(t *testing.T) {
 
 	// getFirstReason should localize reason if required
 	gotReason = getFirstReason(groups, nil, true)
-	g.Expect(gotReason).To(Equal("falseBar@Cluster/test-cluster"))
+	g.Expect(gotReason).To(Equal("falseBar @ Cluster/test-cluster"))
 }

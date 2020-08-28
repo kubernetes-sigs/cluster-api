@@ -392,6 +392,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		cluster, kcp, tmpl := createClusterWithControlPlane()
 		cluster.Spec.ControlPlaneEndpoint.Host = "bar"
+		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
@@ -460,6 +461,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		cluster, kcp, tmpl := createClusterWithControlPlane()
 		cluster.Spec.ControlPlaneEndpoint.Host = "bar"
+		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
@@ -571,6 +573,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		cluster, kcp, tmpl := createClusterWithControlPlane()
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		kcp.Spec.Version = version
 
 		now := metav1.Now()
@@ -640,6 +643,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		cluster, kcp, tmpl := createClusterWithControlPlane()
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		kcp.Spec.Version = "v1.17.0"
 
 		fmc := &fakeManagementCluster{

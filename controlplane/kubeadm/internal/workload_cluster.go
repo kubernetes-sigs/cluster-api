@@ -237,19 +237,23 @@ func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machin
 
 // RemoveNodeFromKubeadmConfigMap removes the entry for the node from the kubeadm configmap.
 func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string) error {
-	configMapKey := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
-	kubeadmConfigMap, err := w.getConfigMap(ctx, configMapKey)
-	if err != nil {
-		return err
-	}
-	config := &kubeadmConfig{ConfigMap: kubeadmConfigMap}
-	if err := config.RemoveAPIEndpoint(name); err != nil {
-		return err
-	}
-	if err := w.Client.Update(ctx, config.ConfigMap); err != nil {
-		return errors.Wrap(err, "error updating kubeadm ConfigMap")
-	}
-	return nil
+	return util.Retry(func() (bool, error) {
+		configMapKey := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
+		kubeadmConfigMap, err := w.getConfigMap(ctx, configMapKey)
+		if err != nil {
+			Log.Error(err, "unable to get kubeadmConfigMap")
+			return false, nil
+		}
+		config := &kubeadmConfig{ConfigMap: kubeadmConfigMap}
+		if err := config.RemoveAPIEndpoint(name); err != nil {
+			return false, err
+		}
+		if err := w.Client.Update(ctx, config.ConfigMap); err != nil {
+			Log.Error(err, "error updating kubeadm ConfigMap")
+			return false, nil
+		}
+		return true, nil
+	}, 5)
 }
 
 // ClusterStatus holds stats information about the cluster.

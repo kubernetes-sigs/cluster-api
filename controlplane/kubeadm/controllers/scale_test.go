@@ -137,14 +137,20 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			name                  string
 			etcdUnHealthy         bool
 			controlPlaneUnHealthy bool
+			expectErr             bool
+			expectResult          ctrl.Result
 		}{
 			{
 				name:          "etcd health check fails",
 				etcdUnHealthy: true,
+				expectErr:     true,
+				expectResult:  ctrl.Result{},
 			},
 			{
 				name:                  "controlplane component health check fails",
 				controlPlaneUnHealthy: true,
+				expectErr:             false,
+				expectResult:          ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter},
 			},
 		}
 		for _, tc := range testCases {
@@ -171,8 +177,10 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			}
 
 			result, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), controlPlane)
-			g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}))
-			g.Expect(err).To(BeNil())
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			}
+			g.Expect(result).To(Equal(tc.expectResult))
 
 			controlPlaneMachines := &clusterv1.MachineList{}
 			g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())

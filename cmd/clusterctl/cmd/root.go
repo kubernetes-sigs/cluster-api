@@ -20,12 +20,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
@@ -46,6 +48,16 @@ var RootCmd = &cobra.Command{
 	Long: LongDesc(`
 		Get started with Cluster API using clusterctl to create a management cluster,
 		install providers, and create templates for your workload cluster.`),
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// Check if Config folder (~/.cluster-api) exist and if not create it
+		configFolderPath := filepath.Join(homedir.HomeDir(), config.ConfigFolder)
+		if _, err := os.Stat(configFolderPath); os.IsNotExist(err) {
+			if err := os.MkdirAll(filepath.Dir(configFolderPath), os.ModePerm); err != nil {
+				return errors.Wrapf(err, "failed to create the clusterctl config directory: %s", configFolderPath)
+			}
+		}
+		return nil
+	},
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 		// Check if clusterctl needs an upgrade "AFTER" running each command
 		// and sub-command.
@@ -61,6 +73,16 @@ var RootCmd = &cobra.Command{
 			// Print the output in yellow so it is more visible.
 			fmt.Fprintf(os.Stderr, "\033[33m%s\033[0m", output)
 		}
+
+		// clean the downloaded config if was fetched from remote
+		downloadConfigFile := filepath.Join(homedir.HomeDir(), config.ConfigFolder, config.DownloadConfigFile)
+		if _, err := os.Stat(downloadConfigFile); err == nil {
+			if verbosity != nil && *verbosity >= 5 {
+				fmt.Fprintf(os.Stdout, "Removing downloaded clusterctl config file: %s\n", config.DownloadConfigFile)
+			}
+			_ = os.Remove(downloadConfigFile)
+		}
+
 		return nil
 	},
 }
@@ -86,7 +108,7 @@ func init() {
 
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
-		"Path to clusterctl configuration (default is `$HOME/.cluster-api/clusterctl.yaml`)")
+		"Path to clusterctl configuration (default is `$HOME/.cluster-api/clusterctl.yaml`) or to a remote location (i.e. https://example.com/clusterctl.yaml)")
 
 	cobra.OnInitialize(initConfig)
 }

@@ -19,6 +19,8 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,6 +47,20 @@ func Test_viperReader_Init(t *testing.T) {
 
 	configFileBadContents := filepath.Join(dir, "clusterctl-bad.yaml")
 	g.Expect(ioutil.WriteFile(configFileBadContents, []byte("bad-contents"), 0600)).To(Succeed())
+
+	// To test the remote config file
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, err := w.Write([]byte("bar: bar"))
+		g.Expect(err).NotTo(HaveOccurred())
+	}))
+	defer ts.Close()
+
+	// To test the remote config file when fails to fetch
+	tsFail := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer tsFail.Close()
 
 	tests := []struct {
 		name       string
@@ -76,6 +92,18 @@ func Test_viperReader_Init(t *testing.T) {
 			configDirs: []string{clusterctlHomeDir},
 			expectErr:  true,
 		},
+		{
+			name:       "reads in config from remote successfully",
+			configPath: ts.URL,
+			configDirs: []string{clusterctlHomeDir},
+			expectErr:  false,
+		},
+		{
+			name:       "fail to read remote config",
+			configPath: tsFail.URL,
+			configDirs: []string{clusterctlHomeDir},
+			expectErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -87,7 +115,6 @@ func Test_viperReader_Init(t *testing.T) {
 				return
 			}
 			gg.Expect(v.Init(tt.configPath)).To(Succeed())
-
 		})
 	}
 }

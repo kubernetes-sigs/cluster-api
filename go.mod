@@ -9,7 +9,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/drone/envsubst v1.0.3-0.20200709223903-efdb65b94e5a
-	github.com/evanphx/json-patch v4.5.0+incompatible
+	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/go-logr/logr v0.1.0
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
@@ -31,16 +31,16 @@ require (
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/grpc v1.26.0
-	k8s.io/api v0.17.8
-	k8s.io/apiextensions-apiserver v0.17.8
-	k8s.io/apimachinery v0.17.8
-	k8s.io/apiserver v0.17.8
-	k8s.io/client-go v0.17.8
+	k8s.io/api v0.17.9
+	k8s.io/apiextensions-apiserver v0.17.9
+	k8s.io/apimachinery v0.17.9
+	k8s.io/apiserver v0.17.9
+	k8s.io/client-go v0.17.9
 	k8s.io/cluster-bootstrap v0.17.8
-	k8s.io/component-base v0.17.8
+	k8s.io/component-base v0.17.9
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20200619165400-6e3d28b6ed19
-	sigs.k8s.io/controller-runtime v0.5.9
+	sigs.k8s.io/controller-runtime v0.5.10
 	sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802
 	sigs.k8s.io/yaml v1.2.0
 )

@@ -29,6 +29,10 @@ const (
 	// DeletingReason (Severity=Info) documents an condition not in Status=True because the underlying object it is currently being deleted.
 	DeletingReason = "Deleting"
 
+	// DeletionFailedReason (Severity=Warning) documents an condition not in Status=True because the underlying object
+	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
+	DeletionFailedReason = "DeletionFailed"
+
 	// DeletedReason (Severity=Info) documents an condition not in Status=True because the underlying object was deleted.
 	DeletedReason = "Deleted"
 )

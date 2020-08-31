@@ -30,6 +30,10 @@ spec:
       jsonPath: .status.ready
       name: API Server Available
       type: boolean
+    - description: Kubernetes version associated with this control plane
+      jsonPath: .spec.version
+      name: Version
+      type: string
     - description: Total number of non-terminated machines targeted by this control
         plane
       jsonPath: .status.replicas

@@ -105,6 +105,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, preKubeadmCommands},
 		{spec, kubeadmConfigSpec, postKubeadmCommands},
 		{spec, kubeadmConfigSpec, files},
+		{spec, kubeadmConfigSpec, "verbosity"},
 		{spec, "infrastructureTemplate", "name"},
 		{spec, "replicas"},
 		{spec, "version"},

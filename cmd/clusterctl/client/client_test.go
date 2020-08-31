@@ -105,6 +105,10 @@ func (f fakeClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, erro
 	return f.internalClient.PlanUpgrade(options)
 }
 
+func (f fakeClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
+	return f.internalClient.PlanCertManagerUpgrade(options)
+}
+
 func (f fakeClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	return f.internalClient.ApplyUpgrade(options)
 }
@@ -194,7 +198,7 @@ func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *
 
 // newFakeCertManagerClient creates a new CertManagerClient
 // allows the caller to define which images are needed for the manager to run
-func newFakeCertManagerClient(imagesReturnImages []string, imagesReturnError error) cluster.CertManagerClient {
+func newFakeCertManagerClient(imagesReturnImages []string, imagesReturnError error) *fakeCertManagerClient {
 	return &fakeCertManagerClient{
 		images:      imagesReturnImages,
 		imagesError: imagesReturnError,
@@ -202,8 +206,9 @@ func newFakeCertManagerClient(imagesReturnImages []string, imagesReturnError err
 }
 
 type fakeCertManagerClient struct {
-	images      []string
-	imagesError error
+	images          []string
+	imagesError     error
+	certManagerPlan cluster.CertManagerUpgradePlan
 }
 
 var _ cluster.CertManagerClient = &fakeCertManagerClient{}
@@ -216,8 +221,17 @@ func (p *fakeCertManagerClient) EnsureLatestVersion() error {
 	return nil
 }
 
+func (p *fakeCertManagerClient) PlanUpgrade() (cluster.CertManagerUpgradePlan, error) {
+	return p.certManagerPlan, nil
+}
+
 func (p *fakeCertManagerClient) Images() ([]string, error) {
 	return p.images, p.imagesError
+}
+
+func (p *fakeCertManagerClient) WithCertManagerPlan(plan CertManagerUpgradePlan) *fakeCertManagerClient {
+	p.certManagerPlan = cluster.CertManagerUpgradePlan(plan)
+	return p
 }
 
 type fakeClusterClient struct {

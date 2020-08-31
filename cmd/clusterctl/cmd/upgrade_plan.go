@@ -67,20 +67,33 @@ func runUpgradePlan() error {
 		return err
 	}
 
-	upgradePlans, err := c.PlanUpgrade(client.PlanUpgradeOptions{
+	certManUpgradePlan, err := c.PlanCertManagerUpgrade(client.PlanUpgradeOptions{
 		Kubeconfig: client.Kubeconfig{Path: up.kubeconfig, Context: up.kubeconfigContext},
 	})
 	if err != nil {
 		return err
 	}
+	if certManUpgradePlan.ShouldUpgrade {
+		fmt.Printf("Cert-Manager will be upgraded from %q to %q\n\n", certManUpgradePlan.From, certManUpgradePlan.To)
+	} else {
+		fmt.Printf("Cert-Manager is already up to date\n\n")
+	}
 
-	// ensure upgrade plans are sorted consistently (by CoreProvider.Namespace, Contract).
-	sortUpgradePlans(upgradePlans)
+	upgradePlans, err := c.PlanUpgrade(client.PlanUpgradeOptions{
+		Kubeconfig: client.Kubeconfig{Path: up.kubeconfig, Context: up.kubeconfigContext},
+	})
+
+	if err != nil {
+		return err
+	}
 
 	if len(upgradePlans) == 0 {
 		fmt.Println("There are no management groups in the cluster. Please use clusterctl init to initialize a Cluster API management cluster.")
 		return nil
 	}
+
+	// ensure upgrade plans are sorted consistently (by CoreProvider.Namespace, Contract).
+	sortUpgradePlans(upgradePlans)
 
 	for _, plan := range upgradePlans {
 		// ensure provider are sorted consistently (by Type, Name, Namespace).

@@ -62,6 +62,13 @@ const (
 	embeddedCertManagerManifestHash = "af8c08a8eb65d102ba98889a89f4ad1d3db5d302edb5b8f8f3e69bb992faa211"
 )
 
+// CertManagerUpgradePlan defines the upgrade plan if cert-manager needs to be
+// upgraded to a different version.
+type CertManagerUpgradePlan struct {
+	From, To      string
+	ShouldUpgrade bool
+}
+
 // CertManagerClient has methods to work with cert-manager components in the cluster.
 type CertManagerClient interface {
 	// EnsureInstalled makes sure cert-manager is running and its API is available.
@@ -71,6 +78,10 @@ type CertManagerClient interface {
 	// EnsureLatestVersion checks the cert-manager version currently installed, and if it is
 	// older than the version currently embedded in clusterctl, upgrades it.
 	EnsureLatestVersion() error
+
+	// PlanUpgrade retruns a CertManagerUpgradePlan with information regarding
+	// a cert-manager upgrade if necessary.
+	PlanUpgrade() (CertManagerUpgradePlan, error)
 
 	// Images return the list of images required for installing the cert-manager.
 	Images() ([]string, error)
@@ -154,6 +165,29 @@ func (cm *certManagerClient) install() error {
 	}
 
 	return nil
+}
+
+// PlanUpgrade retruns a CertManagerUpgradePlan with information regarding
+// a cert-manager upgrade if necessary.
+func (cm *certManagerClient) PlanUpgrade() (CertManagerUpgradePlan, error) {
+	log := logf.Log
+	log.Info("Checking cert-manager version...")
+
+	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"}, "cert-manager")
+	if err != nil {
+		return CertManagerUpgradePlan{}, errors.Wrap(err, "failed get cert manager components")
+	}
+
+	currentVersion, shouldUpgrade, err := shouldUpgrade(objs)
+	if err != nil {
+		return CertManagerUpgradePlan{}, err
+	}
+
+	return CertManagerUpgradePlan{
+		From:          currentVersion,
+		To:            embeddedCertManagerManifestVersion,
+		ShouldUpgrade: shouldUpgrade,
+	}, nil
 }
 
 // EnsureLatestVersion checks the cert-manager version currently installed, and if it is

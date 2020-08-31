@@ -41,6 +41,10 @@ type Template repository.Template
 // UpgradePlan defines a list of possible upgrade targets for a management group.
 type UpgradePlan cluster.UpgradePlan
 
+// CertManagerUpgradePlan defines the upgrade plan if cert-manager needs to be
+// upgraded to a different version.
+type CertManagerUpgradePlan cluster.CertManagerUpgradePlan
+
 // Kubeconfig is a type that specifies inputs related to the actual kubeconfig.
 type Kubeconfig cluster.Kubeconfig
 

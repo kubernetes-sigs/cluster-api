@@ -52,6 +52,11 @@ docker pull kindest/node:v1.17.2
 
 # Configure e2e tests
 export GINKGO_FOCUS=
+smokeArg=${1:-}
+if [ -n "$smokeArg" ] && [ "$smokeArg" = "smoke" ]; then
+       export GINKGO_FOCUS="quick-start"
+fi
+
 export GINKGO_NODES=3
 export GINKGO_NOCOLOR=true
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker-ci.yaml"

@@ -409,7 +409,20 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 		return allErrs
 	}
 
-	// since upgrades to the next minor version are allowed, irrespective of the patch version
+	// Check if we're trying to upgrade to Kubernetes v1.19.0, which is not supported.
+	//
+	// See https://github.com/kubernetes-sigs/cluster-api/issues/3564
+	if fromVersion.NE(toVersion) && toVersion.Equals(semver.MustParse("1.19.0")) {
+		allErrs = append(allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "version"),
+				"cannot update Kubernetes version to v1.19.0, for more information see https://github.com/kubernetes-sigs/cluster-api/issues/3564",
+			),
+		)
+		return allErrs
+	}
+
+	// Since upgrades to the next minor version are allowed, irrespective of the patch version.
 	ceilVersion := semver.Version{
 		Major: fromVersion.Major,
 		Minor: fromVersion.Minor + 2,

@@ -59,7 +59,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 				Name:      "infraTemplate",
 			},
 			Replicas: pointer.Int32Ptr(1),
-			Version:  "v1.16.6",
+			Version:  "v1.19.0",
 		},
 	}
 	invalidNamespace := valid.DeepCopy()
@@ -433,6 +433,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	withoutClusterConfiguration := before.DeepCopy()
 	withoutClusterConfiguration.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
 
+	disallowedUpgrade118Prev := prevKCPWithVersion("v1.18.8")
+	disallowedUpgrade119Version := before.DeepCopy()
+	disallowedUpgrade119Version.Spec.Version = "v1.19.0"
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -690,6 +694,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       before.DeepCopy(),
+		},
+		{
+			name:      "should return error when trying to upgrade to v1.19.0",
+			expectErr: true,
+			before:    disallowedUpgrade118Prev,
+			kcp:       disallowedUpgrade119Version,
 		},
 	}
 

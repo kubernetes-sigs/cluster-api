@@ -48,7 +48,7 @@ docker pull quay.io/jetstack/cert-manager-controller:v0.16.1
 
 ## Pulling kind images used by tests
 docker pull kindest/node:v1.18.2
-docker pull kindest/node:v1.19.0
+docker pull kindest/node:v1.17.2
 
 # Configure e2e tests
 export GINKGO_FOCUS=

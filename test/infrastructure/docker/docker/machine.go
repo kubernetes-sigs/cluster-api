@@ -229,21 +229,22 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 
 	commands, err := cloudinit.Commands(cloudConfig)
 	if err != nil {
-		m.log.Info("cloud config failed to parse", "cloud-config", string(cloudConfig))
+		m.log.Info("cloud config failed to parse", "bootstrap data", data)
 		return errors.Wrap(err, "failed to join a control plane node with kubeadm")
 	}
 
-	m.log.Info("Running machine bootstrap scripts")
-	var out bytes.Buffer
+	var outErr bytes.Buffer
+	var outStd bytes.Buffer
 	for _, command := range commands {
 		cmd := m.container.Commander.Command(command.Cmd, command.Args...)
-		cmd.SetStderr(&out)
+		cmd.SetStderr(&outErr)
+		cmd.SetStdout(&outStd)
 		if command.Stdin != "" {
 			cmd.SetStdin(strings.NewReader(command.Stdin))
 		}
 		err := cmd.Run(ctx)
 		if err != nil {
-			m.log.Info("Failed running command", "command", command, "stderr", out.String())
+			m.log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
 			return errors.Wrap(err, "failed to run cloud conifg")
 		}
 	}

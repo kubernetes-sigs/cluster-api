@@ -26,6 +26,7 @@ aliases:
   - ncdc
   - vincepri
   - CecileRobertMichon
+  - fabriziopandini
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
@@ -48,6 +49,7 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-provider-docker-maintainers:
+  - fabriziopandini
   - ncdc
 
   # -----------------------------------------------------------

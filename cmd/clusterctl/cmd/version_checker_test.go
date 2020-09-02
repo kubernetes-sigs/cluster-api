@@ -349,9 +349,7 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 			URL:     "https://github.com/foo/bar/releases/v0.3.8",
 		},
 	}
-	b, err := yaml.Marshal(reallyOldVersionState)
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(ioutil.WriteFile(tmpVersionFile, b, 0600)).To(Succeed())
+	g.Expect(writeStateFile(tmpVersionFile, reallyOldVersionState)).To(Succeed())
 
 	fakeGithubClient1, mux1, cleanup1 := test.NewFakeGitHub()
 	mux1.HandleFunc(
@@ -366,7 +364,7 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient1
 
-	_, err = versionChecker.getLatestRelease()
+	_, err := versionChecker.getLatestRelease()
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Since the state file is more that 24 hours old we want to retrieve the
@@ -381,7 +379,7 @@ func generateTempVersionFilePath(g *WithT) (string, func()) {
 	dir, err := ioutil.TempDir("", "clusterctl")
 	g.Expect(err).NotTo(HaveOccurred())
 	// don't create the state file, just have a path to the file
-	tmpVersionFile := filepath.Join(dir, "state.yaml")
+	tmpVersionFile := filepath.Join(dir, "clusterctl", "state.yaml")
 
 	return tmpVersionFile, func() {
 		os.RemoveAll(dir)

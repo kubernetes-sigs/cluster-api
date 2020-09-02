@@ -166,13 +166,15 @@ func (v *versionChecker) getLatestRelease() (*ReleaseInfo, error) {
 
 }
 
-func writeStateFile(filepath string, vs *VersionState) error {
+func writeStateFile(path string, vs *VersionState) error {
 	vsb, err := yaml.Marshal(vs)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath, vsb, 0600)
-	if err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(path, vsb, 0600); err != nil {
 		return err
 	}
 	return nil

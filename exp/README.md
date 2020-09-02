@@ -1,10 +1,10 @@
 # Experimental
 
-⚠️ This folder holds experimental code and API types. ⚠️
+⚠️ This package holds experimental code and API types. ⚠️
 
 ## Compatibility notice
 
-Packages and code does not follow any compatibility guarantees and it's considered unreliable. Some projects may be promoted to the main repository in time, some other may be modified arbitrarily or even disappear altogether.
+This package does not adhere to any compatibility guarantees. Some portions may eventually be promoted out of this package and considered stable/GA, while others may be removed entirely.
 
 ## Graduation criteria
 

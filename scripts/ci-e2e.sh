@@ -51,7 +51,6 @@ docker pull kindest/node:v1.18.2
 docker pull kindest/node:v1.17.2
 
 # Configure e2e tests
-export GINKGO_FOCUS=
 export GINKGO_NODES=3
 export GINKGO_NOCOLOR=true
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker-ci.yaml"

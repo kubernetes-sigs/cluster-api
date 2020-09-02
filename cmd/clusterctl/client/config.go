@@ -102,7 +102,7 @@ func (c *clusterctlClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter,
 	cluster, err := c.clusterClientFactory(
 		ClusterClientFactoryInput{
 			// use the default kubeconfig
-			kubeconfig: Kubeconfig{},
+			Kubeconfig: Kubeconfig{},
 		},
 	)
 	if err != nil {
@@ -320,7 +320,7 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 		return nil, err
 	}
 
-	repo, err := c.repositoryClientFactory(RepositoryClientFactoryInput{provider: providerConfig, processor: processor})
+	repo, err := c.repositoryClientFactory(RepositoryClientFactoryInput{Provider: providerConfig, Processor: processor})
 	if err != nil {
 		return nil, err
 	}

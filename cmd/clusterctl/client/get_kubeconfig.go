@@ -33,7 +33,7 @@ type GetKubeconfigOptions struct {
 
 func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, error) {
 	// gets access to the management cluster
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return "", err
 	}

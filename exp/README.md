@@ -1,16 +1,11 @@
-# exp
+# Experimental
 
-This subrepository holds experimental code and API types.
+⚠️ This folder holds experimental code and API types. ⚠️
 
-**Warning**: Packages here are experimental and unreliable. Some may one day be promoted to the main repository, or they may be modified arbitrarily or even disappear altogether.
+## Compatibility notice
 
-In short, code in this subrepository is not subject to any compatibility or deprecation promise.
+Packages and code does not follow any compatibility guarantees and it's considered unreliable. Some projects may be promoted to the main repository in time, some other may be modified arbitrarily or even disappear altogether.
 
-Experiments follow a strict lifecycle: Alpha -> Beta prior to Graduation.
+## Graduation criteria
 
 For more information on graduation criteria, see: [Contributing Guidelines](../CONTRIBUTING.md#experiments)
-
-## Active Features
- MachinePool  (alpha)
- 
- ClusterResourceSet (alpha)

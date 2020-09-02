@@ -453,6 +453,11 @@ release: clean-release ## Builds and push container images using the latest git 
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
 	$(MAKE) release-manifests
+	# Release CAPD components and add them to the release dir
+	$(MAKE) -C test/infrastructure/docker/ release
+	cp test/infrastructure/docker/out/infrastructure-components.yaml $(RELEASE_DIR)/infrastructure-components-development.yaml
+	# Adds CAPD templates
+	cp test/infrastructure/docker/templates/* $(RELEASE_DIR)/
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publish with a release

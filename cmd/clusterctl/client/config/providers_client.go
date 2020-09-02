@@ -33,6 +33,7 @@ const (
 	// Infra providers
 	AWSProviderName       = "aws"
 	AzureProviderName     = "azure"
+	DockerProviderName    = "docker"
 	Metal3ProviderName    = "metal3"
 	OpenStackProviderName = "openstack"
 	PacketProviderName    = "packet"
@@ -100,6 +101,12 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         AzureProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			// NB. The Docker provider is not designed for production use and is intended for development environments only.
+			name:         DockerProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/infrastructure-components-development.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

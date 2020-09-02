@@ -8,9 +8,7 @@ This document describes how to use `clusterctl` during the development workflow.
 * A local clone of the Cluster API GitHub repository
 * A local clone of the GitHub repositories for the providers you want to install
 
-## Getting started
-
-### Build clusterctl
+## Build clusterctl
 
 From the root of the local copy of Cluster API, you can build the `clusterctl` binary by running:
 
@@ -21,13 +19,41 @@ make clusterctl
 The output of the build is saved in the `bin/` folder; In order to use it you have to specify
 the full path, create an alias or copy it into a folder under your `$PATH`.
 
+## Use local artifacts
+
+Clusterctl by default uses artifacts published in the [providers repositories];
+during the development workflow it might happen you want to use artifacts from your local workstation.
+
+There are two options to do so:
+
+-  Use the [overrides layer], when you want to override a single published artifact with a local one.
+-  Create a local repository, when you want to avoid to use published artifacts and use intead the local ones.
+
+If you want to create a local artifact, follow those instructions:
+
+### Build artifacts locally
+
+In order to build artifacts for the CAPI core provider, the kubeadm bootstrap provider and the kubeadm control plane provider:
+
+```
+make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api
+make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-cluster-api
+```
+
+In order to build docker provider artifacts
+
+```
+make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-cluster-api
+make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-cluster-api
+```
+
 ### Create a clusterctl-settings.json file
 
 Next, create a `clusterctl-settings.json` file and place it in your local copy of Cluster API. Here is an example:
 
 ```yaml
 {
-  "providers": ["cluster-api","bootstrap-kubeadm","control-plane-kubeadm", "infrastructure-aws"],
+  "providers": ["cluster-api","bootstrap-kubeadm","control-plane-kubeadm", "infrastructure-aws", "infrastructure-docker"],
   "provider_repos": ["../cluster-api-provider-aws"]
 }
 ```
@@ -38,35 +64,50 @@ See [available providers](#available-providers) for more details.
 **provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have
 a `clusterctl-settings.json` file describing how to build the provider assets.
 
-### Run the local-overrides hack!
+### Create the local repository
 
-<aside class="note">
-
-<h1>If using the docker provider, take additional steps</h1>
-
-Before running the local-overrides hack with the Docker provider, follow <a href="#additional-steps-for-the-docker-provider">these steps</a>.
-
-</aside>
-
-You can now run the local-overrides hack from the root of the local copy of Cluster API:
+Run the create-local-repository hack from the root of the local copy of Cluster API:
 
 ```shell
-cmd/clusterctl/hack/local-overrides.py
+cmd/clusterctl/hack/create-local-repository.py
 ```
 
-The script reads from the local repositories of the providers you want to install, builds the providers' assets,
-and places them in a local override folder located under `$HOME/.cluster-api/overrides/`.
+The script reads from the source folders for the providers you want to install, builds the providers' assets,
+and places them in a local repository folder located under `$HOME/.cluster-api/dev-repository/`.
 Additionally, the command output provides you the `clusterctl init` command with all the necessary flags.
+The output should be similar to:
 
 ```shell
-clusterctl local overrides generated from local repositories for the cluster-api, bootstrap-kubeadm, control-plane-kubeadm, infrastructure-aws providers.
+clusterctl local overrides generated from local repositories for the cluster-api, bootstrap-kubeadm, control-plane-kubeadm, infrastructure-docker, infrastructure-aws providers.
 in order to use them, please run:
 
-clusterctl init  --core cluster-api:v0.3.0 --bootstrap kubeadm:v0.3.0 --infrastructure aws:v0.5.0
+clusterctl init \
+   --core cluster-api:v0.3.8 \
+   --bootstrap kubeadm:v0.3.8 \
+   --control-plane kubeadm:v0.3.8 \
+   --infrastructure aws:v0.5.0 \
+   --infrastructure docker:v0.3.8 \
+   --config ~/.cluster-api/dev-repository/config.yaml
+
 ```
 
-See [Overrides Layer](configuration.md#overrides-layer) for more information
-on the purpose of overrides.
+As you might notice, the command is using the `$HOME/.cluster-api/dev-repository/config.yaml` config file,
+containing all the required setting to make clusterctl use the local repository.
+
+<aside class="note warning">
+
+<h1>Warnings</h1>
+
+You must pass `--config ~/.cluster-api/dev-repository/config.yaml` to all the clusterctl commands you are running
+during your dev session. 
+
+The above config file changes the location of the [overrides layer] folder thus ensuring
+you dev session isn't hijacked by other local artifacts.
+
+With the only exception of the docker provider, the local repository folder does not contain cluster templates, 
+so `clusterctl config cluster` command will fail.
+
+</aside>
 
 #### Available providers
 
@@ -90,97 +131,34 @@ please note that each `provider_repo` should have its own `clusterctl-settings.j
 }
 ```
 
-#### Additional Steps for the Docker Provider
+## Create a kind cluster
 
-<aside class="note warning">
+[kind] can provide a Kubernetes cluster to be used a management cluster.
+See [Install and/or configure a kubernetes cluster] for more about how.
 
-<h1>Warning</h1>
+Before running clusterctl init, you must ensure all the required images are available in the kind cluster.
 
-The Docker provider is not designed for production use and is intended for development environments only.
-
-</aside>
-
-Before running the local-overrides hack:
-
-- Run `make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-cluster-api` to build the docker provider image
-  using a specific REGISTRY (you can choose your own).
-
-- Run `make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-cluster-api` to generate
-  the docker provider manifest using the above registry/Image.
-
-Run the local-overrides hack and save the `clusterctl init` command provided in the command output to be used later.
-
-Edit the clusterctl config file located at `~/.cluster-api/clusterctl.yaml` and configure the docker provider
-by adding the following lines (replace $HOME with your home path):
-
-```bash
-providers:
-  - name: docker
-    url: $HOME/.cluster-api/overrides/infrastructure-docker/latest/infrastructure-components.yaml
-    type: InfrastructureProvider
+This is always the case for images published in some image repository like docker hub or gcr.io, but it can't be
+the case for images built locally; in this case, you can use `kind load` to move the images built locally. e.g 
+ 
 ```
+kind load docker-image gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:dev
+kind load docker-image gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:dev
+kind load docker-image gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:dev
+kind load docker-image gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev
+``` 
 
-If you are using Kind for creating the management cluster, you should:
+to make the controller images available for the kubelet in the management cluster.
 
-{{#tabs name:"install-kind" tabs:"v0.7.x,v0.8.x"}}
-{{#tab v0.7.x}}
-
-- Run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
-
-```bash
-cat > kind-cluster-with-extramounts.yaml <<EOF
-kind: Cluster
-apiVersion: kind.sigs.k8s.io/v1alpha3
-nodes:
-  - role: control-plane
-    extraMounts:
-      - hostPath: /var/run/docker.sock
-        containerPath: /var/run/docker.sock
-EOF
-```
-- Run `kind create cluster --config kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
-
-- Run `kind load docker-image gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev` to make the docker provider image available for the kubelet in the management cluster.
-
-- Run `clusterctl init` command provided as output of the local-overrides hack.
-
-{{#/tab }}
-{{#tab v0.8.x}}
-
-- Export the **KIND_EXPERIMENTAL_DOCKER_NETWORK=bridge** so kind and CAPD can create containers in the same network, since **kind v0.8.0**, kind by default creates the containers in the **kind** network while CAPD is creating them in the **bridge** one.
-```bash
-export KIND_EXPERIMENTAL_DOCKER_NETWORK=bridge
-```
-- Run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
-```bash
-cat > kind-cluster-with-extramounts.yaml <<EOF
-kind: Cluster
-apiVersion: kind.sigs.k8s.io/v1alpha3
-nodes:
-  - role: control-plane
-    extraMounts:
-      - hostPath: /var/run/docker.sock
-        containerPath: /var/run/docker.sock
-EOF
-```
-- Run `kind create cluster --config kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
-
-- Run `kind load docker-image gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev` to make the docker provider image available for the kubelet in the management cluster.
-
-- Run `clusterctl init` command provided as output of the local-overrides hack.
-
-{{#/tab }}
-{{#/tabs }}
-
-### Connecting to a workload cluster on docker
+## Additional Notes for the Docker Provider
 
 The command for getting the kubeconfig file for connecting to a workload cluster is the following:
 
 ```bash
-clusterctl get kubeconfig capi-quickstart
+clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 ```
 
-When using docker-for-mac MacOS, you will need to do a couple of additional
+When using docker on MacOS, you will need to do a couple of additional
 steps to get the correct kubeconfig for a workload cluster created with the docker provider:
 
 ```bash
@@ -193,3 +171,6 @@ sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./c
 
 <!-- links -->
 [kind]: https://kind.sigs.k8s.io/
+[providers repositories]: configuration.md#provider-repositories
+[overrides layer]: configuration.md#overrides-layer
+[Install and/or configure a kubernetes cluster]: ../user/quick-start.md#install-andor-configure-a-kubernetes-cluster

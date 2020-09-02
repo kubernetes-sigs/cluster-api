@@ -107,6 +107,7 @@ kubeadm             ControlPlaneProvider     https://github.com/kubernetes-sigs/
 talos               ControlPlaneProvider     https://github.com/talos-systems/cluster-api-control-plane-provider-talos/releases/latest/   control-plane-components.yaml
 aws                 InfrastructureProvider                                                                                                my-aws-infrastructure-components.yaml
 azure               InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/               infrastructure-components.yaml
+docker              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                              infrastructure-components-development.yaml
 metal3              InfrastructureProvider   https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                    infrastructure-components.yaml
 my-infra-provider   InfrastructureProvider   /home/.cluster-api/overrides/infrastructure-docker/latest/                                   infrastructure-components.yaml
 openstack           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/           infrastructure-components.yaml
@@ -147,6 +148,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: azure
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/
+- File: infrastructure-components-development.yaml
+  Name: docker
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
 - File: infrastructure-components.yaml
   Name: metal3
   ProviderType: InfrastructureProvider

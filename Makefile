@@ -112,7 +112,7 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: ## Run tests. 
+test: ## Run tests.
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./... $(TEST_ARGS)
 
 .PHONY: test-cover
@@ -183,7 +183,8 @@ $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 $(ENVSUBST): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/cmd/envsubst
 
-envsubst: $(ENVSUBST)
+envsubst: $(ENVSUBST) ## Build a local copy of envsubst.
+kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize.
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework

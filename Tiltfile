@@ -3,6 +3,7 @@
 # set defaults
 
 envsubst_cmd = "./hack/tools/bin/envsubst"
+kustomize_cmd = "./hack/tools/bin/kustomize"
 
 settings = {
     "deploy_cert_manager": True,
@@ -269,14 +270,14 @@ def include_user_tilt_files():
 
 # Enable core cluster-api plus everything listed in 'enable_providers' in tilt-settings.json
 def enable_providers():
-    local("make envsubst")
+    local("make kustomize envsubst")
     user_enable_providers = settings.get("enable_providers", [])
     union_enable_providers = {k: "" for k in user_enable_providers + always_enable_providers}.keys()
     for name in union_enable_providers:
         enable_provider(name)
 
 def kustomize_with_envsubst(path):
-    return str(local("kustomize build {} | {}".format(path, envsubst_cmd), quiet = True))
+    return str(local("{} build {} | {}".format(kustomize_cmd, path, envsubst_cmd), quiet = True))
 
 ##############################
 # Actual work happens here

@@ -494,6 +494,147 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 	}
 }
 
+func Test_certManagerClient_PlanUpgrade(t *testing.T) {
+
+	tests := []struct {
+		name         string
+		objs         []runtime.Object
+		expectErr    bool
+		expectedPlan CertManagerUpgradePlan
+	}{
+		{
+			name: "returns the upgrade plan for cert-manager if v0.11.0 is installed",
+			// Cert-manager deployment without annotation, this must be from
+			// v0.11.0
+			objs: []runtime.Object{
+				&appsv1.Deployment{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Deployment",
+						APIVersion: appsv1.SchemeGroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "cert-manager",
+						Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+					},
+				},
+			},
+			expectErr: false,
+			expectedPlan: CertManagerUpgradePlan{
+				From:          "v0.11.0",
+				To:            embeddedCertManagerManifestVersion,
+				ShouldUpgrade: true,
+			},
+		},
+		{
+			name: "returns the upgrade plan for cert-manager if an older version is installed",
+			objs: []runtime.Object{
+				&appsv1.Deployment{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Deployment",
+						APIVersion: appsv1.SchemeGroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "cert-manager",
+						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						Annotations: map[string]string{certmanagerVersionAnnotation: "v0.16.0", certmanagerHashAnnotation: "some-hash"},
+					},
+				},
+			},
+			expectErr: false,
+			expectedPlan: CertManagerUpgradePlan{
+				From:          "v0.16.0",
+				To:            embeddedCertManagerManifestVersion,
+				ShouldUpgrade: true,
+			},
+		},
+		{
+			name: "returns the upgrade plan for cert-manager if same version but different hash",
+			objs: []runtime.Object{
+				&appsv1.Deployment{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Deployment",
+						APIVersion: appsv1.SchemeGroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "cert-manager",
+						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						Annotations: map[string]string{certmanagerVersionAnnotation: embeddedCertManagerManifestVersion, certmanagerHashAnnotation: "some-other-hash"},
+					},
+				},
+			},
+			expectErr: false,
+			expectedPlan: CertManagerUpgradePlan{
+				From:          "v0.16.1 (some-other-hash)",
+				To:            embeddedCertManagerManifestVersion,
+				ShouldUpgrade: true,
+			},
+		},
+		{
+			name: "returns plan if shouldn't upgrade",
+			objs: []runtime.Object{
+				&appsv1.Deployment{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Deployment",
+						APIVersion: appsv1.SchemeGroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "cert-manager",
+						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						Annotations: map[string]string{certmanagerVersionAnnotation: embeddedCertManagerManifestVersion, certmanagerHashAnnotation: embeddedCertManagerManifestHash},
+					},
+				},
+			},
+			expectErr: false,
+			expectedPlan: CertManagerUpgradePlan{
+				From:          embeddedCertManagerManifestVersion,
+				To:            embeddedCertManagerManifestVersion,
+				ShouldUpgrade: false,
+			},
+		},
+		{
+			name: "returns empty plan and error if cannot parse semver",
+			objs: []runtime.Object{
+				&appsv1.Deployment{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Deployment",
+						APIVersion: appsv1.SchemeGroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "cert-manager",
+						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
+						Annotations: map[string]string{certmanagerVersionAnnotation: "bad-sem-ver"},
+					},
+				},
+			},
+			expectErr: true,
+			expectedPlan: CertManagerUpgradePlan{
+				From:          "",
+				To:            "",
+				ShouldUpgrade: false,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cm := &certManagerClient{
+				proxy: test.NewFakeProxy().WithObjs(tt.objs...),
+			}
+			actualPlan, err := cm.PlanUpgrade()
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(actualPlan).To(Equal(CertManagerUpgradePlan{}))
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(actualPlan).To(Equal(tt.expectedPlan))
+		})
+	}
+
+}
+
 func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 	type fields struct {
 		proxy Proxy

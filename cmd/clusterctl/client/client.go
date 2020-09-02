@@ -56,6 +56,9 @@ type Client interface {
 	//   - Upgrade to the latest version in the the v1alpha3 series: ....
 	PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error)
 
+	// PlanCertManagerUpgrade returns a CertManagerUpgradePlan.
+	PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error)
+
 	// ApplyUpgrade executes an upgrade plan.
 	ApplyUpgrade(options ApplyUpgradeOptions) error
 

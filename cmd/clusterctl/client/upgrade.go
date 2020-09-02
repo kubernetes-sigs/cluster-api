@@ -31,6 +31,17 @@ type PlanUpgradeOptions struct {
 	Kubeconfig Kubeconfig
 }
 
+func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
+	// Get the client for interacting with the management cluster.
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})
+	if err != nil {
+		return CertManagerUpgradePlan{}, err
+	}
+
+	plan, err := cluster.CertManager().PlanUpgrade()
+	return CertManagerUpgradePlan(plan), err
+}
+
 func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
 	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.Kubeconfig})

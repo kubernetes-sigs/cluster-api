@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When following the Cluster API quick-start", func() {
+var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
 
 	QuickStartSpec(context.TODO(), func() QuickStartSpecInput {
 		return QuickStartSpecInput{

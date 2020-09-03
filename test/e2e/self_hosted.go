@@ -85,7 +85,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                namespace.Name,
-				ClusterName:              fmt.Sprintf("cluster-%s", util.RandomString(6)),
+				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
@@ -124,7 +124,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			ClusterProxy:            selfHostedClusterProxy,
 			ClusterctlConfigPath:    input.ClusterctlConfigPath,
 			InfrastructureProviders: input.E2EConfig.InfrastructureProviders(),
-			LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", "self-hosted"),
+			LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
 		//TODO: refactor in to an helper func e.g. "MoveToSelfHostedAndWait"
@@ -161,13 +161,13 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
 				Lister:    selfHostedClusterProxy.GetClient(),
 				Namespace: namespace.Name,
-				LogPath:   filepath.Join(input.ArtifactFolder, "clusters", "self-hosted", "resources"),
+				LogPath:   filepath.Join(input.ArtifactFolder, "clusters", cluster.Name, "resources"),
 			})
 		}
 		if selfHostedCluster != nil {
 			By("Moving the cluster back to bootstrap")
 			clusterctl.Move(ctx, clusterctl.MoveInput{
-				LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", "self-hosted"),
+				LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 				ClusterctlConfigPath: input.ClusterctlConfigPath,
 				FromKubeconfigPath:   selfHostedClusterProxy.GetKubeconfigPath(),
 				ToKubeconfigPath:     input.BootstrapClusterProxy.GetKubeconfigPath(),

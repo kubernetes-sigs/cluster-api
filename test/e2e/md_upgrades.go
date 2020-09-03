@@ -82,7 +82,7 @@ func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() Machi
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                namespace.Name,
-				ClusterName:              fmt.Sprintf("cluster-%s", util.RandomString(6)),
+				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),

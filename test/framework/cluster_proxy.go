@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"path"
 	goruntime "runtime"
 	"strings"
 
@@ -65,9 +66,29 @@ type ClusterProxy interface {
 	// GetWorkloadCluster returns a proxy to a workload cluster defined in the Kubernetes cluster.
 	GetWorkloadCluster(ctx context.Context, namespace, name string) ClusterProxy
 
+	// CollectWorkloadClusterLogs collects machines logs from the workload cluster.
+	CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string)
+
 	// Dispose proxy's internal resources (the operation does not affects the Kubernetes cluster).
 	// This should be implemented as a synchronous function.
 	Dispose(context.Context)
+}
+
+// ClusterLogCollector defines an object that can collect logs from a machine.
+type ClusterLogCollector interface {
+	// CollectMachineLog collects log from a machine.
+	// TODO: describe output folder struct
+	CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error
+}
+
+// Option is a configuration option supplied to NewClusterProxy
+type Option func(*clusterProxy)
+
+// WithMachineLogCollector allows to define the machine log collector to be used with this Cluster.
+func WithMachineLogCollector(logCollector ClusterLogCollector) Option {
+	return func(c *clusterProxy) {
+		c.logCollector = logCollector
+	}
 }
 
 // clusterProxy provides a base implementation of the ClusterProxy interface.
@@ -76,22 +97,30 @@ type clusterProxy struct {
 	kubeconfigPath          string
 	scheme                  *runtime.Scheme
 	shouldCleanupKubeconfig bool
+	logCollector            ClusterLogCollector
 }
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
 // If a kubeconfig file isn't provided, standard kubeconfig locations will be used (kubectl loading rules apply).
-func NewClusterProxy(name string, kubeconfigPath string, scheme *runtime.Scheme) ClusterProxy {
+func NewClusterProxy(name string, kubeconfigPath string, scheme *runtime.Scheme, options ...Option) ClusterProxy {
 	Expect(scheme).NotTo(BeNil(), "scheme is required for NewClusterProxy")
 
 	if kubeconfigPath == "" {
 		kubeconfigPath = clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()
 	}
-	return &clusterProxy{
+
+	proxy := &clusterProxy{
 		name:                    name,
 		kubeconfigPath:          kubeconfigPath,
 		scheme:                  scheme,
 		shouldCleanupKubeconfig: false,
 	}
+
+	for _, o := range options {
+		o(proxy)
+	}
+
+	return proxy
 }
 
 // newFromAPIConfig returns a clusterProxy given a api.Config and the scheme defining the types hosted in the cluster.
@@ -190,6 +219,40 @@ func (p *clusterProxy) GetWorkloadCluster(ctx context.Context, namespace, name s
 	}
 
 	return newFromAPIConfig(name, config, p.scheme)
+}
+
+// CollectWorkloadClusterLogs collects machines logs from the workload cluster.
+func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string) {
+	if p.logCollector == nil {
+		return
+	}
+
+	machines, err := getMachinesInCluster(ctx, p.GetClient(), namespace, name)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get machines for the %s/%s cluster", namespace, name)
+
+	for i := range machines.Items {
+		m := &machines.Items[i]
+		err := p.logCollector.CollectMachineLog(ctx, p.GetClient(), m, path.Join(outputPath, m.GetName()))
+		if err != nil {
+			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
+			fmt.Printf("Failed to get logs for machine %s, cluster %s/%s: %v\n", m.GetName(), namespace, name, err)
+		}
+	}
+}
+
+func getMachinesInCluster(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachineList, error) {
+	if name == "" {
+		return nil, nil
+	}
+
+	machineList := &clusterv1.MachineList{}
+	labels := map[string]string{clusterv1.ClusterLabelName: name}
+
+	if err := c.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	return machineList, nil
 }
 
 func (p *clusterProxy) getKubeconfig(ctx context.Context, namespace string, name string) *api.Config {

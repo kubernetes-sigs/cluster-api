@@ -85,7 +85,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 
 		By("Creating a workload cluster")
 
-		clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		client := input.BootstrapClusterProxy.GetClient()
 		WaitForClusterIntervals := input.E2EConfig.GetIntervals(specName, "wait-cluster")
 		WaitForControlPlaneIntervals := input.E2EConfig.GetIntervals(specName, "wait-control-plane")

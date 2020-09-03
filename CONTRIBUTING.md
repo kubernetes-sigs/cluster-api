@@ -40,7 +40,6 @@ Before starting to work on the issue, make sure that it doesn't have a [lifecycl
 Alternatively, read some of the docs on other controllers and try to write your own, file and fix any/all issues that
 come up, including gaps in documentation!
 
-
 ## Contributing a Patch
 
 1. If you haven't already done so, sign a Contributor License Agreement (see details above).
@@ -57,6 +56,27 @@ come up, including gaps in documentation!
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer
 docs](https://github.com/kubernetes/community/tree/master/contributors/devel). Expect reviewers to request that you
 avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
+
+## Triaging E2E test failures
+
+When you submit a change to the Cluster API repository as set of validation jobs is automatically executed by 
+prow and the results report is added to a comment at the end of your PR.
+
+Some jobs run linters or unit test, and in case of failures, you can repeat the same operation locally using `make test lint-full [etc..]` 
+in order to investigate and potential issues. Prow logs usually provide hints about the make target you should use  
+(there might be more than one command that needs to be run).  
+
+End-to-end (E2E) jobs create real Kubernetes clusters by building Cluster API artifacts with the latest changes.
+In case of E2E test failures, usually it's required to access the "Artifacts" link on the top of the prow logs page to triage the problem.
+
+The artifact folder contains:
+- A folder with the clusterctl local repository used for the test, where you can find components yaml and cluster templates.
+- A folder with logs for all the clusters created during the test. Following logs/info are available: 
+    - Controller logs (only if the cluster is a management cluster).
+    - Dump of the Cluster API resources (only if the cluster is a management cluster).
+    - Machine logs (only if the cluster is a workload cluster)
+    
+In case you want to run E2E test locally, please refer to the [Testing](https://cluster-api.sigs.k8s.io/developer/testing.html#running-the-end-to-end-tests) guide.
 
 ## Reviewing a Patch
 

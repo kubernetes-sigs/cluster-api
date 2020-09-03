@@ -378,29 +378,14 @@ See the [AWS provider prerequisites] document for more details.
 {{#/tab }}
 {{#tab Azure}}
 
-NOTE: `CLUSTER_NAME` can only include letters, numbers, and hyphens and can't be longer than 44 characters to allow for cluster name
-to be used as a prefix for VMs and other resources that have [Azure naming rules and restrictions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules)
-
 ```bash
-export CLUSTER_NAME="capi-quickstart"
-
 # Name of the Azure datacenter location.
 export AZURE_LOCATION="centralus"
 
 # Select VM types.
 export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"
 export AZURE_NODE_MACHINE_TYPE="Standard_D2s_v3"
-
-# Generate SSH key.
-# If you want to provide your own key, skip this step and set AZURE_SSH_PUBLIC_KEY to your existing public key.
-SSH_KEY_FILE=.sshkey
-rm -f "${SSH_KEY_FILE}" 2>/dev/null
-ssh-keygen -t rsa -b 2048 -f "${SSH_KEY_FILE}" -N '' 1>/dev/null
-echo "Machine SSH key generated in ${SSH_KEY_FILE}"
-export AZURE_SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
 ```
-
-For more information about authorization, AAD, or requirements for Azure, visit the [Azure provider prerequisites] document.
 
 {{#/tab }}
 {{#tab Docker}}

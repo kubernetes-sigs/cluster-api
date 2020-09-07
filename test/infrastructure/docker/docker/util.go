@@ -39,6 +39,9 @@ func roleLabel(role string) string {
 }
 
 func machineContainerName(cluster, machine string) string {
+	if strings.HasPrefix(machine, cluster) {
+		return machine
+	}
 	return fmt.Sprintf("%s-%s", cluster, machine)
 }
 

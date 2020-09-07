@@ -59,7 +59,7 @@ GINKGO_NOCOLOR ?= false
 
 .PHONY: run
 run: ginkgo ## Run the end-to-end tests
-	cd $(TEST_E2E_DIR); $(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) . -- \
+	cd $(TEST_E2E_DIR); $(GINKGO) -v -trace -tags=e2e -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) . -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \
 	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)

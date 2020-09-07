@@ -48,7 +48,9 @@ docker pull quay.io/jetstack/cert-manager-controller:v0.16.1
 
 ## Pulling kind images used by tests
 docker pull kindest/node:v1.18.2
-docker pull kindest/node:v1.17.2
+docker pull us.gcr.io/capi-test-270117/node:v1.19.1
+docker tag us.gcr.io/capi-test-270117/node:v1.19.1 kindest/node:v1.19.1
+
 
 # Configure e2e tests
 export GINKGO_NODES=3

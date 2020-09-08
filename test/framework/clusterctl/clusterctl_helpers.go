@@ -18,6 +18,7 @@ package clusterctl
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -104,6 +105,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 type ApplyClusterTemplateAndWaitInput struct {
 	ClusterProxy                 framework.ClusterProxy
 	ConfigCluster                ConfigClusterInput
+	CNIManifestPath              string
 	WaitForClusterIntervals      []interface{}
 	WaitForControlPlaneIntervals []interface{}
 	WaitForMachineDeployments    []interface{}
@@ -142,8 +144,6 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	log.Logf("Applying the cluster template yaml to the cluster")
 	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate)).ShouldNot(HaveOccurred())
 
-	log.Logf("Installing a CNI plugin to the workload cluster")
-
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")
 	cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.ClusterProxy.GetClient(),
@@ -156,6 +156,16 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: cluster,
 	}, input.WaitForControlPlaneIntervals...)
+
+	if input.CNIManifestPath != "" {
+		log.Logf("Installing a CNI plugin to the workload cluster")
+		workloadCluster := input.ClusterProxy.GetWorkloadCluster(context.TODO(), cluster.Namespace, cluster.Name)
+
+		cniYaml, err := ioutil.ReadFile(input.CNIManifestPath)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(workloadCluster.Apply(context.TODO(), cniYaml)).ShouldNot(HaveOccurred())
+	}
 
 	log.Logf("Waiting for control plane to be ready")
 	framework.WaitForControlPlaneAndMachinesReady(ctx, framework.WaitForControlPlaneAndMachinesReadyInput{

@@ -117,6 +117,8 @@ def load_provider_tiltfiles():
                 provider_config["context"] = repo + "/" + provider_config["context"]
             else:
                 provider_config["context"] = repo
+            if "kustomize_config" not in provider_config:
+                provider_config["kustomize_config"] = True
             providers[provider_name] = provider_config
 
 tilt_helper_dockerfile_header = """
@@ -218,15 +220,17 @@ def enable_provider(name):
         ],
     )
 
-    # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
-    # are not available and their placeholders will be replaced with the empty string when we call kustomize +
-    # envsubst below.
-    substitutions = settings.get("kustomize_substitutions", {})
-    os.environ.update(substitutions)
+    if p.get("kustomize_config"):
 
-    # Apply the kustomized yaml for this provider
-    yaml = str(kustomize_with_envsubst(context + "/config"))
-    k8s_yaml(blob(yaml))
+        # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
+        # are not available and their placeholders will be replaced with the empty string when we call kustomize +
+        # envsubst below.
+        substitutions = settings.get("kustomize_substitutions", {})
+        os.environ.update(substitutions)
+
+        # Apply the kustomized yaml for this provider
+        yaml = str(kustomize_with_envsubst(context + "/config"))
+        k8s_yaml(blob(yaml))
 
 # Prepull all the cert-manager images to your local environment and then load them directly into kind. This speeds up
 # setup if you're repeatedly destroying and recreating your kind cluster, as it doesn't have to pull the images over

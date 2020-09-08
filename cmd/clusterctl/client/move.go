@@ -33,7 +33,7 @@ type MoveOptions struct {
 
 func (c *clusterctlClient) Move(options MoveOptions) error {
 	// Get the client for interacting with the source management cluster.
-	fromCluster, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.FromKubeconfig})
+	fromCluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.FromKubeconfig})
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 	}
 
 	// Get the client for interacting with the target management cluster.
-	toCluster, err := c.clusterClientFactory(ClusterClientFactoryInput{kubeconfig: options.ToKubeconfig})
+	toCluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.ToKubeconfig})
 	if err != nil {
 		return err
 	}

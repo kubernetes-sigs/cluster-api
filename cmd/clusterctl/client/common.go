@@ -47,7 +47,7 @@ func (c *clusterctlClient) getComponentsByName(provider string, providerType clu
 	// and watching namespace etc.
 	// Currently we are not supporting custom yaml processors for the provider
 	// components. So we revert to using the default SimpleYamlProcessor.
-	repositoryClientFactory, err := c.repositoryClientFactory(RepositoryClientFactoryInput{provider: providerConfig})
+	repositoryClientFactory, err := c.repositoryClientFactory(RepositoryClientFactoryInput{Provider: providerConfig})
 	if err != nil {
 		return nil, err
 	}

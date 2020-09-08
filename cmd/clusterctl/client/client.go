@@ -87,16 +87,16 @@ type clusterctlClient struct {
 // RepositoryClientFactoryInput represents the inputs required by the
 // RepositoryClientFactory
 type RepositoryClientFactoryInput struct {
-	provider  Provider
-	processor Processor
+	Provider  Provider
+	Processor Processor
 }
 type RepositoryClientFactory func(RepositoryClientFactoryInput) (repository.Client, error)
 
 // ClusterClientFactoryInput reporesents the inputs required by the
 // ClusterClientFactory
 type ClusterClientFactoryInput struct {
-	kubeconfig Kubeconfig
-	processor  Processor
+	Kubeconfig Kubeconfig
+	Processor  Processor
 }
 type ClusterClientFactory func(ClusterClientFactoryInput) (cluster.Client, error)
 
@@ -167,9 +167,9 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 func defaultRepositoryFactory(configClient config.Client) RepositoryClientFactory {
 	return func(input RepositoryClientFactoryInput) (repository.Client, error) {
 		return repository.New(
-			input.provider,
+			input.Provider,
 			configClient,
-			repository.InjectYamlProcessor(input.processor),
+			repository.InjectYamlProcessor(input.Processor),
 		)
 	}
 }
@@ -179,9 +179,9 @@ func defaultClusterFactory(configClient config.Client) ClusterClientFactory {
 	return func(input ClusterClientFactoryInput) (cluster.Client, error) {
 		return cluster.New(
 			// Kubeconfig is a type alias to cluster.Kubeconfig
-			cluster.Kubeconfig(input.kubeconfig),
+			cluster.Kubeconfig(input.Kubeconfig),
 			configClient,
-			cluster.InjectYamlProcessor(input.processor),
+			cluster.InjectYamlProcessor(input.Processor),
 		), nil
 	}
 }

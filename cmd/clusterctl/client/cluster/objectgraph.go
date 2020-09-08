@@ -412,6 +412,7 @@ func (o *objectGraph) getMachines() []*node {
 
 // setSoftOwnership searches for soft ownership relations such as secrets linked to the cluster by a naming convention (without any explicit OwnerReference).
 func (o *objectGraph) setSoftOwnership() {
+	log := logf.Log
 	clusters := o.getClusters()
 	for _, secret := range o.getSecrets() {
 		// If the secret has at least one OwnerReference ignore it.
@@ -423,6 +424,7 @@ func (o *objectGraph) setSoftOwnership() {
 		// If the secret name is not a valid cluster secret name, ignore it.
 		secretClusterName, _, err := secretutil.ParseSecretName(secret.identity.Name)
 		if err != nil {
+			log.V(5).Info("Excluding secret from move (not linked with any Cluster)", "name", secret.identity.Name)
 			continue
 		}
 

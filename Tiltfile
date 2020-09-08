@@ -119,6 +119,8 @@ def load_provider_tiltfiles():
                 provider_config["context"] = repo
             if "kustomize_config" not in provider_config:
                 provider_config["kustomize_config"] = True
+            if "go_main" not in provider_config:
+                provider_config["go_main"] = "main.go"
             providers[provider_name] = provider_config
 
 tilt_helper_dockerfile_header = """
@@ -174,6 +176,7 @@ def enable_provider(name):
     p = providers.get(name)
 
     context = p.get("context")
+    go_main = p.get("go_main")
 
     # Prefix each live reload dependency with context. For example, for if the context is
     # test/infra/docker and main.go is listed as a dep, the result is test/infra/docker/main.go. This adjustment is
@@ -183,10 +186,10 @@ def enable_provider(name):
         live_reload_deps.append(context + "/" + d)
 
     # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
-    # manager_build_path. The binary is written to .tiltbuild/manager.
+    # manager_build_path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/manager.
     local_resource(
         name + "_manager",
-        cmd = "cd " + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager',
+        cmd = "cd " + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager ' + go_main,
         deps = live_reload_deps,
     )
 
@@ -221,7 +224,6 @@ def enable_provider(name):
     )
 
     if p.get("kustomize_config"):
-
         # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
         # are not available and their placeholders will be replaced with the empty string when we call kustomize +
         # envsubst below.

@@ -148,7 +148,7 @@ base64 -i ~/path/to/gcp/credentials.json
 Set to `manual` to disable auto-rebuilding and require users to trigger rebuilds of individual changed components through the UI.
 
 **extra_args** (Object, default={}): A mapping of provider to additional arguments to pass to the main binary configured
-for this provider. Each item in the array will be passed in to the manager for the given provider. 
+for this provider. Each item in the array will be passed in to the manager for the given provider.
 
 Example:
 
@@ -228,6 +228,11 @@ The manager image will use docker-slim, so to download files, use `additional_he
 COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
 COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 ```
+
+**kustomize_config** (Bool, default=true): Whether or not running kustomize on the ./config folder of the provider.
+Set to `false` if your provider does not have a ./config folder or you do not want it to be applied in the cluster.
+
+**go_main** (String, default="main.go"): The go main file if not located at the root of the folder
 
 ## Customizing Tilt
 

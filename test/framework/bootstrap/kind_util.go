@@ -62,6 +62,8 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	clusterProvider.Create(ctx)
 	Expect(clusterProvider.GetKubeconfigPath()).To(BeAnExistingFile(), "The kubeconfig file for the kind cluster with name %q does not exists at %q as expected", input.Name, clusterProvider.GetKubeconfigPath())
 
+	log.Logf("The kubeconfig file for the kind cluster is %s", clusterProvider.kubeconfigPath)
+
 	LoadImagesToKindCluster(ctx, LoadImagesToKindClusterInput{
 		Name:   input.Name,
 		Images: input.Images,

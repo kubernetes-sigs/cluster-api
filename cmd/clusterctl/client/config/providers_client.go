@@ -44,6 +44,7 @@ const (
 	// Bootstrap providers
 	KubeadmBootstrapProviderName = "kubeadm"
 	TalosBootstrapProviderName   = "talos"
+	EKSBootstrapProviderName     = "eks"
 
 	// ControlPlane providers
 	KubeadmControlPlaneProviderName = "kubeadm"
@@ -152,7 +153,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/talos-systems/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
-
+		&provider{
+			name:         EKSBootstrapProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
 		// ControlPlane providers
 		&provider{
 			name:         KubeadmControlPlaneProviderName,

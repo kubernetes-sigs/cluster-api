@@ -68,6 +68,18 @@ var deleteCmd = &cobra.Command{
 		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
 		clusterctl delete --all
 
+		# Deletes all the providers in a namespace
+		# Important! As a consequence of this operation, all the corresponding resources managed by
+		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
+		clusterctl delete --all --namespace=foo
+
+		# Delete the AWS infrastructure provider and Core provider. This will leave behind Bootstrap and ControlPlane
+		# providers
+		# Important! As a consequence of this operation, all the corresponding resources managed by
+		# the AWS infrastructure provider and Cluster API Providers are orphaned and there might be
+		# ongoing costs incurred as a result of this.
+		clusterctl delete --core cluster-api --infrastructure aws
+
 		# Delete the AWS infrastructure provider and related CRDs. Please note that this forces deletion of
 		# all the related objects (e.g. AWSClusters, AWSMachines etc.).
 		# Important! As a consequence of this operation, all the corresponding resources managed by

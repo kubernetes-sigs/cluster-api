@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
+var namespace = "foobar"
+
 func Test_clusterctlClient_Delete(t *testing.T) {
 	type fields struct {
 		client *fakeClient
@@ -80,8 +82,11 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 					DeleteAll:               false,
 				},
 			},
-			wantProviders: sets.NewString(capiProviderConfig.Name()),
-			wantErr:       false,
+			wantProviders: sets.NewString(
+				capiProviderConfig.Name(),
+				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(infraProviderConfig.Name(), infraProviderConfig.Type())),
+			wantErr: false,
 		},
 		{
 			name: "Delete single provider auto-detect namespace",
@@ -101,8 +106,57 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 					DeleteAll:               false,
 				},
 			},
-			wantProviders: sets.NewString(capiProviderConfig.Name()),
-			wantErr:       false,
+			wantProviders: sets.NewString(
+				capiProviderConfig.Name(),
+				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(infraProviderConfig.Name(), infraProviderConfig.Type())),
+			wantErr: false,
+		},
+		{
+			name: "Delete multiple providers of different type",
+			fields: fields{
+				client: fakeClusterForDelete(),
+			},
+			args: args{
+				options: DeleteOptions{
+					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					IncludeNamespace:        false,
+					IncludeCRDs:             false,
+					Namespace:               "", // empty namespace triggers namespace auto detection
+					CoreProvider:            capiProviderConfig.Name(),
+					BootstrapProviders:      []string{bootstrapProviderConfig.Name()},
+					InfrastructureProviders: nil,
+					ControlPlaneProviders:   nil,
+					DeleteAll:               false,
+				},
+			},
+			wantProviders: sets.NewString(
+				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(infraProviderConfig.Name(), infraProviderConfig.Type())),
+			wantErr: false,
+		},
+		{
+			name: "Delete all providers in a namespace",
+			fields: fields{
+				client: fakeClusterForDelete(),
+			},
+			args: args{
+				options: DeleteOptions{
+					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					IncludeNamespace:        false,
+					IncludeCRDs:             false,
+					Namespace:               namespace,
+					CoreProvider:            "",
+					BootstrapProviders:      nil,
+					InfrastructureProviders: nil,
+					ControlPlaneProviders:   nil,
+					DeleteAll:               true,
+				},
+			},
+			wantProviders: sets.NewString(
+				capiProviderConfig.Name(),
+				clusterctlv1.ManifestLabel(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type())),
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -139,27 +193,27 @@ func fakeClusterForDelete() *fakeClient {
 	config1 := newFakeConfig().
 		WithVar("var", "value").
 		WithProvider(capiProviderConfig).
-		WithProvider(bootstrapProviderConfig)
+		WithProvider(bootstrapProviderConfig).
+		WithProvider(controlPlaneProviderConfig).
+		WithProvider(infraProviderConfig)
 
-	repository1 := newFakeRepository(capiProviderConfig, config1).
-		WithPaths("root", "components.yaml").
-		WithDefaultVersion("v1.0.0").
-		WithFile("v1.0.0", "components.yaml", componentsYAML("ns1")).
-		WithFile("v1.1.0", "components.yaml", componentsYAML("ns1"))
-	repository2 := newFakeRepository(bootstrapProviderConfig, config1).
-		WithPaths("root", "components.yaml").
-		WithDefaultVersion("v2.0.0").
-		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
-		WithFile("v2.1.0", "components.yaml", componentsYAML("ns2"))
+	repository1 := newFakeRepository(capiProviderConfig, config1)
+	repository2 := newFakeRepository(bootstrapProviderConfig, config1)
+	repository3 := newFakeRepository(controlPlaneProviderConfig, config1)
+	repository4 := newFakeRepository(infraProviderConfig, config1)
 
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1)
 	cluster1.fakeProxy.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), "v1.0.0", "capi-system", "")
 	cluster1.fakeProxy.WithProviderInventory(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type(), "v1.0.0", "capbpk-system", "")
+	cluster1.fakeProxy.WithProviderInventory(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type(), "v1.0.0", namespace, "")
+	cluster1.fakeProxy.WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v1.0.0", namespace, "")
 
 	client := newFakeClient(config1).
-		// fake repository for capi, bootstrap and infra provider (matching provider's config)
+		// fake repository for capi, bootstrap, controlplane and infra provider (matching provider's config)
 		WithRepository(repository1).
 		WithRepository(repository2).
+		WithRepository(repository3).
+		WithRepository(repository4).
 		// fake empty cluster
 		WithCluster(cluster1)
 

@@ -126,7 +126,7 @@ def write_local_repository(provider, version, components_file, components_yaml):
             if e.errno != errno.EEXIST:
                 raise
         components_path = os.path.join(provider_folder, components_file)
-        f = open(components_path, 'wb')
+        f = open(components_path, 'w')
         f.write(components_yaml)
         f.close()
 
@@ -178,7 +178,7 @@ def create_dev_config(repos):
     try:
         repository_folder = get_repository_folder()
         config_path = os.path.join(repository_folder, "config.yaml")
-        f = open(config_path, 'wb')
+        f = open(config_path, 'w')
         f.write(yaml)
         f.close()
         return components_path

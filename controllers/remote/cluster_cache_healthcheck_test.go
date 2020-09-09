@@ -17,7 +17,6 @@ limitations under the License.
 package remote
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"time"
@@ -28,11 +27,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -69,7 +68,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			k8sClient = mgr.GetClient()
 
 			By("Setting up a ClusterCacheTracker")
-			cct, err = NewClusterCacheTracker(log.NullLogger{}, mgr)
+			cct, err = NewClusterCacheTracker(klogr.New(), mgr)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Creating a namespace for the test")
@@ -109,18 +108,17 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 		})
 
 		It("with a healthy cluster", func() {
-			// Ensure the context times out after the consistently below
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			config := rest.CopyConfig(testEnv.Config)
-			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
+			stop := make(chan struct{})
+			defer close(stop)
 
-			// This should succed after 1 second, approx 10 requests to the API
+			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, testEnv.Config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
+
+			// Make sure this passes for at least two seconds, to give the health check goroutine time to run.
 			Consistently(func() *clusterCache {
 				cct.clusterCachesLock.RLock()
 				defer cct.clusterCachesLock.RUnlock()
 				return cct.clusterCaches[testClusterKey]
-			}).ShouldNot(BeNil())
+			}, 2*time.Second, 100*time.Millisecond).ShouldNot(BeNil())
 			Expect(func() bool {
 				cc.lock.Lock()
 				defer cc.lock.Unlock()
@@ -129,10 +127,10 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 		})
 
 		It("with an invalid path", func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-			defer cancel()
-			config := rest.CopyConfig(testEnv.Config)
-			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/foo"})
+			stop := make(chan struct{})
+			defer close(stop)
+
+			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, testEnv.Config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/foo"})
 
 			// This should succeed after N consecutive failed requests.
 			Eventually(func() *clusterCache {
@@ -148,9 +146,8 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 		})
 
 		It("with an invalid config", func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-			defer cancel()
-			config := rest.CopyConfig(testEnv.Config)
+			stop := make(chan struct{})
+			defer close(stop)
 
 			// Set the host to a random free port on localhost
 			addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
@@ -158,9 +155,11 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			l, err := net.ListenTCP("tcp", addr)
 			Expect(err).ToNot(HaveOccurred())
 			l.Close()
+
+			config := rest.CopyConfig(testEnv.Config)
 			config.Host = fmt.Sprintf("http://127.0.0.1:%d", l.Addr().(*net.TCPAddr).Port)
 
-			go cct.healthCheckCluster(&healthCheckInput{ctx.Done(), testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
+			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
 
 			// This should succeed after N consecutive failed requests.
 			Eventually(func() *clusterCache {

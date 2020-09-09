@@ -273,7 +273,7 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 	if provider == "" {
 		// ensure the custom resource definitions required by clusterctl are in place
 		if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-			return nil, errors.Wrapf(err, "custom resource definitions are not in place")
+			return nil, errors.Wrapf(err, "provider custom resource definitions (CRDs) are not installed")
 		}
 		ensureCustomResourceDefinitions = true
 

@@ -121,7 +121,6 @@ type TestEnvironment struct {
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
 func NewTestEnvironment() *TestEnvironment {
-
 	// initialize webhook here to be able to test the envtest install via webhookOptions
 	// This should set LocalServingCertDir and LocalServingPort that are used below.
 	initializeWebhookInEnvironment()

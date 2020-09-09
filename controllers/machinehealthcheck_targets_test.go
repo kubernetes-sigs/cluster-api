@@ -92,7 +92,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 				{
 					Machine:     testMachine1,
 					MHC:         testMHC,
-					Node:        &corev1.Node{},
+					Node:        nil,
 					nodeMissing: true,
 				},
 			},

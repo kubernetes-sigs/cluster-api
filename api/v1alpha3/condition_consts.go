@@ -38,13 +38,13 @@ const (
 )
 
 const (
-	// InfrastructureReadyCondition reports a summary of current status of the infrastructure object defined for this cluster/machine.
+	// InfrastructureReadyCondition reports a summary of current status of the infrastructure object defined for this cluster/machine/machinepool.
 	// This condition is mirrored from the Ready condition in the infrastructure ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
-	// the infrastructure provider does not not implements the Ready condition yet.
+	// the infrastructure provider does not implement the Ready condition yet.
 	InfrastructureReadyCondition ConditionType = "InfrastructureReady"
 
-	// WaitingForInfrastructureFallbackReason (Severity=Info) documents a cluster/machine waiting for the cluster/machine infrastructure
+	// WaitingForInfrastructureFallbackReason (Severity=Info) documents a cluster/machine/machinepool waiting for the underlying infrastructure
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the infrastructure object is not reporting its own ready condition.
 	WaitingForInfrastructureFallbackReason = "WaitingForInfrastructure"
@@ -73,7 +73,7 @@ const (
 	// BootstrapReadyCondition reports a summary of current status of the bootstrap object defined for this machine.
 	// This condition is mirrored from the Ready condition in the bootstrap ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
-	// the bootstrap provider does not not implements the Ready condition yet.
+	// the bootstrap provider does not implement the Ready condition yet.
 	BootstrapReadyCondition ConditionType = "BootstrapReady"
 
 	// WaitingForDataSecretFallbackReason (Severity=Info) documents a machine waiting for the bootstrap data secret

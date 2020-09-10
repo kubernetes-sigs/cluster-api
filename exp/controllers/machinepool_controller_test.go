@@ -29,10 +29,11 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -114,7 +115,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			mr := &MachinePoolReconciler{
-				Client: fake.NewFakeClientWithScheme(
+				Client: helpers.NewFakeClientWithScheme(
 					scheme.Scheme,
 					clusterCorrectMeta,
 					machinePoolValidCluster,
@@ -226,7 +227,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			mr := &MachinePoolReconciler{
-				Client: fake.NewFakeClientWithScheme(
+				Client: helpers.NewFakeClientWithScheme(
 					scheme.Scheme,
 					testCluster,
 					machinePoolInvalidCluster,
@@ -423,7 +424,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
-			clientFake := fake.NewFakeClientWithScheme(
+			clientFake := helpers.NewFakeClientWithScheme(
 				scheme.Scheme,
 				&testCluster,
 				&tc.machinePool,
@@ -557,7 +558,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			}
 
 			r := &MachinePoolReconciler{
-				Client: fake.NewFakeClientWithScheme(scheme.Scheme, objs...),
+				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
 				Log:    log.Log,
 				scheme: scheme.Scheme,
 			}
@@ -608,7 +609,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &MachinePoolReconciler{
-		Client: fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
+		Client: helpers.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
 		Log:    log.Log,
 		scheme: scheme.Scheme,
 	}
@@ -618,4 +619,263 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	var actual expv1.MachinePool
 	g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 	g.Expect(actual.ObjectMeta.Finalizers).To(BeEmpty())
+}
+
+func TestMachinePoolConditions(t *testing.T) {
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
+	}
+
+	bootstrapConfig := func(ready bool) *unstructured.Unstructured {
+		return &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       "BootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap1",
+					"namespace": "default",
+				},
+				"status": map[string]interface{}{
+					"ready":          ready,
+					"dataSecretName": "data",
+				},
+			},
+		}
+	}
+
+	infraConfig := func(ready bool) *unstructured.Unstructured {
+		return &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+				"metadata": map[string]interface{}{
+					"name":      "infra1",
+					"namespace": "default",
+				},
+				"status": map[string]interface{}{
+					"ready": ready,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"azure://westus2/id-node-4",
+						"aws://us-east-1/id-node-1",
+					},
+				},
+			},
+		}
+	}
+
+	machinePool := &expv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "blah",
+			Namespace:  "default",
+			Finalizers: []string{expv1.MachinePoolFinalizer},
+		},
+		Spec: expv1.MachinePoolSpec{
+			ClusterName: "test-cluster",
+			Replicas:    pointer.Int32Ptr(2),
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						Kind:       "InfrastructureConfig",
+						Name:       "infra1",
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							Kind:       "BootstrapConfig",
+							Name:       "bootstrap1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	nodeList := corev1.NodeList{
+		Items: []corev1.Node{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "aws://us-east-1/id-node-1",
+				},
+				Status: corev1.NodeStatus{Conditions: []corev1.NodeCondition{{Type: corev1.NodeReady}}},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "azure-node-4",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "azure://westus2/id-node-4",
+				},
+				Status: corev1.NodeStatus{Conditions: []corev1.NodeCondition{{Type: corev1.NodeReady}}},
+			},
+		},
+	}
+
+	testcases := []struct {
+		name                string
+		bootstrapReady      bool
+		infrastructureReady bool
+		beforeFunc          func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList)
+		conditionAssertFunc func(t *testing.T, getter conditions.Getter)
+	}{
+		{
+			name:                "all conditions true",
+			bootstrapReady:      true,
+			infrastructureReady: true,
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
+				mp.Status = expv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{Name: "node-1"},
+						{Name: "azure-node-4"},
+					},
+					Replicas:      2,
+					ReadyReplicas: 2,
+				}
+			},
+			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				g := NewWithT(t)
+				g.Expect(getter.GetConditions()).NotTo(HaveLen(0))
+				for _, c := range getter.GetConditions() {
+					g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
+				}
+			},
+		},
+		{
+			name:                "boostrap not ready",
+			bootstrapReady:      false,
+			infrastructureReady: true,
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+				addConditionsToExternal(bootstrap, clusterv1.Conditions{
+					{
+						Type:     clusterv1.ReadyCondition,
+						Status:   corev1.ConditionFalse,
+						Severity: clusterv1.ConditionSeverityInfo,
+						Reason:   "Custom reason",
+					},
+				})
+			},
+			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				g := NewWithT(t)
+
+				g.Expect(conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
+				infraReadyCondition := conditions.Get(getter, clusterv1.BootstrapReadyCondition)
+				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(infraReadyCondition.Reason).To(Equal("Custom reason"))
+			},
+		},
+		{
+			name:                "bootstrap not ready with fallback condition",
+			bootstrapReady:      false,
+			infrastructureReady: true,
+			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				g := NewWithT(t)
+
+				g.Expect(conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
+				bootstrapReadyCondition := conditions.Get(getter, clusterv1.BootstrapReadyCondition)
+				g.Expect(bootstrapReadyCondition.Status).To(Equal(corev1.ConditionFalse))
+
+				g.Expect(conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
+				readyCondition := conditions.Get(getter, clusterv1.ReadyCondition)
+				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
+			},
+		},
+		{
+			name:                "infrastructure not ready",
+			bootstrapReady:      true,
+			infrastructureReady: false,
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+				addConditionsToExternal(infra, clusterv1.Conditions{
+					{
+						Type:     clusterv1.ReadyCondition,
+						Status:   corev1.ConditionFalse,
+						Severity: clusterv1.ConditionSeverityInfo,
+						Reason:   "Custom reason",
+					},
+				})
+			},
+			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				g := NewWithT(t)
+
+				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(infraReadyCondition.Reason).To(Equal("Custom reason"))
+			},
+		},
+		{
+			name:                "infrastructure not ready with fallback condition",
+			bootstrapReady:      true,
+			infrastructureReady: false,
+			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				g := NewWithT(t)
+
+				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
+
+				g.Expect(conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
+				readyCondition := conditions.Get(getter, clusterv1.ReadyCondition)
+				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
+			},
+		},
+	}
+
+	for _, tt := range testcases {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// setup objects
+			bootstrap := bootstrapConfig(tt.bootstrapReady)
+			infra := infraConfig(tt.infrastructureReady)
+			mp := machinePool.DeepCopy()
+			nodes := nodeList.DeepCopy()
+			if tt.beforeFunc != nil {
+				tt.beforeFunc(bootstrap, infra, mp, nodes)
+			}
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+			clientFake := helpers.NewFakeClientWithScheme(
+				scheme.Scheme,
+				testCluster,
+				mp,
+				infra,
+				bootstrap,
+				&nodes.Items[0],
+				&nodes.Items[1],
+			)
+
+			r := &MachinePoolReconciler{
+				Client: clientFake,
+				Log:    log.Log,
+				scheme: scheme.Scheme,
+			}
+
+			_, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})
+			g.Expect(err).NotTo(HaveOccurred())
+
+			m := &expv1.MachinePool{}
+			machinePoolKey, _ := client.ObjectKeyFromObject(machinePool)
+			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).NotTo(HaveOccurred())
+
+			tt.conditionAssertFunc(t, m)
+		})
+	}
+}
+
+// adds a condition list to an external object
+func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
+	existingConditions := clusterv1.Conditions{}
+	if cs := conditions.UnstructuredGetter(u).GetConditions(); len(cs) != 0 {
+		existingConditions = cs
+	}
+	existingConditions = append(existingConditions, newConditions...)
+	conditions.UnstructuredSetter(u).SetConditions(existingConditions)
 }

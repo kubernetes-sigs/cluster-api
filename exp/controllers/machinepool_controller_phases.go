@@ -36,6 +36,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -185,6 +186,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 	// If the bootstrap data secret is populated, set ready and return.
 	if m.Spec.Template.Spec.Bootstrap.Data != nil || m.Spec.Template.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
+		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil
 	}
 
@@ -197,7 +199,15 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 	ready, err := external.IsReady(bootstrapConfig)
 	if err != nil {
 		return ctrl.Result{}, err
-	} else if !ready {
+	}
+
+	// Report a summary of current status of the bootstrap object defined for this machine pool.
+	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
+		conditions.UnstructuredGetter(bootstrapConfig),
+		conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+	)
+
+	if !ready {
 		logger.V(2).Info("Bootstrap provider is not ready, requeuing")
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
@@ -247,6 +257,13 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 	}
 
 	mp.Status.InfrastructureReady = ready
+
+	// Report a summary of current status of the infrastructure object defined for this machine pool.
+	conditions.SetMirror(mp, clusterv1.InfrastructureReadyCondition,
+		conditions.UnstructuredGetter(infraConfig),
+		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+	)
+
 	if !mp.Status.InfrastructureReady {
 		logger.Info("Infrastructure provider is not ready, requeuing")
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil

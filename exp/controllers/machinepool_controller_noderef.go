@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -53,6 +54,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 
 	// Check that the Machine doesn't already have a NodeRefs.
 	if mp.Status.Replicas == mp.Status.ReadyReplicas && len(mp.Status.NodeRefs) == int(mp.Status.ReadyReplicas) {
+		conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
 		return ctrl.Result{}, nil
 	}
 
@@ -100,13 +102,17 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 
 	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
 		r.Log.Info("NodeRefs != ReadyReplicas", "NodeRefs", len(nodeRefsResult.references), "ReadyReplicas", mp.Status.ReadyReplicas)
+		conditions.MarkFalse(mp, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
+
+	// At this point, the required number of replicas are ready
+	conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
 	return ctrl.Result{}, nil
 }
 
 // deleteRetiredNodes deletes nodes that don't have a corresponding ProviderID in Spec.ProviderIDList.
-// A MachinePool infrastucture provider indicates an instance in the set has been deleted by
+// A MachinePool infrastructure provider indicates an instance in the set has been deleted by
 // removing its ProviderID from the slice.
 func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []apicorev1.ObjectReference, providerIDList []string) error {
 	logger := r.Log.WithValues("providerIDList", len(providerIDList))

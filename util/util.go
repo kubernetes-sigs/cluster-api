@@ -527,10 +527,11 @@ func GetCRDWithContract(ctx context.Context, c client.Client, gvk schema.GroupVe
 			return nil, errors.Wrapf(err, "failed to list CustomResourceDefinitions for %v", gvk)
 		}
 
-		for _, crd := range crdList.Items {
+		for i := range crdList.Items {
+			crd := crdList.Items[i]
 			if crd.Spec.Group == gvk.Group &&
 				crd.Spec.Names.Kind == gvk.Kind {
-				return crd.DeepCopy(), nil
+				return &crd, nil
 			}
 		}
 

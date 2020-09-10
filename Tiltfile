@@ -176,7 +176,7 @@ def enable_provider(name):
     p = providers.get(name)
 
     context = p.get("context")
-    go_main = p.get("go_main")
+    go_main = p.get("go_main", "main.go")
 
     # Prefix each live reload dependency with context. For example, for if the context is
     # test/infra/docker and main.go is listed as a dep, the result is test/infra/docker/main.go. This adjustment is
@@ -223,7 +223,7 @@ def enable_provider(name):
         ],
     )
 
-    if p.get("kustomize_config"):
+    if p.get("kustomize_config", True):
         # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
         # are not available and their placeholders will be replaced with the empty string when we call kustomize +
         # envsubst below.

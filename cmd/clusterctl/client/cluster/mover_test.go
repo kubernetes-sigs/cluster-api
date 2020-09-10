@@ -60,6 +60,26 @@ var moveTests = []struct {
 		wantErr: false,
 	},
 	{
+		name: "Cluster with external objects marked with move label",
+		fields: moveTestsFields{
+			objs: test.NewFakeCluster("ns1", "foo").WithCloudConfigSecret().Objs(),
+		},
+		wantMoveGroups: [][]string{
+			{ //group 1
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo",
+				// objects with force move flag
+				"/v1, Kind=Secret, ns1/foo-cloud-config",
+			},
+			{ //group 2 (objects with ownerReferences in group 1)
+				// owned by Clusters
+				"/v1, Kind=Secret, ns1/foo-ca",
+				"/v1, Kind=Secret, ns1/foo-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
+			},
+		},
+		wantErr: false,
+	},
+	{
 		name: "Cluster with machine",
 		fields: moveTestsFields{
 			objs: test.NewFakeCluster("ns1", "cluster1").

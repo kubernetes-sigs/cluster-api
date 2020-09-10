@@ -158,7 +158,7 @@ func (o *objectGraph) ownerToVirtualNode(owner metav1.OwnerReference, namespace 
 		tenantClusters: make(map[*node]empty),
 		tenantCRSs:     make(map[*node]empty),
 		virtual:        true,
-		forceMove:      o.getForceMove(owner.Kind, owner.APIVersion),
+		forceMove:      o.getForceMove(owner.Kind, owner.APIVersion, nil),
 		isGlobal:       isGlobal,
 	}
 
@@ -173,6 +173,11 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 	existingNode, found := o.uidToNode[obj.GetUID()]
 	if found {
 		existingNode.markObserved()
+
+		// In order to compensate the lack of labels when adding a virtual node,
+		// it is required to re-compute the forceMove flag when the real node is processed
+		// Without this, there is the risk that, forceMove will report false negatives depending on the discovery order
+		existingNode.forceMove = o.getForceMove(obj.GetKind(), obj.GetAPIVersion(), obj.GetLabels())
 		return existingNode
 	}
 
@@ -194,7 +199,7 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 		tenantClusters: make(map[*node]empty),
 		tenantCRSs:     make(map[*node]empty),
 		virtual:        false,
-		forceMove:      o.getForceMove(obj.GetKind(), obj.GetAPIVersion()),
+		forceMove:      o.getForceMove(obj.GetKind(), obj.GetAPIVersion(), obj.GetLabels()),
 		isGlobal:       isGlobal,
 	}
 
@@ -202,7 +207,11 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 	return newNode
 }
 
-func (o *objectGraph) getForceMove(kind string, apiVersion string) bool {
+func (o *objectGraph) getForceMove(kind, apiVersion string, labels map[string]string) bool {
+	if _, ok := labels[clusterctlv1.ClusterctlMoveLabelName]; ok {
+		return true
+	}
+
 	kindAPIStr := getKindAPIString(metav1.TypeMeta{Kind: kind, APIVersion: apiVersion})
 
 	if discoveryType, ok := o.types[kindAPIStr]; ok {

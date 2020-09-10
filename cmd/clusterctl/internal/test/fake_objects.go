@@ -37,13 +37,14 @@ import (
 )
 
 type FakeCluster struct {
-	namespace          string
-	name               string
-	controlPlane       *FakeControlPlane
-	machinePools       []*FakeMachinePool
-	machineDeployments []*FakeMachineDeployment
-	machineSets        []*FakeMachineSet
-	machines           []*FakeMachine
+	namespace             string
+	name                  string
+	controlPlane          *FakeControlPlane
+	machinePools          []*FakeMachinePool
+	machineDeployments    []*FakeMachineDeployment
+	machineSets           []*FakeMachineSet
+	machines              []*FakeMachine
+	withCloudConfigSecret bool
 }
 
 // NewFakeCluster return a FakeCluster that can generate a cluster object, all its own ancillary objects:
@@ -66,6 +67,11 @@ func (f *FakeCluster) WithControlPlane(fakeControlPlane *FakeControlPlane) *Fake
 
 func (f *FakeCluster) WithMachinePools(fakeMachinePool ...*FakeMachinePool) *FakeCluster {
 	f.machinePools = append(f.machinePools, fakeMachinePool...)
+	return f
+}
+
+func (f *FakeCluster) WithCloudConfigSecret() *FakeCluster {
+	f.withCloudConfigSecret = true
 	return f
 }
 
@@ -148,6 +154,24 @@ func (f *FakeCluster) Objs() []runtime.Object {
 		cluster,
 		clusterInfrastructure,
 		caSecret,
+	}
+
+	if f.withCloudConfigSecret {
+		cloudSecret := &corev1.Secret{ // provided by the user -- ** NOT RECONCILED **
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      f.name + "-cloud-config",
+				Namespace: f.namespace,
+			},
+		}
+
+		cloudSecret.SetLabels(map[string]string{
+			clusterctlv1.ClusterctlMoveLabelName: "",
+		})
+		objs = append(objs, cloudSecret)
 	}
 
 	// if the cluster has a control plane object

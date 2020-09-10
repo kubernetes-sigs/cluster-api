@@ -402,7 +402,17 @@ func (m *ClusterCacheTracker) healthCheckCluster(in *healthCheckInput) {
 
 	unhealthyCount := 0
 
+	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
+	cfg := rest.CopyConfig(in.cfg)
+	cfg.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
+
+	restClient, restClientErr := rest.UnversionedRESTClientFor(cfg)
+
 	runHealthCheckWithThreshold := func() (bool, error) {
+		if restClientErr != nil {
+			return false, restClientErr
+		}
+
 		cluster := &clusterv1.Cluster{}
 		if err := m.client.Get(context.TODO(), in.cluster, cluster); err != nil {
 			if apierrors.IsNotFound(err) {
@@ -427,7 +437,7 @@ func (m *ClusterCacheTracker) healthCheckCluster(in *healthCheckInput) {
 		// healthCheckPath returning an error is considered a failed health check
 		// (Either an issue was encountered connecting or the API returned an error).
 		// If no error occurs, reset the unhealthy coutner.
-		err := healthCheckPath(in.cfg, in.requestTimeout, in.path)
+		err := healthCheckPath(restClient, in.requestTimeout, in.path)
 		if err != nil {
 			unhealthyCount++
 		} else {
@@ -453,6 +463,8 @@ func (m *ClusterCacheTracker) healthCheckCluster(in *healthCheckInput) {
 			return
 		}
 
+		m.log.Error(err, "Error health checking cluster", "cluster", in.cluster.String())
+
 		// Stop the cache and clean up
 		c.Stop()
 		m.deleteClusterCache(in.cluster)
@@ -463,23 +475,9 @@ func (m *ClusterCacheTracker) healthCheckCluster(in *healthCheckInput) {
 
 // healthCheckPath attempts to request a given absolute path from the API server
 // defined in the rest.Config and returns any errors that occurred during the request.
-func healthCheckPath(sourceCfg *rest.Config, requestTimeout time.Duration, path string) error {
-	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
-	cfg := rest.CopyConfig(sourceCfg)
-	cfg.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
-
-	restClient, err := rest.UnversionedRESTClientFor(cfg)
-	if err != nil {
-		// Config is invalid, cannot perform health checks
-		return err
-	}
-
-	_, err = restClient.Get().AbsPath(path).Timeout(requestTimeout).Do().Get()
-	if err != nil {
-		return err
-	}
-
-	return nil
+func healthCheckPath(restClient *rest.RESTClient, requestTimeout time.Duration, path string) error {
+	_, err := restClient.Get().AbsPath(path).Timeout(requestTimeout).DoRaw()
+	return err
 }
 
 // ClusterCacheReconciler is responsible for stopping remote cluster caches when

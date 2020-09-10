@@ -218,6 +218,18 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					// older version are not supported by clusterctl
 				},
 			}
+		case config.DOProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 3, Contract: "v1alpha3"},
+					// older version are not supported by clusterctl
+				},
+			}
 		case config.DockerProviderName:
 			// NB. The Docker provider is not designed for production use and is intended for development environments only.
 			return &clusterctlv1.Metadata{

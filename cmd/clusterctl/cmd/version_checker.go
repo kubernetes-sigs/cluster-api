@@ -65,7 +65,7 @@ func newVersionChecker(vc config.VariablesClient) *versionChecker {
 	}
 
 	return &versionChecker{
-		versionFilePath: filepath.Join(homedir.HomeDir(), ".cluster-api", "version.yaml"),
+		versionFilePath: filepath.Join(homedir.HomeDir(), config.ConfigFolder, "version.yaml"),
 		cliVersion:      version.Get,
 		githubClient:    client,
 	}

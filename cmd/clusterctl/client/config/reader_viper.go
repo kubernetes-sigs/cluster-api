@@ -18,9 +18,13 @@ package config
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -33,6 +37,8 @@ const (
 	ConfigFolder = ".cluster-api"
 	// ConfigName defines the name of the config file under ConfigFolder
 	ConfigName = "clusterctl"
+	// DownloadConfigFile is the config file when fetching the config from a remote location
+	DownloadConfigFile = "clusterctl-download.yaml"
 )
 
 // viperReader implements Reader using viper as backend for reading from environment variables
@@ -73,13 +79,36 @@ func (v *viperReader) Init(path string) error {
 	viper.AllowEmptyEnv(true)
 	viper.AutomaticEnv()
 
-	// Reads the clusterctl config file
 	if path != "" {
-		if _, err := os.Stat(path); err != nil {
-			return err
+		url, err := url.Parse(path)
+		if err != nil {
+			return errors.Wrap(err, "failed to url parse the config path")
 		}
-		// Use path file from the flag.
-		viper.SetConfigFile(path)
+
+		switch {
+		case url.Scheme == "https" || url.Scheme == "http":
+			configPath := filepath.Join(homedir.HomeDir(), ConfigFolder)
+			if len(v.configPaths) > 0 {
+				configPath = filepath.Join(v.configPaths[0])
+			}
+			if err := os.MkdirAll(configPath, os.ModePerm); err != nil {
+				return err
+			}
+
+			downloadConfigFile := filepath.Join(configPath, DownloadConfigFile)
+			err = downloadFile(url.String(), downloadConfigFile)
+			if err != nil {
+				return err
+			}
+
+			viper.SetConfigFile(downloadConfigFile)
+		default:
+			if _, err := os.Stat(path); err != nil {
+				return errors.Wrap(err, "failed to check if clusterctl config file exists")
+			}
+			// Use path file from the flag.
+			viper.SetConfigFile(path)
+		}
 	} else {
 		// Checks if there is a default .cluster-api/clusterctl{.extension} file in home directory
 		if !v.checkDefaultConfig() {
@@ -99,6 +128,36 @@ func (v *viperReader) Init(path string) error {
 		return err
 	}
 	log.V(5).Info("Using configuration", "File", viper.ConfigFileUsed())
+	return nil
+}
+
+func downloadFile(url string, filepath string) error {
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create the clusterctl config file %s", filepath)
+	}
+	defer out.Close()
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	// Get the data
+	resp, err := client.Get(url)
+	if err != nil {
+		return errors.Wrapf(err, "failed to download the clusterctl config file from %s", url)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("failed to download the clusterctl config file from %s got %d", url, resp.StatusCode))
+	}
+	defer resp.Body.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "failed to save the data in the clusterctl config")
+	}
+
 	return nil
 }
 

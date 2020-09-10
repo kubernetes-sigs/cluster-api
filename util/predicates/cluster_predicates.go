@@ -26,10 +26,9 @@ import (
 // ClusterCreateInfraReady returns a predicate that returns true for a create event when a cluster has Status.InfrastructureReady set as true
 // it also returns true if the resource provided is not a Cluster to allow for use with controller-runtime NewControllerManagedBy
 func ClusterCreateInfraReady(logger logr.Logger) predicate.Funcs {
-	log := logger.WithValues("predicate", "ClusterCreateInfraReady")
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			log = log.WithValues("eventType", "create")
+			log := logger.WithValues("predicate", "ClusterCreateInfraReady", "eventType", "create")
 
 			c, ok := e.Object.(*clusterv1.Cluster)
 			if !ok {
@@ -57,14 +56,12 @@ func ClusterCreateInfraReady(logger logr.Logger) predicate.Funcs {
 // ClusterCreateNotPaused returns a predicate that returns true for a create event when a cluster has Spec.Paused set as false
 // it also returns true if the resource provided is not a Cluster to allow for use with controller-runtime NewControllerManagedBy
 func ClusterCreateNotPaused(logger logr.Logger) predicate.Funcs {
-	log := logger.WithValues("predicate", "ClusterCreateNotPaused")
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			log = log.WithValues("eventType", "create")
+			log := logger.WithValues("predicate", "ClusterCreateNotPaused", "eventType", "create")
 
 			c, ok := e.Object.(*clusterv1.Cluster)
 			if !ok {
-
 				log.V(4).Info("Expected Cluster", "type", e.Object.GetObjectKind().GroupVersionKind().String())
 				return false
 			}
@@ -88,10 +85,9 @@ func ClusterCreateNotPaused(logger logr.Logger) predicate.Funcs {
 // ClusterUpdateInfraReady returns a predicate that returns true for an update event when a cluster has Status.InfrastructureReady changed from false to true
 // it also returns true if the resource provided is not a Cluster to allow for use with controller-runtime NewControllerManagedBy
 func ClusterUpdateInfraReady(logger logr.Logger) predicate.Funcs {
-	log := logger.WithValues("predicate", "ClusterUpdateInfraReady")
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			log = log.WithValues("eventType", "update")
+			log := logger.WithValues("predicate", "ClusterUpdateInfraReady", "eventType", "update")
 
 			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
 			if !ok {
@@ -120,10 +116,9 @@ func ClusterUpdateInfraReady(logger logr.Logger) predicate.Funcs {
 // ClusterUpdateUnpaused returns a predicate that returns true for an update event when a cluster has Spec.Paused changed from true to false
 // it also returns true if the resource provided is not a Cluster to allow for use with controller-runtime NewControllerManagedBy
 func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
-	log := logger.WithValues("predicate", "ClusterUpdateUnpaused")
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			log = log.WithValues("eventType", "update")
+			log := logger.WithValues("predicate", "ClusterUpdateUnpaused", "eventType", "update")
 
 			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
 			if !ok {

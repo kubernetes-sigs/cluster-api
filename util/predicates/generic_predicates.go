@@ -30,9 +30,9 @@ import (
 
 // All returns a predicate that returns true only if all given predicates return true
 func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
-	log := logger.WithValues("predicateAggregation", "All")
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
+			log := logger.WithValues("predicateAggregation", "All")
 			for _, p := range predicates {
 				if !p.UpdateFunc(e) {
 					log.V(4).Info("One of the provided predicates returned false, blocking further processing")
@@ -43,6 +43,7 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 			return true
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
+			log := logger.WithValues("predicateAggregation", "All")
 			for _, p := range predicates {
 				if !p.CreateFunc(e) {
 					log.V(4).Info("One of the provided predicates returned false, blocking further processing")
@@ -53,6 +54,7 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			log := logger.WithValues("predicateAggregation", "All")
 			for _, p := range predicates {
 				if !p.DeleteFunc(e) {
 					log.V(4).Info("One of the provided predicates returned false, blocking further processing")
@@ -63,6 +65,7 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 			return true
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
+			log := logger.WithValues("predicateAggregation", "All")
 			for _, p := range predicates {
 				if !p.GenericFunc(e) {
 					log.V(4).Info("One of the provided predicates returned false, blocking further processing")
@@ -77,9 +80,9 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 
 // Any returns a predicate that returns true only if any given predicate returns true
 func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
-	log := logger.WithValues("predicateAggregation", "Any")
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
+			log := logger.WithValues("predicateAggregation", "Any")
 			for _, p := range predicates {
 				if p.UpdateFunc(e) {
 					log.V(4).Info("One of the provided predicates returned true, allowing further processing")
@@ -90,6 +93,7 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 			return false
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
+			log := logger.WithValues("predicateAggregation", "Any")
 			for _, p := range predicates {
 				if p.CreateFunc(e) {
 					log.V(4).Info("One of the provided predicates returned true, allowing further processing")
@@ -100,6 +104,7 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 			return false
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			log := logger.WithValues("predicateAggregation", "Any")
 			for _, p := range predicates {
 				if p.DeleteFunc(e) {
 					log.V(4).Info("One of the provided predicates returned true, allowing further processing")
@@ -110,6 +115,7 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 			return false
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
+			log := logger.WithValues("predicateAggregation", "Any")
 			for _, p := range predicates {
 				if p.GenericFunc(e) {
 					log.V(4).Info("One of the provided predicates returned true, allowing further processing")

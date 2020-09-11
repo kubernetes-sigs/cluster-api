@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -72,8 +73,9 @@ type MachineSetReconciler struct {
 	Log     logr.Logger
 	Tracker *remote.ClusterCacheTracker
 
-	recorder record.EventRecorder
-	scheme   *runtime.Scheme
+	recorder   record.EventRecorder
+	scheme     *runtime.Scheme
+	restConfig *rest.Config
 }
 
 func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -108,6 +110,7 @@ func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
 	r.scheme = mgr.GetScheme()
+	r.restConfig = mgr.GetConfig()
 	return nil
 }
 
@@ -176,12 +179,12 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 	}
 
 	// Make sure to reconcile the external infrastructure reference.
-	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := reconcileExternalTemplateReference(ctx, logger, r.Client, r.restConfig, cluster, &machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if machineSet.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+		if err := reconcileExternalTemplateReference(ctx, logger, r.Client, r.restConfig, cluster, machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -690,12 +693,12 @@ func (r *MachineSetReconciler) getMachineNode(ctx context.Context, cluster *clus
 	return node, nil
 }
 
-func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+func reconcileExternalTemplateReference(ctx context.Context, logger logr.Logger, c client.Client, restConfig *rest.Config, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
 		return nil
 	}
 
-	if err := utilconversion.ConvertReferenceAPIContract(ctx, c, ref); err != nil {
+	if err := utilconversion.ConvertReferenceAPIContract(ctx, logger, c, restConfig, ref); err != nil {
 		return err
 	}
 

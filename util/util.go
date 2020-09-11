@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/gobuffalo/flect"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -38,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -541,6 +543,26 @@ func GetCRDWithContract(ctx context.Context, c client.Client, gvk schema.GroupVe
 	}
 
 	return nil, errors.Errorf("failed to find a CustomResourceDefinition for %v with contract %q", gvk, contract)
+}
+
+// GetCRDMetadataFromGVK retrieves a CustomResourceDefinition metadata from the API server using client-go's metadata only client.
+//
+// This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
+func GetCRDMetadataFromGVK(ctx context.Context, restConfig *rest.Config, gvk schema.GroupVersionKind) (*metav1.PartialObjectMetadata, error) {
+	// Make sure a rest config is available.
+	if restConfig == nil {
+		return nil, errors.Errorf("cannot create a metadata client without a rest config")
+	}
+
+	// Create a metadata-only client.
+	metadataClient, err := metadata.NewForConfig(restConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create metadata only client")
+	}
+
+	// Get the partial metadata CRD.
+	generatedName := fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group)
+	return metadataClient.Resource(apiextensionsv1.SchemeGroupVersion.WithResource("customresourcedefinitions")).Get(generatedName, metav1.GetOptions{})
 }
 
 // KubeAwareAPIVersions is a sortable slice of kube-like version strings.

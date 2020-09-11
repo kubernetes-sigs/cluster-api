@@ -74,7 +74,7 @@ type MachineReconciler struct {
 	Log     logr.Logger
 	Tracker *remote.ClusterCacheTracker
 
-	config          *rest.Config
+	restConfig      *rest.Config
 	scheme          *runtime.Scheme
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
@@ -108,7 +108,7 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
-	r.config = mgr.GetConfig()
+	r.restConfig = mgr.GetConfig()
 	r.scheme = mgr.GetScheme()
 	r.externalTracker = external.ObjectTracker{
 		Controller: controller,

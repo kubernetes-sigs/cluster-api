@@ -85,3 +85,145 @@ func TestToUnstructured(t *testing.T) {
 	})
 
 }
+
+func TestUnsafeFocusedUnstructured(t *testing.T) {
+	t.Run("focus=spec, should only return spec and common fields", func(t *testing.T) {
+		g := NewWithT(t)
+
+		obj := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": "test.x.y.z/v1",
+				"kind":       "TestCluster",
+				"metadata": map[string]interface{}{
+					"name":      "test-1",
+					"namespace": "namespace-1",
+				},
+				"spec": map[string]interface{}{
+					"paused": true,
+				},
+				"status": map[string]interface{}{
+					"infrastructureReady": true,
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":   "Ready",
+							"status": "True",
+						},
+					},
+				},
+			},
+		}
+
+		newObj := unsafeUnstructuredCopy(obj, specPatch, true)
+
+		// Validate that common fields are always preserved.
+		g.Expect(newObj.Object["apiVersion"]).To(Equal(obj.Object["apiVersion"]))
+		g.Expect(newObj.Object["kind"]).To(Equal(obj.Object["kind"]))
+		g.Expect(newObj.Object["metadata"]).To(Equal(obj.Object["metadata"]))
+
+		// Validate that the spec has been preserved.
+		g.Expect(newObj.Object["spec"]).To(Equal(obj.Object["spec"]))
+
+		// Validate that the status is nil, but preserved in the original object.
+		g.Expect(newObj.Object["status"]).To(BeNil())
+		g.Expect(obj.Object["status"]).ToNot(BeNil())
+		g.Expect(obj.Object["status"].(map[string]interface{})["conditions"]).ToNot(BeNil())
+
+	})
+
+	t.Run("focus=status w/ condition-setter object, should only return status (without conditions) and common fields", func(t *testing.T) {
+		g := NewWithT(t)
+
+		obj := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": "test.x.y.z/v1",
+				"kind":       "TestCluster",
+				"metadata": map[string]interface{}{
+					"name":      "test-1",
+					"namespace": "namespace-1",
+				},
+				"spec": map[string]interface{}{
+					"paused": true,
+				},
+				"status": map[string]interface{}{
+					"infrastructureReady": true,
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":   "Ready",
+							"status": "True",
+						},
+					},
+				},
+			},
+		}
+
+		newObj := unsafeUnstructuredCopy(obj, statusPatch, true)
+
+		// Validate that common fields are always preserved.
+		g.Expect(newObj.Object["apiVersion"]).To(Equal(obj.Object["apiVersion"]))
+		g.Expect(newObj.Object["kind"]).To(Equal(obj.Object["kind"]))
+		g.Expect(newObj.Object["metadata"]).To(Equal(obj.Object["metadata"]))
+
+		// Validate that spec is nil in the new object, but still exists in the old copy.
+		g.Expect(newObj.Object["spec"]).To(BeNil())
+		g.Expect(obj.Object["spec"]).To(Equal(map[string]interface{}{
+			"paused": true,
+		}))
+
+		// Validate that the status has been copied, without conditions.
+		g.Expect(newObj.Object["status"]).To(HaveLen(1))
+		g.Expect(newObj.Object["status"].(map[string]interface{})["infrastructureReady"]).To(Equal(true))
+		g.Expect(newObj.Object["status"].(map[string]interface{})["conditions"]).To(BeNil())
+
+		// When working with conditions, the inner map is going to be removed from the original object.
+		g.Expect(obj.Object["status"].(map[string]interface{})["conditions"]).To(BeNil())
+	})
+
+	t.Run("focus=status w/o condition-setter object, should only return status and common fields", func(t *testing.T) {
+		g := NewWithT(t)
+
+		obj := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": "test.x.y.z/v1",
+				"kind":       "TestCluster",
+				"metadata": map[string]interface{}{
+					"name":      "test-1",
+					"namespace": "namespace-1",
+				},
+				"spec": map[string]interface{}{
+					"paused": true,
+					"other":  "field",
+				},
+				"status": map[string]interface{}{
+					"infrastructureReady": true,
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":   "Ready",
+							"status": "True",
+						},
+					},
+				},
+			},
+		}
+
+		newObj := unsafeUnstructuredCopy(obj, statusPatch, false)
+
+		// Validate that spec is nil in the new object, but still exists in the old copy.
+		g.Expect(newObj.Object["spec"]).To(BeNil())
+		g.Expect(obj.Object["spec"]).To(Equal(map[string]interface{}{
+			"paused": true,
+			"other":  "field",
+		}))
+
+		// Validate that common fields are always preserved.
+		g.Expect(newObj.Object["apiVersion"]).To(Equal(obj.Object["apiVersion"]))
+		g.Expect(newObj.Object["kind"]).To(Equal(obj.Object["kind"]))
+		g.Expect(newObj.Object["metadata"]).To(Equal(obj.Object["metadata"]))
+
+		// Validate that the status has been copied, without conditions.
+		g.Expect(newObj.Object["status"]).To(HaveLen(2))
+		g.Expect(newObj.Object["status"]).To(Equal(obj.Object["status"]))
+
+		// Make sure that we didn't modify the incoming object if this object isn't a condition setter.
+		g.Expect(obj.Object["status"].(map[string]interface{})["conditions"]).ToNot(BeNil())
+	})
+}

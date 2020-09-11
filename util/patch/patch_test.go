@@ -505,7 +505,7 @@ var _ = Describe("Patch Helper", func() {
 			}, timeout).Should(BeTrue())
 		})
 
-		Specify("updating both spec and status", func() {
+		Specify("updating both spec, status, and adding a condition", func() {
 			obj := obj.DeepCopy()
 			obj.ObjectMeta.Namespace = "test-namespace"
 
@@ -531,6 +531,9 @@ var _ = Describe("Patch Helper", func() {
 			By("Updating the object status")
 			obj.Status.InfrastructureReady = true
 
+			By("Setting Ready condition")
+			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+
 			By("Patching the object")
 			Expect(patcher.Patch(ctx, obj)).To(Succeed())
 
@@ -541,7 +544,8 @@ var _ = Describe("Patch Helper", func() {
 					return false
 				}
 
-				return reflect.DeepEqual(obj.Status, objAfter.Status) &&
+				return obj.Status.InfrastructureReady == objAfter.Status.InfrastructureReady &&
+					conditions.IsTrue(objAfter, clusterv1.ReadyCondition) &&
 					reflect.DeepEqual(obj.Spec, objAfter.Spec)
 			}, timeout).Should(BeTrue())
 		})

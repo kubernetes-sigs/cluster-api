@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type patchType string
@@ -44,4 +45,18 @@ var (
 func unstructuredHasStatus(u *unstructured.Unstructured) bool {
 	_, ok := u.Object["status"]
 	return ok
+}
+
+func toUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) {
+	// If the incoming object is already unstructured, perform a deep copy first
+	// otherwise DefaultUnstructuredConverter ends up returning the inner map without
+	// making a copy.
+	if _, ok := obj.(runtime.Unstructured); ok {
+		obj = obj.DeepCopyObject()
+	}
+	rawMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+	return &unstructured.Unstructured{Object: rawMap}, nil
 }

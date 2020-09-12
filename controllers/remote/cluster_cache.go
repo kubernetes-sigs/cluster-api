@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -58,6 +59,7 @@ type clusterCache struct {
 	cache.Cache
 
 	lock    sync.Mutex
+	mapper  meta.RESTMapper
 	stopped bool
 	stop    chan struct{}
 }
@@ -272,7 +274,7 @@ func (m *ClusterCacheTracker) newDelegatingClient(ctx context.Context, cluster c
 		return nil, errors.Wrap(err, "error fetching REST client config for remote cluster")
 	}
 	config.Timeout = defaultClientTimeout
-	c, err := client.New(config, client.Options{Scheme: m.scheme})
+	c, err := client.New(config, client.Options{Scheme: m.scheme, Mapper: cache.mapper})
 	if err != nil {
 		return nil, err
 	}
@@ -342,8 +344,9 @@ func (m *ClusterCacheTracker) newClusterCache(ctx context.Context, cluster clien
 	stop := make(chan struct{})
 
 	cc := &clusterCache{
-		Cache: remoteCache,
-		stop:  stop,
+		Cache:  remoteCache,
+		stop:   stop,
+		mapper: mapper,
 	}
 	m.clusterCaches[cluster] = cc
 

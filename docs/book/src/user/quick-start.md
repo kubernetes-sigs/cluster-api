@@ -678,6 +678,18 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 {{#/tab }}
 {{#/tabs }}
 
+### Clean Up
+
+Delete workload cluster.
+```bash
+kubectl delete cluster capi-quickstart
+```
+
+Delete management cluster
+```bash
+kind delete cluster
+```
+
 ## Next steps
 
 See the [clusterctl] documentation for more detail about clusterctl supported actions.

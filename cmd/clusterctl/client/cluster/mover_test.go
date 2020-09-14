@@ -452,6 +452,80 @@ func Test_getMoveSequence(t *testing.T) {
 	}
 }
 
+func Test_objectMover_move_dryRun(t *testing.T) {
+	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
+	for _, tt := range moveTests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs(tt.fields.objs)
+
+			// Get all the types to be considered for discovery
+			err := getFakeDiscoveryTypes(graph)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// trigger discovery the content of the source cluster
+			g.Expect(graph.Discovery("")).To(Succeed())
+
+			// gets a fakeProxy to an empty cluster with all the required CRDs
+			toProxy := getFakeProxyWithCRDs()
+
+			// Run move
+			mover := objectMover{
+				fromProxy: graph.proxy,
+				dryRun:    true,
+			}
+
+			err = mover.move(graph, toProxy)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// check that the objects are kept in the source cluster and are not created in the target cluster
+			csFrom, err := graph.proxy.NewClient()
+			g.Expect(err).NotTo(HaveOccurred())
+
+			csTo, err := toProxy.NewClient()
+			g.Expect(err).NotTo(HaveOccurred())
+			for _, node := range graph.uidToNode {
+				key := client.ObjectKey{
+					Namespace: node.identity.Namespace,
+					Name:      node.identity.Name,
+				}
+				// objects are kept in source cluster as it's dry run
+				oFrom := &unstructured.Unstructured{}
+				oFrom.SetAPIVersion(node.identity.APIVersion)
+				oFrom.SetKind(node.identity.Kind)
+
+				if err := csFrom.Get(ctx, key, oFrom); err != nil {
+					t.Errorf("error = %v when checking for %v kept in source cluster", err, key)
+					continue
+				}
+
+				// objects are not created in target cluster as it's dry run
+				oTo := &unstructured.Unstructured{}
+				oTo.SetAPIVersion(node.identity.APIVersion)
+				oTo.SetKind(node.identity.Kind)
+
+				err := csTo.Get(ctx, key, oTo)
+				if err == nil {
+					if oFrom.GetNamespace() != "" {
+						t.Errorf("%v created in target cluster which should not", key)
+						continue
+					}
+				} else if !apierrors.IsNotFound(err) {
+					t.Errorf("error = %v when checking for %v should not created ojects in target cluster", err, key)
+					continue
+				}
+			}
+		})
+	}
+}
+
 func Test_objectMover_move(t *testing.T) {
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	for _, tt := range moveTests {

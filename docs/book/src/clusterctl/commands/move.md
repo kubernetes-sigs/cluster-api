@@ -64,3 +64,7 @@ This can now be achieved with the following procedure:
 
 > Note: It's required to have at least one worker node to schedule Cluster API workloads (i.e. controllers).
 > A cluster with a single control plane node won't be sufficient due to the `NoSchedule` taint. If a worker node isn't available, `clusterctl init` will timeout.
+
+## Dry run
+
+With `--dry-run` option you can dry-run the move action by only printing logs without taking any actual actions. Use log level verbosity `-v` to see different levels of information.

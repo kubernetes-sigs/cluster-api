@@ -493,15 +493,25 @@ func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, f
 	return nil
 }
 
-// HasOwner checks if any of the references in the passed list match the given apiVersion and one of the given kinds
+// HasOwner checks if any of the references in the passed list match the given group from apiVersion and one of the given kinds.
 func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string) bool {
+	gv, err := schema.ParseGroupVersion(apiVersion)
+	if err != nil {
+		return false
+	}
+
 	kMap := make(map[string]bool)
 	for _, kind := range kinds {
 		kMap[kind] = true
 	}
 
 	for _, mr := range refList {
-		if mr.APIVersion == apiVersion && kMap[mr.Kind] {
+		mrGroupVersion, err := schema.ParseGroupVersion(mr.APIVersion)
+		if err != nil {
+			return false
+		}
+
+		if mrGroupVersion.Group == gv.Group && kMap[mr.Kind] {
 			return true
 		}
 	}

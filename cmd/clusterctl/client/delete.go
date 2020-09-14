@@ -81,6 +81,15 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 
 	if options.DeleteAll {
 		providersToDelete = installedProviders.Items
+		if options.Namespace != "" {
+			// Delete only the providers in the specified namespace
+			providersToDelete = []clusterctlv1.Provider{}
+			for _, provider := range installedProviders.Items {
+				if provider.Namespace == options.Namespace {
+					providersToDelete = append(providersToDelete, provider)
+				}
+			}
+		}
 	} else {
 		// Otherwise we are deleting only a subset of providers.
 		var providers []clusterctlv1.Provider
@@ -111,21 +120,6 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 				}
 			}
 
-			// Check the provider/type/namespace tuple actually matches one of the installed provider instances.
-			found := false
-			for _, ip := range installedProviders.Items {
-				if ip.InstanceName() == provider.InstanceName() {
-					found = true
-					providersToDelete = append(providersToDelete, ip)
-					break
-				}
-			}
-			if found {
-				break
-			}
-
-			// In case the provider does not match any installed providers, we still force deletion
-			// so the user can do 'delete' without removing CRD and after some time 'delete --delete-crd' (same for the namespace).
 			providersToDelete = append(providersToDelete, provider)
 		}
 	}

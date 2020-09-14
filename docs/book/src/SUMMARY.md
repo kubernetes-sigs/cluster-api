@@ -23,6 +23,7 @@
         - [move](./clusterctl/commands/move.md)
         - [upgrade](clusterctl/commands/upgrade.md)
         - [delete](clusterctl/commands/delete.md)
+        - [completion](clusterctl/commands/completion.md)
     - [clusterctl Configuration](clusterctl/configuration.md)
     - [clusterctl Provider Contract](clusterctl/provider-contract.md)
     - [clusterctl for Developers](clusterctl/developers.md)

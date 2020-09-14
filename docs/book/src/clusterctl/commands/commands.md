@@ -6,3 +6,4 @@
 * [`clusterctl move`](move.md)
 * [`clusterctl upgrade`](upgrade.md)
 * [`clusterctl delete`](delete.md)
+* [`clusterctl completion`](completion.md)

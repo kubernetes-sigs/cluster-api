@@ -54,11 +54,10 @@ func NewHelper(obj runtime.Object, crClient client.Client) (*Helper, error) {
 	}
 
 	// Convert the object to unstructured to compare against our before copy.
-	raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
+	unstructuredObj, err := toUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}
-	unstructuredObj := &unstructured.Unstructured{Object: raw}
 
 	// Check if the object satisfies the Cluster API conditions contract.
 	_, canInterfaceConditions := obj.(conditions.Setter)
@@ -84,11 +83,11 @@ func (h *Helper) Patch(ctx context.Context, obj runtime.Object, opts ...Option) 
 	}
 
 	// Convert the object to unstructured to compare against our before copy.
-	raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
+	var err error
+	h.after, err = toUnstructured(obj)
 	if err != nil {
 		return err
 	}
-	h.after = &unstructured.Unstructured{Object: raw}
 
 	// Determine if the object has status.
 	if unstructuredHasStatus(h.after) {

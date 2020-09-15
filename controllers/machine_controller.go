@@ -227,6 +227,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.ReadyCondition,
 			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
+			clusterv1.DrainingSucceededCondition,
 		}},
 	)
 

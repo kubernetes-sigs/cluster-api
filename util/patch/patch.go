@@ -117,7 +117,7 @@ func (h *Helper) Patch(ctx context.Context, obj runtime.Object, opts ...Option) 
 		// Given that we pass in metadata.resourceVersion to perform a 3-way-merge conflict resolution,
 		// patching conditions first avoids an extra loop if spec or status patch succeeds first
 		// given that causes the resourceVersion to mutate.
-		h.patchStatusConditions(ctx, obj, options.OwnedConditions),
+		h.patchStatusConditions(ctx, obj, options.ForceOverwriteConditions, options.OwnedConditions),
 
 		// Then proceed to patch the rest of the object.
 		h.patch(ctx, obj),
@@ -158,7 +158,7 @@ func (h *Helper) patchStatus(ctx context.Context, obj runtime.Object) error {
 //
 // Condition changes are then applied to the latest version of the object, and if there are
 // no unresolvable conflicts, the patch is sent again.
-func (h *Helper) patchStatusConditions(ctx context.Context, obj runtime.Object, ownedConditions []clusterv1.ConditionType) error {
+func (h *Helper) patchStatusConditions(ctx context.Context, obj runtime.Object, forceOverwrite bool, ownedConditions []clusterv1.ConditionType) error {
 	// Nothing to do if the object isn't a condition patcher.
 	if !h.isConditionsSetter {
 		return nil
@@ -218,7 +218,7 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj runtime.Object, 
 		conditionsPatch := client.MergeFromWithOptions(latest.DeepCopyObject(), client.MergeFromWithOptimisticLock{})
 
 		// Set the condition patch previously created on the new object.
-		if err := diff.Apply(latest, conditions.WithOwnedConditions(ownedConditions...)); err != nil {
+		if err := diff.Apply(latest, conditions.WithForceOverwrite(forceOverwrite), conditions.WithOwnedConditions(ownedConditions...)); err != nil {
 			return false, err
 		}
 

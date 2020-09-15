@@ -14,6 +14,7 @@ mis-configurations or in managing day 2 operations such as upgrades.
 
 * use [`clusterctl config cluster`](commands/config-cluster.md) to spec out workload clusters
 * use [`clusterctl generate yaml`](commands/generate-yaml.md) to process yaml
+* use [`clusterctl get kubeconfig`](commands/get-kubeconfig.md) to get the kubeconfig of an existing workload cluster.
   using clusterctl's internal yaml processor.
 * use [`clusterctl move`](commands/move.md) to migrate objects defining a workload clusters (e.g. Cluster, Machines) from a management cluster to another management cluster
 

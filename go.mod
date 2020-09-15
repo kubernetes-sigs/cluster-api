@@ -37,11 +37,11 @@ require (
 	k8s.io/apimachinery v0.17.9
 	k8s.io/apiserver v0.17.9
 	k8s.io/client-go v0.17.9
-	k8s.io/cluster-bootstrap v0.17.8
+	k8s.io/cluster-bootstrap v0.17.9
 	k8s.io/component-base v0.17.9
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20200619165400-6e3d28b6ed19
-	sigs.k8s.io/controller-runtime v0.5.10
+	sigs.k8s.io/controller-runtime v0.5.11
 	sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802
 	sigs.k8s.io/yaml v1.2.0
 )

@@ -256,6 +256,26 @@ func TestHasOwner(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "owned by cluster from older version",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Cluster",
+					APIVersion: "cluster.x-k8s.io/v1alpha2",
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "owned by a MachineDeployment from older version",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: "cluster.x-k8s.io/v1alpha2",
+				},
+			},
+			expected: true,
+		},
+		{
 			name: "owned by something else",
 			refList: []metav1.OwnerReference{
 				{

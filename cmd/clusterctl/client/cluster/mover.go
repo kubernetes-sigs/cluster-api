@@ -88,7 +88,9 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) erro
 	if err := o.checkProvisioningCompleted(objectGraph); err != nil {
 		return err
 	}
-	//TODO: consider if to add additional preflight checks ensuring the object graph is complete (no virtual nodes left)
+
+	// Check whether nodes are not included in GVK considered for move
+	objectGraph.checkVirtualNode()
 
 	// Move the objects to the target cluster.
 	var proxy Proxy

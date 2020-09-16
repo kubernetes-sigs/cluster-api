@@ -1,179 +1,180 @@
-##
-# these resources are sequenced by label:
-# 1. initial: just the resources to bootstrap an initial controlplane
-# 2. kcp: the KCP resources (note the duplicated Cluster to associate the control plane)
-##
-###
-# 1. initial
-###
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: DockerCluster
-metadata:
-  name: '${ CLUSTER_NAME }'
-  labels:
-    initial: ''
----
-apiVersion: cluster.x-k8s.io/v1alpha3
-kind: Cluster
-metadata:
-  name: '${ CLUSTER_NAME }'
-  labels:
-    initial: ''
-    cni: "${CLUSTER_NAME}-crs-0"
-spec:
-  clusterNetwork:
-    services:
-      cidrBlocks: ['${ DOCKER_SERVICE_CIDRS }']
-    pods:
-      cidrBlocks: ['${ DOCKER_POD_CIDRS }']
-    serviceDomain: '${ DOCKER_SERVICE_DOMAIN }'
-  infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: DockerCluster
-    name: '${ CLUSTER_NAME }'
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: DockerMachine
-metadata:
-  name: "${CLUSTER_NAME}-control-plane-0"
-  labels:
-    initial: ''
-spec:
-  extraMounts:
-    - containerPath: "/var/run/docker.sock"
-      hostPath: "/var/run/docker.sock"
----
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-kind: KubeadmConfig
-metadata:
-  name: "${CLUSTER_NAME}-control-plane-0"
-  labels:
-    initial: ''
-spec:
-  clusterConfiguration:
-    controllerManager:
-      extraArgs: {enable-hostpath-provisioner: 'true'}
-    apiServer:
-      certSANs: [localhost, 127.0.0.1]
-  initConfiguration:
-    nodeRegistration:
-      criSocket: /var/run/containerd/containerd.sock
-      kubeletExtraArgs: {eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'}
-  joinConfiguration:
-    nodeRegistration:
-      criSocket: /var/run/containerd/containerd.sock
-      kubeletExtraArgs: {eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'}
----
-apiVersion: cluster.x-k8s.io/v1alpha3
-kind: Machine
-metadata:
-  name: "${CLUSTER_NAME}-control-plane-0"
-  labels:
-    initial: ''
-    cluster.x-k8s.io/control-plane: ''
-spec:
-  clusterName: "${ CLUSTER_NAME }"
-  version: "${ KUBERNETES_VERSION }"
-  bootstrap:
-    configRef:
-      name: "${ CLUSTER_NAME }-control-plane-0"
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-      kind: KubeadmConfig
-  infrastructureRef:
-    name: "${ CLUSTER_NAME }-control-plane-0"
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: DockerMachine
----
-###
-# 2. kcp
-###
-apiVersion: cluster.x-k8s.io/v1alpha3
-kind: Cluster
-metadata:
-  name: '${ CLUSTER_NAME }'
-  labels:
-    kcp: ''
-    cni: "${CLUSTER_NAME}-crs-0"
-spec:
-  clusterNetwork:
-    services:
-      cidrBlocks: ['${ DOCKER_SERVICE_CIDRS }']
-    pods:
-      cidrBlocks: ['${ DOCKER_POD_CIDRS }']
-    serviceDomain: '${ DOCKER_SERVICE_DOMAIN }'
-  controlPlaneRef:
-    kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
-    name: "${CLUSTER_NAME}-control-plane"
-  infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: DockerCluster
-    name: '${ CLUSTER_NAME }'
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: DockerMachineTemplate
-metadata:
-  name: "${CLUSTER_NAME}-control-plane"
-  labels:
-    kcp: ''
-spec:
-  template:
-    spec:
-      extraMounts:
-        - containerPath: "/var/run/docker.sock"
-          hostPath: "/var/run/docker.sock"
----
-kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
-metadata:
-  name: "${ CLUSTER_NAME }-control-plane"
-  labels:
-    cluster.x-k8s.io/cluster-name: "${ CLUSTER_NAME }"
-    kcp: ''
-spec:
-  replicas: ${ CONTROL_PLANE_MACHINE_COUNT }
-  infrastructureTemplate:
-    kind: DockerMachineTemplate
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    name: "${CLUSTER_NAME}-control-plane"
-  kubeadmConfigSpec:
-    clusterConfiguration:
-      controllerManager:
-        extraArgs: {enable-hostpath-provisioner: 'true'}
-      apiServer:
-        certSANs: [localhost, 127.0.0.1]
-    initConfiguration:
-      nodeRegistration:
-        criSocket: /var/run/containerd/containerd.sock
-        kubeletExtraArgs: {eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'}
-    joinConfiguration:
-      nodeRegistration:
-        criSocket: /var/run/containerd/containerd.sock
-        kubeletExtraArgs: {eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'}
-  version: "${KUBERNETES_VERSION}"
----
 apiVersion: v1
+binaryData: null
+data: ${CNI_RESOURCES}
 kind: ConfigMap
 metadata:
-  name: "cni-${CLUSTER_NAME}-crs-0"
   labels:
-    initial: ''
-    kcp: ''
-data: ${CNI_RESOURCES}
+    kcp-adoption.step1: ""
+  name: cni-${CLUSTER_NAME}-crs-0
 ---
 apiVersion: addons.cluster.x-k8s.io/v1alpha3
 kind: ClusterResourceSet
 metadata:
-  name:  "${CLUSTER_NAME}-crs-0"
   labels:
-    initial: ''
-    kcp: ''
+    kcp-adoption.step1: ""
+  name: ${CLUSTER_NAME}-crs-0
 spec:
-  strategy: ApplyOnce
   clusterSelector:
     matchLabels:
-      cni: "${CLUSTER_NAME}-crs-0"
+      cni: ${CLUSTER_NAME}-crs-0
   resources:
-    - name: "cni-${CLUSTER_NAME}-crs-0"
-      kind: ConfigMap
+  - kind: ConfigMap
+    name: cni-${CLUSTER_NAME}-crs-0
+  strategy: ApplyOnce
 ---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfig
+metadata:
+  labels:
+    kcp-adoption.step1: ""
+  name: ${CLUSTER_NAME}-control-plane-0
+spec:
+  clusterConfiguration:
+    apiServer:
+      certSANs:
+      - localhost
+      - 127.0.0.1
+    controllerManager:
+      extraArgs:
+        enable-hostpath-provisioner: "true"
+  initConfiguration:
+    nodeRegistration:
+      criSocket: /var/run/containerd/containerd.sock
+      kubeletExtraArgs:
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  joinConfiguration:
+    nodeRegistration:
+      criSocket: /var/run/containerd/containerd.sock
+      kubeletExtraArgs:
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  labels:
+    cni: ${CLUSTER_NAME}-crs-0
+    kcp-adoption.step1: ""
+  name: ${CLUSTER_NAME}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - ${DOCKER_POD_CIDRS}
+    serviceDomain: ${DOCKER_SERVICE_DOMAIN}
+    services:
+      cidrBlocks:
+      - ${DOCKER_SERVICE_CIDRS}
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: DockerCluster
+    name: ${CLUSTER_NAME}
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Machine
+metadata:
+  labels:
+    cluster.x-k8s.io/control-plane: ""
+    kcp-adoption.step1: ""
+  name: ${CLUSTER_NAME}-control-plane-0
+spec:
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+      kind: KubeadmConfig
+      name: ${ CLUSTER_NAME }-control-plane-0
+  clusterName: ${ CLUSTER_NAME }
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: DockerMachine
+    name: ${ CLUSTER_NAME }-control-plane-0
+  version: ${ KUBERNETES_VERSION }
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: DockerCluster
+metadata:
+  labels:
+    kcp-adoption.step1: ""
+  name: ${CLUSTER_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: DockerMachine
+metadata:
+  labels:
+    kcp-adoption.step1: ""
+  name: ${CLUSTER_NAME}-control-plane-0
+spec: {}
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  labels:
+    cni: ${CLUSTER_NAME}-crs-0
+    kcp-adoption.step2: ""
+  name: ${CLUSTER_NAME}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - ${DOCKER_POD_CIDRS}
+    serviceDomain: ${DOCKER_SERVICE_DOMAIN}
+    services:
+      cidrBlocks:
+      - ${DOCKER_SERVICE_CIDRS}
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    kind: KubeadmControlPlane
+    name: ${CLUSTER_NAME}-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: DockerCluster
+    name: ${CLUSTER_NAME}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: KubeadmControlPlane
+metadata:
+  labels:
+    kcp-adoption.step2: ""
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: DockerMachineTemplate
+    name: ${CLUSTER_NAME}-control-plane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        certSANs:
+        - localhost
+        - 127.0.0.1
+      controllerManager:
+        extraArgs:
+          enable-hostpath-provisioner: "true"
+    initConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: DockerCluster
+metadata:
+  labels:
+    kcp-adoption.step2: ""
+  name: ${CLUSTER_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: DockerMachineTemplate
+metadata:
+  labels:
+    kcp-adoption.step2: ""
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  template:
+    spec: {}

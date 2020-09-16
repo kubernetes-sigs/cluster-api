@@ -81,6 +81,21 @@ spec:
         name: ${CLUSTER_NAME}-md-0
       version: ${KUBERNETES_VERSION}
 ---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineHealthCheck
+metadata:
+  name: ${CLUSTER_NAME}-mhc-0
+spec:
+  clusterName: ${CLUSTER_NAME}
+  maxUnhealthy: 100%
+  selector:
+    matchLabels:
+      nodepool: pool1
+  unhealthyConditions:
+  - status: "True"
+    timeout: 30s
+    type: E2ENodeUnhealthy
+---
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 kind: KubeadmControlPlane
 metadata:

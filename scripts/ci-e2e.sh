@@ -31,7 +31,7 @@ source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 # Configure provider images generation;
 # please ensure the generated image name matches image names used in the E2E_CONF_FILE
 export REGISTRY=gcr.io/k8s-staging-cluster-api
-export TAG=ci
+export TAG=dev
 export ARCH=amd64
 export PULL_POLICY=IfNotPresent
 
@@ -54,7 +54,7 @@ docker pull kindest/node:v1.17.2
 export GINKGO_NODES=3
 export GINKGO_NOCOLOR=true
 export GINKGO_ARGS="--failFast" # Other ginkgo args that need to be appended to the command.
-export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker-ci.yaml"
+export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export SKIP_RESOURCE_CLEANUP=false
 export USE_EXISTING_CLUSTER=false

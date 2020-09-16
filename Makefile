@@ -53,6 +53,8 @@ GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
 ENVSUBST_BIN := bin/envsubst
 ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
 
+export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+
 # Binaries.
 # Need to use abspath so we can invoke these from subdirectories
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
@@ -220,7 +222,8 @@ generate: ## Generate code
 	$(MAKE) -C test/infrastructure/docker generate
 
 .PHONY: generate-go
-generate-go: ## Runs Go related generate targets
+generate-go: $(GOBINDATA) ## Runs Go related generate targets
+	go generate ./...
 	$(MAKE) generate-go-core
 	$(MAKE) generate-go-kubeadm-bootstrap
 	$(MAKE) generate-go-kubeadm-control-plane

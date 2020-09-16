@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
@@ -96,7 +97,6 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		})
 
 		By("Turning the workload cluster into a management cluster")
-		//TODO: refactor into an helper func e.g. "UpgradeToManagementCluster"
 
 		// In case of the cluster id a DockerCluster, we should load controller images into the nodes.
 		// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
@@ -127,7 +127,19 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
-		//TODO: refactor in to an helper func e.g. "MoveToSelfHostedAndWait"
+		By("Ensure API servers are stable before doing move")
+		// Nb. This check was introduced to prevent doing move to self-hosted in an aggressive way and thus avoid flakes.
+		// More specifically, we were observing the test failing to get objects from the API server during move, so we
+		// are now testing the API servers are stable before starting move.
+		Consistently(func() error {
+			kubeSystem := &corev1.Namespace{}
+			return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+		}, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
+		Consistently(func() error {
+			kubeSystem := &corev1.Namespace{}
+			return selfHostedClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+		}, "5s", "100ms").Should(BeNil(), "Failed to assert self-hosted API server stability")
+
 		By("Moving the cluster to self hosted")
 		clusterctl.Move(context.TODO(), clusterctl.MoveInput{
 			LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", "bootstrap"),
@@ -164,6 +176,19 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			})
 		}
 		if selfHostedCluster != nil {
+			By("Ensure API servers are stable before doing move")
+			// Nb. This check was introduced to prevent doing move back to bootstrap in an aggressive way and thus avoid flakes.
+			// More specifically, we were observing the test failing to get objects from the API server during move, so we
+			// are now testing the API servers are stable before starting move.
+			Consistently(func() error {
+				kubeSystem := &corev1.Namespace{}
+				return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+			}, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
+			Consistently(func() error {
+				kubeSystem := &corev1.Namespace{}
+				return selfHostedClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+			}, "5s", "100ms").Should(BeNil(), "Failed to assert self-hosted API server stability")
+
 			By("Moving the cluster back to bootstrap")
 			clusterctl.Move(ctx, clusterctl.MoveInput{
 				LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),

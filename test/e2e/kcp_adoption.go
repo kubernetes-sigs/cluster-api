@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -133,12 +134,15 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		By("Applying the cluster template yaml to the cluster with the 'kcp' selector")
 		Expect(input.BootstrapClusterProxy.ApplyWithArgs(ctx, workloadClusterTemplate, "--selector", "kcp")).ShouldNot(HaveOccurred())
 
-		controlPlane := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
-			Lister:      client,
-			ClusterName: clusterName,
-			Namespace:   namespace.Name,
-		})
-		Expect(controlPlane).ToNot(BeNil())
+		var controlPlane *controlplanev1.KubeadmControlPlane
+		Eventually(func() *controlplanev1.KubeadmControlPlane {
+			controlPlane = framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+				Lister:      client,
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+			return controlPlane
+		}, "5s", "100ms").ShouldNot(BeNil())
 
 		framework.WaitForControlPlaneToBeUpToDate(ctx, framework.WaitForControlPlaneToBeUpToDateInput{
 			Getter:       client,

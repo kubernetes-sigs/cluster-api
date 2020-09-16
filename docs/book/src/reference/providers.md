@@ -12,8 +12,10 @@ updated info about which API version they are supporting.
 
 
 ## Infrastructure
+- [Alibaba Cloud](https://github.com/oam-oss/cluster-api-provider-alicloud)
 - [AWS](https://github.com/kubernetes-sigs/cluster-api-provider-aws)
 - [Azure](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
+- [Azure Stack HCI](https://github.com/microsoft/cluster-api-provider-azurestackhci)
 - [Baidu Cloud](https://github.com/baidu/cluster-api-provider-baiducloud)
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
@@ -25,7 +27,7 @@ updated info about which API version they are supporting.
 - [Sidero](https://github.com/talos-systems/sidero)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
 - [vSphere](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
-- [Alibaba Cloud](https://github.com/oam-oss/cluster-api-provider-alicloud)
+
 
 ## API Adopters
 

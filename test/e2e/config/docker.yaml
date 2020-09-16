@@ -5,17 +5,17 @@
 # - control-plane kubeadm
 # - docker
 
-# For creating local dev images run ./scripts/ci-e2e.sh
+# For creating local dev images run make docker-build-e2e from the main CAPI repository
 
 images:
 # Use local dev images built source tree;
-- name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:ci
+- name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:dev
   loadBehavior: mustLoad
-- name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:ci
+- name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:dev
   loadBehavior: mustLoad
-- name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:ci
+- name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:dev
   loadBehavior: mustLoad
-- name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:ci
+- name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev
   loadBehavior: mustLoad
 - name: quay.io/jetstack/cert-manager-cainjector:v0.16.1
   loadBehavior: tryLoad
@@ -66,11 +66,9 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
   files:
-  # Add a metadata for docker provider
-  - sourcePath: "../data/infrastructure-docker/metadata.yaml"
   # Add cluster templates
-  - sourcePath: "../data/infrastructure-docker/cluster-template-ci.yaml"
-    targetName: "cluster-template.yaml"
+  - sourcePath: "../data/infrastructure-docker/cluster-template.yaml"
+  - sourcePath: "../data/infrastructure-docker/cluster-template-mhc.yaml"
   - sourcePath: "../data/infrastructure-docker/cluster-template-kcp-adoption.yaml"
 
 variables:

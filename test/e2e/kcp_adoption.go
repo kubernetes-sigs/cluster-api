@@ -145,7 +145,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			ControlPlane: controlPlane,
 		})
 
-		By("taking stable ownership of the Machines")
+		By("Taking stable ownership of the Machines")
 		must := func(r *labels.Requirement, err error) labels.Requirement {
 			if err != nil {
 				panic(err)
@@ -184,7 +184,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 				clusterv1.ClusterLabelName: clusterName,
 			})).To(Succeed())
 
-		By("taking ownership of the cluster's PKI material")
+		By("Taking ownership of the cluster's PKI material")
 		secrets := corev1.SecretList{}
 		Expect(client.List(ctx, &secrets, ctrlclient.InNamespace(namespace.Name), ctrlclient.MatchingLabels{
 			clusterv1.ClusterLabelName: cluster.Name,

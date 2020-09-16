@@ -245,7 +245,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 		err := cmd.Run(ctx)
 		if err != nil {
 			m.log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
-			return errors.Wrap(err, "failed to run cloud conifg")
+			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
 		}
 	}
 

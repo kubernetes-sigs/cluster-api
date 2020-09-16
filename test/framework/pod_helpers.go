@@ -20,7 +20,6 @@ import (
 	"context"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/pkg/errors"
@@ -55,7 +54,6 @@ func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionI
 		}
 		return true, nil
 	}, intervals...).Should(BeTrue())
-	By("pod condition satisfied")
 }
 
 // EtcdImageTagCondition returns a podListCondition that ensures the pod image

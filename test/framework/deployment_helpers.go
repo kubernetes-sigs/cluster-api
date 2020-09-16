@@ -49,7 +49,7 @@ type WaitForDeploymentsAvailableInput struct {
 // all the desired replicas are in place.
 // This can be used to check if Cluster API controllers installed in the management cluster are working.
 func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAvailableInput, intervals ...interface{}) {
-	By(fmt.Sprintf("waiting for deployment %s/%s to be available", input.Deployment.GetNamespace(), input.Deployment.GetName()))
+	By(fmt.Sprintf("Waiting for deployment %s/%s to be available", input.Deployment.GetNamespace(), input.Deployment.GetName()))
 	deployment := &appsv1.Deployment{}
 	Eventually(func() bool {
 		key := client.ObjectKey{
@@ -233,7 +233,7 @@ type WaitForDNSUpgradeInput struct {
 
 // WaitForDNSUpgrade waits until CoreDNS version matches with the CoreDNS upgrade version. This is called during KCP upgrade.
 func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, intervals ...interface{}) {
-	By("ensuring CoreDNS has the correct image")
+	By("Ensuring CoreDNS has the correct image")
 
 	Eventually(func() (bool, error) {
 		d := &appsv1.Deployment{}

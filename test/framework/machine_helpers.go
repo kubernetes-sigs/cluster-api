@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -120,8 +121,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 	Expect(input.KubernetesUpgradeVersion).ToNot(BeEmpty(), "Invalid argument. input.KubernetesUpgradeVersion can't be empty when calling WaitForControlPlaneMachinesToBeUpgraded")
 	Expect(input.MachineCount).To(BeNumerically(">", 0), "Invalid argument. input.MachineCount can't be smaller than 1 when calling WaitForControlPlaneMachinesToBeUpgraded")
 
-	By("ensuring all machines have upgraded kubernetes version")
-	log.Logf("Ensuring all MachineDeployment Machines have upgraded kubernetes version %s", input.KubernetesUpgradeVersion)
+	By(fmt.Sprintf("Ensuring all control-plane machines have upgraded kubernetes version %s", input.KubernetesUpgradeVersion))
 
 	Eventually(func() (int, error) {
 		machines := GetControlPlaneMachinesByCluster(ctx, GetControlPlaneMachinesByClusterInput{

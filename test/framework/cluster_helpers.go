@@ -122,7 +122,7 @@ type WaitForClusterToProvisionInput struct {
 
 // WaitForClusterToProvision will wait for a cluster to have a phase status of provisioned.
 func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, intervals ...interface{}) {
-	By("waiting for cluster to enter the provisioned phase")
+	By("Waiting for cluster to enter the provisioned phase")
 	Eventually(func() (string, error) {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{
@@ -147,7 +147,7 @@ func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
 	if options.SkipResourceCleanup {
 		return
 	}
-	By(fmt.Sprintf("deleting cluster %s", input.Cluster.GetName()))
+	By(fmt.Sprintf("Deleting cluster %s", input.Cluster.GetName()))
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }
 
@@ -162,7 +162,7 @@ func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput
 	if options.SkipResourceCleanup {
 		return
 	}
-	By(fmt.Sprintf("waiting for cluster %s to be deleted", input.Cluster.GetName()))
+	By(fmt.Sprintf("Waiting for cluster %s to be deleted", input.Cluster.GetName()))
 	Eventually(func() bool {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{

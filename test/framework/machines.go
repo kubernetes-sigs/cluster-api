@@ -35,7 +35,7 @@ type WaitForClusterMachineNodeRefsInput struct {
 
 // WaitForClusterMachineNodesRefs waits until all nodes associated with a machine deployment exist.
 func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMachineNodeRefsInput, intervals ...interface{}) {
-	By("waiting for the machines' nodes to exist")
+	By("Waiting for the machines' nodes to exist")
 	machines := &clusterv1.MachineList{}
 
 	Expect(input.GetLister.List(ctx, machines, byClusterOptions(input.Cluster.Name, input.Cluster.Namespace)...)).To(Succeed(), "Failed to get Cluster machines %s/%s", input.Cluster.Namespace, input.Cluster.Name)
@@ -61,7 +61,7 @@ type WaitForClusterMachinesReadyInput struct {
 }
 
 func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachinesReadyInput, intervals ...interface{}) {
-	By("waiting for the machines' nodes to be ready")
+	By("Waiting for the machines' nodes to be ready")
 	machines := &clusterv1.MachineList{}
 
 	Expect(input.GetLister.List(ctx, machines, byClusterOptions(input.Cluster.Name, input.Cluster.Namespace)...)).To(Succeed(), "Failed to get Cluster machines %s/%s", input.Cluster.Namespace, input.Cluster.Name)

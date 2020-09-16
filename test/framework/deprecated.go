@@ -224,7 +224,7 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 			Expect(mgmtClient.Create(ctx, input.MachineDeployment.InfraMachineTemplate)).To(Succeed())
 		}
 
-		By("waiting for the workload nodes to exist")
+		By("Waiting for the workload nodes to exist")
 		Eventually(func() ([]corev1.Node, error) {
 			workloadClient, err := input.Management.GetWorkloadClient(ctx, input.Cluster.Namespace, input.Cluster.Name)
 			if err != nil {

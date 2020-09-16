@@ -83,7 +83,7 @@ type WaitForKubeadmControlPlaneMachinesToExistInput struct {
 
 // WaitForKubeadmControlPlaneMachinesToExist will wait until all control plane machines have node refs.
 func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitForKubeadmControlPlaneMachinesToExistInput, intervals ...interface{}) {
-	By("waiting for all control plane nodes to exist")
+	By("Waiting for all control plane nodes to exist")
 	inClustersNamespaceListOption := client.InNamespace(input.Cluster.Namespace)
 	// ControlPlane labels
 	matchClusterListOption := client.MatchingLabels{
@@ -120,7 +120,7 @@ func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input Wait
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForOneKubeadmControlPlaneMachineToExist")
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling WaitForOneKubeadmControlPlaneMachineToExist")
 
-	By("waiting for one control plane node to exist")
+	By("Waiting for one control plane node to exist")
 	inClustersNamespaceListOption := client.InNamespace(input.Cluster.Namespace)
 	// ControlPlane labels
 	matchClusterListOption := client.MatchingLabels{
@@ -152,7 +152,7 @@ type WaitForControlPlaneToBeReadyInput struct {
 
 // WaitForControlPlaneToBeReady will wait for a control plane to be ready.
 func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...interface{}) {
-	By("waiting for the control plane to be ready")
+	By("Waiting for the control plane to be ready")
 	Eventually(func() (bool, error) {
 		controlplane := &controlplanev1.KubeadmControlPlane{}
 		key := client.ObjectKey{
@@ -314,7 +314,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 
 	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
 
-	log.Logf("Waiting for machines to have the upgraded kubernetes version")
+	log.Logf("Waiting for control-plane machines to have the upgraded kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{
 		Lister:                   mgmtClient,
 		Cluster:                  input.Cluster,

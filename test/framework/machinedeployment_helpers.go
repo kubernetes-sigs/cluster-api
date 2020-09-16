@@ -89,7 +89,7 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling WaitForMachineDeploymentNodesToExist")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentNodesToExist")
 
-	By("waiting for the workload nodes to exist")
+	By("Waiting for the workload nodes to exist")
 	Eventually(func() (int, error) {
 		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
 		if err != nil {

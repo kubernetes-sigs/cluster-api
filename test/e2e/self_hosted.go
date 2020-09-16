@@ -137,7 +137,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			Namespace:            namespace.Name,
 		})
 
-		log.Logf("Waiting for the cluster infrastructure to be provisioned")
+		log.Logf("Waiting for the cluster to be reconciled after moving to self hosted")
 		selfHostedCluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 			Getter:    selfHostedClusterProxy.GetClient(),
 			Namespace: selfHostedNamespace.Name,
@@ -155,7 +155,6 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 	})
 
 	AfterEach(func() {
-		//TODO: refactor in to an helper func e.g. "MoveToBootstrapAndWait"
 		if selfHostedNamespace != nil {
 			// Dump all Cluster API related resources to artifacts before pivoting back.
 			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
@@ -174,7 +173,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				Namespace:            selfHostedNamespace.Name,
 			})
 
-			log.Logf("Waiting for the cluster infrastructure to be provisioned")
+			log.Logf("Waiting for the cluster to be reconciled after moving back to booststrap")
 			cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 				Getter:    input.BootstrapClusterProxy.GetClient(),
 				Namespace: namespace.Name,

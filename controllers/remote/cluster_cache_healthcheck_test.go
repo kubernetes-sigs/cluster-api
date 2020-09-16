@@ -30,7 +30,6 @@ import (
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -44,7 +43,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 		var testNamespace *corev1.Namespace
 		var testClusterKey client.ObjectKey
 		var cct *ClusterCacheTracker
-		var cc *clusterCache
+		var cc *stoppableCache
 
 		var testPollInterval = 100 * time.Millisecond
 		var testPollTimeout = 50 * time.Millisecond
@@ -88,14 +87,14 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
+			Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
 
 			testClusterKey = util.ObjectKey(testCluster)
 
-			cc = &clusterCache{
+			cc = &stoppableCache{
 				stop: make(chan struct{}),
 			}
-			cct.clusterCaches[testClusterKey] = cc
+			cct.clusterAccessors[testClusterKey] = &clusterAccessor{cache: cc}
 		})
 
 		AfterEach(func() {
@@ -114,35 +113,17 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, testEnv.Config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
 
 			// Make sure this passes for at least two seconds, to give the health check goroutine time to run.
-			Consistently(func() *clusterCache {
-				cct.clusterCachesLock.RLock()
-				defer cct.clusterCachesLock.RUnlock()
-				return cct.clusterCaches[testClusterKey]
-			}, 2*time.Second, 100*time.Millisecond).ShouldNot(BeNil())
-			Expect(func() bool {
-				cc.lock.Lock()
-				defer cc.lock.Unlock()
-				return cc.stopped
-			}()).To(BeFalse())
+			Consistently(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeTrue())
 		})
 
 		It("with an invalid path", func() {
 			stop := make(chan struct{})
 			defer close(stop)
 
-			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, testEnv.Config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/foo"})
+			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, testEnv.Config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/clusterAccessor"})
 
 			// This should succeed after N consecutive failed requests.
-			Eventually(func() *clusterCache {
-				cct.clusterCachesLock.RLock()
-				defer cct.clusterCachesLock.RUnlock()
-				return cct.clusterCaches[testClusterKey]
-			}).Should(BeNil())
-			Expect(func() bool {
-				cc.lock.Lock()
-				defer cc.lock.Unlock()
-				return cc.stopped
-			}()).To(BeTrue())
+			Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeFalse())
 		})
 
 		It("with an invalid config", func() {
@@ -162,16 +143,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
 
 			// This should succeed after N consecutive failed requests.
-			Eventually(func() *clusterCache {
-				cct.clusterCachesLock.RLock()
-				defer cct.clusterCachesLock.RUnlock()
-				return cct.clusterCaches[testClusterKey]
-			}).Should(BeNil())
-			Expect(func() bool {
-				cc.lock.Lock()
-				defer cc.lock.Unlock()
-				return cc.stopped
-			}()).To(BeTrue())
+			Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeFalse())
 		})
 	})
 })

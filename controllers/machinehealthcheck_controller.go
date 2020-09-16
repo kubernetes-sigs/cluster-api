@@ -404,6 +404,7 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 	}
 
 	if err := r.Tracker.Watch(ctx, remote.WatchInput{
+		Name:         "machinehealthcheck-watchClusterNodes",
 		Cluster:      util.ObjectKey(cluster),
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},

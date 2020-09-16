@@ -1,3 +1,5 @@
+// +build e2e
+
 /*
 Copyright 2020 The Kubernetes Authors.
 
@@ -14,14 +16,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package log
+package conformance
 
 import (
-	"fmt"
+	"context"
 
 	. "github.com/onsi/ginkgo"
 )
 
-func Logf(format string, a ...interface{}) {
-	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
-}
+var _ = Describe("[Conformance] When running conformance with CI Artifacts", func() {
+
+	ConformanceCIArtifactsSpec(context.TODO(), func() ConformanceCIArtifactsSpecInput {
+		return ConformanceCIArtifactsSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+		}
+	})
+
+})

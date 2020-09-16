@@ -1,0 +1,137 @@
+/*
+Copyright 2020 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package conformance
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/e2e/internal/setup"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/test/framework/kubetest"
+	"sigs.k8s.io/cluster-api/util"
+)
+
+// ConformanceCIArtifactsSpecInput is the input for ConformanceSpec.
+type ConformanceCIArtifactsSpecInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	ClusterctlConfigPath  string
+	BootstrapClusterProxy framework.ClusterProxy
+	ArtifactFolder        string
+	SkipCleanup           bool
+}
+
+// ConformanceSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
+// creating a workload cluster.
+// This test is meant to provide a first, fast signal to detect regression; it is recommended to use it as a PR blocker test.
+func ConformanceCIArtifactsSpec(ctx context.Context, inputGetter func() ConformanceCIArtifactsSpecInput) {
+	var (
+		specName      = "conformance-with-ci-artifacts"
+		input         ConformanceCIArtifactsSpecInput
+		namespace     *corev1.Namespace
+		cancelWatches context.CancelFunc
+		cluster       *clusterv1.Cluster
+	)
+
+	BeforeEach(func() {
+		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
+		input = inputGetter()
+		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
+		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
+		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
+		Expect(os.MkdirAll(input.ArtifactFolder, 0755)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
+
+		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
+
+		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		namespace, cancelWatches = setup.CreateSpecNamespace(
+			ctx,
+			setup.CreateSpecNamespaceInput{
+				ArtifactsDirectory: input.ArtifactFolder,
+				ClusterProxy:       input.BootstrapClusterProxy,
+				SpecName:           specName,
+			},
+		)
+	})
+
+	It("Should create a workload cluster", func() {
+
+		By("Creating a workload cluster")
+		name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		kubernetesVersion, err := kubetest.FetchKubernetesCIVersion()
+		Expect(err).NotTo(HaveOccurred())
+		cluster, _, _ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			ConfigCluster: clusterctl.ConfigClusterInput{
+				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+				ClusterctlConfigPath:     input.ClusterctlConfigPath,
+				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+				Flavor:                   "with-ci-artifacts",
+				Namespace:                namespace.Name,
+				ClusterName:              name,
+				KubernetesVersion:        kubernetesVersion,
+				ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				WorkerMachineCount:       pointer.Int64Ptr(1),
+			},
+			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, name)
+		By("Running conformance suite")
+
+		kubetestPath, err := filepath.Abs(path.Join("..", "data", "kubetest", "conformance.yaml"))
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(kubetest.Run(kubetest.RunInput{
+			ClusterProxy:      workloadProxy,
+			KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersion),
+			ConfigFilePath:    kubetestPath,
+		})).To(Succeed())
+
+		By("PASSED!")
+	})
+
+	AfterEach(func() {
+		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		setup.DumpSpecResourcesAndCleanup(
+			ctx,
+			setup.DumpSpecResourcesAndCleanupInput{
+				SpecName:           specName,
+				ClusterProxy:       input.BootstrapClusterProxy,
+				ArtifactsDirectory: input.ArtifactFolder,
+				Namespace:          namespace,
+				CancelWatches:      cancelWatches,
+				Cluster:            cluster,
+				IntervalsGetter:    input.E2EConfig.GetIntervals,
+				SkipCleanup:        input.SkipCleanup,
+			},
+		)
+	})
+}

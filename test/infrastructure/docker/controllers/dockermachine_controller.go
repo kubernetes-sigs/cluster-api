@@ -68,6 +68,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+
 		return ctrl.Result{}, err
 	}
 
@@ -78,6 +79,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 	if machine == nil {
 		log.Info("Waiting for Machine Controller to set OwnerRef on DockerMachine")
+
 		return ctrl.Result{}, nil
 	}
 
@@ -87,10 +89,12 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
 	if err != nil {
 		log.Info("DockerMachine owner Machine is missing cluster label or cluster does not exist")
+
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
 		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.ClusterLabelName))
+
 		return ctrl.Result{}, nil
 	}
 
@@ -104,6 +108,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 	if err := r.Client.Get(ctx, dockerClusterName, dockerCluster); err != nil {
 		log.Info("DockerCluster is not available yet")
+
 		return ctrl.Result{}, nil
 	}
 
@@ -191,6 +196,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		// This is required after move, because status is not moved to the target cluster.
 		dockerMachine.Status.Ready = true
 		conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
+
 		return ctrl.Result{}, nil
 	}
 
@@ -198,6 +204,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	if machine.Spec.Bootstrap.DataSecretName == nil {
 		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
 		conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+
 		return ctrl.Result{}, nil
 	}
 
@@ -273,14 +280,26 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		bootstrapData, err := r.getBootstrapData(ctx, machine)
 		if err != nil {
 			r.Log.Error(err, "failed to get bootstrap data")
+
 			return ctrl.Result{}, err
 		}
 
-		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+		timeout, err := time.ParseDuration(dockerMachine.Spec.BootstrapTimeout)
+		if err != nil {
+			r.Log.Error(err, "failed to parse bootstrapTimeout value")
+			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrappingReason, clusterv1.ConditionSeverityInfo, "")
+			if err := patchDockerMachine(ctx, patchHelper, dockerMachine); err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to patch DockerMachine")
+			}
+			return ctrl.Result{}, err
+		}
+
+		timeoutctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 		// Run the bootstrap script. Simulates cloud-init.
 		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
 			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
+
 			return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 		}
 		dockerMachine.Spec.Bootstrapped = true
@@ -316,6 +335,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	// state changes during control plane provisioning.
 	if err := externalMachine.SetNodeProviderID(ctx); err != nil {
 		r.Log.Error(err, "failed to patch the Kubernetes node with the machine providerID")
+
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	// Set ProviderID so the Cluster API Machine Controller can pull it
@@ -401,6 +421,7 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o handler.MapObj
 	c, ok := o.Object.(*infrav1.DockerCluster)
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a DockerCluster but got a %T", o.Object), "failed to get DockerMachine for DockerCluster")
+
 		return nil
 	}
 	log := r.Log.WithValues("DockerCluster", c.Name, "Namespace", c.Namespace)
@@ -411,6 +432,7 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o handler.MapObj
 		return result
 	case err != nil:
 		log.Error(err, "failed to get owning cluster")
+
 		return result
 	}
 
@@ -418,6 +440,7 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o handler.MapObj
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list DockerMachines")
+
 		return nil
 	}
 	for _, m := range machineList.Items {

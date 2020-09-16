@@ -54,7 +54,7 @@ spec:
     controllerManager:
       extraArgs: {enable-hostpath-provisioner: 'true'}
     apiServer:
-      certSANs: [localhost, 127.0.0.1]
+      certSANs: [localhost, "host.docker.internal", 127.0.0.1]
   initConfiguration:
     nodeRegistration:
       criSocket: /var/run/containerd/containerd.sock

@@ -33,7 +33,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"sigs.k8s.io/cluster-api/test/framework/log"
 	"sigs.k8s.io/cluster-api/test/framework/management/kind"
 	"sigs.k8s.io/cluster-api/test/framework/options"
 

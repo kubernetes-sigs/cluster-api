@@ -50,6 +50,8 @@ providers:
       new: "--enable-leader-election=false"
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
+    - old: "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master"
+      new: "gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:dev"
 
 - name: kubeadm
   type: BootstrapProvider
@@ -64,6 +66,8 @@ providers:
       new: "--enable-leader-election=false"
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
+    - old: "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:master"
+      new: "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:dev"
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -78,6 +82,8 @@ providers:
       new: "--enable-leader-election=false"
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
+    - old: "gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:master"
+      new: "gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:dev"
 
 - name: docker
   type: InfrastructureProvider
@@ -92,6 +98,8 @@ providers:
       new: "--enable-leader-election=false"
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
+    - old: "gcr.io/k8s-staging-cluster-api/capd-manager:dev"
+      new: "gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev"
   files:
   # Add a metadata for docker provider
   - sourcePath: "../data/infrastructure-docker/metadata.yaml"

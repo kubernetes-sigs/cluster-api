@@ -27,7 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"sigs.k8s.io/cluster-api/test/framework/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,10 +41,10 @@ type CreateKubeadmControlPlaneInput struct {
 
 // CreateKubeadmControlPlane creates the control plane object and necessary dependencies.
 func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPlaneInput, intervals ...interface{}) {
-	By("creating the machine template")
+	By("Creating the machine template")
 	Expect(input.Creator.Create(ctx, input.MachineTemplate)).To(Succeed())
 
-	By("creating a KubeadmControlPlane")
+	By("Creating a KubeadmControlPlane")
 	Eventually(func() error {
 		err := input.Creator.Create(ctx, input.ControlPlane)
 		if err != nil {

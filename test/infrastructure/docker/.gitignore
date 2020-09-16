@@ -18,3 +18,5 @@ manager
 *.xml
 
 e2e/resources/**
+
+*.sentinel

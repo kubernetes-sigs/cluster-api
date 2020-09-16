@@ -26,7 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"sigs.k8s.io/cluster-api/test/framework/log"
 	"sigs.k8s.io/cluster-api/test/framework/options"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,13 +41,13 @@ type CreateClusterInput struct {
 
 // CreateCluster will create the Cluster and InfraCluster objects.
 func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...interface{}) {
-	By("creating an InfrastructureCluster resource")
+	By("Creating an InfrastructureCluster resource")
 	Expect(input.Creator.Create(ctx, input.InfraCluster)).To(Succeed())
 
 	// This call happens in an eventually because of a race condition with the
 	// webhook server. If the latter isn't fully online then this call will
 	// fail.
-	By("creating a Cluster resource linked to the InfrastructureCluster resource")
+	By("Creating a Cluster resource linked to the InfrastructureCluster resource")
 	Eventually(func() error {
 		if err := input.Creator.Create(ctx, input.Cluster); err != nil {
 			log.Logf("Failed to create a cluster: %+v", err)

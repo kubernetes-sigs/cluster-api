@@ -16,53 +16,22 @@
 # https://suva.sh/posts/well-documented-makefiles
 
 # Ensure Make is run with bash shell as some syntax below is bash-specific
-SHELL:=/usr/bin/env bash
 
-.DEFAULT_GOAL:=help
-
-# Use GOPROXY environment variable if set
-GOPROXY := $(shell go env GOPROXY)
-ifeq ($(GOPROXY),)
-GOPROXY := https://proxy.golang.org
-endif
-export GOPROXY
-
-# Active module mode, as we use go modules to manage dependencies
-export GO111MODULE=on
+ROOT_DIR_RELATIVE := .
+include $(ROOT_DIR_RELATIVE)/common.mk
+include $(ROOT_DIR_RELATIVE)/hack/tools/tools.mk
 
 # Default timeout for starting/stopping the Kubebuilder test control plane
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?=60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 
-# This option is for running docker manifest command
-export DOCKER_CLI_EXPERIMENTAL := enabled
-
 # Directories.
 EXP_DIR := exp
-TOOLS_DIR := hack/tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
 E2E_FRAMEWORK_DIR := test/framework
 CAPD_DIR := test/infrastructure/docker
-RELEASE_NOTES_BIN := bin/release-notes
-RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
-LINK_CHECKER_BIN := bin/liche
-LINK_CHECKER := $(TOOLS_DIR)/$(LINK_CHECKER_BIN)
-GO_APIDIFF_BIN := bin/go-apidiff
-GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
-ENVSUBST_BIN := bin/envsubst
-ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
-
-# Binaries.
-# Need to use abspath so we can invoke these from subdirectories
-KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
-CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
-GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
-CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
-ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
 
 # Bindata.
-GOBINDATA := $(abspath $(TOOLS_BIN_DIR)/go-bindata)
 GOBINDATA_CLUSTERCTL_DIR := cmd/clusterctl/config
 CLOUDINIT_PKG_DIR := bootstrap/kubeadm/internal/cloudinit
 CLOUDINIT_GENERATED := $(CLOUDINIT_PKG_DIR)/zz_generated.bindata.go
@@ -92,43 +61,68 @@ ALL_ARCH = amd64 arm arm64 ppc64le s390x
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
-# Hosts running SELinux need :z added to volume mounts
-SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
-
-ifeq ($(SELINUX_ENABLED),1)
-  DOCKER_VOL_OPTS?=:z
-endif
-
 # Set build time variables including version details
 LDFLAGS := $(shell hack/version.sh)
 
 all: test managers clusterctl
 
-help:  ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-
 ## --------------------------------------
 ## Testing
 ## --------------------------------------
 
+TEST_ARGS ?=
+GOTEST_OPTS ?=
+GOTEST_CMD ?= go
+
 .PHONY: test
-test: ## Run tests.
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./... $(TEST_ARGS)
+test: ## Run tests. Parameters: GOTEST_CMD (command to use for testing. default="go"), TEST_ARGS (args to pass to the test package. default="")
+	source ./scripts/fetch_ext_bins.sh
+	fetch_tools
+	setup_envs
+	$(GOTEST_CMD) test -v $(GOTEST_OPTS) ./... $(TEST_ARGS)
 
 .PHONY: test-cover
-test-cover: ## Run tests with code coverage and code generate  reports
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -coverprofile=out/coverage.out ./... $(TEST_ARGS)
+test-cover: ## Run tests with code coverage and code generate reports. See test for accepted parameters.
+	$(MAKE) test GOTEST_OPTS="-coverprofile=out/coverage.out" TEST_ARGS=$(TEST_ARGS) GOTEST_CMD=$(GOTEST_CMD)
 	go tool cover -func=out/coverage.out -o out/coverage.txt
 	go tool cover -html=out/coverage.out -o out/coverage.html
 
-.PHONY: docker-build-e2e
-docker-build-e2e: ## Rebuild all Cluster API provider images to be used in the e2e tests
-	make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
-	$(MAKE) -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-cluster-api
+GINKGO_NODES ?= 1
+GINKGO_NOCOLOR ?= false
+GINKGO_ARGS ?=
+ARTIFACTS ?= $(abspath _artifacts)
+E2E_CONF_FILE ?= config/docker-dev.yaml
+SKIP_RESOURCE_CLEANUP ?= false
+USE_EXISTING_CLUSTER ?= false
+GINKGO_FOCUS ?=
+export GINKGO_NODES GINKGO_NOCOLOR GINKGO_ARGS ARTIFACTS E2E_CONF_FILE SKIP_RESOURCE_CLEANUP USE_EXISTING_CLUSTER GINKGO_FOCUS
 
 .PHONY: test-e2e
-test-e2e: ## Run the e2e tests
-	$(MAKE) -C test/e2e run
+test-e2e: $(GINKGO) ## Run the e2e tests. Parameters: GINKGO_NODES (number of parallel Ginkgo runners. default=1), GINKGO_NOCOLOR (whether or not to use color output for Ginkgo. default=false), ARTIFACTS (where to save output. default=_artifacts), E2E_CONF_FILE (clusterctl framework e2e conf file location. default=config/docker-dev.yaml), SKIP_RESOURCE_CLEANUP (default=false), USE_EXISTING_CLUSTER (use current kubectl context, default=false)
+	$(MAKE) test-e2e-run TEST_DIR=test/e2e
+
+.PHONY: test-conformance
+test-conformance: $(GINKGO) $(KUSTOMIZE) ## Run e2e conformance tests. See test-e2e for accepted parameters.
+	$(MAKE) test-e2e-run TEST_DIR=test/e2e/conformance
+
+.PHONY: test-e2e-run
+test-e2e-run: docker-build-e2e
+	$(GINKGO) -v -trace \
+		-tags=e2e -focus="$(GINKGO_FOCUS)" \
+		-nodes=$(GINKGO_NODES) \
+		--noColor=$(GINKGO_NOCOLOR) \
+		$(GINKGO_ARGS) $(TEST_DIR) \
+		-- \
+		-e2e.artifacts-folder="$(ARTIFACTS)" \
+		-e2e.config="$(E2E_CONF_FILE)" \
+		-e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
+		-e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)
+
+.PHONY: pull-cert-manager
+pull-cert-manager: ## Use to cache cert manager images on the top-level Docker
+	docker pull quay.io/jetstack/cert-manager-cainjector:$(CERT_MANAGER_VERSION)
+	docker pull quay.io/jetstack/cert-manager-webhook:$(CERT_MANAGER_VERSION)
+	docker pull quay.io/jetstack/cert-manager-controller:$(CERT_MANAGER_VERSION)
 
 ## --------------------------------------
 ## Binaries
@@ -156,57 +150,38 @@ managers: ## Build all managers
 clusterctl: ## Build clusterctl binary
 	go build -ldflags "$(LDFLAGS)" -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
-$(KUSTOMIZE): $(TOOLS_DIR)/go.mod # Build kustomize from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3
-
-$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
-
-$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
-
-$(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
-
-$(GOBINDATA): $(TOOLS_DIR)/go.mod # Build go-bindata from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/go-bindata github.com/go-bindata/go-bindata/go-bindata
-
-$(RELEASE_NOTES): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
-
-$(LINK_CHECKER): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(LINK_CHECKER_BIN) github.com/raviqqe/liche
-
-$(GO_APIDIFF): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
-
-$(ENVSUBST): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/cmd/envsubst
-
-envsubst: $(ENVSUBST) ## Build a local copy of envsubst.
-kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize.
-
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework
-	cd $(E2E_FRAMEWORK_DIR); go build ./...
+	go build ./test/framework/...
 
 ## --------------------------------------
 ## Linting
 ## --------------------------------------
 
+LINT_ARGS ?=
+
 .PHONY: lint lint-full
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v
-	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v
-	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v
+	$(GOLANGCI_LINT) run -v $(LINT_ARGS)
+	$(MAKE) -C $(CAPD_DIR) lint LINT_ARGS=$(LINT_ARGS)
 
-lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
-	$(GOLANGCI_LINT) run -v --fast=false
-	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v --fast=false
-	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v --fast=false
+lint-full: ## Run slower linters to detect possible issues
+	$(MAKE) lint LINT_ARGS=--fast=false
 
-apidiff: $(GO_APIDIFF) ## Check for API differences
-	$(GO_APIDIFF) $(shell git rev-parse origin/master) --print-compatible
+REMOTE ?=upstream
+
+apidiff: $(GO_APIDIFF) ## Check for API differences during development. Parameters: REMOTE (which git remote to use. Default: upstream)
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "commit changes first"; exit 1; \
+	fi
+
+	HEAD_COMMIT=$$(git rev-parse $(REMOTE)/master); \
+	TMP_DIR=$$(mktemp -d -t apidiff-XXXXXXXXXX); \
+	git clone . $${TMP_DIR}; \
+	cd $${TMP_DIR}; \
+	$(abspath $(GO_APIDIFF)) $${HEAD_COMMIT} --print-compatible; \
+	rm -rf $${TMP_DIR}
 
 ## --------------------------------------
 ## Generate / Manifests
@@ -217,10 +192,11 @@ generate: ## Generate code
 	$(MAKE) generate-manifests
 	$(MAKE) generate-go
 	$(MAKE) generate-bindata
-	$(MAKE) -C test/infrastructure/docker generate
+	$(MAKE) -C $(CAPD_DIR) generate
 
 .PHONY: generate-go
-generate-go: ## Runs Go related generate targets
+generate-go: $(GOBINDATA) ## Runs Go related generate targets
+	go generate ./...
 	$(MAKE) generate-go-core
 	$(MAKE) generate-go-kubeadm-bootstrap
 	$(MAKE) generate-go-kubeadm-control-plane
@@ -327,7 +303,7 @@ generate-kubeadm-control-plane-manifests: $(CONTROLLER_GEN) ## Generate manifest
 .PHONY: modules
 modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
-	cd $(TOOLS_DIR); go mod tidy
+	$(MAKE) -C $(TOOLS_DIR) modules
 	$(MAKE) -C $(CAPD_DIR) modules
 
 ## --------------------------------------
@@ -335,28 +311,37 @@ modules: ## Runs go mod to ensure modules are up to date.
 ## --------------------------------------
 
 .PHONY: docker-build
-docker-build: ## Build the docker images for controller managers
-	$(MAKE) ARCH=$(ARCH) docker-build-core
-	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-bootstrap
-	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-control-plane
+docker-build: docker-build-core docker-build-kubeadm-bootstrap docker-build-kubeadm-control-plane ## Build the docker images for controller managers
 
 .PHONY: docker-build-core
-docker-build-core: ## Build the docker image for core controller manager
+docker-build-core: .docker-build-core.sentinel ## Build the docker image for core controller manager
+
+CORE_SRCS := $(call rwildcard,controllers,*.*) $(call rwildcard,cmd,*.*) $(call rwildcard,feature,*.*) $(call rwildcard,exp,*.*) $(call rwildcard,api,*.*)  $(call rwildcard,third_party,*.*) go.mod go.sum
+
+.docker-build-core.sentinel: $(CORE_SRCS)
 	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/manager/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
+	touch $@
 
 .PHONY: docker-build-kubeadm-bootstrap
-docker-build-kubeadm-bootstrap: ## Build the docker image for kubeadm bootstrap controller manager
+docker-build-kubeadm-bootstrap: bootstrap/kubeadm/.docker-build-kubeadm-bootstrap.sentinel ## Build the docker image for kubeadm bootstrap controller manager
+
+KUBEADM_BOOTSTRAP_SRCS := $(CORE_SRCS) $(call rwildcard,bootstrap,*.*)
+bootstrap/kubeadm/.docker-build-kubeadm-bootstrap.sentinel: $(KUBEADM_BOOTSTRAP_SRCS)
 	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_pull_policy.yaml"
+	touch $@
 
 .PHONY: docker-build-kubeadm-control-plane
-docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm control plane controller manager
+docker-build-kubeadm-control-plane: controlplane/kubeadm/.docker-build-kubeadm-control-plane.sentinel ## Build the docker image for kubeadm control plane controller manager
+
+KUBEADM_CONTROLPLANE_SRCS := $(KUBEADM_BOOTSTRAP_SRCS) $(call rwildcard,controlplane,*.*)
+controlplane/kubeadm/.docker-build-kubeadm-control-plane.sentinel: $(KUBEADM_CONTROLPLANE_SRCS)
 	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
+	touch $@
+
+.PHONY: docker-build-e2e
+docker-build-e2e: ## Rebuild all Cluster API provider images to be used for e2e testing
+	$(MAKE) docker-build REGISTRY=gcr.io/k8s-staging-cluster-api
+	$(MAKE) -C $(CAPD_DIR) docker-build REGISTRY=gcr.io/k8s-staging-cluster-api
 
 .PHONY: docker-push
 docker-push: ## Push the docker images
@@ -454,10 +439,10 @@ release: clean-release ## Builds and push container images using the latest git 
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
 	$(MAKE) release-manifests
 	# Release CAPD components and add them to the release dir
-	$(MAKE) -C test/infrastructure/docker/ release
-	cp test/infrastructure/docker/out/infrastructure-components.yaml $(RELEASE_DIR)/infrastructure-components-development.yaml
+	$(MAKE) -C $(CAPD_DIR) release
+	cp $(CAPD_DIR)/out/infrastructure-components.yaml $(RELEASE_DIR)/infrastructure-components-development.yaml
 	# Adds CAPD templates
-	cp test/infrastructure/docker/templates/* $(RELEASE_DIR)/
+	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publish with a release
@@ -529,6 +514,20 @@ docker-build-example-provider: ## Build the docker image for example provider
 clean: ## Remove all generated files
 	$(MAKE) clean-bin
 	$(MAKE) clean-book
+	$(MAKE) clean-artifacts
+	$(MAKE) clean-envtest
+	$(MAKE) clean-sentinels
+
+.PHONY: clean-sentinels
+clean-sentinels: ## Delete docker build sentinels
+	rm -f .docker-build-core.sentinel
+	rm -f bootstrap/kubeadm/.docker-build-kubeadm-bootstrap.sentinel
+	rm -f controlplane/kubeadm/.docker-build-kubeadm-control-plane.sentinel
+	$(MAKE) -C $(CAPD_DIR) clean-sentinels
+
+.PHONY: clean-artifacts
+clean-artifacts: ## Remove all test artifacts
+	rm -rf _artifacts
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
@@ -547,10 +546,14 @@ clean-book: ## Remove all generated GitBook files
 clean-bindata: ## Remove bindata generated folder
 	rm -rf $(GOBINDATA_CLUSTERCTL_DIR)/manifest
 
-.PHONY: clean-manifests ## Reset manifests in config directories back to master
-clean-manifests:
+.PHONY: clean-manifests
+clean-manifests:  ## Reset manifests in config directories back to master
 	@read -p "WARNING: This will reset all config directories to local master. Press [ENTER] to continue."
 	git checkout master config bootstrap/kubeadm/config controlplane/kubeadm/config test/infrastructure/docker/config
+
+.PHONY: clean-envtest
+clean-envtest: ## Remove kubebuilder envtest binaries and tars
+	-rm -rf /tmp/kubebuilder*
 
 .PHONY: format-tiltfile
 format-tiltfile: ## Format Tiltfile
@@ -588,12 +591,13 @@ verify-gen: generate
 .PHONY: verify-docker-provider
 verify-docker-provider:
 	@echo "Verifying CAPD"
-	cd $(CAPD_DIR); $(MAKE) verify
+	$(MAKE) -C $(CAPD_DIR) verify
 
 .PHONY: verify-book-links
 verify-book-links: $(LINK_CHECKER)
 	 # Ignore localhost links and set concurrency to a reasonable number
 	$(LINK_CHECKER) -r docs/book -x "^https?://" -c 10
+
 ## --------------------------------------
 ## Others / Utilities
 ## --------------------------------------

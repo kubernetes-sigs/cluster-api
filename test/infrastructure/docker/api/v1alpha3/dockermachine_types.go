@@ -52,6 +52,11 @@ type DockerMachineSpec struct {
 	// against this machine
 	// +optional
 	Bootstrapped bool `json:"bootstrapped,omitempty"`
+
+	// BootstrapTimeout is how long to wait for the machine to bootstrap
+	// +optional
+	// +kubebuilder:default:="3m"
+	BootstrapTimeout string `json:"bootstrapTimeout,omitempty"`
 }
 
 // Mount specifies a host volume to mount into a container.

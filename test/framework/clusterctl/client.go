@@ -28,7 +28,7 @@ import (
 	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	clusterctllog "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl/logger"
-	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"sigs.k8s.io/cluster-api/test/framework/log"
 )
 
 // Provide E2E friendly wrappers for the clusterctl client library.

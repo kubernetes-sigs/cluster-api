@@ -47,6 +47,11 @@ spec:
                     description: Spec is the specification of the desired behavior
                       of the machine.
                     properties:
+                      bootstrapTimeout:
+                        default: 3m
+                        description: BootstrapTimeout is how long to wait for the
+                          machine to bootstrap
+                        type: string
                       bootstrapped:
                         description: Bootstrapped is true when the kubeadm bootstrapping
                           has been run against this machine

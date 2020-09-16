@@ -9,20 +9,20 @@ Following guidelines should be followed when developing E2E tests:
 - Define test spec reflecting real user workflow, e.g. [Cluster API quick start].
 - Unless you are testing provider specific features, ensure your test can run with
   different infrastructure providers (see [Writing Portable Tests](#writing-portable-e2e-tests)).
-  
+
 The [Cluster API test framework] provides you a set of helpers method for getting your test in place
-quickly; the [test E2E package] provide examples of how this can be achieved and reusable 
+quickly; the [test E2E package] provide examples of how this can be achieved and reusable
 test specs for the most common Cluster API use cases.
 
 ## Prerequisites
 
 Each E2E test requires a set of artifacts to be available:
 
-- Binaries & docker images for Kubernetes, CNI, CRI & CSI 
+- Binaries & docker images for Kubernetes, CNI, CRI & CSI
 - Manifests & docker images for the Cluster API core components
 - Manifests & docker images for the Cluster API infrastructure provider; in most cases
   also machine images are required (AMI, OVA etc.)
-- Credentials for the target infrastructure provider 
+- Credentials for the target infrastructure provider
 - Other support tools (e.g. kustomize, gsutil etc.)
 
 The Cluster API test framework provides support for building and retrieving the manifest
@@ -30,12 +30,12 @@ files for Cluster API core components and for the Cluster API infrastructure pro
 (see [Setup](#setup))
 
 For the remaining tasks you can find examples of
-how this can be implemented e.g. in [CAPA E2E tests] and [CAPG E2E tests]. 
+how this can be implemented e.g. in [CAPA E2E tests] and [CAPG E2E tests].
 
 ## Setup
 
-In order to run E2E tests it is required to create a Kubernetes cluster with a 
-complete set of Cluster API providers installed. Setting up those elements is 
+In order to run E2E tests it is required to create a Kubernetes cluster with a
+complete set of Cluster API providers installed. Setting up those elements is
 usually implemented in a `BeforeSuite` function, and it consists of two steps:
 
 - Defining an E2E config file
@@ -48,7 +48,7 @@ setting up a management cluster.
 
 Using the config file it is possible to:
 
-- Define the list of providers to be installed in the management cluster. Most notably, 
+- Define the list of providers to be installed in the management cluster. Most notably,
   for each provider it is possible to define:
   - One or more versions of the providers manifest (built from the sources, or pulled from a
     remote location).
@@ -68,14 +68,14 @@ An [example E2E config file] can be found here.
 <h1>Deprecated E2E config file format</h1>
 
 The [Cluster API test framework] includes also a [deprecated E2E config file] implementation,
-that was used before the introduction of clusterctl. This might be removed in future releases 
+that was used before the introduction of clusterctl. This might be removed in future releases
 of the test framework.
 
 </aside>
 
 ### Creating the management cluster and installing providers
 
-In order to run Cluster API E2E tests, you need a Kubernetes cluster; the [NewKindClusterProvider] gives you a 
+In order to run Cluster API E2E tests, you need a Kubernetes cluster; the [NewKindClusterProvider] gives you a
 type that can be used to create a local kind cluster and pre-load images into it, but also existing clusters can
 be used if available.
 
@@ -92,7 +92,7 @@ This method:
 <h1>Deprecated InitManagementCluster method</h1>
 
 The [Cluster API test framework] includes also a [deprecated InitManagementCluster method] implementation,
-that was used before the introduction of clusterctl. This might be removed in future releases 
+that was used before the introduction of clusterctl. This might be removed in future releases
 of the test framework.
 
 </aside>
@@ -109,14 +109,14 @@ A typical test spec is a sequence of:
 ### Creating Namespaces
 
 The [CreateNamespaceAndWatchEvents method] provides a convenient way to create a namespace and setup
-watches for capturing namespaces events 
+watches for capturing namespaces events
 
 ### Creating objects
 
 There are two possible approaches for creating objects in the management cluster:
 
 - Create object by object: create the `Cluster` object, then `AwsCluster`, `Machines`, `AwsMachines` etc.
-- Apply a `cluster-templates.yaml` file thus creating all the objects this file contains. 
+- Apply a `cluster-templates.yaml` file thus creating all the objects this file contains.
 
 The first approaches leverage on the [controller-runtime Client] and gives you full control, but it comes with
 some drawbacks as well, because this method does not reflect directly real user workflows, and most importantly,
@@ -124,7 +124,7 @@ the resulting tests are not as reusable with other infrastructure providers. (Se
 
 We recommend using the [ClusterTemplate method] and the [Apply method] for creating objects in the cluster.
 This methods mimics the recommended user workflows, and it is based on `cluster-templates.yaml` files that can be
-provided via the [E2E config file], and thus easily swappable when changing the target infrastructure provider.  
+provided via the [E2E config file], and thus easily swappable when changing the target infrastructure provider.
 
 <aside class="note">
 
@@ -143,12 +143,12 @@ infrastructure to be provisioned, e.g. [WaitForClusterToProvision], [WaitForKube
 
 ### Exec operations
 
-You can use [Cluster API test framework] methods to modify Cluster API objects, as a last option, use 
+You can use [Cluster API test framework] methods to modify Cluster API objects, as a last option, use
 the [controller-runtime Client].
 
-The [Cluster API test framework] includes also methods for executing clusterctl operations, like e.g. 
+The [Cluster API test framework] includes also methods for executing clusterctl operations, like e.g.
 the  [ClusterTemplate method], the [ClusterctlMove method] etc.; in order to improve observability,
-each clusterctl operation creates a detailed log. 
+each clusterctl operation creates a detailed log.
 
 After using clusterctl operations, you can rely on the `Get` and on the `Wait` methods
 defined in the [Cluster API test framework] to check if the operation completed successfully.
@@ -165,7 +165,7 @@ Those task are usually implemented in the `AfterSuite`, and again the [Cluster A
 you useful methods for those tasks.
 
 Please note that despite the fact that test specs are expected to delete objects in the management cluster and
-wait for the corresponding infrastructure to be terminated, it can happen that the test spec 
+wait for the corresponding infrastructure to be terminated, it can happen that the test spec
 fails before starting object deletion or that objects deletion itself fails.
 
 As a consequence, when scheduling/running a test suite, it is required to ensure all the generated
@@ -178,8 +178,8 @@ changing the test configuration file.
 
 Following recommendations should be followed to write portable E2E tests:
 
-- Create different [E2E config file], one for each target infrastructure provider, 
-  providing different sets of env variables and timeout intervals.   
+- Create different [E2E config file], one for each target infrastructure provider,
+  providing different sets of env variables and timeout intervals.
 - Use the [InitManagementCluster method] for setting up the management cluster.
 - Use the [ClusterTemplate method] and the [Apply method]
   for creating objects in the cluster using `cluster-templates.yaml` files instead
@@ -201,8 +201,18 @@ baseline for Cluster API conformance.
 However, creating such suite is something that can provide a huge value for the
 long term success of the project.
 
-The [test E2E package] provide examples of how this can be achieved implemeting a set of and reusable 
-test specs for the most common Cluster API use cases. 
+The [test E2E package] provide examples of how this can be achieved implemeting a set of and reusable
+test specs for the most common Cluster API use cases.
+
+## Kubernetes conformance tests
+
+The [kubetest package] provides an API to run the Kubernetes conformance suite for a given cluster.
+You may also want to test the latest CI release of Kubernetes from the main branch of the k/k repository.
+Helper functions are available in the [kubernetesversions package] to fetch these releases as well as
+inject shellscripts into kubeadm templates to download the CI artifacts.
+
+Examples of use can be found in the [test E2E package].
+
 
 <!-- links -->
 [Cluster API quick start]: https://cluster-api.sigs.k8s.io/user/quick-start.html
@@ -225,4 +235,6 @@ test specs for the most common Cluster API use cases.
 [InfrastructureProvider method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/clusterctl?tab=doc#E2EConfig.InfrastructureProviders
 [GetIntervals method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/clusterctl?tab=doc#E2EConfig.GetIntervals
 [test E2E package]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/e2e?tab=doc
+[kubetest package]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/kubetest?tab=do
+[kubernetesversions package]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/kubernetesversions?tab=doc
 [CreateNamespaceAndWatchEvents method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#CreateNamespaceAndWatchEvents

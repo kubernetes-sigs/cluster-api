@@ -22,11 +22,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -181,4 +184,17 @@ func PrettyPrint(v interface{}) string {
 		return err.Error()
 	}
 	return string(b)
+}
+
+// CompleteCommand prints a command before running it. Acts as a helper function.
+// privateArgs when true will not print arguments.
+func CompleteCommand(cmd *exec.Cmd, desc string, privateArgs bool) *exec.Cmd {
+	cmd.Stderr = ginkgo.GinkgoWriter
+	cmd.Stdout = ginkgo.GinkgoWriter
+	if privateArgs {
+		Byf("%s: dir=%s, command=%s", desc, cmd.Dir, cmd)
+	} else {
+		Byf("%s: dir=%s, command=%s", desc, cmd.Dir, cmd.String())
+	}
+	return cmd
 }

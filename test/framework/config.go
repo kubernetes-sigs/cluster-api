@@ -22,6 +22,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -362,4 +364,16 @@ func (g componentSourceGenerator) GetName() string {
 // Manifests return the YAML bundle.
 func (g componentSourceGenerator) Manifests(ctx context.Context) ([]byte, error) {
 	return YAMLForComponentSource(ctx, g.ComponentSource)
+}
+
+// DumpToFile will dump the running e2e config to a file
+func (c *Config) DumpToFile(filename string) error {
+	yaml, err := yaml.Marshal(c)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(path.Dir(filename), 0o700); err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, yaml, 0o600)
 }

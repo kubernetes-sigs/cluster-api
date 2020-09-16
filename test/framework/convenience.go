@@ -17,8 +17,16 @@ limitations under the License.
 package framework
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
 	"reflect"
+	"strings"
 
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -76,4 +84,26 @@ func TypeToKind(i interface{}) string {
 // This will panic if used incorrectly.
 func ObjectToKind(i runtime.Object) string {
 	return reflect.ValueOf(i).Elem().Type().Name()
+}
+
+func ResolveArtifactsDirectory(input string) string {
+	if input != "" {
+		return input
+	}
+	if dir, ok := os.LookupEnv("ARTIFACTS"); ok {
+		return dir
+	}
+
+	findRootCmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	out, err := findRootCmd.Output()
+	if err != nil {
+		return "_artifacts"
+	}
+	rootDir := strings.TrimSpace(string(out))
+	return path.Join(rootDir, "_artifacts")
+}
+
+func CreateJUnitReporterForProw(artifactsDirectory string) *reporters.JUnitReporter {
+	junitPath := filepath.Join(artifactsDirectory, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
+	return reporters.NewJUnitReporter(junitPath)
 }

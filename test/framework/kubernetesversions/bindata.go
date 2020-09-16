@@ -14,14 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package log
+package kubernetesversions
 
-import (
-	"fmt"
-
-	. "github.com/onsi/ginkgo"
-)
-
-func Logf(format string, a ...interface{}) {
-	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
-}
+//go:generate sh -c "go-bindata -nometadata -pkg kubernetesversions -o zz_generated.bindata.go.tmp data && cat ../../../hack/boilerplate/boilerplate.generatego.txt zz_generated.bindata.go.tmp > zz_generated.bindata.go && rm zz_generated.bindata.go.tmp"

@@ -15,32 +15,14 @@
 # If you update this file, please follow:
 # https://suva.sh/posts/well-documented-makefiles/
 
-ROOT = ../../..
+ROOT_DIR_RELATIVE := ../../..
+include $(ROOT_DIR_RELATIVE)/common.mk
+include $(ROOT_DIR_RELATIVE)/hack/tools/tools.mk
 
-.DEFAULT_GOAL:=help
-
-# Use GOPROXY environment variable if set
-GOPROXY := $(shell go env GOPROXY)
-ifeq ($(GOPROXY),)
-GOPROXY := https://proxy.golang.org
-endif
-export GOPROXY
-
-# Active module mode, as we use go modules to manage dependencies
-export GO111MODULE=on
-
-# This option is for running docker manifest command
-export DOCKER_CLI_EXPERIMENTAL := enabled
+GO_SRCS :=  $(call rwildcard,.,*.go)
 
 # Directories.
-TOOLS_DIR := hack/tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
-
-# Binaries.
-CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
-CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -55,9 +37,6 @@ ALL_ARCH = amd64 arm arm64
 PULL_POLICY ?= Always
 
 all: test manager clusterctl
-
-help:  ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## --------------------------------------
 ## Testing
@@ -75,25 +54,18 @@ test: ## Run tests
 manager: ## Build manager binary
 	go build -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api/test/infrastructure/docker
 
-$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
-
-$(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
-
-$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
-
 ## --------------------------------------
 ## Linting
 ## --------------------------------------
 
+LINT_ARGS ?=
+
 .PHONY: lint lint-full
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v
+	$(GOLANGCI_LINT) run -v $(LINT_ARGS)
 
-lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
-	$(GOLANGCI_LINT) run -v --fast=false
+lint-full: ## Run slower linters to detect possible issues
+	$(MAKE) lint LINT_ARGS=--fast=false
 
 ## --------------------------------------
 ## Generate / Manifests
@@ -107,12 +79,12 @@ generate: $(CONTROLLER_GEN) ## Generate code
 .PHONY: generate-go
 generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
 	$(CONTROLLER_GEN) \
-		object:headerFile=$(ROOT)/hack/boilerplate/boilerplate.generatego.txt \
+		object:headerFile=$(ROOT_DIR_RELATIVE)/hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/...
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
 		--output-file-base=zz_generated.conversion \
-		--go-header-file=$(ROOT)/hack/boilerplate/boilerplate.generatego.txt
+		--go-header-file=$(ROOT_DIR_RELATIVE)/hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
@@ -135,10 +107,12 @@ modules: ## Runs go mod to ensure modules are up to date.
 ## --------------------------------------
 
 .PHONY: docker-build
-docker-build: ## Build the docker image for controller-manager
+docker-build: .docker-build.sentinel ## Build the docker image for controller-manager
+
+.docker-build.sentinel: $(GO_SRCS)
 	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) ../../.. -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
-	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
-	$(MAKE) set-manifest-pull-policy
+	touch $@
+
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
@@ -226,6 +200,8 @@ release-alias-tag: # Adds the tag to the last build tag.
 .PHONY: clean
 clean: ## Remove all generated files
 	$(MAKE) clean-bin
+	$(MAKE) clean-release
+	$(MAKE) clean-sentinels
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
@@ -235,6 +211,10 @@ clean-bin: ## Remove all generated binaries
 .PHONY: clean-release
 clean-release: ## Remove the release folder
 	rm -rf $(RELEASE_DIR)
+
+.PHONY: clean-sentinels
+clean-sentinels: ## Delete docker build sentinels
+	-rm -f .docker-build.sentinel
 
 .PHONY: verify
 verify:

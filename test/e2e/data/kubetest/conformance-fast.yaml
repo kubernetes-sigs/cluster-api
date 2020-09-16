@@ -1,0 +1,8 @@
+ginkgo.focus: \[Conformance\]
+ginkgo.skip: \[sig-scheduling\].*\[Serial\]
+disable-log-dump: true
+ginkgo.progress: true
+ginkgo.slowSpecThreshold: 120.0
+ginkgo.flakeAttempts: 3
+ginkgo.trace: true
+ginkgo.v: true

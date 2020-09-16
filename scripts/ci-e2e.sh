@@ -31,15 +31,8 @@ source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 # Configure provider images generation;
 # please ensure the generated image name matches image names used in the E2E_CONF_FILE
 export REGISTRY=gcr.io/k8s-staging-cluster-api
-export TAG=ci
 export ARCH=amd64
 export PULL_POLICY=IfNotPresent
-
-## Rebuild all Cluster API provider images
-make docker-build
-
-## Rebuild CAPD provider images
-make -C test/infrastructure/docker docker-build
 
 ## Pulling cert manager images so we can pre-load in kind nodes
 docker pull quay.io/jetstack/cert-manager-cainjector:v0.16.1
@@ -53,12 +46,11 @@ docker pull kindest/node:v1.17.2
 # Configure e2e tests
 export GINKGO_NODES=3
 export GINKGO_NOCOLOR=true
-export GINKGO_ARGS="--failFast" # Other ginkgo args that need to be appended to the command.
-export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker-ci.yaml"
+export GINKGO_ARGS="--failFast --stream" # Other ginkgo args that need to be appended to the command.
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export SKIP_RESOURCE_CLEANUP=false
 export USE_EXISTING_CLUSTER=false
 
 # Run e2e tests
 mkdir -p "$ARTIFACTS"
-make -C test/e2e/ run
+make test-e2e

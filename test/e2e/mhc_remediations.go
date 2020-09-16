@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/e2e/internal/setup"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -62,7 +63,14 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setup.CreateSpecNamespace(
+			ctx,
+			setup.CreateSpecNamespaceInput{
+				ArtifactsDirectory: input.ArtifactFolder,
+				ClusterProxy:       input.BootstrapClusterProxy,
+				SpecName:           specName,
+			},
+		)
 	})
 
 	It("Should successfully remediate unhealthy machines with MachineHealthCheck", func() {
@@ -100,6 +108,18 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		setup.DumpSpecResourcesAndCleanup(
+			ctx,
+			setup.DumpSpecResourcesAndCleanupInput{
+				SpecName:           specName,
+				ClusterProxy:       input.BootstrapClusterProxy,
+				ArtifactsDirectory: input.ArtifactFolder,
+				Namespace:          namespace,
+				CancelWatches:      cancelWatches,
+				Cluster:            cluster,
+				IntervalsGetter:    input.E2EConfig.GetIntervals,
+				SkipCleanup:        input.SkipCleanup,
+			},
+		)
 	})
 }

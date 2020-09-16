@@ -63,3 +63,5 @@ clusterctl-settings.json
 
 # test results
 _artifacts
+
+*.sentinel

@@ -20,6 +20,7 @@
         - [init](clusterctl/commands/init.md)
         - [config cluster](clusterctl/commands/config-cluster.md)
         - [generate yaml](clusterctl/commands/generate-yaml.md)
+        - [get kubeconfig](clusterctl/commands/get-kubeconfig.md)
         - [move](./clusterctl/commands/move.md)
         - [upgrade](clusterctl/commands/upgrade.md)
         - [delete](clusterctl/commands/delete.md)

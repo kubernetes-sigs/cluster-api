@@ -624,7 +624,7 @@ clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 
 <h1>Warning</h1>
 
-The `clusterctl get kubeconfig` command is available on for clusterctl v0.3.9 or newer. If you are running older
+The `clusterctl get kubeconfig` command is available on for clusterctl v0.3.9 or newer. See [clusterctl get kubeconfig] for more details. If you are running older
 version you can use the following command: 
 
 ```bash
@@ -701,6 +701,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [bootstrap cluster]: ../reference/glossary.md#bootstrap-cluster
 [capv-upload-images]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-machine-images
 [clusterctl config cluster]: ../clusterctl/commands/config-cluster.md
+[clusterctl get kubeconfig]: ../clusterctl/commands/get-kubeconfig.md
 [clusterctl]: ../clusterctl/overview.md
 [Docker]: https://www.docker.com/
 [docker-provider]: ../clusterctl/developers.md#additional-steps-for-the-docker-provider

@@ -107,7 +107,7 @@ func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=clusterresourcesets,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=clusterresourcesets,shortName=crs,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 

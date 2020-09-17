@@ -15,6 +15,8 @@ spec:
     kind: ClusterResourceSet
     listKind: ClusterResourceSetList
     plural: clusterresourcesets
+    shortNames:
+    - crs
     singular: clusterresourceset
   scope: Namespaced
   versions:

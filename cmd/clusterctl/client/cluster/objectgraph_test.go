@@ -357,6 +357,34 @@ var objectGraphsTests = []struct {
 		},
 	},
 	{
+		name: "Cluster with force move label",
+		args: objectGraphTestArgs{
+			objs: test.NewFakeCluster("ns1", "cluster1").
+				WithCloudConfigSecret().Objs(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-cloud-config": {},
+			},
+		},
+	},
+	{
 		name: "Two clusters",
 		args: objectGraphTestArgs{
 			objs: func() []runtime.Object {

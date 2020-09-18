@@ -18,112 +18,46 @@ package remote
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/util/workqueue"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+func mapper(i handler.MapObject) []reconcile.Request {
+	return []reconcile.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Namespace: i.Meta.GetNamespace(),
+				Name:      "mapped-" + i.Meta.GetName(),
+			},
+		},
+	}
+}
+
 var _ = Describe("ClusterCache Tracker suite", func() {
-	Context("When Watch is called for a cluster", func() {
-		type assertWatchInput struct {
-			tracker      *ClusterCacheTracker
-			clusterKey   client.ObjectKey
-			watcher      Watcher
-			kind         runtime.Object
-			gvkForKind   schema.GroupVersionKind
-			eventHandler handler.EventHandler
-			predicates   []predicate.Predicate
-			watcherInfo  chan testWatcherInfo
-			watchCount   int
-		}
-
-		var assertWatch = func(i *assertWatchInput) {
-			It("should create a running cache for the cluster", func() {
-				cache, ok := func() (*clusterCache, bool) {
-					i.tracker.clusterCachesLock.RLock()
-					defer i.tracker.clusterCachesLock.RUnlock()
-					cc, ok := i.tracker.clusterCaches[i.clusterKey]
-					return cc, ok
-				}()
-				Expect(ok).To(BeTrue())
-				stop := make(chan struct{})
-				Expect(func() bool {
-					cache.lock.Lock()
-					defer cache.lock.Unlock()
-					return cache.stopped
-				}()).To(BeFalse())
-				Expect(func() chan struct{} {
-					cache.lock.Lock()
-					defer cache.lock.Unlock()
-					return cache.stop
-				}()).ToNot(BeNil())
-				// WaitForCacheSync returns false if Start was not called
-				Expect(cache.Cache.WaitForCacheSync(stop)).To(BeTrue())
-			})
-
-			It("should add a watchInfo for the watch", func() {
-				expectedInfo := watchInfo{
-					watcher:               i.watcher,
-					gvk:                   i.gvkForKind,
-					eventHandlerSignature: eventHandlerSignature(i.eventHandler),
-				}
-				Expect(func() map[watchInfo]struct{} {
-					i.tracker.watchesLock.RLock()
-					defer i.tracker.watchesLock.RUnlock()
-					return i.tracker.watches[i.clusterKey]
-				}()).To(HaveKey(Equal(expectedInfo)))
-			})
-
-			It("should call the Watcher with the correct values", func() {
-				infos := []testWatcherInfo{}
-
-				watcherInfoLen := len(i.watcherInfo)
-				for j := 0; j < watcherInfoLen; j++ {
-					infos = append(infos, <-i.watcherInfo)
-				}
-
-				Expect(infos).To(ContainElement(
-					Equal(testWatcherInfo{
-						handler:    i.eventHandler,
-						predicates: i.predicates,
-					}),
-				))
-			})
-
-			It("should call the Watcher the expected number of times", func() {
-				Expect(i.watcherInfo).Should(HaveLen(i.watchCount))
-			})
-		}
-
-		var mgr manager.Manager
-		var doneMgr chan struct{}
-		var cct *ClusterCacheTracker
-		var k8sClient client.Client
-
-		var testNamespace *corev1.Namespace
-		var input assertWatchInput
-
-		mapper := func(_ handler.MapObject) []reconcile.Request {
-			return []reconcile.Request{}
-		}
+	Describe("watching", func() {
+		var (
+			mgr           manager.Manager
+			doneMgr       chan struct{}
+			cct           *ClusterCacheTracker
+			k8sClient     client.Client
+			testNamespace *corev1.Namespace
+			c             *testController
+			w             Watcher
+			clusterA      *clusterv1.Cluster
+		)
 
 		BeforeEach(func() {
 			By("Setting up a new manager")
@@ -133,6 +67,12 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 				MetricsBindAddress: "0",
 			})
 			Expect(err).NotTo(HaveOccurred())
+
+			c = &testController{
+				ch: make(chan string),
+			}
+			w, err = ctrl.NewControllerManagedBy(mgr).For(&clusterv1.MachineDeployment{}).Build(c)
+			Expect(err).To(BeNil())
 
 			doneMgr = make(chan struct{})
 			By("Starting the manager")
@@ -151,49 +91,20 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			Expect(k8sClient.Create(ctx, testNamespace)).To(Succeed())
 
 			By("Creating a test cluster")
-			testCluster := &clusterv1.Cluster{
+			clusterA = &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: testNamespace.GetName(),
+					Namespace:   testNamespace.GetName(),
+					Name:        "test-cluster",
+					Annotations: make(map[string]string),
 				},
 			}
-			Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
-			testCluster.Status.ControlPlaneInitialized = true
-			testCluster.Status.InfrastructureReady = true
-			Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
+			Expect(k8sClient.Create(ctx, clusterA)).To(Succeed())
+			clusterA.Status.ControlPlaneInitialized = true
+			clusterA.Status.InfrastructureReady = true
+			Expect(k8sClient.Status().Update(ctx, clusterA)).To(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
-
-			testClusterKey := util.ObjectKey(testCluster)
-			watcher, watcherInfo := newTestWatcher()
-			kind := &corev1.Node{}
-			gvkForNode := schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Node"}
-			eventHandler := &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(mapper)}
-
-			input = assertWatchInput{
-				cct,
-				testClusterKey,
-				watcher,
-				kind,
-				gvkForNode,
-				eventHandler,
-				[]predicate.Predicate{
-					&predicate.ResourceVersionChangedPredicate{},
-					&predicate.GenerationChangedPredicate{},
-				},
-				watcherInfo,
-				1,
-			}
-
-			By("Calling watch on the test cluster")
-			Expect(cct.Watch(ctx, WatchInput{
-				Cluster:      input.clusterKey,
-				Watcher:      input.watcher,
-				Kind:         input.kind,
-				EventHandler: input.eventHandler,
-				Predicates:   input.predicates,
-			})).To(Succeed())
+			Expect(testEnv.CreateKubeconfigSecret(clusterA)).To(Succeed())
 		})
 
 		AfterEach(func() {
@@ -205,199 +116,72 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			close(doneMgr)
 		})
 
-		Context("when watch is called for a cluster", func() {
-			assertWatch(&input)
-		})
+		It("with the same name should succeed and not have duplicates", func() {
+			By("Creating the watch")
+			Expect(cct.Watch(ctx, WatchInput{
+				Name:         "watch1",
+				Cluster:      util.ObjectKey(clusterA),
+				Watcher:      w,
+				Kind:         &clusterv1.Cluster{},
+				EventHandler: &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(mapper)},
+			})).To(Succeed())
 
-		Context("when Watch is called for a second time with the same input", func() {
-			BeforeEach(func() {
-				By("Calling watch on the test cluster")
+			By("Waiting to receive the watch notification")
+			Expect(<-c.ch).To(Equal("mapped-" + clusterA.Name))
 
-				kind := &corev1.Node{}
-				eventHandler := &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(mapper)}
+			By("Ensuring no additional watch notifications arrive")
+			Consistently(func() int {
+				return len(c.ch)
+			}).Should(Equal(0))
 
-				// Check the second copies match
-				Expect(kind).To(Equal(input.kind))
-				Expect(fmt.Sprintf("%#v", eventHandler)).To(Equal(fmt.Sprintf("%#v", input.eventHandler)))
+			By("Updating the cluster")
+			clusterA.Annotations["update1"] = "1"
+			Expect(k8sClient.Update(ctx, clusterA)).Should(Succeed())
 
-				Expect(cct.Watch(ctx, WatchInput{
-					Cluster:      input.clusterKey,
-					Watcher:      input.watcher,
-					Kind:         kind,
-					EventHandler: eventHandler,
-					Predicates:   input.predicates,
-				})).To(Succeed())
-			})
+			By("Waiting to receive the watch notification")
+			Expect(<-c.ch).To(Equal("mapped-" + clusterA.Name))
 
-			assertWatch(&input)
-		})
+			By("Ensuring no additional watch notifications arrive")
+			Consistently(func() int {
+				return len(c.ch)
+			}).Should(Equal(0))
 
-		Context("when watch is called with a different Kind", func() {
-			BeforeEach(func() {
-				configMapKind := &corev1.ConfigMap{}
-				configMapGVK := schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"}
-				input.kind = configMapKind
-				input.gvkForKind = configMapGVK
-				input.watchCount = 2
+			By("Creating the same watch a second time")
+			Expect(cct.Watch(ctx, WatchInput{
+				Name:         "watch1",
+				Cluster:      util.ObjectKey(clusterA),
+				Watcher:      w,
+				Kind:         &clusterv1.Cluster{},
+				EventHandler: &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(mapper)},
+			})).To(Succeed())
 
-				By("Calling watch on the test cluster")
-				Expect(cct.Watch(ctx, WatchInput{
-					Cluster:      input.clusterKey,
-					Watcher:      input.watcher,
-					Kind:         input.kind,
-					EventHandler: input.eventHandler,
-					Predicates:   input.predicates,
-				})).To(Succeed())
-			})
+			By("Ensuring no additional watch notifications arrive")
+			Consistently(func() int {
+				return len(c.ch)
+			}).Should(Equal(0))
 
-			assertWatch(&input)
-		})
+			By("Updating the cluster")
+			clusterA.Annotations["update1"] = "2"
+			Expect(k8sClient.Update(ctx, clusterA)).Should(Succeed())
 
-		Context("when watch is called with a different EventHandler", func() {
-			BeforeEach(func() {
-				input.eventHandler = &handler.Funcs{
-					CreateFunc: func(_ event.CreateEvent, _ workqueue.RateLimitingInterface) {},
-				}
-				input.watchCount = 2
+			By("Waiting to receive the watch notification")
+			Expect(<-c.ch).To(Equal("mapped-" + clusterA.Name))
 
-				By("Calling watch on the test cluster")
-				Expect(cct.Watch(ctx, WatchInput{
-					Cluster:      input.clusterKey,
-					Watcher:      input.watcher,
-					Kind:         input.kind,
-					EventHandler: input.eventHandler,
-					Predicates:   input.predicates,
-				})).To(Succeed())
-			})
-
-			assertWatch(&input)
-		})
-
-		Context("when watch is called with different Predicates", func() {
-			BeforeEach(func() {
-				input.predicates = []predicate.Predicate{}
-				input.watchCount = 1
-
-				By("Calling watch on the test cluster")
-				Expect(cct.Watch(ctx, WatchInput{
-					Cluster:      input.clusterKey,
-					Watcher:      input.watcher,
-					Kind:         input.kind,
-					EventHandler: input.eventHandler,
-					Predicates:   input.predicates,
-				})).To(Succeed())
-			})
-
-			It("does not call the Watcher a second time", func() {
-				Expect(input.watcherInfo).Should(HaveLen(1))
-			})
-		})
-
-		Context("when watch is called with different Cluster", func() {
-			var differentClusterInput assertWatchInput
-
-			BeforeEach(func() {
-				// Copy the input so we can check both clusters at once
-				differentClusterInput = assertWatchInput{
-					cct,
-					input.clusterKey,
-					input.watcher,
-					input.kind,
-					input.gvkForKind,
-					input.eventHandler,
-					[]predicate.Predicate{
-						&predicate.ResourceVersionChangedPredicate{},
-						&predicate.GenerationChangedPredicate{},
-					},
-					input.watcherInfo,
-					1,
-				}
-
-				By("Creating a different cluster")
-				testCluster := &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "different-cluster",
-						Namespace: testNamespace.GetName(),
-					},
-				}
-				Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
-
-				By("Creating a test cluster kubeconfig")
-				Expect(kubeconfig.CreateEnvTestSecret(k8sClient, testEnv.Config, testCluster)).To(Succeed())
-				// Check the secret can be fetch from the API server
-				secretKey := client.ObjectKey{Namespace: testNamespace.GetName(), Name: fmt.Sprintf("%s-kubeconfig", testCluster.GetName())}
-				Eventually(func() error {
-					return k8sClient.Get(ctx, secretKey, &corev1.Secret{})
-				}, timeout).Should(Succeed())
-
-				differentClusterInput.clusterKey = util.ObjectKey(testCluster)
-				differentClusterInput.watchCount = 2
-
-				input.watchCount = 2
-
-				By("Calling watch on the test cluster")
-				Expect(cct.Watch(ctx, WatchInput{
-					Cluster:      differentClusterInput.clusterKey,
-					Watcher:      differentClusterInput.watcher,
-					Kind:         differentClusterInput.kind,
-					EventHandler: differentClusterInput.eventHandler,
-					Predicates:   differentClusterInput.predicates,
-				})).To(Succeed())
-			})
-
-			// Check conditions for both clusters are still satisfied
-			assertWatch(&input)
-			assertWatch(&differentClusterInput)
-
-			It("should have independent caches for each cluster", func() {
-				testClusterCache, ok := func() (*clusterCache, bool) {
-					cct.clusterCachesLock.RLock()
-					defer cct.clusterCachesLock.RUnlock()
-					cc, ok := cct.clusterCaches[input.clusterKey]
-					return cc, ok
-				}()
-				Expect(ok).To(BeTrue())
-				differentClusterCache, ok := func() (*clusterCache, bool) {
-					cct.clusterCachesLock.RLock()
-					defer cct.clusterCachesLock.RUnlock()
-					cc, ok := cct.clusterCaches[differentClusterInput.clusterKey]
-					return cc, ok
-				}()
-				Expect(ok).To(BeTrue())
-				// Check stop channels are different, so that they can be stopped independently
-				Expect(testClusterCache.stop).ToNot(Equal(differentClusterCache.stop))
-				// Caches should also be different as they were constructed for different clusters
-				// Check the memory locations to assert independence
-				Expect(fmt.Sprintf("%p", testClusterCache.Cache)).ToNot(Equal(fmt.Sprintf("%p", differentClusterCache.Cache)))
-			})
+			By("Ensuring no additional watch notifications arrive")
+			Consistently(func() int {
+				return len(c.ch)
+			}).Should(Equal(0))
 		})
 	})
 })
 
-type testWatchFunc = func(source.Source, handler.EventHandler, ...predicate.Predicate) error
-
-type testWatcher struct {
-	watchInfo chan testWatcherInfo
+type testController struct {
+	ch chan string
 }
 
-type testWatcherInfo struct {
-	handler    handler.EventHandler
-	predicates []predicate.Predicate
-}
-
-func (t *testWatcher) Watch(s source.Source, h handler.EventHandler, ps ...predicate.Predicate) error {
-	t.watchInfo <- testWatcherInfo{
-		handler:    h,
-		predicates: ps,
-	}
-	return nil
-}
-
-func newTestWatcher() (Watcher, chan testWatcherInfo) {
-	watchInfo := make(chan testWatcherInfo, 5)
-	return &testWatcher{
-		watchInfo: watchInfo,
-	}, watchInfo
+func (c *testController) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+	c.ch <- req.Name
+	return ctrl.Result{}, nil
 }
 
 func cleanupTestSecrets(ctx context.Context, c client.Client) error {

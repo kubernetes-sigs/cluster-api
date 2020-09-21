@@ -26,6 +26,11 @@ const (
 
 // Common ConditionReason used by Cluster API objects.
 const (
+	// WaitingForControlPlaneAvailableReason (Severity=Info) document an object waiting for the control plane to be available.
+	// e.g. Having the control plane machine available is a pre-condition for joining additional control planes
+	// or workers nodes.
+	WaitingForControlPlaneAvailableReason = "WaitingForControlPlaneAvailable"
+
 	// DeletingReason (Severity=Info) documents an condition not in Status=True because the underlying object it is currently being deleted.
 	DeletingReason = "Deleting"
 

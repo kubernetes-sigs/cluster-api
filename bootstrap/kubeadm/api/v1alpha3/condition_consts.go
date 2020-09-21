@@ -40,6 +40,7 @@ const (
 	//
 	// NOTE: Having the control plane machine available is a pre-condition for joining additional control planes
 	// or workers nodes.
+	// Deprecated. use WaitingForControlPlaneAvailableReason in Cluster API
 	WaitingForControlPlaneAvailableReason = "WaitingForControlPlaneAvailable"
 
 	// DataSecretGenerationFailedReason (Severity=Warning) documents a KubeadmConfig controller detecting

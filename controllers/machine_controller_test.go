@@ -18,12 +18,14 @@ package controllers
 
 import (
 	"context"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -212,6 +214,146 @@ func TestIndexMachineByNodeName(t *testing.T) {
 			g.Expect(got).To(ConsistOf(tc.expected))
 		})
 	}
+}
+
+func TestMachine_Reconcile(t *testing.T) {
+	t.Run("reconcile create", func(t *testing.T) {
+		g := NewWithT(t)
+		infraMachine := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       "InfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": "default",
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+			},
+		}
+
+		defaultBootstrap := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       "BootstrapMachine",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config-machinereconcile",
+					"namespace": "default",
+				},
+				"spec":   map[string]interface{}{},
+				"status": map[string]interface{}{},
+			},
+		}
+
+		testCluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "machine-reconcile-",
+				Namespace:    "default",
+			},
+		}
+
+		g.Expect(testEnv.Create(ctx, testCluster)).To(BeNil())
+		g.Expect(testEnv.Create(ctx, infraMachine)).To(BeNil())
+		g.Expect(testEnv.Create(ctx, defaultBootstrap)).To(BeNil())
+
+		defer func(do ...runtime.Object) {
+			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		}(testCluster)
+
+		machine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "machine-created-",
+				Namespace:    "default",
+				Finalizers:   []string{clusterv1.MachineFinalizer},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: testCluster.Name,
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "InfrastructureMachine",
+					Name:       "infra-config1",
+				},
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: &corev1.ObjectReference{
+						APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+						Kind:       "BootstrapMachine",
+						Name:       "bootstrap-config-machinereconcile",
+					},
+				}},
+			Status: clusterv1.MachineStatus{
+				NodeRef: &corev1.ObjectReference{
+					Name: "test",
+				},
+			},
+		}
+		g.Expect(testEnv.Create(ctx, machine)).To(BeNil())
+
+		key := client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
+
+		// Wait for reconciliation to happen when infra and bootstrap objects are not ready.
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, key, machine); err != nil {
+				return false
+			}
+			return len(machine.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		// Set bootstrap ready.
+		bootstrapPatch := client.MergeFrom(defaultBootstrap.DeepCopy())
+		g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).NotTo(HaveOccurred())
+		g.Expect(testEnv.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
+
+		// Set infrastructure ready.
+		infraMachinePatch := client.MergeFrom(infraMachine.DeepCopy())
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(testEnv.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
+
+		// Wait for Machine Ready Condition to become True.
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, key, machine); err != nil {
+				return false
+			}
+			if conditions.Has(machine, clusterv1.InfrastructureReadyCondition) != true {
+				return false
+			}
+			readyCondition := conditions.Get(machine, clusterv1.ReadyCondition)
+			return readyCondition.Status == corev1.ConditionTrue
+		}, timeout).Should(BeTrue())
+
+		g.Expect(testEnv.Delete(ctx, machine)).NotTo(HaveOccurred())
+		// Wait for Machine to be deleted.
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, key, machine); err != nil {
+				if apierrors.IsNotFound(err) {
+					return true
+				}
+			}
+			return false
+		}, timeout).Should(BeTrue())
+
+		// Check if Machine deletion successfully deleted infrastructure external reference.
+		keyInfra := client.ObjectKey{Name: infraMachine.GetName(), Namespace: infraMachine.GetNamespace()}
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, keyInfra, infraMachine); err != nil {
+				if apierrors.IsNotFound(err) {
+					return true
+				}
+			}
+			return false
+		}, timeout).Should(BeTrue())
+
+		// Check if Machine deletion successfully deleted bootstrap external reference.
+		keyBootstrap := client.ObjectKey{Name: defaultBootstrap.GetName(), Namespace: defaultBootstrap.GetNamespace()}
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, keyBootstrap, defaultBootstrap); err != nil {
+				if apierrors.IsNotFound(err) {
+					return true
+				}
+			}
+			return false
+		}, timeout).Should(BeTrue())
+	})
 }
 
 func TestMachineFinalizer(t *testing.T) {
@@ -507,6 +649,14 @@ func TestReconcileRequest(t *testing.T) {
 		},
 	}
 
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+	}
+
 	type expected struct {
 		result reconcile.Result
 		err    bool
@@ -605,6 +755,7 @@ func TestReconcileRequest(t *testing.T) {
 
 			clientFake := helpers.NewFakeClientWithScheme(
 				scheme.Scheme,
+				node,
 				&testCluster,
 				&tc.machine,
 				external.TestGenericInfrastructureCRD.DeepCopy(),
@@ -612,9 +763,10 @@ func TestReconcileRequest(t *testing.T) {
 			)
 
 			r := &MachineReconciler{
-				Client: clientFake,
-				Log:    log.Log,
-				scheme: scheme.Scheme,
+				Client:  clientFake,
+				Log:     log.Log,
+				scheme:  scheme.Scheme,
+				Tracker: remote.NewTestClusterCacheTracker(clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
 
 			result, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
@@ -692,6 +844,7 @@ func TestMachineConditions(t *testing.T) {
 			Finalizers: []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
+			ProviderID:  pointer.StringPtr("test://id-1"),
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
@@ -712,6 +865,14 @@ func TestMachineConditions(t *testing.T) {
 			},
 			ObservedGeneration: 1,
 		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 	}
 
 	testcases := []struct {
@@ -846,12 +1007,14 @@ func TestMachineConditions(t *testing.T) {
 				infra,
 				external.TestGenericBootstrapCRD.DeepCopy(),
 				bootstrap,
+				node,
 			)
 
 			r := &MachineReconciler{
-				Client: clientFake,
-				Log:    log.Log,
-				scheme: scheme.Scheme,
+				Client:  clientFake,
+				Log:     log.Log,
+				scheme:  scheme.Scheme,
+				Tracker: remote.NewTestClusterCacheTracker(clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
 
 			_, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
@@ -905,22 +1068,6 @@ func TestReconcileDeleteExternal(t *testing.T) {
 		expectError     bool
 		expected        *unstructured.Unstructured
 	}{
-		{
-			name:            "should continue to reconcile delete of external refs if exists",
-			bootstrapExists: true,
-			expected: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
-					"kind":       "BootstrapConfig",
-					"metadata": map[string]interface{}{
-						"name":            "delete-bootstrap",
-						"namespace":       "default",
-						"resourceVersion": "1",
-					},
-				},
-			},
-			expectError: false,
-		},
 		{
 			name:            "should no longer reconcile deletion of external refs since it doesn't exist",
 			bootstrapExists: false,

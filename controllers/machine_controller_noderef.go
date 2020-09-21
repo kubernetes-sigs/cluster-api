@@ -19,13 +19,13 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
-	apicorev1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -34,24 +34,14 @@ var (
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 )
 
-func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-
-	// Check that the Machine hasn't been deleted or in the process.
-	if !machine.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, nil
-	}
-
-	// Check that the Machine doesn't already have a NodeRef.
-	if machine.Status.NodeRef != nil {
-		return ctrl.Result{}, nil
-	}
-
+func (r *MachineReconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx, "machine", machine.Name, "namespace", machine.Namespace)
 	log = log.WithValues("cluster", cluster.Name)
 
 	// Check that the Machine has a valid ProviderID.
 	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
-		log.Info("Machine doesn't have a valid ProviderID yet")
+		log.Info("Cannot reconcile Machine's Node, no valid ProviderID yet")
+		conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.WaitingForNodeRefReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -65,29 +55,93 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 		return ctrl.Result{}, err
 	}
 
-	// Get the Node reference.
-	nodeRef, err := r.getNodeReference(ctx, remoteClient, providerID)
+	// Even if Status.NodeRef exists, continue to do the following checks to make sure Node is healthy
+	node, err := r.getNode(ctx, remoteClient, providerID)
 	if err != nil {
 		if err == ErrNodeNotFound {
-			log.Info(fmt.Sprintf("Cannot assign NodeRef to Machine: %s, requeuing", ErrNodeNotFound.Error()))
-			return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
+			// While a NodeRef is set in the status, failing to get that node means the node is deleted.
+			// If Status.NodeRef is not set before, node still can be in the provisioning state.
+			if machine.Status.NodeRef != nil {
+				conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityError, "")
+				return ctrl.Result{}, errors.Wrapf(err, "no matching Node for Machine %q in namespace %q", machine.Name, machine.Namespace)
+			}
+			conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeProvisioningReason, clusterv1.ConditionSeverityWarning, "")
+			return ctrl.Result{Requeue: true}, nil
 		}
-		log.Error(err, "Failed to assign NodeRef")
-		r.recorder.Event(machine, apicorev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
+		log.Error(err, "Failed to retrieve Node by ProviderID")
+		r.recorder.Event(machine, corev1.EventTypeWarning, "Failed to retrieve Node by ProviderID", err.Error())
 		return ctrl.Result{}, err
 	}
 
 	// Set the Machine NodeRef.
-	machine.Status.NodeRef = nodeRef
-	log.Info("Set Machine's NodeRef", "noderef", machine.Status.NodeRef.Name)
-	r.recorder.Event(machine, apicorev1.EventTypeNormal, "SuccessfulSetNodeRef", machine.Status.NodeRef.Name)
+	if machine.Status.NodeRef == nil {
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Kind:       node.Kind,
+			APIVersion: node.APIVersion,
+			Name:       node.Name,
+			UID:        node.UID,
+		}
+		log.Info("Set Machine's NodeRef", "noderef", machine.Status.NodeRef.Name)
+		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetNodeRef", machine.Status.NodeRef.Name)
+	}
+
+	// Do the remaining node health checks, then set the node health to true if all checks pass.
+	status, message := summarizeNodeConditions(node)
+	if status == corev1.ConditionFalse {
+		conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeConditionsFailedReason, clusterv1.ConditionSeverityWarning, message)
+		return ctrl.Result{}, nil
+	}
+
+	conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyCondition)
 	return ctrl.Result{}, nil
 }
 
-func (r *MachineReconciler) getNodeReference(ctx context.Context, c client.Reader, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
+// summarizeNodeConditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:
+// if there is at least 1 semantically-negative condition, summarized status = False;
+// if there is at least 1 semantically-positive condition when there is 0 semantically negative condition, summarized status = True;
+// if all conditions are unknown,  summarized status = Unknown.
+// (semantically true conditions: NodeMemoryPressure/NodeDiskPressure/NodePIDPressure == false or Ready == true.)
+func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string) {
+	totalNumOfConditionsChecked := 4
+	semanticallyFalseStatus := 0
+	unknownStatus := 0
+
+	message := ""
+	for _, condition := range node.Status.Conditions {
+		switch condition.Type {
+		case corev1.NodeMemoryPressure, corev1.NodeDiskPressure, corev1.NodePIDPressure:
+			if condition.Status != corev1.ConditionFalse {
+				message += fmt.Sprintf("Node condition %s is %s", condition.Type, condition.Status) + ". "
+				if condition.Status == corev1.ConditionUnknown {
+					unknownStatus++
+					continue
+				}
+				semanticallyFalseStatus++
+			}
+		case corev1.NodeReady:
+			if condition.Status != corev1.ConditionTrue {
+				message += fmt.Sprintf("Node condition %s is %s", condition.Type, condition.Status) + ". "
+				if condition.Status == corev1.ConditionUnknown {
+					unknownStatus++
+					continue
+				}
+				semanticallyFalseStatus++
+			}
+		}
+	}
+	if semanticallyFalseStatus > 0 {
+		return corev1.ConditionFalse, message
+	}
+	if semanticallyFalseStatus+unknownStatus < totalNumOfConditionsChecked {
+		return corev1.ConditionTrue, message
+	}
+	return corev1.ConditionUnknown, message
+}
+
+func (r *MachineReconciler) getNode(ctx context.Context, c client.Reader, providerID *noderefutil.ProviderID) (*corev1.Node, error) {
 	log := ctrl.LoggerFrom(ctx, "providerID", providerID)
 
-	nodeList := apicorev1.NodeList{}
+	nodeList := corev1.NodeList{}
 	for {
 		if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
 			return nil, err
@@ -101,12 +155,7 @@ func (r *MachineReconciler) getNodeReference(ctx context.Context, c client.Reade
 			}
 
 			if providerID.Equals(nodeProviderID) {
-				return &apicorev1.ObjectReference{
-					Kind:       node.Kind,
-					APIVersion: node.APIVersion,
-					Name:       node.Name,
-					UID:        node.UID,
-				}, nil
+				return &node, nil
 			}
 		}
 

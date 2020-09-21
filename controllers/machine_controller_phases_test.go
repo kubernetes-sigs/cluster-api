@@ -29,12 +29,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func init() {
@@ -250,16 +255,26 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
 
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machine-test-node",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+		}
+		cl := fake.NewFakeClientWithScheme(scheme.Scheme,
+			defaultCluster,
+			machine,
+			node,
+			external.TestGenericBootstrapCRD.DeepCopy(),
+			external.TestGenericInfrastructureCRD.DeepCopy(),
+			bootstrapConfig,
+			infraConfig,
+			defaultKubeconfigSecret,
+		)
 		r := &MachineReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-				defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				external.TestGenericBootstrapCRD.DeepCopy(),
-				external.TestGenericInfrastructureCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			),
+			Client:  cl,
+			Tracker: remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -302,16 +317,26 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
 
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machine-test-node",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+		}
+		cl := fake.NewFakeClientWithScheme(scheme.Scheme,
+			defaultCluster,
+			machine,
+			node,
+			external.TestGenericBootstrapCRD.DeepCopy(),
+			external.TestGenericInfrastructureCRD.DeepCopy(),
+			bootstrapConfig,
+			infraConfig,
+			defaultKubeconfigSecret,
+		)
 		r := &MachineReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-				defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				external.TestGenericBootstrapCRD.DeepCopy(),
-				external.TestGenericInfrastructureCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			),
+			Client:  cl,
+			Tracker: remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -364,17 +389,26 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
-
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machine-test-node",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+		}
+		cl := fake.NewFakeClientWithScheme(scheme.Scheme,
+			defaultCluster,
+			machine,
+			node,
+			external.TestGenericBootstrapCRD.DeepCopy(),
+			external.TestGenericInfrastructureCRD.DeepCopy(),
+			bootstrapConfig,
+			infraConfig,
+			defaultKubeconfigSecret,
+		)
 		r := &MachineReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-				defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				external.TestGenericBootstrapCRD.DeepCopy(),
-				external.TestGenericInfrastructureCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			),
+			Client:  cl,
+			Tracker: remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -434,6 +468,9 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 	It("Should set `Deleting` when Machine is being deleted", func() {
 		machine := defaultMachine.DeepCopy()
+		// Need the second Machine to allow deletion of one.
+		machineSecond := defaultMachine.DeepCopy()
+
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
@@ -463,6 +500,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}, "addresses")
 		Expect(err).NotTo(HaveOccurred())
 
+		// Set Cluster label.
+		machine.Labels[clusterv1.ClusterLabelName] = machine.Spec.ClusterName
+		machine.ResourceVersion = "1"
+		machineSecond.Labels[clusterv1.ClusterLabelName] = machine.Spec.ClusterName
+		machineSecond.Name = "SecondMachine"
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
 
@@ -473,24 +515,32 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
 
+		cl := fake.NewFakeClientWithScheme(scheme.Scheme,
+			defaultCluster,
+			defaultKubeconfigSecret,
+			machine,
+			machineSecond,
+			external.TestGenericBootstrapCRD.DeepCopy(),
+			external.TestGenericInfrastructureCRD.DeepCopy(),
+			bootstrapConfig,
+			infraConfig,
+		)
 		r := &MachineReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-				defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				external.TestGenericBootstrapCRD.DeepCopy(),
-				external.TestGenericInfrastructureCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			),
+			Client:   cl,
+			Tracker:  remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			recorder: record.NewFakeRecorder(32),
 		}
 
-		res, err := r.reconcile(ctx, defaultCluster, machine)
+		res, err := r.reconcileDelete(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(ctx, machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
+
+		nodeHealthyCondition := conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
+		Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
+		Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))
 
 		// Verify that the LastUpdated timestamp was updated
 		Expect(machine.Status.LastUpdated).ToNot(BeNil())

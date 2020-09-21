@@ -116,9 +116,6 @@ const (
 	// MachineHasFailureReason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
 	MachineHasFailureReason = "MachineHasFailure"
 
-	// NodeNotFoundReason is the reason used when a machine's node has previously been observed but is now gone.
-	NodeNotFoundReason = "NodeNotFound"
-
 	// NodeStartupTimeoutReason is the reason used when a machine's node does not appear within the specified timeout.
 	NodeStartupTimeoutReason = "NodeStartupTimeout"
 
@@ -133,4 +130,25 @@ const (
 
 	// WaitingForRemediationReason is the reason used when a machine fails a health check and remediation is needed.
 	WaitingForRemediationReason = "WaitingForRemediation"
+)
+
+// Conditions and condition Reasons for the Machine's Node object
+const (
+	// MachineNodeHealthyCondition provides info about the operational state of the Kubernetes node hosted on the machine by summarizing  node conditions.
+	// If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure, and NodeNetworkUnavailable) are in a healthy state, it will be set to True.
+	MachineNodeHealthyCondition ConditionType = "NodeHealthy"
+
+	// WaitingForNodeRefReason (Severity=Info) documents a machine.spec.providerId is not assigned yet.
+	WaitingForNodeRefReason = "WaitingForNodeRef"
+
+	// NodeProvisioningReason (Severity=Info) documents machine in the process of provisioning a node.
+	// NB. provisioning --> NodeRef == ""
+	NodeProvisioningReason = "NodeProvisioning"
+
+	// NodeNotFoundReason (Severity=Error) documents a machine's node has previously been observed but is now gone.
+	// NB. provisioned --> NodeRef != ""
+	NodeNotFoundReason = "NodeNotFound"
+
+	// NodeConditionsFailedReason (Severity=Warning) documents a node is not in a healthy state due to the failed state of at least 1 Kubelet condition.
+	NodeConditionsFailedReason = "NodeConditionsFailed"
 )

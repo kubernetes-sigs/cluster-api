@@ -19,5 +19,5 @@ set -o nounset
 set -o pipefail
 
 EMBED="../../hack/tools/bin/mdbook-embed"
-make ${EMBED} &>/dev/null
+make ${EMBED} GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
 ${EMBED} "$@"

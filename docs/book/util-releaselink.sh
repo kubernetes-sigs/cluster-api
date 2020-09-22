@@ -19,5 +19,5 @@ set -o nounset
 set -o pipefail
 
 RELEASELINK="../../hack/tools/bin/mdbook-releaselink"
-make ${RELEASELINK} &>/dev/null
+make ${RELEASELINK} GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
 ${RELEASELINK} "$@"

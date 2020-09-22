@@ -16,6 +16,10 @@ limitations under the License.
 
 package client
 
+import (
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+)
+
 // MoveOptions carries the options supported by move.
 type MoveOptions struct {
 	// FromKubeconfig defines the kubeconfig to use for accessing the source management cluster. If empty,
@@ -29,6 +33,9 @@ type MoveOptions struct {
 	// Namespace where the objects describing the workload cluster exists. If unspecified, the current
 	// namespace will be used.
 	Namespace string
+
+	// DryRun means the move action is a dry run, no real action will be performed
+	DryRun bool
 }
 
 func (c *clusterctlClient) Move(options MoveOptions) error {
@@ -43,15 +50,18 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 		return err
 	}
 
-	// Get the client for interacting with the target management cluster.
-	toCluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.ToKubeconfig})
-	if err != nil {
-		return err
-	}
+	var toCluster cluster.Client
+	if !options.DryRun {
+		// Get the client for interacting with the target management cluster.
+		toCluster, err = c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.ToKubeconfig})
+		if err != nil {
+			return err
+		}
 
-	// Ensures the custom resource definitions required by clusterctl are in place
-	if err := toCluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-		return err
+		// Ensures the custom resource definitions required by clusterctl are in place
+		if err := toCluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+			return err
+		}
 	}
 
 	// If the option specifying the Namespace is empty, try to detect it.
@@ -63,7 +73,7 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 		options.Namespace = currentNamespace
 	}
 
-	if err := fromCluster.ObjectMover().Move(options.Namespace, toCluster); err != nil {
+	if err := fromCluster.ObjectMover().Move(options.Namespace, toCluster, options.DryRun); err != nil {
 		return err
 	}
 

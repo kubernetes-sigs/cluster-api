@@ -19,7 +19,6 @@ package internal
 import (
 	"context"
 	"crypto/tls"
-
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -39,7 +38,7 @@ type etcdClientGenerator struct {
 func (c *etcdClientGenerator) forNodes(ctx context.Context, nodes []corev1.Node) (*etcd.Client, error) {
 	endpoints := make([]string, len(nodes))
 	for i, node := range nodes {
-		endpoints[i] = staticPodName("etcd", node.Name)
+		endpoints[i] = staticPodName(EtcdPodNamePrefix, node.Name)
 	}
 
 	p := proxy.Proxy{

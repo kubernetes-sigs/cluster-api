@@ -116,7 +116,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		result, err := r.scaleUpControlPlane(context.Background(), cluster, kcp, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
@@ -124,6 +124,8 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 	})
 	t.Run("does not create a control plane Machine if health checks fail", func(t *testing.T) {
 		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
+		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
 
 		beforeMachines := internal.NewFilterableMachineCollection()
@@ -170,18 +172,11 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 				Log:                       log.Log,
 				recorder:                  record.NewFakeRecorder(32),
 			}
-			controlPlane := &internal.ControlPlane{
-				KCP:      kcp,
-				Cluster:  cluster,
-				Machines: beforeMachines,
-			}
 
-			result, err := r.scaleUpControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), controlPlane)
-			if tc.expectErr {
-				g.Expect(err).To(HaveOccurred())
-			}
-			g.Expect(result).To(Equal(tc.expectResult))
+			_, err := r.reconcile(context.Background(), cluster, kcp)
+			g.Expect(err).To(HaveOccurred())
 
+			// scaleUpControlPlane is never called due to health check failure and new machine is not created to scale up.
 			controlPlaneMachines := &clusterv1.MachineList{}
 			g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())
 			g.Expect(controlPlaneMachines.Items).To(HaveLen(len(beforeMachines)))

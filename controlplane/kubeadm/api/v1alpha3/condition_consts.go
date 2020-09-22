@@ -66,3 +66,14 @@ const (
 	// ScalingDownReason (Severity=Info) documents a KubeadmControlPlane that is decreasing the number of replicas.
 	ScalingDownReason = "ScalingDown"
 )
+
+const (
+	// EtcdClusterHealthy documents the overall etcd cluster's health for the KCP-managed etcd.
+	EtcdClusterHealthy clusterv1.ConditionType = "EtcdClusterHealthy"
+
+	// EtcdClusterUnhealthyReason (Severity=Warning) is set when the etcd cluster as unhealthy due to
+	// i) if etcd cluster has lost its quorum.
+	// ii) if etcd cluster has alarms armed.
+	// iii) if etcd pods do not match with etcd members.
+	EtcdClusterUnhealthyReason = "EtcdClusterUnhealthy"
+)

@@ -109,7 +109,8 @@ const (
 	// MachineHasFailureReason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
 	MachineHasFailureReason = "MachineHasFailure"
 
-	// NodeNotFoundReason is the reason used when a machine's node has previously been observed but is now gone.
+	// NodeNotFoundReason (Severity=Error) documents a machine's node has previously been observed but is now gone.
+	// NB. provisioned --> NodeRef != ""
 	NodeNotFoundReason = "NodeNotFound"
 
 	// NodeStartupTimeoutReason is the reason used when a machine's node does not appear within the specified timeout.
@@ -120,10 +121,59 @@ const (
 )
 
 const (
-	// MachineOwnerRemediatedCondition is set on machines that have failed a healthcheck by the MachineHealthCheck controller.
+	// MachineOwnerRemediatedCondition is set on machines that have failed a healthcheck by the Machine's owner controller.
 	// MachineOwnerRemediatedCondition is set to False after a health check fails, but should be changed to True by the owning controller after remediation succeeds.
 	MachineOwnerRemediatedCondition ConditionType = "OwnerRemediated"
 
 	// WaitingForRemediationReason is the reason used when a machine fails a health check and remediation is needed.
 	WaitingForRemediationReason = "WaitingForRemediation"
+)
+
+// Common Pod-related Condition Reasons used by Pod-related Conditions such as MachineAPIServerPodHealthyCondition etc.
+const (
+	// PodProvisioningReason (Severity=Info) documents a pod waiting  to be provisioned i.e., Pod is in "Pending" phase and
+	// PodScheduled and Initialized conditions are not yet set to True.
+	PodProvisioningReason = "PodProvisioning"
+
+	// PodMissingReason (Severity=Warning) documents a pod does not exist.
+	PodMissingReason = "PodMissing"
+
+	// PodFailedReason (Severity=Error) documents if
+	// i) a pod failed during provisioning i.e., Pod is in "Pending" phase and
+	// PodScheduled and Initialized conditions are set to True but ContainersReady or Ready condition is false
+	// (i.e., at least one of the containers are in waiting state(e.g CrashLoopbackOff, ImagePullBackOff)
+	// ii) a pod has at least one container that is terminated with a failure and hence Pod is in "Failed" phase.
+	PodFailedReason = "PodFailed"
+)
+
+// Conditions that are only for control-plane machines. KubeadmControlPlane is the owner of these conditions.
+
+const (
+	// MachineAPIServerPodHealthyCondition reports a machine's kube-apiserver's health status.
+	// Set to true if kube-apiserver pod is in "Running" phase, otherwise uses Pod-related Condition Reasons.
+	MachineAPIServerPodHealthyCondition ConditionType = "APIServerPodHealthy"
+
+	// MachineControllerManagerHealthyCondition reports a machine's kube-controller-manager's health status.
+	// Set to true if kube-controller-manager pod is in "Running" phase, otherwise uses Pod-related Condition Reasons.
+	MachineControllerManagerHealthyCondition ConditionType = "ControllerManagerPodHealthy"
+
+	// MachineSchedulerPodHealthyCondition reports a machine's kube-scheduler's health status.
+	// Set to true if kube-scheduler pod is in "Running" phase, otherwise uses Pod-related Condition Reasons.
+	MachineSchedulerPodHealthyCondition ConditionType = "SchedulerPodHealthy"
+
+	// MachineEtcdPodHealthyCondition reports a machine's etcd pod's health status.
+	// Set to true if etcd pod is in "Running" phase, otherwise uses Pod-related Condition Reasons.
+	MachineEtcdPodHealthyCondition ConditionType = "EtcdPodHealthy"
+)
+
+const (
+	// MachineEtcdMemberHealthyCondition documents if the machine has an healthy etcd member.
+	// If not true, Pod-related Condition Reasons can be used as reasons.
+	MachineEtcdMemberHealthyCondition ConditionType = "EtcdMemberHealthy"
+
+	// EtcdMemberUnhealthyReason (Severity=Error) documents a Machine's etcd member is unhealthy for a number of reasons:
+	// i) etcd member has alarms.
+	// ii) creating etcd client fails or using the created etcd client to perform some operations fails.
+	// iii) Quorum is lost
+	EtcdMemberUnhealthyReason = "EtcdMemberUnhealthy"
 )

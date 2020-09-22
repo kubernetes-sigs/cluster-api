@@ -63,11 +63,6 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
-	// reconcileHealth returns err if there is a machine being delete which is a required condition to check before scaling up
-	if result, err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
-		return result, err
-	}
-
 	// Create the bootstrap configuration
 	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
 	fd := controlPlane.NextFailureDomainForScaleUp()
@@ -89,10 +84,6 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	outdatedMachines internal.FilterableMachineCollection,
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
-
-	if result, err := r.reconcileHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
-		return result, err
-	}
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
@@ -123,7 +114,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		}
 	}
 
-	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {
+	// TODO: check if this is needed after moving the health check to the main reconcile
+	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, controlPlane, util.ObjectKey(cluster)); err != nil {
 		logger.V(2).Info("Waiting for control plane to pass control plane health check before removing a control plane machine", "cause", err)
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)

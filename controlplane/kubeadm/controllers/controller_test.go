@@ -572,7 +572,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster, kcp, tmpl := createClusterWithControlPlane()
-		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain2.example.com"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		kcp.Spec.Version = version
 
@@ -642,7 +642,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster, kcp, tmpl := createClusterWithControlPlane()
-		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain3.example.com"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		kcp.Spec.Version = "v1.17.0"
 

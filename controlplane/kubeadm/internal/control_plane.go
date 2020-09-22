@@ -38,10 +38,10 @@ import (
 // It should never need to connect to a service, that responsibility lies outside of this struct.
 // Going forward we should be trying to add more logic to here and reduce the amount of logic in the reconciler.
 type ControlPlane struct {
-	KCP      *controlplanev1.KubeadmControlPlane
-	Cluster  *clusterv1.Cluster
-	Machines FilterableMachineCollection
-
+	KCP               *controlplanev1.KubeadmControlPlane
+	Cluster           *clusterv1.Cluster
+	Machines          FilterableMachineCollection
+	MachineConditions map[string]map[clusterv1.ConditionType]*clusterv1.Condition
 	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
 	reconciliationTime metav1.Time
 
@@ -57,16 +57,24 @@ func NewControlPlane(ctx context.Context, client client.Client, cluster *cluster
 	if err != nil {
 		return nil, err
 	}
+
 	kubeadmConfigs, err := getKubeadmConfigs(ctx, client, ownedMachines)
 	if err != nil {
 		return nil, err
 	}
+
+	machineConditions := make(map[string]map[clusterv1.ConditionType]*clusterv1.Condition)
+	for machineName := range ownedMachines {
+		machineConditions[machineName] = make(map[clusterv1.ConditionType]*clusterv1.Condition)
+	}
+
 	return &ControlPlane{
 		KCP:                kcp,
 		Cluster:            cluster,
 		Machines:           ownedMachines,
 		kubeadmConfigs:     kubeadmConfigs,
 		infraResources:     infraObjects,
+		MachineConditions:  machineConditions,
 		reconciliationTime: metav1.Now(),
 	}, nil
 }

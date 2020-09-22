@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -29,7 +28,7 @@ import (
 )
 
 // updateStatus is called after every reconcilitation loop in a defer statement to always make sure we have the
-// resource status subresourcs up-to-date.
+// resource status subresources up-to-date.
 func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) error {
 	selector := machinefilters.ControlPlaneSelectorForCluster(cluster.Name)
 	// Copy label selector to its status counterpart in string format.

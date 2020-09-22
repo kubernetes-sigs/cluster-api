@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -596,6 +597,46 @@ func TestGetMachinesForCluster(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines.Items).To(HaveLen(1))
 	g.Expect(machines.Items[0].Labels[clusterv1.ClusterLabelName]).To(Equal(cluster.Name))
+}
+
+func TestIsExternalManagedControlPlane(t *testing.T) {
+	g := NewWithT(t)
+
+	t.Run("should return true if control plane status externalManagedControlPlane is true", func(t *testing.T) {
+		controlPlane := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"status": map[string]interface{}{
+					"externalManagedControlPlane": true,
+				},
+			},
+		}
+		result := IsExternalManagedControlPlane(controlPlane)
+		g.Expect(result).Should(Equal(true))
+	})
+
+	t.Run("should return false if control plane status externalManagedControlPlane is false", func(t *testing.T) {
+		controlPlane := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"status": map[string]interface{}{
+					"externalManagedControlPlane": false,
+				},
+			},
+		}
+		result := IsExternalManagedControlPlane(controlPlane)
+		g.Expect(result).Should(Equal(false))
+	})
+
+	t.Run("should return false if control plane status externalManagedControlPlane is not set", func(t *testing.T) {
+		controlPlane := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"status": map[string]interface{}{
+					"someOtherStatusField": "someValue",
+				},
+			},
+		}
+		result := IsExternalManagedControlPlane(controlPlane)
+		g.Expect(result).Should(Equal(false))
+	})
 }
 
 func TestEnsureOwnerRef(t *testing.T) {

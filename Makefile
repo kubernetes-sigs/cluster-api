@@ -46,8 +46,6 @@ E2E_FRAMEWORK_DIR := test/framework
 CAPD_DIR := test/infrastructure/docker
 RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
-LINK_CHECKER_BIN := bin/liche
-LINK_CHECKER := $(TOOLS_DIR)/$(LINK_CHECKER_BIN)
 GO_APIDIFF_BIN := bin/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
 ENVSUBST_BIN := bin/envsubst
@@ -173,9 +171,6 @@ $(GOBINDATA): $(TOOLS_DIR)/go.mod # Build go-bindata from tools folder.
 
 $(RELEASE_NOTES): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
-
-$(LINK_CHECKER): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(LINK_CHECKER_BIN) github.com/raviqqe/liche
 
 $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
@@ -562,7 +557,6 @@ verify:
 	./hack/verify-doctoc.sh
 	./hack/verify-shellcheck.sh
 	./hack/verify-starlark.sh
-	$(MAKE) verify-book-links
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
 	$(MAKE) verify-docker-provider
@@ -591,9 +585,9 @@ verify-docker-provider:
 	cd $(CAPD_DIR); $(MAKE) verify
 
 .PHONY: verify-book-links
-verify-book-links: $(LINK_CHECKER)
-	 # Ignore localhost links and set concurrency to a reasonable number
-	$(LINK_CHECKER) -r docs/book -x "^https?://" -c 10
+verify-book-links:
+	$(MAKE) -C docs/book verify
+
 ## --------------------------------------
 ## Others / Utilities
 ## --------------------------------------

@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
@@ -27,6 +28,9 @@ import (
 	"google.golang.org/grpc"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 )
+
+// etcdTimeout is the maximum time any individual call to the etcd client through the backoff adapter will take.
+const etcdTimeout = 2 * time.Second
 
 // GRPCDial is a function that creates a connection to a given endpoint.
 type GRPCDial func(ctx context.Context, addr string) (net.Conn, error)

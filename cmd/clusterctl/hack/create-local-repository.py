@@ -126,7 +126,7 @@ def write_local_repository(provider, version, components_file, components_yaml):
             if e.errno != errno.EEXIST:
                 raise
         components_path = os.path.join(provider_folder, components_file)
-        f = open(components_path, 'w')
+        f = open(components_path, 'wb')
         f.write(components_yaml)
         f.close()
 

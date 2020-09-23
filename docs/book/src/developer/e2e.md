@@ -217,7 +217,7 @@ test specs for the most common Cluster API use cases.
 [controller-runtime Client]: https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.5.2/pkg/client?tab=doc#Client
 [boskos]: https://github.com/kubernetes/test-infra/tree/master/boskos
 [E2E config file]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/clusterctl?tab=doc#E2EConfig
-[example E2E config file]: https://github.com/kubernetes-sigs/cluster-api/blob/master/test/e2e/config/docker-dev.yaml
+[example E2E config file]: https://github.com/kubernetes-sigs/cluster-api/blob/master/test/e2e/config/docker.yaml
 [NewKindClusterProvider]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/bootstrap?tab=doc#NewKindClusterProvider
 [InitManagementClusterAndWatchControllerLogs method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/clusterctl?tab=doc#InitManagementClusterAndWatchControllerLogs
 [ClusterTemplate method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/clusterctl?tab=doc#ConfigCluster

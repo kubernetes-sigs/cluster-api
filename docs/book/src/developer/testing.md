@@ -64,7 +64,7 @@ Additionally, `test-e2e` target supports the following env variables:
 
 - `GINKGO_FOCUS` to set ginkgo focus (default empty - all tests)
 - `GINKGO_NODES` to set the number of ginkgo parallel nodes (default to 1)
-- `E2E_CONF_FILE` to set the e2e test config file (default to ${REPO_ROOT}/test/e2e/config/docker-dev.yaml)
+- `E2E_CONF_FILE` to set the e2e test config file (default to ${REPO_ROOT}/test/e2e/config/docker.yaml)
 - `ARTIFACTS` to set the folder where test artifact will be stored (default to ${REPO_ROOT}/_artifacts)
 - `SKIP_RESOURCE_CLEANUP` to skip resource cleanup at the end of the test (useful for problem investigation) (default to false)
 - `USE_EXISTING_CLUSTER` to use an existing management cluster instead of creating a new one for each test run (default to false)

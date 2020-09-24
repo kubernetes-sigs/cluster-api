@@ -208,8 +208,8 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 	// after provisioning - e.g. when a MHC condition exists - or during the deletion process).
 	conditions.SetSummary(machine,
 		conditions.WithConditions(
-			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
+			clusterv1.BootstrapReadyCondition,
 			// TODO: add MHC conditions here
 		),
 		conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero()),

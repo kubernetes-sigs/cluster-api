@@ -11,6 +11,9 @@ out
 # Test binary, build with `go test -c`
 *.test
 
+# E2E test templates
+test/e2e/data/infrastructure-docker/*-template
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 

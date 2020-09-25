@@ -109,14 +109,8 @@ func TestWatches(t *testing.T) {
 		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, testCluster, defaultBootstrap)
 
-	// Patch cluster control plane initialized (this is required to start node watch)
-	patchHelper, err := patch.NewHelper(testCluster, testEnv)
-	g.Expect(err).ShouldNot(HaveOccurred())
-	conditions.MarkTrue(testCluster, clusterv1.ControlPlaneInitializedCondition)
-	g.Expect(patchHelper.Patch(ctx, testCluster, patch.WithStatusObservedGeneration{})).To(Succeed())
-
 	// Patch infra machine ready
-	patchHelper, err = patch.NewHelper(infraMachine, testEnv)
+	patchHelper, err := patch.NewHelper(infraMachine, testEnv)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -132,6 +126,9 @@ func TestWatches(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "machine-created-",
 			Namespace:    ns.Name,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabelName: "",
+			},
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,

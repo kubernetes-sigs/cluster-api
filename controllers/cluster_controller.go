@@ -463,19 +463,24 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 }
 
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
 	// reconcileControlPlane instead).
 	if cluster.Spec.ControlPlaneRef != nil {
+		log.V(4).Info("Skipping reconcileControlPlaneInitialized because cluster has a controlPlaneRef")
 		return ctrl.Result{}, nil
 	}
 
 	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		log.V(4).Info("Skipping reconcileControlPlaneInitialized because control plane already initialized")
 		return ctrl.Result{}, nil
 	}
 
+	log.V(4).Info("Checking for control plane initialization")
+
 	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
 	if err != nil {
-		log := ctrl.LoggerFrom(ctx)
 		log.Error(err, "unable to determine ControlPlaneInitialized")
 		return ctrl.Result{}, err
 	}

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,8 +32,18 @@ import (
 // DockerLogCollector collect logs from a CAPD workload cluster.
 type DockerLogCollector struct{}
 
+// machineContainerName return a container name using the same rule used in CAPD.
+// NOTE: if the cluster name is already included in the machine name, the cluster name is not add thus
+// avoiding \"sethostname: invalid argument\"  errors due to container name too long.
+func machineContainerName(cluster, machine string) string {
+	if strings.HasPrefix(machine, cluster) {
+		return machine
+	}
+	return fmt.Sprintf("%s-%s", cluster, machine)
+}
+
 func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error {
-	containerName := fmt.Sprintf("%s-%s", m.Spec.ClusterName, m.Name)
+	containerName := machineContainerName(m.Spec.ClusterName, m.Name)
 	execToPathFn := func(outputFileName, command string, args ...string) func() error {
 		return func() error {
 			f, err := fileOnHost(filepath.Join(outputPath, outputFileName))

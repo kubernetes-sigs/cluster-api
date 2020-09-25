@@ -26,42 +26,50 @@ status: implementable
 
 ## Table of Contents
 
-- [Control Plane Management](#control-plane-management)
-  - [Table of Contents](#table-of-contents)
-  - [Glossary](#glossary)
-    - [References](#references)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-      - [Additional goals of the default kubeadm machine-based Implementation](#additional-goals-of-the-default-kubeadm-machine-based-implementation)
-    - [Non-Goals / Future Work](#non-goals--future-work)
-  - [Proposal](#proposal)
-    - [User Stories](#user-stories)
-      - [Identified features from user stories](#identified-features-from-user-stories)
-    - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-      - [New API Types](#new-api-types)
-      - [Modifications required to existing API Types](#modifications-required-to-existing-api-types)
-      - [Behavioral Changes from v1alpha2](#behavioral-changes-from-v1alpha2)
-      - [Behaviors](#behaviors)
-        - [Create](#create)
-        - [Scale Up](#scale-up)
-        - [Scale Down](#scale-down)
-        - [Delete of the entire KubeadmControlPlane (kubectl delete controlplane my-controlplane)](#delete-of-the-entire-kubeadmcontrolplane-kubectl-delete-controlplane-my-controlplane)
-        - [Cluster upgrade (using create-swap-and-delete)](#cluster-upgrade-using-create-swap-and-delete)
-          - [Constraints and Assumptions](#constraints-and-assumptions)
-        - [Control plane healthcheck](#control-plane-healthcheck)
-        - [Adoption of pre-v1alpha3 Control Plane Machines](#adoption-of-pre-v1alpha3-control-plane-machines)
-      - [Code organization](#code-organization)
-    - [Risks and Mitigations](#risks-and-mitigations)
-      - [etcd membership](#etcd-membership)
-      - [Upgrade where changes needed to KubeadmConfig are not currently possible](#upgrade-where-changes-needed-to-kubeadmconfig-are-not-currently-possible)
-  - [Design Details](#design-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-      - [Alpha -> Beta Graduation](#alpha---beta-graduation)
-    - [Upgrade Strategy](#upgrade-strategy)
-  - [Alternatives](#alternatives)
-  - [Implementation History](#implementation-history)
+   * [Kubeadm Based Control Plane Management](#kubeadm-based-control-plane-management)
+      * [Table of Contents](#table-of-contents)
+      * [Glossary](#glossary)
+         * [References](#references)
+      * [Summary](#summary)
+      * [Motivation](#motivation)
+         * [Goals](#goals)
+         * [Non-Goals / Future Work](#non-goals--future-work)
+      * [Proposal](#proposal)
+         * [User Stories](#user-stories)
+            * [Identified features from user stories](#identified-features-from-user-stories)
+         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+            * [New API Types](#new-api-types)
+            * [Modifications required to existing API Types](#modifications-required-to-existing-api-types)
+            * [Behavioral Changes from v1alpha2](#behavioral-changes-from-v1alpha2)
+            * [Behaviors](#behaviors)
+               * [Create](#create)
+               * [Scale Up](#scale-up)
+               * [Scale Down](#scale-down)
+               * [Delete of the entire KubeadmControlPlane (kubectl delete controlplane my-controlplane)](#delete-of-the-entire-kubeadmcontrolplane-kubectl-delete-controlplane-my-controlplane)
+               * [KubeadmControlPlane rollout (using create-swap-and-delete)](#kubeadmcontrolplane-rollout-using-create-swap-and-delete)
+                  * [Constraints and Assumptions](#constraints-and-assumptions)
+               * [Remediation (using delete-and-recreate)](#remediation-using-delete-and-recreate)
+                  * [Why delete and recreate](#why-delete-and-recreate)
+                  * [Scenario 1: Three replicas, one machine marked for remediation](#scenario-1-three-replicas-one-machine-marked-for-remediation)
+                  * [Scenario 2: Three replicas, two machines marked for remediation](#scenario-2-three-replicas-two-machines-marked-for-remediation)
+                  * [Scenario 3: Three replicas, one unresponsive etcd member, one (different) unhealthy machine](#scenario-3-three-replicas-one-unresponsive-etcd-member-one-different-unhealthy-machine)
+                  * [Scenario 4: Unhealthy machines combined with rollout](#scenario-4-unhealthy-machines-combined-with-rollout)
+               * [Health checks](#health-checks)
+                  * [Etcd (external)](#etcd-external)
+                  * [Etcd (stacked)](#etcd-stacked)
+                  * [Kubernetes Control Plane](#kubernetes-control-plane)
+               * [Adoption of pre-v1alpha3 Control Plane Machines](#adoption-of-pre-v1alpha3-control-plane-machines)
+            * [Code organization](#code-organization)
+         * [Risks and Mitigations](#risks-and-mitigations)
+            * [etcd membership](#etcd-membership)
+            * [Upgrade where changes needed to KubeadmConfig are not currently possible](#upgrade-where-changes-needed-to-kubeadmconfig-are-not-currently-possible)
+      * [Design Details](#design-details)
+         * [Test Plan](#test-plan)
+         * [Graduation Criteria](#graduation-criteria)
+            * [Alpha -&gt; Beta Graduation](#alpha---beta-graduation)
+         * [Upgrade Strategy](#upgrade-strategy)
+      * [Alternatives](#alternatives)
+      * [Implementation History](#implementation-history)
 
 ## Glossary
 
@@ -101,6 +109,9 @@ for the default implementation would not preclude the use of alternative control
 - To manage control plane deployments across failure domains.
 - To support user-initiated remediation:
   E.g. user deletes a Machine. Control Plane Provider reconciles by removing the corresponding etcd member and updating related metadata
+- To support auto remediation triggered by MachineHealthCheck objects:
+  E.g. a MachineHealthCheck marks a machine for remediation. Control Plane Provider reconciles by removing the machine and replaces it with a new one
+  **if and only if** the operation is not potentially destructive for the cluster (e.g. the operation could cause a permanent quorum loss).
 
 ### Non-Goals / Future Work
 
@@ -116,7 +127,6 @@ Non-Goals listed in this document are intended to scope bound the current v1alph
 - To address disaster recovery constraints, e.g. restoring a control plane from 0 replicas using a filesystem or volume snapshot copy of data persisted in etcd.
 - To support rollbacks, as there is no data store rollback guarantee for Kubernetes. Consumers should perform backups of the cluster prior to performing potentially destructive operations.
 - To mutate the configuration of live, running clusters (e.g. changing api-server flags), as this is the responsibility of the [component configuration working group](https://github.com/kubernetes/community/tree/master/wg-component-standard).
-- To support auto remediation. Using such a mechanism to automatically replace machines may lead to unintended behaviours and we want to have real world feedback on the health indicators chosen and remediation strategies developed prior to attempting automated remediation.
 - To provide configuration of external cloud providers (i.e. the [cloud-controller-manager](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/)).This is deferred to kubeadm.
 - To provide CNI configuration. This is deferred to external, higher level tooling.
 - To provide the upgrade logic to handle changes to infrastructure (networks, firewalls etc…) that may need to be done to support a control plane on a newer version of Kubernetes (e.g. a cloud controller manager requires updated permissions against infrastructure APIs). We expect the work on [add-on components](https://github.com/kubernetes/community/tree/master/sig-cluster-lifecycle#cluster-addons)) to help to resolve some of these issues.
@@ -357,13 +367,13 @@ spec:
     - Scale up control plane creating a machine with the new spec
     - Scale down control plane by removing one of the machine that needs rollout (the oldest out-of date machine in the failure domain that has the most control-plane machines on it)
     
-- In order to determine if a Machine need rollouts includes:
+- In order to determine if a Machine to be rolled out, KCP implements the following:
     - The infrastructureRef link used by each machine at creation time is stored in annotations at machine level.
     - The kubeadmConfigSpec used by each machine at creation time is stored in annotations at machine level.
         - If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
            Users should use KCP.Spec.UpgradeAfter field to force a rollout in this case.
     
-- The controller should tolerate the manual removal of a replica during the upgrade process. A replica that fails during the upgrade may block the completion of the upgrade. Removal or other remedial action may be necessary to allow the upgrade to complete.
+- The controller should tolerate the manual or automatic removal of a replica during the upgrade process. A replica that fails during the upgrade may block the completion of the upgrade. Removal or other remedial action may be necessary to allow the upgrade to complete.
 
 ###### Constraints and Assumptions
 
@@ -371,8 +381,95 @@ spec:
 
 * Infrastructure templates are expected to be immutable, so infrastructure template contents do not have to hashed in order to detect
   changes.
+   
+##### Remediation (using delete-and-recreate)
 
+- KCP remediation is triggered by the MachineHealthCheck controller marking a machine for remediation. See 
+  [machine-health-checking proposal](https://github.com/kubernetes-sigs/cluster-api/blob/11485f4f817766c444840d8ea7e4e7d1a6b94cc9/docs/proposals/20191030-machine-health-checking.md)
+  for additional details. When there are multiple machines that are marked for remediation, the oldest one will be remediated first.
+  
+- Following rules should be satisfied in order to start remediation
+  - The cluster MUST have spec.replicas >= 3, because this is the smallest cluster size that allows any etcd failure tolerance.
+  - The number of replicas MUST be equal to or greater than the desired replicas. This rule ensures that when the cluster
+    is missing replicas, we skip remediation and instead perform regular scale up/rollout operations first. 
+  - The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.
+  - Remediation MUST preserve etcd quorum. This rule ensures that we will not remove a member that would result in etcd
+    losing a majority of members and thus become unable to field new requests.
+
+- When all the conditions for starting remediation are satisfied, KCP temporarily suspend any operation in progress
+  in order to perform remediation. 
+- Remediation will be performed by issuing a delete on the unhealthy machine; after deleting the machine, KCP
+  will restore the target number of machines by triggering a scale up (current replicas<desired replicas) and then
+  eventually resume the rollout action.
+  See [why delete and recreate](#why-delete-and-recreate) for an explanation about why KCP should remove the member first and then add its replacement.
+
+###### Why delete and recreate
+
+When replacing a KCP machine the most critical component to be taken into account is etcd, and
+according to the [etcd documentation](https://github.com/etcd-io/etcd/blob/master/Documentation/faq.md#should-i-add-a-member-before-removing-an-unhealthy-member),
+it's important to remove an unhealthy etcd member first and then add its replacement:
+
+- etcd employs distributed consensus based on a quorum model; (n/2)+1 members, a majority, must agree on a proposal before
+  it can be committed to the cluster. These proposals include key-value updates and membership changes. This model totally
+  avoids potential split brain inconsistencies. The downside is permanent quorum loss is catastrophic.
+
+- How this applies to membership: If a 3-member cluster has 1 downed member, it can still make forward progress because
+  the quorum is 2 and 2 members are still live. However, adding a new member to a 3-member cluster will increase the quorum
+  to 3 because 3 votes are required for a majority of 4 members. Since the quorum increased, this extra member buys nothing
+  in terms of fault tolerance; the cluster is still one node failure away from being unrecoverable.
+
+- Additionally, adding new members to an unhealthy control plane might be risky because it may turn out to be misconfigured
+  or incapable of joining the cluster. In that case, there's no way to recover quorum because the cluster has two members
+  down and two members up, but needs three votes to change membership to undo the botched membership addition. etcd will
+  by default reject member add attempts that could take down the cluster in this manner.
+
+- On the other hand, if the downed member is removed from cluster membership first, the number of members becomes 2 and
+  the quorum remains at 2. Following that removal by adding a new member will also keep the quorum steady at 2. So, even
+  if the new node can't be brought up, it's still possible to remove the new member through quorum on the remaining live members.
+
+As a consequence KCP remediation should remove unhealthy machine first and then add its replacement.
+
+Additionally, in order to make this approach more robust, KCP will test each etcd member for responsiveness before
+using the Status endpoint and determine as best as possible that we would not exceed failure tolerance by removing a machine.
+This should ensure we are not taking actions in case there are other etcd members not properly working on machines
+not (yet) marked for remediation by the MachineHealthCheck.
+
+###### Scenario 1: Three replicas, one machine marked for remediation
+
+If MachineHealthCheck marks one machine for remediation in a control-plane with three replicas, we will look at the etcd
+status of each machine to determine if we have at most one failed member. Assuming the etcd cluster is still all healthy, 
+or the only unresponsive member is the one to be remediated, we will scale down the machine that failed the MHC and
+then scale up a new machine to replace it.
+
+###### Scenario 2: Three replicas, two machines marked for remediation
+
+If MachineHealthCheck marks two machines for remediation in a control-plane with three replicas, remediation might happen
+depending on the status of the etcd members on the three replicas.
+
+As long as we continue to only have at most one unhealthy etcd member, we will scale down an unhealthy machine, 
+wait for it to provision and join the cluster, and then scale down the other machine.
+
+However, if more than one etcd member is unhealthy, remediation would not happen and manual intervention would be required
+to fix the unhealthy machine.
+
+###### Scenario 3: Three replicas, one unresponsive etcd member, one (different) unhealthy machine
+
+It is possible to have a scenario where a different machine than the one that failed the MHC has an unresponsive etcd. 
+In this scenario, remediation would not happen and manual intervention would be required to fix the unhealthy machine.
+
+###### Scenario 4: Unhealthy machines combined with rollout
+
+When there exist unhealthy machines and there also have been configuration changes that trigger a rollout of new machines to occur, 
+remediation and rollout will occur in tandem. 
+
+This is to say that unhealthy machines will first be scaled down, and replaced with new machines that match the desired new spec. 
+Once the unhealthy machines have been replaced, the remaining healthy machines will also be replaced one-by-one as well to complete the rollout operation.
+ 
 ##### Health checks
+
+> NOTE:  This paragraph describes KCP health checks specifically designed to ensure a kubeadm 
+generated control-plane is stable before proceeding with KCP actions like scale up, scale down and rollout. 
+KCP health checks are different from the one implemented by the MachineHealthCheck controller.  
 
 - Will be used during scaling and upgrade operations.
 
@@ -453,4 +550,5 @@ For the purposes of designing upgrades, two existing lifecycle managers were exa
 - [x] 11/19/2019: Initial KubeadmControlPlane types added [#1765](https://github.com/kubernetes-sigs/cluster-api/pull/1765)
 - [x] 12/04/2019: Updated References to ErrorMessage/ErrorReason to FailureMessage/FailureReason
 - [x] 12/04/2019: Initial stubbed KubeadmControlPlane controller added [#1826](https://github.com/kubernetes-sigs/cluster-api/pull/1826)
-- [x] 07/09/2020: Document updated to reflect latest changes
+- [x] 07/09/2020: Document updated to reflect changes up to v0.3.9 release
+- [x] 22/09/2020: KCP remediation added

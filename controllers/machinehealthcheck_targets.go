@@ -228,7 +228,11 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(clusterClient client.R
 		Name: machine.Status.NodeRef.Name,
 	}
 	err := clusterClient.Get(context.TODO(), nodeKey, node)
-	return node, err
+	// if it cannot find a node, send a nil node back...
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
 }
 
 // healthCheckTargets health checks a slice of targets

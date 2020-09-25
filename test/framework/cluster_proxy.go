@@ -60,6 +60,9 @@ type ClusterProxy interface {
 	// GetClientSet returns a client-go client to the Kubernetes cluster.
 	GetClientSet() *kubernetes.Clientset
 
+	// GetRESTConfig returns the REST config for direct use with client-go if needed.
+	GetRESTConfig() *rest.Config
+
 	// Apply to apply YAML to the Kubernetes cluster, `kubectl apply`.
 	Apply(context.Context, []byte) error
 
@@ -158,7 +161,7 @@ func (p *clusterProxy) GetScheme() *runtime.Scheme {
 
 // GetClient returns a controller-runtime client for the cluster.
 func (p *clusterProxy) GetClient() client.Client {
-	config := p.getConfig()
+	config := p.GetRESTConfig()
 
 	c, err := client.New(config, client.Options{Scheme: p.scheme})
 	Expect(err).ToNot(HaveOccurred(), "Failed to get controller-runtime client")
@@ -168,7 +171,7 @@ func (p *clusterProxy) GetClient() client.Client {
 
 // GetClientSet returns a client-go client for the cluster.
 func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
-	restConfig := p.getConfig()
+	restConfig := p.GetRESTConfig()
 
 	cs, err := kubernetes.NewForConfig(restConfig)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get client-go client")
@@ -192,7 +195,7 @@ func (p *clusterProxy) ApplyWithArgs(ctx context.Context, resources []byte, args
 	return exec.KubectlApplyWithArgs(ctx, p.kubeconfigPath, resources, args...)
 }
 
-func (p *clusterProxy) getConfig() *rest.Config {
+func (p *clusterProxy) GetRESTConfig() *rest.Config {
 	config, err := clientcmd.LoadFromFile(p.kubeconfigPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to load Kubeconfig file from %q", p.kubeconfigPath)
 
@@ -308,6 +311,7 @@ func findLoadBalancerPort(ctx context.Context, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return strings.TrimSpace(string(stdout)), nil
 }
 

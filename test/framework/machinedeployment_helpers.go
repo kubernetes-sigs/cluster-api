@@ -55,7 +55,7 @@ func CreateMachineDeployment(ctx context.Context, input CreateMachineDeploymentI
 	Expect(input.Creator.Create(ctx, input.InfraMachineTemplate)).To(Succeed())
 }
 
-// GetMachineDeploymentsByClusterInput is the input for GetMachineDeploymentsByCluster.
+// GetMachineDeploymentsByClusterInput is the input for GetMachineDeploymentsByCluster
 type GetMachineDeploymentsByClusterInput struct {
 	Lister      Lister
 	ClusterName string

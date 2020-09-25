@@ -30,12 +30,16 @@ const nodeRoleLabelKey = "io.x-k8s.kind.role"
 
 // clusterLabel returns the label applied to all the containers in a cluster
 func clusterLabel(name string) string {
-	return fmt.Sprintf("%s=%s", clusterLabelKey, name)
+	return toLabel(clusterLabelKey, name)
 }
 
 // roleLabel returns the label applied to all the containers with a specific role
 func roleLabel(role string) string {
-	return fmt.Sprintf("%s=%s", nodeRoleLabelKey, role)
+	return toLabel(nodeRoleLabelKey, role)
+}
+
+func toLabel(key, val string) string {
+	return fmt.Sprintf("%s=%s", key, val)
 }
 
 func machineContainerName(cluster, machine string) string {
@@ -43,6 +47,11 @@ func machineContainerName(cluster, machine string) string {
 		return machine
 	}
 	return fmt.Sprintf("%s-%s", cluster, machine)
+}
+
+func machineFromContainerName(cluster, containerName string) string {
+	machine := strings.TrimPrefix(containerName, cluster)
+	return strings.TrimPrefix(machine, "-")
 }
 
 // withName returns a filter on name for listContainers & getContainer
@@ -101,7 +110,7 @@ func list(visit func(string, *types.Node), filters ...string) error {
 		// filter for nodes with the cluster label
 		"--filter", "label=" + clusterLabelKey,
 		// format to include friendly name and the cluster name
-		"--format", fmt.Sprintf(`{{.Names}}\t{{.Label "%s"}}`, clusterLabelKey),
+		"--format", fmt.Sprintf(`{{.Names}}\t{{.Label "%s"}}\t{{.Image}}`, clusterLabelKey),
 	}
 	for _, filter := range filters {
 		args = append(args, "--filter", filter)
@@ -113,12 +122,13 @@ func list(visit func(string, *types.Node), filters ...string) error {
 	}
 	for _, line := range lines {
 		parts := strings.Split(line, "\t")
-		if len(parts) != 2 {
+		if len(parts) != 3 {
 			return errors.Errorf("invalid output when listing nodes: %s", line)
 		}
 		names := strings.Split(parts[0], ",")
 		cluster := parts[1]
-		visit(cluster, types.NewNode(names[0], "undetermined"))
+		image := parts[2]
+		visit(cluster, types.NewNode(names[0], image, "undetermined"))
 	}
 	return nil
 }

@@ -1,5 +1,5 @@
 /*
-Copyright YEAR The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,3 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+package controllers
+
+// This file adds RBAC permissions to the Docker Infrastructure manager to operate on all objects in the experimental API group.
+
+// +kubebuilder:rbac:groups=exp.infrastructure.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=*,verbs=get;list;watch

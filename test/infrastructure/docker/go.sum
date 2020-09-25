@@ -596,6 +596,7 @@ k8s.io/client-go v0.17.9/go.mod h1:3cM92qAd1XknA5IRkRfpJhl9OQjkYy97ZEUio70wVnI=
 k8s.io/cluster-bootstrap v0.17.9 h1:IH/MwGor5/7bwHClz0PO/8pKq+SU1eSB1rs645pGu8Y=
 k8s.io/cluster-bootstrap v0.17.9/go.mod h1:Q6nXn/sqVfMvT1VIJVPxFboYAoqH06PCjZnaYzbpZC0=
 k8s.io/code-generator v0.17.9/go.mod h1:iiHz51+oTx+Z9D0vB3CH3O4HDDPWrvZyUgUYaIE9h9M=
+k8s.io/component-base v0.17.9 h1:1CmgQ367Eo6UWkfO1sl7Z99KJpbwkrs9aMY5LZTQR9s=
 k8s.io/component-base v0.17.9/go.mod h1:Wg22ePDK0mfTa+bEFgZHGwr0h40lXnYy6D7D+f7itFk=
 k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/gengo v0.0.0-20190822140433-26a664648505/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=

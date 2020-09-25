@@ -1,5 +1,7 @@
+// +build e2e
+
 /*
-Copyright YEAR The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,3 +15,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+package e2e
+
+import (
+	"context"
+
+	. "github.com/onsi/ginkgo"
+)
+
+var _ = Describe("When testing MachinePools", func() {
+	MachinePoolSpec(context.TODO(), func() MachinePoolInput {
+		return MachinePoolInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+		}
+	})
+})

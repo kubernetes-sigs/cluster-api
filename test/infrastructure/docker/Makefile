@@ -36,6 +36,7 @@ export DOCKER_CLI_EXPERIMENTAL := enabled
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+EXP_DIR := exp
 
 # Binaries.
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
@@ -108,7 +109,8 @@ generate: $(CONTROLLER_GEN) ## Generate code
 generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
 	$(CONTROLLER_GEN) \
 		object:headerFile=$(ROOT)/hack/boilerplate/boilerplate.generatego.txt \
-		paths=./api/...
+		paths=./api/... \
+		paths=./$(EXP_DIR)/api/...
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
 		--output-file-base=zz_generated.conversion \
@@ -118,6 +120,8 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate tar
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
+		paths=./$(EXP_DIR)/api/... \
+		paths=./$(EXP_DIR)/controllers/... \
 		paths=./controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \

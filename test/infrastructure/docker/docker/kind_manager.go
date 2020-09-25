@@ -34,7 +34,7 @@ const ControlPlanePort = 6443
 
 type Manager struct{}
 
-func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping) (*types.Node, error) {
+func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
 	// gets a random host port for the API server
 	if port == 0 {
 		p, err := getPort()
@@ -53,7 +53,7 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddres
 	node, err := createNode(
 		name, image, clusterLabel, constants.ControlPlaneNodeRoleValue, mounts, portMappingsWithAPIServer,
 		// publish selected port for the API server
-		"--expose", fmt.Sprintf("%d", port),
+		append([]string{"--expose", fmt.Sprintf("%d", port)}, labelsAsArgs(labels)...)...,
 	)
 	if err != nil {
 		return nil, err
@@ -62,8 +62,8 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddres
 	return node, nil
 }
 
-func (m *Manager) CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping) (*types.Node, error) {
-	return createNode(name, image, clusterLabel, constants.WorkerNodeRoleValue, mounts, portMappings)
+func (m *Manager) CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
+	return createNode(name, image, clusterLabel, constants.WorkerNodeRoleValue, mounts, portMappings, labelsAsArgs(labels)...)
 }
 
 func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error) {
@@ -152,7 +152,19 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 		return nil, err
 	}
 
-	return types.NewNode(name, role), nil
+	return types.NewNode(name, image, role), nil
+}
+
+// labelsAsArgs transforms a map of labels into extraArgs
+func labelsAsArgs(labels map[string]string) []string {
+	args := make([]string, len(labels)*2)
+	i := 0
+	for key, val := range labels {
+		args[i] = "--label"
+		args[i+1] = fmt.Sprintf("%s=%s", key, val)
+		i++
+	}
+	return args
 }
 
 // helper used to get a free TCP port for the API server

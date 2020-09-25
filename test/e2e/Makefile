@@ -59,6 +59,7 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption/step1 --load_restrictor none > $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption.yaml
 	echo "---" >> $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption/step2 --load_restrictor none >> $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/cluster-template-machine-pool --load_restrictor none > $(DOCKER_TEMPLATES)/cluster-template-machine-pool.yaml
 
 ## --------------------------------------
 ## Testing

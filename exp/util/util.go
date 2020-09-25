@@ -19,11 +19,15 @@ package util
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // GetOwnerMachinePool returns the MachinePool objects owning the current resource.
@@ -51,4 +55,37 @@ func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name 
 		return nil, err
 	}
 	return m, nil
+}
+
+// MachinePoolToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
+// MachinePool events and returns reconciliation requests for an infrastructure provider object.
+func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Logger) handler.ToRequestsFunc {
+	log = log.WithValues("machine-pool-to-infra-map-func", gvk.String())
+	return func(o handler.MapObject) []reconcile.Request {
+		log := log.WithValues("namespace", o.Meta.GetNamespace(), "name", o.Meta.GetName())
+		m, ok := o.Object.(*clusterv1exp.MachinePool)
+		if !ok {
+			log.V(4).Info("not a machine pool")
+			return nil
+		}
+
+		gk := gvk.GroupKind()
+		ref := m.Spec.Template.Spec.InfrastructureRef
+		// Return early if the GroupKind doesn't match what we expect.
+		infraGK := ref.GroupVersionKind().GroupKind()
+		if gk != infraGK {
+			log.V(4).Info("infra kind doesn't match filter group kind", infraGK.String())
+			return nil
+		}
+
+		log.V(4).Info("projecting object", "namespace", m.Namespace, "name", ref.Name)
+		return []reconcile.Request{
+			{
+				NamespacedName: client.ObjectKey{
+					Namespace: m.Namespace,
+					Name:      ref.Name,
+				},
+			},
+		}
+	}
 }

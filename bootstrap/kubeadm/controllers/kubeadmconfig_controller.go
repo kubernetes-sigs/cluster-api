@@ -203,7 +203,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 				bootstrapv1.DataSecretAvailableCondition,
 				bootstrapv1.CertificatesAvailableCondition,
 			),
-			conditions.WithStepCounter(),
 		)
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}

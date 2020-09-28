@@ -449,11 +449,6 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 	return nil
 }
 
-func patchControlPlaneMachine(ctx context.Context, patchHelper *patch.Helper, machine *clusterv1.Machine) error {
-	// Patch the object, ignoring conflicts on the conditions owned by this controller.
-	return patchHelper.Patch(ctx, machine)
-}
-
 // reconcileControlPlaneHealth performs health checks for control plane components and etcd
 // It removes any etcd members that do not have a corresponding node.
 // Also, as a final step, checks if there is any machines that is being deleted.
@@ -465,17 +460,17 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneHealth(ctx context.
 		return ctrl.Result{}, nil
 	}
 
-	for _, m := range controlPlane.Machines {
+	for i := range controlPlane.Machines {
+		m := controlPlane.Machines[i]
 		// Initialize the patch helper.
 		patchHelper, err := patch.NewHelper(m, r.Client)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		machine := m
 		defer func() {
 			// Always attempt to Patch the Machine conditions after each health reconciliation.
-			if err := patchControlPlaneMachine(ctx, patchHelper, machine); err != nil {
+			if err := patchHelper.Patch(ctx, m); err != nil {
 				logger.Error(err, "Failed to patch KubeadmControlPlane Machine")
 			}
 		}()

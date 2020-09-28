@@ -51,7 +51,6 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 	expectedMembers := 0
 	response := make(map[string]error)
 	var owningMachine *clusterv1.Machine
-	owningMachine = nil
 
 	// Initial assumtion is that etcd cluster is healthy. If otherwise is observed below, it is set to false.
 	conditions.Set(controlPlane.KCP, conditions.TrueCondition(controlplanev1.EtcdClusterHealthy))
@@ -68,7 +67,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 			if m.Spec.ProviderID != nil && *m.Spec.ProviderID == node.Spec.ProviderID {
 				owningMachine = m
 				// Only set this condition if the node has an owning machine.
-				controlPlane.MachineConditions[owningMachine.Name][clusterv1.MachineEtcdMemberHealthyCondition] = conditions.TrueCondition(clusterv1.MachineEtcdMemberHealthyCondition)
+				conditions.Set(owningMachine, conditions.TrueCondition(clusterv1.MachineEtcdMemberHealthyCondition))
 				break
 			}
 		}
@@ -76,7 +75,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		// TODO: If owning machine is nil, should not continue. But this change breaks the logic below.
 
 		// Check etcd pod's health
-		isEtcdPodHealthy, _ := w.checkPodStatusAndUpdateCondition(controlPlane, EtcdPodNamePrefix, node, owningMachine, clusterv1.MachineEtcdPodHealthyCondition)
+		isEtcdPodHealthy, _ := w.checkPodStatusAndUpdateCondition(EtcdPodNamePrefix, node, owningMachine, clusterv1.MachineEtcdPodHealthyCondition)
 		// isEtcdPodHealthy is false, if Pod is not Ready or there is a client error.
 		if !isEtcdPodHealthy {
 			// Nothing wrong here, etcd on this node is just not running.
@@ -93,7 +92,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		etcdClient, err := w.etcdClientGenerator.forNodes(ctx, []corev1.Node{node})
 		if err != nil {
 			if owningMachine != nil {
-				controlPlane.MachineConditions[owningMachine.Name][clusterv1.MachineEtcdMemberHealthyCondition] = conditions.FalseCondition(clusterv1.MachineEtcdMemberHealthyCondition, clusterv1.EtcdMemberUnhealthyReason, ConditionReason(clusterv1.EtcdMemberUnhealthyReason).GetSeverity(), "etcd client related failure.")
+				conditions.Set(owningMachine, conditions.FalseCondition(clusterv1.MachineEtcdMemberHealthyCondition, clusterv1.EtcdMemberUnhealthyReason, ConditionReason(clusterv1.EtcdMemberUnhealthyReason).GetSeverity(), "etcd client related failure."))
 			}
 			response[name] = errors.Wrap(err, "failed to create etcd client")
 			continue
@@ -104,7 +103,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		members, err := etcdClient.Members(ctx)
 		if err != nil {
 			if owningMachine != nil {
-				controlPlane.MachineConditions[owningMachine.Name][clusterv1.MachineEtcdMemberHealthyCondition] = conditions.FalseCondition(clusterv1.MachineEtcdMemberHealthyCondition, clusterv1.EtcdMemberUnhealthyReason, ConditionReason(clusterv1.EtcdMemberUnhealthyReason).GetSeverity(), "etcd client related failure.")
+				conditions.Set(owningMachine, conditions.FalseCondition(clusterv1.MachineEtcdMemberHealthyCondition, clusterv1.EtcdMemberUnhealthyReason, ConditionReason(clusterv1.EtcdMemberUnhealthyReason).GetSeverity(), "etcd client related failure."))
 			}
 			response[name] = errors.Wrap(err, "failed to list etcd members using etcd client")
 			continue
@@ -115,7 +114,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		// Check that the member reports no alarms.
 		if len(member.Alarms) > 0 {
 			if owningMachine != nil {
-				controlPlane.MachineConditions[owningMachine.Name][clusterv1.MachineEtcdMemberHealthyCondition] = conditions.FalseCondition(clusterv1.MachineEtcdMemberHealthyCondition, clusterv1.EtcdMemberUnhealthyReason, ConditionReason(clusterv1.EtcdMemberUnhealthyReason).GetSeverity(), "etcd member has alarms.")
+				conditions.Set(owningMachine, conditions.FalseCondition(clusterv1.MachineEtcdMemberHealthyCondition, clusterv1.EtcdMemberUnhealthyReason, ConditionReason(clusterv1.EtcdMemberUnhealthyReason).GetSeverity(), "etcd member has alarms."))
 			}
 			response[name] = errors.Errorf("etcd member reports alarms: %v", member.Alarms)
 			continue

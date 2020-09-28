@@ -212,27 +212,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	return r.reconcile(ctx, cluster, kcp)
 }
 
-// setSingleMachineConditions updates the machine's conditions according to health tracker.
-func setSingleMachineConditions(machine *clusterv1.Machine, controlPlane *internal.ControlPlane) {
-	for condType, condition := range controlPlane.MachineConditions[machine.Name] {
-		doesConditionExist := false
-		for _, mCondition := range machine.Status.Conditions {
-			// If the condition already exists, change the condition.
-			if mCondition.Type == condType {
-				conditions.Set(machine, condition)
-				doesConditionExist = true
-			}
-		}
-		if !doesConditionExist {
-			if machine.Status.Conditions == nil {
-				machine.Status.Conditions = clusterv1.Conditions{}
-			}
-			conditions.Set(machine, condition)
-		}
-
-	}
-}
-
 func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *controlplanev1.KubeadmControlPlane) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	conditions.SetSummary(kcp,
@@ -327,12 +306,10 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
 	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef())
 
-	// If control plane is initialized, reconcile health.
-	if ownedMachines.Len() != 0 {
-		// reconcileControlPlaneHealth returns err if there is a machine being delete
-		if result, err := r.reconcileControlPlaneHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
-			return result, err
-		}
+	// reconcileControlPlaneHealth returns err if there is a machine being delete or control plane is unhealthy.
+	// If control plane is not initialized, then control-plane machines will be empty and hence health check will not fail.
+	if result, err := r.reconcileControlPlaneHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
+		return result, err
 	}
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
@@ -474,21 +451,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 
 func patchControlPlaneMachine(ctx context.Context, patchHelper *patch.Helper, machine *clusterv1.Machine) error {
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
-
-	// TODO: Is it okay to own these conditions or just patch?
-	// return patchHelper.Patch(ctx, machine)
-
-	return patchHelper.Patch(
-		ctx,
-		machine,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.MachineAPIServerPodHealthyCondition,
-			clusterv1.MachineControllerManagerHealthyCondition,
-			clusterv1.MachineEtcdMemberHealthyCondition,
-			clusterv1.MachineEtcdPodHealthyCondition,
-			clusterv1.MachineSchedulerPodHealthyCondition,
-		}},
-	)
+	return patchHelper.Patch(ctx, machine)
 }
 
 // reconcileControlPlaneHealth performs health checks for control plane components and etcd
@@ -497,17 +460,20 @@ func patchControlPlaneMachine(ctx context.Context, patchHelper *patch.Helper, ma
 func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneHealth(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name)
 
+	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet.
+	if controlPlane.Machines.Len() == 0 {
+		return ctrl.Result{}, nil
+	}
+
 	for _, m := range controlPlane.Machines {
 		// Initialize the patch helper.
 		patchHelper, err := patch.NewHelper(m, r.Client)
 		if err != nil {
-			logger.Error(err, "Failed to configure the patch helper")
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{}, err
 		}
 
 		machine := m
 		defer func() {
-			setSingleMachineConditions(machine, controlPlane)
 			// Always attempt to Patch the Machine conditions after each health reconciliation.
 			if err := patchControlPlaneMachine(ctx, patchHelper, machine); err != nil {
 				logger.Error(err, "Failed to patch KubeadmControlPlane Machine")

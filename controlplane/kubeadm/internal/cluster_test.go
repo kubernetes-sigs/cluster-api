@@ -466,6 +466,7 @@ func createControlPlane(machines []*clusterv1.Machine) *ControlPlane {
 	controlPlane, _ := NewControlPlane(ctx, &fakeClient{}, &clusterv1.Cluster{}, &v1alpha3.KubeadmControlPlane{}, NewFilterableMachineCollection(machines...))
 	return controlPlane
 }
+
 func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 	threeMachines := []*clusterv1.Machine{
 		controlPlaneMachine("one"),

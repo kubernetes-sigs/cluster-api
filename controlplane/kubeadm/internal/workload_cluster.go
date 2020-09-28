@@ -170,17 +170,17 @@ func (w *Workload) ControlPlaneIsHealthy(ctx context.Context, controlPlane *Cont
 		}
 
 		// Check kube-api-server health
-		if _, err = w.checkPodStatusAndUpdateCondition(controlPlane, KubeAPIServerPodNamePrefix, node, owningMachine, clusterv1.MachineAPIServerPodHealthyCondition); err != nil {
+		if _, err = w.checkPodStatusAndUpdateCondition(KubeAPIServerPodNamePrefix, node, owningMachine, clusterv1.MachineAPIServerPodHealthyCondition); err != nil {
 			anyError = err
 		}
 
 		// Check kube-controller-manager health
-		if _, err = w.checkPodStatusAndUpdateCondition(controlPlane, KubeControllerManagerPodNamePrefix, node, owningMachine, clusterv1.MachineControllerManagerHealthyCondition); err != nil {
+		if _, err = w.checkPodStatusAndUpdateCondition(KubeControllerManagerPodNamePrefix, node, owningMachine, clusterv1.MachineControllerManagerHealthyCondition); err != nil {
 			anyError = err
 		}
 
 		// Check kube-scheduler health
-		if _, err = w.checkPodStatusAndUpdateCondition(controlPlane, KubeSchedulerHealthyPodNamePrefix, node, owningMachine, clusterv1.MachineSchedulerPodHealthyCondition); err != nil {
+		if _, err = w.checkPodStatusAndUpdateCondition(KubeSchedulerHealthyPodNamePrefix, node, owningMachine, clusterv1.MachineSchedulerPodHealthyCondition); err != nil {
 			anyError = err
 		}
 
@@ -199,7 +199,7 @@ func (w *Workload) ControlPlaneIsHealthy(ctx context.Context, controlPlane *Cont
 // checkPodStatusAndUpdateConditions returns error only when it is obvious that the Pod is not in Running/Ready state, so it does not return error on transient client errors.
 // For instance, returning (false, nil) means Pod is not ready but is not in error state as well,
 // returning (false, err) means Pod is not ready and it is in error state as well.
-func (w *Workload) checkPodStatusAndUpdateCondition(controlPlane *ControlPlane, staticPodPrefix string, node corev1.Node, owningMachine *clusterv1.Machine, conditionType clusterv1.ConditionType) (bool, error) {
+func (w *Workload) checkPodStatusAndUpdateCondition(staticPodPrefix string, node corev1.Node, owningMachine *clusterv1.Machine, conditionType clusterv1.ConditionType) (bool, error) {
 	staticPodKey := ctrlclient.ObjectKey{
 		Namespace: metav1.NamespaceSystem,
 		Name:      staticPodName(staticPodPrefix, node.Name),
@@ -210,9 +210,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(controlPlane *ControlPlane, 
 		// If there is an error getting the Pod, do not set any conditions.
 		if apierrors.IsNotFound(err) {
 			if owningMachine != nil {
-				if _, ok := controlPlane.MachineConditions[owningMachine.Name]; ok {
-					controlPlane.MachineConditions[owningMachine.Name][conditionType] = conditions.FalseCondition(conditionType, clusterv1.PodMissingReason, ConditionReason(clusterv1.PodMissingReason).GetSeverity(), "")
-				}
+				conditions.Set(owningMachine, conditions.FalseCondition(conditionType, clusterv1.PodMissingReason, ConditionReason(clusterv1.PodMissingReason).GetSeverity(), ""))
 			}
 			return false, errors.Errorf("static pod %s is missing", staticPodPrefix)
 		}
@@ -223,7 +221,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(controlPlane *ControlPlane, 
 	if err := checkStaticPodReadyCondition(staticPod); err != nil {
 		if checkStaticPodFailedPhase(staticPod) {
 			if owningMachine != nil {
-				controlPlane.MachineConditions[owningMachine.Name][conditionType] = conditions.FalseCondition(conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "")
+				conditions.Set(owningMachine, conditions.FalseCondition(conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), ""))
 			}
 			return false, errors.Errorf("static pod %s is failed", staticPodPrefix)
 		}
@@ -231,7 +229,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(controlPlane *ControlPlane, 
 		// Check if the Pod is in Pending state
 		if checkStaticPodProvisioning(staticPod) {
 			if owningMachine != nil {
-				controlPlane.MachineConditions[owningMachine.Name][conditionType] = conditions.FalseCondition(conditionType, clusterv1.PodProvisioningReason, ConditionReason(clusterv1.PodProvisioningReason).GetSeverity(), "")
+				conditions.Set(owningMachine, conditions.FalseCondition(conditionType, clusterv1.PodProvisioningReason, ConditionReason(clusterv1.PodProvisioningReason).GetSeverity(), ""))
 			}
 			// This is not an error case.
 			return false, nil
@@ -242,7 +240,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(controlPlane *ControlPlane, 
 		// Non-nil podProvisioningState means there is at least one container in waiting state.
 		if podProvisioningState != "" {
 			if owningMachine != nil {
-				controlPlane.MachineConditions[owningMachine.Name][conditionType] = conditions.FalseCondition(conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "Pod is provisioned but not ready.")
+				conditions.Set(owningMachine, conditions.FalseCondition(conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "Pod is provisioned but not ready."))
 			}
 			return false, errors.Errorf("static pod %s is provisioned but still is not ready", staticPodPrefix)
 		}
@@ -251,7 +249,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(controlPlane *ControlPlane, 
 	}
 
 	if owningMachine != nil {
-		controlPlane.MachineConditions[owningMachine.Name][conditionType] = conditions.TrueCondition(conditionType)
+		conditions.Set(owningMachine, conditions.TrueCondition(conditionType))
 	}
 	return true, nil
 }

@@ -542,22 +542,27 @@ func TestMachineConditions(t *testing.T) {
 	}
 
 	testcases := []struct {
-		name                string
-		infraReady          bool
-		bootstrapReady      bool
-		beforeFunc          func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine)
-		conditionAssertFunc func(t *testing.T, getter conditions.Getter)
+		name               string
+		infraReady         bool
+		bootstrapReady     bool
+		beforeFunc         func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine)
+		conditionsToAssert []*clusterv1.Condition
 	}{
 		{
 			name:           "all conditions true",
 			infraReady:     true,
 			bootstrapReady: true,
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
-				g := NewWithT(t)
-				g.Expect(getter.GetConditions()).NotTo(HaveLen(0))
-				for _, c := range getter.GetConditions() {
-					g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
-				}
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+				// since these conditions are set by an external controller
+				conditions.MarkTrue(m, clusterv1.MachineHealthCheckSuccededCondition)
+				conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedCondition)
+			},
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.TrueCondition(clusterv1.InfrastructureReadyCondition),
+				conditions.TrueCondition(clusterv1.BootstrapReadyCondition),
+				conditions.TrueCondition(clusterv1.MachineOwnerRemediatedCondition),
+				conditions.TrueCondition(clusterv1.MachineHealthCheckSuccededCondition),
+				conditions.TrueCondition(clusterv1.ReadyCondition),
 			},
 		},
 		{
@@ -574,29 +579,17 @@ func TestMachineConditions(t *testing.T) {
 					},
 				})
 			},
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
-				g := NewWithT(t)
-
-				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
-				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
-				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
-				g.Expect(infraReadyCondition.Reason).To(Equal("Custom reason"))
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.InfrastructureReadyCondition, "Custom reason", clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
 		{
 			name:           "infra condition consumes the fallback reason",
 			infraReady:     false,
 			bootstrapReady: true,
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
-				g := NewWithT(t)
-
-				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
-				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
-				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
-
-				g.Expect(conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
-				readyCondition := conditions.Get(getter, clusterv1.ReadyCondition)
-				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.InfrastructureReadyCondition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
 		{
@@ -613,43 +606,49 @@ func TestMachineConditions(t *testing.T) {
 					},
 				})
 			},
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
-				g := NewWithT(t)
-
-				g.Expect(conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
-				infraReadyCondition := conditions.Get(getter, clusterv1.BootstrapReadyCondition)
-				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
-				g.Expect(infraReadyCondition.Reason).To(Equal("Custom reason"))
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.BootstrapReadyCondition, "Custom reason", clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
 		{
 			name:           "bootstrap condition consumes the fallback reason",
 			infraReady:     true,
 			bootstrapReady: false,
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
-				g := NewWithT(t)
-
-				g.Expect(conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
-				infraReadyCondition := conditions.Get(getter, clusterv1.BootstrapReadyCondition)
-				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
-
-				g.Expect(conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
-				readyCondition := conditions.Get(getter, clusterv1.ReadyCondition)
-				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.BootstrapReadyCondition, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
+		// Assert summary conditions
 		// infra condition takes precedence over bootstrap condition in generating summary
 		{
 			name:           "ready condition summary consumes reason from the infra condition",
 			infraReady:     false,
 			bootstrapReady: false,
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
-				g := NewWithT(t)
-
-				g.Expect(conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
-				readyCondition := conditions.Get(getter, clusterv1.ReadyCondition)
-				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
-				g.Expect(readyCondition.Reason).To(Equal(clusterv1.WaitingForInfrastructureFallbackReason))
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+			},
+		},
+		{
+			name:           "ready condition summary consumes reason from the machine owner remediated condition",
+			infraReady:     true,
+			bootstrapReady: true,
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+				conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MHC failed")
+			},
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MHC failed"),
+			},
+		},
+		{
+			name:           "ready condition summary consumes reason from the MHC succeeded condition",
+			infraReady:     true,
+			bootstrapReady: true,
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+				conditions.MarkFalse(m, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
+			},
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, ""),
 			},
 		},
 	}
@@ -689,7 +688,7 @@ func TestMachineConditions(t *testing.T) {
 			machineKey, _ := client.ObjectKeyFromObject(&machine)
 			g.Expect(r.Client.Get(ctx, machineKey, m)).NotTo(HaveOccurred())
 
-			tt.conditionAssertFunc(t, m)
+			assertConditions(t, m, tt.conditionsToAssert...)
 		})
 	}
 }
@@ -1287,4 +1286,31 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 	}
 	existingConditions = append(existingConditions, newConditions...)
 	conditions.UnstructuredSetter(u).SetConditions(existingConditions)
+}
+
+// asserts the conditions set on the Getter object
+func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
+	for _, condition := range conditions {
+		assertCondition(t, from, condition)
+	}
+}
+
+// asserts whether a condition of type is set on the Getter object
+// when the condition is true, asserting the reason/severity/message
+// for the condition are avoided.
+func assertCondition(t *testing.T, from conditions.Getter, condition *clusterv1.Condition) {
+	g := NewWithT(t)
+	g.Expect(conditions.Has(from, condition.Type)).To(BeTrue())
+
+	if condition.Status == corev1.ConditionTrue {
+		conditions.IsTrue(from, condition.Type)
+	} else {
+		conditionToBeAsserted := conditions.Get(from, condition.Type)
+		g.Expect(conditionToBeAsserted.Status).To(Equal(condition.Status))
+		g.Expect(conditionToBeAsserted.Severity).To(Equal(condition.Severity))
+		g.Expect(conditionToBeAsserted.Reason).To(Equal(condition.Reason))
+		if condition.Message != "" {
+			g.Expect(conditionToBeAsserted.Message).To(Equal(condition.Message))
+		}
+	}
 }

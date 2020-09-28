@@ -9,6 +9,9 @@ title = "The Cluster API Book"
 curly-quotes = true
 git-repository-url = "https://sigs.k8s.io/cluster-api"
 
+[output.html.redirect]
+"/tasks/upgrade.html" = "/tasks/upgrading-cluster-api-versions.html"
+
 [preprocessor.tabulate]
 command = "./util-tabulate.sh"
 

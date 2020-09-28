@@ -450,12 +450,10 @@ release: clean-release ## Builds and push container images using the latest git 
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
-	$(MAKE) release-manifests
-	# Release CAPD components and add them to the release dir
-	$(MAKE) -C test/infrastructure/docker/ release
-	cp test/infrastructure/docker/out/infrastructure-components.yaml $(RELEASE_DIR)/infrastructure-components-development.yaml
-	# Adds CAPD templates
-	cp test/infrastructure/docker/templates/* $(RELEASE_DIR)/
+	## Build the manifests
+	$(MAKE) release-manifests clean-git-release
+	## Build the development manifests
+	$(MAKE) release-manifests-dev clean-git-release
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publish with a release
@@ -472,6 +470,14 @@ release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publis
 	cat $(RELEASE_DIR)/bootstrap-components.yaml >> $(RELEASE_DIR)/cluster-api-components.yaml
 	echo "---" >> $(RELEASE_DIR)/cluster-api-components.yaml
 	cat $(RELEASE_DIR)/control-plane-components.yaml >> $(RELEASE_DIR)/cluster-api-components.yaml
+
+.PHONY: release-manifests-dev
+release-manifests-dev: ## Builds the development manifests and copies them in the release folder
+	# Release CAPD components and add them to the release dir
+	$(MAKE) -C test/infrastructure/docker/ release
+	cp test/infrastructure/docker/out/infrastructure-components.yaml $(RELEASE_DIR)/infrastructure-components-development.yaml
+	# Adds CAPD templates
+	cp test/infrastructure/docker/templates/* $(RELEASE_DIR)/
 
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
@@ -536,6 +542,10 @@ clean-bin: ## Remove all generated binaries
 .PHONY: clean-release
 clean-release: ## Remove the release folder
 	rm -rf $(RELEASE_DIR)
+
+.PHONY: clean-release-git
+clean-release-git: ## Restores the git files usually modified during a release
+	git restore ./*manager_image_patch.yaml ./*manager_pull_policy.yaml
 
 .PHONY: clean-book
 clean-book: ## Remove all generated GitBook files

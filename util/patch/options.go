@@ -30,9 +30,24 @@ type HelperOptions struct {
 	// on the incoming object to match metadata.generation, only if there is a change.
 	IncludeStatusObservedGeneration bool
 
+	// ForceOverwriteConditions allows the patch helper to overwrite conditions in case of conflicts.
+	// This option should only ever be set in controller managing the object being patched.
+	ForceOverwriteConditions bool
+
 	// OwnedConditions defines condition types owned by the controller.
 	// In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
+	//
+	// DEPRECATED: Use ForceOverwriteConditions.
 	OwnedConditions []clusterv1.ConditionType
+}
+
+// WithForceOverwriteConditions allows the patch helper to overwrite conditions in case of conflicts.
+// This option should only ever be set in controller managing the object being patched.
+type WithForceOverwriteConditions struct{}
+
+// ApplyToHelper applies this configuration to the given HelperOptions.
+func (w WithForceOverwriteConditions) ApplyToHelper(in *HelperOptions) {
+	in.ForceOverwriteConditions = true
 }
 
 // WithStatusObservedGeneration sets the status.observedGeneration field
@@ -46,6 +61,8 @@ func (w WithStatusObservedGeneration) ApplyToHelper(in *HelperOptions) {
 
 // WithOwnedConditions allows to define condition types owned by the controller.
 // In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
+//
+// DEPRECATED: Use WithForceOverwriteConditions.
 type WithOwnedConditions struct {
 	Conditions []clusterv1.ConditionType
 }

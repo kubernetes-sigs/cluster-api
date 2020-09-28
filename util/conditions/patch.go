@@ -82,6 +82,7 @@ func NewPatch(before Getter, after Getter) Patch {
 // applyOptions allows to set strategies for patch apply.
 type applyOptions struct {
 	ownedConditions []clusterv1.ConditionType
+	forceOverwrite  bool
 }
 
 func (o *applyOptions) isOwnedCondition(t clusterv1.ConditionType) bool {
@@ -98,9 +99,18 @@ type ApplyOption func(*applyOptions)
 
 // WithOwnedConditions allows to define condition types owned by the controller.
 // In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
+//
+// DEPRECATED: Use WithForceOverwrite.
 func WithOwnedConditions(t ...clusterv1.ConditionType) ApplyOption {
 	return func(c *applyOptions) {
 		c.ownedConditions = t
+	}
+}
+
+// WithForceOverwrite In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
+func WithForceOverwrite(v bool) ApplyOption {
+	return func(c *applyOptions) {
+		c.forceOverwrite = v
 	}
 }
 
@@ -120,7 +130,7 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 		switch conditionPatch.Op {
 		case AddConditionPatch:
 			// If the conditions is owned, always keep the after value.
-			if applyOpt.isOwnedCondition(conditionPatch.After.Type) {
+			if applyOpt.forceOverwrite || applyOpt.isOwnedCondition(conditionPatch.After.Type) {
 				Set(latest, conditionPatch.After)
 				continue
 			}
@@ -140,7 +150,7 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 
 		case ChangeConditionPatch:
 			// If the conditions is owned, always keep the after value.
-			if applyOpt.isOwnedCondition(conditionPatch.After.Type) {
+			if applyOpt.forceOverwrite || applyOpt.isOwnedCondition(conditionPatch.After.Type) {
 				Set(latest, conditionPatch.After)
 				continue
 			}
@@ -167,7 +177,7 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 
 		case RemoveConditionPatch:
 			// If the conditions is owned, always keep the after value (condition should be deleted).
-			if applyOpt.isOwnedCondition(conditionPatch.Before.Type) {
+			if applyOpt.forceOverwrite || applyOpt.isOwnedCondition(conditionPatch.Before.Type) {
 				Delete(latest, conditionPatch.Before.Type)
 				continue
 			}

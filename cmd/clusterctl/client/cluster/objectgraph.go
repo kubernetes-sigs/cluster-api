@@ -479,3 +479,13 @@ func (o *objectGraph) setCRSTenant(node, tenant *node) {
 		}
 	}
 }
+
+// checkVirtualNode logs if nodes are still virtual
+func (o *objectGraph) checkVirtualNode() {
+	log := logf.Log
+	for _, node := range o.uidToNode {
+		if node.virtual {
+			log.V(5).Info("Object won't be moved because it's not included in GVK considered for move", "kind", node.identity.Kind, "name", node.identity.Name)
+		}
+	}
+}

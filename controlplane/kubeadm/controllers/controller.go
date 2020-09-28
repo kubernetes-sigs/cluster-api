@@ -471,7 +471,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneHealth(ctx context.
 		defer func() {
 			// Always attempt to Patch the Machine conditions after each health reconciliation.
 			if err := patchHelper.Patch(ctx, m); err != nil {
-				logger.Error(err, "Failed to patch KubeadmControlPlane Machine")
+				logger.Error(err, "Failed to patch KubeadmControlPlane Machine", "machine", m.Name)
 			}
 		}()
 	}

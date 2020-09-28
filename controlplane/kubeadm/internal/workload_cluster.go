@@ -210,7 +210,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(staticPodPrefix string, node
 		// If there is an error getting the Pod, do not set any conditions.
 		if apierrors.IsNotFound(err) {
 			if owningMachine != nil {
-				conditions.Set(owningMachine, conditions.FalseCondition(conditionType, clusterv1.PodMissingReason, ConditionReason(clusterv1.PodMissingReason).GetSeverity(), ""))
+				conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodMissingReason, ConditionReason(clusterv1.PodMissingReason).GetSeverity(), "")
 			}
 			return false, errors.Errorf("static pod %s is missing", staticPodPrefix)
 		}
@@ -221,7 +221,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(staticPodPrefix string, node
 	if err := checkStaticPodReadyCondition(staticPod); err != nil {
 		if checkStaticPodFailedPhase(staticPod) {
 			if owningMachine != nil {
-				conditions.Set(owningMachine, conditions.FalseCondition(conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), ""))
+				conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "")
 			}
 			return false, errors.Errorf("static pod %s is failed", staticPodPrefix)
 		}
@@ -229,7 +229,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(staticPodPrefix string, node
 		// Check if the Pod is in Pending state
 		if checkStaticPodProvisioning(staticPod) {
 			if owningMachine != nil {
-				conditions.Set(owningMachine, conditions.FalseCondition(conditionType, clusterv1.PodProvisioningReason, ConditionReason(clusterv1.PodProvisioningReason).GetSeverity(), ""))
+				conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodProvisioningReason, ConditionReason(clusterv1.PodProvisioningReason).GetSeverity(), "")
 			}
 			// This is not an error case.
 			return false, nil
@@ -240,7 +240,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(staticPodPrefix string, node
 		// Non-nil podProvisioningState means there is at least one container in waiting state.
 		if podProvisioningState != "" {
 			if owningMachine != nil {
-				conditions.Set(owningMachine, conditions.FalseCondition(conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "Pod is provisioned but not ready."))
+				conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "Pod is provisioned but not ready.")
 			}
 			return false, errors.Errorf("static pod %s is provisioned but still is not ready", staticPodPrefix)
 		}
@@ -249,7 +249,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(staticPodPrefix string, node
 	}
 
 	if owningMachine != nil {
-		conditions.Set(owningMachine, conditions.TrueCondition(conditionType))
+		conditions.MarkTrue(owningMachine, conditionType)
 	}
 	return true, nil
 }

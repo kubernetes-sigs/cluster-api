@@ -25,6 +25,10 @@ The Core Provider, Kubeadm Bootstrap Provider, and Kubeadm Control Plane Provide
 
 In some cases, the Management Cluster is separate from the Workload Clusters. The Kubernetes version of the Management and Workload Clusters are allowed to be different. For example, the current Cluster API release is compatible with Kubernetes versions 1.16 through 1.18. For example, the Management Cluster can run v1.18.2, and two Workload Clusters can run v1.16.9 and v1.17.5.
 
+Management Clusters and Workload Clusters can be upgraded independently and in any order, however, if you are additionally moving from
+v1alpha2 (v0.2.x) to v1alpha3 (v0.3.x) as part of the upgrade roll out, the management cluster will need to be upgraded to at least v1.16.x,
+prior to upgrading any workload cluster using Cluster API v1alpha3 (v0.3.x)
+
 These diagrams show the relationships between components in a Cluster API release (yellow), and other components (white).
 
 #### Management And Workload Cluster Are the Same (Self-hosted)
@@ -39,40 +43,43 @@ These diagrams show the relationships between components in a Cluster API releas
 
 #### Core Provider (`cluster-api-controller`)
 
-||Cluster API v1alpha2 (v0.2)|Cluster API v1alpha3 (v0.3)|
-|-|-|-|
-|Kubernetes v1.13|✓||
-|Kubernetes v1.14|✓||
-|Kubernetes v1.15|✓||
-|Kubernetes v1.16|✓|✓|
-|Kubernetes v1.17||✓|
-|Kubernetes v1.18||✓|
+|                  | Cluster API v1alpha2 (v0.2) | Cluster API v1alpha3 (v0.3) |
+| ---------------- | --------------------------- | --------------------------- |
+| Kubernetes v1.13 | ✓                           |                             |
+| Kubernetes v1.14 | ✓                           |                             |
+| Kubernetes v1.15 | ✓                           |                             |
+| Kubernetes v1.16 | ✓                           | ✓                           |
+| Kubernetes v1.17 |                             | ✓                           |
+| Kubernetes v1.18 |                             | ✓                           |
+| Kubernetes v1.19 |                             | ✓                           |
 
 The Core Provider also talks to API server of every Workload Cluster. Therefore, the Workload Cluster's Kubernetes version must also be compatible.
 
 #### Kubeadm Bootstrap Provider (`kubeadm-bootstrap-controller`)
 
-||Cluster API v1alpha2 (v0.2)|Cluster API v1alpha3 (v0.3)|
-|-|-|-|
-|Kubernetes v1.13|||
-|Kubernetes v1.14 + kubeadm/v1beta1|✓||
-|Kubernetes v1.15 + kubeadm/v1beta1|✓||
-|Kubernetes v1.16 + kubeadm/v1beta1|✓|✓|
-|Kubernetes v1.17 + kubeadm/v1beta1||✓|
-|Kubernetes v1.18 + kubeadm/v1beta1||✓|
+|                                    | Cluster API v1alpha2 (v0.2) | Cluster API v1alpha3 (v0.3) |
+| ---------------------------------- | --------------------------- | --------------------------- |
+| Kubernetes v1.13                   |                             |                             |
+| Kubernetes v1.14 + kubeadm/v1beta1 | ✓                           |                             |
+| Kubernetes v1.15 + kubeadm/v1beta1 | ✓                           |                             |
+| Kubernetes v1.16 + kubeadm/v1beta1 | ✓                           | ✓                           |
+| Kubernetes v1.17 + kubeadm/v1beta1 |                             | ✓                           |
+| Kubernetes v1.18 + kubeadm/v1beta1 |                             | ✓                           |
+| Kubernetes v1.19 + kubeadm/v1beta1 |                             | ✓                           |
 
 The Kubeadm Bootstrap Provider generates configuration using the v1beta1 kubeadm API.
 
 #### Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)
 
-||Cluster API v1alpha2 (v0.2)|Cluster API v1alpha3 (v0.3)|
-|-|-|-|
-|Kubernetes v1.13|||
-|Kubernetes v1.14|||
-|Kubernetes v1.15|||
-|Kubernetes v1.16 + etcd/v3||✓|
-|Kubernetes v1.17 + etcd/v3||✓|
-|Kubernetes v1.18 + etcd/v3||✓|
+|                            | Cluster API v1alpha2 (v0.2) | Cluster API v1alpha3 (v0.3) |
+| -------------------------- | --------------------------- | --------------------------- |
+| Kubernetes v1.13           |                             |                             |
+| Kubernetes v1.14           |                             |                             |
+| Kubernetes v1.15           |                             |                             |
+| Kubernetes v1.16 + etcd/v3 |                             | ✓                           |
+| Kubernetes v1.17 + etcd/v3 |                             | ✓                           |
+| Kubernetes v1.18 + etcd/v3 |                             | ✓                           |
+| Kubernetes v1.19 + etcd/v3 |                             | ✓                           |
 
 The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
 
@@ -80,8 +87,8 @@ The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
 
 #### clusterctl
 
-It is strongly recommended to always use the latest version of [clusterctl](../clusterctl/overview.md), in order to 
-get all the fixes/latest changes. 
+It is strongly recommended to always use the latest version of [clusterctl](../clusterctl/overview.md), in order to
+get all the fixes/latest changes.
 
 In case of upgrades, clusterctl should be upgraded first and then used to upgrade all the other components.
 

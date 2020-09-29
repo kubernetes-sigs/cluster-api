@@ -36,6 +36,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -135,11 +136,28 @@ func (r *MachinePoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rete
 		r.reconcilePhase(mp)
 		// TODO(jpang): add support for metrics.
 
+		// Always update the readyCondition with the summary of the machinepool conditions.
+		conditions.SetSummary(mp,
+			conditions.WithConditions(
+				clusterv1.BootstrapReadyCondition,
+				clusterv1.InfrastructureReadyCondition,
+				expv1.ReplicasReadyCondition,
+			),
+		)
+
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
 		if reterr == nil {
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+			patchOpts = append(patchOpts,
+				patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+					clusterv1.ReadyCondition,
+					clusterv1.BootstrapReadyCondition,
+					clusterv1.InfrastructureReadyCondition,
+					expv1.ReplicasReadyCondition,
+				}},
+			)
 		}
 		if err := patchHelper.Patch(ctx, mp, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})

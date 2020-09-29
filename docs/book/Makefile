@@ -34,6 +34,10 @@ RELEASELINK := $(TOOLS_BIN_DIR)/mdbook-releaselink
 $(RELEASELINK): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-releaselink ./mdbook/releaselink
 
+RETRY := $(TOOLS_BIN_DIR)/retry
+$(RETRY): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/retry github.com/joshdk/retry
+
 MDBOOK := $(TOOLS_BIN_DIR)/mdbook
 $(MDBOOK):
 	$(CRATE_INSTALL) --git rust-lang/mdBook --tag v0.4.3 --to $(TOOLS_BIN_DIR) --force
@@ -43,13 +47,22 @@ $(MDBOOK_LINKCHECK):
 	$(CRATE_INSTALL) --git Michael-F-Bryan/mdbook-linkcheck --tag v0.7.0 --to $(TOOLS_BIN_DIR) --force
 
 .PHONY: serve
-serve: $(MDBOOK) $(TABULATE) $(RELEASELINK) $(MDBOOK_LINKCHECK)
+serve: $(MDBOOK) $(TABULATE) $(RELEASELINK) clean-linkcheck
 	$(MDBOOK) serve
 
 .PHONY: build
-build: $(MDBOOK) $(TABULATE) $(RELEASELINK) $(MDBOOK_LINKCHECK)
+build: $(MDBOOK) $(TABULATE) $(RELEASELINK) clean-linkcheck
 	$(MDBOOK) build
 
 .PHONY: verify
-verify: $(MDBOOK) $(TABULATE) $(RELEASELINK) $(MDBOOK_LINKCHECK)
-	$(MDBOOK) build
+verify: $(MDBOOK) $(TABULATE) $(RELEASELINK) $(MDBOOK_LINKCHECK) $(RETRY)
+	$(RETRY) -backoff -attempts 10 -max-time 20m $(MDBOOK) build
+
+# We remove the linkcheck binary when not running `verify` because mdbook
+# always run optional plugins if they are installed, but will only print a
+# warning if they're not. This is the best solution we could figure out for how
+# to integrate it into the mdbook plugin model while not gating all mdbook
+# tasks on verification.
+.PHONY: clean-linkcheck
+clean-linkcheck:
+	rm -f $(MDBOOK_LINKCHECK)

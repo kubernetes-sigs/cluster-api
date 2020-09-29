@@ -21,8 +21,8 @@ command = "./util-embed.sh"
 [preprocessor.releaselink]
 command = "./util-releaselink.sh"
 
-[output.linkcheck]
-optional = true
+# [output.linkcheck]
+# optional = true
 
-[output.linkcheck.http-headers]
-'github\.com' = ["Authorization: Basic $GITHUB_TOKEN"]
+# [output.linkcheck.http-headers]
+# 'github\.com' = ["Authorization: Bearer $GITHUB_TOKEN"]

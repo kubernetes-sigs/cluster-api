@@ -227,7 +227,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(staticPodPrefix string, node
 		}
 
 		// Check if the Pod is in Pending state
-		if checkStaticPodProvisioning(staticPod) {
+		if isStaticPodProvisioning(staticPod) {
 			if owningMachine != nil {
 				conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodProvisioningReason, ConditionReason(clusterv1.PodProvisioningReason).GetSeverity(), "")
 			}
@@ -240,7 +240,7 @@ func (w *Workload) checkPodStatusAndUpdateCondition(staticPodPrefix string, node
 		// Non-nil podProvisioningState means there is at least one container in waiting state.
 		if podProvisioningState != "" {
 			if owningMachine != nil {
-				conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "Pod is provisioned but not ready.")
+				conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "Pod is provisioned but not ready: %s", podProvisioningState)
 			}
 			return false, errors.Errorf("static pod %s is provisioned but still is not ready", staticPodPrefix)
 		}
@@ -471,18 +471,18 @@ func checkStaticPodFailedPhase(pod corev1.Pod) bool {
 }
 
 // If Pod is in Pending phase and PodScheduled or Initialized condition is set to false, then pod is in provisioning state.
-func checkStaticPodProvisioning(pod corev1.Pod) bool {
+func isStaticPodProvisioning(pod corev1.Pod) bool {
 	// Pod being not in Pending phase means it has already provisioned and running or failed or in unknown phase.
 	if pod.Status.Phase != corev1.PodPending {
 		return false
 	}
 
 	for _, condition := range pod.Status.Conditions {
-		if condition.Type == corev1.PodScheduled && condition.Status != corev1.ConditionTrue {
-			return true
-		}
-		if condition.Type == corev1.PodInitialized && condition.Status != corev1.ConditionTrue {
-			return true
+		if condition.Status != corev1.ConditionTrue {
+			switch condition.Type {
+			case corev1.PodScheduled, corev1.PodInitialized:
+				return true
+			}
 		}
 	}
 	return false

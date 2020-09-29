@@ -207,23 +207,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		role = constants.ControlPlaneNodeRoleValue
 	}
 
-	// Defining a cleanup func that will delete a machine when there are error during provisioning, so the operation
-	// can be re-tried from a clean state when the next reconcile happens (in 10 seconds)
-	defer func() {
-		if retErr != nil && !dockerMachine.Spec.Bootstrapped {
-			log.Info(fmt.Sprintf("%v, cleaning up so we can re-provision from a clean state", retErr))
-			if err := externalMachine.Delete(ctx); err != nil {
-				log.Info("Failed to cleanup machine")
-			}
-			dockerMachine.Status.LoadBalancerConfigured = false
-			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, "Re-provisioning")
-			conditions.Delete(dockerMachine, infrav1.BootstrapExecSucceededCondition)
-
-			res = ctrl.Result{RequeueAfter: 10 * time.Second}
-			retErr = nil
-		}
-	}()
-
 	// Create the machine if not existing yet
 	if !externalMachine.Exists() {
 		if err := externalMachine.Create(ctx, role, machine.Spec.Version, dockerMachine.Spec.ExtraMounts); err != nil {

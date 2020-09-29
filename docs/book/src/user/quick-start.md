@@ -695,7 +695,7 @@ kind delete cluster
 See the [clusterctl] documentation for more detail about clusterctl supported actions.
 
 <!-- links -->
-[AWS provider prerequisites]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/prerequisites.md
+[AWS provider prerequisites]: https://cluster-api-aws.sigs.k8s.io/topics/using-clusterawsadm-to-fulfill-prerequisites.html
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
 [Azure Provider Prerequisites]: https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/master/docs/getting-started.md#prerequisites
 [bootstrap cluster]: ../reference/glossary.md#bootstrap-cluster

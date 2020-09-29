@@ -25,4 +25,4 @@ command = "./util-releaselink.sh"
 optional = true
 
 [output.linkcheck.http-headers]
-'github\.com' = ["Authorization: Basic $GITHUB_TOKEN"]
+'github\.com' = ["Authorization: Bearer $GITHUB_TOKEN"]

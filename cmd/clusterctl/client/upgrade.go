@@ -38,7 +38,11 @@ func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (C
 		return CertManagerUpgradePlan{}, err
 	}
 
-	plan, err := cluster.CertManager().PlanUpgrade()
+	certManager, err := cluster.CertManager()
+	if err != nil {
+		return CertManagerUpgradePlan{}, err
+	}
+	plan, err := certManager.PlanUpgrade()
 	return CertManagerUpgradePlan(plan), err
 }
 
@@ -122,7 +126,12 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	// NOTE: it is safe to upgrade to latest version of cert-manager given that it provides
 	// conversion web-hooks around Issuer/Certificate kinds, so installing an older versions of providers
 	// should continue to work with the latest cert-manager.
-	if err := clusterClient.CertManager().EnsureLatestVersion(); err != nil {
+	certManager, err := clusterClient.CertManager()
+	if err != nil {
+		return err
+	}
+
+	if err := certManager.EnsureLatestVersion(); err != nil {
 		return err
 	}
 

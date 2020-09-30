@@ -110,6 +110,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, "replicas"},
 		{spec, "version"},
 		{spec, "upgradeAfter"},
+		{spec, "nodeDrainTimeout"},
 	}
 
 	allErrs := in.validateCommon()

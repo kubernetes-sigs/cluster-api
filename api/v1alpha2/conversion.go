@@ -129,6 +129,7 @@ func restoreMachineSpec(restored *v1alpha3.MachineSpec, dst *v1alpha3.MachineSpe
 	}
 	dst.Bootstrap.DataSecretName = restored.Bootstrap.DataSecretName
 	dst.FailureDomain = restored.FailureDomain
+	dst.NodeDrainTimeout = restored.NodeDrainTimeout
 }
 
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {

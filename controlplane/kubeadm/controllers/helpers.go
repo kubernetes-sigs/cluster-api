@@ -237,7 +237,8 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef,
 			},
-			FailureDomain: failureDomain,
+			FailureDomain:    failureDomain,
+			NodeDrainTimeout: kcp.Spec.NodeDrainTimeout,
 		},
 	}
 

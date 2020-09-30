@@ -681,6 +681,133 @@ func Test_clusterToActiveMachines(t *testing.T) {
 	}
 }
 
+func TestIsNodeDrainedAllowed(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
+	}
+
+	tests := []struct {
+		name     string
+		machine  *clusterv1.Machine
+		expected bool
+	}{
+		{
+			name: "Exclude node draining annotation exists",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-machine",
+					Namespace:   "default",
+					Finalizers:  []string{clusterv1.MachineFinalizer},
+					Annotations: map[string]string{clusterv1.ExcludeNodeDrainingAnnotation: "existed!!"},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			expected: false,
+		},
+		{
+			name: "Node draining timeout is over",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  "default",
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
+				},
+
+				Status: clusterv1.MachineStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               clusterv1.DrainingSucceededCondition,
+							Status:             corev1.ConditionFalse,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 70)).UTC()},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Node draining timeout is not yet over",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  "default",
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               clusterv1.DrainingSucceededCondition,
+							Status:             corev1.ConditionFalse,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "NodeDrainTimeout option is set to its default value 0",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  "default",
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               clusterv1.DrainingSucceededCondition,
+							Status:             corev1.ConditionFalse,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var objs []runtime.Object
+			objs = append(objs, testCluster, tt.machine)
+
+			r := &MachineReconciler{
+				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
+				Log:    log.Log,
+				scheme: scheme.Scheme,
+			}
+
+			got := r.isNodeDrainAllowed(tt.machine)
+			g.Expect(got).To(Equal(tt.expected))
+		})
+	}
+}
+
 func TestIsDeleteNodeAllowed(t *testing.T) {
 	deletionts := metav1.Now()
 

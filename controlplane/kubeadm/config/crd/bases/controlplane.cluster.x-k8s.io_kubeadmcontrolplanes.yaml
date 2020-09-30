@@ -1032,6 +1032,13 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              nodeDrainTimeout:
+                description: 'NodeDrainTimeout is the total amount of time that the
+                  controller will spend on draining a controlplane node The default
+                  value is 0, meaning that the node can be drained without any time
+                  limitations. NOTE: NodeDrainTimeout is different from `kubectl drain
+                  --timeout`'
+                type: string
               replicas:
                 description: Number of desired machines. Defaults to 1. When stacked
                   etcd is used only odd numbers are permitted, as per [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).

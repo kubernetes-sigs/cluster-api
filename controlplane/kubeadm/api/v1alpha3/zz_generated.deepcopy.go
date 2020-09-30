@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -97,6 +98,11 @@ func (in *KubeadmControlPlaneSpec) DeepCopyInto(out *KubeadmControlPlaneSpec) {
 	if in.UpgradeAfter != nil {
 		in, out := &in.UpgradeAfter, &out.UpgradeAfter
 		*out = (*in).DeepCopy()
+	}
+	if in.NodeDrainTimeout != nil {
+		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
+		*out = new(v1.Duration)
+		**out = **in
 	}
 }
 

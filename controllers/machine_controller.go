@@ -376,6 +376,30 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 		return errNilNodeRef
 	}
 
+	// controlPlaneRef is an optional field in the Cluster so skip the external
+	// managed control plane check if it is nil
+	if cluster.Spec.ControlPlaneRef != nil {
+		controlPlane, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Spec.ControlPlaneRef.Namespace)
+		if apierrors.IsNotFound(err) {
+			// If control plane object in the reference does not exist, log and skip check for
+			// external managed control plane
+			r.Log.Error(err, "control plane object specified in cluster spec.controlPlaneRef does not exist", "kind", cluster.Spec.ControlPlaneRef.Kind, "name", cluster.Spec.ControlPlaneRef.Name)
+		} else {
+			if err != nil {
+				// If any other error occurs when trying to get the control plane object,
+				// return the error so we can retry
+				return err
+			}
+
+			// Check if the ControlPlane is externally managed (AKS, EKS, GKE, etc)
+			// and skip the following section if control plane is externally managed
+			// because there will be no control plane nodes registered
+			if util.IsExternalManagedControlPlane(controlPlane) {
+				return nil
+			}
+		}
+	}
+
 	// Get all of the machines that belong to this cluster.
 	machines, err := getActiveMachinesInCluster(ctx, r.Client, machine.Namespace, machine.Labels[clusterv1.ClusterLabelName])
 	if err != nil {

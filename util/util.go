@@ -197,6 +197,16 @@ func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []
 	return
 }
 
+// IsExternalManagedControlPlane returns a bool indicating whether the control plane referenced
+// in the passed Unstructured resource is an externally managed control plane such as AKS, EKS, GKE, etc.
+func IsExternalManagedControlPlane(controlPlane *unstructured.Unstructured) bool {
+	managed, found, err := unstructured.NestedBool(controlPlane.Object, "status", "externalManagedControlPlane")
+	if err != nil || !found {
+		return false
+	}
+	return managed
+}
+
 // GetMachineIfExists gets a machine from the API server if it exists.
 func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Machine, error) {
 	if c == nil {

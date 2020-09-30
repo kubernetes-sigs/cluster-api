@@ -783,7 +783,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "has nodeRef and control plane is healthy",
+			name: "has nodeRef and cluster is being deleted",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					DeletionTimestamp: &deletionts,
@@ -791,6 +791,40 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			},
 			machine:       &clusterv1.Machine{},
 			expectedError: errClusterIsBeingDeleted,
+		},
+		{
+			name: "has nodeRef and control plane is healthy and externally managed",
+			cluster: &clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: &corev1.ObjectReference{
+						APIVersion: "controlplane.cluster.x-k8s.io/v1alpha3",
+						Kind:       "AWSManagedControlPlane",
+						Name:       "test-cluster",
+						Namespace:  "test-cluster",
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "created",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "test",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
+			expectedError: nil,
 		},
 	}
 
@@ -844,6 +878,18 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				m2.Labels[clusterv1.MachineControlPlaneLabelName] = ""
 			}
 
+			emp := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"status": map[string]interface{}{
+						"externalManagedControlPlane": true,
+					},
+				},
+			}
+			emp.SetAPIVersion("controlplane.cluster.x-k8s.io/v1alpha3")
+			emp.SetKind("AWSManagedControlPlane")
+			emp.SetName("test-cluster")
+			emp.SetNamespace("test-cluster")
+
 			mr := &MachineReconciler{
 				Client: helpers.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -851,6 +897,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					tc.machine,
 					m1,
 					m2,
+					emp,
 				),
 				Log:    log.Log,
 				scheme: scheme.Scheme,

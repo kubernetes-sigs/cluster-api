@@ -451,9 +451,9 @@ release: clean-release ## Builds and push container images using the latest git 
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
 	## Build the manifests
-	$(MAKE) release-manifests clean-git-release
+	$(MAKE) release-manifests clean-release-git
 	## Build the development manifests
-	$(MAKE) release-manifests-dev clean-git-release
+	$(MAKE) release-manifests-dev clean-release-git
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publish with a release

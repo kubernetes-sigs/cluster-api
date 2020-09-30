@@ -119,7 +119,7 @@ This makes any change that can impact the Cluster API contract critical and usua
 
 ### Logging
 
-- For CAPI controllers see [Kubernetes logging conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md).
+- For CAPI controllers see [Kubernetes logging conventions](https://git.k8s.io/community/contributors/devel/sig-instrumentation/logging.md).
 - For clusterctl see [clusterctl logging conventions](https://github.com/kubernetes-sigs/cluster-api/blob/master/cmd/clusterctl/log/doc.go).
 
 ### Testing

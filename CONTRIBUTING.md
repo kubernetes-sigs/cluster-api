@@ -26,7 +26,7 @@ Read the following guide if you're interested in contributing to cluster-api.
 We'd love to accept your patches! Before we can take them, we have to jump a couple of legal hurdles.
 
 Please fill out either the individual or corporate Contributor License Agreement (CLA). More information about the CLA
-and instructions for signing it [can be found here](https://github.com/kubernetes/community/blob/master/CLA.md).
+and instructions for signing it [can be found here](https://git.k8s.io/community/CLA.md).
 
 ***NOTE***: Only original source code from you and other people that have signed the CLA can be accepted into the
 *repository.
@@ -54,7 +54,7 @@ come up, including gaps in documentation!
         - 🌱 (:seedling:, minor or other)
 
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer
-docs](https://github.com/kubernetes/community/tree/master/contributors/devel). Expect reviewers to request that you
+docs](https://git.k8s.io/community/contributors/devel). Expect reviewers to request that you
 avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
 
 ## Triaging E2E test failures
@@ -213,7 +213,7 @@ against the kubernetes/org repo.
 
 However, if you are a member of any of the related Kubernetes GitHub organizations but not of the Kubernetes org, you
 will need explicit sponsorship for your membership request. You can read more about Kubernetes membership and
-sponsorship [here](https://github.com/kubernetes/community/blob/master/community-membership.md).
+sponsorship [here](https://git.k8s.io/community/community-membership.md).
 
 Cluster API maintainers can assign you an issue or pull request by leaving a `/assign <your Github ID>` comment on the
 issue or pull request.

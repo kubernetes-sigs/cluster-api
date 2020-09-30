@@ -75,9 +75,9 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		// TODO: If owning machine is nil, should not continue. But this change breaks the logic below.
 
 		// Check etcd pod's health
-		isEtcdPodHealthy, _ := w.checkPodStatusAndUpdateCondition(EtcdPodNamePrefix, node, owningMachine, clusterv1.MachineEtcdPodHealthyCondition)
-		// isEtcdPodHealthy is false, if Pod is not Ready or there is a client error.
-		if !isEtcdPodHealthy {
+		etcdPodState, _ := w.reconcilePodStatusCondition(EtcdPodNamePrefix, node, owningMachine, clusterv1.MachineEtcdPodHealthyCondition)
+		// etcdPodState is
+		if !etcdPodState.ready {
 			// Nothing wrong here, etcd on this node is just not running.
 			// If it's a true failure the healthcheck will fail since it won't have checked enough members.
 			response[name] = errors.Wrap(err, "etcd pod is not ready")

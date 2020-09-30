@@ -64,7 +64,7 @@ func TestCheckStaticPodReadyCondition(t *testing.T) {
 				Spec:   corev1.PodSpec{},
 				Status: corev1.PodStatus{Conditions: test.conditions},
 			}
-			g.Expect(checkStaticPodReadyCondition(pod)).To(Succeed())
+			g.Expect(isStaticPodInReadyCondition(pod)).To(Succeed())
 		})
 	}
 }
@@ -90,7 +90,7 @@ func TestCheckStaticPodNotReadyCondition(t *testing.T) {
 				Spec:   corev1.PodSpec{},
 				Status: corev1.PodStatus{Conditions: test.conditions},
 			}
-			g.Expect(checkStaticPodReadyCondition(pod)).NotTo(Succeed())
+			g.Expect(isStaticPodInReadyCondition(pod)).NotTo(Succeed())
 		})
 	}
 }

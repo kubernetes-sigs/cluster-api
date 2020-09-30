@@ -242,13 +242,19 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 			EventRemediationRestricted,
 			message,
 		)
+		errList := []error{}
 		for _, t := range append(healthy, unhealthy...) {
 			if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "Failed to patch machine status for machine %q", t.Machine.Name)
+				errList = append(errList, errors.Wrapf(err, "failed to patch machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
+				continue
 			}
+		}
+		if len(errList) > 0 {
+			return ctrl.Result{}, kerrors.NewAggregate(errList)
 		}
 		return reconcile.Result{Requeue: true}, nil
 	}
+
 	logger.V(3).Info(
 		"Remediations are allowed",
 		"total target", totalTargets,
@@ -265,104 +271,8 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	m.Status.RemediationsAllowed = int32(maxUnhealthy - unhealthyMachineCount(m))
 	conditions.MarkTrue(m, clusterv1.RemediationAllowedCondition)
 
-	// mark for remediation
-	errList := []error{}
-	for _, t := range unhealthy {
-		condition := conditions.Get(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
-
-		if annotations.IsPaused(cluster, t.Machine) {
-			logger.Info("Machine has failed health check, but machine is paused so skipping remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)
-		} else {
-			if m.Spec.RemediationTemplate != nil {
-				// If external remediation request already exists,
-				// return early
-				if r.externalRemediationRequestExists(ctx, m, t.Machine.Name) {
-					return ctrl.Result{}, nil
-				}
-
-				cloneOwnerRef := &metav1.OwnerReference{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "Machine",
-					Name:       t.Machine.Name,
-					UID:        t.Machine.UID,
-				}
-
-				from, err := external.Get(ctx, r.Client, m.Spec.RemediationTemplate, t.Machine.Namespace)
-				if err != nil {
-					conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailable, clusterv1.ExternalRemediationTemplateNotFound, clusterv1.ConditionSeverityError, err.Error())
-					return ctrl.Result{}, errors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName)
-				}
-
-				generateTemplateInput := &external.GenerateTemplateInput{
-					Template:    from,
-					TemplateRef: m.Spec.RemediationTemplate,
-					Namespace:   t.Machine.Namespace,
-					ClusterName: t.Machine.ClusterName,
-					OwnerRef:    cloneOwnerRef,
-				}
-				to, err := external.GenerateTemplate(generateTemplateInput)
-				if err != nil {
-					return ctrl.Result{}, errors.Wrapf(err, "failed to create template for remediation request %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName)
-				}
-
-				// Set the Remediation Request to match the Machine name, the name is used to
-				// guarantee uniqueness between runs. A Machine should only ever have a single
-				// remediation object of a specific GVK created.
-				//
-				// NOTE: This doesn't guarantee uniqueness across different MHC objects watching
-				// the same Machine, users are in charge of setting health checks and remediation properly.
-				to.SetName(t.Machine.Name)
-
-				logger.Info("Target has failed health check, creating an external remediation request", "remediation request name", to.GetName(), "target", t.string(), "reason", condition.Reason, "message", condition.Message)
-				// Create the external clone.
-				if err := r.Client.Create(ctx, to); err != nil {
-					conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailable, clusterv1.ExternalRemediationRequestCreationFailed, clusterv1.ConditionSeverityError, err.Error())
-					return ctrl.Result{}, errors.Wrapf(err, "error creating remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName)
-				}
-			} else {
-				logger.Info("Target has failed health check, marking for remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)
-				conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MachineHealthCheck failed")
-			}
-		}
-
-		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
-			logger.Error(err, "failed to patch unhealthy machine status for machine", "machine", t.Machine)
-			return ctrl.Result{}, err
-		}
-		r.recorder.Eventf(
-			t.Machine,
-			corev1.EventTypeNormal,
-			EventMachineMarkedUnhealthy,
-			"Machine %v has been marked as unhealthy",
-			t.string(),
-		)
-	}
-
-	for _, t := range healthy {
-		if m.Spec.RemediationTemplate != nil {
-
-			// Get remediation request object
-			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
-			if err != nil {
-				if apierrors.IsNotFound(errors.Cause(err)) {
-					continue
-				}
-				logger.Error(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName)
-			}
-			// Check that obj has no DeletionTimestamp to avoid hot loop
-			if obj.GetDeletionTimestamp() == nil {
-				// Issue a delete for remediation request.
-				if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
-					logger.Error(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name)
-				}
-			}
-		}
-
-		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
-			logger.Error(err, "failed to patch healthy machine status for machine", "machine", t.Machine.GetName())
-			return reconcile.Result{}, err
-		}
-	}
+	errList := r.PatchUnhealthyTargets(ctx, unhealthy, cluster, m)
+	errList = append(errList, r.PatchHealthyTargets(ctx, healthy, cluster, m)...)
 
 	// handle update errors
 	if len(errList) > 0 {
@@ -378,6 +288,117 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	logger.V(3).Info("No more targets meet unhealthy criteria")
 
 	return ctrl.Result{}, nil
+}
+
+// PatchHealthyTargets patches healthy machines with MachineHealthCheckSuccededCondition.
+func (r *MachineHealthCheckReconciler) PatchHealthyTargets(ctx context.Context, healthy []healthCheckTarget, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) []error {
+	errList := []error{}
+	for _, t := range healthy {
+		if m.Spec.RemediationTemplate != nil {
+
+			// Get remediation request object
+			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
+			if err != nil {
+				if apierrors.IsNotFound(errors.Cause(err)) {
+					continue
+				}
+				r.Log.Error(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName)
+			}
+			// Check that obj has no DeletionTimestamp to avoid hot loop
+			if obj.GetDeletionTimestamp() == nil {
+				// Issue a delete for remediation request.
+				if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
+					r.Log.Error(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name)
+				}
+			}
+		}
+
+		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
+			r.Log.Error(err, "failed to patch healthy machine status for machine", "machine", t.Machine.GetName())
+			errList = append(errList, errors.Wrapf(err, "failed to patch healthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
+		}
+	}
+	return errList
+}
+
+// PatchUnhealthyTargets patches machines with MachineOwnerRemediatedCondition for remediation
+func (r *MachineHealthCheckReconciler) PatchUnhealthyTargets(ctx context.Context, unhealthy []healthCheckTarget, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) []error {
+	// mark for remediation
+	errList := []error{}
+	for _, t := range unhealthy {
+		condition := conditions.Get(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
+
+		if annotations.IsPaused(cluster, t.Machine) {
+			r.Log.Info("Machine has failed health check, but machine is paused so skipping remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)
+		} else {
+			if m.Spec.RemediationTemplate != nil {
+				// If external remediation request already exists,
+				// return early
+				if r.externalRemediationRequestExists(ctx, m, t.Machine.Name) {
+					return errList
+				}
+
+				cloneOwnerRef := &metav1.OwnerReference{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Machine",
+					Name:       t.Machine.Name,
+					UID:        t.Machine.UID,
+				}
+
+				from, err := external.Get(ctx, r.Client, m.Spec.RemediationTemplate, t.Machine.Namespace)
+				if err != nil {
+					conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailable, clusterv1.ExternalRemediationTemplateNotFound, clusterv1.ConditionSeverityError, err.Error())
+					errList = append(errList, errors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
+					return errList
+				}
+
+				generateTemplateInput := &external.GenerateTemplateInput{
+					Template:    from,
+					TemplateRef: m.Spec.RemediationTemplate,
+					Namespace:   t.Machine.Namespace,
+					ClusterName: t.Machine.ClusterName,
+					OwnerRef:    cloneOwnerRef,
+				}
+				to, err := external.GenerateTemplate(generateTemplateInput)
+				if err != nil {
+					errList = append(errList, errors.Wrapf(err, "failed to create template for remediation request %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
+					return errList
+				}
+
+				// Set the Remediation Request to match the Machine name, the name is used to
+				// guarantee uniqueness between runs. A Machine should only ever have a single
+				// remediation object of a specific GVK created.
+				//
+				// NOTE: This doesn't guarantee uniqueness across different MHC objects watching
+				// the same Machine, users are in charge of setting health checks and remediation properly.
+				to.SetName(t.Machine.Name)
+
+				r.Log.Info("Target has failed health check, creating an external remediation request", "remediation request name", to.GetName(), "target", t.string(), "reason", condition.Reason, "message", condition.Message)
+				// Create the external clone.
+				if err := r.Client.Create(ctx, to); err != nil {
+					conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailable, clusterv1.ExternalRemediationRequestCreationFailed, clusterv1.ConditionSeverityError, err.Error())
+					errList = append(errList, errors.Wrapf(err, "error creating remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName))
+					return errList
+				}
+			} else {
+				r.Log.Info("Target has failed health check, marking for remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)
+				conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MachineHealthCheck failed")
+			}
+		}
+
+		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
+			errList = append(errList, errors.Wrapf(err, "failed to patch unhealthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
+			continue
+		}
+		r.recorder.Eventf(
+			t.Machine,
+			corev1.EventTypeNormal,
+			EventMachineMarkedUnhealthy,
+			"Machine %v has been marked as unhealthy",
+			t.string(),
+		)
+	}
+	return errList
 }
 
 // clusterToMachineHealthCheck maps events from Cluster objects to

@@ -1,6 +1,6 @@
 # Cluster API Icons Set
 
-These icons are a way to standardize Cluster API architecture diagrams, building on top of the [Kubernetes Icon Set](https://github.com/kubernetes/community/tree/master/icons). Having uniform architecture diagrams improve understandibility.
+These icons are a way to standardize Cluster API architecture diagrams, building on top of the [Kubernetes Icon Set](https://git.k8s.io/community/icons). Having uniform architecture diagrams improve understandibility.
 
 ## License
 The Kubernetes Icons Set is licensed under a choice of either Apache-2.0

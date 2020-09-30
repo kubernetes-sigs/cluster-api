@@ -21,7 +21,7 @@ that defaults to NullLogger.
 You can set a custom logger by calling log.SetLogger.
 
 NewLogger returns a clusterctl friendly logr.Logger derived from
-https://github.com/kubernetes/klog/blob/master/klogr/klogr.go.
+https://git.k8s.io/klog/klogr/klogr.go.
 
 The logger is designed to print logs to stdout with a formatting that is easy to read for users
 but also simple to parse for identifying specific values.

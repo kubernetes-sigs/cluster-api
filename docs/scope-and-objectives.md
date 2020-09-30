@@ -81,7 +81,7 @@ We are building a set of Kubernetes cluster management APIs to enable common clu
 
 ## Motivation
 
-Kubernetes has a common set of APIs (see the [Kubernetes API Conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)) to orchestrate containers regardless of deployment mechanism or cloud provider. Kubernetes also has APIs for handling some infrastructure, like load-balancers, ingress rules, or persistent volumes, but not for creating new machines.
+Kubernetes has a common set of APIs (see the [Kubernetes API Conventions](https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md)) to orchestrate containers regardless of deployment mechanism or cloud provider. Kubernetes also has APIs for handling some infrastructure, like load-balancers, ingress rules, or persistent volumes, but not for creating new machines.
 As a result, existing popular deployment mechanisms that manage Kubernetes clusters each have unique APIs and implementations for how to handle lifecycle events like cluster creation or deletion, control plane upgrades, and node upgrades.
 
 

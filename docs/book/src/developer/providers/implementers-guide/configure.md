@@ -56,7 +56,7 @@ patchesStrategicMerge
 ```
 
 [kustomizeyaml]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/glossary.md#kustomization
-[patch]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md
+[patch]: https://git.k8s.io/community/contributors/devel/sig-api-machinery/strategic-merge-patch.md
 
 ## Our configuration
 

@@ -29,3 +29,15 @@ resources:
 - group: cluster
   version: v1alpha3
   kind: MachinePool
+- group: cluster
+  version: v1alpha4
+  kind: Cluster
+- group: cluster
+  version: v1alpha4
+  kind: Machine
+- group: cluster
+  version: v1alpha4
+  kind: MachineSet
+- group: cluster
+  version: v1alpha4
+  kind: MachineDeployment

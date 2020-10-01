@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -222,7 +222,7 @@ type Bootstrap struct {
 	// Data contains the bootstrap data, such as cloud-init details scripts.
 	// If nil, the Machine should remain in the Pending state.
 	//
-	// Deprecated: This field has been deprecated in v1alpha3 and
+	// Deprecated: This field has been deprecated in v1alpha4 and
 	// will be removed in a future version. Switch to DataSecretName.
 	//
 	// +optional
@@ -239,6 +239,7 @@ type Bootstrap struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machines,shortName=ma,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Machine status such as Terminating/Pending/Running/Failed etc"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version",description="Kubernetes version associated with this Machine"

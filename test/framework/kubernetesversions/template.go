@@ -30,6 +30,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const yamlSeparator = "\n---\n"
+
 type GenerateCIArtifactsInjectedTemplateForDebianInput struct {
 	// ArtifactsDirectory is where conformance suite output will go. Defaults to _artifacts
 	ArtifactsDirectory string
@@ -46,6 +48,8 @@ type GenerateCIArtifactsInjectedTemplateForDebianInput struct {
 	// KubeadmControlPlaneName is the name of the KubeadmControlPlane resource
 	// that needs to have the Debian install script injected. Defaults to "${CLUSTER_NAME}-control-plane".
 	KubeadmControlPlaneName string
+	// KubeadmConfigName is the name of a KubeadmConfig that needs kustomizing. To be used in conjunction with MachinePools. Optional.
+	KubeadmConfigName string
 }
 
 // GenerateCIArtifactsInjectedTemplateForDebian takes a source clusterctl template
@@ -84,7 +88,7 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 		return "", err
 	}
 
-	kustomizeVersions, err := generateKustomizeVersionsYaml(input.KubeadmControlPlaneName, input.KubeadmConfigTemplateName)
+	kustomizeVersions, err := generateKustomizeVersionsYaml(input.KubeadmControlPlaneName, input.KubeadmConfigTemplateName, input.KubeadmConfigName)
 	if err != nil {
 		return "", err
 	}
@@ -109,12 +113,12 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 	return kustomizedTemplate, nil
 }
 
-func generateKustomizeVersionsYaml(kcpName, kubeadmName string) ([]byte, error) {
+func generateKustomizeVersionsYaml(kcpName, kubeadmTemplateName, kubeadmConfigName string) ([]byte, error) {
 	kcp, err := generateKubeadmControlPlane(kcpName)
 	if err != nil {
 		return nil, err
 	}
-	kubeadm, err := generateKubeadmConfigTemplate(kubeadmName)
+	kubeadm, err := generateKubeadmConfigTemplate(kubeadmTemplateName)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +130,22 @@ func generateKustomizeVersionsYaml(kcpName, kubeadmName string) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	fileStr := string(kcpYaml) + "\n---\n" + string(kubeadmYaml)
+	fileStr := string(kcpYaml) + yamlSeparator + string(kubeadmYaml)
+	if kubeadmConfigName == "" {
+		return []byte(fileStr), nil
+	}
+
+	kubeadmConfig, err := generateKubeadmConfig(kubeadmConfigName)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeadmConfigYaml, err := yaml.Marshal(kubeadmConfig)
+	if err != nil {
+		return nil, err
+	}
+	fileStr = fileStr + yamlSeparator + string(kubeadmConfigYaml)
+
 	return []byte(fileStr), nil
 }
 
@@ -148,6 +167,23 @@ func generateKubeadmConfigTemplate(name string) (*cabpkv1.KubeadmConfigTemplate,
 				Spec: *kubeadmSpec,
 			},
 		},
+	}, nil
+}
+
+func generateKubeadmConfig(name string) (*cabpkv1.KubeadmConfig, error) {
+	kubeadmSpec, err := generateKubeadmConfigSpec()
+	if err != nil {
+		return nil, err
+	}
+	return &cabpkv1.KubeadmConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "KubeadmConfig",
+			APIVersion: kcpv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: *kubeadmSpec,
 	}, nil
 }
 

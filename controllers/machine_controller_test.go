@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
@@ -305,7 +305,7 @@ func TestReconcileRequest(t *testing.T) {
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": "default",
@@ -352,7 +352,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureMachine",
 						Name:       "infra-config1",
 					},
@@ -380,7 +380,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureMachine",
 						Name:       "infra-config1",
 					},
@@ -412,7 +412,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureMachine",
 						Name:       "infra-config1",
 					},
@@ -521,7 +521,7 @@ func TestMachineConditions(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 				Kind:       "InfrastructureMachine",
 				Name:       "infra-config1",
 			},
@@ -702,7 +702,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 	bootstrapConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "delete-bootstrap",
 				"namespace": "default",
@@ -719,7 +719,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 			ClusterName: "test-cluster",
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 					Kind:       "BootstrapConfig",
 					Name:       "delete-bootstrap",
 				},
@@ -738,7 +738,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 			bootstrapExists: true,
 			expected: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+					"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 					"kind":       "BootstrapConfig",
 					"metadata": map[string]interface{}{
 						"name":            "delete-bootstrap",
@@ -1163,7 +1163,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: "controlplane.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "controlplane.cluster.x-k8s.io/v1alpha4",
 						Kind:       "AWSManagedControlPlane",
 						Name:       "test-cluster",
 						Namespace:  "test-cluster",
@@ -1251,7 +1251,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			}
-			emp.SetAPIVersion("controlplane.cluster.x-k8s.io/v1alpha3")
+			emp.SetAPIVersion("controlplane.cluster.x-k8s.io/v1alpha4")
 			emp.SetKind("AWSManagedControlPlane")
 			emp.SetName("test-cluster")
 			emp.SetNamespace("test-cluster")

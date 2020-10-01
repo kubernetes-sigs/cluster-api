@@ -232,7 +232,7 @@ generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN)
 		paths=./$(EXP_DIR)/addons/api/... \
 		paths=./cmd/clusterctl/...
 	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha2 \
+		--input-dirs=./api/v1alpha3 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 

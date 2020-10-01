@@ -156,7 +156,7 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					// older version are not supported by clusterctl
 				},
 			}
-		case config.EKSBootstrapProviderName:
+		case config.AWSEKSBootstrapProviderName:
 			return &clusterctlv1.Metadata{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: clusterctlv1.GroupVersion.String(),
@@ -194,6 +194,16 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					// v1alpha3 release series
 					{Major: 0, Minor: 1, Contract: "v1alpha3"},
 					// there are no older version for Talos controlplane
+				},
+			}
+		case config.AWSEKSControlPlaneProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 6, Contract: "v1alpha3"},
 				},
 			}
 		default:

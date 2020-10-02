@@ -63,26 +63,6 @@ const (
 	EtcdPodNamePrefix                  = "etcd"
 )
 
-type ConditionReason string
-
-// GetSeverity returns the default severity for the condition reasons for the conditions owned by KCP.
-func (c ConditionReason) GetSeverity() clusterv1.ConditionSeverity {
-	switch c {
-	case clusterv1.PodProvisioningReason:
-		return clusterv1.ConditionSeverityInfo
-	case clusterv1.PodMissingReason:
-		return clusterv1.ConditionSeverityWarning
-	case clusterv1.PodFailedReason:
-		return clusterv1.ConditionSeverityError
-	case clusterv1.EtcdMemberUnhealthyReason:
-		return clusterv1.ConditionSeverityError
-	case controlplanev1.EtcdClusterUnhealthyReason:
-		return clusterv1.ConditionSeverityWarning
-	default:
-		return clusterv1.ConditionSeverityInfo
-	}
-}
-
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster
 type WorkloadCluster interface {
 	// Basic health and status checks.
@@ -172,17 +152,17 @@ func (w *Workload) ControlPlaneIsHealthy(ctx context.Context, controlPlane *Cont
 		}
 
 		// Check kube-api-server health
-		if _, err = w.reconcilePodStatusCondition(KubeAPIServerPodNamePrefix, node, owningMachine, clusterv1.MachineAPIServerPodHealthyCondition); err != nil {
+		if _, err = w.reconcilePodStatusCondition(KubeAPIServerPodNamePrefix, node, owningMachine, controlplanev1.MachineAPIServerPodHealthyCondition); err != nil {
 			errList = append(errList, err)
 		}
 
 		// Check kube-controller-manager health
-		if _, err = w.reconcilePodStatusCondition(KubeControllerManagerPodNamePrefix, node, owningMachine, clusterv1.MachineControllerManagerHealthyCondition); err != nil {
+		if _, err = w.reconcilePodStatusCondition(KubeControllerManagerPodNamePrefix, node, owningMachine, controlplanev1.MachineControllerManagerHealthyCondition); err != nil {
 			errList = append(errList, err)
 		}
 
 		// Check kube-scheduler health
-		if _, err = w.reconcilePodStatusCondition(KubeSchedulerHealthyPodNamePrefix, node, owningMachine, clusterv1.MachineSchedulerPodHealthyCondition); err != nil {
+		if _, err = w.reconcilePodStatusCondition(KubeSchedulerHealthyPodNamePrefix, node, owningMachine, controlplanev1.MachineSchedulerPodHealthyCondition); err != nil {
 			errList = append(errList, err)
 		}
 
@@ -213,7 +193,7 @@ func (w *Workload) reconcilePodStatusCondition(staticPodPrefix string, node core
 		// If there is an error getting the Pod, do not set any conditions.
 		if apierrors.IsNotFound(err) {
 			if owningMachine != nil {
-				conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodMissingReason, ConditionReason(clusterv1.PodMissingReason).GetSeverity(), "")
+				conditions.MarkFalse(owningMachine, conditionType, controlplanev1.PodMissingReason, clusterv1.ConditionSeverityWarning, "")
 			}
 			return podState{}, errors.Errorf("static pod %s is missing", staticPodPrefix)
 		}
@@ -233,7 +213,7 @@ func (w *Workload) reconcilePodStatusCondition(staticPodPrefix string, node core
 
 	if isStaticPodInFailedPhase(staticPod) {
 		if owningMachine != nil {
-			conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "")
+			conditions.MarkFalse(owningMachine, conditionType, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, "")
 		}
 		return podState{}, errors.Errorf("static pod %s is failed", staticPodPrefix)
 	}
@@ -241,7 +221,7 @@ func (w *Workload) reconcilePodStatusCondition(staticPodPrefix string, node core
 	// Check if the Pod is in Pending state due to provisioning.
 	if isStaticPodProvisioning(staticPod) {
 		if owningMachine != nil {
-			conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodProvisioningReason, ConditionReason(clusterv1.PodProvisioningReason).GetSeverity(), "")
+			conditions.MarkFalse(owningMachine, conditionType, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "")
 		}
 		// This is not an error case.
 		return podState{provisioning: true}, nil
@@ -251,7 +231,7 @@ func (w *Workload) reconcilePodStatusCondition(staticPodPrefix string, node core
 	// Non-nil error means there is at least one container in waiting state.
 	if err := checkStaticPodAfterProvisioningState(staticPod); err != nil {
 		if owningMachine != nil {
-			conditions.MarkFalse(owningMachine, conditionType, clusterv1.PodFailedReason, ConditionReason(clusterv1.PodFailedReason).GetSeverity(), "Pod is provisioned but not ready: %s", err.Error())
+			conditions.MarkFalse(owningMachine, conditionType, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, "Pod is provisioned but not ready: %s", err.Error())
 		}
 		return podState{}, errors.Errorf("static pod %s is provisioned but still is not ready", staticPodPrefix)
 	}

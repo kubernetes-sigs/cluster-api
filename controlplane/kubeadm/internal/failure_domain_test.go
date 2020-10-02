@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 func TestNewFailureDomainPicker(t *testing.T) {

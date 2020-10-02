@@ -30,14 +30,13 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/version"
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
-	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
@@ -75,10 +74,9 @@ func init() {
 	klog.InitFlags(nil)
 
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = clusterv1alpha2.AddToScheme(scheme)
-	_ = clusterv1alpha3.AddToScheme(scheme)
-	_ = expv1alpha3.AddToScheme(scheme)
-	_ = addonsv1alpha3.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	_ = expv1.AddToScheme(scheme)
+	_ = addonsv1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -291,77 +289,41 @@ func setupWebhooks(mgr ctrl.Manager) {
 		return
 	}
 
-	if err := (&clusterv1alpha2.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
-		os.Exit(1)
-	}
-	if err := (&clusterv1alpha3.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&clusterv1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
 		os.Exit(1)
 	}
 
-	if err := (&clusterv1alpha2.ClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterList")
-		os.Exit(1)
-	}
-
-	if err := (&clusterv1alpha2.Machine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
-		os.Exit(1)
-	}
-	if err := (&clusterv1alpha3.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
 		os.Exit(1)
 	}
 
-	if err := (&clusterv1alpha2.MachineList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineList")
-		os.Exit(1)
-	}
-
-	if err := (&clusterv1alpha2.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
-		os.Exit(1)
-	}
-	if err := (&clusterv1alpha3.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&clusterv1.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
 		os.Exit(1)
 	}
 
-	if err := (&clusterv1alpha2.MachineSetList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSetList")
-		os.Exit(1)
-	}
-
-	if err := (&clusterv1alpha2.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&clusterv1.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
-		os.Exit(1)
-	}
-	if err := (&clusterv1alpha3.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
-		os.Exit(1)
-	}
-
-	if err := (&clusterv1alpha2.MachineDeploymentList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeploymentList")
 		os.Exit(1)
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&expv1alpha3.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
 			os.Exit(1)
 		}
 	}
 
 	if feature.Gates.Enabled(feature.ClusterResourceSet) {
-		if err := (&addonsv1alpha3.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&addonsv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterResourceSet")
 			os.Exit(1)
 		}
 	}
 
-	if err := (&clusterv1alpha3.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&clusterv1.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MachineHealthCheck")
 		os.Exit(1)
 	}

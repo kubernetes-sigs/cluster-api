@@ -30,12 +30,11 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	kubeadmbootstrapv1alpha2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
-	kubeadmbootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/cmd/version"
-	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,10 +51,9 @@ func init() {
 	klog.InitFlags(nil)
 
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = clusterv1alpha3.AddToScheme(scheme)
-	_ = expv1alpha3.AddToScheme(scheme)
-	_ = kubeadmbootstrapv1alpha2.AddToScheme(scheme)
-	_ = kubeadmbootstrapv1alpha3.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	_ = expv1.AddToScheme(scheme)
+	_ = kubeadmbootstrapv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -175,19 +173,19 @@ func setupWebhooks(mgr ctrl.Manager) {
 		return
 	}
 
-	if err := (&kubeadmbootstrapv1alpha3.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kubeadmbootstrapv1.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
 		os.Exit(1)
 	}
-	if err := (&kubeadmbootstrapv1alpha3.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kubeadmbootstrapv1.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigList")
 		os.Exit(1)
 	}
-	if err := (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kubeadmbootstrapv1.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
 		os.Exit(1)
 	}
-	if err := (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kubeadmbootstrapv1.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplateList")
 		os.Exit(1)
 	}

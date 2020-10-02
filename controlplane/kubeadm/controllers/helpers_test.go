@@ -26,11 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
 	utilpointer "k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -300,13 +300,13 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 
 	infraRef := &corev1.ObjectReference{
 		Kind:       "InfraKind",
-		APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+		APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 		Name:       "infra",
 		Namespace:  cluster.Namespace,
 	}
 	bootstrapRef := &corev1.ObjectReference{
 		Kind:       "BootstrapKind",
-		APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+		APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 		Name:       "bootstrap",
 		Namespace:  cluster.Namespace,
 	}

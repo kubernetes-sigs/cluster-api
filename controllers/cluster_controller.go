@@ -30,9 +30,9 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -317,7 +317,7 @@ type clusterDescendants struct {
 	machineSets          clusterv1.MachineSetList
 	controlPlaneMachines clusterv1.MachineList
 	workerMachines       clusterv1.MachineList
-	machinePools         expv1alpha3.MachinePoolList
+	machinePools         expv1.MachinePoolList
 }
 
 // length returns the number of descendants

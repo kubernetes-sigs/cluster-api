@@ -111,6 +111,7 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate tar
 		object:headerFile=$(ROOT)/hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/...
+	(IFS=','; for i in "./api/v1alpha3,./$(EXP_DIR)/api/v1alpha3"; do find $$i -type f -name 'zz_generated.conversion*' -exec rm -f {} \;; done)
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
 		--input-dirs=./$(EXP_DIR)/api/v1alpha3 \

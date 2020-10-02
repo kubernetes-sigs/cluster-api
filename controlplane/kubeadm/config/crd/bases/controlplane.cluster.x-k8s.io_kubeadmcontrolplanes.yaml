@@ -1310,7 +1310,7 @@ spec:
                                   format: date-time
                                   type: string
                                 value:
-                                  description: Required. The taint value corresponding to the taint key.
+                                  description: The taint value corresponding to the taint key.
                                   type: string
                               required:
                               - effect
@@ -1419,7 +1419,7 @@ spec:
                                   format: date-time
                                   type: string
                                 value:
-                                  description: Required. The taint value corresponding to the taint key.
+                                  description: The taint value corresponding to the taint key.
                                   type: string
                               required:
                               - effect

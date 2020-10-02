@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +42,7 @@ var _ = Describe("Patch Helper", func() {
 		obj := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "BootstrapMachine",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"generateName": "test-bootstrap-",
 					"namespace":    "default",
@@ -81,7 +81,7 @@ var _ = Describe("Patch Helper", func() {
 			By("Modifying the OwnerReferences")
 			refs := []metav1.OwnerReference{
 				{
-					APIVersion: "cluster.x-k8s.io/v1alpha3",
+					APIVersion: "cluster.x-k8s.io/v1alpha4",
 					Kind:       "Cluster",
 					Name:       "test",
 					UID:        types.UID("fake-uid"),

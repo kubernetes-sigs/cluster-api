@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 func newDControllerRef(d *clusterv1.MachineDeployment) *metav1.OwnerReference {
@@ -197,12 +197,12 @@ func TestEqualMachineTemplate(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "MachineBootstrap",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "MachineInfrastructure",
 					},
 				},
@@ -235,12 +235,12 @@ func TestEqualMachineTemplate(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "MachineBootstrap2",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "MachineInfrastructure",
 					},
 				},

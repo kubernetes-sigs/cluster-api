@@ -17,7 +17,6 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 |API, UX|Support and define conditions on cluster api objects|[#1658](https://github.com/kubernetes-sigs/cluster-api/issues/1658)|
 |Extensibility, Infrastructure|Support spot instances|[#1876](https://github.com/kubernetes-sigs/cluster-api/issues/1876)|
 |Extensibility|Machine pre-deletion hooks|[#1514](https://github.com/kubernetes-sigs/cluster-api/issues/1514)|
-|Integration|Autoscaler|[#2530](https://github.com/kubernetes-sigs/cluster-api/issues/2530)|
 
 ## v0.4 (v1alpha4) ~ Q4 2020
 
@@ -28,6 +27,7 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 |Tooling Improvements| Define clusterctl inventory specification & have providers implement it|TBA|
 |Core Improvements|Move away from corev1.ObjectReference|[#2318](https://github.com/kubernetes-sigs/cluster-api/issues/2318)|
 |Dependency|Kubeadm v1beta2 types and support|[#2769](https://github.com/kubernetes-sigs/cluster-api/issues/2769)|
+|Integration|Autoscaler scale to and from zero|[#2530](https://github.com/kubernetes-sigs/cluster-api/issues/2530)|
 
 
 ## v1beta1/v1 ~ TBA

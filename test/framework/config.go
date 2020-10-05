@@ -18,15 +18,12 @@ package framework
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -158,150 +155,6 @@ type ComponentConfig struct {
 	// Waiters is an optional list of checks to perform in order to determine
 	// whether or not the installed components are ready.
 	Waiters []ComponentWaiter `json:"waiters,omitempty"`
-}
-
-// Config is the input used to configure the e2e test environment.
-// Deprecated. Please use clusterctl.E2EConfig instead.
-type Config struct {
-	// Name is the name of the Kind management cluster.
-	// Defaults to DefaultManagementClusterName.
-	ManagementClusterName string `json:"managementClusterName,omitempty"`
-
-	// KubernetesVersion is the version of Kubernetes to deploy when testing.
-	// Defaults to DefaultKubernetesVersion.
-	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
-
-	// Images is a list of container images to load into the Kind cluster.
-	Images []ContainerImage `json:"images,omitempty"`
-
-	// Components is a list of component configurations applied to the
-	// Kind cluster.
-	// The components are applied serially, in the listed order.
-	Components []ComponentConfig `json:"components,omitempty"`
-}
-
-// Defaults assigns default values to the object.
-func (c *Config) Defaults() {
-	if c.ManagementClusterName == "" {
-		c.ManagementClusterName = DefaultManagementClusterName
-	}
-	if c.KubernetesVersion == "" {
-		c.KubernetesVersion = DefaultKubernetesVersion
-	}
-	for i := range c.Components {
-		componentConfig := &c.Components[i]
-		for j := range componentConfig.Sources {
-			source := &componentConfig.Sources[j]
-			if source.Value != "" && source.Type == "" {
-				source.Type = KustomizeSource
-			}
-		}
-		for j := range componentConfig.Waiters {
-			waiter := &componentConfig.Waiters[j]
-			if waiter.Value != "" && waiter.Type == "" {
-				waiter.Type = PodsWaiter
-			}
-		}
-	}
-	for i := range c.Images {
-		containerImage := &c.Images[i]
-		if containerImage.LoadBehavior == "" {
-			containerImage.LoadBehavior = MustLoadImage
-		}
-	}
-}
-
-func errInvalidArg(format string, args ...interface{}) error {
-	msg := fmt.Sprintf(format, args...)
-	return errors.Errorf("invalid argument: %s", msg)
-}
-
-func errEmptyArg(argName string) error {
-	return errInvalidArg("%s is empty", argName)
-}
-
-// Validate validates the configuration.
-func (c *Config) Validate() error {
-	if c.ManagementClusterName == "" {
-		return errEmptyArg("ManagementClusterName")
-	}
-	if c.KubernetesVersion == "" {
-		return errEmptyArg("KubernetesVersion")
-	}
-	for i, componentConfig := range c.Components {
-		for j, source := range componentConfig.Sources {
-			switch source.Type {
-			case URLSource, KustomizeSource:
-				if source.Value == "" {
-					return errEmptyArg(fmt.Sprintf("Components[%d].Sources[%d].Value", i, j))
-				}
-			default:
-				return errInvalidArg("Components[%d].Sources[%d].Type=%q", i, j, source.Type)
-			}
-			for k, replacement := range source.Replacements {
-				if _, err := regexp.Compile(replacement.Old); err != nil {
-					return errInvalidArg("Components[%d].Sources[%d].Replacements[%d].Old=%q: %v", i, j, k, replacement.Old, err)
-				}
-			}
-		}
-		for j, waiter := range componentConfig.Waiters {
-			switch waiter.Type {
-			case PodsWaiter, ServiceWaiter:
-				if waiter.Value == "" {
-					return errEmptyArg(fmt.Sprintf("Components[%d].Waiters[%d].Value", i, j))
-				}
-			default:
-				return errInvalidArg("Components[%d].Waiters[%d].Type=%q", i, j, waiter.Type)
-			}
-		}
-	}
-	for i, containerImage := range c.Images {
-		if containerImage.Name == "" {
-			return errEmptyArg(fmt.Sprintf("Images[%d].Name=%q", i, containerImage.Name))
-		}
-		switch containerImage.LoadBehavior {
-		case MustLoadImage, TryLoadImage:
-			// Valid
-		default:
-			return errInvalidArg("Images[%d].LoadBehavior=%q", i, containerImage.LoadBehavior)
-		}
-	}
-	return nil
-}
-
-// LoadConfig loads a Config from the provided YAML data.
-func LoadConfig(data []byte) (*Config, error) {
-	if len(data) == 0 {
-		return nil, io.ErrShortBuffer
-	}
-	config := &Config{}
-	if err := yaml.Unmarshal(data, config); err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
-// DefaultConfig returns a default Config object that loads cert-manager,
-// CAPI core, the Kubeadm Bootstrapper, and the Kubeadm ControlPlane.
-//
-// Callers may append their own images to the returne Config.Images and their
-// own components to Config.Components in order to stand up a management cluster
-// for testing infrastructure providers.
-func DefaultConfig() (Config, error) {
-	config, err := LoadConfig([]byte(defaultConfigYAML))
-	if err != nil {
-		return Config{}, err
-	}
-	return *config, nil
-}
-
-// MustDefaultConfig panics if DefaultConfig returns an error.
-func MustDefaultConfig() Config {
-	config, err := DefaultConfig()
-	if err != nil {
-		panic(errors.Wrap(err, "failed to load default config YAML"))
-	}
-	return config
 }
 
 // YAMLForComponentSource returns the YAML for the provided component source.

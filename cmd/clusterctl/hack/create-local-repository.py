@@ -16,12 +16,12 @@
 
 ###################
 
-# local-overrides.py takes in input a list of provider and, for each of them, generates the components YAML from the
+# create-local-repository.py takes in input a list of provider and, for each of them, generates the components YAML from the
 # local repositories (the GitHub repositories clone), and finally stores it in the clusterctl local override folder
 
 # prerequisites:
 
-# - the script should be executed from sigs.k8s.io/cluster-api/ by calling cmd/clusterctl/hack/local-overrides.py
+# - the script should be executed from sigs.k8s.io/cluster-api/ by calling cmd/clusterctl/hack/create-local-repository.py
 # - there should be a sigs.k8s.io/cluster-api/clusterctl-settings.json file with the list of provider for which
 #   the local overrides should be generated and the list of provider repositories to be included (on top of cluster-api).
 # {

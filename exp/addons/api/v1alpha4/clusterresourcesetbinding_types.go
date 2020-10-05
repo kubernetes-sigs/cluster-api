@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	"reflect"
@@ -103,6 +103,7 @@ func (c *ClusterResourceSetBinding) DeleteBinding(clusterResourceSet *ClusterRes
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterresourcesetbindings,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 
 // ClusterResourceSetBinding lists all matching ClusterResourceSets with the cluster it belongs to.
 type ClusterResourceSetBinding struct {

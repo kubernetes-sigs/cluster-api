@@ -153,14 +153,19 @@ func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 	}
 
 	// If it is required to add a step counter only if a subset of condition exists, check if the conditions
-	// in scope are included in this subset.
+	// in scope are included in this subset or not.
 	if mergeOpt.addStepCounterIfOnlyConditionTypes != nil {
 		for _, c := range conditionsInScope {
+			found := false
 			for _, t := range mergeOpt.addStepCounterIfOnlyConditionTypes {
-				if c.Type != t {
-					mergeOpt.addStepCounter = false
+				if c.Type == t {
+					found = true
 					break
 				}
+			}
+			if !found {
+				mergeOpt.addStepCounter = false
+				break
 			}
 		}
 	}

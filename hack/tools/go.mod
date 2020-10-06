@@ -12,15 +12,12 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/raviqqe/liche v0.0.0-20200229003944-f57a5d1c5be4
 	github.com/sergi/go-diff v1.1.0 // indirect
-	github.com/spf13/cobra v1.0.0 // indirect
-	golang.org/x/tools v0.0.0-20200502202811-ed308ab3e770
+	golang.org/x/tools v0.0.0-20200616195046-dc31b401abb5
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
-	k8s.io/api v0.17.3 // indirect
-	k8s.io/apiextensions-apiserver v0.17.2 // indirect
-	k8s.io/code-generator v0.18.0
-	sigs.k8s.io/controller-tools v0.2.9
+	k8s.io/code-generator v0.19.2
+	sigs.k8s.io/controller-tools v0.4.1-0.20201002000720-57250aac17f6
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20200226075303-ed8438ec10a4
 	sigs.k8s.io/testing_frameworks v0.1.2
 )

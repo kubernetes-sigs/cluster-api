@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+
 	"k8s.io/utils/pointer"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,8 +35,8 @@ func (m *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-exp-cluster-x-k8s-io-v1alpha3-machinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=exp.cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=validation.exp.machinepool.cluster.x-k8s.io,sideEffects=None
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-exp-cluster-x-k8s-io-v1alpha3-machinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=exp.cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=default.exp.machinepool.cluster.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/validate-exp-cluster-x-k8s-io-v1alpha3-machinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=exp.cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=validation.exp.machinepool.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-exp-cluster-x-k8s-io-v1alpha3-machinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=exp.cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=default.exp.machinepool.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 var _ webhook.Defaulter = &MachinePool{}
 var _ webhook.Validator = &MachinePool{}

@@ -156,9 +156,6 @@ managers: ## Build all managers
 clusterctl: ## Build clusterctl binary
 	go build -ldflags "$(LDFLAGS)" -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
-$(KUSTOMIZE): $(TOOLS_DIR)/go.mod # Build kustomize from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3
-
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
@@ -179,6 +176,9 @@ $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 
 $(ENVSUBST): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/cmd/envsubst
+
+$(KUSTOMIZE): # Build kustomize from tools folder.
+	hack/ensure-kustomize.sh
 
 envsubst: $(ENVSUBST) ## Build a local copy of envsubst.
 kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize.

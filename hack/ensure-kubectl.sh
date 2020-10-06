@@ -19,7 +19,7 @@ set -o nounset
 set -o pipefail
 
 GOPATH_BIN="$(go env GOPATH)/bin/"
-MINIMUM_KUBECTL_VERSION=v1.15.0
+MINIMUM_KUBECTL_VERSION=v1.19.0
 
 # Ensure the kubectl tool exists and is a viable version, or installs it
 verify_kubectl_version() {

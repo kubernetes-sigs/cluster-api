@@ -37,18 +37,13 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: MachineHealthCheck is the Schema for the machinehealthchecks
-          API
+        description: MachineHealthCheck is the Schema for the machinehealthchecks API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -56,48 +51,34 @@ spec:
             description: Specification of machine health check policy
             properties:
               clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
-                  to.
+                description: ClusterName is the name of the Cluster this object belongs to.
                 minLength: 1
                 type: string
               maxUnhealthy:
                 anyOf:
                 - type: integer
                 - type: string
-                description: Any further remediation is only allowed if at most "MaxUnhealthy"
-                  machines selected by "selector" are not healthy.
+                description: Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by "selector" are not healthy.
                 x-kubernetes-int-or-string: true
               nodeStartupTimeout:
-                description: Machines older than this duration without a node will
-                  be considered to have failed and will be remediated.
+                description: Machines older than this duration without a node will be considered to have failed and will be remediated.
                 type: string
               selector:
-                description: Label selector to match machines whose health will be
-                  exercised
+                description: Label selector to match machines whose health will be exercised
                 properties:
                   matchExpressions:
-                    description: matchExpressions is a list of label selector requirements.
-                      The requirements are ANDed.
+                    description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                     items:
-                      description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
-                        and values.
+                      description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
                       properties:
                         key:
-                          description: key is the label key that the selector applies
-                            to.
+                          description: key is the label key that the selector applies to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
-                            a set of values. Valid operators are In, NotIn, Exists
-                            and DoesNotExist.
+                          description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
                           type: string
                         values:
-                          description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
-                            array must be empty. This array is replaced during a strategic
-                            merge patch.
+                          description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
                           items:
                             type: string
                           type: array
@@ -109,23 +90,13 @@ spec:
                   matchLabels:
                     additionalProperties:
                       type: string
-                    description: matchLabels is a map of {key,value} pairs. A single
-                      {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
-                      is "In", and the values array contains only "value". The requirements
-                      are ANDed.
+                    description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
                     type: object
                 type: object
               unhealthyConditions:
-                description: UnhealthyConditions contains a list of the conditions
-                  that determine whether a node is considered unhealthy.  The conditions
-                  are combined in a logical OR, i.e. if any of the conditions is met,
-                  the node is unhealthy.
+                description: UnhealthyConditions contains a list of the conditions that determine whether a node is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.
                 items:
-                  description: UnhealthyCondition represents a Node condition type
-                    and value with a timeout specified as a duration.  When the named
-                    condition has been in the given status for at least the timeout
-                    value, a node is considered unhealthy.
+                  description: UnhealthyCondition represents a Node condition type and value with a timeout specified as a duration.  When the named condition has been in the given status for at least the timeout value, a node is considered unhealthy.
                   properties:
                     status:
                       minLength: 1
@@ -151,25 +122,21 @@ spec:
             description: Most recently observed status of MachineHealthCheck resource
             properties:
               currentHealthy:
-                description: total number of healthy machines counted by this machine
-                  health check
+                description: total number of healthy machines counted by this machine health check
                 format: int32
                 minimum: 0
                 type: integer
               expectedMachines:
-                description: total number of machines counted by this machine health
-                  check
+                description: total number of machines counted by this machine health check
                 format: int32
                 minimum: 0
                 type: integer
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
-                  by the controller.
+                description: ObservedGeneration is the latest generation observed by the controller.
                 format: int64
                 type: integer
               targets:
-                description: Targets shows the current list of machines the machine
-                  health check is watching
+                description: Targets shows the current list of machines the machine health check is watching
                 items:
                   type: string
                 type: array

@@ -28,6 +28,11 @@ import (
 	kind "sigs.k8s.io/kind/pkg/cluster"
 )
 
+const (
+	// DefaultNodeImage is the default node image to be used for for testing.
+	DefaultNodeImage = "kindest/node:v1.19.1"
+)
+
 // KindClusterOption is a NewKindClusterProvider option
 type KindClusterOption interface {
 	apply(*kindClusterProvider)
@@ -37,6 +42,13 @@ type kindClusterOptionAdapter func(*kindClusterProvider)
 
 func (adapter kindClusterOptionAdapter) apply(kindClusterProvider *kindClusterProvider) {
 	adapter(kindClusterProvider)
+}
+
+// WithNodeImage implements a New Option that instruct the kindClusterProvider to use a specific node image / Kubernetes version
+func WithNodeImage(image string) KindClusterOption {
+	return kindClusterOptionAdapter(func(k *kindClusterProvider) {
+		k.nodeImage = image
+	})
 }
 
 // WithDockerSockMount implements a New Option that instruct the kindClusterProvider to mount /var/run/docker.sock into
@@ -65,6 +77,7 @@ type kindClusterProvider struct {
 	name           string
 	withDockerSock bool
 	kubeconfigPath string
+	nodeImage      string
 }
 
 // Create a Kubernetes cluster using kind.
@@ -91,6 +104,12 @@ func (k *kindClusterProvider) createKindCluster() {
 	if k.withDockerSock {
 		kindCreateOptions = append(kindCreateOptions, kind.CreateWithV1Alpha4Config(withDockerSockConfig()))
 	}
+
+	nodeImage := DefaultNodeImage
+	if k.nodeImage != "" {
+		nodeImage = k.nodeImage
+	}
+	kindCreateOptions = append(kindCreateOptions, kind.CreateWithNodeImage(nodeImage))
 
 	err := kind.NewProvider().Create(k.name, kindCreateOptions...)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create the kind cluster %q")

@@ -65,13 +65,6 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	_ = rbacv1.AddToScheme(scheme)
 }
 
-// TypeToKind returns the Kind without the package prefix. Pass in a pointer to a struct
-// This will panic if used incorrectly.
-// Deprecated: use ObjectToKind for runtime.Objects for compile-time checking
-func TypeToKind(i interface{}) string {
-	return reflect.ValueOf(i).Elem().Type().Name()
-}
-
 // ObjectToKind returns the Kind without the package prefix. Pass in a pointer to a struct
 // This will panic if used incorrectly.
 func ObjectToKind(i runtime.Object) string {

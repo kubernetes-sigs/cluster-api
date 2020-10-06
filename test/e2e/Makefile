@@ -44,7 +44,7 @@ $(GINKGO): # Build ginkgo from tools folder.
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/ginkgo
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3
+	$(REPO_ROOT)/hack/ensure-kustomize.sh
 
 ## --------------------------------------
 ## Templates

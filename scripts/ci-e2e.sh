@@ -28,6 +28,9 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=./hack/ensure-kustomize.sh
 source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
+# Make sure the tools binaries are on the path.
+export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
+
 # Configure provider images generation;
 # please ensure the generated image name matches image names used in the E2E_CONF_FILE
 export REGISTRY=gcr.io/k8s-staging-cluster-api

@@ -18,36 +18,36 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-GOPATH_BIN="$(go env GOPATH)/bin/"
-MINIMUM_KUSTOMIZE_VERSION=3.1.0
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+BIN_ROOT="${KUBE_ROOT}/hack/tools/bin"
+
+kustomize_version=3.5.4
+
+goarch=amd64
+goos="unknown"
+if [[ "${OSTYPE}" == "linux"* ]]; then
+  goos="linux"
+elif [[ "${OSTYPE}" == "darwin"* ]]; then
+  goos="darwin"
+fi
+
+if [[ "$goos" == "unknown" ]]; then
+  echo "OS '$OSTYPE' not supported. Aborting." >&2
+  exit 1
+fi
 
 # Ensure the kustomize tool exists and is a viable version, or installs it
 verify_kustomize_version() {
-
-  # If kustomize is not available on the path, get it
-  if ! [ -x "$(command -v kustomize)" ]; then
-    if [[ "${OSTYPE}" == "linux-gnu" ]]; then
-      echo 'kustomize not found, installing'
-      if ! [ -d "${GOPATH_BIN}" ]; then
-        mkdir -p "${GOPATH_BIN}"
-      fi
-      curl -sLo "${GOPATH_BIN}/kustomize" https://github.com/kubernetes-sigs/kustomize/releases/download/v${MINIMUM_KUSTOMIZE_VERSION}/kustomize_${MINIMUM_KUSTOMIZE_VERSION}_linux_amd64
-      chmod +x "${GOPATH_BIN}/kustomize"
-    else
-      echo "Missing required binary in path: kustomize"
-      return 2
+  if ! [ -x "$(command -v "${BIN_ROOT}/kustomize")" ]; then
+    echo "fetching kustomize@${kustomize_version}"
+    if ! [ -d "${BIN_ROOT}" ]; then
+      mkdir -p "${BIN_ROOT}"
     fi
-  fi
-
-  local kustomize_version
-  kustomize_version=$(kustomize version)
-  if [[ "${MINIMUM_KUSTOMIZE_VERSION}" != $(echo -e "${MINIMUM_KUSTOMIZE_VERSION}\n${kustomize_version}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]; then
-    cat <<EOF
-Detected kustomize version: ${kustomize_version}.
-Requires ${MINIMUM_KUSTOMIZE_VERSION} or greater.
-Please install ${MINIMUM_KUSTOMIZE_VERSION} or later.
-EOF
-    return 2
+    archive_name="kustomize-v${kustomize_version}.tar.gz"
+    curl -sLo "${BIN_ROOT}/${archive_name}" https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomize_version}/kustomize_v${kustomize_version}_${goos}_${goarch}.tar.gz
+    tar -zvxf "${BIN_ROOT}/${archive_name}" -C "${BIN_ROOT}/"
+    chmod +x "${BIN_ROOT}/kustomize"
+    rm "${BIN_ROOT}/${archive_name}"
   fi
 }
 

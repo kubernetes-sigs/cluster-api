@@ -216,7 +216,7 @@ for the provider and performs a live update of the running container.
 docker build. e.g.
 
 ``` Dockerfile
-RUN wget -qO- https://dl.k8s.io/v1.14.4/kubernetes-client-linux-amd64.tar.gz | tar xvz
+RUN wget -qO- https://dl.k8s.io/v1.19.2/kubernetes-client-linux-amd64.tar.gz | tar xvz
 RUN wget -qO- https://get.docker.com | sh
 ```
 

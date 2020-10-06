@@ -71,7 +71,7 @@ var configClusterClusterCmd = &cobra.Command{
 		clusterctl config cluster my-cluster --target-namespace=foo
 
 		# Generates a configuration file for creating workload clusters with a specific Kubernetes version.
-		clusterctl config cluster my-cluster --kubernetes-version=v1.16.0
+		clusterctl config cluster my-cluster --kubernetes-version=v1.19.1
 
 		# Generates a configuration file for creating workload clusters with a
 		# custom number of nodes (if supported by the provider's templates).

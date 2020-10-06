@@ -33,7 +33,7 @@ const (
 
 	// DefaultKubernetesVersion is the default version of Kubernetes to deploy
 	// for testing.
-	DefaultKubernetesVersion = "v1.16.2"
+	DefaultKubernetesVersion = "v1.19.1"
 )
 
 // LoadImageBehavior indicates the behavior when loading an image.

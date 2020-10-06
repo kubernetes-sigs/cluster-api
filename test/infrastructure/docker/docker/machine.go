@@ -40,7 +40,7 @@ import (
 
 const (
 	defaultImageName = "kindest/node"
-	defaultImageTag  = "v1.16.3"
+	defaultImageTag  = "v1.19.1"
 )
 
 type nodeCreator interface {

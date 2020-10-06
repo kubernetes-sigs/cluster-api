@@ -12,7 +12,6 @@ require (
 	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/flect v0.2.2
-	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/go-cmp v0.4.1
 	github.com/google/go-github v17.0.0+incompatible

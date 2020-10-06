@@ -22,7 +22,7 @@ Choose one of the options below:
 
 1. **Existing Management Cluster**
 
-For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place. The Kubernetes cluster must be at least v1.16+.
+For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place. The Kubernetes cluster must be at least v1.19.1.
 
 ```bash
 export KUBECONFIG=<...>
@@ -91,7 +91,7 @@ nodes:
 EOF
 ```
 
-Then follow the instruction for your kind version using  `kind create cluster --config kind-cluster-with-extramounts.yaml` 
+Then follow the instruction for your kind version using  `kind create cluster --config kind-cluster-with-extramounts.yaml`
 to create the management cluster using the above file.
 
 {{#/tab }}
@@ -228,7 +228,7 @@ The Docker provider is not designed for production use and is intended for devel
 </aside>
 
 The docker provider does not require additional prerequisites.
-You can run 
+You can run
 ```
 clusterctl init --infrastructure docker
 ```
@@ -530,7 +530,7 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
 ```bash
 clusterctl config cluster capi-quickstart \
-  --kubernetes-version v1.18.2 \
+  --kubernetes-version v1.19.1 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -549,7 +549,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl config cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.18.2 \
+  --kubernetes-version v1.19.1 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -625,7 +625,7 @@ clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 <h1>Warning</h1>
 
 The `clusterctl get kubeconfig` command is available on for clusterctl v0.3.9 or newer. See [clusterctl get kubeconfig] for more details. If you are running older
-version you can use the following command: 
+version you can use the following command:
 
 ```bash
 kubectl --namespace=default get secret capi-quickstart-kubeconfig \
@@ -635,7 +635,7 @@ kubectl --namespace=default get secret capi-quickstart-kubeconfig \
 
 If you are using docker on MacOS, you will need to do a couple of additional
 steps to get the correct kubeconfig for a workload cluster created with the docker provider.
-See [Additional Notes for the Docker Provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider). 
+See [Additional Notes for the Docker Provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
 
 </aside>
 

@@ -29,7 +29,7 @@ metadata:
   namespace: default
 spec:
   replicas: 1
-  version: v1.18.8
+  version: v1.19.1
   infrastructureTemplate:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: DockerMachineTemplate
@@ -82,7 +82,7 @@ spec:
         kind: DockerMachinePool
         name: worker-dmp-0
         namespace: default
-      version: v1.18.8
+      version: v1.19.1
 ---
 apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha3
 kind: DockerMachinePool

@@ -2,7 +2,7 @@
 ## What is the Cluster API bootstrap provider kubeadm?
 
 Cluster API bootstrap provider Kubeadm (CABPK) is a component responsible for generating a cloud-init script to
-turn a Machine into a Kubernetes Node. This implementation uses [kubeadm](https://github.com/kubernetes/kubeadm) 
+turn a Machine into a Kubernetes Node. This implementation uses [kubeadm](https://github.com/kubernetes/kubeadm)
 for Kubernetes bootstrap.
 
 ### Resources
@@ -72,7 +72,7 @@ spec:
     kind: DockerMachine
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     name: my-control-plane1-docker
-  version: "v1.18.8"
+  version: "v1.19.1"
 ```
 
 CABPK's main responsibility is to convert a `KubeadmConfig` bootstrap object into a cloud-init script that is
@@ -164,7 +164,7 @@ The user can choose two approaches for certificate management:
 should be provided as a `Secrets` objects in the management cluster.
 2. let CABPK to generate the necessary `Secrets` objects with a self-signed certificate authority for kubeadm
 
-See [here](ttps://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/) for more info about certificate management with kubeadm. 
+See [here](ttps://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/) for more info about certificate management with kubeadm.
 
 ### Additional Features
 The `KubeadmConfig` object supports customizing the content of the config-data. The following examples illustrate how to specify these options. They should be adapted to fit your environment and use case.
@@ -203,7 +203,7 @@ The `KubeadmConfig` object supports customizing the content of the config-data. 
     postKubeadmCommands:
       - echo "success" >/var/log/my-custom-file.log
     ```
-    
+
 - `KubeadmConfig.Users` specifies a list of users to be created on the machine
 
     ```yaml
@@ -213,16 +213,16 @@ The `KubeadmConfig` object supports customizing the content of the config-data. 
         - '${SSH_AUTHORIZED_KEY}'
         sudo: ALL=(ALL) NOPASSWD:ALL
     ```
-  
+
 - `KubeadmConfig.NTP` specifies NTP settings for the machine
-    
+
   ```yaml
   ntp:
     servers:
       - IP_ADDRESS
     enabled: true
   ```
-  
+
 - `KubeadmConfig.DiskSetup` specifies options for the creation of partition tables and file systems on devices.
 
   ```yaml
@@ -244,7 +244,7 @@ The `KubeadmConfig` object supports customizing the content of the config-data. 
       overwrite: false
       tableType: gpt
   ```
-  
+
 - `KubeadmConfig.Mounts` specifies a list of mount points to be setup.
 
     ```yaml
@@ -258,11 +258,11 @@ The `KubeadmConfig` object supports customizing the content of the config-data. 
     ```yaml
     verbosity: 10
     ```
-  
+
 - `KubeadmConfig.UseExperimentalRetryJoin` replaces a basic kubeadm command with a shell script with retries for joins. This will add about 40KB to userdata.
 
     ```yaml
     useExperimentalRetryJoin: true
     ```
 
-For more information on cloud-init options, see [cloud config examples](https://cloudinit.readthedocs.io/en/latest/topics/examples.html). 
+For more information on cloud-init options, see [cloud config examples](https://cloudinit.readthedocs.io/en/latest/topics/examples.html).

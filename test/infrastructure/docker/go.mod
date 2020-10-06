@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api/test/infrastructure/docker
 
-go 1.13
+go 1.15
 
 require (
 	github.com/go-logr/logr v0.1.0

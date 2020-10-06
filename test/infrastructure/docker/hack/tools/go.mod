@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api/test/infrastructure/docker/hack/tools
 
-go 1.13
+go 1.15
 
 require (
 	github.com/golangci/golangci-lint v1.27.0

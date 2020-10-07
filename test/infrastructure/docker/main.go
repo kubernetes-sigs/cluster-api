@@ -18,10 +18,11 @@ package main
 
 import (
 	"flag"
-	"github.com/spf13/pflag"
 	"math/rand"
 	"os"
 	"time"
+
+	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -80,6 +81,7 @@ func main() {
 		LeaderElectionID:       "controller-leader-election-capd",
 		SyncPeriod:             &syncPeriod,
 		HealthProbeBindAddress: healthAddr,
+		Port:                   9443,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

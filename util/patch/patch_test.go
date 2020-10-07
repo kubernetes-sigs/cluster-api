@@ -412,7 +412,7 @@ var _ = Describe("Patch Helper", func() {
 		obj := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-",
-				Namespace:    "test-namespace",
+				Namespace:    "default",
 			},
 		}
 
@@ -481,7 +481,7 @@ var _ = Describe("Patch Helper", func() {
 
 		Specify("updating spec", func() {
 			obj := obj.DeepCopy()
-			obj.ObjectMeta.Namespace = "test-namespace"
+			obj.ObjectMeta.Namespace = "default"
 
 			By("Creating the object")
 			Expect(testEnv.Create(ctx, obj)).ToNot(HaveOccurred())
@@ -499,7 +499,7 @@ var _ = Describe("Patch Helper", func() {
 			obj.Spec.InfrastructureRef = &corev1.ObjectReference{
 				Kind:      "test-kind",
 				Name:      "test-ref",
-				Namespace: "test-namespace",
+				Namespace: "default",
 			}
 
 			By("Patching the object")
@@ -549,7 +549,7 @@ var _ = Describe("Patch Helper", func() {
 
 		Specify("updating both spec, status, and adding a condition", func() {
 			obj := obj.DeepCopy()
-			obj.ObjectMeta.Namespace = "test-namespace"
+			obj.ObjectMeta.Namespace = "default"
 
 			By("Creating the object")
 			Expect(testEnv.Create(ctx, obj)).ToNot(HaveOccurred())
@@ -567,7 +567,7 @@ var _ = Describe("Patch Helper", func() {
 			obj.Spec.InfrastructureRef = &corev1.ObjectReference{
 				Kind:      "test-kind",
 				Name:      "test-ref",
-				Namespace: "test-namespace",
+				Namespace: "default",
 			}
 
 			By("Updating the object status")
@@ -597,7 +597,7 @@ var _ = Describe("Patch Helper", func() {
 		obj := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-ms",
-				Namespace:    "test-namespace",
+				Namespace:    "default",
 			},
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: "test1",

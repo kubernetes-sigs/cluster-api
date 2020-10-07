@@ -92,7 +92,7 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 					}
 				}
 				if !found {
-					t.Error("Expected to find cert-manager-webhook MutatingWebhookConfiguration with sideEffects=None")
+					t.Error("Expected to find cert-manager-webhook MutatingWebhookConfiguration/v1beta1 with sideEffects=None")
 				}
 			},
 		},
@@ -119,7 +119,7 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 					}
 				}
 				if !found {
-					t.Error("Expected to find cert-manager-webhook ValidatingWebhookConfiguration with sideEffects=None")
+					t.Error("Expected to find cert-manager-webhook ValidatingWebhookConfiguration/v1beta1 with sideEffects=None")
 				}
 			},
 		},

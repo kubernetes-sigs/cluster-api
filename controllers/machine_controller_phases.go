@@ -173,6 +173,8 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
 func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+
 	// If the bootstrap data is populated, set ready and return.
 	if m.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
@@ -214,7 +216,8 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 
 	// If the bootstrap provider is not ready, requeue.
 	if !ready {
-		return ctrl.Result{}, errors.Errorf("Bootstrap provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
+		logger.Info("Bootstrap provider is not ready, requeuing")
+		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	// Get and set the name of the secret containing the bootstrap data.
@@ -233,6 +236,8 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
 func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
 	if err != nil {
@@ -270,7 +275,8 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 
 	// If the infrastructure provider is not ready, return early.
 	if !ready {
-		return ctrl.Result{}, errors.Errorf("Infrastructure provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
+		logger.Info("Infrastructure provider is not ready, requeuing")
+		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	// Get Spec.ProviderID from the infrastructure provider.

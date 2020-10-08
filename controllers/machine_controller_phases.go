@@ -29,17 +29,17 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
 var (
@@ -172,38 +172,40 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
-func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) error {
+func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+
 	// If the bootstrap data is populated, set ready and return.
 	if m.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
 		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// If the Boostrap ref is nil (and so the machine should use user generated data secret), return.
 	if m.Spec.Bootstrap.ConfigRef == nil {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Call generic external reconciler if we have an external reference.
 	externalResult, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Bootstrap.ConfigRef)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 	if externalResult.Paused {
-		return nil
+		return ctrl.Result{}, nil
 	}
 	bootstrapConfig := externalResult.Result
 
 	// If the bootstrap config is being deleted, return early.
 	if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Determine if the bootstrap provider is ready.
 	ready, err := external.IsReady(bootstrapConfig)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	// Report a summary of current status of the bootstrap object defined for this machine.
@@ -214,26 +216,28 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 
 	// If the bootstrap provider is not ready, requeue.
 	if !ready {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
-			"Bootstrap provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
+		logger.Info("Bootstrap provider is not ready, requeuing")
+		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	// Get and set the name of the secret containing the bootstrap data.
 	secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "dataSecretName")
 	if err != nil {
-		return errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	} else if secretName == "" {
-		return errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	m.Spec.Bootstrap.Data = nil
 	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
 	m.Status.BootstrapReady = true
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
-func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) error {
+func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
 	if err != nil {
@@ -244,22 +248,22 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 			m.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
 		}
-		return err
+		return ctrl.Result{}, err
 	}
 	// if the external object is paused, return without any further processing
 	if infraReconcileResult.Paused {
-		return nil
+		return ctrl.Result{}, nil
 	}
 	infraConfig := infraReconcileResult.Result
 
 	if !infraConfig.GetDeletionTimestamp().IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Determine if the infrastructure provider is ready.
 	ready, err := external.IsReady(infraConfig)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 	m.Status.InfrastructureReady = ready
 
@@ -271,23 +275,22 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 
 	// If the infrastructure provider is not ready, return early.
 	if !ready {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
-			"Infrastructure provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace,
-		)
+		logger.Info("Infrastructure provider is not ready, requeuing")
+		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	// Get Spec.ProviderID from the infrastructure provider.
 	var providerID string
 	if err := util.UnstructuredUnmarshalField(infraConfig, &providerID, "spec", "providerID"); err != nil {
-		return errors.Wrapf(err, "failed to retrieve Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	} else if providerID == "" {
-		return errors.Errorf("retrieved empty Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Errorf("retrieved empty Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	// Get and set Status.Addresses from the infrastructure provider.
 	err = util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses")
 	if err != nil && err != util.ErrUnstructuredFieldNotFound {
-		return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	// Get and set the failure domain from the infrastructure provider.
@@ -296,11 +299,11 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	switch {
 	case err == util.ErrUnstructuredFieldNotFound: // no-op
 	case err != nil:
-		return errors.Wrapf(err, "failed to failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	default:
 		m.Spec.FailureDomain = pointer.StringPtr(failureDomain)
 	}
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
-	return nil
+	return ctrl.Result{}, nil
 }

@@ -36,7 +36,8 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 	Context("When running the ClusterCacheReconciler", func() {
 		var (
 			mgr           manager.Manager
-			doneMgr       chan struct{}
+			mgrContext    context.Context
+			mgrCancel     context.CancelFunc
 			cct           *ClusterCacheTracker
 			k8sClient     client.Client
 			testNamespace *corev1.Namespace
@@ -95,9 +96,9 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			Expect(r.SetupWithManager(mgr, controller.Options{})).To(Succeed())
 
 			By("Starting the manager")
-			doneMgr = make(chan struct{})
+			mgrContext, mgrCancel = context.WithCancel(ctx)
 			go func() {
-				Expect(mgr.Start(doneMgr)).To(Succeed())
+				Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
 
 			k8sClient = mgr.GetClient()
@@ -118,7 +119,7 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			By("Deleting any Clusters")
 			Expect(cleanupTestClusters(ctx, k8sClient)).To(Succeed())
 			By("Stopping the manager")
-			close(doneMgr)
+			mgrCancel()
 		})
 
 		It("should remove clusterAccessors when clusters are deleted", func() {

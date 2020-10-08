@@ -37,7 +37,8 @@ import (
 var _ = Describe("ClusterCache HealthCheck suite", func() {
 	Context("when health checking clusters", func() {
 		var mgr manager.Manager
-		var doneMgr chan struct{}
+		var mgrContext context.Context
+		var mgrCancel context.CancelFunc
 		var k8sClient client.Client
 
 		var testNamespace *corev1.Namespace
@@ -58,10 +59,10 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			doneMgr = make(chan struct{})
+			mgrContext, mgrCancel = context.WithCancel(ctx)
 			By("Starting the manager")
 			go func() {
-				Expect(mgr.Start(doneMgr)).To(Succeed())
+				Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
 
 			k8sClient = mgr.GetClient()

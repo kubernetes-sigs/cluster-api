@@ -50,7 +50,8 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 	Describe("watching", func() {
 		var (
 			mgr           manager.Manager
-			doneMgr       chan struct{}
+			mgrContext    context.Context
+			mgrCancel     context.CancelFunc
 			cct           *ClusterCacheTracker
 			k8sClient     client.Client
 			testNamespace *corev1.Namespace
@@ -74,10 +75,10 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			w, err = ctrl.NewControllerManagedBy(mgr).For(&clusterv1.MachineDeployment{}).Build(c)
 			Expect(err).To(BeNil())
 
-			doneMgr = make(chan struct{})
+			mgrContext, mgrCancel = context.WithCancel(ctx)
 			By("Starting the manager")
 			go func() {
-				Expect(mgr.Start(doneMgr)).To(Succeed())
+				Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
 
 			k8sClient = mgr.GetClient()
@@ -113,7 +114,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			By("Deleting any Clusters")
 			Expect(cleanupTestClusters(ctx, k8sClient)).To(Succeed())
 			By("Stopping the manager")
-			close(doneMgr)
+			mgrCancel()
 		})
 
 		It("with the same name should succeed and not have duplicates", func() {

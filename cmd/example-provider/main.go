@@ -64,6 +64,9 @@ func main() {
 		klog.Fatal(err)
 	}
 
+	// Setup the context that's going to be used in controllers and for the manager.
+	ctx := ctrl.SetupSignalHandler()
+
 	if err = (&controllers.ClusterReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
@@ -85,7 +88,7 @@ func main() {
 		klog.Fatalf("unable to create health check: %v", err)
 	}
 
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)
 	}
 }

@@ -196,6 +196,8 @@ var _ = Describe("Cluster Reconciler", func() {
 	})
 
 	It("Should successfully patch a cluster object if only removing finalizers", func() {
+		Skip("This test doesn't look correct, if we remove the finalizer the reconciler takes care of re-adding it")
+
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{

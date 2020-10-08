@@ -294,8 +294,8 @@ func (t *TestEnvironment) Stop() error {
 	return env.Stop()
 }
 
-func (t *TestEnvironment) CreateKubeconfigSecret(cluster *clusterv1.Cluster) error {
-	return kubeconfig.CreateEnvTestSecret(t.Client, t.Config, cluster)
+func (t *TestEnvironment) CreateKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster) error {
+	return kubeconfig.CreateEnvTestSecret(ctx, t.Client, t.Config, cluster)
 }
 
 func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) error {

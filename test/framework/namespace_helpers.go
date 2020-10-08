@@ -60,7 +60,7 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 	}
 	log.Logf("Creating namespace %s", input.Name)
 	Eventually(func() error {
-		return input.Creator.Create(context.TODO(), ns)
+		return input.Creator.Create(ctx, ns)
 	}, intervals...).Should(Succeed())
 
 	return ns
@@ -101,7 +101,7 @@ func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals 
 	}
 	log.Logf("Deleting namespace %s", input.Name)
 	Eventually(func() error {
-		return input.Deleter.Delete(context.TODO(), ns)
+		return input.Deleter.Delete(ctx, ns)
 	}, intervals...).Should(Succeed())
 }
 

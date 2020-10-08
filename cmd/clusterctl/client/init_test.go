@@ -28,6 +28,11 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
+	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+var (
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func Test_clusterctlClient_InitImages(t *testing.T) {

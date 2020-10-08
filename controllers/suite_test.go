@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -32,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -44,7 +44,7 @@ const (
 
 var (
 	testEnv *helpers.TestEnvironment
-	ctx     = context.Background()
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {

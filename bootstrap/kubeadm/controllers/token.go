@@ -34,7 +34,7 @@ var (
 )
 
 // createToken attempts to create a token with the given ID.
-func createToken(c client.Client) (string, error) {
+func createToken(ctx context.Context, c client.Client) (string, error) {
 	token, err := bootstraputil.GenerateBootstrapToken()
 	if err != nil {
 		return "", errors.Wrap(err, "unable to generate bootstrap token")
@@ -65,14 +65,14 @@ func createToken(c client.Client) (string, error) {
 		},
 	}
 
-	if err = c.Create(context.TODO(), secretToken); err != nil {
+	if err = c.Create(ctx, secretToken); err != nil {
 		return "", err
 	}
 	return token, nil
 }
 
 // refreshToken extends the TTL for an existing token
-func refreshToken(c client.Client, token string) error {
+func refreshToken(ctx context.Context, c client.Client, token string) error {
 	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
 	if len(substrs) != 3 {
 		return errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
@@ -81,7 +81,7 @@ func refreshToken(c client.Client, token string) error {
 
 	secretName := bootstraputil.BootstrapTokenSecretName(tokenID)
 	secret := &v1.Secret{}
-	if err := c.Get(context.TODO(), client.ObjectKey{Name: secretName, Namespace: metav1.NamespaceSystem}, secret); err != nil {
+	if err := c.Get(ctx, client.ObjectKey{Name: secretName, Namespace: metav1.NamespaceSystem}, secret); err != nil {
 		return err
 	}
 
@@ -90,5 +90,5 @@ func refreshToken(c client.Client, token string) error {
 	}
 	secret.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339))
 
-	return c.Update(context.TODO(), secret)
+	return c.Update(ctx, secret)
 }

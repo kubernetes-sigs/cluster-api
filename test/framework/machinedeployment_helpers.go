@@ -173,7 +173,7 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 
 		oldVersion := deployment.Spec.Template.Spec.Version
 		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
-		Expect(patchHelper.Patch(context.TODO(), deployment)).To(Succeed())
+		Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
 			deployment.Namespace, deployment.Name, *oldVersion, input.UpgradeVersion)
@@ -268,7 +268,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 		Expect(err).ToNot(HaveOccurred())
 		infraRef.Name = newInfraObjName
 		deployment.Spec.Template.Spec.InfrastructureRef = infraRef
-		Expect(patchHelper.Patch(context.TODO(), deployment)).To(Succeed())
+		Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
 
 		log.Logf("Waiting for rolling upgrade to start.")
 		WaitForMachineDeploymentRollingUpgradeToStart(ctx, WaitForMachineDeploymentRollingUpgradeToStartInput{

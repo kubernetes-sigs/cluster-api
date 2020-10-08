@@ -88,9 +88,9 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machi
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
-	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
-	if err := utilconversion.ConvertReferenceAPIContract(ctx, logger, r.Client, r.restConfig, ref); err != nil {
+	if err := utilconversion.ConvertReferenceAPIContract(ctx, r.Client, r.restConfig, ref); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -106,7 +106,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 	// if external ref is paused, return error.
 	if annotations.IsPaused(cluster, obj) {
-		logger.V(3).Info("External object referenced is paused")
+		log.V(3).Info("External object referenced is paused")
 		return external.ReconcileOutput{Paused: true}, nil
 	}
 
@@ -148,7 +148,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	}
 
 	// Ensure we add a watcher to the external object.
-	if err := r.externalTracker.Watch(logger, obj, &handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Machine{}}); err != nil {
+	if err := r.externalTracker.Watch(log, obj, &handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Machine{}}); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -173,7 +173,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
 func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
-	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	// If the bootstrap data is populated, set ready and return.
 	if m.Spec.Bootstrap.DataSecretName != nil {
@@ -216,7 +216,7 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 
 	// If the bootstrap provider is not ready, requeue.
 	if !ready {
-		logger.Info("Bootstrap provider is not ready, requeuing")
+		log.Info("Bootstrap provider is not ready, requeuing")
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
@@ -236,14 +236,14 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
 func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
-	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
 	if err != nil {
 		if m.Status.InfrastructureReady && strings.Contains(err.Error(), "could not find") {
 			// Infra object went missing after the machine was up and running
-			r.Log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
+			log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
 			m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
 			m.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
@@ -275,7 +275,7 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 
 	// If the infrastructure provider is not ready, return early.
 	if !ready {
-		logger.Info("Infrastructure provider is not ready, requeuing")
+		log.Info("Infrastructure provider is not ready, requeuing")
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 

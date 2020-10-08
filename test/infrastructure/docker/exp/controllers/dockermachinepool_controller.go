@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/docker"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -31,6 +30,7 @@ import (
 	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
 	infrav1exp "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -44,7 +44,7 @@ import (
 
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object
 type DockerMachinePoolReconciler struct {
-	client.Client
+	Client client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
@@ -53,9 +53,8 @@ type DockerMachinePoolReconciler struct {
 // +kubebuilder:rbac:groups=exp.infrastructure.cluster.x-k8s.io,resources=dockermachinepools/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
-func (r *DockerMachinePoolReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, rerr error) {
-	ctx := context.Background()
-	log := r.Log.WithName("dockermachinepool").WithValues("docker-machine-pool", req.NamespacedName)
+func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, rerr error) {
+	log := ctrl.LoggerFrom(ctx, "docker-machine-pool", req.NamespacedName)
 
 	// Fetch the DockerMachinePool instance.
 	dockerMachinePool := &infrav1exp.DockerMachinePool{}
@@ -93,7 +92,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(req ctrl.Request) (res ctrl.Resu
 	log = log.WithValues("cluster", cluster.Name)
 
 	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(dockerMachinePool, r)
+	patchHelper, err := patch.NewHelper(dockerMachinePool, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -151,7 +150,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options
 }
 
 func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1exp.MachinePool, dockerMachinePool *infrav1exp.DockerMachinePool, log logr.Logger) (ctrl.Result, error) {
-	pool, err := docker.NewNodePool(r, cluster, machinePool, dockerMachinePool, log)
+	pool, err := docker.NewNodePool(r.Client, cluster, machinePool, dockerMachinePool, log)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
 	}
@@ -175,7 +174,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		machinePool.Spec.Replicas = pointer.Int32Ptr(1)
 	}
 
-	pool, err := docker.NewNodePool(r, cluster, machinePool, dockerMachinePool, log)
+	pool, err := docker.NewNodePool(r.Client, cluster, machinePool, dockerMachinePool, log)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
 	}

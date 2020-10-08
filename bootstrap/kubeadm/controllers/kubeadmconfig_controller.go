@@ -122,9 +122,8 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 }
 
 // Reconcile handles KubeadmConfig events.
-func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
+func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Lookup the kubeadm config
 	config := &bootstrapv1.KubeadmConfig{}
@@ -234,14 +233,14 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 			token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-			remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+			remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster))
 			if err != nil {
 				log.Error(err, "Error creating remote cluster client")
 				return ctrl.Result{}, err
 			}
 
 			log.Info("Refreshing token until the infrastructure has a chance to consume it")
-			err = refreshToken(remoteClient, token)
+			err = refreshToken(ctx, remoteClient, token)
 			if err != nil {
 				// It would be nice to re-create the bootstrap token if the error was "not found", but we have no way to update the Machine's bootstrap data
 				return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
@@ -352,7 +351,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	}
 
 	// injects into config.ClusterConfiguration values from top level object
-	r.reconcileTopLevelObjectSettings(scope.Cluster, machine, scope.Config)
+	r.reconcileTopLevelObjectSettings(ctx, scope.Cluster, machine, scope.Config)
 
 	clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.ClusterConfiguration)
 	if err != nil {
@@ -620,8 +619,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctr
 	}
 
 	machineList := &clusterv1.MachineList{}
-	if err := r.Client.List(context.Background(), machineList, selectors...); err != nil {
-		r.Log.Error(err, "failed to list Machines", "Cluster", c.Name, "Namespace", c.Namespace)
+	if err := r.Client.List(context.TODO(), machineList, selectors...); err != nil {
 		return nil
 	}
 
@@ -635,8 +633,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctr
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		machinePoolList := &expv1.MachinePoolList{}
-		if err := r.Client.List(context.Background(), machinePoolList, selectors...); err != nil {
-			r.Log.Error(err, "failed to list MachinePools", "Cluster", c.Name, "Namespace", c.Namespace)
+		if err := r.Client.List(context.TODO(), machinePoolList, selectors...); err != nil {
 			return nil
 		}
 
@@ -690,7 +687,7 @@ func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object)
 // is automatically injected into config.JoinConfiguration.Discovery.
 // This allows to simplify configuration UX, by providing the option to delegate to CABPK the configuration of kubeadm join discovery.
 func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, certificates secret.Certificates) (ctrl.Result, error) {
-	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
+	log := ctrl.LoggerFrom(ctx)
 
 	// if config already contains a file discovery configuration, respect it without further validations
 	if config.Spec.JoinConfiguration.Discovery.File != nil {
@@ -727,12 +724,12 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+		remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		token, err := createToken(remoteClient)
+		token, err := createToken(ctx, remoteClient)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
 		}
@@ -752,8 +749,8 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 // reconcileTopLevelObjectSettings injects into config.ClusterConfiguration values from top level objects like cluster and machine.
 // The implementation func respect user provided config values, but in case some of them are missing, values from top level objects are used.
-func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clusterv1.Cluster, machine *clusterv1.Machine, config *bootstrapv1.KubeadmConfig) {
-	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
+func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, config *bootstrapv1.KubeadmConfig) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// If there is no ControlPlaneEndpoint defined in ClusterConfiguration but
 	// there is a ControlPlaneEndpoint defined at Cluster level (e.g. the load balancer endpoint),
@@ -799,6 +796,8 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 // storeBootstrapData creates a new secret with the data passed in as input,
 // sets the reference in the configuration status and ready to true.
 func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope *Scope, data []byte) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      scope.Config.Name,
@@ -828,7 +827,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
-		r.Log.Info("bootstrap data secret for KubeadmConfig already exists", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
+		log.Info("bootstrap data secret for KubeadmConfig already exists", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
 	}
 	scope.Config.Status.DataSecretName = pointer.StringPtr(secret.Name)
 	scope.Config.Status.Ready = true

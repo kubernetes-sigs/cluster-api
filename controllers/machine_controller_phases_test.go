@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -125,11 +124,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		res, err := r.reconcile(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
-		r.reconcilePhase(context.Background(), machine)
+		r.reconcilePhase(ctx, machine)
 
 		Expect(r.Client.Get(ctx, types.NamespacedName{Name: bootstrapConfig.GetName(), Namespace: bootstrapConfig.GetNamespace()}, bootstrapConfig)).To(Succeed())
 
@@ -159,11 +158,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		res, err := r.reconcile(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
-		r.reconcilePhase(context.Background(), machine)
+		r.reconcilePhase(ctx, machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
 
 		// LastUpdated should be set as the phase changes
@@ -198,11 +197,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		res, err := r.reconcile(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
-		r.reconcilePhase(context.Background(), machine)
+		r.reconcilePhase(ctx, machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
 
 		// Verify that the LastUpdated timestamp was updated
@@ -263,13 +262,13 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		res, err := r.reconcile(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 		Expect(machine.Status.Addresses).To(HaveLen(2))
 		Expect(*machine.Spec.FailureDomain).To(Equal("us-east-2a"))
 
-		r.reconcilePhase(context.Background(), machine)
+		r.reconcilePhase(ctx, machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 
 		// Verify that the LastUpdated timestamp was updated
@@ -315,12 +314,12 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		res, err := r.reconcile(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 		Expect(machine.Status.Addresses).To(HaveLen(0))
 
-		r.reconcilePhase(context.Background(), machine)
+		r.reconcilePhase(ctx, machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 
 		// Verify that the LastUpdated timestamp was updated
@@ -378,11 +377,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		res, err := r.reconcile(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
-		r.reconcilePhase(context.Background(), machine)
+		r.reconcilePhase(ctx, machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 
 		// Verify that the LastUpdated timestamp was updated
@@ -421,11 +420,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		res, err := r.reconcile(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
-		r.reconcilePhase(context.Background(), machine)
+		r.reconcilePhase(ctx, machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
 
 		// Verify that the LastUpdated timestamp was updated
@@ -486,11 +485,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		res, err := r.reconcile(ctx, defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
-		r.reconcilePhase(context.Background(), machine)
+		r.reconcilePhase(ctx, machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
 
 		// Verify that the LastUpdated timestamp was updated
@@ -781,7 +780,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				),
 			}
 
-			res, err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machine)
+			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
@@ -994,8 +993,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 				),
 			}
 
-			_, err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machine)
-			r.reconcilePhase(context.Background(), tc.machine)
+			_, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machine)
+			r.reconcilePhase(ctx, tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {

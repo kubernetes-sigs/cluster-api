@@ -45,7 +45,6 @@ const defaultNamespaceName = "default"
 func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	t.Run("it should ensure the correct cluster-name label when no existing labels exist", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -67,7 +66,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it should ensure the correct cluster-name label when the label has the wrong value", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -91,7 +89,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it should ensure the correct cluster-name label when other labels are present", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -119,7 +116,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it should ensure an owner reference is present when no existing ones exist", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -145,7 +141,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it should ensure an owner reference is present when modifying existing ones", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -174,7 +169,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it doesn't mark anything unhealthy when all Machines are healthy", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -213,7 +207,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it marks unhealthy machines for remediation when there is one unhealthy Machine", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -262,7 +255,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it marks unhealthy machines for remediation when the unhealthy Machines exceed MaxUnhealthy", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -349,7 +341,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("when a Machine has no Node ref for less than the NodeStartupTimeout", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -437,7 +428,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// FIXME: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -529,7 +519,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// FIXME: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -614,7 +603,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("should react when a Node transitions to unhealthy", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -716,7 +704,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("when in a MachineSet, unhealthy machines should be deleted", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -858,7 +845,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// FIXME: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -1027,7 +1013,6 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
 			for _, obj := range tc.toCreate {
 				o := obj
 				gs.Expect(r.Client.Create(ctx, &o)).To(Succeed())
@@ -1104,7 +1089,6 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
 			for _, obj := range tc.toCreate {
 				o := obj
 				gs.Expect(r.Client.Create(ctx, &o)).To(Succeed())
@@ -1208,7 +1192,6 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
 			for _, obj := range tc.mhcToCreate {
 				o := obj
 				gs.Expect(r.Client.Create(ctx, &o)).To(Succeed())
@@ -1405,7 +1388,7 @@ func createNamespaceAndCluster(g *WithT) *clusterv1.Cluster {
 		return testEnv.Get(ctx, util.ObjectKey(cluster), &cl)
 	}, timeout, 100*time.Millisecond).Should(Succeed())
 
-	g.Expect(testEnv.CreateKubeconfigSecret(cluster)).To(Succeed())
+	g.Expect(testEnv.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
 
 	return cluster
 }

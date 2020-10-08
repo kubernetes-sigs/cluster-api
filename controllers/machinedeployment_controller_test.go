@@ -49,7 +49,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		By("Creating the Cluster")
 		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
 		By("Creating the Cluster Kubeconfig Secret")
-		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
+		Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	})
 
 	AfterEach(func() {
@@ -229,7 +229,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		secondMachineSet := machineSets.Items[0]
 		By("Scaling the MachineDeployment to 3 replicas")
 		modifyFunc := func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = pointer.Int32Ptr(3) }
-		Expect(updateMachineDeployment(testEnv, deployment, modifyFunc)).To(Succeed())
+		Expect(updateMachineDeployment(ctx, testEnv, deployment, modifyFunc)).To(Succeed())
 		Eventually(func() int {
 			key := client.ObjectKey{Name: secondMachineSet.Name, Namespace: secondMachineSet.Namespace}
 			if err := testEnv.Get(ctx, key, &secondMachineSet); err != nil {
@@ -243,7 +243,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		//
 		By("Setting a label on the MachineDeployment")
 		modifyFunc = func(d *clusterv1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" }
-		Expect(updateMachineDeployment(testEnv, deployment, modifyFunc)).To(Succeed())
+		Expect(updateMachineDeployment(ctx, testEnv, deployment, modifyFunc)).To(Succeed())
 		Eventually(func() int {
 			if err := testEnv.List(ctx, machineSets, msListOpts...); err != nil {
 				return -1
@@ -321,7 +321,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			d.Spec.Selector.MatchLabels = newLabels
 			d.Spec.Template.Labels = newLabels
 		}
-		Expect(updateMachineDeployment(testEnv, deployment, modifyFunc)).To(Succeed())
+		Expect(updateMachineDeployment(ctx, testEnv, deployment, modifyFunc)).To(Succeed())
 
 		By("Verifying if a new MachineSet with updated labels are created")
 		Eventually(func() int {

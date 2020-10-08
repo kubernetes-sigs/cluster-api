@@ -62,7 +62,7 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			}, timeout).Should(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
+			Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 
 			// Check the secret can be fetched from the API server
 			secretKey := client.ObjectKey{Namespace: testNamespace.GetName(), Name: fmt.Sprintf("%s-kubeconfig", testCluster.GetName())}

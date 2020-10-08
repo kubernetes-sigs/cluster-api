@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -117,7 +116,7 @@ func Test_getActiveMachinesInCluster(t *testing.T) {
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			c := fake.NewFakeClientWithScheme(scheme.Scheme, &ns1Cluster1, &ns1Cluster2, &ns1Cluster1Deleted, &ns2Cluster2)
-			got, err := getActiveMachinesInCluster(context.TODO(), c, tt.args.namespace, tt.args.name)
+			got, err := getActiveMachinesInCluster(ctx, c, tt.args.namespace, tt.args.name)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

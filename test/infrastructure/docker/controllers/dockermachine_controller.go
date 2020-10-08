@@ -41,10 +41,6 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
-const (
-	machineControllerName = "DockerMachine-controller"
-)
-
 // DockerMachineReconciler reconciles a DockerMachine object
 type DockerMachineReconciler struct {
 	client.Client
@@ -56,9 +52,8 @@ type DockerMachineReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 
 // Reconcile handles DockerMachine events
-func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.Background()
-	log := r.Log.WithName(machineControllerName).WithValues("docker-machine", req.NamespacedName)
+func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the DockerMachine instance.
 	dockerMachine := &infrav1.DockerMachine{}
@@ -156,7 +151,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, machine, dockerMachine, externalMachine, externalLoadBalancer, log)
+	return r.reconcileNormal(ctx, machine, dockerMachine, externalMachine, externalLoadBalancer)
 }
 
 func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMachine *infrav1.DockerMachine) error {
@@ -182,7 +177,9 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 	)
 }
 
-func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (res ctrl.Result, retErr error) {
+func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (res ctrl.Result, retErr error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	// if the machine is already provisioned, return
 	if dockerMachine.Spec.ProviderID != nil {
 		// ensure ready state is set.
@@ -270,7 +267,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	if !dockerMachine.Spec.Bootstrapped {
 		bootstrapData, err := r.getBootstrapData(ctx, machine)
 		if err != nil {
-			r.Log.Error(err, "failed to get bootstrap data")
+			log.Error(err, "failed to get bootstrap data")
 			return ctrl.Result{}, err
 		}
 
@@ -290,7 +287,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	// set address in machine status
 	machineAddress, err := externalMachine.Address(ctx)
 	if err != nil {
-		r.Log.Error(err, "failed to get the machine address")
+		log.Error(err, "failed to get the machine address")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -313,7 +310,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	// Requeue if there is an error, as this is likely momentary load balancer
 	// state changes during control plane provisioning.
 	if err := externalMachine.SetNodeProviderID(ctx); err != nil {
-		r.Log.Error(err, "failed to patch the Kubernetes node with the machine providerID")
+		log.Error(err, "failed to patch the Kubernetes node with the machine providerID")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	// Set ProviderID so the Cluster API Machine Controller can pull it
@@ -400,14 +397,12 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o client.Object)
 	case apierrors.IsNotFound(err) || cluster == nil:
 		return result
 	case err != nil:
-		log.Error(err, "failed to get owning cluster")
 		return result
 	}
 
 	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
-		log.Error(err, "failed to list DockerMachines")
 		return nil
 	}
 	for _, m := range machineList.Items {

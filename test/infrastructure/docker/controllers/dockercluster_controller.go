@@ -33,12 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-)
-
-const (
-	clusterControllerName = "DockerCluster-controller"
 )
 
 // DockerClusterReconciler reconciles a DockerCluster object
@@ -52,9 +47,8 @@ type DockerClusterReconciler struct {
 
 // Reconcile reads that state of the cluster for a DockerCluster object and makes changes based on the state read
 // and what is in the DockerCluster.Spec
-func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.Background()
-	log := log.Log.WithName(clusterControllerName).WithValues("docker-cluster", req.NamespacedName)
+func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the DockerCluster instance
 	dockerCluster := &infrav1.DockerCluster{}

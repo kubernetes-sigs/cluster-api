@@ -159,8 +159,8 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
 // and their nodes targeted by the health check, ready for health checking.
-func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
-	machines, err := r.getMachinesFromMHC(mhc)
+func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
+	machines, err := r.getMachinesFromMHC(ctx, mhc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
 	}
@@ -179,7 +179,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Re
 			Machine:     &machines[k],
 			patchHelper: patchHelper,
 		}
-		node, err := r.getNodeFromMachine(clusterClient, target.Machine)
+		node, err := r.getNodeFromMachine(ctx, clusterClient, target.Machine)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
 				return nil, errors.Wrap(err, "error getting node")
@@ -196,7 +196,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Re
 
 //getMachinesFromMHC fetches Machines matched by the MachineHealthCheck's
 // label selector
-func (r *MachineHealthCheckReconciler) getMachinesFromMHC(mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
+func (r *MachineHealthCheckReconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
 	selector, err := metav1.LabelSelectorAsSelector(metav1.CloneSelectorAndAddLabel(
 		&mhc.Spec.Selector, clusterv1.ClusterLabelName, mhc.Spec.ClusterName,
 	))
@@ -206,7 +206,7 @@ func (r *MachineHealthCheckReconciler) getMachinesFromMHC(mhc *clusterv1.Machine
 
 	var machineList clusterv1.MachineList
 	if err := r.Client.List(
-		context.Background(),
+		ctx,
 		&machineList,
 		client.MatchingLabelsSelector{Selector: selector},
 		client.InNamespace(mhc.GetNamespace()),
@@ -218,7 +218,7 @@ func (r *MachineHealthCheckReconciler) getMachinesFromMHC(mhc *clusterv1.Machine
 
 // getNodeFromMachine fetches the node from a local or remote cluster for a
 // given machine.
-func (r *MachineHealthCheckReconciler) getNodeFromMachine(clusterClient client.Reader, machine *clusterv1.Machine) (*corev1.Node, error) {
+func (r *MachineHealthCheckReconciler) getNodeFromMachine(ctx context.Context, clusterClient client.Reader, machine *clusterv1.Machine) (*corev1.Node, error) {
 	if machine.Status.NodeRef == nil {
 		return nil, nil
 	}
@@ -227,7 +227,7 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(clusterClient client.R
 	nodeKey := types.NamespacedName{
 		Name: machine.Status.NodeRef.Name,
 	}
-	err := clusterClient.Get(context.TODO(), nodeKey, node)
+	err := clusterClient.Get(ctx, nodeKey, node)
 	// if it cannot find a node, send a nil node back...
 	if err != nil {
 		return nil, err

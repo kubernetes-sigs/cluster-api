@@ -106,7 +106,7 @@ func TestGetNodeReference(t *testing.T) {
 			providerID, err := noderefutil.NewProviderID(test.providerID)
 			gt.Expect(err).NotTo(HaveOccurred(), "Expected no error parsing provider id %q, got %v", test.providerID, err)
 
-			reference, err := r.getNodeReference(client, providerID)
+			reference, err := r.getNodeReference(ctx, client, providerID)
 			if test.err == nil {
 				g.Expect(err).To(BeNil())
 			} else {

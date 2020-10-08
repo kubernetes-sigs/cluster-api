@@ -17,6 +17,7 @@ limitations under the License.
 package kubetest
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -67,7 +68,7 @@ type RunInput struct {
 // Run executes kube-test given an artifact directory, and sets settings
 // required for kubetest to work with Cluster API. JUnit files are
 // also gathered for inclusion in Prow.
-func Run(input RunInput) error {
+func Run(ctx context.Context, input RunInput) error {
 	if input.ClusterProxy == nil {
 		return errors.New("ClusterProxy must be provided")
 	}
@@ -78,7 +79,7 @@ func Run(input RunInput) error {
 		input.GinkgoSlowSpecThreshold = 120
 	}
 	if input.NumberOfNodes == 0 {
-		numNodes, err := countClusterNodes(input.ClusterProxy)
+		numNodes, err := countClusterNodes(ctx, input.ClusterProxy)
 		if err != nil {
 			return errors.Wrap(err, "Unable to count number of cluster nodes")
 		}
@@ -194,8 +195,8 @@ func dockeriseKubeconfig(kubetestConfigDir string, kubeConfigPath string) (strin
 	return newPath, nil
 }
 
-func countClusterNodes(proxy framework.ClusterProxy) (int, error) {
-	nodeList, err := proxy.GetClientSet().CoreV1().Nodes().List(corev1.ListOptions{})
+func countClusterNodes(ctx context.Context, proxy framework.ClusterProxy) (int, error) {
+	nodeList, err := proxy.GetClientSet().CoreV1().Nodes().List(ctx, corev1.ListOptions{})
 	if err != nil {
 		return 0, errors.Wrap(err, "Unable to count nodes")
 	}

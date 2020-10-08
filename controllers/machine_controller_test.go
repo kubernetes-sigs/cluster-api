@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -111,7 +110,7 @@ func TestMachineFinalizer(t *testing.T) {
 				),
 			}
 
-			_, _ = mr.Reconcile(tc.request)
+			_, _ = mr.Reconcile(ctx, tc.request)
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual clusterv1.Machine
@@ -277,13 +276,13 @@ func TestMachineOwnerReference(t *testing.T) {
 			var actual clusterv1.Machine
 
 			// this first requeue is to add finalizer
-			result, err := mr.Reconcile(tc.request)
+			result, err := mr.Reconcile(ctx, tc.request)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(result).To(Equal(ctrl.Result{}))
 			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 			g.Expect(actual.Finalizers).To(ContainElement(clusterv1.MachineFinalizer))
 
-			_, _ = mr.Reconcile(tc.request)
+			_, _ = mr.Reconcile(ctx, tc.request)
 
 			if len(tc.expectedOR) > 0 {
 				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
@@ -436,7 +435,7 @@ func TestReconcileRequest(t *testing.T) {
 				Client: clientFake,
 			}
 
-			result, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
+			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
 			if tc.expected.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -672,7 +671,7 @@ func TestMachineConditions(t *testing.T) {
 				Client: clientFake,
 			}
 
-			_, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
+			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
 			g.Expect(err).NotTo(HaveOccurred())
 
 			m = &clusterv1.Machine{}
@@ -802,7 +801,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	mr := &MachineReconciler{
 		Client: helpers.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
 	}
-	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})
+	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	var actual clusterv1.Machine
@@ -1237,7 +1236,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				),
 			}
 
-			err := mr.isDeleteNodeAllowed(context.TODO(), tc.cluster, tc.machine)
+			err := mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine)
 			if tc.expectedError == nil {
 				g.Expect(err).To(BeNil())
 			} else {

@@ -17,7 +17,6 @@ limitations under the License.
 package remote
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -92,7 +91,6 @@ func TestNewClusterClient(t *testing.T) {
 
 	testScheme := runtime.NewScheme()
 	g.Expect(scheme.AddToScheme(testScheme)).To(Succeed())
-	ctx := context.Background()
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 

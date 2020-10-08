@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -59,14 +58,14 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, clusterv1.APIEndpoint{}, kcp)).To(Succeed())
+	g.Expect(r.reconcileKubeconfig(ctx, clusterName, clusterv1.APIEndpoint{}, kcp)).To(Succeed())
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
 		Namespace: "test",
 		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 	}
-	g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(MatchError(ContainSubstring("not found")))
+	g.Expect(r.Client.Get(ctx, secretName, kubeconfigSecret)).To(MatchError(ContainSubstring("not found")))
 }
 
 func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
@@ -90,14 +89,14 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).NotTo(Succeed())
+	g.Expect(r.reconcileKubeconfig(ctx, clusterName, endpoint, kcp)).NotTo(Succeed())
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
 		Namespace: "test",
 		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 	}
-	g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(MatchError(ContainSubstring("not found")))
+	g.Expect(r.Client.Get(ctx, secretName, kubeconfigSecret)).To(MatchError(ContainSubstring("not found")))
 }
 
 func TestReconcileKubeconfigSecretAlreadyExists(t *testing.T) {
@@ -134,14 +133,14 @@ func TestReconcileKubeconfigSecretAlreadyExists(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).To(Succeed())
+	g.Expect(r.reconcileKubeconfig(ctx, clusterName, endpoint, kcp)).To(Succeed())
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
 		Namespace: "test",
 		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 	}
-	g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(Succeed())
+	g.Expect(r.Client.Get(ctx, secretName, kubeconfigSecret)).To(Succeed())
 	g.Expect(kubeconfigSecret.Labels).To(Equal(existingKubeconfigSecret.Labels))
 	g.Expect(kubeconfigSecret.Data).To(Equal(existingKubeconfigSecret.Data))
 	g.Expect(kubeconfigSecret.OwnerReferences).NotTo(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
@@ -183,14 +182,14 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 		Client:   fakeClient,
 		recorder: record.NewFakeRecorder(32),
 	}
-	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).To(Succeed())
+	g.Expect(r.reconcileKubeconfig(ctx, clusterName, endpoint, kcp)).To(Succeed())
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
 		Namespace: "test",
 		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 	}
-	g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(Succeed())
+	g.Expect(r.Client.Get(ctx, secretName, kubeconfigSecret)).To(Succeed())
 	g.Expect(kubeconfigSecret.OwnerReferences).NotTo(BeEmpty())
 	g.Expect(kubeconfigSecret.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 	g.Expect(kubeconfigSecret.Labels).To(HaveKeyWithValue(clusterv1.ClusterLabelName, clusterName.Name))
@@ -250,10 +249,10 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
 		JoinConfiguration: &kubeadmv1.JoinConfiguration{},
 	}
-	g.Expect(r.cloneConfigsAndGenerateMachine(context.Background(), cluster, kcp, bootstrapSpec, nil)).To(Succeed())
+	g.Expect(r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)).To(Succeed())
 
 	machineList := &clusterv1.MachineList{}
-	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
+	g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(machineList.Items).To(HaveLen(1))
 
 	for _, m := range machineList.Items {
@@ -261,7 +260,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		g.Expect(m.Name).NotTo(BeEmpty())
 		g.Expect(m.Name).To(HavePrefix(kcp.Name))
 
-		infraObj, err := external.Get(context.TODO(), r.Client, &m.Spec.InfrastructureRef, m.Spec.InfrastructureRef.Namespace)
+		infraObj, err := external.Get(ctx, r.Client, &m.Spec.InfrastructureRef, m.Spec.InfrastructureRef.Namespace)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericMachineTemplate.GroupVersionKind().GroupKind().String()))
@@ -324,10 +323,10 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 		managementCluster: &internal.Management{Client: fakeClient},
 		recorder:          record.NewFakeRecorder(32),
 	}
-	g.Expect(r.generateMachine(context.Background(), kcp, cluster, infraRef, bootstrapRef, nil)).To(Succeed())
+	g.Expect(r.generateMachine(ctx, kcp, cluster, infraRef, bootstrapRef, nil)).To(Succeed())
 
 	machineList := &clusterv1.MachineList{}
-	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
+	g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(machineList.Items).To(HaveLen(1))
 	machine := machineList.Items[0]
 	g.Expect(machine.Name).To(HavePrefix(kcp.Name))
@@ -369,7 +368,7 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	got, err := r.generateKubeadmConfig(context.Background(), kcp, cluster, spec.DeepCopy())
+	got, err := r.generateKubeadmConfig(ctx, kcp, cluster, spec.DeepCopy())
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(got).NotTo(BeNil())
 	g.Expect(got.Name).To(HavePrefix(kcp.Name))
@@ -379,17 +378,8 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 
 	bootstrapConfig := &bootstrapv1.KubeadmConfig{}
 	key := client.ObjectKey{Name: got.Name, Namespace: got.Namespace}
-	g.Expect(fakeClient.Get(context.Background(), key, bootstrapConfig)).To(Succeed())
+	g.Expect(fakeClient.Get(ctx, key, bootstrapConfig)).To(Succeed())
 	g.Expect(bootstrapConfig.OwnerReferences).To(HaveLen(1))
 	g.Expect(bootstrapConfig.OwnerReferences).To(ContainElement(expectedOwner))
 	g.Expect(bootstrapConfig.Spec).To(Equal(spec))
 }
-
-// TODO
-func TestReconcileExternalReference(t *testing.T) {}
-
-// TODO
-func TestCleanupFromGeneration(t *testing.T) {}
-
-// TODO
-func TestMarkWithAnnotationKey(t *testing.T) {}

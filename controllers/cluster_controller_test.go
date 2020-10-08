@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -255,7 +254,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			err := testEnv.Delete(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
 		}()
-		Expect(testEnv.CreateKubeconfigSecret(cluster)).To(Succeed())
+		Expect(testEnv.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
@@ -642,7 +641,7 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	}
 
 	r := &ClusterReconciler{}
-	res, err := r.reconcileControlPlaneInitialized(context.Background(), c)
+	res, err := r.reconcileControlPlaneInitialized(ctx, c)
 	g.Expect(res.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(c.Status.ControlPlaneInitialized).To(BeFalse())

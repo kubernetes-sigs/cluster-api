@@ -17,13 +17,13 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	// +kubebuilder:scaffold:imports
@@ -34,7 +34,7 @@ import (
 
 var (
 	testEnv *helpers.TestEnvironment
-	ctx     = context.Background()
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestAPIs(t *testing.T) {

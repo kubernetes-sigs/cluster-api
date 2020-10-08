@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -63,13 +62,13 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 		Machines: nil,
 	}
 
-	result, err := r.initializeControlPlane(context.Background(), cluster, kcp, controlPlane)
+	result, err := r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	g.Expect(err).NotTo(HaveOccurred())
 
 	// initial setup
 	initialMachine := &clusterv1.MachineList{}
-	g.Expect(fakeClient.List(context.Background(), initialMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
+	g.Expect(fakeClient.List(ctx, initialMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(initialMachine.Items).To(HaveLen(1))
 
 	// change the KCP spec so the machine becomes outdated
@@ -78,19 +77,19 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	// run upgrade the first time, expect we scale up
 	needingUpgrade := internal.NewFilterableMachineCollectionFromMachineList(initialMachine)
 	controlPlane.Machines = needingUpgrade
-	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, controlPlane, needingUpgrade)
+	result, err = r.upgradeControlPlane(ctx, cluster, kcp, controlPlane, needingUpgrade)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	g.Expect(err).To(BeNil())
 	bothMachines := &clusterv1.MachineList{}
-	g.Expect(fakeClient.List(context.Background(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
+	g.Expect(fakeClient.List(ctx, bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(bothMachines.Items).To(HaveLen(2))
 
 	// run upgrade a second time, simulate that the node has not appeared yet but the machine exists
 	r.managementCluster.(*fakeManagementCluster).ControlPlaneHealthy = false
-	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, controlPlane, needingUpgrade)
+	result, err = r.upgradeControlPlane(ctx, cluster, kcp, controlPlane, needingUpgrade)
 	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}))
 	g.Expect(err).To(BeNil())
-	g.Expect(fakeClient.List(context.Background(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
+	g.Expect(fakeClient.List(ctx, bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(bothMachines.Items).To(HaveLen(2))
 
 	controlPlane.Machines = internal.NewFilterableMachineCollectionFromMachineList(bothMachines)
@@ -100,11 +99,11 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	r.managementCluster.(*fakeManagementCluster).ControlPlaneHealthy = true
 
 	// run upgrade the second time, expect we scale down
-	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
+	result, err = r.upgradeControlPlane(ctx, cluster, kcp, controlPlane, controlPlane.Machines)
 	g.Expect(err).To(BeNil())
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	finalMachine := &clusterv1.MachineList{}
-	g.Expect(fakeClient.List(context.Background(), finalMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
+	g.Expect(fakeClient.List(ctx, finalMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(finalMachine.Items).To(HaveLen(1))
 
 	// assert that the deleted machine is the oldest, initial machine

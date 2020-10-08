@@ -17,7 +17,6 @@ limitations under the License.
 package internal
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -293,7 +292,7 @@ kind: ClusterConfiguration
 				Client:          fakeClient,
 				CoreDNSMigrator: tt.migrator,
 			}
-			err := w.UpdateCoreDNS(context.Background(), tt.kcp)
+			err := w.UpdateCoreDNS(ctx, tt.kcp)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -304,20 +303,20 @@ kind: ClusterConfiguration
 			if tt.expectUpdates {
 				// assert kubeadmConfigMap
 				var expectedKubeadmConfigMap corev1.ConfigMap
-				g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
+				g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
 				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("1.7.2")))
 				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("k8s.gcr.io/some-repo")))
 
 				// assert CoreDNS corefile
 				var expectedConfigMap corev1.ConfigMap
-				g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+				g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 				g.Expect(expectedConfigMap.Data).To(HaveLen(2))
 				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
 				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", expectedCorefile))
 
 				// assert CoreDNS deployment
 				var actualDeployment appsv1.Deployment
-				g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+				g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
 				// ensure the image is updated and the volumes point to the corefile
 				g.Expect(actualDeployment.Spec.Template.Spec.Containers[0].Image).To(Equal("k8s.gcr.io/some-repo/coredns:1.7.2"))
 
@@ -464,12 +463,12 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 			TargetMajorMinorPatch:  "1.7.2",
 		}
 
-		err := w.updateCoreDNSCorefile(context.TODO(), info)
+		err := w.updateCoreDNSCorefile(ctx, info)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(fakeMigrator.migrateCalled).To(BeTrue())
 
 		var expectedConfigMap corev1.ConfigMap
-		g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 		g.Expect(expectedConfigMap.Data).To(HaveLen(1))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", originalCorefile))
 	})
@@ -496,11 +495,11 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 			TargetMajorMinorPatch:  "1.7.2",
 		}
 
-		err := w.updateCoreDNSCorefile(context.TODO(), info)
+		err := w.updateCoreDNSCorefile(ctx, info)
 		g.Expect(err).To(HaveOccurred())
 
 		var expectedConfigMap corev1.ConfigMap
-		g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 		g.Expect(expectedConfigMap.Data).To(HaveLen(2))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", originalCorefile))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", originalCorefile))
@@ -528,7 +527,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 			TargetMajorMinorPatch:  "1.7.2",
 		}
 
-		err := w.updateCoreDNSCorefile(context.TODO(), info)
+		err := w.updateCoreDNSCorefile(ctx, info)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		expectedVolume := corev1.Volume{
@@ -547,11 +546,11 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		}
 
 		var actualDeployment appsv1.Deployment
-		g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
 		g.Expect(actualDeployment.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolume))
 
 		var expectedConfigMap corev1.ConfigMap
-		g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 		g.Expect(expectedConfigMap.Data).To(HaveLen(2))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", originalCorefile))
@@ -727,7 +726,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 					}
 				}
 
-				actualInfo, err := w.getCoreDNSInfo(context.TODO(), tt.clusterConfig)
+				actualInfo, err := w.getCoreDNSInfo(ctx, tt.clusterConfig)
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -829,7 +828,7 @@ scheduler: {}`,
 				Client: fakeClient,
 			}
 
-			err := w.updateCoreDNSImageInfoInKubeadmConfigMap(context.TODO(), tt.dns)
+			err := w.updateCoreDNSImageInfoInKubeadmConfigMap(ctx, tt.dns)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -837,7 +836,7 @@ scheduler: {}`,
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var expectedConfigMap corev1.ConfigMap
-			g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+			g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 			g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("1.0.1-somever.1")))
 			g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("gcr.io/example")))
 		})
@@ -934,7 +933,7 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 				Client: fakeClient,
 			}
 
-			err := w.updateCoreDNSDeployment(context.TODO(), tt.info)
+			err := w.updateCoreDNSDeployment(ctx, tt.info)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -957,7 +956,7 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 			}
 
 			var actualDeployment appsv1.Deployment
-			g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+			g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
 			// ensure the image is updated and the volumes point to the corefile
 			g.Expect(actualDeployment.Spec.Template.Spec.Containers[0].Image).To(Equal(tt.info.ToImage))
 			g.Expect(actualDeployment.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolume))

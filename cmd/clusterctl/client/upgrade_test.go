@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"context"
 	"sort"
 	"testing"
 
@@ -293,7 +292,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			c, err := proxy.NewClient()
 			g.Expect(err).NotTo(HaveOccurred())
 
-			g.Expect(c.List(context.Background(), gotProviders)).To(Succeed())
+			g.Expect(c.List(ctx, gotProviders)).To(Succeed())
 
 			sort.Slice(gotProviders.Items, func(i, j int) bool {
 				return gotProviders.Items[i].Name < gotProviders.Items[j].Name

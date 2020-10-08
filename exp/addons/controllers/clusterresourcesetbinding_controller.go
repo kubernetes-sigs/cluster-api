@@ -48,7 +48,7 @@ func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Conte
 			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSetBinding),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -57,9 +57,8 @@ func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Conte
 	return nil
 }
 
-func (r *ClusterResourceSetBindingReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("clusterresourcesetbinding", req.NamespacedName)
+func (r *ClusterResourceSetBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the ClusterResourceSetBinding instance.
 	binding := &addonsv1.ClusterResourceSetBinding{}

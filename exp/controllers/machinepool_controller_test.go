@@ -121,7 +121,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 				),
 			}
 
-			_, _ = mr.Reconcile(tc.request)
+			_, _ = mr.Reconcile(ctx, tc.request)
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual expv1.MachinePool
@@ -236,13 +236,13 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			var actual expv1.MachinePool
 
 			// this first requeue is to add finalizer
-			result, err := mr.Reconcile(tc.request)
+			result, err := mr.Reconcile(ctx, tc.request)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(result).To(Equal(ctrl.Result{}))
 			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 			g.Expect(actual.Finalizers).To(ContainElement(expv1.MachinePoolFinalizer))
 
-			_, _ = mr.Reconcile(tc.request)
+			_, _ = mr.Reconcile(ctx, tc.request)
 
 			if len(tc.expectedOR) > 0 {
 				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
@@ -430,7 +430,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Client: clientFake,
 			}
 
-			result, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&tc.machinePool)})
+			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machinePool)})
 			if tc.expected.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -601,7 +601,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	mr := &MachinePoolReconciler{
 		Client: helpers.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
 	}
-	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})
+	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	var actual expv1.MachinePool
@@ -844,7 +844,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				Client: clientFake,
 			}
 
-			_, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})
+			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})
 			g.Expect(err).NotTo(HaveOccurred())
 
 			m := &expv1.MachinePool{}

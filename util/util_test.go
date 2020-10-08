@@ -17,7 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -34,6 +33,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+var (
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func TestParseMajorMinorPatch(t *testing.T) {
@@ -463,13 +466,13 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 		Namespace: "my-ns",
 		Name:      "my-resource-owned-by-cluster",
 	}
-	cluster, err := GetOwnerCluster(context.TODO(), c, objm)
+	cluster, err := GetOwnerCluster(ctx, c, objm)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(cluster).NotTo(BeNil())
 
 	// Make sure API version does not matter
 	objm.OwnerReferences[0].APIVersion = "cluster.x-k8s.io/v1alpha1234"
-	cluster, err = GetOwnerCluster(context.TODO(), c, objm)
+	cluster, err = GetOwnerCluster(ctx, c, objm)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(cluster).NotTo(BeNil())
 }
@@ -499,7 +502,7 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 		Namespace: "my-ns",
 		Name:      "my-resource-owned-by-machine",
 	}
-	machine, err := GetOwnerMachine(context.TODO(), c, objm)
+	machine, err := GetOwnerMachine(ctx, c, objm)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machine).NotTo(BeNil())
 }
@@ -529,7 +532,7 @@ func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
 		Namespace: "my-ns",
 		Name:      "my-resource-owned-by-machine",
 	}
-	machine, err := GetOwnerMachine(context.TODO(), c, objm)
+	machine, err := GetOwnerMachine(ctx, c, objm)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machine).NotTo(BeNil())
 }
@@ -584,7 +587,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 		machineSameClusterNameDifferentNamespace,
 	)
 
-	machines, err := GetMachinesForCluster(context.Background(), c, cluster)
+	machines, err := GetMachinesForCluster(ctx, c, cluster)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines.Items).To(HaveLen(1))
 	g.Expect(machines.Items[0].Labels[clusterv1.ClusterLabelName]).To(Equal(cluster.Name))
@@ -782,7 +785,6 @@ func TestClusterToObjectsMapper(t *testing.T) {
 	for _, tc := range table {
 		tc.objects = append(tc.objects, cluster)
 		client := fake.NewFakeClientWithScheme(scheme, tc.objects...)
-
 		f, err := ClusterToObjectsMapper(client, tc.input, scheme)
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
 		g.Expect(f(cluster)).To(ConsistOf(tc.output))

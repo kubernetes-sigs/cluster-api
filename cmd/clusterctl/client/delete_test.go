@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -176,7 +175,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 
 			c, err := proxy.NewClient()
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(c.List(context.Background(), gotProviders)).To(Succeed())
+			g.Expect(c.List(ctx, gotProviders)).To(Succeed())
 
 			gotProvidersSet := sets.NewString()
 			for _, gotProvider := range gotProviders.Items {

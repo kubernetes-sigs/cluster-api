@@ -105,7 +105,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			Expect(k8sClient.Status().Update(ctx, clusterA)).To(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(testEnv.CreateKubeconfigSecret(clusterA)).To(Succeed())
+			Expect(testEnv.CreateKubeconfigSecret(ctx, clusterA)).To(Succeed())
 		})
 
 		AfterEach(func() {
@@ -180,7 +180,7 @@ type testController struct {
 	ch chan string
 }
 
-func (c *testController) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (c *testController) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	c.ch <- req.Name
 	return ctrl.Result{}, nil
 }

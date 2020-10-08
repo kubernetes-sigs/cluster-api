@@ -74,7 +74,6 @@ func TestWorkload_EtcdIsHealthy(t *testing.T) {
 			},
 		},
 	}
-	ctx := context.Background()
 	health, err := workload.EtcdIsHealthy(ctx)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -150,7 +149,6 @@ kind: ClusterConfiguration
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.UpdateEtcdVersionInKubeadmConfigMap(ctx, tt.imageRepo, tt.imageTag)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -299,7 +297,6 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 				Client:              fakeClient,
 				etcdClientGenerator: tt.etcdClientGenerator,
 			}
-			ctx := context.TODO()
 			err := w.RemoveEtcdMemberForMachine(ctx, tt.machine)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -384,7 +381,6 @@ func TestForwardEtcdLeadership(t *testing.T) {
 					Client:              tt.k8sClient,
 					etcdClientGenerator: tt.etcdClientGenerator,
 				}
-				ctx := context.TODO()
 				err := w.ForwardEtcdLeadership(ctx, tt.machine, tt.leaderCandidate)
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
@@ -420,7 +416,6 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			}},
 			etcdClientGenerator: etcdClientGenerator,
 		}
-		ctx := context.TODO()
 		err := w.ForwardEtcdLeadership(ctx, defaultMachine(), defaultMachine())
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(fakeEtcdClient.MovedLeader).To(BeEquivalentTo(0))
@@ -493,7 +488,6 @@ func TestForwardEtcdLeadership(t *testing.T) {
 						Items: []corev1.Node{nodeNamed("leader-node"), nodeNamed("other-node"), nodeNamed("candidate-node")},
 					}},
 				}
-				ctx := context.TODO()
 				err := w.ForwardEtcdLeadership(ctx, currentLeader, tt.leaderCandidate)
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
@@ -602,7 +596,6 @@ kind: ClusterStatus`,
 				Client:              testEnv,
 				etcdClientGenerator: tt.etcdClientGenerator,
 			}
-			ctx := context.TODO()
 			err := w.ReconcileEtcdMembers(ctx)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

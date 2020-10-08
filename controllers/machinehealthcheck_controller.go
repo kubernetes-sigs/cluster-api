@@ -105,10 +105,10 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 	return nil
 }
 
-func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
-	ctx := context.Background()
-	logger := r.Log.WithValues("machinehealthcheck", req.Name, "namespace", req.Namespace)
-	logger.Info("Reconciling")
+func (r *MachineHealthCheckReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Reconciling")
+
 	// Fetch the MachineHealthCheck instance
 	m := &clusterv1.MachineHealthCheck{}
 	if err := r.Client.Get(ctx, req.NamespacedName, m); err != nil {
@@ -119,30 +119,29 @@ func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 		}
 
 		// Error reading the object - requeue the request.
-		logger.Error(err, "Failed to fetch MachineHealthCheck")
+		log.Error(err, "Failed to fetch MachineHealthCheck")
 		return ctrl.Result{}, err
 	}
 
-	logger = logger.WithValues("cluster", m.Spec.ClusterName)
+	log = log.WithValues("cluster", m.Spec.ClusterName)
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, m.Namespace, m.Spec.ClusterName)
-
 	if err != nil {
-		logger.Error(err, "Failed to fetch Cluster for MachineHealthCheck")
+		log.Error(err, "Failed to fetch Cluster for MachineHealthCheck")
 		return ctrl.Result{}, err
 	}
-
-	logger = r.Log.WithValues("cluster", cluster.Name)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, m) {
-		logger.Info("Reconciliation is paused for this object")
+		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(m, r.Client)
 	if err != nil {
-		logger.Error(err, "Failed to build patch helper")
+		log.Error(err, "Failed to build patch helper")
 		return ctrl.Result{}, err
 	}
 
@@ -164,9 +163,9 @@ func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 	}
 	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
 
-	result, err := r.reconcile(ctx, logger, cluster, m)
+	result, err := r.reconcile(ctx, log, cluster, m)
 	if err != nil {
-		logger.Error(err, "Failed to reconcile MachineHealthCheck")
+		log.Error(err, "Failed to reconcile MachineHealthCheck")
 		r.recorder.Eventf(m, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 
 		// Requeue immediately if any errors occurred
@@ -199,7 +198,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 
 	// fetch all targets
 	logger.V(3).Info("Finding targets")
-	targets, err := r.getTargetsFromMHC(remoteClient, m)
+	targets, err := r.getTargetsFromMHC(ctx, remoteClient, m)
 	if err != nil {
 		logger.Error(err, "Failed to fetch targets from MachineHealthCheck")
 		return ctrl.Result{}, err
@@ -308,7 +307,6 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o client.Obje
 		client.InNamespace(c.Namespace),
 		client.MatchingLabels{clusterv1.ClusterLabelName: c.Name},
 	); err != nil {
-		r.Log.Error(err, "Unable to list MachineHealthChecks", "cluster", c.Name, "namespace", c.Namespace)
 		return nil
 	}
 
@@ -331,12 +329,11 @@ func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o client.Obje
 
 	mhcList := &clusterv1.MachineHealthCheckList{}
 	if err := r.Client.List(
-		context.Background(),
+		context.TODO(),
 		mhcList,
 		client.InNamespace(m.Namespace),
 		client.MatchingLabels{clusterv1.ClusterLabelName: m.Spec.ClusterName},
 	); err != nil {
-		r.Log.Error(err, "Unable to list MachineHealthChecks", "machine", m.Name, "namespace", m.Namespace)
 		return nil
 	}
 
@@ -357,19 +354,18 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o client.Object)
 		panic(fmt.Sprintf("Expected a corev1.Node, got %T", o))
 	}
 
-	machine, err := r.getMachineFromNode(node.Name)
+	machine, err := r.getMachineFromNode(context.TODO(), node.Name)
 	if machine == nil || err != nil {
-		r.Log.Error(err, "Unable to retrieve machine from node", "node", node.GetName())
 		return nil
 	}
 
-	return r.machineToMachineHealthCheck(handler.MapObject{Object: machine})
+	return r.machineToMachineHealthCheck(machine)
 }
 
-func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clusterv1.Machine, error) {
+func (r *MachineHealthCheckReconciler) getMachineFromNode(ctx context.Context, nodeName string) (*clusterv1.Machine, error) {
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(
-		context.TODO(),
+		ctx,
 		machineList,
 		client.MatchingFields{machineNodeNameIndex: nodeName},
 	); err != nil {

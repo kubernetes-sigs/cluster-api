@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -51,7 +50,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		By("Creating the Cluster")
 		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
 		By("Creating the Cluster Kubeconfig Secret")
-		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
+		Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	})
 
 	AfterEach(func() {
@@ -328,7 +327,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 
-			_, err := msr.Reconcile(tc.request)
+			_, err := msr.Reconcile(ctx, tc.request)
 			if tc.expectReconcileErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -374,7 +373,7 @@ func TestMachineSetReconcile(t *testing.T) {
 			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, ms),
 			recorder: record.NewFakeRecorder(32),
 		}
-		result, err := msr.Reconcile(request)
+		result, err := msr.Reconcile(ctx, request)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(result).To(Equal(reconcile.Result{}))
 	})
@@ -398,7 +397,7 @@ func TestMachineSetReconcile(t *testing.T) {
 			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, ms),
 			recorder: rec,
 		}
-		_, _ = msr.Reconcile(request)
+		_, _ = msr.Reconcile(ctx, request)
 		g.Eventually(rec.Events).Should(Receive())
 	})
 }
@@ -595,7 +594,6 @@ func TestShouldExcludeMachine(t *testing.T) {
 func TestAdoptOrphan(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
 	m := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "orphanMachine",
@@ -741,7 +739,7 @@ func TestHasMatchingLabels(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got := r.hasMatchingLabels(&tc.machineSet, &tc.machine)
+			got := r.hasMatchingLabels(ctx, &tc.machineSet, &tc.machine)
 			g.Expect(got).To(Equal(tc.expected))
 		})
 	}

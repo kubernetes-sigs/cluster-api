@@ -17,17 +17,17 @@ limitations under the License.
 package internal
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
 
 	"sigs.k8s.io/cluster-api/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
 	testEnv *helpers.TestEnvironment
-	ctx     context.Context
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {

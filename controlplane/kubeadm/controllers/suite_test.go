@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	// +kubebuilder:scaffold:imports
 )
@@ -32,6 +33,7 @@ import (
 
 var (
 	testEnv *helpers.TestEnvironment
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestAPIs(t *testing.T) {

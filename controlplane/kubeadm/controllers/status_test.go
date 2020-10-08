@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -69,7 +68,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
+	g.Expect(r.updateStatus(ctx, kcp, cluster)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(0))
@@ -123,7 +122,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
+	g.Expect(r.updateStatus(ctx, kcp, cluster)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(3))
@@ -183,7 +182,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
+	g.Expect(r.updateStatus(ctx, kcp, cluster)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(0))
@@ -245,7 +244,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
+	g.Expect(r.updateStatus(ctx, kcp, cluster)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(5))
 	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(1))
 	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(4))

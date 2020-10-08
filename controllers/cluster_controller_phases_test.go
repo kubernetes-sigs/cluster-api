@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -140,7 +139,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 					Client: c,
 				}
 
-				res, err := r.reconcileInfrastructure(context.Background(), tt.cluster)
+				res, err := r.reconcileInfrastructure(ctx, tt.cluster)
 				g.Expect(res).To(Equal(tt.expectResult))
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
@@ -216,7 +215,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				r := &ClusterReconciler{
 					Client: c,
 				}
-				res, err := r.reconcileKubeconfig(context.Background(), tt.cluster)
+				res, err := r.reconcileKubeconfig(ctx, tt.cluster)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 				} else {
@@ -365,7 +364,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 			r := &ClusterReconciler{
 				Client: c,
 			}
-			r.reconcilePhase(context.TODO(), tt.cluster)
+			r.reconcilePhase(ctx, tt.cluster)
 			g.Expect(tt.cluster.Status.GetTypedPhase()).To(Equal(tt.wantPhase))
 		})
 	}

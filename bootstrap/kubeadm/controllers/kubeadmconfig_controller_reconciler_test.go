@@ -17,8 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -35,19 +33,19 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 	Context("Reconcile a KubeadmConfig", func() {
 		It("should wait until infrastructure is ready", func() {
 			cluster := newCluster("cluster1")
-			Expect(testEnv.Create(context.Background(), cluster)).To(Succeed())
+			Expect(testEnv.Create(ctx, cluster)).To(Succeed())
 
 			machine := newMachine(cluster, "my-machine")
-			Expect(testEnv.Create(context.Background(), machine)).To(Succeed())
+			Expect(testEnv.Create(ctx, machine)).To(Succeed())
 
 			config := newKubeadmConfig(machine, "my-machine-config")
-			Expect(testEnv.Create(context.Background(), config)).To(Succeed())
+			Expect(testEnv.Create(ctx, config)).To(Succeed())
 
 			reconciler := KubeadmConfigReconciler{
 				Client: testEnv,
 			}
 			By("Calling reconcile should requeue")
-			result, err := reconciler.Reconcile(ctrl.Request{
+			result, err := reconciler.Reconcile(ctx, ctrl.Request{
 				NamespacedName: client.ObjectKey{
 					Namespace: "default",
 					Name:      "my-machine-config",
@@ -61,7 +59,6 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 
 // getKubeadmConfig returns a KubeadmConfig object from the cluster
 func getKubeadmConfig(c client.Client, name string) (*bootstrapv1.KubeadmConfig, error) {
-	ctx := context.Background()
 	controlplaneConfigKey := client.ObjectKey{
 		Namespace: "default",
 		Name:      name,

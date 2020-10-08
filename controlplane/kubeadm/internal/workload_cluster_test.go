@@ -34,7 +34,6 @@ import (
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -140,8 +139,6 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				}},
 		},
 	}
-
-	ctx := context.Background()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -259,7 +256,6 @@ kind: ClusterStatus
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.RemoveMachineFromKubeadmConfigMap(ctx, tt.machine)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -270,7 +266,7 @@ kind: ClusterStatus
 				var actualConfig corev1.ConfigMap
 				g.Expect(w.Client.Get(
 					ctx,
-					ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+					client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 					&actualConfig,
 				)).To(Succeed())
 				g.Expect(actualConfig.Data[clusterStatusKey]).To(Equal(tt.expectedEndpoints))
@@ -317,7 +313,6 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.UpdateKubeletConfigMap(ctx, tt.version)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -327,7 +322,7 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				ctrlclient.ObjectKey{Name: "kubelet-config-1.2", Namespace: metav1.NamespaceSystem},
+				client.ObjectKey{Name: "kubelet-config-1.2", Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
 			g.Expect(actualConfig.ResourceVersion).ToNot(Equal(kubeletConfig.ResourceVersion))
@@ -397,7 +392,6 @@ kubernetesVersion: v1.16.1
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.UpdateKubernetesVersionInKubeadmConfigMap(ctx, tt.version)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -407,7 +401,7 @@ kubernetesVersion: v1.16.1
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
 			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring("kubernetesVersion: v1.17.2"))
@@ -476,7 +470,6 @@ imageRepository: k8s.gcr.io
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.UpdateImageRepositoryInKubeadmConfigMap(ctx, tt.imageRepository)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -486,7 +479,7 @@ imageRepository: k8s.gcr.io
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
 			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring(tt.imageRepository))
@@ -558,7 +551,6 @@ func TestClusterStatus(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			status, err := w.ClusterStatus(ctx)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -576,10 +568,10 @@ func TestClusterStatus(t *testing.T) {
 	}
 }
 
-func getProxyImageInfo(ctx context.Context, client ctrlclient.Client) (string, error) {
+func getProxyImageInfo(ctx context.Context, c client.Client) (string, error) {
 	ds := &appsv1.DaemonSet{}
 
-	if err := client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
+	if err := c.Get(ctx, client.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
 		if apierrors.IsNotFound(err) {
 			return "", errors.New("no image found")
 		}

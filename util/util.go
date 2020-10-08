@@ -207,7 +207,7 @@ func IsExternalManagedControlPlane(controlPlane *unstructured.Unstructured) bool
 }
 
 // GetMachineIfExists gets a machine from the API server if it exists.
-func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Machine, error) {
+func GetMachineIfExists(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.Machine, error) {
 	if c == nil {
 		// Being called before k8s is setup as part of control plane VM creation
 		return nil, nil
@@ -215,7 +215,7 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 
 	// Machines are identified by name
 	machine := &clusterv1.Machine{}
-	err := c.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, machine)
+	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, machine)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, nil
@@ -581,7 +581,10 @@ func GetCRDMetadataFromGVK(ctx context.Context, restConfig *rest.Config, gvk sch
 
 	// Get the partial metadata CRD.
 	generatedName := fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group)
-	return metadataClient.Resource(apiextensionsv1.SchemeGroupVersion.WithResource("customresourcedefinitions")).Get(generatedName, metav1.GetOptions{})
+
+	return metadataClient.Resource(
+		apiextensionsv1.SchemeGroupVersion.WithResource("customresourcedefinitions"),
+	).Get(ctx, generatedName, metav1.GetOptions{})
 }
 
 // KubeAwareAPIVersions is a sortable slice of kube-like version strings.
@@ -645,7 +648,7 @@ func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.
 
 		list := &unstructured.UnstructuredList{}
 		list.SetGroupVersionKind(gvk)
-		if err := c.List(context.Background(), list, client.MatchingLabels{clusterv1.ClusterLabelName: cluster.Name}); err != nil {
+		if err := c.List(context.TODO(), list, client.MatchingLabels{clusterv1.ClusterLabelName: cluster.Name}); err != nil {
 			return nil
 		}
 

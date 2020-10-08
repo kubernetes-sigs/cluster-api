@@ -322,7 +322,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	}, input.WaitForMachinesToBeUpgraded...)
 
 	log.Logf("Waiting for kube-proxy to have the upgraded kubernetes version")
-	workloadCluster := input.ClusterProxy.GetWorkloadCluster(context.TODO(), input.Cluster.Namespace, input.Cluster.Name)
+	workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name)
 	workloadClient := workloadCluster.GetClient()
 	WaitForKubeProxyUpgrade(ctx, WaitForKubeProxyUpgradeInput{
 		Getter:            workloadClient,

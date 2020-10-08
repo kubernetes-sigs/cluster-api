@@ -118,7 +118,7 @@ func TestControlPlaneIsHealthy(t *testing.T) {
 		},
 	}
 
-	health, err := workloadCluster.ControlPlaneIsHealthy(context.Background())
+	health, err := workloadCluster.ControlPlaneIsHealthy(ctx)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(health).NotTo(HaveLen(0))
 	g.Expect(health).To(HaveLen(len(nodeListForTestControlPlaneIsHealthy().Items)))
@@ -134,12 +134,12 @@ func TestGetMachinesForCluster(t *testing.T) {
 		Namespace: "my-namespace",
 		Name:      "my-cluster",
 	}
-	machines, err := m.GetMachinesForCluster(context.Background(), clusterKey)
+	machines, err := m.GetMachinesForCluster(ctx, clusterKey)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(3))
 
 	// Test the ControlPlaneMachines works
-	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.ControlPlaneMachines("my-cluster"))
+	machines, err = m.GetMachinesForCluster(ctx, clusterKey, machinefilters.ControlPlaneMachines("my-cluster"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 
@@ -147,7 +147,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	nameFilter := func(cluster *clusterv1.Machine) bool {
 		return cluster.Name == "first-machine"
 	}
-	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, machinefilters.ControlPlaneMachines("my-cluster"), nameFilter)
+	machines, err = m.GetMachinesForCluster(ctx, clusterKey, machinefilters.ControlPlaneMachines("my-cluster"), nameFilter)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 }
@@ -266,7 +266,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 				Client: testEnv,
 			}
 
-			workloadCluster, err := m.GetWorkloadCluster(context.Background(), tt.clusterKey)
+			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(workloadCluster).To(BeNil())
@@ -489,7 +489,7 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := ctx
 			m := &Management{
 				Client: &fakeClient{list: tt.machineList},
 			}
@@ -597,7 +597,7 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := ctx
 			clusterKey := client.ObjectKey{Namespace: "default", Name: "cluster-name"}
 
 			m := &Management{

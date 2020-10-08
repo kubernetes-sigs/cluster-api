@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -122,7 +121,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -148,7 +147,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -172,7 +171,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -212,7 +211,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -264,7 +263,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -294,7 +293,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -331,7 +330,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -381,7 +380,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -436,7 +435,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -679,7 +678,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machinepool, bootstrapConfig),
 			}
 
-			res, err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machinepool)
+			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machinepool)
 			g.Expect(res).To(Equal(tc.expectResult))
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
@@ -888,7 +887,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machinepool, infraConfig),
 			}
 
-			res, err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machinepool)
+			res, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machinepool)
 			if tc.expectRequeueAfter {
 				g.Expect(res.RequeueAfter).To(BeNumerically(">=", 0))
 			}

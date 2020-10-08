@@ -89,7 +89,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
+			Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 
 			testClusterKey = util.ObjectKey(testCluster)
 

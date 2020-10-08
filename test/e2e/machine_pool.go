@@ -91,7 +91,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 		})
 
 		By("Scaling the machine pool up")
-		framework.ScaleMachinePoolAndWait(context.TODO(), framework.ScaleMachinePoolAndWaitInput{
+		framework.ScaleMachinePoolAndWait(ctx, framework.ScaleMachinePoolAndWaitInput{
 			ClusterProxy:              input.BootstrapClusterProxy,
 			Cluster:                   clusterResources.Cluster,
 			Replicas:                  workerMachineCount + 1,
@@ -100,7 +100,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 		})
 
 		By("Scaling the machine pool down")
-		framework.ScaleMachinePoolAndWait(context.TODO(), framework.ScaleMachinePoolAndWaitInput{
+		framework.ScaleMachinePoolAndWait(ctx, framework.ScaleMachinePoolAndWaitInput{
 			ClusterProxy:              input.BootstrapClusterProxy,
 			Cluster:                   clusterResources.Cluster,
 			Replicas:                  workerMachineCount - 1,
@@ -109,7 +109,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 		})
 
 		By("Upgrading the instances")
-		framework.UpgradeMachinePoolAndWait(context.TODO(), framework.UpgradeMachinePoolAndWaitInput{
+		framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
 			ClusterProxy:                   input.BootstrapClusterProxy,
 			Cluster:                        clusterResources.Cluster,
 			UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),

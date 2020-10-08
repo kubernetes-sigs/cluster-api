@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -143,7 +142,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			gt := NewWithT(t)
 
-			result, err := r.getNodeReferences(context.TODO(), client, test.providerIDList)
+			result, err := r.getNodeReferences(ctx, client, test.providerIDList)
 			if test.err == nil {
 				g.Expect(err).To(BeNil())
 			} else {

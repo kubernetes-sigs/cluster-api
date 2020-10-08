@@ -51,10 +51,8 @@ func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.
 
 // Reconcile reconciles Clusters and removes ClusterCaches for any Cluster that cannot be retrieved from the
 // management cluster.
-func (r *ClusterCacheReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
-	ctx := context.Background()
-
-	log := r.Log.WithValues("namespace", req.Namespace, "name", req.Name)
+func (r *ClusterCacheReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconciling")
 
 	var cluster clusterv1.Cluster

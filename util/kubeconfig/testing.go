@@ -28,8 +28,8 @@ import (
 )
 
 // Deprecated: use test/helpers/envtest
-func CreateEnvTestSecret(client client.Client, cfg *rest.Config, cluster *clusterv1.Cluster) error {
-	return client.Create(context.TODO(), GenerateSecret(cluster, FromEnvTestConfig(cfg, cluster)))
+func CreateEnvTestSecret(ctx context.Context, client client.Client, cfg *rest.Config, cluster *clusterv1.Cluster) error {
+	return client.Create(ctx, GenerateSecret(cluster, FromEnvTestConfig(cfg, cluster)))
 }
 
 func FromEnvTestConfig(cfg *rest.Config, cluster *clusterv1.Cluster) []byte {

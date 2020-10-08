@@ -17,7 +17,6 @@ limitations under the License.
 package remote
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	// +kubebuilder:scaffold:imports
 )
@@ -38,7 +38,7 @@ const (
 
 var (
 	testEnv *helpers.TestEnvironment
-	ctx     = context.Background()
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestGinkgoSuite(t *testing.T) {

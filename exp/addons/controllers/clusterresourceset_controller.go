@@ -23,7 +23,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -62,10 +61,7 @@ var (
 // ClusterResourceSetReconciler reconciles a ClusterResourceSet object
 type ClusterResourceSetReconciler struct {
 	Client  client.Client
-	Log     logr.Logger
 	Tracker *remote.ClusterCacheTracker
-
-	scheme *runtime.Scheme
 }
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -76,7 +72,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSet),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -85,6 +81,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 	err = controller.Watch(
 		&source.Kind{Type: &corev1.ConfigMap{}},
 		handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+		resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for ConfigMaps to controller manager")
@@ -93,11 +90,11 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 	err = controller.Watch(
 		&source.Kind{Type: &corev1.Secret{}},
 		handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+		resourcepredicates.AddonsSecretCreate(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Secret to controller manager")
 	}
-	r.scheme = mgr.GetScheme()
 	return nil
 }
 

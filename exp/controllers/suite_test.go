@@ -23,11 +23,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"sigs.k8s.io/cluster-api/test/helpers"
 	// +kubebuilder:scaffold:imports
 )
 

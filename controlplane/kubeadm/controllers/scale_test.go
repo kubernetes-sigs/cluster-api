@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
@@ -45,7 +44,6 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
@@ -104,7 +102,6 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			Client:                    fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
-			Log:                       log.Log,
 			recorder:                  record.NewFakeRecorder(32),
 		}
 		controlPlane := &internal.ControlPlane{
@@ -166,7 +163,6 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 				Client:                    fakeClient,
 				managementCluster:         fmc,
 				managementClusterUncached: fmc,
-				Log:                       log.Log,
 				recorder:                  record.NewFakeRecorder(32),
 			}
 			controlPlane := &internal.ControlPlane{
@@ -204,7 +200,6 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 	}
 
 	r := &KubeadmControlPlaneReconciler{
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 		Client:   newFakeClient(g, machines["one"]),
 		managementCluster: &fakeManagementCluster{

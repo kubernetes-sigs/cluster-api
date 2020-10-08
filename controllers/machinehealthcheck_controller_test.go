@@ -37,8 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -973,7 +971,6 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
-		Log:    log.Log,
 		Client: fakeClient,
 	}
 
@@ -1055,7 +1052,6 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
-		Log:    log.Log,
 		Client: fakeClient,
 	}
 
@@ -1133,7 +1129,6 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
-		Log:    log.Log,
 		Client: fakeClient,
 	}
 
@@ -1171,14 +1166,14 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 			mToCreate:   []clusterv1.Machine{},
 			object:      node1,
 			expected:    []reconcile.Request{},
-			},
+		},
 		{
 			name:        "when two Machines exist for the Node",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc1},
 			mToCreate:   []clusterv1.Machine{*machine1, *machine2},
 			object:      node1,
 			expected:    []reconcile.Request{},
-			},
+		},
 		{
 			name:        "when no MachineHealthCheck exists for the Node in the Machine's namespace",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc4},
@@ -1257,9 +1252,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 }
 
 func TestIndexMachineByNodeName(t *testing.T) {
-	r := &MachineHealthCheckReconciler{
-		Log: log.Log,
-	}
+	r := &MachineHealthCheckReconciler{}
 
 	testCases := []struct {
 		name     string

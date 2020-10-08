@@ -63,12 +63,10 @@ const (
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object
 type MachineHealthCheckReconciler struct {
 	Client  client.Client
-	Log     logr.Logger
 	Tracker *remote.ClusterCacheTracker
 
 	controller controller.Controller
 	recorder   record.EventRecorder
-	scheme     *runtime.Scheme
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -79,7 +77,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(r.machineToMachineHealthCheck),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -88,14 +86,14 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(r.clusterToMachineHealthCheck),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		predicates.ClusterUnpaused(r.Log),
+		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
 	}
 
 	// Add index to Machine for listing by Node reference
-	if err := mgr.GetCache().IndexField(&clusterv1.Machine{},
+	if err := mgr.GetCache().IndexField(ctx, &clusterv1.Machine{},
 		machineNodeNameIndex,
 		r.indexMachineByNodeName,
 	); err != nil {
@@ -104,7 +102,6 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 
 	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
-	r.scheme = mgr.GetScheme()
 	return nil
 }
 

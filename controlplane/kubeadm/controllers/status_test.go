@@ -62,8 +62,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
-		Log:    log.Log,
-		scheme: scheme.Scheme,
 		managementCluster: &fakeManagementCluster{
 			Machines: map[string]*clusterv1.Machine{},
 			Workload: fakeWorkloadCluster{},
@@ -118,8 +116,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
-		Log:    log.Log,
-		scheme: scheme.Scheme,
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
 			Workload: fakeWorkloadCluster{},
@@ -174,8 +170,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
-		Log:    log.Log,
-		scheme: scheme.Scheme,
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
 			Workload: fakeWorkloadCluster{
@@ -238,8 +232,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
-		Log:    log.Log,
-		scheme: scheme.Scheme,
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
 			Workload: fakeWorkloadCluster{

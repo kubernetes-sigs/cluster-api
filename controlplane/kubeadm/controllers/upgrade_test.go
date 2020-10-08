@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
@@ -44,7 +43,6 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management:          &internal.Management{Client: fakeClient},

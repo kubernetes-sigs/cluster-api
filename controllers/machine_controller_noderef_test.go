@@ -27,7 +27,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -40,7 +39,6 @@ func TestGetNodeReference(t *testing.T) {
 
 	r := &MachineReconciler{
 		Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 

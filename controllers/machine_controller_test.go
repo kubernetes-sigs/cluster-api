@@ -35,8 +35,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -111,7 +109,6 @@ func TestMachineFinalizer(t *testing.T) {
 					machineValidCluster,
 					machineWithFinalizer,
 				),
-				Log: log.Log,
 			}
 
 			_, _ = mr.Reconcile(tc.request)
@@ -274,8 +271,6 @@ func TestMachineOwnerReference(t *testing.T) {
 					machineValidMachine,
 					machineValidControlled,
 				),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
@@ -439,8 +434,6 @@ func TestReconcileRequest(t *testing.T) {
 
 			r := &MachineReconciler{
 				Client: clientFake,
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			result, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
@@ -677,8 +670,6 @@ func TestMachineConditions(t *testing.T) {
 
 			r := &MachineReconciler{
 				Client: clientFake,
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			_, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
@@ -768,8 +759,6 @@ func TestReconcileDeleteExternal(t *testing.T) {
 
 			r := &MachineReconciler{
 				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			obj, err := r.reconcileDeleteExternal(ctx, machine, machine.Spec.Bootstrap.ConfigRef)
@@ -812,8 +801,6 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &MachineReconciler{
 		Client: helpers.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
-		Log:    log.Log,
-		scheme: scheme.Scheme,
 	}
 	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -898,8 +885,6 @@ func Test_clusterToActiveMachines(t *testing.T) {
 
 		r := &MachineReconciler{
 			Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		got := r.clusterToActiveMachines(tt.cluster)
@@ -1250,8 +1235,6 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					m2,
 					emp,
 				),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			err := mr.isDeleteNodeAllowed(context.TODO(), tc.cluster, tc.machine)

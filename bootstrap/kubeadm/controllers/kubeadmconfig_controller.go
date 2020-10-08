@@ -67,9 +67,7 @@ type InitLocker interface {
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
 type KubeadmConfigReconciler struct {
 	Client          client.Client
-	Log             logr.Logger
 	KubeadmInitLock InitLocker
-	scheme          *runtime.Scheme
 
 	remoteClientGetter remote.ClusterClientGetter
 }
@@ -84,18 +82,16 @@ type Scope struct {
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, option controller.Options) error {
 	if r.KubeadmInitLock == nil {
-		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient())
+		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.LoggerFrom(ctx).WithName("init-locker"), mgr.GetClient())
 	}
 	if r.remoteClientGetter == nil {
 		r.remoteClientGetter = remote.NewClusterClient
 	}
 
-	r.scheme = mgr.GetScheme()
-
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
 		WithOptions(option).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
@@ -116,6 +112,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmConfigs),
+		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Clusters to controller manager")

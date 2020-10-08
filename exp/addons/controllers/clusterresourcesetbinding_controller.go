@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-	"github.com/go-logr/logr"
+
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -38,7 +38,6 @@ import (
 // ClusterResourceSetBindingReconciler reconciles a ClusterResourceSetBinding object
 type ClusterResourceSetBindingReconciler struct {
 	Client client.Client
-	Log    logr.Logger
 }
 
 func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {

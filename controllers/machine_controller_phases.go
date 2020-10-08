@@ -130,7 +130,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	}
 
 	// Set external object ControllerReference to the Machine.
-	if err := controllerutil.SetControllerReference(m, obj, r.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(m, obj, r.Client.Scheme()); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 

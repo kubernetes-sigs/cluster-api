@@ -39,7 +39,6 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 
 	r := &MachinePoolReconciler{
 		Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 

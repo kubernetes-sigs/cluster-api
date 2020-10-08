@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -55,7 +54,6 @@ var (
 // MachineDeploymentReconciler reconciles a MachineDeployment object
 type MachineDeploymentReconciler struct {
 	Client client.Client
-	Log    logr.Logger
 
 	recorder   record.EventRecorder
 	restConfig *rest.Config
@@ -75,7 +73,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -85,7 +83,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		predicates.ClusterUnpaused(r.Log),
+		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")

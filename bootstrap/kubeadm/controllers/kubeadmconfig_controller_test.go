@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
-	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -44,8 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -88,7 +85,6 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	}
 	fakeClient := helpers.NewFakeClientWithScheme(setupScheme(), objs...)
 	reconciler := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: fakeClient,
 	}
 	for i := 0; i < 3; i++ {
@@ -115,7 +111,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -145,7 +140,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFo
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -174,7 +168,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -208,7 +201,6 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -255,7 +247,6 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -287,7 +278,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *t
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -315,7 +305,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociat
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -345,7 +334,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -411,7 +399,6 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 			myclient := helpers.NewFakeClientWithScheme(setupScheme(), tc.objects...)
 
 			k := &KubeadmConfigReconciler{
-				Log:             log.Log,
 				Client:          myclient,
 				KubeadmInitLock: &myInitLocker{},
 			}
@@ -445,7 +432,6 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:             log.Log,
 		Client:          myclient,
 		KubeadmInitLock: &myInitLocker{},
 	}
@@ -498,7 +484,6 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:                log.Log,
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
 		remoteClientGetter: fakeremote.NewClusterClient,
@@ -537,7 +522,6 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:             log.Log,
 		Client:          myclient,
 		KubeadmInitLock: &myInitLocker{},
 	}
@@ -609,7 +593,6 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			objects = append(objects, createSecrets(t, cluster, config)...)
 			myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 			k := &KubeadmConfigReconciler{
-				Log:                log.Log,
 				Client:             myclient,
 				KubeadmInitLock:    &myInitLocker{},
 				remoteClientGetter: fakeremote.NewClusterClient,
@@ -687,7 +670,6 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			objects = append(objects, createSecrets(t, cluster, config)...)
 			myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 			k := &KubeadmConfigReconciler{
-				Log:                log.Log,
 				Client:             myclient,
 				KubeadmInitLock:    &myInitLocker{},
 				remoteClientGetter: fakeremote.NewClusterClient,
@@ -743,7 +725,6 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 	k := &KubeadmConfigReconciler{
-		Log:                log.Log,
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
 		remoteClientGetter: fakeremote.NewClusterClient,
@@ -817,7 +798,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 	k := &KubeadmConfigReconciler{
-		Log:                log.Log,
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
 		remoteClientGetter: fakeremote.NewClusterClient,
@@ -945,7 +925,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 // Ensure the discovery portion of the JoinConfiguration gets generated correctly.
 func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testing.T) {
 	k := &KubeadmConfigReconciler{
-		Log:                log.Log,
 		Client:             helpers.NewFakeClientWithScheme(setupScheme()),
 		KubeadmInitLock:    &myInitLocker{},
 		remoteClientGetter: fakeremote.NewClusterClient,
@@ -1088,10 +1067,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 
 // Test failure cases for the discovery reconcile function.
 func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t *testing.T) {
-	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
-		Client: nil,
-	}
+	k := &KubeadmConfigReconciler{}
 
 	testcases := []struct {
 		name    string
@@ -1136,10 +1112,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 
 // Set cluster configuration defaults based on dynamic values from the cluster object.
 func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguration(t *testing.T) {
-	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
-		Client: nil,
-	}
+	k := &KubeadmConfigReconciler{}
 
 	testcases := []struct {
 		name    string
@@ -1289,7 +1262,6 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			reconciler := KubeadmConfigReconciler{
 				Client:             myclient,
 				KubeadmInitLock:    &myInitLocker{},
-				Log:                klogr.New(),
 				remoteClientGetter: fakeremote.NewClusterClient,
 			}
 
@@ -1336,7 +1308,6 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	}
 	fakeClient := helpers.NewFakeClientWithScheme(setupScheme(), objs...)
 	reconciler := &KubeadmConfigReconciler{
-		Log:    log.Log,
 		Client: fakeClient,
 	}
 	configs := reconciler.ClusterToKubeadmConfigs(cluster)
@@ -1409,7 +1380,6 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 	k := &KubeadmConfigReconciler{
-		Log:             log.Log,
 		Client:          myclient,
 		KubeadmInitLock: &myInitLocker{},
 	}
@@ -1465,7 +1435,6 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
 	k := &KubeadmConfigReconciler{
-		Log:             log.Log,
 		Client:          myclient,
 		KubeadmInitLock: &myInitLocker{},
 	}
@@ -1602,7 +1571,6 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 
 			myclient := helpers.NewFakeClientWithScheme(setupScheme(), tc.objects...)
 			k := &KubeadmConfigReconciler{
-				Log:             log.Log,
 				Client:          myclient,
 				KubeadmInitLock: &myInitLocker{},
 			}

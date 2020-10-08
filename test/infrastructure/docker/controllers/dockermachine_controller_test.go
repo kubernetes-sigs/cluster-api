@@ -24,7 +24,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,7 +59,6 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 	c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 	r := DockerMachineReconciler{
 		Client: c,
-		Log:    klogr.New(),
 	}
 	out := r.DockerClusterToDockerMachines(dockerCluster)
 	machineNames := make([]string, len(out))

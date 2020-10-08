@@ -23,7 +23,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 	"github.com/onsi/gomega"
@@ -56,7 +55,8 @@ var (
 // the Custom Resource Definition and looks which one is the stored version available.
 //
 // The object passed as input is modified in place if an updated compatible version is found.
-func ConvertReferenceAPIContract(ctx context.Context, log logr.Logger, c client.Client, restConfig *rest.Config, ref *corev1.ObjectReference) error {
+func ConvertReferenceAPIContract(ctx context.Context, c client.Client, restConfig *rest.Config, ref *corev1.ObjectReference) error {
+	log := ctrl.LoggerFrom(ctx)
 	gvk := ref.GroupVersionKind()
 
 	metadata, err := util.GetCRDMetadataFromGVK(ctx, restConfig, gvk)

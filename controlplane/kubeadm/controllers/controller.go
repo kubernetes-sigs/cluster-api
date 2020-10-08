@@ -61,8 +61,6 @@ import (
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object
 type KubeadmControlPlaneReconciler struct {
 	Client     client.Client
-	Log        logr.Logger
-	scheme     *runtime.Scheme
 	controller controller.Controller
 	recorder   record.EventRecorder
 
@@ -75,7 +73,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -84,12 +82,12 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmControlPlane),
+		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Clusters to controller manager")
 	}
 
-	r.scheme = mgr.GetScheme()
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
 

@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,7 +48,6 @@ const (
 // DockerMachineReconciler reconciles a DockerMachine object
 type DockerMachineReconciler struct {
 	client.Client
-	Log logr.Logger
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines,verbs=get;list;watch;create;update;patch;delete
@@ -368,7 +366,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerMachine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine"))),
@@ -384,6 +382,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToDockerMachines),
+		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 	)
 }
 

@@ -30,8 +30,6 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -446,12 +444,12 @@ func TestMachineSetToDeployments(t *testing.T) {
 			machineSet: ms1,
 			mapObject:  &ms1,
 			expected:   []reconcile.Request{},
-			},
+		},
 		{
 			machineSet: ms2,
 			mapObject:  &ms2,
 			expected:   nil,
-			},
+		},
 		{
 			machineSet: ms3,
 			mapObject:  &ms3,

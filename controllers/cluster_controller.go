@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -65,9 +64,7 @@ const (
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
 	Client client.Client
-	Log    logr.Logger
 
-	scheme          *runtime.Scheme
 	restConfig      *rest.Config
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
@@ -81,7 +78,7 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 
 	if err != nil {
@@ -89,7 +86,6 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
-	r.scheme = mgr.GetScheme()
 	r.restConfig = mgr.GetConfig()
 	r.externalTracker = external.ObjectTracker{
 		Controller: controller,

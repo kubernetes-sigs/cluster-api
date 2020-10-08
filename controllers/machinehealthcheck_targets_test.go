@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -135,8 +136,6 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			// Create a test reconciler
 			reconciler := &MachineHealthCheckReconciler{
 				Client: k8sClient,
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 			for _, t := range tc.expectedTargets {
 				patchHelper, err := patch.NewHelper(t.Machine, k8sClient)
@@ -308,13 +307,11 @@ func TestHealthCheckTargets(t *testing.T) {
 			// Create a test reconciler
 			reconciler := &MachineHealthCheckReconciler{
 				Client:   k8sClient,
-				Log:      log.Log,
-				scheme:   scheme.Scheme,
 				recorder: record.NewFakeRecorder(5),
 			}
 
 			timeoutForMachineToHaveNode := 10 * time.Minute
-			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, reconciler.Log, timeoutForMachineToHaveNode)
+			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), timeoutForMachineToHaveNode)
 
 			// Round durations down to nearest second account for minute differences
 			// in timing when running tests

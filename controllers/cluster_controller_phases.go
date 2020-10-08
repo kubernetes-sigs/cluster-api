@@ -92,7 +92,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	}
 
 	// Set external object ControllerReference to the Cluster.
-	if err := controllerutil.SetControllerReference(cluster, obj, r.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cluster, obj, r.Client.Scheme()); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 

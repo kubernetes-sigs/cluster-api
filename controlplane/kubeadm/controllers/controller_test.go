@@ -109,7 +109,6 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -125,7 +124,6 @@ func TestClusterToKubeadmControlPlaneNoControlPlane(t *testing.T) {
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -154,7 +152,6 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -183,11 +180,8 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 
 	fakeClient := newFakeClient(g, kcp.DeepCopy())
-	log.SetLogger(klogr.New())
-
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -214,11 +208,8 @@ func TestReconcileNoKCP(t *testing.T) {
 	}
 
 	fakeClient := newFakeClient(g)
-	log.SetLogger(klogr.New())
-
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -249,11 +240,8 @@ func TestReconcileNoCluster(t *testing.T) {
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 
 	fakeClient := newFakeClient(g, kcp.DeepCopy())
-	log.SetLogger(klogr.New())
-
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -292,11 +280,8 @@ func TestReconcilePaused(t *testing.T) {
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 	fakeClient := newFakeClient(g, kcp.DeepCopy(), cluster.DeepCopy())
-	log.SetLogger(klogr.New())
-
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -341,11 +326,8 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 
 	fakeClient := newFakeClient(g, kcp.DeepCopy(), cluster.DeepCopy())
-	log.SetLogger(klogr.New())
-
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
@@ -426,12 +408,8 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fakeClient := newFakeClient(g, objs...)
 		fmc.Reader = fakeClient
-
-		log.SetLogger(klogr.New())
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
-			Log:                       log.Log,
-			scheme:                    scheme.Scheme,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -523,12 +501,8 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fakeClient := newFakeClient(g, objs...)
 		fmc.Reader = fakeClient
-
-		log.SetLogger(klogr.New())
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
-			Log:                       log.Log,
-			scheme:                    scheme.Scheme,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -609,12 +583,8 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		}
 		fakeClient := newFakeClient(g, objs...)
 		fmc.Reader = fakeClient
-
-		log.SetLogger(klogr.New())
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
-			Log:                       log.Log,
-			scheme:                    scheme.Scheme,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -665,12 +635,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fakeClient := newFakeClient(g, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy(), fmc.Machines["test0"].DeepCopy())
 		fmc.Reader = fakeClient
-
-		log.SetLogger(klogr.New())
 		recorder := record.NewFakeRecorder(32)
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
-			Log:                       log.Log,
 			recorder:                  recorder,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
@@ -799,13 +766,9 @@ kubernetesVersion: metav1.16.1`,
 		kubeadmCM.DeepCopy(),
 		corednsDepl.DeepCopy(),
 	)
-	log.SetLogger(klogr.New())
-
 	expectedLabels := map[string]string{clusterv1.ClusterLabelName: "foo"}
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
-		scheme:   scheme.Scheme,
 		recorder: record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
@@ -1052,8 +1015,6 @@ kubernetesVersion: metav1.16.1`,
 		}
 
 		fakeClient := newFakeClient(g, objs...)
-		log.SetLogger(klogr.New())
-
 		workloadCluster := fakeWorkloadCluster{
 			Workload: &internal.Workload{
 				Client: fakeClient,
@@ -1106,8 +1067,6 @@ kubernetesVersion: metav1.16.1`,
 		objs = append(objs, depl)
 
 		fakeClient := newFakeClient(g, objs...)
-		log.SetLogger(klogr.New())
-
 		workloadCluster := fakeWorkloadCluster{
 			Workload: &internal.Workload{
 				Client: fakeClient,
@@ -1177,7 +1136,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 				Management:          &internal.Management{Client: fakeClient},
 				Workload:            fakeWorkloadCluster{},
 			},
-			Log:      log.Log,
+
 			recorder: record.NewFakeRecorder(32),
 		}
 
@@ -1229,7 +1188,6 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 				Management:          &internal.Management{Client: fakeClient},
 				Workload:            fakeWorkloadCluster{},
 			},
-			Log:      log.Log,
 			recorder: record.NewFakeRecorder(32),
 		}
 
@@ -1264,7 +1222,6 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 				Workload:            fakeWorkloadCluster{},
 			},
 			recorder: record.NewFakeRecorder(32),
-			Log:      log.Log,
 		}
 
 		result, err := r.reconcileDelete(context.Background(), cluster, kcp)

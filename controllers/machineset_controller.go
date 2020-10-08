@@ -69,11 +69,9 @@ var (
 // MachineSetReconciler reconciles a MachineSet object
 type MachineSetReconciler struct {
 	Client  client.Client
-	Log     logr.Logger
 	Tracker *remote.ClusterCacheTracker
 
 	recorder   record.EventRecorder
-	scheme     *runtime.Scheme
 	restConfig *rest.Config
 }
 
@@ -91,7 +89,7 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			handler.EnqueueRequestsFromMapFunc(r.MachineToMachineSets),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -101,14 +99,13 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		predicates.ClusterUnpaused(r.Log),
+		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
-	r.scheme = mgr.GetScheme()
 	r.restConfig = mgr.GetConfig()
 	return nil
 }

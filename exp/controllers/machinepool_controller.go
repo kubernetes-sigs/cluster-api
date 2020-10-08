@@ -20,7 +20,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -55,13 +54,11 @@ import (
 // MachinePoolReconciler reconciles a MachinePool object
 type MachinePoolReconciler struct {
 	Client client.Client
-	Log    logr.Logger
 
 	config           *rest.Config
 	controller       controller.Controller
 	recorder         record.EventRecorder
 	externalWatchers sync.Map
-	scheme           *runtime.Scheme
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -73,7 +70,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&expv1.MachinePool{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -82,7 +79,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToMachinePools),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		predicates.ClusterUnpaused(r.Log),
+		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Cluster to controller manager")
@@ -91,7 +88,6 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinepool-controller")
 	r.config = mgr.GetConfig()
-	r.scheme = mgr.GetScheme()
 	return nil
 }
 

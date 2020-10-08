@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func init() {
@@ -124,8 +123,6 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				bootstrapConfig,
 				infraConfig,
 			),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -160,8 +157,6 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				bootstrapConfig,
 				infraConfig,
 			),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -201,8 +196,6 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				bootstrapConfig,
 				infraConfig,
 			),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -268,8 +261,6 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				bootstrapConfig,
 				infraConfig,
 			),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -322,8 +313,6 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				bootstrapConfig,
 				infraConfig,
 			),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -387,8 +376,6 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				bootstrapConfig,
 				infraConfig,
 			),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -432,8 +419,6 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				bootstrapConfig,
 				infraConfig,
 			),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -499,8 +484,6 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				bootstrapConfig,
 				infraConfig,
 			),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -796,8 +779,6 @@ func TestReconcileBootstrap(t *testing.T) {
 					external.TestGenericInfrastructureCRD.DeepCopy(),
 					bootstrapConfig,
 				),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			res, err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machine)
@@ -1011,8 +992,6 @@ func TestReconcileInfrastructure(t *testing.T) {
 					external.TestGenericInfrastructureCRD.DeepCopy(),
 					infraConfig,
 				),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			_, err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machine)

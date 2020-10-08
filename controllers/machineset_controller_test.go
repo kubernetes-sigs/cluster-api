@@ -31,15 +31,12 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var _ reconcile.Reconciler = &MachineSetReconciler{}
@@ -260,8 +257,6 @@ var _ = Describe("MachineSet Reconciler", func() {
 })
 
 func TestMachineSetOwnerReference(t *testing.T) {
-	ml := &clusterv1.MachineList{}
-
 	testCluster := &clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
@@ -326,12 +321,10 @@ func TestMachineSetOwnerReference(t *testing.T) {
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
 					testCluster,
-					ml,
 					ms1,
 					ms2,
 					ms3,
 				),
-				Log:      log.Log,
 				recorder: record.NewFakeRecorder(32),
 			}
 
@@ -379,7 +372,6 @@ func TestMachineSetReconcile(t *testing.T) {
 
 		msr := &MachineSetReconciler{
 			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, ms),
-			Log:      log.Log,
 			recorder: record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(request)
@@ -404,7 +396,6 @@ func TestMachineSetReconcile(t *testing.T) {
 		rec := record.NewFakeRecorder(32)
 		msr := &MachineSetReconciler{
 			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, ms),
-			Log:      log.Log,
 			recorder: rec,
 		}
 		_, _ = msr.Reconcile(request)
@@ -417,19 +408,19 @@ func TestMachineSetToMachines(t *testing.T) {
 
 	machineSetList := []client.Object{
 		&clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "withMatchingLabels",
-					Namespace: "test",
-				},
-				Spec: clusterv1.MachineSetSpec{
-					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"foo":                      "bar",
-							clusterv1.ClusterLabelName: "test-cluster",
-						},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "withMatchingLabels",
+				Namespace: "test",
+			},
+			Spec: clusterv1.MachineSetSpec{
+				Selector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"foo":                      "bar",
+						clusterv1.ClusterLabelName: "test-cluster",
 					},
 				},
 			},
+		},
 	}
 	controller := true
 	m := clusterv1.Machine{
@@ -642,7 +633,6 @@ func TestAdoptOrphan(t *testing.T) {
 
 	r := &MachineSetReconciler{
 		Client: fake.NewFakeClientWithScheme(scheme.Scheme, &m),
-		Log:    log.Log,
 	}
 	for _, tc := range testCases {
 		g.Expect(r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())).To(Succeed())
@@ -656,9 +646,7 @@ func TestAdoptOrphan(t *testing.T) {
 }
 
 func TestHasMatchingLabels(t *testing.T) {
-	r := &MachineSetReconciler{
-		Log: klogr.New(),
-	}
+	r := &MachineSetReconciler{}
 
 	testCases := []struct {
 		name       string

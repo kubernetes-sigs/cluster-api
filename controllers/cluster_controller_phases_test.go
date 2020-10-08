@@ -34,7 +34,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {
@@ -139,8 +138,6 @@ func TestClusterReconcilePhases(t *testing.T) {
 				}
 				r := &ClusterReconciler{
 					Client: c,
-					Log:    log.Log,
-					scheme: scheme.Scheme,
 				}
 
 				res, err := r.reconcileInfrastructure(context.Background(), tt.cluster)
@@ -218,8 +215,6 @@ func TestClusterReconcilePhases(t *testing.T) {
 				}
 				r := &ClusterReconciler{
 					Client: c,
-					scheme: scheme.Scheme,
-					Log:    log.Log,
 				}
 				res, err := r.reconcileKubeconfig(context.Background(), tt.cluster)
 				if tt.wantErr {
@@ -369,7 +364,6 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 
 			r := &ClusterReconciler{
 				Client: c,
-				scheme: scheme.Scheme,
 			}
 			r.reconcilePhase(context.TODO(), tt.cluster)
 			g.Expect(tt.cluster.Status.GetTypedPhase()).To(Equal(tt.wantPhase))

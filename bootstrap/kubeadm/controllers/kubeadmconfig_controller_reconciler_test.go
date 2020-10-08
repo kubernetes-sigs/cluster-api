@@ -24,7 +24,6 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 )
@@ -45,7 +44,6 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 			Expect(testEnv.Create(context.Background(), config)).To(Succeed())
 
 			reconciler := KubeadmConfigReconciler{
-				Log:    log.Log,
 				Client: testEnv,
 			}
 			By("Calling reconcile should requeue")

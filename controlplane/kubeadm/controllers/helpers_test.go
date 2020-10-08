@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	utilpointer "k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -38,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
@@ -58,7 +56,6 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 	fakeClient := newFakeClient(g, kcp.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -90,7 +87,6 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 	fakeClient := newFakeClient(g, kcp.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -135,7 +131,6 @@ func TestReconcileKubeconfigSecretAlreadyExists(t *testing.T) {
 	fakeClient := newFakeClient(g, kcp.DeepCopy(), existingKubeconfigSecret.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -186,7 +181,6 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 	fakeClient := newFakeClient(g, kcp.DeepCopy(), existingCACertSecret.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).To(Succeed())
@@ -250,9 +244,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
-		scheme:   scheme.Scheme,
 	}
 
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
@@ -329,7 +321,6 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	}
 	r := &KubeadmControlPlaneReconciler{
 		Client:            fakeClient,
-		Log:               log.Log,
 		managementCluster: &internal.Management{Client: fakeClient},
 		recorder:          record.NewFakeRecorder(32),
 	}
@@ -375,7 +366,6 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 

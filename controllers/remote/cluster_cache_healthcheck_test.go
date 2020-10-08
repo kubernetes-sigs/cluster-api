@@ -17,6 +17,7 @@ limitations under the License.
 package remote
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -92,9 +93,8 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 
 			testClusterKey = util.ObjectKey(testCluster)
 
-			cc = &stoppableCache{
-				stop: make(chan struct{}),
-			}
+			_, cancel := context.WithCancel(ctx)
+			cc = &stoppableCache{cancelFunc: cancel}
 			cct.clusterAccessors[testClusterKey] = &clusterAccessor{cache: cc}
 		})
 
@@ -104,32 +104,50 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			By("Deleting any Clusters")
 			Expect(cleanupTestClusters(ctx, k8sClient)).To(Succeed())
 			By("Stopping the manager")
-			close(doneMgr)
+			cc.cancelFunc()
+			mgrCancel()
 		})
 
 		It("with a healthy cluster", func() {
-			stop := make(chan struct{})
-			defer close(stop)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 
-			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, testEnv.Config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
+			// TODO(community): Fill in these field names.
+			go cct.healthCheckCluster(ctx, &healthCheckInput{
+				testClusterKey,
+				testEnv.Config,
+				testPollInterval,
+				testPollTimeout,
+				testUnhealthyThreshold,
+				"/",
+			})
 
 			// Make sure this passes for at least two seconds, to give the health check goroutine time to run.
 			Consistently(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeTrue())
 		})
 
 		It("with an invalid path", func() {
-			stop := make(chan struct{})
-			defer close(stop)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 
-			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, testEnv.Config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/clusterAccessor"})
+			// TODO(community): Fill in these field names.
+			go cct.healthCheckCluster(ctx,
+				&healthCheckInput{
+					testClusterKey,
+					testEnv.Config,
+					testPollInterval,
+					testPollTimeout,
+					testUnhealthyThreshold,
+					"/clusterAccessor",
+				})
 
 			// This should succeed after N consecutive failed requests.
 			Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeFalse())
 		})
 
 		It("with an invalid config", func() {
-			stop := make(chan struct{})
-			defer close(stop)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 
 			// Set the host to a random free port on localhost
 			addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
@@ -141,7 +159,15 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			config := rest.CopyConfig(testEnv.Config)
 			config.Host = fmt.Sprintf("http://127.0.0.1:%d", l.Addr().(*net.TCPAddr).Port)
 
-			go cct.healthCheckCluster(&healthCheckInput{stop, testClusterKey, config, testPollInterval, testPollTimeout, testUnhealthyThreshold, "/"})
+			// TODO(community): Fill in these field names.
+			go cct.healthCheckCluster(ctx, &healthCheckInput{
+				testClusterKey,
+				config,
+				testPollInterval,
+				testPollTimeout,
+				testUnhealthyThreshold,
+				"/",
+			})
 
 			// This should succeed after N consecutive failed requests.
 			Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeFalse())

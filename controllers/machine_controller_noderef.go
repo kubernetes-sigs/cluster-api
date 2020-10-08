@@ -18,6 +18,9 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"time"
+
 	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -65,7 +68,8 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 	nodeRef, err := r.getNodeReference(remoteClient, providerID)
 	if err != nil {
 		if err == ErrNodeNotFound {
-			return ctrl.Result{}, errors.Errorf("cannot assign NodeRef to Machine %q in namespace %q, no matching Node", machine.Name, machine.Namespace)
+			logger.Info(fmt.Sprintf("Cannot assign NodeRef to Machine: %s, requeuing", ErrNodeNotFound.Error()))
+			return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
 		}
 		logger.Error(err, "Failed to assign NodeRef")
 		r.recorder.Event(machine, apicorev1.EventTypeWarning, "FailedSetNodeRef", err.Error())

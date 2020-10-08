@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -31,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -76,18 +76,35 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 				found := false
 				for i := range objs {
 					o := objs[i]
-					if o.GetKind() == "MutatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
-						w := &admissionregistration.MutatingWebhookConfiguration{}
-						err := scheme.Scheme.Convert(&o, w, nil)
-						if err != nil {
-							t.Errorf("did not expect err, got %s", err)
-						}
-						if len(w.Webhooks) != 1 {
-							t.Error("expected 1 webhook to be configured")
-						}
-						wh := w.Webhooks[0]
-						if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
-							found = true
+					gvk := o.GroupVersionKind()
+					if gvk.Kind == "MutatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
+						switch gvk.Version {
+						case "v1beta1":
+							w := &admissionregistrationv1beta1.MutatingWebhookConfiguration{}
+							err := scheme.Scheme.Convert(&o, w, nil)
+							if err != nil {
+								t.Errorf("did not expect err, got %s", err)
+							}
+							if len(w.Webhooks) != 1 {
+								t.Error("expected 1 webhook to be configured")
+							}
+							wh := w.Webhooks[0]
+							if wh.SideEffects != nil && *wh.SideEffects == admissionregistrationv1beta1.SideEffectClassNone {
+								found = true
+							}
+						case "v1":
+							w := &admissionregistration.MutatingWebhookConfiguration{}
+							err := scheme.Scheme.Convert(&o, w, nil)
+							if err != nil {
+								t.Errorf("did not expect err, got %s", err)
+							}
+							if len(w.Webhooks) != 1 {
+								t.Error("expected 1 webhook to be configured")
+							}
+							wh := w.Webhooks[0]
+							if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
+								found = true
+							}
 						}
 					}
 				}
@@ -103,19 +120,37 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 				found := false
 				for i := range objs {
 					o := objs[i]
-					if o.GetKind() == "ValidatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
-						w := &admissionregistration.ValidatingWebhookConfiguration{}
-						err := scheme.Scheme.Convert(&o, w, nil)
-						if err != nil {
-							t.Errorf("did not expect err, got %s", err)
+					gvk := o.GroupVersionKind()
+					if gvk.Kind == "ValidatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
+						switch gvk.Version {
+						case "v1beta1":
+							w := &admissionregistrationv1beta1.ValidatingWebhookConfiguration{}
+							err := scheme.Scheme.Convert(&o, w, nil)
+							if err != nil {
+								t.Errorf("did not expect err, got %s", err)
+							}
+							if len(w.Webhooks) != 1 {
+								t.Error("expected 1 webhook to be configured")
+							}
+							wh := w.Webhooks[0]
+							if wh.SideEffects != nil && *wh.SideEffects == admissionregistrationv1beta1.SideEffectClassNone {
+								found = true
+							}
+						case "v1":
+							w := &admissionregistration.ValidatingWebhookConfiguration{}
+							err := scheme.Scheme.Convert(&o, w, nil)
+							if err != nil {
+								t.Errorf("did not expect err, got %s", err)
+							}
+							if len(w.Webhooks) != 1 {
+								t.Error("expected 1 webhook to be configured")
+							}
+							wh := w.Webhooks[0]
+							if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
+								found = true
+							}
 						}
-						if len(w.Webhooks) != 1 {
-							t.Error("expected 1 webhook to be configured")
-						}
-						wh := w.Webhooks[0]
-						if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
-							found = true
-						}
+
 					}
 				}
 				if !found {

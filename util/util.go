@@ -693,11 +693,10 @@ func ManagerDelegatingClientFunc(cache cache.Cache, config *rest.Config, options
 	if err != nil {
 		return nil, err
 	}
-	return &client.DelegatingClient{
-		Reader:       cache,
-		Writer:       c,
-		StatusClient: c,
-	}, nil
+	return client.NewDelegatingClient(client.NewDelegatingClientInput{
+		CacheReader: cache,
+		Client:      c,
+	}), nil
 }
 
 // LowestNonZeroResult compares two reconciliation results

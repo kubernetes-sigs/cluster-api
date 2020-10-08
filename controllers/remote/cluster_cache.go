@@ -84,7 +84,7 @@ func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.Obje
 // clusterAccessor represents the combination of a client, cache, and watches for a remote cluster.
 type clusterAccessor struct {
 	cache   *stoppableCache
-	client  *client.DelegatingClient
+	client  client.Client
 	watches sets.String
 }
 
@@ -162,11 +162,10 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 		cfg:     config,
 	})
 
-	delegatingClient := &client.DelegatingClient{
-		Reader:       cache,
-		Writer:       c,
-		StatusClient: c,
-	}
+	delegatingClient := client.NewDelegatingClient(client.NewDelegatingClientInput{
+		CacheReader: cache,
+		Client:      c,
+	})
 
 	return &clusterAccessor{
 		cache:   cache,

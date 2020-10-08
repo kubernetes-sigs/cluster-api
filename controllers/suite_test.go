@@ -108,7 +108,7 @@ func TestMain(m *testing.M) {
 
 	go func() {
 		fmt.Println("Starting the manager")
-		if err := testEnv.StartManager(); err != nil {
+		if err := testEnv.StartManager(ctx); err != nil {
 			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
 		}
 	}()

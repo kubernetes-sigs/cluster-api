@@ -33,7 +33,7 @@ var (
 func TestMain(m *testing.M) {
 	testEnv = helpers.NewTestEnvironment()
 	go func() {
-		if err := testEnv.StartManager(); err != nil {
+		if err := testEnv.StartManager(ctx); err != nil {
 			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
 		}
 	}()

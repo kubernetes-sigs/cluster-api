@@ -17,6 +17,7 @@ limitations under the License.
 package remote
 
 import (
+	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"

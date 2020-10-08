@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -32,6 +33,7 @@ import (
 
 var (
 	testEnv *helpers.TestEnvironment
+	ctx     = context.Background()
 )
 
 func TestAPIs(t *testing.T) {
@@ -49,7 +51,7 @@ var _ = BeforeSuite(func(done Done) {
 	By("starting the manager")
 	go func() {
 		defer GinkgoRecover()
-		Expect(testEnv.StartManager()).To(Succeed())
+		Expect(testEnv.StartManager(ctx)).To(Succeed())
 	}()
 
 	close(done)

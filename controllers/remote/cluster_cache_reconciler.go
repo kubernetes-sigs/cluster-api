@@ -37,7 +37,7 @@ type ClusterCacheReconciler struct {
 	Tracker *ClusterCacheTracker
 }
 
-func (r *ClusterCacheReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	_, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).

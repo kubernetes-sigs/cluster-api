@@ -82,7 +82,7 @@ type Scope struct {
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
-func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option controller.Options) error {
+func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, option controller.Options) error {
 	if r.KubeadmInitLock == nil {
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient())
 	}

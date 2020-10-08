@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"math/rand"
 	"os"
@@ -92,7 +93,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
-	setupReconcilers(mgr)
+	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -126,11 +127,10 @@ func setupChecks(mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&controllers.DockerMachineReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("DockerMachine"),
-	}).SetupWithManager(mgr, controller.Options{
+	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "reconciler")

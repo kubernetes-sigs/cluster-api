@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"math/rand"
 	"net/http"
@@ -146,7 +147,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupWebhooks(mgr)
-	setupReconcilers(mgr)
+	setupReconcilers(ctx, mgr)
 
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager", "version", version.Get().String())
@@ -156,15 +157,14 @@ func main() {
 	}
 }
 
-func setupReconcilers(mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if webhookPort != 0 {
 		return
 	}
 
 	if err := (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfig"),
-	}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
 		os.Exit(1)
 	}

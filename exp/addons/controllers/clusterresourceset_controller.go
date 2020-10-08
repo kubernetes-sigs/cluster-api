@@ -68,7 +68,7 @@ type ClusterResourceSetReconciler struct {
 	scheme *runtime.Scheme
 }
 
-func (r *ClusterResourceSetReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).
 		Watches(

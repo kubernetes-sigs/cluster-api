@@ -94,7 +94,7 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 				Client:  mgr.GetClient(),
 				Tracker: cct,
 			}
-			Expect(r.SetupWithManager(mgr, controller.Options{})).To(Succeed())
+			Expect(r.SetupWithManager(ctx, mgr, controller.Options{})).To(Succeed())
 
 			By("Starting the manager")
 			mgrContext, mgrCancel = context.WithCancel(ctx)

@@ -69,14 +69,12 @@ func main() {
 
 	if err = (&controllers.ClusterReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		os.Exit(1)
 	}
 	if err = (&controllers.MachineReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		os.Exit(1)
 	}
 

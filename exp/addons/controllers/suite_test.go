@@ -54,13 +54,11 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect((&ClusterResourceSetReconciler{
 		Client:  testEnv,
-		Log:     log.Log,
 		Tracker: trckr,
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&ClusterResourceSetBindingReconciler{
 		Client: testEnv,
-		Log:    log.Log,
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 
 	By("starting the manager")
 	go func() {

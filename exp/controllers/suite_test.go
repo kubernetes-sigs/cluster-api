@@ -53,9 +53,8 @@ var _ = BeforeSuite(func(done Done) {
 
 	Expect((&MachinePoolReconciler{
 		Client:   testEnv,
-		Log:      log.Log,
 		recorder: testEnv.GetEventRecorderFor("machinepool-controller"),
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 
 	By("starting the manager")
 	go func() {

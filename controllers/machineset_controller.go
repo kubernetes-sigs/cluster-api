@@ -77,7 +77,7 @@ type MachineSetReconciler struct {
 	restConfig *rest.Config
 }
 
-func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToMachineSets, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineSetList{}, mgr.GetScheme())
 	if err != nil {
 		return err

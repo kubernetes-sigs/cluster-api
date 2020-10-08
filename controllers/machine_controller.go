@@ -79,7 +79,7 @@ type MachineReconciler struct {
 	externalTracker external.ObjectTracker
 }
 
-func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToMachines, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err

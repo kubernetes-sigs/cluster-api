@@ -71,7 +71,7 @@ type MachineHealthCheckReconciler struct {
 	scheme     *runtime.Scheme
 }
 
-func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(

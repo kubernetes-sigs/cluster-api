@@ -73,7 +73,7 @@ type ClusterReconciler struct {
 	externalTracker external.ObjectTracker
 }
 
-func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		Watches(

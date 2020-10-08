@@ -41,7 +41,7 @@ type ClusterResourceSetBindingReconciler struct {
 	Log    logr.Logger
 }
 
-func (r *ClusterResourceSetBindingReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	_, err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSetBinding{}).
 		Watches(

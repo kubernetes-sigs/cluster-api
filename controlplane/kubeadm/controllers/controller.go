@@ -70,7 +70,7 @@ type KubeadmControlPlaneReconciler struct {
 	managementClusterUncached internal.ManagementCluster
 }
 
-func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).

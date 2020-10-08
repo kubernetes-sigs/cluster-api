@@ -76,7 +76,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.machineToMachineHealthCheck)},
+			handler.EnqueueRequestsFromMapFunc(r.machineToMachineHealthCheck),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
@@ -86,7 +86,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 	}
 	err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.clusterToMachineHealthCheck)},
+		handler.EnqueueRequestsFromMapFunc(r.clusterToMachineHealthCheck),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		predicates.ClusterUnpaused(r.Log),
 	)
@@ -407,7 +407,7 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 		Cluster:      util.ObjectKey(cluster),
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
-		EventHandler: &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.nodeToMachineHealthCheck)},
+		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachineHealthCheck),
 	}); err != nil {
 		return err
 	}

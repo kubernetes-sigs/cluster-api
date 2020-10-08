@@ -29,7 +29,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
 func setupScheme() *runtime.Scheme {
@@ -63,10 +62,7 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 		Client: c,
 		Log:    klogr.New(),
 	}
-	mo := handler.MapObject{
-		Object: dockerCluster,
-	}
-	out := r.DockerClusterToDockerMachines(mo)
+	out := r.DockerClusterToDockerMachines(dockerCluster)
 	machineNames := make([]string, len(out))
 	for i := range out {
 		machineNames[i] = out[i].Name

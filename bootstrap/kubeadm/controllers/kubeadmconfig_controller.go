@@ -98,17 +98,13 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.MachineToBootstrapMapFunc),
-			},
+			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
 		)
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
 			&source.Kind{Type: &expv1.MachinePool{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.MachinePoolToBootstrapMapFunc),
-			},
+			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
 		)
 	}
 
@@ -119,10 +115,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmConfigs),
-		},
-		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmConfigs),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Clusters to controller manager")

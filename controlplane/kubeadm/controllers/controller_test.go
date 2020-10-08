@@ -113,12 +113,7 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	got := r.ClusterToKubeadmControlPlane(
-		handler.MapObject{
-			Meta:   cluster.GetObjectMeta(),
-			Object: cluster,
-		},
-	)
+	got := r.ClusterToKubeadmControlPlane(cluster)
 	g.Expect(got).To(Equal(expectedResult))
 }
 

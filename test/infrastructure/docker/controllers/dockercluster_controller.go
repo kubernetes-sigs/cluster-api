@@ -201,9 +201,7 @@ func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerCluster")),
-		},
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerCluster"))),
 		predicates.ClusterUnpaused(r.Log),
 	)
 }

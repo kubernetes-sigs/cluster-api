@@ -96,9 +96,7 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 
 	err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: clusterToMachines,
-		},
+		handler.EnqueueRequestsFromMapFunc(clusterToMachines),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		predicates.ClusterUnpaused(r.Log),
 	)

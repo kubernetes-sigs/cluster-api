@@ -72,7 +72,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 		Owns(&clusterv1.MachineSet{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.MachineSet{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.MachineSetToDeployments)},
+			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
@@ -83,9 +83,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: clusterToMachineDeployments,
-		},
+		handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		predicates.ClusterUnpaused(r.Log),
 	)

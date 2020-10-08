@@ -80,9 +80,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	}
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: clusterToMachinePools,
-		},
+		handler.EnqueueRequestsFromMapFunc(clusterToMachinePools),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		predicates.ClusterUnpaused(r.Log),
 	)

@@ -657,7 +657,7 @@ func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.
 		}
 		return results
 
-	}), nil
+	}, nil
 }
 
 // ObjectReferenceToUnstructured converts an object reference to an unstructured object.

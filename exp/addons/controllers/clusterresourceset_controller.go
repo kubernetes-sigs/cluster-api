@@ -73,7 +73,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 		For(&addonsv1.ClusterResourceSet{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.clusterToClusterResourceSet)},
+			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSet),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
@@ -84,10 +84,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 
 	err = controller.Watch(
 		&source.Kind{Type: &corev1.ConfigMap{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.resourceToClusterResourceSet),
-		},
-		resourcepredicates.ResourceCreate(r.Log),
+		handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for ConfigMaps to controller manager")
@@ -95,10 +92,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 
 	err = controller.Watch(
 		&source.Kind{Type: &corev1.Secret{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.resourceToClusterResourceSet),
-		},
-		resourcepredicates.AddonsSecretCreate(r.Log),
+		handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Secret to controller manager")

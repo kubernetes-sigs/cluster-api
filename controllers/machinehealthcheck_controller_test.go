@@ -1282,11 +1282,6 @@ func TestIndexMachineByNodeName(t *testing.T) {
 			},
 			expected: []string{"node1"},
 		},
-		{
-			name:     "when the object passed is not a Machine",
-			object:   &corev1.Node{},
-			expected: []string{},
-		},
 	}
 
 	for _, tc := range testCases {

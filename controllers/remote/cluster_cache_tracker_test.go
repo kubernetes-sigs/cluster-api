@@ -124,7 +124,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 				Cluster:      util.ObjectKey(clusterA),
 				Watcher:      w,
 				Kind:         &clusterv1.Cluster{},
-				EventHandler: &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(mapper)},
+				EventHandler: handler.EnqueueRequestsFromMapFunc(mapper),
 			})).To(Succeed())
 
 			By("Waiting to receive the watch notification")
@@ -153,7 +153,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 				Cluster:      util.ObjectKey(clusterA),
 				Watcher:      w,
 				Kind:         &clusterv1.Cluster{},
-				EventHandler: &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(mapper)},
+				EventHandler: handler.EnqueueRequestsFromMapFunc(mapper),
 			})).To(Succeed())
 
 			By("Ensuring no additional watch notifications arrive")

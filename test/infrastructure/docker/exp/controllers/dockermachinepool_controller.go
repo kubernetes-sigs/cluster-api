@@ -136,9 +136,8 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options
 		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
 		Watches(
 			&source.Kind{Type: &clusterv1exp.MachinePool{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: utilexp.MachinePoolToInfrastructureMapFunc(infrav1exp.GroupVersion.WithKind("DockerMachinePool"), r.Log),
-			},
+			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(
+				infrav1exp.GroupVersion.WithKind("DockerMachinePool"), r.Log)),
 		).
 		Build(r)
 	if err != nil {
@@ -146,9 +145,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options
 	}
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: clusterToDockerMachinePools,
-		},
+		handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
 		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
 	)
 }

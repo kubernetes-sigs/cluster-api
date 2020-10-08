@@ -392,10 +392,8 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o client.Object)
 	result := []ctrl.Request{}
 	c, ok := o.(*infrav1.DockerCluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a DockerCluster but got a %T", o.Object), "failed to get DockerMachine for DockerCluster")
-		return nil
+		panic(fmt.Sprintf("Expected a DockerCluster but got a %T", o))
 	}
-	log := r.Log.WithValues("DockerCluster", c.Name, "Namespace", c.Namespace)
 
 	cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
 	switch {

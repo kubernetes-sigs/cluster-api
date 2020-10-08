@@ -425,8 +425,7 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Obje
 
 	cluster, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a Cluster but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
 	}
 
 	resourceList := &addonsv1.ClusterResourceSetList{}

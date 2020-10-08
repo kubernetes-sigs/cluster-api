@@ -510,8 +510,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a Machine but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
 	if !util.IsControlPlaneMachine(m) {
 		return nil

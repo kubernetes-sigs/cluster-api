@@ -505,8 +505,7 @@ func (r *MachineSetReconciler) MachineToMachineSets(o client.Object) []ctrl.Requ
 
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a Machine but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
 
 	// Check if the controller reference is already set and

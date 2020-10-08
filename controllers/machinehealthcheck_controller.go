@@ -298,8 +298,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o client.Object) []reconcile.Request {
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		r.Log.Error(errors.New("incorrect type"), "expected a Cluster", "type", fmt.Sprintf("%T", o))
-		return nil
+		panic(fmt.Sprintf("Expected a Cluster, got %T", o))
 	}
 
 	mhcList := &clusterv1.MachineHealthCheckList{}
@@ -327,8 +326,7 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o client.Obje
 func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o client.Object) []reconcile.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
-		r.Log.Error(errors.New("incorrect type"), "expected a Machine", "type", fmt.Sprintf("%T", o))
-		return nil
+		panic(fmt.Sprintf("Expected a Machine, got %T", o))
 	}
 
 	mhcList := &clusterv1.MachineHealthCheckList{}
@@ -356,8 +354,7 @@ func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o client.Obje
 func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o client.Object) []reconcile.Request {
 	node, ok := o.(*corev1.Node)
 	if !ok {
-		r.Log.Error(errors.New("incorrect type"), "expected a Node", "type", fmt.Sprintf("%T", o))
-		return nil
+		panic(fmt.Sprintf("Expected a corev1.Node, got %T", o))
 	}
 
 	machine, err := r.getMachineFromNode(node.Name)
@@ -414,8 +411,7 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 func (r *MachineHealthCheckReconciler) indexMachineByNodeName(o client.Object) []string {
 	machine, ok := o.(*clusterv1.Machine)
 	if !ok {
-		r.Log.Error(errors.New("incorrect type"), "expected a Machine", "type", fmt.Sprintf("%T", object))
-		return nil
+		panic(fmt.Sprintf("Expected a Machine, got %T", o))
 	}
 
 	if machine.Status.NodeRef != nil {

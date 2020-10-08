@@ -424,8 +424,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o client.Object) []ctrl.Request {
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a Cluster but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
 	}
 
 	controlPlaneRef := c.Spec.ControlPlaneRef

@@ -302,8 +302,7 @@ func (r *MachineDeploymentReconciler) MachineSetToDeployments(o client.Object) [
 
 	ms, ok := o.(*clusterv1.MachineSet)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a MachineSet but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a MachineSet but got a %T", o))
 	}
 
 	// Check if the controller reference is already set and

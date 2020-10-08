@@ -609,8 +609,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctr
 
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get KubeadmConfigs for Cluster")
-		return nil
+		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
 	}
 
 	selectors := []client.ListOption{
@@ -656,12 +655,12 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctr
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqeue
 // request for reconciliation of KubeadmConfig.
 func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
-	result := []ctrl.Request{}
-
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
-		return nil
+		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
+
+	result := []ctrl.Request{}
 	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
@@ -672,12 +671,12 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []c
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
 // request for reconciliation of KubeadmConfig.
 func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []ctrl.Request {
-	result := []ctrl.Request{}
-
 	m, ok := o.(*expv1.MachinePool)
 	if !ok {
-		return nil
+		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
 	}
+
+	result := []ctrl.Request{}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 	if configRef != nil && configRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}

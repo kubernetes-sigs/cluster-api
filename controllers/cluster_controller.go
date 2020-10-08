@@ -220,31 +220,16 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		var errs []error
 
 		for _, child := range children {
-			accessor, err := meta.Accessor(child)
-			if err != nil {
-				log.Error(err, "Couldn't create accessor", "type", fmt.Sprintf("%T", child))
-				continue
-			}
-
-			if !accessor.GetDeletionTimestamp().IsZero() {
+			if !child.GetDeletionTimestamp().IsZero() {
 				// Don't handle deleted child
 				continue
 			}
-
 			gvk := child.GetObjectKind().GroupVersionKind().String()
 
-			childObject, ok := child.(client.Object)
-			if !ok {
-				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to convert %s %s to client.Object", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
-				log.Error(err, "Error converting to client.Object", "gvk", gvk, "name", accessor.GetName())
-				errs = append(errs, err)
-				continue
-			}
-
-			log.Info("Deleting child", "gvk", gvk, "name", accessor.GetName())
-			if err := r.Client.Delete(ctx, childObject); err != nil {
-				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
-				log.Error(err, "Error deleting resource", "gvk", gvk, "name", accessor.GetName())
+			log.Info("Deleting child object", "gvk", gvk, "name", child.GetName())
+			if err := r.Client.Delete(ctx, child); err != nil {
+				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, child.GetName())
+				log.Error(err, "Error deleting resource", "gvk", gvk, "name", child.GetName())
 				errs = append(errs, err)
 			}
 		}

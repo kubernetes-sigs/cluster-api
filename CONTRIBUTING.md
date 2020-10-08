@@ -36,14 +36,14 @@ and instructions for signing it [can be found here](https://git.k8s.io/community
 If you're new to the project and want to help, but don't know where to start, we have a semi-curated list of issues that
 should not need deep knowledge of the system. [Have a look and see if anything sounds
 interesting](https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22).
-Before starting to work on the issue, make sure that it doesn't have a [lifecycle/active](https://github.com/kubernetes-sigs/cluster-api/labels/lifecycle%2Factive) label. If the issue has been assigned, reach out to the assignee. 
+Before starting to work on the issue, make sure that it doesn't have a [lifecycle/active](https://github.com/kubernetes-sigs/cluster-api/labels/lifecycle%2Factive) label. If the issue has been assigned, reach out to the assignee.
 Alternatively, read some of the docs on other controllers and try to write your own, file and fix any/all issues that
 come up, including gaps in documentation!
 
 ## Contributing a Patch
 
 1. If you haven't already done so, sign a Contributor License Agreement (see details above).
-1. If working on an issue, signal other contributors that you are actively working on it using `/lifecycle active`.  
+1. If working on an issue, signal other contributors that you are actively working on it using `/lifecycle active`.
 1. Fork the desired repo, develop and test your code changes.
 1. Submit a pull request.
     1. All code PR must be labeled with one of
@@ -57,25 +57,42 @@ All changes must be code reviewed. Coding conventions and standards are explaine
 docs](https://git.k8s.io/community/contributors/devel). Expect reviewers to request that you
 avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
 
+## Releases
+
+Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) to track releases.
+
+- Minor versions CAN be planned and scheduled twice / calendar year.
+- Patch versions CAN be planned and scheduled each month for each of the currently supported series (usually N and N-1).
+- Code freeze is in effect 72 hours (3 days) before a release.
+  - Maintainers should communicate the code freeze date at a community meeting preceding the code freeze date.
+  - Only critical bug fixes may be merged in between freeze & release.
+    - Each bug MUST be associated with an open issue and properly triaged.
+    - PRs MUST be approved by at least 2 project maintainers.
+      - First approver should `/approve` and `/hold`.
+      - Second approver should `/approve` and `/hold cancel`.
+  - [E2E Test grid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi%20e2e%20tests) SHOULD be green before cutting a release.
+- Dates in a release are approximations and always subject to change.
+- `Next` milestone is for work that has been triaged, but not prioritized/accepted for any release.
+
 ## Triaging E2E test failures
 
-When you submit a change to the Cluster API repository as set of validation jobs is automatically executed by 
+When you submit a change to the Cluster API repository as set of validation jobs is automatically executed by
 prow and the results report is added to a comment at the end of your PR.
 
-Some jobs run linters or unit test, and in case of failures, you can repeat the same operation locally using `make test lint-full [etc..]` 
-in order to investigate and potential issues. Prow logs usually provide hints about the make target you should use  
-(there might be more than one command that needs to be run).  
+Some jobs run linters or unit test, and in case of failures, you can repeat the same operation locally using `make test lint-full [etc..]`
+in order to investigate and potential issues. Prow logs usually provide hints about the make target you should use
+(there might be more than one command that needs to be run).
 
 End-to-end (E2E) jobs create real Kubernetes clusters by building Cluster API artifacts with the latest changes.
 In case of E2E test failures, usually it's required to access the "Artifacts" link on the top of the prow logs page to triage the problem.
 
 The artifact folder contains:
 - A folder with the clusterctl local repository used for the test, where you can find components yaml and cluster templates.
-- A folder with logs for all the clusters created during the test. Following logs/info are available: 
+- A folder with logs for all the clusters created during the test. Following logs/info are available:
     - Controller logs (only if the cluster is a management cluster).
     - Dump of the Cluster API resources (only if the cluster is a management cluster).
     - Machine logs (only if the cluster is a workload cluster)
-    
+
 In case you want to run E2E test locally, please refer to the [Testing](https://cluster-api.sigs.k8s.io/developer/testing.html#running-the-end-to-end-tests) guide.
 
 ## Reviewing a Patch
@@ -96,7 +113,7 @@ Code reviews should generally look at:
 - **Comments**: Are the comments clear and useful? Do they explain the why rather than what?
 - **Documentation**: Did the developer also update relevant documentation?
 
-See [Code Review in Cluster API](REVIEWING.md) for a more focused list of review items. 
+See [Code Review in Cluster API](REVIEWING.md) for a more focused list of review items.
 
 ### Approvals
 

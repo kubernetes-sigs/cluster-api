@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
@@ -39,8 +38,8 @@ import (
 type CreateMachineDeploymentInput struct {
 	Creator                 Creator
 	MachineDeployment       *clusterv1.MachineDeployment
-	BootstrapConfigTemplate runtime.Object
-	InfraMachineTemplate    runtime.Object
+	BootstrapConfigTemplate client.Object
+	InfraMachineTemplate    client.Object
 }
 
 // CreateMachineDeployment creates the machine deployment and dependencies.

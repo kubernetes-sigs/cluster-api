@@ -35,12 +35,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func mapper(i handler.MapObject) []reconcile.Request {
+func mapper(i client.Object) []reconcile.Request {
 	return []reconcile.Request{
 		{
 			NamespacedName: types.NamespacedName{
-				Namespace: i.Meta.GetNamespace(),
-				Name:      "mapped-" + i.Meta.GetName(),
+				Namespace: i.GetNamespace(),
+				Name:      "mapped-" + i.GetName(),
 			},
 		},
 	}

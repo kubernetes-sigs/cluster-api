@@ -28,7 +28,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -504,10 +503,10 @@ func (r *MachineSetReconciler) waitForMachineDeletion(machineList []*clusterv1.M
 
 // MachineToMachineSets is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
 // for MachineSets that might adopt an orphaned Machine.
-func (r *MachineSetReconciler) MachineToMachineSets(o handler.MapObject) []ctrl.Request {
+func (r *MachineSetReconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	m, ok := o.Object.(*clusterv1.Machine)
+	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		r.Log.Error(nil, fmt.Sprintf("Expected a Machine but got a %T", o.Object))
 		return nil

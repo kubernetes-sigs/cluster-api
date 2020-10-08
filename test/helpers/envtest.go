@@ -34,7 +34,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -96,7 +95,7 @@ func init() {
 			filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 		},
-		CRDs: []runtime.Object{
+		CRDs: []client.Object{
 			external.TestGenericBootstrapCRD.DeepCopy(),
 			external.TestGenericBootstrapTemplateCRD.DeepCopy(),
 			external.TestGenericInfrastructureCRD.DeepCopy(),
@@ -194,7 +193,7 @@ const (
 
 // Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
-func appendWebhookConfiguration(mutatingWebhooks []runtime.Object, validatingWebhooks []runtime.Object, configyamlFile []byte, tag string) ([]runtime.Object, []runtime.Object, error) {
+func appendWebhookConfiguration(mutatingWebhooks []client.Object, validatingWebhooks []client.Object, configyamlFile []byte, tag string) ([]client.Object, []client.Object, error) {
 
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
@@ -222,9 +221,8 @@ func appendWebhookConfiguration(mutatingWebhooks []runtime.Object, validatingWeb
 }
 
 func initializeWebhookInEnvironment() {
-
-	validatingWebhooks := []runtime.Object{}
-	mutatingWebhooks := []runtime.Object{}
+	validatingWebhooks := []client.Object{}
+	mutatingWebhooks := []client.Object{}
 
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
@@ -300,7 +298,7 @@ func (t *TestEnvironment) CreateKubeconfigSecret(cluster *clusterv1.Cluster) err
 	return kubeconfig.CreateEnvTestSecret(t.Client, t.Config, cluster)
 }
 
-func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...runtime.Object) error {
+func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) error {
 	errs := []error{}
 	for _, o := range objs {
 		err := t.Client.Delete(ctx, o)
@@ -316,7 +314,7 @@ func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...runtime.Object) e
 }
 
 // CreateObj wraps around client.Create and creates the object.
-func (t *TestEnvironment) CreateObj(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+func (t *TestEnvironment) CreateObj(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	return t.Client.Create(ctx, obj, opts...)
 }
 

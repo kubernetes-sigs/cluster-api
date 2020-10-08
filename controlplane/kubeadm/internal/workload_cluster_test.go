@@ -33,6 +33,7 @@ import (
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -146,7 +147,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			objects := []runtime.Object{
+			objects := []client.Object{
 				&tt.ds,
 			}
 			fakeClient := fake.NewFakeClientWithScheme(scheme, objects...)
@@ -207,7 +208,7 @@ kind: ClusterStatus`,
 	tests := []struct {
 		name              string
 		machine           *clusterv1.Machine
-		objs              []runtime.Object
+		objs              []client.Object
 		expectErr         bool
 		expectedEndpoints string
 	}{
@@ -232,13 +233,13 @@ kind: ClusterStatus`,
 		{
 			name:      "returns error if unable to remove api endpoint",
 			machine:   machine,
-			objs:      []runtime.Object{kconfWithoutKey},
+			objs:      []client.Object{kconfWithoutKey},
 			expectErr: true,
 		},
 		{
 			name:      "removes the machine node ref from kubeadm config",
 			machine:   machine,
-			objs:      []runtime.Object{kubeadmConfig},
+			objs:      []client.Object{kubeadmConfig},
 			expectErr: false,
 			expectedEndpoints: `apiEndpoints:
   ip-10-0-0-2.ec2.internal:
@@ -293,13 +294,13 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 	tests := []struct {
 		name      string
 		version   semver.Version
-		objs      []runtime.Object
+		objs      []client.Object
 		expectErr bool
 	}{
 		{
 			name:      "create new config map",
 			version:   semver.Version{Major: 1, Minor: 2},
-			objs:      []runtime.Object{kubeletConfig},
+			objs:      []client.Object{kubeletConfig},
 			expectErr: false,
 		},
 		{
@@ -361,13 +362,13 @@ kubernetesVersion: v1.16.1
 	tests := []struct {
 		name      string
 		version   semver.Version
-		objs      []runtime.Object
+		objs      []client.Object
 		expectErr bool
 	}{
 		{
 			name:      "updates the config map",
 			version:   semver.Version{Major: 1, Minor: 17, Patch: 2},
-			objs:      []runtime.Object{kubeadmConfig},
+			objs:      []client.Object{kubeadmConfig},
 			expectErr: false,
 		},
 		{
@@ -378,13 +379,13 @@ kubernetesVersion: v1.16.1
 		{
 			name:      "returns error if config has bad data",
 			version:   semver.Version{Major: 1, Minor: 2},
-			objs:      []runtime.Object{kubeadmConfigBadData},
+			objs:      []client.Object{kubeadmConfigBadData},
 			expectErr: true,
 		},
 		{
 			name:      "returns error if config doesn't have cluster config key",
 			version:   semver.Version{Major: 1, Minor: 2},
-			objs:      []runtime.Object{kubeadmConfigNoKey},
+			objs:      []client.Object{kubeadmConfigNoKey},
 			expectErr: true,
 		},
 	}
@@ -441,13 +442,13 @@ imageRepository: k8s.gcr.io
 	tests := []struct {
 		name            string
 		imageRepository string
-		objs            []runtime.Object
+		objs            []client.Object
 		expectErr       bool
 	}{
 		{
 			name:            "updates the config map",
 			imageRepository: "myspecialrepo.io",
-			objs:            []runtime.Object{kubeadmConfig},
+			objs:            []client.Object{kubeadmConfig},
 			expectErr:       false,
 		},
 		{
@@ -456,13 +457,13 @@ imageRepository: k8s.gcr.io
 		},
 		{
 			name:            "returns error if config has bad data",
-			objs:            []runtime.Object{kubeadmConfigBadData},
+			objs:            []client.Object{kubeadmConfigBadData},
 			imageRepository: "myspecialrepo.io",
 			expectErr:       true,
 		},
 		{
 			name:            "returns error if config doesn't have cluster config key",
-			objs:            []runtime.Object{kubeadmConfigNoKey},
+			objs:            []client.Object{kubeadmConfigNoKey},
 			imageRepository: "myspecialrepo.io",
 			expectErr:       true,
 		},
@@ -530,19 +531,19 @@ func TestClusterStatus(t *testing.T) {
 	}
 	tests := []struct {
 		name          string
-		objs          []runtime.Object
+		objs          []client.Object
 		expectErr     bool
 		expectHasConf bool
 	}{
 		{
 			name:          "returns cluster status",
-			objs:          []runtime.Object{node1, node2},
+			objs:          []client.Object{node1, node2},
 			expectErr:     false,
 			expectHasConf: false,
 		},
 		{
 			name:          "returns cluster status with kubeadm config",
-			objs:          []runtime.Object{node1, node2, kconf},
+			objs:          []client.Object{node1, node2, kconf},
 			expectErr:     false,
 			expectHasConf: true,
 		},

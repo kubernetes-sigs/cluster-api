@@ -30,7 +30,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
@@ -400,7 +399,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			ControlPlaneHealthy: true,
 			EtcdHealthy:         true,
 		}
-		objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
+		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
@@ -469,7 +468,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			ControlPlaneHealthy: true,
 			EtcdHealthy:         true,
 		}
-		objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
+		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
@@ -584,7 +583,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			ControlPlaneHealthy: true,
 			EtcdHealthy:         true,
 		}
-		objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
+		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
@@ -968,7 +967,7 @@ kubernetesVersion: metav1.16.1`,
 
 	t.Run("updates configmaps and deployments successfully", func(t *testing.T) {
 		g := NewWithT(t)
-		objs := []runtime.Object{
+		objs := []client.Object{
 			cluster.DeepCopy(),
 			kcp.DeepCopy(),
 			depl.DeepCopy(),
@@ -1025,7 +1024,7 @@ kubernetesVersion: metav1.16.1`,
 		kcp := kcp.DeepCopy()
 		kcp.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
 
-		objs := []runtime.Object{
+		objs := []client.Object{
 			cluster.DeepCopy(),
 			kcp,
 			depl.DeepCopy(),
@@ -1050,7 +1049,7 @@ kubernetesVersion: metav1.16.1`,
 
 	t.Run("should not return an error when there is no CoreDNS configmap", func(t *testing.T) {
 		g := NewWithT(t)
-		objs := []runtime.Object{
+		objs := []client.Object{
 			cluster.DeepCopy(),
 			kcp.DeepCopy(),
 			depl.DeepCopy(),
@@ -1074,7 +1073,7 @@ kubernetesVersion: metav1.16.1`,
 
 	t.Run("should not return an error when there is no CoreDNS deployment", func(t *testing.T) {
 		g := NewWithT(t)
-		objs := []runtime.Object{
+		objs := []client.Object{
 			cluster.DeepCopy(),
 			kcp.DeepCopy(),
 			corednsCM.DeepCopy(),
@@ -1098,7 +1097,7 @@ kubernetesVersion: metav1.16.1`,
 
 	t.Run("should not return an error when no DNS upgrade is requested", func(t *testing.T) {
 		g := NewWithT(t)
-		objs := []runtime.Object{
+		objs := []client.Object{
 			cluster.DeepCopy(),
 			corednsCM.DeepCopy(),
 			kubeadmCM.DeepCopy(),
@@ -1137,7 +1136,7 @@ kubernetesVersion: metav1.16.1`,
 
 	t.Run("returns error when unable to UpdateCoreDNS", func(t *testing.T) {
 		g := NewWithT(t)
-		objs := []runtime.Object{
+		objs := []client.Object{
 			cluster.DeepCopy(),
 			kcp.DeepCopy(),
 			depl.DeepCopy(),
@@ -1166,7 +1165,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 		cluster, kcp, _ := createClusterWithControlPlane()
 		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
-		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 
 		for i := 0; i < 3; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
@@ -1218,7 +1217,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			},
 		}
 
-		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachine.DeepCopy()}
+		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachine.DeepCopy()}
 
 		for i := 0; i < 3; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
@@ -1305,7 +1304,7 @@ type fakeClientI interface {
 
 // controller-runtime's fake client doesn't set a CreationTimestamp
 // this sets one that increments by a minute for each object created
-func (c *fakeClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+func (c *fakeClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	if f, ok := obj.(fakeClientI); ok {
 		c.mux.Lock()
 		c.startTime = c.startTime.Add(time.Minute)

@@ -19,7 +19,6 @@ package framework
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,22 +26,22 @@ import (
 
 // Getter can get resources.
 type Getter interface {
-	Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error
+	Get(ctx context.Context, key client.ObjectKey, obj client.Object) error
 }
 
 // Creator can creates resources.
 type Creator interface {
-	Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error
+	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
 }
 
 // Lister can lists resources.
 type Lister interface {
-	List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error
+	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error
 }
 
 // Deleter can delete resources.
 type Deleter interface {
-	Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error
+	Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error
 }
 
 // GetLister can get and list resources.

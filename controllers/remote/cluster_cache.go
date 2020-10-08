@@ -212,7 +212,7 @@ type WatchInput struct {
 	Watcher Watcher
 
 	// Kind is the type of resource to watch.
-	Kind runtime.Object
+	Kind client.Object
 
 	// EventHandler contains the event handlers to invoke for resource events.
 	EventHandler handler.EventHandler

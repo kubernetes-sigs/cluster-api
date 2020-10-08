@@ -24,7 +24,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
@@ -32,7 +31,7 @@ import (
 )
 
 type moveTestsFields struct {
-	objs []runtime.Object
+	objs []client.Object
 }
 
 var moveTests = []struct {
@@ -284,8 +283,8 @@ var moveTests = []struct {
 	{
 		name: "Two clusters",
 		fields: moveTestsFields{
-			objs: func() []runtime.Object {
-				objs := []runtime.Object{}
+			objs: func() []client.Object {
+				objs := []client.Object{}
 				objs = append(objs, test.NewFakeCluster("ns1", "foo").Objs()...)
 				objs = append(objs, test.NewFakeCluster("ns1", "bar").Objs()...)
 				return objs
@@ -310,10 +309,10 @@ var moveTests = []struct {
 	{
 		name: "Two clusters with a shared object",
 		fields: moveTestsFields{
-			objs: func() []runtime.Object {
+			objs: func() []client.Object {
 				sharedInfrastructureTemplate := test.NewFakeInfrastructureTemplate("shared")
 
-				objs := []runtime.Object{
+				objs := []client.Object{
 					sharedInfrastructureTemplate,
 				}
 
@@ -379,8 +378,8 @@ var moveTests = []struct {
 	{
 		name: "A ClusterResourceSet applied to a cluster",
 		fields: moveTestsFields{
-			objs: func() []runtime.Object {
-				objs := []runtime.Object{}
+			objs: func() []client.Object {
+				objs := []client.Object{}
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 
 				objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
@@ -415,8 +414,8 @@ var moveTests = []struct {
 	{
 		name: "Cluster and global + namespaced external objects with force-move label",
 		fields: moveTestsFields{
-			func() []runtime.Object {
-				objs := []runtime.Object{}
+			func() []client.Object {
+				objs := []client.Object{}
 				objs = append(objs, test.NewFakeCluster("ns1", "foo").Objs()...)
 				objs = append(objs, test.NewFakeExternalObject("ns1", "externalTest1").Objs()...)
 				objs = append(objs, test.NewFakeExternalObject("", "externalTest2").Objs()...)
@@ -623,7 +622,7 @@ func Test_objectMover_move(t *testing.T) {
 
 func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 	type fields struct {
-		objs []runtime.Object
+		objs []client.Object
 	}
 	tests := []struct {
 		name    string
@@ -633,7 +632,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 		{
 			name: "Blocks with a cluster without InfrastructureReady",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&clusterv1.Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "Cluster",
@@ -655,7 +654,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 		{
 			name: "Blocks with a cluster without ControlPlaneInitialized",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&clusterv1.Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "Cluster",
@@ -677,7 +676,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 		{
 			name: "Blocks with a cluster without ControlPlaneReady",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&clusterv1.Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "Cluster",
@@ -703,7 +702,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 		{
 			name: "Blocks with a Machine Without NodeRef",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&clusterv1.Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "Cluster",
@@ -747,7 +746,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 		{
 			name: "Pass",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&clusterv1.Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "Cluster",
@@ -1015,7 +1014,7 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 		toProxy Proxy
 	}
 	type fields struct {
-		objs []runtime.Object
+		objs []client.Object
 	}
 
 	// Create some test runtime objects to be used in the tests

@@ -27,7 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -116,9 +115,9 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 	return nil
 }
 
-func (r *MachineReconciler) clusterToActiveMachines(a handler.MapObject) []reconcile.Request {
+func (r *MachineReconciler) clusterToActiveMachines(a client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
-	machines, err := getActiveMachinesInCluster(context.TODO(), r.Client, a.Meta.GetNamespace(), a.Meta.GetName())
+	machines, err := getActiveMachinesInCluster(context.TODO(), r.Client, a.GetNamespace(), a.GetName())
 	if err != nil {
 		return requests
 	}

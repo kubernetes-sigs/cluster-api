@@ -27,6 +27,7 @@ import (
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
@@ -49,7 +50,7 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 	dockerCluster := newDockerCluster(clusterName, "my-docker-cluster")
 	dockerMachine1 := newDockerMachine("my-docker-machine-0")
 	dockerMachine2 := newDockerMachine("my-docker-machine-1")
-	objects := []runtime.Object{
+	objects := []client.Object{
 		newCluster(clusterName),
 		dockerCluster,
 		newMachine(clusterName, "my-machine-0", dockerMachine1),

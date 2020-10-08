@@ -614,10 +614,10 @@ func (r *KubeadmConfigReconciler) resolveSecretFileContent(ctx context.Context, 
 
 // ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqeue
 // requests for reconciliation of KubeadmConfigs.
-func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) []ctrl.Request {
+func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	c, ok := o.Object.(*clusterv1.Cluster)
+	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get KubeadmConfigs for Cluster")
 		return nil
@@ -665,10 +665,10 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqeue
 // request for reconciliation of KubeadmConfig.
-func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject) []ctrl.Request {
+func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	m, ok := o.Object.(*clusterv1.Machine)
+	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		return nil
 	}
@@ -681,10 +681,10 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject)
 
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
 // request for reconciliation of KubeadmConfig.
-func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o handler.MapObject) []ctrl.Request {
+func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	m, ok := o.Object.(*expv1.MachinePool)
+	m, ok := o.(*expv1.MachinePool)
 	if !ok {
 		return nil
 	}

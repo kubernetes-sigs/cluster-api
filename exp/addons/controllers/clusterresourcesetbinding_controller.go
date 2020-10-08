@@ -90,12 +90,12 @@ func (r *ClusterResourceSetBindingReconciler) Reconcile(req ctrl.Request) (_ ctr
 }
 
 // clusterToClusterResourceSetBinding is mapper function that maps clusters to ClusterResourceSetBinding
-func (r *ClusterResourceSetBindingReconciler) clusterToClusterResourceSetBinding(o handler.MapObject) []ctrl.Request {
+func (r *ClusterResourceSetBindingReconciler) clusterToClusterResourceSetBinding(o client.Object) []ctrl.Request {
 	return []reconcile.Request{
 		{
 			NamespacedName: client.ObjectKey{
-				Namespace: o.Meta.GetNamespace(),
-				Name:      o.Meta.GetName(),
+				Namespace: o.GetNamespace(),
+				Name:      o.GetName(),
 			},
 		},
 	}

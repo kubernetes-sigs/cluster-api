@@ -415,12 +415,8 @@ func TestMachineSetReconcile(t *testing.T) {
 func TestMachineSetToMachines(t *testing.T) {
 	g := NewWithT(t)
 
-	machineSetList := &clusterv1.MachineSetList{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSetList",
-		},
-		Items: []clusterv1.MachineSet{
-			{
+	machineSetList := []client.Object{
+		&clusterv1.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "withMatchingLabels",
 					Namespace: "test",
@@ -434,7 +430,6 @@ func TestMachineSetToMachines(t *testing.T) {
 					},
 				},
 			},
-		},
 	}
 	controller := true
 	m := clusterv1.Machine{
@@ -474,31 +469,22 @@ func TestMachineSetToMachines(t *testing.T) {
 	}
 	testsCases := []struct {
 		name      string
-		mapObject handler.MapObject
+		mapObject client.Object
 		expected  []reconcile.Request
 	}{
 		{
-			name: "should return empty request when controller is set",
-			mapObject: handler.MapObject{
-				Meta:   m.GetObjectMeta(),
-				Object: &m,
-			},
-			expected: []reconcile.Request{},
+			name:      "should return empty request when controller is set",
+			mapObject: &m,
+			expected:  []reconcile.Request{},
 		},
 		{
-			name: "should return nil if machine has no owner reference",
-			mapObject: handler.MapObject{
-				Meta:   m2.GetObjectMeta(),
-				Object: &m2,
-			},
-			expected: nil,
+			name:      "should return nil if machine has no owner reference",
+			mapObject: &m2,
+			expected:  nil,
 		},
 		{
-			name: "should return request if machine set's labels matches machine's labels",
-			mapObject: handler.MapObject{
-				Meta:   m3.GetObjectMeta(),
-				Object: &m3,
-			},
+			name:      "should return request if machine set's labels matches machine's labels",
+			mapObject: &m3,
 			expected: []reconcile.Request{
 				{NamespacedName: client.ObjectKey{Namespace: "test", Name: "withMatchingLabels"}},
 			},
@@ -508,8 +494,7 @@ func TestMachineSetToMachines(t *testing.T) {
 	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	r := &MachineSetReconciler{
-		Client: fake.NewFakeClientWithScheme(scheme.Scheme, &m, &m2, &m3, machineSetList),
-		Log:    log.Log,
+		Client: fake.NewFakeClientWithScheme(scheme.Scheme, append(machineSetList, &m, &m2, &m3)...),
 	}
 
 	for _, tc := range testsCases {

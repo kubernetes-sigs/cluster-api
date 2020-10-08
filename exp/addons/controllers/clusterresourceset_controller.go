@@ -429,10 +429,10 @@ func (r *ClusterResourceSetReconciler) patchOwnerRefToResource(ctx context.Conte
 }
 
 // clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet
-func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o handler.MapObject) []ctrl.Request {
+func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	cluster, ok := o.Object.(*clusterv1.Cluster)
+	cluster, ok := o.(*clusterv1.Cluster)
 	if !ok {
 		r.Log.Error(nil, fmt.Sprintf("Expected a Cluster but got a %T", o.Object))
 		return nil
@@ -470,13 +470,13 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o handler.Map
 }
 
 // resourceToClusterResourceSet is mapper function that maps resources to ClusterResourceSet
-func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(o handler.MapObject) []ctrl.Request {
+func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	// Add all ClusterResourceSet owners.
-	for _, owner := range o.Meta.GetOwnerReferences() {
+	for _, owner := range o.GetOwnerReferences() {
 		if owner.Kind == "ClusterResourceSet" {
-			name := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: owner.Name}
+			name := client.ObjectKey{Namespace: o.GetNamespace(), Name: owner.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
 		}
 	}
@@ -488,22 +488,22 @@ func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(o handler.Ma
 	}
 
 	// Only core group is accepted as resources group
-	if o.Object.GetObjectKind().GroupVersionKind().Group != "" {
+	if o.GetObjectKind().GroupVersionKind().Group != "" {
 		return result
 	}
 
 	crsList := &addonsv1.ClusterResourceSetList{}
-	if err := r.Client.List(context.Background(), crsList, client.InNamespace(o.Meta.GetNamespace())); err != nil {
+	if err := r.Client.List(context.Background(), crsList, client.InNamespace(o.GetNamespace())); err != nil {
 		return nil
 	}
-	objKind, err := apiutil.GVKForObject(o.Object, r.scheme)
+	objKind, err := apiutil.GVKForObject(o, r.Client.Scheme())
 	if err != nil {
 		return nil
 	}
 	for _, crs := range crsList.Items {
 		for _, resource := range crs.Spec.Resources {
-			if resource.Kind == objKind.Kind && resource.Name == o.Meta.GetName() {
-				name := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: crs.Name}
+			if resource.Kind == objKind.Kind && resource.Name == o.GetName() {
+				name := client.ObjectKey{Namespace: o.GetNamespace(), Name: crs.Name}
 				result = append(result, ctrl.Request{NamespacedName: name})
 				break
 			}

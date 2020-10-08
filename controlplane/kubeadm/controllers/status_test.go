@@ -25,14 +25,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -106,7 +105,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 
 	machines := map[string]*clusterv1.Machine{}
-	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
@@ -161,7 +160,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 
-	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
+	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
 	machines := map[string]*clusterv1.Machine{}
 	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("test-%d", i)
@@ -224,7 +223,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 	machines := map[string]*clusterv1.Machine{}
-	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 	for i := 0; i < 4; i++ {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)

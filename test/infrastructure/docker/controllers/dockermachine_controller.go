@@ -396,9 +396,9 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager, options con
 
 // DockerClusterToDockerMachines is a handler.ToRequestsFunc to be used to enqeue
 // requests for reconciliation of DockerMachines.
-func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o handler.MapObject) []ctrl.Request {
+func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.Object.(*infrav1.DockerCluster)
+	c, ok := o.(*infrav1.DockerCluster)
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a DockerCluster but got a %T", o.Object), "failed to get DockerMachine for DockerCluster")
 		return nil

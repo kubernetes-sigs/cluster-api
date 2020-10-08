@@ -273,21 +273,21 @@ type fakeClient struct {
 	deleteError error
 }
 
-func (fc *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+func (fc *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	if fc.getError != nil {
 		return fc.getError
 	}
 	return fc.Client.Get(ctx, key, obj)
 }
 
-func (fc *fakeClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+func (fc *fakeClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	if fc.createError != nil {
 		return fc.createError
 	}
 	return fc.Client.Create(ctx, obj, opts...)
 }
 
-func (fc *fakeClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
+func (fc *fakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	if fc.deleteError != nil {
 		return fc.deleteError
 	}

@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -761,7 +760,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			objs := []runtime.Object{testCluster, machine}
+			objs := []client.Object{testCluster, machine}
 
 			if tc.bootstrapExists {
 				objs = append(objs, bootstrapConfig)
@@ -836,18 +835,12 @@ func Test_clusterToActiveMachines(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		cluster handler.MapObject
+		cluster client.Object
 		want    []reconcile.Request
 	}{
 		{
-			name: "cluster with two machines",
-			cluster: handler.MapObject{
-				Meta: &metav1.ObjectMeta{
-					Name:      "test-cluster-2",
-					Namespace: "default",
-				},
-				Object: testCluster2Machines,
-			},
+			name:    "cluster with two machines",
+			cluster: testCluster2Machines,
 			want: []reconcile.Request{
 				{
 					NamespacedName: client.ObjectKey{
@@ -864,21 +857,15 @@ func Test_clusterToActiveMachines(t *testing.T) {
 			},
 		},
 		{
-			name: "cluster with zero machines",
-			cluster: handler.MapObject{
-				Meta: &metav1.ObjectMeta{
-					Name:      "test-cluster-0",
-					Namespace: "default",
-				},
-				Object: testCluster0Machines,
-			},
-			want: []reconcile.Request{},
+			name:    "cluster with zero machines",
+			cluster: testCluster0Machines,
+			want:    []reconcile.Request{},
 		},
 	}
 	for _, tt := range tests {
 		g := NewWithT(t)
 
-		var objs []runtime.Object
+		var objs []client.Object
 		objs = append(objs, testCluster2Machines)
 		objs = append(objs, testCluster0Machines)
 
@@ -1032,13 +1019,11 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			var objs []runtime.Object
+			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
 			r := &MachineReconciler{
 				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			got := r.isNodeDrainAllowed(tt.machine)

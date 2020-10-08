@@ -27,11 +27,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -120,7 +120,7 @@ kind: ClusterConfiguration
 		name          string
 		kcp           *controlplanev1.KubeadmControlPlane
 		migrator      coreDNSMigrator
-		objs          []runtime.Object
+		objs          []client.Object
 		expectErr     bool
 		expectUpdates bool
 	}{
@@ -142,7 +142,7 @@ kind: ClusterConfiguration
 					},
 				},
 			},
-			objs:      []runtime.Object{badCM},
+			objs:      []client.Object{badCM},
 			expectErr: false,
 		},
 		{
@@ -152,7 +152,7 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{},
 				},
 			},
-			objs:      []runtime.Object{badCM},
+			objs:      []client.Object{badCM},
 			expectErr: false,
 		},
 		{
@@ -168,7 +168,7 @@ kind: ClusterConfiguration
 					},
 				},
 			},
-			objs:      []runtime.Object{badCM},
+			objs:      []client.Object{badCM},
 			expectErr: false,
 		},
 		{
@@ -179,13 +179,13 @@ kind: ClusterConfiguration
 		{
 			name:      "returns error if there was a problem retrieving CoreDNS info",
 			kcp:       validKCP,
-			objs:      []runtime.Object{badCM},
+			objs:      []client.Object{badCM},
 			expectErr: true,
 		},
 		{
 			name:      "returns early without error if CoreDNS fromImage == ToImage",
 			kcp:       validKCP,
-			objs:      []runtime.Object{depl, cm},
+			objs:      []client.Object{depl, cm},
 			expectErr: false,
 		},
 		{
@@ -207,7 +207,7 @@ kind: ClusterConfiguration
 					},
 				},
 			},
-			objs:      []runtime.Object{depl, cm},
+			objs:      []client.Object{depl, cm},
 			expectErr: true,
 		},
 		{
@@ -229,7 +229,7 @@ kind: ClusterConfiguration
 				},
 			},
 			// no kubeadmConfigMap available so it will trigger an error
-			objs:      []runtime.Object{depl, cm},
+			objs:      []client.Object{depl, cm},
 			expectErr: true,
 		},
 		{
@@ -253,7 +253,7 @@ kind: ClusterConfiguration
 			migrator: &fakeMigrator{
 				migrateErr: errors.New("failed to migrate"),
 			},
-			objs:      []runtime.Object{depl, cm, kubeadmCM},
+			objs:      []client.Object{depl, cm, kubeadmCM},
 			expectErr: true,
 		},
 		{
@@ -277,7 +277,7 @@ kind: ClusterConfiguration
 			migrator: &fakeMigrator{
 				migratedCorefile: "updated-core-file",
 			},
-			objs:          []runtime.Object{depl, cm, kubeadmCM},
+			objs:          []client.Object{depl, cm, kubeadmCM},
 			expectErr:     false,
 			expectUpdates: true,
 		},
@@ -444,7 +444,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 
 	t.Run("returns error if migrate failed to update corefile", func(t *testing.T) {
 		g := NewWithT(t)
-		objs := []runtime.Object{depl, cm}
+		objs := []client.Object{depl, cm}
 		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
 		fakeMigrator := &fakeMigrator{
 			migrateErr: errors.New("failed to migrate"),
@@ -476,7 +476,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		g := NewWithT(t)
 		// Not including the deployment so as to fail early and verify that
 		// the intermediate config map update occurred
-		objs := []runtime.Object{cm}
+		objs := []client.Object{cm}
 		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
 		fakeMigrator := &fakeMigrator{
 			migratedCorefile: "updated-core-file",
@@ -506,7 +506,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 
 	t.Run("patches the core dns deployment to point to the backup corefile before migration", func(t *testing.T) {
 		g := NewWithT(t)
-		objs := []runtime.Object{depl, cm}
+		objs := []client.Object{depl, cm}
 		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
 		fakeMigrator := &fakeMigrator{
 			migratedCorefile: "updated-core-file",
@@ -621,19 +621,19 @@ func TestGetCoreDNSInfo(t *testing.T) {
 		tests := []struct {
 			name          string
 			expectErr     bool
-			objs          []runtime.Object
+			objs          []client.Object
 			clusterConfig *kubeadmv1.ClusterConfiguration
 			toImage       string
 		}{
 			{
 				name:          "returns core dns info",
-				objs:          []runtime.Object{depl, cm},
+				objs:          []client.Object{depl, cm},
 				clusterConfig: clusterConfig,
 				toImage:       "myrepo/coredns:1.7.2-foobar.1",
 			},
 			{
 				name: "uses global config ImageRepository if DNS ImageRepository is not set",
-				objs: []runtime.Object{depl, cm},
+				objs: []client.Object{depl, cm},
 				clusterConfig: &kubeadmv1.ClusterConfiguration{
 					ImageRepository: "globalRepo/sub-path",
 					DNS: kubeadmv1.DNS{
@@ -646,7 +646,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			},
 			{
 				name: "uses DNS ImageRepository config if both global and DNS-level are set",
-				objs: []runtime.Object{depl, cm},
+				objs: []client.Object{depl, cm},
 				clusterConfig: &kubeadmv1.ClusterConfiguration{
 					ImageRepository: "globalRepo",
 					DNS: kubeadmv1.DNS{
@@ -660,49 +660,49 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			},
 			{
 				name:          "returns error if unable to find coredns config map",
-				objs:          []runtime.Object{depl},
+				objs:          []client.Object{depl},
 				clusterConfig: clusterConfig,
 				expectErr:     true,
 			},
 			{
 				name:          "returns error if unable to find coredns deployment",
-				objs:          []runtime.Object{cm},
+				objs:          []client.Object{cm},
 				clusterConfig: clusterConfig,
 				expectErr:     true,
 			},
 			{
 				name:          "returns error if coredns deployment doesn't have coredns container",
-				objs:          []runtime.Object{emptyDepl, cm},
+				objs:          []client.Object{emptyDepl, cm},
 				clusterConfig: clusterConfig,
 				expectErr:     true,
 			},
 			{
 				name:          "returns error if unable to find coredns corefile",
-				objs:          []runtime.Object{depl, emptycm},
+				objs:          []client.Object{depl, emptycm},
 				clusterConfig: clusterConfig,
 				expectErr:     true,
 			},
 			{
 				name:          "returns error if unable to parse the container image",
-				objs:          []runtime.Object{badContainerDepl, cm},
+				objs:          []client.Object{badContainerDepl, cm},
 				clusterConfig: clusterConfig,
 				expectErr:     true,
 			},
 			{
 				name:          "returns error if container image has not tag",
-				objs:          []runtime.Object{noTagContainerDepl, cm},
+				objs:          []client.Object{noTagContainerDepl, cm},
 				clusterConfig: clusterConfig,
 				expectErr:     true,
 			},
 			{
 				name:          "returns error if unable to semver parse container image",
-				objs:          []runtime.Object{badSemverContainerDepl, cm},
+				objs:          []client.Object{badSemverContainerDepl, cm},
 				clusterConfig: clusterConfig,
 				expectErr:     true,
 			},
 			{
 				name:          "returns error if unable to semver parse dns image tag",
-				objs:          []runtime.Object{depl, cm},
+				objs:          []client.Object{depl, cm},
 				clusterConfig: badImgTagDNS,
 				expectErr:     true,
 			},
@@ -795,7 +795,7 @@ scheduler: {}`,
 	tests := []struct {
 		name      string
 		dns       *kubeadmv1.DNS
-		objs      []runtime.Object
+		objs      []client.Object
 		expectErr bool
 	}{
 		{
@@ -805,14 +805,14 @@ scheduler: {}`,
 		},
 		{
 			name:      "returns error if config map is empty",
-			objs:      []runtime.Object{emptyCM},
+			objs:      []client.Object{emptyCM},
 			dns:       dns,
 			expectErr: true,
 		},
 		{
 			name:      "succeeds if updates correctly",
 			dns:       dns,
-			objs:      []runtime.Object{cm},
+			objs:      []client.Object{cm},
 			expectErr: false,
 		},
 	}
@@ -878,13 +878,13 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		objs      []runtime.Object
+		objs      []client.Object
 		info      *coreDNSInfo
 		expectErr bool
 	}{
 		{
 			name: "patches coredns deployment successfully",
-			objs: []runtime.Object{depl},
+			objs: []client.Object{depl},
 			info: &coreDNSInfo{
 				Deployment:             depl.DeepCopy(),
 				Corefile:               "updated-core-file",
@@ -896,7 +896,7 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 		},
 		{
 			name: "returns error if patch fails",
-			objs: []runtime.Object{},
+			objs: []client.Object{},
 			info: &coreDNSInfo{
 				Deployment:             depl.DeepCopy(),
 				Corefile:               "updated-core-file",

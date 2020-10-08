@@ -24,13 +24,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestGetTargetsFromMHC(t *testing.T) {
@@ -62,7 +61,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 		},
 	}
 
-	baseObjects := []runtime.Object{testNS, testMHC}
+	baseObjects := []client.Object{testNS, testMHC}
 
 	// Initialise some test machines and nodes for use in the test cases
 
@@ -77,7 +76,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 
 	testCases := []struct {
 		desc            string
-		toCreate        []runtime.Object
+		toCreate        []client.Object
 		expectedTargets []healthCheckTarget
 	}{
 		{

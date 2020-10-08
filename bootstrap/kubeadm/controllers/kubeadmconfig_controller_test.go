@@ -71,8 +71,8 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster("my-cluster")
-	objs := []runtime.Object{cluster}
-	machineObjs := []runtime.Object{}
+	objs := []client.Object{cluster}
+	machineObjs := []client.Object{}
 	var expectedConfigName string
 	for i := 0; i < 3; i++ {
 		m := newMachine(cluster, fmt.Sprintf("my-machine-%d", i))
@@ -111,7 +111,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 	config := newKubeadmConfig(nil, "cfg")
 	config.Status.Ready = true
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		config,
 	}
 	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
@@ -140,7 +140,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFo
 	machine := newMachine(nil, "machine")
 	config := newKubeadmConfig(machine, "cfg")
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		// intentionally omitting machine
 		config,
 	}
@@ -169,7 +169,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("something")
 
 	config := newKubeadmConfig(machine, "cfg")
-	objects := []runtime.Object{
+	objects := []client.Object{
 		machine,
 		config,
 	}
@@ -202,7 +202,7 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 	config := newKubeadmConfig(machine, "cfg")
 	config.Status.Ready = true
 	config.Status.BootstrapData = []byte("test")
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		machine,
 		config,
@@ -249,7 +249,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 		InfrastructureReady: false,
 	}
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		machine,
 		config,
@@ -282,7 +282,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *t
 	machine := newMachine(nil, "machine") // Machine without a cluster
 	config := newKubeadmConfig(machine, "cfg")
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		machine,
 		config,
 	}
@@ -310,7 +310,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociat
 	machine := newMachine(nil, "machine") // intentionally omitting cluster
 	config := newKubeadmConfig(machine, "cfg")
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		machine,
 		config,
 	}
@@ -339,7 +339,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 	machine := newMachine(cluster, "machine")
 	config := newKubeadmConfig(machine, "cfg")
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		// intentionally omitting cluster
 		machine,
 		config,
@@ -375,7 +375,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 	testcases := []struct {
 		name    string
 		request ctrl.Request
-		objects []runtime.Object
+		objects []client.Object
 	}{
 		{
 			name: "requeue worker when control plane is not yet initialiezd",
@@ -385,7 +385,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 					Name:      workerJoinConfig.Name,
 				},
 			},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cluster,
 				workerMachine,
 				workerJoinConfig,
@@ -399,7 +399,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 					Name:      controlPlaneJoinConfig.Name,
 				},
 			},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cluster,
 				controlPlaneJoinMachine,
 				controlPlaneJoinConfig,
@@ -437,7 +437,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		controlPlaneInitMachine,
 		controlPlaneInitConfig,
@@ -491,7 +491,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneJoinMachine, "control-plane-join-cfg")
 	controlPlaneJoinConfig.Spec.JoinConfiguration.ControlPlane = nil // Makes controlPlaneJoinConfig invalid for a control plane machine
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		controlPlaneJoinMachine,
 		controlPlaneJoinConfig,
@@ -529,7 +529,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	workerMachine := newWorkerMachine(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		workerMachine,
 		workerJoinConfig,
@@ -603,7 +603,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 
 			config := rt.configBuilder(rt.machine, rt.configName)
 
-			objects := []runtime.Object{
+			objects := []client.Object{
 				cluster,
 				rt.machine,
 				config,
@@ -681,7 +681,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 
 			config := rt.configBuilder(rt.machinePool, rt.configName)
 
-			objects := []runtime.Object{
+			objects := []client.Object{
 				cluster,
 				rt.machinePool,
 				config,
@@ -736,7 +736,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-config")
 	workerMachine := newWorkerMachine(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		workerMachine,
 		workerJoinConfig,
@@ -808,7 +808,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 	controlPlaneJoinMachine := newControlPlaneMachine(cluster, "control-plane-join-machine")
 	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneJoinMachine, "control-plane-join-cfg")
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		workerMachine,
 		workerJoinConfig,
@@ -1251,7 +1251,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 	controlPlaneConfigName := "my-config"
 	config := newKubeadmConfig(machine, controlPlaneConfigName)
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster, machine, workerMachine, config,
 	}
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
@@ -1320,7 +1320,7 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster("my-cluster")
-	objs := []runtime.Object{cluster}
+	objs := []client.Object{cluster}
 	expectedNames := []string{}
 	for i := 0; i < 3; i++ {
 		m := newMachine(cluster, fmt.Sprintf("my-machine-%d", i))
@@ -1380,9 +1380,8 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 			"tls.key": []byte("hello world"),
 		},
 	}
-	fakec := helpers.NewFakeClientWithScheme(setupScheme(), []runtime.Object{cluster, m, c, scrt}...)
+	fakec := helpers.NewFakeClientWithScheme(setupScheme(), []client.Object{cluster, m, c, scrt}...)
 	reconciler := &KubeadmConfigReconciler{
-		Log:             log.Log,
 		Client:          fakec,
 		KubeadmInitLock: &myInitLocker{},
 	}
@@ -1406,7 +1405,7 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	controlPlaneInitMachineSecond := newControlPlaneMachine(cluster, "control-plane-init-machine-second")
 	controlPlaneInitConfigSecond := newControlPlaneInitKubeadmConfig(controlPlaneInitMachineSecond, "control-plane-init-cfg-second")
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		controlPlaneInitMachineFirst,
 		controlPlaneInitConfigFirst,
@@ -1456,7 +1455,7 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 	// set InitConfiguration as nil, we will check this to determine if the kubeadm config has been patched
 	controlPlaneInitConfig.Spec.InitConfiguration = nil
 
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		controlPlaneInitMachine,
 		controlPlaneInitConfig,
@@ -1507,7 +1506,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 
 	cases := map[string]struct {
 		cfg     *bootstrapv1.KubeadmConfig
-		objects []runtime.Object
+		objects []client.Object
 		expect  []bootstrapv1.File
 	}{
 		"content should pass through": {
@@ -1558,7 +1557,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 					Permissions: "0600",
 				},
 			},
-			objects: []runtime.Object{testSecret},
+			objects: []client.Object{testSecret},
 		},
 		"multiple files should work correctly": {
 			cfg: &bootstrapv1.KubeadmConfig{
@@ -1598,7 +1597,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 					Permissions: "0600",
 				},
 			},
-			objects: []runtime.Object{testSecret},
+			objects: []client.Object{testSecret},
 		},
 	}
 
@@ -1815,8 +1814,8 @@ func newWorkerPoolJoinKubeadmConfig(machinePool *expv1.MachinePool) *bootstrapv1
 	return c
 }
 
-func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) []runtime.Object {
-	out := []runtime.Object{}
+func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) []client.Object {
+	out := []client.Object{}
 	if config.Spec.ClusterConfiguration == nil {
 		config.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
 	}

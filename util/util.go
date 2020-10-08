@@ -51,7 +51,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -294,9 +293,9 @@ func ObjectKey(object metav1.Object) client.ObjectKey {
 
 // ClusterToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Cluster events and returns reconciliation requests for an infrastructure provider object.
-func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToRequestsFunc {
-	return func(o handler.MapObject) []reconcile.Request {
-		c, ok := o.Object.(*clusterv1.Cluster)
+func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
+		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			return nil
 		}
@@ -349,9 +348,9 @@ func GetMachineByName(ctx context.Context, c client.Client, namespace, name stri
 
 // MachineToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Machine events and returns reconciliation requests for an infrastructure provider object.
-func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToRequestsFunc {
-	return func(o handler.MapObject) []reconcile.Request {
-		m, ok := o.Object.(*clusterv1.Machine)
+func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
+		m, ok := o.(*clusterv1.Machine)
 		if !ok {
 			return nil
 		}
@@ -438,7 +437,7 @@ func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
 }
 
 // IsOwnedByObject returns true if any of the owner references point to the given target.
-func IsOwnedByObject(obj metav1.Object, target controllerutil.Object) bool {
+func IsOwnedByObject(obj metav1.Object, target client.Object) bool {
 	for _, ref := range obj.GetOwnerReferences() {
 		ref := ref
 		if refersTo(&ref, target) {
@@ -449,7 +448,7 @@ func IsOwnedByObject(obj metav1.Object, target controllerutil.Object) bool {
 }
 
 // IsControlledBy differs from metav1.IsControlledBy in that it checks the group (but not version), kind, and name vs uid.
-func IsControlledBy(obj metav1.Object, owner controllerutil.Object) bool {
+func IsControlledBy(obj metav1.Object, owner client.Object) bool {
 	controllerRef := metav1.GetControllerOfNoCopy(obj)
 	if controllerRef == nil {
 		return false
@@ -473,7 +472,7 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 }
 
 // Returns true if ref refers to obj.
-func refersTo(ref *metav1.OwnerReference, obj controllerutil.Object) bool {
+func refersTo(ref *metav1.OwnerReference, obj client.Object) bool {
 	refGv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return false
@@ -616,13 +615,11 @@ func (o MachinesByCreationTimestamp) Less(i, j int) bool {
 // that toggle Cluster.Spec.Cluster.
 // Deprecated: Instead add the Watch directly and use predicates.ClusterUnpaused or
 // predicates.ClusterUnpausedAndInfrastructureReady depending on your use case.
-func WatchOnClusterPaused(c controller.Controller, mapFunc handler.Mapper) error {
+func WatchOnClusterPaused(c controller.Controller, fn handler.MapFunc) error {
 	log := klogr.New().WithName("WatchOnClusterPaused")
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFunc,
-		},
+		handler.EnqueueRequestsFromMapFunc(fn),
 		predicates.ClusterUnpaused(log),
 	)
 }
@@ -630,7 +627,7 @@ func WatchOnClusterPaused(c controller.Controller, mapFunc handler.Mapper) error
 // ClusterToObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
 // and returns a list of requests.
 // NB: The objects are required to have `clusterv1.ClusterLabelName` applied.
-func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.Scheme) (handler.Mapper, error) {
+func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.Scheme) (handler.MapFunc, error) {
 	if _, ok := ro.(metav1.ListInterface); !ok {
 		return nil, errors.Errorf("expected a metav1.ListInterface, got %T instead", ro)
 	}
@@ -640,8 +637,8 @@ func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.
 		return nil, err
 	}
 
-	return handler.ToRequestsFunc(func(o handler.MapObject) []ctrl.Request {
-		cluster, ok := o.Object.(*clusterv1.Cluster)
+	return func(o client.Object) []ctrl.Request {
+		cluster, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			return nil
 		}

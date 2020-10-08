@@ -301,10 +301,10 @@ func (r *MachineDeploymentReconciler) getMachineDeploymentsForMachineSet(ms *clu
 
 // MachineSetTodeployments is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
 // for MachineDeployments that might adopt an orphaned MachineSet.
-func (r *MachineDeploymentReconciler) MachineSetToDeployments(o handler.MapObject) []ctrl.Request {
+func (r *MachineDeploymentReconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	ms, ok := o.Object.(*clusterv1.MachineSet)
+	ms, ok := o.(*clusterv1.MachineSet)
 	if !ok {
 		r.Log.Error(nil, fmt.Sprintf("Expected a MachineSet but got a %T", o.Object))
 		return nil

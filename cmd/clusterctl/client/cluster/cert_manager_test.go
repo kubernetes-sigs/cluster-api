@@ -331,7 +331,7 @@ func Test_shouldUpgrade(t *testing.T) {
 
 func Test_certManagerClient_deleteObjs(t *testing.T) {
 	type fields struct {
-		objs []runtime.Object
+		objs []client.Object
 	}
 	tests := []struct {
 		name    string
@@ -342,7 +342,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "CRD should not be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&apiextensionsv1.CustomResourceDefinition{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "CustomResourceDefinition",
@@ -361,7 +361,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "Namespace should not be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&corev1.Namespace{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "Namespace",
@@ -380,7 +380,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "MutatingWebhookConfiguration should not be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&admissionregistration.MutatingWebhookConfiguration{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "MutatingWebhookConfiguration",
@@ -399,7 +399,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "ValidatingWebhookConfiguration should not be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&admissionregistration.ValidatingWebhookConfiguration{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "ValidatingWebhookConfiguration",
@@ -418,7 +418,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "Other resources should be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&corev1.ServiceAccount{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "ServiceAccount",
@@ -498,7 +498,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		objs         []runtime.Object
+		objs         []client.Object
 		expectErr    bool
 		expectedPlan CertManagerUpgradePlan
 	}{
@@ -506,7 +506,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			name: "returns the upgrade plan for cert-manager if v0.11.0 is installed",
 			// Cert-manager deployment without annotation, this must be from
 			// v0.11.0
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",
@@ -527,7 +527,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		},
 		{
 			name: "returns the upgrade plan for cert-manager if an older version is installed",
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",
@@ -549,7 +549,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		},
 		{
 			name: "returns the upgrade plan for cert-manager if same version but different hash",
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",
@@ -571,7 +571,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		},
 		{
 			name: "returns plan if shouldn't upgrade",
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",
@@ -593,7 +593,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		},
 		{
 			name: "returns empty plan and error if cannot parse semver",
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",

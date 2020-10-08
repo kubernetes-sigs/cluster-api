@@ -25,7 +25,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,12 +61,12 @@ func (e *RemoteClusterConnectionError) Error() string { return e.Name + ": " + e
 func (e *RemoteClusterConnectionError) Unwrap() error { return e.Err }
 
 // Get implements ctrlclient.Reader
-func (m *Management) Get(ctx context.Context, key ctrlclient.ObjectKey, obj runtime.Object) error {
+func (m *Management) Get(ctx context.Context, key ctrlclient.ObjectKey, obj client.Object) error {
 	return m.Client.Get(ctx, key, obj)
 }
 
 // List implements ctrlclient.Reader
-func (m *Management) List(ctx context.Context, list runtime.Object, opts ...ctrlclient.ListOption) error {
+func (m *Management) List(ctx context.Context, list client.ObjectList, opts ...ctrlclient.ListOption) error {
 	return m.Client.List(ctx, list, opts...)
 }
 

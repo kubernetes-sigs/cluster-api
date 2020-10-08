@@ -28,13 +28,13 @@ import (
 // NewFakeClientWithScheme creates a new fake client with the given scheme for testing.
 // You can choose to initialize it with a slice of runtime.Object; all the objects with be given
 // a fake ResourceVersion="1" so it will be possible to use optimistic lock.
-func NewFakeClientWithScheme(clientScheme *runtime.Scheme, initObjs ...runtime.Object) client.Client {
+func NewFakeClientWithScheme(clientScheme *runtime.Scheme, initObjs ...client.Object) client.Client {
 	// NOTE: for consistency with the NewFakeClientWithScheme func in controller runtime, this func
 	// should not have side effects on initObjs. So it creates a copy of each object and
 	// set the resourceVersion on the copy only.
-	initObjsWithResourceVersion := make([]runtime.Object, len(initObjs))
+	initObjsWithResourceVersion := make([]client.Object, len(initObjs))
 	for i := range initObjs {
-		objsWithResourceVersion := initObjs[i].DeepCopyObject()
+		objsWithResourceVersion := initObjs[i].DeepCopyObject().(client.Object)
 		accessor, err := meta.Accessor(objsWithResourceVersion)
 		if err != nil {
 			panic(fmt.Errorf("failed to get accessor for object: %v", err))

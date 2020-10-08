@@ -108,7 +108,7 @@ etcd:
 
 	tests := []struct {
 		name                  string
-		objs                  []runtime.Object
+		objs                  []client.Object
 		imageRepo             string
 		imageTag              string
 		expectErr             bool
@@ -122,7 +122,7 @@ etcd:
 		{
 			name:      "updates the config map",
 			expectErr: false,
-			objs:      []runtime.Object{kubeadmConfig},
+			objs:      []client.Object{kubeadmConfig},
 			imageRepo: "gcr.io/imgRepo",
 			imageTag:  "v1.0.1-sometag.1",
 			expectedClusterConfig: `apiVersion: kubeadm.k8s.io/v1beta2
@@ -139,7 +139,7 @@ kind: ClusterConfiguration
 			expectErr: false,
 			imageRepo: "gcr.io/k8s/etcd",
 			imageTag:  "0.10.9",
-			objs:      []runtime.Object{kubeadmConfig},
+			objs:      []client.Object{kubeadmConfig},
 		},
 	}
 
@@ -201,7 +201,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 		name                string
 		machine             *clusterv1.Machine
 		etcdClientGenerator etcdClientFor
-		objs                []runtime.Object
+		objs                []client.Object
 		expectErr           bool
 	}{
 		{
@@ -221,20 +221,20 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 		{
 			name:      "returns an error if there are less than 2 control plane nodes",
 			machine:   machine,
-			objs:      []runtime.Object{cp1},
+			objs:      []client.Object{cp1},
 			expectErr: true,
 		},
 		{
 			name:                "returns an error if it fails to create the etcd client",
 			machine:             machine,
-			objs:                []runtime.Object{cp1, cp2},
+			objs:                []client.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{forNodesErr: errors.New("no client")},
 			expectErr:           true,
 		},
 		{
 			name:    "returns an error if the client errors getting etcd members",
 			machine: machine,
-			objs:    []runtime.Object{cp1, cp2},
+			objs:    []client.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
@@ -247,7 +247,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 		{
 			name:    "returns an error if the client errors removing the etcd member",
 			machine: machine,
-			objs:    []runtime.Object{cp1, cp2},
+			objs:    []client.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
@@ -270,7 +270,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 		{
 			name:    "removes the member from etcd",
 			machine: machine,
-			objs:    []runtime.Object{cp1, cp2},
+			objs:    []client.Object{cp1, cp2},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
@@ -555,7 +555,7 @@ kind: ClusterStatus`,
 
 	tests := []struct {
 		name                string
-		objs                []runtime.Object
+		objs                []client.Object
 		etcdClientGenerator etcdClientFor
 		expectErr           bool
 		assert              func(*WithT)
@@ -564,7 +564,7 @@ kind: ClusterStatus`,
 			// the node to be removed is ip-10-0-0-3.ec2.internal since the
 			// other two have nodes
 			name: "successfully removes the etcd member without a node and removes the node from kubeadm config",
-			objs: []runtime.Object{node1.DeepCopy(), node2.DeepCopy(), kubeadmConfig.DeepCopy()},
+			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy(), kubeadmConfig.DeepCopy()},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: fakeEtcdClient,
@@ -577,7 +577,7 @@ kind: ClusterStatus`,
 		},
 		{
 			name: "return error if there aren't enough control plane nodes",
-			objs: []runtime.Object{node1.DeepCopy(), kubeadmConfig.DeepCopy()},
+			objs: []client.Object{node1.DeepCopy(), kubeadmConfig.DeepCopy()},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: fakeEtcdClient,
@@ -593,7 +593,7 @@ kind: ClusterStatus`,
 
 			for _, o := range tt.objs {
 				g.Expect(testEnv.CreateObj(ctx, o)).To(Succeed())
-				defer func(do runtime.Object) {
+				defer func(do client.Object) {
 					g.Expect(testEnv.Cleanup(ctx, do)).To(Succeed())
 				}(o)
 			}

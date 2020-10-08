@@ -21,7 +21,6 @@ import (
 	"errors"
 
 	"github.com/blang/semver"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
@@ -38,11 +37,11 @@ type fakeManagementCluster struct {
 	Reader              client.Reader
 }
 
-func (f *fakeManagementCluster) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+func (f *fakeManagementCluster) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	return f.Reader.Get(ctx, key, obj)
 }
 
-func (f *fakeManagementCluster) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+func (f *fakeManagementCluster) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	return f.Reader.List(ctx, list, opts...)
 }
 

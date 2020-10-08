@@ -238,8 +238,16 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 			gvk := child.GetObjectKind().GroupVersionKind().String()
 
-			logger.Info("Deleting child", "gvk", gvk, "name", accessor.GetName())
-			if err := r.Client.Delete(context.Background(), child); err != nil {
+			childObject, ok := child.(client.Object)
+			if !ok {
+				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to convert %s %s to client.Object", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
+				log.Error(err, "Error converting to client.Object", "gvk", gvk, "name", accessor.GetName())
+				errs = append(errs, err)
+				continue
+			}
+
+			log.Info("Deleting child", "gvk", gvk, "name", accessor.GetName())
+			if err := r.Client.Delete(ctx, childObject); err != nil {
 				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
 				logger.Error(err, "Error deleting resource", "gvk", gvk, "name", accessor.GetName())
 				errs = append(errs, err)
@@ -423,29 +431,30 @@ func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *cluste
 
 // filterOwnedDescendants returns an array of runtime.Objects containing only those descendants that have the cluster
 // as an owner reference, with control plane machines sorted last.
-func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) ([]runtime.Object, error) {
-	var ownedDescendants []runtime.Object
+func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) ([]client.Object, error) {
+	var ownedDescendants []client.Object
 	eachFunc := func(o runtime.Object) error {
-		acc, err := meta.Accessor(o)
+		obj := o.(client.Object)
+		acc, err := meta.Accessor(obj)
 		if err != nil {
 			return nil
 		}
 
 		if util.IsOwnedByObject(acc, cluster) {
-			ownedDescendants = append(ownedDescendants, o)
+			ownedDescendants = append(ownedDescendants, obj)
 		}
 
 		return nil
 	}
 
-	lists := []runtime.Object{
+	lists := []client.ObjectList{
 		&c.machineDeployments,
 		&c.machineSets,
 		&c.workerMachines,
 		&c.controlPlaneMachines,
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
-		lists = append([]runtime.Object{&c.machinePools}, lists...)
+		lists = append([]client.ObjectList{&c.machinePools}, lists...)
 	}
 
 	for _, list := range lists {
@@ -502,8 +511,8 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update its status.controlPlaneInitialized field
-func (r *ClusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []ctrl.Request {
-	m, ok := o.Object.(*clusterv1.Machine)
+func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
+	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		r.Log.Error(nil, fmt.Sprintf("Expected a Machine but got a %T", o.Object))
 		return nil

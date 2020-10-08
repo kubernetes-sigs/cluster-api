@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/util"
@@ -420,15 +419,12 @@ func TestClusterReconciler(t *testing.T) {
 
 		tests := []struct {
 			name string
-			o    handler.MapObject
+			o    client.Object
 			want []ctrl.Request
 		}{
 			{
 				name: "controlplane machine, noderef is set, should return cluster",
-				o: handler.MapObject{
-					Meta:   controlPlaneWithNoderef.GetObjectMeta(),
-					Object: controlPlaneWithNoderef,
-				},
+				o:    controlPlaneWithNoderef,
 				want: []ctrl.Request{
 					{
 						NamespacedName: util.ObjectKey(cluster),
@@ -437,26 +433,17 @@ func TestClusterReconciler(t *testing.T) {
 			},
 			{
 				name: "controlplane machine, noderef is not set",
-				o: handler.MapObject{
-					Meta:   controlPlaneWithoutNoderef.GetObjectMeta(),
-					Object: controlPlaneWithoutNoderef,
-				},
+				o:    controlPlaneWithoutNoderef,
 				want: nil,
 			},
 			{
 				name: "not controlplane machine, noderef is set",
-				o: handler.MapObject{
-					Meta:   nonControlPlaneWithNoderef.GetObjectMeta(),
-					Object: nonControlPlaneWithNoderef,
-				},
+				o:    nonControlPlaneWithNoderef,
 				want: nil,
 			},
 			{
 				name: "not controlplane machine, noderef is not set",
-				o: handler.MapObject{
-					Meta:   nonControlPlaneWithoutNoderef.GetObjectMeta(),
-					Object: nonControlPlaneWithoutNoderef,
-				},
+				o:    nonControlPlaneWithoutNoderef,
 				want: nil,
 			},
 		}
@@ -468,7 +455,6 @@ func TestClusterReconciler(t *testing.T) {
 
 				r := &ClusterReconciler{
 					Client: fake.NewFakeClientWithScheme(scheme.Scheme, cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef),
-					Log:    log.Log,
 				}
 				requests := r.controlPlaneMachineToCluster(tt.o)
 				g.Expect(requests).To(Equal(tt.want))
@@ -626,7 +612,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	actual, err := d.filterOwnedDescendants(&c)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	expected := []runtime.Object{
+	expected := []client.Object{
 		&md2OwnedByCluster,
 		&md4OwnedByCluster,
 		&ms2OwnedByCluster,

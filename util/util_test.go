@@ -33,7 +33,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -91,7 +90,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 	var testcases = []struct {
 		name    string
 		input   schema.GroupVersionKind
-		request handler.MapObject
+		request client.Object
 		output  []reconcile.Request
 	}{
 		{
@@ -101,18 +100,16 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 				Version: "v1alpha3",
 				Kind:    "TestMachine",
 			},
-			request: handler.MapObject{
-				Object: &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "default",
-						Name:      "test-1",
-					},
-					Spec: clusterv1.MachineSpec{
-						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "foo.cluster.x-k8s.io/v1alpha3",
-							Kind:       "TestMachine",
-							Name:       "infra-1",
-						},
+			request: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test-1",
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "foo.cluster.x-k8s.io/v1alpha3",
+						Kind:       "TestMachine",
+						Name:       "infra-1",
 					},
 				},
 			},
@@ -132,18 +129,16 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 				Version: "v1alpha3",
 				Kind:    "TestMachine",
 			},
-			request: handler.MapObject{
-				Object: &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "default",
-						Name:      "test-1",
-					},
-					Spec: clusterv1.MachineSpec{
-						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "bar.cluster.x-k8s.io/v1alpha3",
-							Kind:       "TestMachine",
-							Name:       "bar-1",
-						},
+			request: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test-1",
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "bar.cluster.x-k8s.io/v1alpha3",
+						Kind:       "TestMachine",
+						Name:       "bar-1",
 					},
 				},
 			},
@@ -166,7 +161,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 	var testcases = []struct {
 		name    string
 		input   schema.GroupVersionKind
-		request handler.MapObject
+		request client.Object
 		output  []reconcile.Request
 	}{
 		{
@@ -176,18 +171,16 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				Version: "v1alpha3",
 				Kind:    "TestCluster",
 			},
-			request: handler.MapObject{
-				Object: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "default",
-						Name:      "test-1",
-					},
-					Spec: clusterv1.ClusterSpec{
-						InfrastructureRef: &corev1.ObjectReference{
-							APIVersion: "foo.cluster.x-k8s.io/v1alpha3",
-							Kind:       "TestCluster",
-							Name:       "infra-1",
-						},
+			request: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test-1",
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{
+						APIVersion: "foo.cluster.x-k8s.io/v1alpha3",
+						Kind:       "TestCluster",
+						Name:       "infra-1",
 					},
 				},
 			},
@@ -207,18 +200,16 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				Version: "v1alpha3",
 				Kind:    "TestCluster",
 			},
-			request: handler.MapObject{
-				Object: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "default",
-						Name:      "test-1",
-					},
-					Spec: clusterv1.ClusterSpec{
-						InfrastructureRef: &corev1.ObjectReference{
-							APIVersion: "bar.cluster.x-k8s.io/v1alpha3",
-							Kind:       "TestCluster",
-							Name:       "bar-1",
-						},
+			request: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test-1",
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{
+						APIVersion: "bar.cluster.x-k8s.io/v1alpha3",
+						Kind:       "TestCluster",
+						Name:       "bar-1",
 					},
 				},
 			},
@@ -716,7 +707,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 
 	table := []struct {
 		name        string
-		objects     []runtime.Object
+		objects     []client.Object
 		input       runtime.Object
 		output      []ctrl.Request
 		expectError bool
@@ -724,7 +715,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 		{
 			name:  "should return a list of requests with labelled machines",
 			input: &clusterv1.MachineList{},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				&clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "machine1",
@@ -750,7 +741,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 		{
 			name:  "should return a list of requests with labelled MachineDeployments",
 			input: &clusterv1.MachineDeploymentList{},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				&clusterv1.MachineDeployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "md1",
@@ -794,7 +785,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 
 		f, err := ClusterToObjectsMapper(client, tc.input, scheme)
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
-		g.Expect(f.Map(handler.MapObject{Object: cluster})).To(ConsistOf(tc.output))
+		g.Expect(f(cluster)).To(ConsistOf(tc.output))
 	}
 }
 

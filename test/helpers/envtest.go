@@ -103,6 +103,8 @@ func init() {
 			external.TestGenericBootstrapTemplateCRD.DeepCopy(),
 			external.TestGenericInfrastructureCRD.DeepCopy(),
 			external.TestGenericInfrastructureTemplateCRD.DeepCopy(),
+			external.TestGenericInfrastructureRemediationCRD.DeepCopy(),
+			external.TestGenericInfrastructureRemediationTemplateCRD.DeepCopy(),
 		},
 	}
 }

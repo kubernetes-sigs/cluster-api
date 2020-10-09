@@ -29,10 +29,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -104,7 +106,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 	}
 
 	BeforeEach(func() {
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
 	})
 
 	It("Should set OwnerReference and cluster name label on external objects", func() {
@@ -128,7 +130,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
 		r.reconcilePhase(context.Background(), machine)
 
@@ -164,7 +166,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
@@ -205,7 +207,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
@@ -436,7 +438,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
@@ -547,6 +549,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		machine         *clusterv1.Machine
 		expectError     bool
 		expected        func(g *WithT, m *clusterv1.Machine)
+		result          *ctrl.Result
 	}{
 		{
 			name: "new machine, bootstrap config ready with data",
@@ -602,7 +605,8 @@ func TestReconcileBootstrap(t *testing.T) {
 				"spec":   map[string]interface{}{},
 				"status": map[string]interface{}{},
 			},
-			expectError: true,
+			expectError: false,
+			result:      &ctrl.Result{RequeueAfter: externalReadyWait},
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
 			},
@@ -720,7 +724,8 @@ func TestReconcileBootstrap(t *testing.T) {
 					BootstrapReady: true,
 				},
 			},
-			expectError: true,
+			expectError: false,
+			result:      &ctrl.Result{RequeueAfter: externalReadyWait},
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.GetOwnerReferences()).NotTo(ContainRefOfGroupKind("cluster.x-k8s.io", "MachineSet"))
 			},
@@ -745,7 +750,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready": false,
+					"ready": true,
 				},
 			},
 			machine: &clusterv1.Machine{
@@ -795,7 +800,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				scheme: scheme.Scheme,
 			}
 
-			err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machine)
+			res, err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
@@ -804,6 +809,10 @@ func TestReconcileBootstrap(t *testing.T) {
 
 			if tc.expected != nil {
 				tc.expected(g, tc.machine)
+			}
+
+			if tc.result != nil {
+				g.Expect(res).To(Equal(*tc.result))
 			}
 		})
 	}
@@ -1006,7 +1015,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				scheme: scheme.Scheme,
 			}
 
-			err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machine)
+			_, err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machine)
 			r.reconcilePhase(context.Background(), tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())

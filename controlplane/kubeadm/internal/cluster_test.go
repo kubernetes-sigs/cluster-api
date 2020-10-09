@@ -25,9 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/secret"
 	"testing"
 	"time"
 
@@ -41,8 +38,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -476,19 +476,17 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 	controlPlane := createControlPlane(threeMachines)
 	tests := []struct {
 		name             string
-		check            healthCheck
+		checkResult      HealthCheckResult
 		clusterKey       client.ObjectKey
 		controlPlaneName string
 		controlPlane     *ControlPlane
 	}{
 		{
 			name: "simple",
-			check: func(ctx context.Context, controlPlane *ControlPlane) (HealthCheckResult, error) {
-				return HealthCheckResult{
-					"one":   nil,
-					"two":   nil,
-					"three": nil,
-				}, nil
+			checkResult: HealthCheckResult{
+				"one":   nil,
+				"two":   nil,
+				"three": nil,
 			},
 			clusterKey:   client.ObjectKey{Namespace: "default", Name: "cluster-name"},
 			controlPlane: controlPlane,
@@ -499,11 +497,10 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
 			m := &Management{
 				Client: &fakeClient{},
 			}
-			g.Expect(m.healthCheck(ctx, controlPlane, tt.check, tt.clusterKey)).To(Succeed())
+			g.Expect(m.healthCheck(controlPlane, tt.checkResult, tt.clusterKey)).To(Succeed())
 		})
 	}
 }
@@ -512,7 +509,7 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		check            healthCheck
+		checkResult      HealthCheckResult
 		clusterKey       client.ObjectKey
 		controlPlaneName string
 		controlPlane     *ControlPlane
@@ -527,27 +524,9 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 				controlPlaneMachine("two"),
 				controlPlaneMachine("three"),
 			}),
-			check: func(ctx context.Context, controlPlane *ControlPlane) (HealthCheckResult, error) {
-				return HealthCheckResult{
-					"one": nil,
-				}, nil
+			checkResult: HealthCheckResult{
+				"one": nil,
 			},
-		},
-		{
-			name: "health check returns an error not related to the nodes health",
-			controlPlane: createControlPlane([]*clusterv1.Machine{
-				controlPlaneMachine("one"),
-				controlPlaneMachine("two"),
-				controlPlaneMachine("three"),
-			}),
-			check: func(ctx context.Context, controlPlane *ControlPlane) (HealthCheckResult, error) {
-				return HealthCheckResult{
-					"one":   nil,
-					"two":   errors.New("two"),
-					"three": errors.New("three"),
-				}, errors.New("meta")
-			},
-			expectedErrors: []string{"two", "three", "meta"},
 		},
 		{
 			name: "two nodes error on the check but no overall error occurred",
@@ -555,12 +534,10 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 				controlPlaneMachine("one"),
 				controlPlaneMachine("two"),
 				controlPlaneMachine("three")}),
-			check: func(ctx context.Context, controlPlane *ControlPlane) (HealthCheckResult, error) {
-				return HealthCheckResult{
-					"one":   nil,
-					"two":   errors.New("two"),
-					"three": errors.New("three"),
-				}, nil
+			checkResult: HealthCheckResult{
+				"one":   nil,
+				"two":   errors.New("two"),
+				"three": errors.New("three"),
 			},
 			expectedErrors: []string{"two", "three"},
 		},
@@ -568,12 +545,10 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 			name: "more nodes than machines were checked (out of band control plane nodes)",
 			controlPlane: createControlPlane([]*clusterv1.Machine{
 				controlPlaneMachine("one")}),
-			check: func(ctx context.Context, controlPlane *ControlPlane) (HealthCheckResult, error) {
-				return HealthCheckResult{
-					"one":   nil,
-					"two":   nil,
-					"three": nil,
-				}, nil
+			checkResult: HealthCheckResult{
+				"one":   nil,
+				"two":   nil,
+				"three": nil,
 			},
 		},
 		{
@@ -582,12 +557,10 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 				controlPlaneMachine("one"),
 				controlPlaneMachine("two"),
 				nilNodeRef(controlPlaneMachine("three"))}),
-			check: func(ctx context.Context, controlPlane *ControlPlane) (HealthCheckResult, error) {
-				return HealthCheckResult{
-					"one":   nil,
-					"two":   nil,
-					"three": nil,
-				}, nil
+			checkResult: HealthCheckResult{
+				"one":   nil,
+				"two":   nil,
+				"three": nil,
 			},
 		},
 	}
@@ -595,11 +568,10 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
 			clusterKey := client.ObjectKey{Namespace: "default", Name: "cluster-name"}
 
 			m := &Management{Client: &fakeClient{}}
-			err := m.healthCheck(ctx, tt.controlPlane, tt.check, clusterKey)
+			err := m.healthCheck(tt.controlPlane, tt.checkResult, clusterKey)
 			g.Expect(err).To(HaveOccurred())
 
 			for _, expectedError := range tt.expectedErrors {

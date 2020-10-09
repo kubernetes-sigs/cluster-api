@@ -41,6 +41,8 @@ type ManagementCluster interface {
 	ctrlclient.Reader
 
 	GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...machinefilters.Func) (FilterableMachineCollection, error)
+	TargetClusterControlPlaneHealthCheck(ctx context.Context, controlPlane *ControlPlane, clusterKey client.ObjectKey) (HealthCheckResult, error)
+	TargetClusterEtcdHealthCheck(ctx context.Context, controlPlane *ControlPlane, clusterKey client.ObjectKey) (HealthCheckResult, error)
 	TargetClusterEtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane, clusterKey client.ObjectKey) error
 	TargetClusterControlPlaneIsHealthy(ctx context.Context, controlPlane *ControlPlane, clusterKey client.ObjectKey) error
 	GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error)
@@ -179,20 +181,13 @@ func (m *Management) getApiServerEtcdClientCert(ctx context.Context, clusterKey 
 	return tls.X509KeyPair(crtData, keyData)
 }
 
-type healthCheck func(context.Context, *ControlPlane) (HealthCheckResult, error)
-
 // HealthCheck will run a generic health check function and report any errors discovered.
 // In addition to the health check, it also ensures there is a 1;1 match between nodes and machines.
 // To have access to the owned control-plane machines during health checks, need to pass owningMachines here.
-func (m *Management) healthCheck(ctx context.Context, controlPlane *ControlPlane, check healthCheck, clusterKey client.ObjectKey) error {
+func (m *Management) healthCheck(controlPlane *ControlPlane, nodeChecks HealthCheckResult, clusterKey client.ObjectKey) error {
 	var errorList []error
 	kcpMachines := controlPlane.Machines.UnsortedList()
 	// Make sure Cluster API is aware of all the nodes.
-
-	nodeChecks, err := check(ctx, controlPlane)
-	if err != nil {
-		errorList = append(errorList, err)
-	}
 
 	// TODO: If any node has a failure, healthCheck fails. This may be too strict for the health check of HA clusters (Missing a single etcd pod does not indicate a problem)...
 	for nodeName, err := range nodeChecks {
@@ -222,22 +217,39 @@ func (m *Management) healthCheck(ctx context.Context, controlPlane *ControlPlane
 	return nil
 }
 
+func (m *Management) TargetClusterControlPlaneHealthCheck(ctx context.Context, controlPlane *ControlPlane, clusterKey client.ObjectKey) (HealthCheckResult, error) {
+	workloadCluster, err := m.GetWorkloadCluster(ctx, clusterKey)
+	if err != nil {
+		return nil, err
+	}
+	return workloadCluster.ControlPlaneIsHealthy(ctx, controlPlane)
+}
+
+func (m *Management) TargetClusterEtcdHealthCheck(ctx context.Context, controlPlane *ControlPlane, clusterKey client.ObjectKey) (HealthCheckResult, error) {
+	workloadCluster, err := m.GetWorkloadCluster(ctx, clusterKey)
+	if err != nil {
+		return nil, err
+	}
+	return workloadCluster.EtcdIsHealthy(ctx, controlPlane)
+}
+
 // TargetClusterControlPlaneIsHealthy checks every node for control plane health.
 func (m *Management) TargetClusterControlPlaneIsHealthy(ctx context.Context, controlPlane *ControlPlane, clusterKey client.ObjectKey) error {
 	// TODO: add checks for expected taints/labels
-	cluster, err := m.GetWorkloadCluster(ctx, clusterKey)
+
+	checkResult, err := m.TargetClusterControlPlaneHealthCheck(ctx, controlPlane, clusterKey)
 	if err != nil {
 		return err
 	}
-	return m.healthCheck(ctx, controlPlane, cluster.ControlPlaneIsHealthy, clusterKey)
+	return m.healthCheck(controlPlane, checkResult, clusterKey)
 }
 
 // TargetClusterEtcdIsHealthy runs a series of checks over a target cluster's etcd cluster.
 // In addition, it verifies that there are the same number of etcd members as control plane Machines.
 func (m *Management) TargetClusterEtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane, clusterKey client.ObjectKey) error {
-	cluster, err := m.GetWorkloadCluster(ctx, clusterKey)
+	checkResult, err := m.TargetClusterEtcdHealthCheck(ctx, controlPlane, clusterKey)
 	if err != nil {
 		return err
 	}
-	return m.healthCheck(ctx, controlPlane, cluster.EtcdIsHealthy, clusterKey)
+	return m.healthCheck(controlPlane, checkResult, clusterKey)
 }

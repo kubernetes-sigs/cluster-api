@@ -290,21 +290,19 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, err
 	}
 
-	ownedMachines := controlPlaneMachines.Filter(machinefilters.OwnedMachines(kcp))
-	if len(ownedMachines) != len(controlPlaneMachines) {
+	controlPlane, err := r.createControlPlane(ctx, cluster, kcp)
+	if controlPlane == nil || err != nil {
+		logger.Error(err, "failed to initialize control plane")
+		return ctrl.Result{}, err
+	}
+	if len(controlPlane.Machines) != len(controlPlaneMachines) {
 		logger.Info("Not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
 		return ctrl.Result{}, nil
 	}
 
-	controlPlane, err := internal.NewControlPlane(ctx, r.Client, cluster, kcp, ownedMachines)
-	if err != nil {
-		logger.Error(err, "failed to initialize control plane")
-		return ctrl.Result{}, err
-	}
-
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef())
+	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, controlPlane.Machines.ConditionGetters(), conditions.AddSourceRef())
 
 	// reconcileControlPlaneHealth returns err if there is a machine being delete or control plane is unhealthy.
 	// If control plane is not initialized, then control-plane machines will be empty and hence health check will not fail.
@@ -331,7 +329,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// If we've made it this far, we can assume that all ownedMachines are up to date
-	numMachines := len(ownedMachines)
+	numMachines := len(controlPlane.Machines)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
 	switch {
@@ -379,12 +377,46 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	return ctrl.Result{}, nil
 }
 
+func (r *KubeadmControlPlaneReconciler) createControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (*internal.ControlPlane, error) {
+	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
+
+	controlPlaneMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), machinefilters.ControlPlaneMachines(cluster.Name))
+	if err != nil {
+		logger.Error(err, "failed to retrieve control plane machines for cluster")
+		return nil, err
+	}
+	ownedMachines := controlPlaneMachines.Filter(machinefilters.OwnedMachines(kcp))
+
+	controlPlane, err := internal.NewControlPlane(ctx, r.Client, cluster, kcp, ownedMachines)
+	if err != nil {
+		logger.Error(err, "failed to initialize control plane")
+		return nil, err
+	}
+	return controlPlane, nil
+}
+
 // reconcileDelete handles KubeadmControlPlane deletion.
 // The implementation does not take non-control plane workloads into consideration. This may or may not change in the future.
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
 	logger.Info("Reconcile KubeadmControlPlane deletion")
+
+	controlPlane, err := r.createControlPlane(ctx, cluster, kcp)
+	if controlPlane == nil || err != nil {
+		logger.Error(err, "failed to initialize control plane")
+		return ctrl.Result{}, err
+	}
+
+	// Ignore the health check results here, they are used to set health related conditions on Machines.
+	_, err = r.managementCluster.TargetClusterControlPlaneHealthCheck(ctx, controlPlane, util.ObjectKey(cluster))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	_, err = r.managementCluster.TargetClusterEtcdHealthCheck(ctx, controlPlane, util.ObjectKey(cluster))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {

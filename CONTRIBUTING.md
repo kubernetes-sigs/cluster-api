@@ -61,7 +61,10 @@ avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewCom
 
 Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) to track releases.
 
-- Minor versions CAN be planned and scheduled twice / calendar year.
+- Minor versions CAN be planned and scheduled twice in a calendar year.
+  - Each minor version is preceded with one or more planning session.
+  - Planning consists of one or more backlog grooming meetings, roadmap amendments,
+    and CAEP proposal reviews.
 - Patch versions CAN be planned and scheduled each month for each of the currently supported series (usually N and N-1).
 - Code freeze is in effect 72 hours (3 days) before a release.
   - Maintainers should communicate the code freeze date at a community meeting preceding the code freeze date.
@@ -73,6 +76,22 @@ Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-
   - [E2E Test grid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi%20e2e%20tests) SHOULD be green before cutting a release.
 - Dates in a release are approximations and always subject to change.
 - `Next` milestone is for work that has been triaged, but not prioritized/accepted for any release.
+
+## Proposal process (CAEP)
+
+The Cluster API Enhacement Proposal is the process this project uses to adopt new features, changes to the APIs, changes to contracts between components, or changes to CLI interfaces.
+
+The [template](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/YYYYMMDD-template.md), and accepted proposals live under [docs/proposals](https://github.com/kubernetes-sigs/cluster-api/tree/master/docs/proposals).
+
+- Proposals or requests for enhacements (RFEs) MUST be associated with an issue.
+  - Issues can be placed on the roadmap during planning if there is one or more folks
+    that can dedicate time to writing a CAEP and/or implementating it after approval.
+- A proposal SHOULD be introduced and discussed during the weekly community meetings,
+  [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle),
+  or [discuss forum](https://discuss.kubernetes.io/c/contributors/cluster-api/).
+  - Submit and discuss proposals using a collaborative writing platform, preferably Google Docs, share documents with edit permissions with the [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
+- A proposal in a Google Doc MUST turn into a [Pull Request](https://github.com/kubernetes-sigs/cluster-api/pulls).
+- Proposals MUST be merged and in `implementable` state to be considered part of a major or minor release.
 
 ## Triaging E2E test failures
 
@@ -136,17 +155,6 @@ to `release-0.2`. We generally do not accept PRs against older release branches.
 Open [issues](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose) to report bugs, or minor features.
 
 For big feature, API and contract amendments, we follow the CAEP process as outlined below.
-
-## Proposal process (CAEP)
-
-The Cluster API Enhacement Proposal is the process this project uses to adopt new features, or changes to the APIs.
-
-- The template, and accepted proposals live under `docs/proposals`.
-- A proposal SHOULD be introduced and discussed during the weekly community meetings,
-  [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle),
-  or [discuss forum](https://discuss.kubernetes.io/c/contributors/cluster-api/).
-- A proposal SHOULD be submitted first to the community using a collaborative writing platform, preferably Google Docs.
-  - When using Google Docs, share the document with edit permissions for the [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
 
 ## Experiments
 

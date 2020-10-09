@@ -59,6 +59,16 @@ var _ = Describe("Patch Helper", func() {
 			defer func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
+
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
+
 			obj.Object["status"] = map[string]interface{}{
 				"ready": true,
 			}
@@ -119,6 +129,15 @@ var _ = Describe("Patch Helper", func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
 
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
+
 			By("Creating a new patch helper")
 			patcher, err := NewHelper(obj, testEnv)
 			Expect(err).NotTo(HaveOccurred())
@@ -165,6 +184,15 @@ var _ = Describe("Patch Helper", func() {
 					Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 				}()
 
+				By("Checking that the object has been created")
+				Eventually(func() error {
+					obj := obj.DeepCopy()
+					if err := testEnv.Get(ctx, key, obj); err != nil {
+						return err
+					}
+					return nil
+				}).Should(Succeed())
+
 				By("Creating a new patch helper")
 				patcher, err := NewHelper(obj, testEnv)
 				Expect(err).NotTo(HaveOccurred())
@@ -194,6 +222,16 @@ var _ = Describe("Patch Helper", func() {
 				defer func() {
 					Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 				}()
+
+				By("Checking that the object has been created")
+				Eventually(func() error {
+					obj := obj.DeepCopy()
+					if err := testEnv.Get(ctx, key, obj); err != nil {
+						return err
+					}
+					return nil
+				}).Should(Succeed())
+
 				objCopy := obj.DeepCopy()
 
 				By("Marking a custom condition to be false")
@@ -239,6 +277,16 @@ var _ = Describe("Patch Helper", func() {
 				defer func() {
 					Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 				}()
+
+				By("Checking that the object has been created")
+				Eventually(func() error {
+					obj := obj.DeepCopy()
+					if err := testEnv.Get(ctx, key, obj); err != nil {
+						return err
+					}
+					return nil
+				}).Should(Succeed())
+
 				objCopy := obj.DeepCopy()
 
 				By("Marking a custom condition to be false")
@@ -291,6 +339,16 @@ var _ = Describe("Patch Helper", func() {
 				defer func() {
 					Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 				}()
+
+				By("Checking that the object has been created")
+				Eventually(func() error {
+					obj := obj.DeepCopy()
+					if err := testEnv.Get(ctx, key, obj); err != nil {
+						return err
+					}
+					return nil
+				}).Should(Succeed())
+
 				objCopy := obj.DeepCopy()
 
 				By("Marking a custom condition to be false")
@@ -330,6 +388,16 @@ var _ = Describe("Patch Helper", func() {
 				defer func() {
 					Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 				}()
+
+				By("Checking that the object has been created")
+				Eventually(func() error {
+					obj := obj.DeepCopy()
+					if err := testEnv.Get(ctx, key, obj); err != nil {
+						return err
+					}
+					return nil
+				}).Should(Succeed())
+
 				objCopy := obj.DeepCopy()
 
 				By("Marking a custom condition to be false")
@@ -372,6 +440,16 @@ var _ = Describe("Patch Helper", func() {
 				defer func() {
 					Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 				}()
+
+				By("Checking that the object has been created")
+				Eventually(func() error {
+					obj := obj.DeepCopy()
+					if err := testEnv.Get(ctx, key, obj); err != nil {
+						return err
+					}
+					return nil
+				}).Should(Succeed())
+
 				objCopy := obj.DeepCopy()
 
 				By("Marking a custom condition to be false")
@@ -426,6 +504,15 @@ var _ = Describe("Patch Helper", func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
 
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
+
 			By("Creating a new patch helper")
 			patcher, err := NewHelper(obj, testEnv)
 			Expect(err).NotTo(HaveOccurred())
@@ -458,6 +545,15 @@ var _ = Describe("Patch Helper", func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
 
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
+
 			By("Creating a new patch helper")
 			patcher, err := NewHelper(obj, testEnv)
 			Expect(err).NotTo(HaveOccurred())
@@ -489,6 +585,15 @@ var _ = Describe("Patch Helper", func() {
 			defer func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
+
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
 
 			By("Creating a new patch helper")
 			patcher, err := NewHelper(obj, testEnv)
@@ -527,6 +632,15 @@ var _ = Describe("Patch Helper", func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
 
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
+
 			By("Creating a new patch helper")
 			patcher, err := NewHelper(obj, testEnv)
 			Expect(err).NotTo(HaveOccurred())
@@ -557,6 +671,15 @@ var _ = Describe("Patch Helper", func() {
 			defer func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
+
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
 
 			By("Creating a new patch helper")
 			patcher, err := NewHelper(obj, testEnv)
@@ -619,6 +742,15 @@ var _ = Describe("Patch Helper", func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
 
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
+
 			By("Creating a new patch helper")
 			patcher, err := NewHelper(obj, testEnv)
 			Expect(err).NotTo(HaveOccurred())
@@ -650,6 +782,15 @@ var _ = Describe("Patch Helper", func() {
 			defer func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
+
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
 
 			By("Creating a new patch helper")
 			patcher, err := NewHelper(obj, testEnv)
@@ -692,6 +833,16 @@ var _ = Describe("Patch Helper", func() {
 			defer func() {
 				Expect(testEnv.Delete(ctx, obj)).To(Succeed())
 			}()
+
+			By("Checking that the object has been created")
+			Eventually(func() error {
+				obj := obj.DeepCopy()
+				if err := testEnv.Get(ctx, key, obj); err != nil {
+					return err
+				}
+				return nil
+			}).Should(Succeed())
+
 			obj.Status.ObservedGeneration = obj.GetGeneration()
 			lastGeneration := obj.GetGeneration()
 			Expect(testEnv.Status().Update(ctx, obj))

@@ -17,18 +17,16 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -40,11 +38,10 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 
 	r := &MachinePoolReconciler{
 		Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	nodeList := []runtime.Object{
+	nodeList := []client.Object{
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-1",
@@ -145,7 +142,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			gt := NewWithT(t)
 
-			result, err := r.getNodeReferences(context.TODO(), client, test.providerIDList)
+			result, err := r.getNodeReferences(ctx, client, test.providerIDList)
 			if test.err == nil {
 				g.Expect(err).To(BeNil())
 			} else {

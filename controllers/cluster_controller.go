@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -65,23 +64,21 @@ const (
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
 	Client client.Client
-	Log    logr.Logger
 
-	scheme          *runtime.Scheme
 	restConfig      *rest.Config
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
 }
 
-func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.controlPlaneMachineToCluster)},
+			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 
 	if err != nil {
@@ -89,7 +86,6 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
-	r.scheme = mgr.GetScheme()
 	r.restConfig = mgr.GetConfig()
 	r.externalTracker = external.ObjectTracker{
 		Controller: controller,
@@ -97,9 +93,8 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 	return nil
 }
 
-func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
-	ctx := context.Background()
-	logger := r.Log.WithValues("cluster", req.Name, "namespace", req.Namespace)
+func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
@@ -116,7 +111,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, cluster) {
-		logger.Info("Reconciliation is paused for this object")
+		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
 
@@ -205,43 +200,36 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 
 // reconcileDelete handles cluster deletion.
 func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
-	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+	log := ctrl.LoggerFrom(ctx)
 
 	descendants, err := r.listDescendants(ctx, cluster)
 	if err != nil {
-		logger.Error(err, "Failed to list descendants")
+		log.Error(err, "Failed to list descendants")
 		return reconcile.Result{}, err
 	}
 
 	children, err := descendants.filterOwnedDescendants(cluster)
 	if err != nil {
-		logger.Error(err, "Failed to extract direct descendants")
+		log.Error(err, "Failed to extract direct descendants")
 		return reconcile.Result{}, err
 	}
 
 	if len(children) > 0 {
-		logger.Info("Cluster still has children - deleting them first", "count", len(children))
+		log.Info("Cluster still has children - deleting them first", "count", len(children))
 
 		var errs []error
 
 		for _, child := range children {
-			accessor, err := meta.Accessor(child)
-			if err != nil {
-				logger.Error(err, "Couldn't create accessor", "type", fmt.Sprintf("%T", child))
-				continue
-			}
-
-			if !accessor.GetDeletionTimestamp().IsZero() {
+			if !child.GetDeletionTimestamp().IsZero() {
 				// Don't handle deleted child
 				continue
 			}
-
 			gvk := child.GetObjectKind().GroupVersionKind().String()
 
-			logger.Info("Deleting child", "gvk", gvk, "name", accessor.GetName())
-			if err := r.Client.Delete(context.Background(), child); err != nil {
-				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
-				logger.Error(err, "Error deleting resource", "gvk", gvk, "name", accessor.GetName())
+			log.Info("Deleting child object", "gvk", gvk, "name", child.GetName())
+			if err := r.Client.Delete(ctx, child); err != nil {
+				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, child.GetName())
+				log.Error(err, "Error deleting resource", "gvk", gvk, "name", child.GetName())
 				errs = append(errs, err)
 			}
 		}
@@ -253,7 +241,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 	if descendantCount := descendants.length(); descendantCount > 0 {
 		indirect := descendantCount - len(children)
-		logger.Info("Cluster still has descendants - need to requeue", "descendants", descendants.descendantNames(), "indirect descendants count", indirect)
+		log.Info("Cluster still has descendants - need to requeue", "descendants", descendants.descendantNames(), "indirect descendants count", indirect)
 		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
@@ -284,7 +272,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			}
 
 			// Return here so we don't remove the finalizer yet.
-			logger.Info("Cluster still has descendants - need to requeue", "controlPlaneRef", cluster.Spec.ControlPlaneRef.Name)
+			log.Info("Cluster still has descendants - need to requeue", "controlPlaneRef", cluster.Spec.ControlPlaneRef.Name)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -315,7 +303,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			}
 
 			// Return here so we don't remove the finalizer yet.
-			logger.Info("Cluster still has descendants - need to requeue", "infrastructureRef", cluster.Spec.InfrastructureRef.Name)
+			log.Info("Cluster still has descendants - need to requeue", "infrastructureRef", cluster.Spec.InfrastructureRef.Name)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -423,29 +411,30 @@ func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *cluste
 
 // filterOwnedDescendants returns an array of runtime.Objects containing only those descendants that have the cluster
 // as an owner reference, with control plane machines sorted last.
-func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) ([]runtime.Object, error) {
-	var ownedDescendants []runtime.Object
+func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) ([]client.Object, error) {
+	var ownedDescendants []client.Object
 	eachFunc := func(o runtime.Object) error {
-		acc, err := meta.Accessor(o)
+		obj := o.(client.Object)
+		acc, err := meta.Accessor(obj)
 		if err != nil {
 			return nil
 		}
 
 		if util.IsOwnedByObject(acc, cluster) {
-			ownedDescendants = append(ownedDescendants, o)
+			ownedDescendants = append(ownedDescendants, obj)
 		}
 
 		return nil
 	}
 
-	lists := []runtime.Object{
+	lists := []client.ObjectList{
 		&c.machineDeployments,
 		&c.machineSets,
 		&c.workerMachines,
 		&c.controlPlaneMachines,
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
-		lists = append([]runtime.Object{&c.machinePools}, lists...)
+		lists = append([]client.ObjectList{&c.machinePools}, lists...)
 	}
 
 	for _, list := range lists {
@@ -473,7 +462,7 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 }
 
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
-	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+	log := ctrl.LoggerFrom(ctx)
 
 	// Skip checking if the control plane is initialized when using a Control Plane Provider
 	if cluster.Spec.ControlPlaneRef != nil {
@@ -486,7 +475,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 
 	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
 	if err != nil {
-		logger.Error(err, "Error getting machines in cluster")
+		log.Error(err, "Error getting machines in cluster")
 		return ctrl.Result{}, err
 	}
 
@@ -502,11 +491,10 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update its status.controlPlaneInitialized field
-func (r *ClusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []ctrl.Request {
-	m, ok := o.Object.(*clusterv1.Machine)
+func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
+	m, ok := o.(*clusterv1.Machine)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a Machine but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
 	if !util.IsControlPlaneMachine(m) {
 		return nil
@@ -517,7 +505,6 @@ func (r *ClusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []
 
 	cluster, err := util.GetClusterByName(context.TODO(), r.Client, m.Namespace, m.Spec.ClusterName)
 	if err != nil {
-		r.Log.Error(err, "Failed to get cluster", "machine", m.Name, "cluster", m.ClusterName, "namespace", m.Namespace)
 		return nil
 	}
 

@@ -17,23 +17,23 @@ limitations under the License.
 package internal
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
 
 	"sigs.k8s.io/cluster-api/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
 	testEnv *helpers.TestEnvironment
-	ctx     context.Context
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {
 	testEnv = helpers.NewTestEnvironment()
 	go func() {
-		if err := testEnv.StartManager(); err != nil {
+		if err := testEnv.StartManager(ctx); err != nil {
 			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
 		}
 	}()

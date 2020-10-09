@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -31,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -76,18 +76,35 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 				found := false
 				for i := range objs {
 					o := objs[i]
-					if o.GetKind() == "MutatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
-						w := &admissionregistration.MutatingWebhookConfiguration{}
-						err := scheme.Scheme.Convert(&o, w, nil)
-						if err != nil {
-							t.Errorf("did not expect err, got %s", err)
-						}
-						if len(w.Webhooks) != 1 {
-							t.Error("expected 1 webhook to be configured")
-						}
-						wh := w.Webhooks[0]
-						if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
-							found = true
+					gvk := o.GroupVersionKind()
+					if gvk.Kind == "MutatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
+						switch gvk.Version {
+						case "v1beta1":
+							w := &admissionregistrationv1beta1.MutatingWebhookConfiguration{}
+							err := scheme.Scheme.Convert(&o, w, nil)
+							if err != nil {
+								t.Errorf("did not expect err, got %s", err)
+							}
+							if len(w.Webhooks) != 1 {
+								t.Error("expected 1 webhook to be configured")
+							}
+							wh := w.Webhooks[0]
+							if wh.SideEffects != nil && *wh.SideEffects == admissionregistrationv1beta1.SideEffectClassNone {
+								found = true
+							}
+						case "v1":
+							w := &admissionregistration.MutatingWebhookConfiguration{}
+							err := scheme.Scheme.Convert(&o, w, nil)
+							if err != nil {
+								t.Errorf("did not expect err, got %s", err)
+							}
+							if len(w.Webhooks) != 1 {
+								t.Error("expected 1 webhook to be configured")
+							}
+							wh := w.Webhooks[0]
+							if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
+								found = true
+							}
 						}
 					}
 				}
@@ -103,19 +120,37 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 				found := false
 				for i := range objs {
 					o := objs[i]
-					if o.GetKind() == "ValidatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
-						w := &admissionregistration.ValidatingWebhookConfiguration{}
-						err := scheme.Scheme.Convert(&o, w, nil)
-						if err != nil {
-							t.Errorf("did not expect err, got %s", err)
+					gvk := o.GroupVersionKind()
+					if gvk.Kind == "ValidatingWebhookConfiguration" && o.GetName() == "cert-manager-webhook" {
+						switch gvk.Version {
+						case "v1beta1":
+							w := &admissionregistrationv1beta1.ValidatingWebhookConfiguration{}
+							err := scheme.Scheme.Convert(&o, w, nil)
+							if err != nil {
+								t.Errorf("did not expect err, got %s", err)
+							}
+							if len(w.Webhooks) != 1 {
+								t.Error("expected 1 webhook to be configured")
+							}
+							wh := w.Webhooks[0]
+							if wh.SideEffects != nil && *wh.SideEffects == admissionregistrationv1beta1.SideEffectClassNone {
+								found = true
+							}
+						case "v1":
+							w := &admissionregistration.ValidatingWebhookConfiguration{}
+							err := scheme.Scheme.Convert(&o, w, nil)
+							if err != nil {
+								t.Errorf("did not expect err, got %s", err)
+							}
+							if len(w.Webhooks) != 1 {
+								t.Error("expected 1 webhook to be configured")
+							}
+							wh := w.Webhooks[0]
+							if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
+								found = true
+							}
 						}
-						if len(w.Webhooks) != 1 {
-							t.Error("expected 1 webhook to be configured")
-						}
-						wh := w.Webhooks[0]
-						if wh.SideEffects != nil && *wh.SideEffects == admissionregistration.SideEffectClassNone {
-							found = true
-						}
+
 					}
 				}
 				if !found {
@@ -331,7 +366,7 @@ func Test_shouldUpgrade(t *testing.T) {
 
 func Test_certManagerClient_deleteObjs(t *testing.T) {
 	type fields struct {
-		objs []runtime.Object
+		objs []client.Object
 	}
 	tests := []struct {
 		name    string
@@ -342,7 +377,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "CRD should not be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&apiextensionsv1.CustomResourceDefinition{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "CustomResourceDefinition",
@@ -361,7 +396,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "Namespace should not be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&corev1.Namespace{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "Namespace",
@@ -380,7 +415,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "MutatingWebhookConfiguration should not be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&admissionregistration.MutatingWebhookConfiguration{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "MutatingWebhookConfiguration",
@@ -399,7 +434,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "ValidatingWebhookConfiguration should not be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&admissionregistration.ValidatingWebhookConfiguration{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "ValidatingWebhookConfiguration",
@@ -418,7 +453,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		{
 			name: "Other resources should be deleted",
 			fields: fields{
-				objs: []runtime.Object{
+				objs: []client.Object{
 					&corev1.ServiceAccount{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "ServiceAccount",
@@ -498,7 +533,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		objs         []runtime.Object
+		objs         []client.Object
 		expectErr    bool
 		expectedPlan CertManagerUpgradePlan
 	}{
@@ -506,7 +541,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			name: "returns the upgrade plan for cert-manager if v0.11.0 is installed",
 			// Cert-manager deployment without annotation, this must be from
 			// v0.11.0
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",
@@ -527,7 +562,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		},
 		{
 			name: "returns the upgrade plan for cert-manager if an older version is installed",
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",
@@ -549,7 +584,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		},
 		{
 			name: "returns the upgrade plan for cert-manager if same version but different hash",
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",
@@ -571,7 +606,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		},
 		{
 			name: "returns plan if shouldn't upgrade",
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",
@@ -593,7 +628,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		},
 		{
 			name: "returns empty plan and error if cannot parse semver",
-			objs: []runtime.Object{
+			objs: []client.Object{
 				&appsv1.Deployment{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Deployment",

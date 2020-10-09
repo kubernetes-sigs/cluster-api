@@ -33,7 +33,7 @@ import (
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -140,13 +140,11 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			objects := []runtime.Object{
+			objects := []client.Object{
 				&tt.ds,
 			}
 			fakeClient := fake.NewFakeClientWithScheme(scheme, objects...)
@@ -207,7 +205,7 @@ kind: ClusterStatus`,
 	tests := []struct {
 		name              string
 		machine           *clusterv1.Machine
-		objs              []runtime.Object
+		objs              []client.Object
 		expectErr         bool
 		expectedEndpoints string
 	}{
@@ -232,13 +230,13 @@ kind: ClusterStatus`,
 		{
 			name:      "returns error if unable to remove api endpoint",
 			machine:   machine,
-			objs:      []runtime.Object{kconfWithoutKey},
+			objs:      []client.Object{kconfWithoutKey},
 			expectErr: true,
 		},
 		{
 			name:      "removes the machine node ref from kubeadm config",
 			machine:   machine,
-			objs:      []runtime.Object{kubeadmConfig},
+			objs:      []client.Object{kubeadmConfig},
 			expectErr: false,
 			expectedEndpoints: `apiEndpoints:
   ip-10-0-0-2.ec2.internal:
@@ -258,7 +256,6 @@ kind: ClusterStatus
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.RemoveMachineFromKubeadmConfigMap(ctx, tt.machine)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -269,7 +266,7 @@ kind: ClusterStatus
 				var actualConfig corev1.ConfigMap
 				g.Expect(w.Client.Get(
 					ctx,
-					ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+					client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 					&actualConfig,
 				)).To(Succeed())
 				g.Expect(actualConfig.Data[clusterStatusKey]).To(Equal(tt.expectedEndpoints))
@@ -293,13 +290,13 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 	tests := []struct {
 		name      string
 		version   semver.Version
-		objs      []runtime.Object
+		objs      []client.Object
 		expectErr bool
 	}{
 		{
 			name:      "create new config map",
 			version:   semver.Version{Major: 1, Minor: 2},
-			objs:      []runtime.Object{kubeletConfig},
+			objs:      []client.Object{kubeletConfig},
 			expectErr: false,
 		},
 		{
@@ -316,7 +313,6 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.UpdateKubeletConfigMap(ctx, tt.version)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -326,7 +322,7 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				ctrlclient.ObjectKey{Name: "kubelet-config-1.2", Namespace: metav1.NamespaceSystem},
+				client.ObjectKey{Name: "kubelet-config-1.2", Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
 			g.Expect(actualConfig.ResourceVersion).ToNot(Equal(kubeletConfig.ResourceVersion))
@@ -361,13 +357,13 @@ kubernetesVersion: v1.16.1
 	tests := []struct {
 		name      string
 		version   semver.Version
-		objs      []runtime.Object
+		objs      []client.Object
 		expectErr bool
 	}{
 		{
 			name:      "updates the config map",
 			version:   semver.Version{Major: 1, Minor: 17, Patch: 2},
-			objs:      []runtime.Object{kubeadmConfig},
+			objs:      []client.Object{kubeadmConfig},
 			expectErr: false,
 		},
 		{
@@ -378,13 +374,13 @@ kubernetesVersion: v1.16.1
 		{
 			name:      "returns error if config has bad data",
 			version:   semver.Version{Major: 1, Minor: 2},
-			objs:      []runtime.Object{kubeadmConfigBadData},
+			objs:      []client.Object{kubeadmConfigBadData},
 			expectErr: true,
 		},
 		{
 			name:      "returns error if config doesn't have cluster config key",
 			version:   semver.Version{Major: 1, Minor: 2},
-			objs:      []runtime.Object{kubeadmConfigNoKey},
+			objs:      []client.Object{kubeadmConfigNoKey},
 			expectErr: true,
 		},
 	}
@@ -396,7 +392,6 @@ kubernetesVersion: v1.16.1
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.UpdateKubernetesVersionInKubeadmConfigMap(ctx, tt.version)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -406,7 +401,7 @@ kubernetesVersion: v1.16.1
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
 			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring("kubernetesVersion: v1.17.2"))
@@ -441,13 +436,13 @@ imageRepository: k8s.gcr.io
 	tests := []struct {
 		name            string
 		imageRepository string
-		objs            []runtime.Object
+		objs            []client.Object
 		expectErr       bool
 	}{
 		{
 			name:            "updates the config map",
 			imageRepository: "myspecialrepo.io",
-			objs:            []runtime.Object{kubeadmConfig},
+			objs:            []client.Object{kubeadmConfig},
 			expectErr:       false,
 		},
 		{
@@ -456,13 +451,13 @@ imageRepository: k8s.gcr.io
 		},
 		{
 			name:            "returns error if config has bad data",
-			objs:            []runtime.Object{kubeadmConfigBadData},
+			objs:            []client.Object{kubeadmConfigBadData},
 			imageRepository: "myspecialrepo.io",
 			expectErr:       true,
 		},
 		{
 			name:            "returns error if config doesn't have cluster config key",
-			objs:            []runtime.Object{kubeadmConfigNoKey},
+			objs:            []client.Object{kubeadmConfigNoKey},
 			imageRepository: "myspecialrepo.io",
 			expectErr:       true,
 		},
@@ -475,7 +470,6 @@ imageRepository: k8s.gcr.io
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			err := w.UpdateImageRepositoryInKubeadmConfigMap(ctx, tt.imageRepository)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -485,7 +479,7 @@ imageRepository: k8s.gcr.io
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
 			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring(tt.imageRepository))
@@ -530,19 +524,19 @@ func TestClusterStatus(t *testing.T) {
 	}
 	tests := []struct {
 		name          string
-		objs          []runtime.Object
+		objs          []client.Object
 		expectErr     bool
 		expectHasConf bool
 	}{
 		{
 			name:          "returns cluster status",
-			objs:          []runtime.Object{node1, node2},
+			objs:          []client.Object{node1, node2},
 			expectErr:     false,
 			expectHasConf: false,
 		},
 		{
 			name:          "returns cluster status with kubeadm config",
-			objs:          []runtime.Object{node1, node2, kconf},
+			objs:          []client.Object{node1, node2, kconf},
 			expectErr:     false,
 			expectHasConf: true,
 		},
@@ -557,7 +551,6 @@ func TestClusterStatus(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			ctx := context.TODO()
 			status, err := w.ClusterStatus(ctx)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -575,10 +568,10 @@ func TestClusterStatus(t *testing.T) {
 	}
 }
 
-func getProxyImageInfo(ctx context.Context, client ctrlclient.Client) (string, error) {
+func getProxyImageInfo(ctx context.Context, c client.Client) (string, error) {
 	ds := &appsv1.DaemonSet{}
 
-	if err := client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
+	if err := c.Get(ctx, client.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
 		if apierrors.IsNotFound(err) {
 			return "", errors.New("no image found")
 		}

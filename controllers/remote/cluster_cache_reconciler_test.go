@@ -17,6 +17,7 @@ limitations under the License.
 package remote
 
 import (
+	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -36,7 +37,8 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 	Context("When running the ClusterCacheReconciler", func() {
 		var (
 			mgr           manager.Manager
-			doneMgr       chan struct{}
+			mgrContext    context.Context
+			mgrCancel     context.CancelFunc
 			cct           *ClusterCacheTracker
 			k8sClient     client.Client
 			testNamespace *corev1.Namespace
@@ -60,7 +62,7 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			}, timeout).Should(Succeed())
 
 			By("Creating a test cluster kubeconfig")
-			Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
+			Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 
 			// Check the secret can be fetched from the API server
 			secretKey := client.ObjectKey{Namespace: testNamespace.GetName(), Name: fmt.Sprintf("%s-kubeconfig", testCluster.GetName())}
@@ -92,12 +94,12 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 				Client:  mgr.GetClient(),
 				Tracker: cct,
 			}
-			Expect(r.SetupWithManager(mgr, controller.Options{})).To(Succeed())
+			Expect(r.SetupWithManager(ctx, mgr, controller.Options{})).To(Succeed())
 
 			By("Starting the manager")
-			doneMgr = make(chan struct{})
+			mgrContext, mgrCancel = context.WithCancel(ctx)
 			go func() {
-				Expect(mgr.Start(doneMgr)).To(Succeed())
+				Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
 
 			k8sClient = mgr.GetClient()
@@ -118,7 +120,7 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			By("Deleting any Clusters")
 			Expect(cleanupTestClusters(ctx, k8sClient)).To(Succeed())
 			By("Stopping the manager")
-			close(doneMgr)
+			mgrCancel()
 		})
 
 		It("should remove clusterAccessors when clusters are deleted", func() {

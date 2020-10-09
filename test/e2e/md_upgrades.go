@@ -91,7 +91,7 @@ func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() Machi
 		})
 
 		By("Upgrading MachineDeployment's Kubernetes version to a valid version")
-		framework.UpgradeMachineDeploymentsAndWait(context.TODO(), framework.UpgradeMachineDeploymentsAndWaitInput{
+		framework.UpgradeMachineDeploymentsAndWait(ctx, framework.UpgradeMachineDeploymentsAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,
 			Cluster:                     clusterResources.Cluster,
 			UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersion),
@@ -100,7 +100,7 @@ func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() Machi
 		})
 
 		By("Upgrading MachineDeployment Infrastructure ref and wait for rolling upgrade")
-		framework.UpgradeMachineDeploymentInfrastructureRefAndWait(context.TODO(), framework.UpgradeMachineDeploymentInfrastructureRefAndWaitInput{
+		framework.UpgradeMachineDeploymentInfrastructureRefAndWait(ctx, framework.UpgradeMachineDeploymentInfrastructureRefAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,
 			Cluster:                     clusterResources.Cluster,
 			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),

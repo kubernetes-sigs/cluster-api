@@ -17,8 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
 	"time"
 
@@ -34,8 +32,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func init() {
@@ -121,11 +119,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -149,11 +145,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -175,11 +169,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -217,11 +209,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -271,11 +261,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -303,11 +291,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -342,11 +328,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -394,11 +378,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -451,11 +433,9 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
-		res, err := r.reconcile(context.Background(), defaultCluster, machinepool)
+		res, err := r.reconcile(ctx, defaultCluster, machinepool)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 
@@ -696,11 +676,9 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &MachinePoolReconciler{
 				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machinepool, bootstrapConfig),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
-			res, err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machinepool)
+			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machinepool)
 			g.Expect(res).To(Equal(tc.expectResult))
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
@@ -907,11 +885,9 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &MachinePoolReconciler{
 				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machinepool, infraConfig),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
-			res, err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machinepool)
+			res, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machinepool)
 			if tc.expectRequeueAfter {
 				g.Expect(res.RequeueAfter).To(BeNumerically(">=", 0))
 			}

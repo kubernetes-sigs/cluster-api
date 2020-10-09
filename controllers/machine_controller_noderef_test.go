@@ -23,11 +23,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -40,11 +39,10 @@ func TestGetNodeReference(t *testing.T) {
 
 	r := &MachineReconciler{
 		Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	nodeList := []runtime.Object{
+	nodeList := []client.Object{
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-1",
@@ -108,7 +106,7 @@ func TestGetNodeReference(t *testing.T) {
 			providerID, err := noderefutil.NewProviderID(test.providerID)
 			gt.Expect(err).NotTo(HaveOccurred(), "Expected no error parsing provider id %q, got %v", test.providerID, err)
 
-			reference, err := r.getNodeReference(client, providerID)
+			reference, err := r.getNodeReference(ctx, client, providerID)
 			if test.err == nil {
 				g.Expect(err).To(BeNil())
 			} else {

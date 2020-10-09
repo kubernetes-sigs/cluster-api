@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -35,7 +34,7 @@ import (
 type CreateClusterInput struct {
 	Creator      Creator
 	Cluster      *clusterv1.Cluster
-	InfraCluster runtime.Object
+	InfraCluster client.Object
 }
 
 // CreateCluster will create the Cluster and InfraCluster objects.

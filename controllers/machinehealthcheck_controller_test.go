@@ -27,7 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -38,8 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -48,14 +45,13 @@ const defaultNamespaceName = "default"
 func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	t.Run("it should ensure the correct cluster-name label when no existing labels exist", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		mhc.Labels = map[string]string{}
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -70,7 +66,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it should ensure the correct cluster-name label when the label has the wrong value", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -79,7 +74,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -94,7 +89,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it should ensure the correct cluster-name label when other labels are present", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -103,7 +97,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -122,14 +116,13 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it should ensure an owner reference is present when no existing ones exist", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		mhc.OwnerReferences = []metav1.OwnerReference{}
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -148,7 +141,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it should ensure an owner reference is present when modifying existing ones", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -157,7 +149,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -177,13 +169,12 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it doesn't mark anything unhealthy when all Machines are healthy", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -216,13 +207,12 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it marks unhealthy machines for remediation when there is one unhealthy Machine", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -265,7 +255,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("it marks unhealthy machines for remediation when the unhealthy Machines exceed MaxUnhealthy", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -273,7 +262,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		mhc.Spec.MaxUnhealthy = &maxUnhealthy
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -352,14 +341,13 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("when a Machine has no Node ref for less than the NodeStartupTimeout", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 5 * time.Hour}
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -440,14 +428,13 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// FIXME: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: time.Second}
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -532,13 +519,12 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// FIXME: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -617,13 +603,12 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("should react when a Node transitions to unhealthy", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -719,7 +704,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 	t.Run("when in a MachineSet, unhealthy machines should be deleted", func(t *testing.T) {
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -793,7 +777,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
 		// defer cleanup for all the objects that have been created
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc, infraTmpl, machineSet)
 
@@ -861,13 +845,12 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// FIXME: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
-		ctx := context.TODO()
 		cluster := createNamespaceAndCluster(g)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 
 		g.Expect(testEnv.Create(ctx, mhc)).To(Succeed())
-		defer func(do ...runtime.Object) {
+		defer func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(cluster, mhc)
 
@@ -974,7 +957,6 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
-		Log:    log.Log,
 		Client: fakeClient,
 	}
 
@@ -998,47 +980,31 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	testCases := []struct {
 		name     string
 		toCreate []clusterv1.MachineHealthCheck
-		object   handler.MapObject
+		object   client.Object
 		expected []reconcile.Request
 	}{
 		{
-			name:     "when the object passed isn't a cluster",
-			toCreate: []clusterv1.MachineHealthCheck{*mhc1},
-			object: handler.MapObject{
-				Object: &clusterv1.Machine{},
-			},
-			expected: []reconcile.Request{},
-		},
-		{
 			name:     "when a MachineHealthCheck exists for the Cluster in the same namespace",
 			toCreate: []clusterv1.MachineHealthCheck{*mhc1},
-			object: handler.MapObject{
-				Object: cluster1,
-			},
+			object:   cluster1,
 			expected: []reconcile.Request{mhc1Req},
 		},
 		{
 			name:     "when 2 MachineHealthChecks exists for the Cluster in the same namespace",
 			toCreate: []clusterv1.MachineHealthCheck{*mhc1, *mhc2},
-			object: handler.MapObject{
-				Object: cluster1,
-			},
+			object:   cluster1,
 			expected: []reconcile.Request{mhc1Req, mhc2Req},
 		},
 		{
 			name:     "when a MachineHealthCheck exists for another Cluster in the same namespace",
 			toCreate: []clusterv1.MachineHealthCheck{*mhc3},
-			object: handler.MapObject{
-				Object: cluster1,
-			},
+			object:   cluster1,
 			expected: []reconcile.Request{},
 		},
 		{
 			name:     "when a MachineHealthCheck exists for another Cluster in another namespace",
 			toCreate: []clusterv1.MachineHealthCheck{*mhc4},
-			object: handler.MapObject{
-				Object: cluster1,
-			},
+			object:   cluster1,
 			expected: []reconcile.Request{},
 		},
 	}
@@ -1047,7 +1013,6 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
 			for _, obj := range tc.toCreate {
 				o := obj
 				gs.Expect(r.Client.Create(ctx, &o)).To(Succeed())
@@ -1072,7 +1037,6 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
-		Log:    log.Log,
 		Client: fakeClient,
 	}
 
@@ -1092,47 +1056,31 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	testCases := []struct {
 		name     string
 		toCreate []clusterv1.MachineHealthCheck
-		object   handler.MapObject
+		object   client.Object
 		expected []reconcile.Request
 	}{
 		{
-			name:     "when the object passed isn't a machine",
-			toCreate: []clusterv1.MachineHealthCheck{*mhc1},
-			object: handler.MapObject{
-				Object: &clusterv1.Cluster{},
-			},
-			expected: []reconcile.Request{},
-		},
-		{
 			name:     "when a MachineHealthCheck matches labels for the Machine in the same namespace",
 			toCreate: []clusterv1.MachineHealthCheck{*mhc1},
-			object: handler.MapObject{
-				Object: machine1,
-			},
+			object:   machine1,
 			expected: []reconcile.Request{mhc1Req},
 		},
 		{
 			name:     "when 2 MachineHealthChecks match labels for the Machine in the same namespace",
 			toCreate: []clusterv1.MachineHealthCheck{*mhc1, *mhc2},
-			object: handler.MapObject{
-				Object: machine1,
-			},
+			object:   machine1,
 			expected: []reconcile.Request{mhc1Req, mhc2Req},
 		},
 		{
 			name:     "when a MachineHealthCheck does not match labels for the Machine in the same namespace",
 			toCreate: []clusterv1.MachineHealthCheck{*mhc3},
-			object: handler.MapObject{
-				Object: machine1,
-			},
+			object:   machine1,
 			expected: []reconcile.Request{},
 		},
 		{
 			name:     "when a MachineHealthCheck matches labels for the Machine in another namespace",
 			toCreate: []clusterv1.MachineHealthCheck{*mhc4},
-			object: handler.MapObject{
-				Object: machine1,
-			},
+			object:   machine1,
 			expected: []reconcile.Request{},
 		},
 	}
@@ -1141,7 +1089,6 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
 			for _, obj := range tc.toCreate {
 				o := obj
 				gs.Expect(r.Client.Create(ctx, &o)).To(Succeed())
@@ -1166,7 +1113,6 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewFakeClient()
 
 	r := &MachineHealthCheckReconciler{
-		Log:    log.Log,
 		Client: fakeClient,
 	}
 
@@ -1195,71 +1141,50 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 		name        string
 		mhcToCreate []clusterv1.MachineHealthCheck
 		mToCreate   []clusterv1.Machine
-		object      handler.MapObject
+		object      client.Object
 		expected    []reconcile.Request
 	}{
-		{
-			name:        "when the object passed isn't a Node",
-			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc1},
-			mToCreate:   []clusterv1.Machine{*machine1},
-			object: handler.MapObject{
-				Object: &clusterv1.Machine{},
-			},
-			expected: []reconcile.Request{},
-		},
 		{
 			name:        "when no Machine exists for the Node",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc1},
 			mToCreate:   []clusterv1.Machine{},
-			object: handler.MapObject{
-				Object: node1,
-			},
-			expected: []reconcile.Request{},
+			object:      node1,
+			expected:    []reconcile.Request{},
 		},
 		{
 			name:        "when two Machines exist for the Node",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc1},
 			mToCreate:   []clusterv1.Machine{*machine1, *machine2},
-			object: handler.MapObject{
-				Object: node1,
-			},
-			expected: []reconcile.Request{},
+			object:      node1,
+			expected:    []reconcile.Request{},
 		},
 		{
 			name:        "when no MachineHealthCheck exists for the Node in the Machine's namespace",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc4},
 			mToCreate:   []clusterv1.Machine{*machine1},
-			object: handler.MapObject{
-				Object: node1,
-			},
-			expected: []reconcile.Request{},
+			object:      node1,
+			expected:    []reconcile.Request{},
 		},
 		{
 			name:        "when a MachineHealthCheck exists for the Node in the Machine's namespace",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc1},
 			mToCreate:   []clusterv1.Machine{*machine1},
-			object: handler.MapObject{
-				Object: node1,
-			},
-			expected: []reconcile.Request{mhc1Req},
+			object:      node1,
+			expected:    []reconcile.Request{mhc1Req},
 		},
 		{
 			name:        "when two MachineHealthChecks exist for the Node in the Machine's namespace",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc1, *mhc2},
 			mToCreate:   []clusterv1.Machine{*machine1},
-			object: handler.MapObject{
-				Object: node1,
-			},
-			expected: []reconcile.Request{mhc1Req, mhc2Req},
+			object:      node1,
+			expected:    []reconcile.Request{mhc1Req, mhc2Req},
 		},
 		{
 			name:        "when a MachineHealthCheck exists for the Node, but not in the Machine's cluster",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc3},
 			mToCreate:   []clusterv1.Machine{*machine1},
-			object: handler.MapObject{
-				Object: node1,
-			},
-			expected: []reconcile.Request{},
+			object:      node1,
+			expected:    []reconcile.Request{},
 		},
 	}
 
@@ -1267,7 +1192,6 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
 			for _, obj := range tc.mhcToCreate {
 				o := obj
 				gs.Expect(r.Client.Create(ctx, &o)).To(Succeed())
@@ -1311,13 +1235,11 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 }
 
 func TestIndexMachineByNodeName(t *testing.T) {
-	r := &MachineHealthCheckReconciler{
-		Log: log.Log,
-	}
+	r := &MachineHealthCheckReconciler{}
 
 	testCases := []struct {
 		name     string
-		object   runtime.Object
+		object   client.Object
 		expected []string
 	}{
 		{
@@ -1335,11 +1257,6 @@ func TestIndexMachineByNodeName(t *testing.T) {
 				},
 			},
 			expected: []string{"node1"},
-		},
-		{
-			name:     "when the object passed is not a Machine",
-			object:   &corev1.Node{},
-			expected: []string{},
 		},
 	}
 
@@ -1471,7 +1388,7 @@ func createNamespaceAndCluster(g *WithT) *clusterv1.Cluster {
 		return testEnv.Get(ctx, util.ObjectKey(cluster), &cl)
 	}, timeout, 100*time.Millisecond).Should(Succeed())
 
-	g.Expect(testEnv.CreateKubeconfigSecret(cluster)).To(Succeed())
+	g.Expect(testEnv.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
 
 	return cluster
 }

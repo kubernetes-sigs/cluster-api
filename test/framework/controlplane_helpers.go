@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -36,7 +35,7 @@ import (
 type CreateKubeadmControlPlaneInput struct {
 	Creator         Creator
 	ControlPlane    *controlplanev1.KubeadmControlPlane
-	MachineTemplate runtime.Object
+	MachineTemplate client.Object
 }
 
 // CreateKubeadmControlPlane creates the control plane object and necessary dependencies.
@@ -323,7 +322,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	}, input.WaitForMachinesToBeUpgraded...)
 
 	log.Logf("Waiting for kube-proxy to have the upgraded kubernetes version")
-	workloadCluster := input.ClusterProxy.GetWorkloadCluster(context.TODO(), input.Cluster.Namespace, input.Cluster.Name)
+	workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name)
 	workloadClient := workloadCluster.GetClient()
 	WaitForKubeProxyUpgrade(ctx, WaitForKubeProxyUpgradeInput{
 		Getter:            workloadClient,

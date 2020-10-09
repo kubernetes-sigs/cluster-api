@@ -24,13 +24,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestGetTargetsFromMHC(t *testing.T) {
@@ -62,7 +62,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 		},
 	}
 
-	baseObjects := []runtime.Object{testNS, testMHC}
+	baseObjects := []client.Object{testNS, testMHC}
 
 	// Initialise some test machines and nodes for use in the test cases
 
@@ -77,7 +77,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 
 	testCases := []struct {
 		desc            string
-		toCreate        []runtime.Object
+		toCreate        []client.Object
 		expectedTargets []healthCheckTarget
 	}{
 		{
@@ -136,8 +136,6 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			// Create a test reconciler
 			reconciler := &MachineHealthCheckReconciler{
 				Client: k8sClient,
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 			for _, t := range tc.expectedTargets {
 				patchHelper, err := patch.NewHelper(t.Machine, k8sClient)
@@ -145,7 +143,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 				t.patchHelper = patchHelper
 			}
 
-			targets, err := reconciler.getTargetsFromMHC(k8sClient, testMHC)
+			targets, err := reconciler.getTargetsFromMHC(ctx, k8sClient, testMHC)
 			gs.Expect(err).ToNot(HaveOccurred())
 
 			gs.Expect(len(targets)).To(Equal(len(tc.expectedTargets)))
@@ -309,13 +307,11 @@ func TestHealthCheckTargets(t *testing.T) {
 			// Create a test reconciler
 			reconciler := &MachineHealthCheckReconciler{
 				Client:   k8sClient,
-				Log:      log.Log,
-				scheme:   scheme.Scheme,
 				recorder: record.NewFakeRecorder(5),
 			}
 
 			timeoutForMachineToHaveNode := 10 * time.Minute
-			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, reconciler.Log, timeoutForMachineToHaveNode)
+			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), timeoutForMachineToHaveNode)
 
 			// Round durations down to nearest second account for minute differences
 			// in timing when running tests

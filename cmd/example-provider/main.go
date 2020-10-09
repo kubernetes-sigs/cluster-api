@@ -64,16 +64,17 @@ func main() {
 		klog.Fatal(err)
 	}
 
+	// Setup the context that's going to be used in controllers and for the manager.
+	ctx := ctrl.SetupSignalHandler()
+
 	if err = (&controllers.ClusterReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		os.Exit(1)
 	}
 	if err = (&controllers.MachineReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		os.Exit(1)
 	}
 
@@ -85,7 +86,7 @@ func main() {
 		klog.Fatalf("unable to create health check: %v", err)
 	}
 
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)
 	}
 }

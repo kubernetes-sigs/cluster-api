@@ -20,13 +20,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Getter interface defines methods that a Cluster API object should implement in order to
 // use the conditions package for getting conditions.
 type Getter interface {
-	controllerutil.Object
+	client.Object
 
 	// GetConditions returns the list of conditions for a cluster API object.
 	GetConditions() clusterv1.Conditions

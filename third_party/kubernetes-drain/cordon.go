@@ -17,12 +17,13 @@ limitations under the License.
 package drain
 
 import (
+	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -43,7 +44,7 @@ func NewCordonHelper(node *corev1.Node) *CordonHelper {
 }
 
 // NewCordonHelperFromRuntimeObject returns a new CordonHelper, or an error if given object is not a
-// node or cannot be encoded as JSON
+// node or cannot be encoded as JSON.
 func NewCordonHelperFromRuntimeObject(nodeObject runtime.Object, scheme *runtime.Scheme, gvk schema.GroupVersionKind) (*CordonHelper, error) {
 	nodeObject, err := scheme.ConvertToVersion(nodeObject, gvk.GroupVersion())
 	if err != nil {
@@ -59,7 +60,7 @@ func NewCordonHelperFromRuntimeObject(nodeObject runtime.Object, scheme *runtime
 }
 
 // UpdateIfRequired returns true if c.node.Spec.Unschedulable isn't already set,
-// or false when no change is needed
+// or false when no change is needed.
 func (c *CordonHelper) UpdateIfRequired(desired bool) bool {
 	c.desired = desired
 
@@ -69,8 +70,8 @@ func (c *CordonHelper) UpdateIfRequired(desired bool) bool {
 // PatchOrReplace uses given clientset to update the node status, either by patching or
 // updating the given node object; it may return error if the object cannot be encoded as
 // JSON, or if either patch or update calls fail; it will also return a second error
-// whenever creating a patch has failed
-func (c *CordonHelper) PatchOrReplace(clientset kubernetes.Interface) (error, error) {
+// whenever creating a patch has failed.
+func (c *CordonHelper) PatchOrReplace(ctx context.Context, clientset kubernetes.Interface) (error, error) {
 	client := clientset.CoreV1().Nodes()
 
 	oldData, err := json.Marshal(c.node)
@@ -87,9 +88,9 @@ func (c *CordonHelper) PatchOrReplace(clientset kubernetes.Interface) (error, er
 
 	patchBytes, patchErr := strategicpatch.CreateTwoWayMergePatch(oldData, newData, c.node)
 	if patchErr == nil {
-		_, err = client.Patch(c.node.Name, types.StrategicMergePatchType, patchBytes)
+		_, err = client.Patch(ctx, c.node.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	} else {
-		_, err = client.Update(c.node)
+		_, err = client.Update(ctx, c.node, metav1.UpdateOptions{})
 	}
 	return err, patchErr
 }

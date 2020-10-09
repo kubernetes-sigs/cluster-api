@@ -67,9 +67,7 @@ type InitLocker interface {
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
 type KubeadmConfigReconciler struct {
 	Client          client.Client
-	Log             logr.Logger
 	KubeadmInitLock InitLocker
-	scheme          *runtime.Scheme
 
 	remoteClientGetter remote.ClusterClientGetter
 }
@@ -82,33 +80,27 @@ type Scope struct {
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
-func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option controller.Options) error {
+func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, option controller.Options) error {
 	if r.KubeadmInitLock == nil {
-		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient())
+		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.LoggerFrom(ctx).WithName("init-locker"), mgr.GetClient())
 	}
 	if r.remoteClientGetter == nil {
 		r.remoteClientGetter = remote.NewClusterClient
 	}
 
-	r.scheme = mgr.GetScheme()
-
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
 		WithOptions(option).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.MachineToBootstrapMapFunc),
-			},
+			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
 		)
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
 			&source.Kind{Type: &expv1.MachinePool{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.MachinePoolToBootstrapMapFunc),
-			},
+			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
 		)
 	}
 
@@ -119,10 +111,8 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmConfigs),
-		},
-		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmConfigs),
+		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Clusters to controller manager")
@@ -132,9 +122,8 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 }
 
 // Reconcile handles KubeadmConfig events.
-func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
+func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Lookup the kubeadm config
 	config := &bootstrapv1.KubeadmConfig{}
@@ -244,14 +233,14 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 			token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-			remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+			remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster))
 			if err != nil {
 				log.Error(err, "Error creating remote cluster client")
 				return ctrl.Result{}, err
 			}
 
 			log.Info("Refreshing token until the infrastructure has a chance to consume it")
-			err = refreshToken(remoteClient, token)
+			err = refreshToken(ctx, remoteClient, token)
 			if err != nil {
 				// It would be nice to re-create the bootstrap token if the error was "not found", but we have no way to update the Machine's bootstrap data
 				return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
@@ -362,7 +351,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	}
 
 	// injects into config.ClusterConfiguration values from top level object
-	r.reconcileTopLevelObjectSettings(scope.Cluster, machine, scope.Config)
+	r.reconcileTopLevelObjectSettings(ctx, scope.Cluster, machine, scope.Config)
 
 	clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.ClusterConfiguration)
 	if err != nil {
@@ -614,13 +603,12 @@ func (r *KubeadmConfigReconciler) resolveSecretFileContent(ctx context.Context, 
 
 // ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqeue
 // requests for reconciliation of KubeadmConfigs.
-func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) []ctrl.Request {
+func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	c, ok := o.Object.(*clusterv1.Cluster)
+	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get KubeadmConfigs for Cluster")
-		return nil
+		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
 	}
 
 	selectors := []client.ListOption{
@@ -631,8 +619,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 	}
 
 	machineList := &clusterv1.MachineList{}
-	if err := r.Client.List(context.Background(), machineList, selectors...); err != nil {
-		r.Log.Error(err, "failed to list Machines", "Cluster", c.Name, "Namespace", c.Namespace)
+	if err := r.Client.List(context.TODO(), machineList, selectors...); err != nil {
 		return nil
 	}
 
@@ -646,8 +633,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		machinePoolList := &expv1.MachinePoolList{}
-		if err := r.Client.List(context.Background(), machinePoolList, selectors...); err != nil {
-			r.Log.Error(err, "failed to list MachinePools", "Cluster", c.Name, "Namespace", c.Namespace)
+		if err := r.Client.List(context.TODO(), machinePoolList, selectors...); err != nil {
 			return nil
 		}
 
@@ -665,13 +651,13 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqeue
 // request for reconciliation of KubeadmConfig.
-func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject) []ctrl.Request {
-	result := []ctrl.Request{}
-
-	m, ok := o.Object.(*clusterv1.Machine)
+func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
+	m, ok := o.(*clusterv1.Machine)
 	if !ok {
-		return nil
+		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
+
+	result := []ctrl.Request{}
 	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
@@ -681,13 +667,13 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject)
 
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
 // request for reconciliation of KubeadmConfig.
-func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o handler.MapObject) []ctrl.Request {
-	result := []ctrl.Request{}
-
-	m, ok := o.Object.(*expv1.MachinePool)
+func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []ctrl.Request {
+	m, ok := o.(*expv1.MachinePool)
 	if !ok {
-		return nil
+		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
 	}
+
+	result := []ctrl.Request{}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 	if configRef != nil && configRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}
@@ -701,7 +687,7 @@ func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o handler.MapObj
 // is automatically injected into config.JoinConfiguration.Discovery.
 // This allows to simplify configuration UX, by providing the option to delegate to CABPK the configuration of kubeadm join discovery.
 func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, certificates secret.Certificates) (ctrl.Result, error) {
-	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
+	log := ctrl.LoggerFrom(ctx)
 
 	// if config already contains a file discovery configuration, respect it without further validations
 	if config.Spec.JoinConfiguration.Discovery.File != nil {
@@ -738,12 +724,12 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+		remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		token, err := createToken(remoteClient)
+		token, err := createToken(ctx, remoteClient)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
 		}
@@ -763,8 +749,8 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 // reconcileTopLevelObjectSettings injects into config.ClusterConfiguration values from top level objects like cluster and machine.
 // The implementation func respect user provided config values, but in case some of them are missing, values from top level objects are used.
-func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clusterv1.Cluster, machine *clusterv1.Machine, config *bootstrapv1.KubeadmConfig) {
-	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
+func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, config *bootstrapv1.KubeadmConfig) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// If there is no ControlPlaneEndpoint defined in ClusterConfiguration but
 	// there is a ControlPlaneEndpoint defined at Cluster level (e.g. the load balancer endpoint),
@@ -810,6 +796,8 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 // storeBootstrapData creates a new secret with the data passed in as input,
 // sets the reference in the configuration status and ready to true.
 func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope *Scope, data []byte) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      scope.Config.Name,
@@ -839,7 +827,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
-		r.Log.Info("bootstrap data secret for KubeadmConfig already exists", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
+		log.Info("bootstrap data secret for KubeadmConfig already exists", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
 	}
 	scope.Config.Status.DataSecretName = pointer.StringPtr(secret.Name)
 	scope.Config.Status.Ready = true

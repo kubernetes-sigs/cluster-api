@@ -159,7 +159,7 @@ func capiProviderOptions() []client.ListOption {
 // CreateRelatedResourcesInput is the input type for CreateRelatedResources.
 type CreateRelatedResourcesInput struct {
 	Creator          Creator
-	RelatedResources []runtime.Object
+	RelatedResources []client.Object
 }
 
 // CreateRelatedResources is used to create runtime.Objects.

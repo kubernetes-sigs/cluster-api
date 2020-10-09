@@ -16,6 +16,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"math/rand"
 	"net/http"
@@ -173,13 +174,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Setup the context that's going to be used in controllers and for the manager.
+	ctx := ctrl.SetupSignalHandler()
+
 	setupChecks(mgr)
-	setupReconcilers(mgr)
+	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager", "version", version.Get().String())
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
@@ -197,7 +201,7 @@ func setupChecks(mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if webhookPort != 0 {
 		return
 	}
@@ -216,38 +220,34 @@ func setupReconcilers(mgr ctrl.Manager) {
 		Client:  mgr.GetClient(),
 		Log:     ctrl.Log.WithName("remote").WithName("ClusterCacheReconciler"),
 		Tracker: tracker,
-	}).SetupWithManager(mgr, concurrency(clusterConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
 	}
 
 	if err := (&controllers.ClusterReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
-	}).SetupWithManager(mgr, concurrency(clusterConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineReconciler{
 		Client:  mgr.GetClient(),
-		Log:     ctrl.Log.WithName("controllers").WithName("Machine"),
 		Tracker: tracker,
-	}).SetupWithManager(mgr, concurrency(machineConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Machine")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineSetReconciler{
 		Client:  mgr.GetClient(),
-		Log:     ctrl.Log.WithName("controllers").WithName("MachineSet"),
 		Tracker: tracker,
-	}).SetupWithManager(mgr, concurrency(machineSetConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineDeploymentReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MachineDeployment"),
-	}).SetupWithManager(mgr, concurrency(machineDeploymentConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)
 	}
@@ -255,8 +255,7 @@ func setupReconcilers(mgr ctrl.Manager) {
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&expcontrollers.MachinePoolReconciler{
 			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("MachinePool"),
-		}).SetupWithManager(mgr, concurrency(machinePoolConcurrency)); err != nil {
+		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
 			os.Exit(1)
 		}
@@ -265,16 +264,14 @@ func setupReconcilers(mgr ctrl.Manager) {
 	if feature.Gates.Enabled(feature.ClusterResourceSet) {
 		if err := (&addonscontrollers.ClusterResourceSetReconciler{
 			Client:  mgr.GetClient(),
-			Log:     ctrl.Log.WithName("controllers").WithName("ClusterResourceSet"),
 			Tracker: tracker,
-		}).SetupWithManager(mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
+		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSet")
 			os.Exit(1)
 		}
 		if err := (&addonscontrollers.ClusterResourceSetBindingReconciler{
 			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("ClusterResourceSetBinding"),
-		}).SetupWithManager(mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
+		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSetBinding")
 			os.Exit(1)
 		}
@@ -282,9 +279,8 @@ func setupReconcilers(mgr ctrl.Manager) {
 
 	if err := (&controllers.MachineHealthCheckReconciler{
 		Client:  mgr.GetClient(),
-		Log:     ctrl.Log.WithName("controllers").WithName("MachineHealthCheck"),
 		Tracker: tracker,
-	}).SetupWithManager(mgr, concurrency(machineHealthCheckConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(machineHealthCheckConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineHealthCheck")
 		os.Exit(1)
 	}

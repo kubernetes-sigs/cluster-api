@@ -36,7 +36,7 @@ import (
 // Helper is a utility for ensuring the proper patching of objects.
 type Helper struct {
 	client       client.Client
-	beforeObject runtime.Object
+	beforeObject client.Object
 	before       *unstructured.Unstructured
 	after        *unstructured.Unstructured
 	changes      map[string]bool
@@ -45,7 +45,7 @@ type Helper struct {
 }
 
 // NewHelper returns an initialized Helper
-func NewHelper(obj runtime.Object, crClient client.Client) (*Helper, error) {
+func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 	// Return early if the object is nil.
 	// If you're wondering why we need reflection to do this check, see https://golang.org/doc/faq#nil_error.
 	// TODO(vincepri): Remove this check and let it panic if used improperly in a future minor release.
@@ -65,13 +65,13 @@ func NewHelper(obj runtime.Object, crClient client.Client) (*Helper, error) {
 	return &Helper{
 		client:             crClient,
 		before:             unstructuredObj,
-		beforeObject:       obj.DeepCopyObject(),
+		beforeObject:       obj.DeepCopyObject().(client.Object),
 		isConditionsSetter: canInterfaceConditions,
 	}, nil
 }
 
 // Patch will attempt to patch the given object, including its status.
-func (h *Helper) Patch(ctx context.Context, obj runtime.Object, opts ...Option) error {
+func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) error {
 	if obj == nil {
 		return errors.Errorf("expected non-nil object")
 	}
@@ -126,7 +126,7 @@ func (h *Helper) Patch(ctx context.Context, obj runtime.Object, opts ...Option) 
 }
 
 // patch issues a patch for metadata and spec.
-func (h *Helper) patch(ctx context.Context, obj runtime.Object) error {
+func (h *Helper) patch(ctx context.Context, obj client.Object) error {
 	if !h.shouldPatch("metadata") && !h.shouldPatch("spec") {
 		return nil
 	}
@@ -138,7 +138,7 @@ func (h *Helper) patch(ctx context.Context, obj runtime.Object) error {
 }
 
 // patchStatus issues a patch if the status has changed.
-func (h *Helper) patchStatus(ctx context.Context, obj runtime.Object) error {
+func (h *Helper) patchStatus(ctx context.Context, obj client.Object) error {
 	if !h.shouldPatch("status") {
 		return nil
 	}
@@ -158,7 +158,7 @@ func (h *Helper) patchStatus(ctx context.Context, obj runtime.Object) error {
 //
 // Condition changes are then applied to the latest version of the object, and if there are
 // no unresolvable conflicts, the patch is sent again.
-func (h *Helper) patchStatusConditions(ctx context.Context, obj runtime.Object, forceOverwrite bool, ownedConditions []clusterv1.ConditionType) error {
+func (h *Helper) patchStatusConditions(ctx context.Context, obj client.Object, forceOverwrite bool, ownedConditions []clusterv1.ConditionType) error {
 	// Nothing to do if the object isn't a condition patcher.
 	if !h.isConditionsSetter {
 		return nil
@@ -237,18 +237,18 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj runtime.Object, 
 }
 
 // calculatePatch returns the before/after objects to be given in a controller-runtime patch, scoped down to the absolute necessary.
-func (h *Helper) calculatePatch(afterObj runtime.Object, focus patchType) (runtime.Object, runtime.Object, error) {
+func (h *Helper) calculatePatch(afterObj client.Object, focus patchType) (client.Object, client.Object, error) {
 	// Get a shallow unsafe copy of the before/after object in unstructured form.
 	before := unsafeUnstructuredCopy(h.before, focus, h.isConditionsSetter)
 	after := unsafeUnstructuredCopy(h.after, focus, h.isConditionsSetter)
 
 	// We've now applied all modifications to local unstructured objects,
 	// make copies of the original objects and convert them back.
-	beforeObj := h.beforeObject.DeepCopyObject()
+	beforeObj := h.beforeObject.DeepCopyObject().(client.Object)
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(before.Object, beforeObj); err != nil {
 		return nil, nil, err
 	}
-	afterObj = afterObj.DeepCopyObject()
+	afterObj = afterObj.DeepCopyObject().(client.Object)
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(after.Object, afterObj); err != nil {
 		return nil, nil, err
 	}
@@ -261,7 +261,7 @@ func (h *Helper) shouldPatch(in string) bool {
 
 // calculate changes tries to build a patch from the before/after objects we have
 // and store in a map which top-level fields (e.g. `metadata`, `spec`, `status`, etc.) have changed.
-func (h *Helper) calculateChanges(after runtime.Object) (map[string]bool, error) {
+func (h *Helper) calculateChanges(after client.Object) (map[string]bool, error) {
 	// Calculate patch data.
 	patch := client.MergeFrom(h.beforeObject)
 	diff, err := patch.Data(after)

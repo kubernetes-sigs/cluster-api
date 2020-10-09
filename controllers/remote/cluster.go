@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -28,15 +27,15 @@ import (
 )
 
 // ClusterClientGetter returns a new remote client.
-type ClusterClientGetter func(ctx context.Context, c client.Client, cluster client.ObjectKey, scheme *runtime.Scheme) (client.Client, error)
+type ClusterClientGetter func(ctx context.Context, c client.Client, cluster client.ObjectKey) (client.Client, error)
 
 // NewClusterClient returns a Client for interacting with a remote Cluster using the given scheme for encoding and decoding objects.
-func NewClusterClient(ctx context.Context, c client.Client, cluster client.ObjectKey, scheme *runtime.Scheme) (client.Client, error) {
+func NewClusterClient(ctx context.Context, c client.Client, cluster client.ObjectKey) (client.Client, error) {
 	restConfig, err := RESTConfig(ctx, c, cluster)
 	if err != nil {
 		return nil, err
 	}
-	ret, err := client.New(restConfig, client.Options{Scheme: scheme})
+	ret, err := client.New(restConfig, client.Options{Scheme: c.Scheme()})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create client for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}

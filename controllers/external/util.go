@@ -95,7 +95,7 @@ func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectR
 	}
 
 	// Create the external clone.
-	if err := in.Client.Create(context.Background(), to); err != nil {
+	if err := in.Client.Create(ctx, to); err != nil {
 		return nil, err
 	}
 

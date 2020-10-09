@@ -22,12 +22,10 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
@@ -62,8 +60,6 @@ import (
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object
 type KubeadmControlPlaneReconciler struct {
 	Client     client.Client
-	Log        logr.Logger
-	scheme     *runtime.Scheme
 	controller controller.Controller
 	recorder   record.EventRecorder
 
@@ -71,12 +67,12 @@ type KubeadmControlPlaneReconciler struct {
 	managementClusterUncached internal.ManagementCluster
 }
 
-func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -84,16 +80,13 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmControlPlane),
-		},
-		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmControlPlane),
+		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Clusters to controller manager")
 	}
 
-	r.scheme = mgr.GetScheme()
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
 
@@ -107,9 +100,8 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, reterr error) {
-	logger := r.Log.WithValues("namespace", req.Namespace, "kubeadmControlPlane", req.Name)
-	ctx := context.Background()
+func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the KubeadmControlPlane instance.
 	kcp := &controlplanev1.KubeadmControlPlane{}
@@ -123,17 +115,17 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)
 	if err != nil {
-		logger.Error(err, "Failed to retrieve owner Cluster from the API Server")
+		log.Error(err, "Failed to retrieve owner Cluster from the API Server")
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		logger.Info("Cluster Controller has not yet set OwnerRef")
+		log.Info("Cluster Controller has not yet set OwnerRef")
 		return ctrl.Result{}, nil
 	}
-	logger = logger.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", cluster.Name)
 
 	if annotations.IsPaused(cluster, kcp) {
-		logger.Info("Reconciliation is paused for this object")
+		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
 
@@ -145,7 +137,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(kcp, r.Client)
 	if err != nil {
-		logger.Error(err, "Failed to configure the patch helper")
+		log.Error(err, "Failed to configure the patch helper")
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -161,7 +153,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
 		if err := patchHelper.Patch(ctx, kcp, patchOpts...); err != nil {
-			logger.Error(err, "Failed to patch KubeadmControlPlane to add finalizer")
+			log.Error(err, "Failed to patch KubeadmControlPlane to add finalizer")
 			return ctrl.Result{}, err
 		}
 
@@ -180,16 +172,16 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 		if err := r.updateStatus(ctx, kcp, cluster); err != nil {
 			var connFailure *internal.RemoteClusterConnectionError
 			if errors.As(err, &connFailure) {
-				logger.Info("Could not connect to workload cluster to fetch status", "err", err.Error())
+				log.Info("Could not connect to workload cluster to fetch status", "err", err.Error())
 			} else {
-				logger.Error(err, "Failed to update KubeadmControlPlane Status")
+				log.Error(err, "Failed to update KubeadmControlPlane Status")
 				reterr = kerrors.NewAggregate([]error{reterr, err})
 			}
 		}
 
 		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.
 		if err := patchKubeadmControlPlane(ctx, patchHelper, kcp); err != nil {
-			logger.Error(err, "Failed to patch KubeadmControlPlane")
+			log.Error(err, "Failed to patch KubeadmControlPlane")
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 
@@ -241,8 +233,8 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 
 // reconcile handles KubeadmControlPlane reconciliation.
 func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (res ctrl.Result, reterr error) {
-	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
-	logger.Info("Reconcile KubeadmControlPlane")
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	log.Info("Reconcile KubeadmControlPlane")
 
 	// Make sure to reconcile the external infrastructure reference.
 	if err := r.reconcileExternalReference(ctx, cluster, kcp.Spec.InfrastructureTemplate); err != nil {
@@ -258,7 +250,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
 	controllerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
 	if err := certificates.LookupOrGenerate(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
-		logger.Error(err, "unable to lookup or create cluster certificates")
+		log.Error(err, "unable to lookup or create cluster certificates")
 		conditions.MarkFalse(kcp, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
 	}
@@ -266,19 +258,19 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 
 	// If ControlPlaneEndpoint is not set, return early
 	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		logger.Info("Cluster does not yet have a ControlPlaneEndpoint defined")
+		log.Info("Cluster does not yet have a ControlPlaneEndpoint defined")
 		return ctrl.Result{}, nil
 	}
 
 	// Generate Cluster Kubeconfig if needed
 	if err := r.reconcileKubeconfig(ctx, util.ObjectKey(cluster), cluster.Spec.ControlPlaneEndpoint, kcp); err != nil {
-		logger.Error(err, "failed to reconcile Kubeconfig")
+		log.Error(err, "failed to reconcile Kubeconfig")
 		return ctrl.Result{}, err
 	}
 
 	controlPlaneMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, util.ObjectKey(cluster), machinefilters.ControlPlaneMachines(cluster.Name))
 	if err != nil {
-		logger.Error(err, "failed to retrieve control plane machines for cluster")
+		log.Error(err, "failed to retrieve control plane machines for cluster")
 		return ctrl.Result{}, err
 	}
 
@@ -291,13 +283,13 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 
 	ownedMachines := controlPlaneMachines.Filter(machinefilters.OwnedMachines(kcp))
 	if len(ownedMachines) != len(controlPlaneMachines) {
-		logger.Info("Not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
+		log.Info("Not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
 		return ctrl.Result{}, nil
 	}
 
 	controlPlane, err := internal.NewControlPlane(ctx, r.Client, cluster, kcp, ownedMachines)
 	if err != nil {
-		logger.Error(err, "failed to initialize control plane")
+		log.Error(err, "failed to initialize control plane")
 		return ctrl.Result{}, err
 	}
 
@@ -309,7 +301,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	needRollout := controlPlane.MachinesNeedingRollout()
 	switch {
 	case len(needRollout) > 0:
-		logger.Info("Rolling out Control Plane machines", "needRollout", needRollout.Names())
+		log.Info("Rolling out Control Plane machines", "needRollout", needRollout.Names())
 		// NOTE: we are using Status.UpdatedReplicas from the previous reconciliation only to provide a meaningful message
 		// and this does not influence any reconciliation logic.
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition, controlplanev1.RollingUpdateInProgressReason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(needRollout), kcp.Status.UpdatedReplicas)
@@ -331,17 +323,17 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// We are creating the first replica
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
-		logger.Info("Initializing control plane", "Desired", desiredReplicas, "Existing", numMachines)
+		log.Info("Initializing control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableCondition, controlplanev1.WaitingForKubeadmInitReason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
-		logger.Info("Scaling up control plane", "Desired", desiredReplicas, "Existing", numMachines)
+		log.Info("Scaling up control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
 	// We are scaling down
 	case numMachines > desiredReplicas:
-		logger.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
+		log.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
 		return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, internal.FilterableMachineCollection{})
 	}
@@ -349,7 +341,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// Get the workload cluster client.
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		logger.V(2).Info("cannot get remote client to workload cluster, will requeue", "cause", err)
+		log.V(2).Info("cannot get remote client to workload cluster, will requeue", "cause", err)
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -360,7 +352,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 
 	// Update kube-proxy daemonset.
 	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, kcp); err != nil {
-		logger.Error(err, "failed to update kube-proxy daemonset")
+		log.Error(err, "failed to update kube-proxy daemonset")
 		return ctrl.Result{}, err
 	}
 
@@ -376,8 +368,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 // The implementation does not take non-control plane workloads into consideration. This may or may not change in the future.
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
-	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
-	logger.Info("Reconcile KubeadmControlPlane deletion")
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	log.Info("Reconcile KubeadmControlPlane deletion")
 
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
@@ -399,7 +391,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 
 	// Verify that only control plane machines remain
 	if len(allMachines) != len(ownedMachines) {
-		logger.Info("Waiting for worker nodes to be deleted first")
+		log.Info("Waiting for worker nodes to be deleted first")
 		conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "Waiting for worker nodes to be deleted first")
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
@@ -409,7 +401,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	var errs []error
 	for i := range machinesToDelete {
 		m := machinesToDelete[i]
-		logger := logger.WithValues("machine", m)
+		logger := log.WithValues("machine", m)
 		if err := r.Client.Delete(ctx, machinesToDelete[i]); err != nil && !apierrors.IsNotFound(err) {
 			logger.Error(err, "Failed to cleanup owned machine")
 			errs = append(errs, err)
@@ -427,11 +419,10 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 
 // ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for KubeadmControlPlane based on updates to a Cluster.
-func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.MapObject) []ctrl.Request {
-	c, ok := o.Object.(*clusterv1.Cluster)
+func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o client.Object) []ctrl.Request {
+	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a Cluster but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
 	}
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
@@ -546,7 +537,7 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 			return err
 		}
 
-		if err := controllerutil.SetControllerReference(kcp, m, r.scheme); err != nil {
+		if err := controllerutil.SetControllerReference(kcp, m, r.Client.Scheme()); err != nil {
 			return err
 		}
 

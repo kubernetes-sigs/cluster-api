@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
@@ -131,7 +130,7 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 		Expect(input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: input.Cluster.Name, Namespace: input.Cluster.Namespace}, binding)).To(Succeed())
 
 		for _, resource := range input.ClusterResourceSet.Spec.Resources {
-			var configSource runtime.Object
+			var configSource client.Object
 
 			switch resource.Kind {
 			case string(addonsv1.SecretClusterResourceSetResourceKind):

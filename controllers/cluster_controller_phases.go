@@ -64,16 +64,16 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
 func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
-	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+	log := ctrl.LoggerFrom(ctx)
 
-	if err := utilconversion.ConvertReferenceAPIContract(ctx, logger, r.Client, r.restConfig, ref); err != nil {
+	if err := utilconversion.ConvertReferenceAPIContract(ctx, r.Client, r.restConfig, ref); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
 	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			logger.Info("Could not find external object for cluster, requeuing", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
+			log.Info("Could not find external object for cluster, requeuing", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
 			return external.ReconcileOutput{RequeueAfter: 30 * time.Second}, nil
 		}
 		return external.ReconcileOutput{}, err
@@ -81,7 +81,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 	// if external ref is paused, return error.
 	if annotations.IsPaused(cluster, obj) {
-		logger.V(3).Info("External object referenced is paused")
+		log.V(3).Info("External object referenced is paused")
 		return external.ReconcileOutput{Paused: true}, nil
 	}
 
@@ -92,7 +92,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	}
 
 	// Set external object ControllerReference to the Cluster.
-	if err := controllerutil.SetControllerReference(cluster, obj, r.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cluster, obj, r.Client.Scheme()); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -110,7 +110,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	}
 
 	// Ensure we add a watcher to the external object.
-	if err := r.externalTracker.Watch(logger, obj, &handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
+	if err := r.externalTracker.Watch(log, obj, &handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -135,7 +135,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
 func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
-	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+	log := ctrl.LoggerFrom(ctx)
 
 	if cluster.Spec.InfrastructureRef == nil {
 		return ctrl.Result{}, nil
@@ -175,7 +175,7 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	)
 
 	if !ready {
-		logger.V(3).Info("Infrastructure provider is not ready yet")
+		log.V(3).Info("Infrastructure provider is not ready yet")
 		return ctrl.Result{}, nil
 	}
 
@@ -249,7 +249,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 }
 
 func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
-	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+	log := ctrl.LoggerFrom(ctx)
 
 	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		return ctrl.Result{}, nil
@@ -267,7 +267,7 @@ func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *cl
 	case apierrors.IsNotFound(err):
 		if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
 			if err == kubeconfig.ErrDependentCertificateNotFound {
-				logger.Info("could not find secret for cluster, requeuing", "secret", secret.ClusterCA)
+				log.Info("could not find secret for cluster, requeuing", "secret", secret.ClusterCA)
 				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 			}
 			return ctrl.Result{}, err

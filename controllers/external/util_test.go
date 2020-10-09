@@ -17,7 +17,6 @@ limitations under the License.
 package external
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -28,10 +27,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+var (
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func TestGetResourceFound(t *testing.T) {
@@ -56,7 +59,7 @@ func TestGetResourceFound(t *testing.T) {
 	}
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme(), testResource.DeepCopy())
-	got, err := Get(context.Background(), fakeClient, testResourceReference, namespace)
+	got, err := Get(ctx, fakeClient, testResourceReference, namespace)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(got).To(Equal(testResource))
 }
@@ -74,7 +77,7 @@ func TestGetResourceNotFound(t *testing.T) {
 	}
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme())
-	_, err := Get(context.Background(), fakeClient, testResourceReference, namespace)
+	_, err := Get(ctx, fakeClient, testResourceReference, namespace)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(apierrors.IsNotFound(errors.Cause(err))).To(BeTrue())
 }
@@ -93,7 +96,7 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 	}
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme())
-	_, err := CloneTemplate(context.Background(), &CloneTemplateInput{
+	_, err := CloneTemplate(ctx, &CloneTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: testResourceReference,
 		Namespace:   namespace,
@@ -163,7 +166,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme(), template.DeepCopy())
 
-	ref, err := CloneTemplate(context.Background(), &CloneTemplateInput{
+	ref, err := CloneTemplate(ctx, &CloneTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef.DeepCopy(),
 		Namespace:   namespace,
@@ -185,7 +188,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	clone.SetAPIVersion(expectedAPIVersion)
 
 	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
-	g.Expect(fakeClient.Get(context.Background(), key, clone)).To(Succeed())
+	g.Expect(fakeClient.Get(ctx, key, clone)).To(Succeed())
 	g.Expect(clone.GetOwnerReferences()).To(HaveLen(1))
 	g.Expect(clone.GetOwnerReferences()).To(ContainElement(owner))
 
@@ -251,7 +254,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme(), template.DeepCopy())
 
-	ref, err := CloneTemplate(context.Background(), &CloneTemplateInput{
+	ref, err := CloneTemplate(ctx, &CloneTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef,
 		Namespace:   namespace,
@@ -268,7 +271,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	clone.SetKind(expectedKind)
 	clone.SetAPIVersion(expectedAPIVersion)
 	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
-	g.Expect(fakeClient.Get(context.Background(), key, clone)).To(Succeed())
+	g.Expect(fakeClient.Get(ctx, key, clone)).To(Succeed())
 	g.Expect(clone.GetLabels()).To(Equal(expectedLabels))
 	g.Expect(clone.GetOwnerReferences()).To(BeEmpty())
 	cloneSpec, ok, err := unstructured.NestedMap(clone.UnstructuredContent(), "spec")
@@ -308,7 +311,7 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme(), template.DeepCopy())
 
-	_, err := CloneTemplate(context.Background(), &CloneTemplateInput{
+	_, err := CloneTemplate(ctx, &CloneTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef,
 		Namespace:   namespace,

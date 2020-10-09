@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
@@ -39,8 +38,8 @@ import (
 type CreateMachineDeploymentInput struct {
 	Creator                 Creator
 	MachineDeployment       *clusterv1.MachineDeployment
-	BootstrapConfigTemplate runtime.Object
-	InfraMachineTemplate    runtime.Object
+	BootstrapConfigTemplate client.Object
+	InfraMachineTemplate    client.Object
 }
 
 // CreateMachineDeployment creates the machine deployment and dependencies.
@@ -174,7 +173,7 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 
 		oldVersion := deployment.Spec.Template.Spec.Version
 		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
-		Expect(patchHelper.Patch(context.TODO(), deployment)).To(Succeed())
+		Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
 			deployment.Namespace, deployment.Name, *oldVersion, input.UpgradeVersion)
@@ -269,7 +268,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 		Expect(err).ToNot(HaveOccurred())
 		infraRef.Name = newInfraObjName
 		deployment.Spec.Template.Spec.InfrastructureRef = infraRef
-		Expect(patchHelper.Patch(context.TODO(), deployment)).To(Succeed())
+		Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
 
 		log.Logf("Waiting for rolling upgrade to start.")
 		WaitForMachineDeploymentRollingUpgradeToStart(ctx, WaitForMachineDeploymentRollingUpgradeToStartInput{

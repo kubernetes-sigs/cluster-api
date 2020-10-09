@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -32,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -44,7 +44,7 @@ const (
 
 var (
 	testEnv *helpers.TestEnvironment
-	ctx     = context.Background()
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {
@@ -64,51 +64,46 @@ func TestMain(m *testing.M) {
 		Client:  testEnv,
 		Log:     log.Log,
 		Tracker: tracker,
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 	}
 	if err := (&ClusterReconciler{
 		Client:   testEnv,
-		Log:      log.Log.WithName("controllers").WithName("Cluster"),
 		recorder: testEnv.GetEventRecorderFor("cluster-controller"),
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
 	}
 	if err := (&MachineReconciler{
 		Client:   testEnv,
-		Log:      log.Log.WithName("controllers").WithName("Machine"),
 		Tracker:  tracker,
 		recorder: testEnv.GetEventRecorderFor("machine-controller"),
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 	}
 	if err := (&MachineSetReconciler{
 		Client:   testEnv,
-		Log:      log.Log.WithName("controllers").WithName("MachineSet"),
 		Tracker:  tracker,
 		recorder: testEnv.GetEventRecorderFor("machineset-controller"),
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
 	}
 	if err := (&MachineDeploymentReconciler{
 		Client:   testEnv,
-		Log:      log.Log.WithName("controllers").WithName("MachineDeployment"),
 		recorder: testEnv.GetEventRecorderFor("machinedeployment-controller"),
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start MMachineDeploymentReconciler: %v", err))
 	}
 	if err := (&MachineHealthCheckReconciler{
 		Client:   testEnv,
-		Log:      log.Log.WithName("controllers").WithName("MachineHealthCheck"),
 		Tracker:  tracker,
 		recorder: testEnv.GetEventRecorderFor("machinehealthcheck-controller"),
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start MachineHealthCheckReconciler : %v", err))
 	}
 
 	go func() {
 		fmt.Println("Starting the manager")
-		if err := testEnv.StartManager(); err != nil {
+		if err := testEnv.StartManager(ctx); err != nil {
 			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
 		}
 	}()

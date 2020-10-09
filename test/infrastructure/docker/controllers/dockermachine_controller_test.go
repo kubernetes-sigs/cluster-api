@@ -24,11 +24,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
 func setupScheme() *runtime.Scheme {
@@ -49,7 +48,7 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 	dockerCluster := newDockerCluster(clusterName, "my-docker-cluster")
 	dockerMachine1 := newDockerMachine("my-docker-machine-0")
 	dockerMachine2 := newDockerMachine("my-docker-machine-1")
-	objects := []runtime.Object{
+	objects := []client.Object{
 		newCluster(clusterName),
 		dockerCluster,
 		newMachine(clusterName, "my-machine-0", dockerMachine1),
@@ -60,12 +59,8 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 	c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 	r := DockerMachineReconciler{
 		Client: c,
-		Log:    klogr.New(),
 	}
-	mo := handler.MapObject{
-		Object: dockerCluster,
-	}
-	out := r.DockerClusterToDockerMachines(mo)
+	out := r.DockerClusterToDockerMachines(dockerCluster)
 	machineNames := make([]string, len(out))
 	for i := range out {
 		machineNames[i] = out[i].Name

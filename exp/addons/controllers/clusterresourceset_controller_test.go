@@ -53,7 +53,7 @@ var _ = Describe("ClusterResourceSet Reconciler", func() {
 		By("Creating the Cluster")
 		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
 		By("Creating the remote Cluster kubeconfig")
-		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
+		Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 
 		testConfigmap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{

@@ -20,10 +20,9 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/annotations"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -144,24 +143,24 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 func ResourceNotPaused(logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "updateEvent"), e.ObjectNew, e.MetaNew)
+			return processIfNotPaused(logger.WithValues("predicate", "updateEvent"), e.ObjectNew)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "createEvent"), e.Object, e.Meta)
+			return processIfNotPaused(logger.WithValues("predicate", "createEvent"), e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "deleteEvent"), e.Object, e.Meta)
+			return processIfNotPaused(logger.WithValues("predicate", "deleteEvent"), e.Object)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "genericEvent"), e.Object, e.Meta)
+			return processIfNotPaused(logger.WithValues("predicate", "genericEvent"), e.Object)
 		},
 	}
 }
 
-func processIfNotPaused(logger logr.Logger, obj runtime.Object, meta v1.Object) bool {
+func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
-	log := logger.WithValues("namespace", meta.GetNamespace(), kind, meta.GetName())
-	if annotations.HasPausedAnnotation(meta) {
+	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+	if annotations.HasPausedAnnotation(obj) {
 		log.V(4).Info("Resource is paused, will not attempt to map resource")
 		return false
 	}

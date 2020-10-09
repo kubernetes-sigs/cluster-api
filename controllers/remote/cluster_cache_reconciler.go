@@ -37,7 +37,7 @@ type ClusterCacheReconciler struct {
 	Tracker *ClusterCacheTracker
 }
 
-func (r *ClusterCacheReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	_, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).
@@ -51,10 +51,8 @@ func (r *ClusterCacheReconciler) SetupWithManager(mgr ctrl.Manager, options cont
 
 // Reconcile reconciles Clusters and removes ClusterCaches for any Cluster that cannot be retrieved from the
 // management cluster.
-func (r *ClusterCacheReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
-	ctx := context.Background()
-
-	log := r.Log.WithValues("namespace", req.Namespace, "name", req.Name)
+func (r *ClusterCacheReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconciling")
 
 	var cluster clusterv1.Cluster

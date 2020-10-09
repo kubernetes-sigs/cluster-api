@@ -35,7 +35,8 @@ var (
 )
 
 func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
-	logger := r.Log.WithValues("machine", machine.Name, "namespace", machine.Namespace)
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+
 	// Check that the Machine hasn't been deleted or in the process.
 	if !machine.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
@@ -46,11 +47,11 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 		return ctrl.Result{}, nil
 	}
 
-	logger = logger.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", cluster.Name)
 
 	// Check that the Machine has a valid ProviderID.
 	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
-		logger.Info("Machine doesn't have a valid ProviderID yet")
+		log.Info("Machine doesn't have a valid ProviderID yet")
 		return ctrl.Result{}, nil
 	}
 
@@ -65,37 +66,37 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 	}
 
 	// Get the Node reference.
-	nodeRef, err := r.getNodeReference(remoteClient, providerID)
+	nodeRef, err := r.getNodeReference(ctx, remoteClient, providerID)
 	if err != nil {
 		if err == ErrNodeNotFound {
-			logger.Info(fmt.Sprintf("Cannot assign NodeRef to Machine: %s, requeuing", ErrNodeNotFound.Error()))
+			log.Info(fmt.Sprintf("Cannot assign NodeRef to Machine: %s, requeuing", ErrNodeNotFound.Error()))
 			return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
 		}
-		logger.Error(err, "Failed to assign NodeRef")
+		log.Error(err, "Failed to assign NodeRef")
 		r.recorder.Event(machine, apicorev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
 		return ctrl.Result{}, err
 	}
 
 	// Set the Machine NodeRef.
 	machine.Status.NodeRef = nodeRef
-	logger.Info("Set Machine's NodeRef", "noderef", machine.Status.NodeRef.Name)
+	log.Info("Set Machine's NodeRef", "noderef", machine.Status.NodeRef.Name)
 	r.recorder.Event(machine, apicorev1.EventTypeNormal, "SuccessfulSetNodeRef", machine.Status.NodeRef.Name)
 	return ctrl.Result{}, nil
 }
 
-func (r *MachineReconciler) getNodeReference(c client.Reader, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
-	logger := r.Log.WithValues("providerID", providerID)
+func (r *MachineReconciler) getNodeReference(ctx context.Context, c client.Reader, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
+	log := ctrl.LoggerFrom(ctx, "providerID", providerID)
 
 	nodeList := apicorev1.NodeList{}
 	for {
-		if err := c.List(context.TODO(), &nodeList, client.Continue(nodeList.Continue)); err != nil {
+		if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
 			return nil, err
 		}
 
 		for _, node := range nodeList.Items {
 			nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
 			if err != nil {
-				logger.Error(err, "Failed to parse ProviderID", "node", node.Name)
+				log.Error(err, "Failed to parse ProviderID", "node", node.Name)
 				continue
 			}
 

@@ -30,7 +30,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Func func(machine *clusterv1.Machine) bool
@@ -102,7 +102,7 @@ func InFailureDomains(failureDomains ...*string) Func {
 
 // OwnedMachines returns a filter to find all owned control plane machines.
 // Usage: managementCluster.GetMachinesForCluster(ctx, cluster, machinefilters.OwnedMachines(controlPlane))
-func OwnedMachines(owner controllerutil.Object) func(machine *clusterv1.Machine) bool {
+func OwnedMachines(owner client.Object) func(machine *clusterv1.Machine) bool {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false

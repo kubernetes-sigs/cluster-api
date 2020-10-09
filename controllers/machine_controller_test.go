@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -26,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -36,8 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -112,10 +108,9 @@ func TestMachineFinalizer(t *testing.T) {
 					machineValidCluster,
 					machineWithFinalizer,
 				),
-				Log: log.Log,
 			}
 
-			_, _ = mr.Reconcile(tc.request)
+			_, _ = mr.Reconcile(ctx, tc.request)
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual clusterv1.Machine
@@ -275,21 +270,19 @@ func TestMachineOwnerReference(t *testing.T) {
 					machineValidMachine,
 					machineValidControlled,
 				),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual clusterv1.Machine
 
 			// this first requeue is to add finalizer
-			result, err := mr.Reconcile(tc.request)
+			result, err := mr.Reconcile(ctx, tc.request)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(result).To(Equal(ctrl.Result{}))
 			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 			g.Expect(actual.Finalizers).To(ContainElement(clusterv1.MachineFinalizer))
 
-			_, _ = mr.Reconcile(tc.request)
+			_, _ = mr.Reconcile(ctx, tc.request)
 
 			if len(tc.expectedOR) > 0 {
 				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
@@ -440,11 +433,9 @@ func TestReconcileRequest(t *testing.T) {
 
 			r := &MachineReconciler{
 				Client: clientFake,
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
-			result, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
+			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
 			if tc.expected.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -678,11 +669,9 @@ func TestMachineConditions(t *testing.T) {
 
 			r := &MachineReconciler{
 				Client: clientFake,
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
-			_, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
+			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
 			g.Expect(err).NotTo(HaveOccurred())
 
 			m = &clusterv1.Machine{}
@@ -761,7 +750,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			objs := []runtime.Object{testCluster, machine}
+			objs := []client.Object{testCluster, machine}
 
 			if tc.bootstrapExists {
 				objs = append(objs, bootstrapConfig)
@@ -769,8 +758,6 @@ func TestReconcileDeleteExternal(t *testing.T) {
 
 			r := &MachineReconciler{
 				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			obj, err := r.reconcileDeleteExternal(ctx, machine, machine.Spec.Bootstrap.ConfigRef)
@@ -813,10 +800,8 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &MachineReconciler{
 		Client: helpers.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
-		Log:    log.Log,
-		scheme: scheme.Scheme,
 	}
-	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})
+	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	var actual clusterv1.Machine
@@ -836,18 +821,12 @@ func Test_clusterToActiveMachines(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		cluster handler.MapObject
+		cluster client.Object
 		want    []reconcile.Request
 	}{
 		{
-			name: "cluster with two machines",
-			cluster: handler.MapObject{
-				Meta: &metav1.ObjectMeta{
-					Name:      "test-cluster-2",
-					Namespace: "default",
-				},
-				Object: testCluster2Machines,
-			},
+			name:    "cluster with two machines",
+			cluster: testCluster2Machines,
 			want: []reconcile.Request{
 				{
 					NamespacedName: client.ObjectKey{
@@ -864,21 +843,15 @@ func Test_clusterToActiveMachines(t *testing.T) {
 			},
 		},
 		{
-			name: "cluster with zero machines",
-			cluster: handler.MapObject{
-				Meta: &metav1.ObjectMeta{
-					Name:      "test-cluster-0",
-					Namespace: "default",
-				},
-				Object: testCluster0Machines,
-			},
-			want: []reconcile.Request{},
+			name:    "cluster with zero machines",
+			cluster: testCluster0Machines,
+			want:    []reconcile.Request{},
 		},
 	}
 	for _, tt := range tests {
 		g := NewWithT(t)
 
-		var objs []runtime.Object
+		var objs []client.Object
 		objs = append(objs, testCluster2Machines)
 		objs = append(objs, testCluster0Machines)
 
@@ -911,8 +884,6 @@ func Test_clusterToActiveMachines(t *testing.T) {
 
 		r := &MachineReconciler{
 			Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
-			Log:    log.Log,
-			scheme: scheme.Scheme,
 		}
 
 		got := r.clusterToActiveMachines(tt.cluster)
@@ -1032,13 +1003,11 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			var objs []runtime.Object
+			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
 			r := &MachineReconciler{
 				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
 			got := r.isNodeDrainAllowed(tt.machine)
@@ -1265,11 +1234,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					m2,
 					emp,
 				),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
 			}
 
-			err := mr.isDeleteNodeAllowed(context.TODO(), tc.cluster, tc.machine)
+			err := mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine)
 			if tc.expectedError == nil {
 				g.Expect(err).To(BeNil())
 			} else {

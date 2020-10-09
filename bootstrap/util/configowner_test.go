@@ -17,7 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -29,7 +28,12 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/feature"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
+
+var (
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func TestGetConfigOwner(t *testing.T) {
@@ -74,7 +78,7 @@ func TestGetConfigOwner(t *testing.T) {
 				Name:      "my-resource-owned-by-machine",
 			},
 		}
-		configOwner, err := GetConfigOwner(context.TODO(), c, obj)
+		configOwner, err := GetConfigOwner(ctx, c, obj)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(configOwner).ToNot(BeNil())
 		g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
@@ -117,7 +121,7 @@ func TestGetConfigOwner(t *testing.T) {
 				Name:      "my-resource-owned-by-machine-pool",
 			},
 		}
-		configOwner, err := GetConfigOwner(context.TODO(), c, obj)
+		configOwner, err := GetConfigOwner(ctx, c, obj)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(configOwner).ToNot(BeNil())
 		g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
@@ -142,7 +146,7 @@ func TestGetConfigOwner(t *testing.T) {
 				Name:      "my-resource-owned-by-machine",
 			},
 		}
-		_, err := GetConfigOwner(context.TODO(), c, obj)
+		_, err := GetConfigOwner(ctx, c, obj)
 		g.Expect(err).To(HaveOccurred())
 	})
 
@@ -156,7 +160,7 @@ func TestGetConfigOwner(t *testing.T) {
 				Name:            "my-resource-owned-by-machine",
 			},
 		}
-		configOwner, err := GetConfigOwner(context.TODO(), c, obj)
+		configOwner, err := GetConfigOwner(ctx, c, obj)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(configOwner).To(BeNil())
 	})

@@ -57,13 +57,13 @@ func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name 
 	return m, nil
 }
 
-// MachinePoolToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
+// MachinePoolToInfrastructureMapFunc returns a handler.MapFunc that watches for
 // MachinePool events and returns reconciliation requests for an infrastructure provider object.
-func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Logger) handler.ToRequestsFunc {
+func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Logger) handler.MapFunc {
 	log = log.WithValues("machine-pool-to-infra-map-func", gvk.String())
-	return func(o handler.MapObject) []reconcile.Request {
-		log := log.WithValues("namespace", o.Meta.GetNamespace(), "name", o.Meta.GetName())
-		m, ok := o.Object.(*clusterv1exp.MachinePool)
+	return func(o client.Object) []reconcile.Request {
+		log := log.WithValues("namespace", o.GetNamespace(), "name", o.GetName())
+		m, ok := o.(*clusterv1exp.MachinePool)
 		if !ok {
 			log.V(4).Info("not a machine pool")
 			return nil

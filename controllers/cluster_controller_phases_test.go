@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -34,7 +33,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {
@@ -139,11 +137,9 @@ func TestClusterReconcilePhases(t *testing.T) {
 				}
 				r := &ClusterReconciler{
 					Client: c,
-					Log:    log.Log,
-					scheme: scheme.Scheme,
 				}
 
-				res, err := r.reconcileInfrastructure(context.Background(), tt.cluster)
+				res, err := r.reconcileInfrastructure(ctx, tt.cluster)
 				g.Expect(res).To(Equal(tt.expectResult))
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
@@ -218,10 +214,8 @@ func TestClusterReconcilePhases(t *testing.T) {
 				}
 				r := &ClusterReconciler{
 					Client: c,
-					scheme: scheme.Scheme,
-					Log:    log.Log,
 				}
-				res, err := r.reconcileKubeconfig(context.Background(), tt.cluster)
+				res, err := r.reconcileKubeconfig(ctx, tt.cluster)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 				} else {
@@ -369,9 +363,8 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 
 			r := &ClusterReconciler{
 				Client: c,
-				scheme: scheme.Scheme,
 			}
-			r.reconcilePhase(context.TODO(), tt.cluster)
+			r.reconcilePhase(ctx, tt.cluster)
 			g.Expect(tt.cluster.Status.GetTypedPhase()).To(Equal(tt.wantPhase))
 		})
 	}

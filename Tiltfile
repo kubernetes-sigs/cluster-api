@@ -140,33 +140,6 @@ COPY --from=tilt-helper /restart.sh .
 COPY manager .
 """
 
-cert_manager_test_resources = """
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cert-manager-test
----
-apiVersion: cert-manager.io/v1alpha2
-kind: Issuer
-metadata:
-  name: test-selfsigned
-  namespace: cert-manager-test
-spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1alpha2
-kind: Certificate
-metadata:
-  name: selfsigned-cert
-  namespace: cert-manager-test
-spec:
-  dnsNames:
-    - example.com
-  secretName: selfsigned-cert-tls
-  issuerRef:
-    name: test-selfsigned
-"""
-
 # Configures a provider by doing the following:
 #
 # 1. Enables a local_resource go build of the provider's manager binary
@@ -234,39 +207,6 @@ def enable_provider(name):
         yaml = str(kustomize_with_envsubst(context + "/config"))
         k8s_yaml(blob(yaml))
 
-# Prepull all the cert-manager images to your local environment and then load them directly into kind. This speeds up
-# setup if you're repeatedly destroying and recreating your kind cluster, as it doesn't have to pull the images over
-# the network each time.
-def deploy_cert_manager():
-    registry = settings.get("cert_manager_registry", "quay.io/jetstack")
-    version = settings.get("cert_manager_version", "v0.16.1")
-
-    # check if cert-mamager is already installed, otherwise pre-load images & apply the manifest
-    # NB. this is required until https://github.com/jetstack/cert-manager/issues/3121 is addressed otherwise
-    # when applying the manifest twice to same cluster kubectl get stuck
-    existsCheck = str(local("kubectl get namespaces"))
-    if existsCheck.find("cert-manager") == -1:
-        # pre-load cert-manager images in kind
-        images = ["cert-manager-controller", "cert-manager-cainjector", "cert-manager-webhook"]
-        if settings.get("preload_images_for_kind"):
-            for image in images:
-                local("docker pull {}/{}:{}".format(registry, image, version))
-                local("kind load docker-image --name {} {}/{}:{}".format(settings.get("kind_cluster_name"), registry, image, version))
-
-        # apply the cert-manager manifest
-        local("kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/{}/cert-manager.yaml".format(version))
-
-    # verifies cert-manager is properly working (https://cert-manager.io/docs/installation/kubernetes/#verifying-the-installation)
-    # 1. wait for the cert-manager to be running
-    local("kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment/cert-manager")
-    local("kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment/cert-manager-cainjector")
-    local("kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment/cert-manager-webhook")
-
-    # 2. create a test certificate
-    local("cat << EOF | kubectl apply -f - " + cert_manager_test_resources + "EOF")
-    local("kubectl wait --for=condition=Ready --timeout=300s -n cert-manager-test certificate/selfsigned-cert ")
-    local("cat << EOF | kubectl delete -f - " + cert_manager_test_resources + "EOF")
-
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.
 def include_user_tilt_files():
@@ -291,6 +231,8 @@ def kustomize_with_envsubst(path):
 include_user_tilt_files()
 
 load_provider_tiltfiles()
+
+load("ext://cert_manager", "deploy_cert_manager")
 
 if settings.get("deploy_cert_manager"):
     deploy_cert_manager()

@@ -64,11 +64,11 @@ func TestRunCmdRun(t *testing.T) {
 			name: "hack kubeadm ingore errors",
 			r: runCmd{
 				Cmds: []Cmd{
-					{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /tmp/kubeadm.yaml"}},
+					{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /run/kubeadm/kubeadm.yaml"}},
 				},
 			},
 			expectedCmds: []Cmd{
-				{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /tmp/kubeadm.yaml --ignore-preflight-errors=all"}},
+				{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /run/kubeadm/kubeadm.yaml --ignore-preflight-errors=all"}},
 			},
 		},
 	}
@@ -89,8 +89,8 @@ func TestHackKubeadmIgnoreErrors(t *testing.T) {
 
 	cloudData := `
 runcmd:
-- kubeadm init --config=/tmp/kubeadm.yaml
-- [ kubeadm, join, --config=/tmp/kubeadm-controlplane-join-config.yaml ]`
+- kubeadm init --config=/run/kubeadm/kubeadm.yaml
+- [ kubeadm, join, --config=/run/kubeadm/kubeadm-controlplane-join-config.yaml ]`
 	r := runCmd{}
 	err := r.Unmarshal([]byte(cloudData))
 	g.Expect(err).NotTo(HaveOccurred())
@@ -98,11 +98,11 @@ runcmd:
 
 	r.Cmds[0] = hackKubeadmIgnoreErrors(r.Cmds[0])
 
-	expected0 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config=/tmp/kubeadm.yaml --ignore-preflight-errors=all"}}
+	expected0 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config=/run/kubeadm/kubeadm.yaml --ignore-preflight-errors=all"}}
 	g.Expect(r.Cmds[0]).To(Equal(expected0))
 
 	r.Cmds[1] = hackKubeadmIgnoreErrors(r.Cmds[1])
 
-	expected1 := Cmd{Cmd: "kubeadm", Args: []string{"join", "--config=/tmp/kubeadm-controlplane-join-config.yaml", "--ignore-preflight-errors=all"}}
+	expected1 := Cmd{Cmd: "kubeadm", Args: []string{"join", "--config=/run/kubeadm/kubeadm-controlplane-join-config.yaml", "--ignore-preflight-errors=all"}}
 	g.Expect(r.Cmds[1]).To(Equal(expected1))
 }

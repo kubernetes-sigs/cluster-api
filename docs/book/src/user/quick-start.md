@@ -43,7 +43,7 @@ export KUBECONFIG=<...>
 [kind] can be used for creating a local Kubernetes cluster for development environments or for
 the creation of a temporary [bootstrap cluster] used to provision a target [management cluster] on the selected infrastructure provider.
 
-The installation procedure depends on the version of kind; if you are planning to user the docker infrastructure provider,
+The installation procedure depends on the version of kind; if you are planning to use the docker infrastructure provider,
 please follow the additional instructions in the dedicated tab:
 
 {{#tabs name:"install-kind" tabs:"v0.7.x,v0.8.x,Docker"}}

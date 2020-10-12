@@ -88,7 +88,7 @@ function retry-command() {
   until [ $n -ge 5 ]; do
     log::info "running '$*'"
     # shellcheck disable=SC1083
-    "$@" --config=/tmp/kubeadm-join-config.yaml {{.KubeadmVerbosity}}
+    "$@" --config=/run/kubeadm/kubeadm-join-config.yaml {{.KubeadmVerbosity}}
     kubeadm_return=$?
     check_kubeadm_command "'$*'" "${kubeadm_return}"
     if [ ${kubeadm_return} -eq 0 ]; then
@@ -111,7 +111,7 @@ function try-or-die-command() {
   local kubeadm_return
   log::info "running '$*'"
   # shellcheck disable=SC1083
-  "$@" --config=/tmp/kubeadm-join-config.yaml {{.KubeadmVerbosity}}
+  "$@" --config=/run/kubeadm/kubeadm-join-config.yaml {{.KubeadmVerbosity}}
   kubeadm_return=$?
   check_kubeadm_command "'$*'" "${kubeadm_return}"
   if [ ${kubeadm_return} -ne 0 ]; then

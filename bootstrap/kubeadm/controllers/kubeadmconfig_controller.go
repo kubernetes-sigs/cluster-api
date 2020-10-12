@@ -735,7 +735,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 		}
 
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
-		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "Token", token)
+		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken")
 	}
 
 	// If the BootstrapToken does not contain any CACertHashes then force skip CA Verification

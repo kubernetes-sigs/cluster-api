@@ -85,6 +85,7 @@ var RootCmd = &cobra.Command{
 
 		return nil
 	},
+	BashCompletionFunction: bashCompletionFunc,
 }
 
 func Execute() {

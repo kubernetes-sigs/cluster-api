@@ -21,9 +21,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
-const completionBoilerPlate = `
+const (
+	completionBoilerPlate = `
 # Copyright 2020 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +40,61 @@ const completionBoilerPlate = `
 # See the License for the specific language governing permissions and
 # limitations under the License.
 `
+
+	bashCompletionFunc = `
+__clusterctl_debug_out()
+{
+    local cmd="$1"
+    __clusterctl_debug "${FUNCNAME[1]}: get completion by ${cmd}"
+    eval "${cmd} 2>/dev/null"
+}
+
+__clusterctl_override_flag_list=(--kubeconfig --kubeconfig-context --namespace -n)
+__clusterctl_override_flags()
+{
+    local ${__clusterctl_override_flag_list[*]##*-} two_word_of of var
+    for w in "${words[@]}"; do
+        if [ -n "${two_word_of}" ]; then
+            eval "${two_word_of##*-}=\"${two_word_of}=\${w}\""
+            two_word_of=
+            continue
+        fi
+        for of in "${__clusterctl_override_flag_list[@]}"; do
+            case "${w}" in
+                ${of}=*)
+                    eval "${of##*-}=\"${w}\""
+                    ;;
+                ${of})
+                    two_word_of="${of}"
+                    ;;
+            esac
+        done
+    done
+    for var in "${__clusterctl_override_flag_list[@]##*-}"; do
+        if eval "test -n \"\$${var}\""; then
+            eval "echo -n \${${var}}' '"
+        fi
+    done
+}
+
+# $1 is the name of resource (required)
+# $2 is template string for kubectl get (optional)
+__clusterctl_kubectl_parse_get()
+{
+    local template
+    template="${2:-"{{ range .items  }}{{ .metadata.name }} {{ end }}"}"
+    local kubectl_out
+    if kubectl_out=$(__clusterctl_debug_out "kubectl get $(__clusterctl_override_flags) -o template --template=\"${template}\" \"$1\""); then
+        COMPREPLY+=( $( compgen -W "${kubectl_out[*]}" -- "$cur" ) )
+    fi
+}
+
+__clusterctl_kubectl_get_resource_namespace()
+{
+    __clusterctl_kubectl_parse_get "namespace"
+}
+`
+)
 
 var (
 	completionLong = LongDesc(`
@@ -90,6 +147,10 @@ var (
 		"bash": runCompletionBash,
 		"zsh":  runCompletionZsh,
 	}
+
+	bashCompletionFlags = map[string]string{
+		"namespace": "__clusterctl_kubectl_get_resource_namespace",
+	}
 )
 
 // GetSupportedShells returns a list of supported shells
@@ -106,13 +167,41 @@ func init() {
 }
 
 func runCompletion(cmd *cobra.Command, args []string) error {
-
 	run, found := completionShells[args[0]]
 	if !found {
 		return fmt.Errorf("unsupported shell type %q", args[0])
 	}
 
+	visitAllFlagSet(RootCmd, func(fs *pflag.FlagSet) {
+		for name, completion := range bashCompletionFlags {
+			if f := fs.Lookup(name); f != nil {
+				if f.Annotations == nil {
+					f.Annotations = map[string][]string{}
+				}
+				f.Annotations[cobra.BashCompCustom] = append(
+					f.Annotations[cobra.BashCompCustom],
+					completion,
+				)
+			}
+		}
+	})
+
 	return run(cmd.Parent())
+}
+
+func visitAllFlagSet(x *cobra.Command, fn func(*pflag.FlagSet)) {
+	var f func(x *cobra.Command)
+
+	f = func(x *cobra.Command) {
+		fn(x.Flags())
+		fn(x.PersistentFlags())
+
+		for _, y := range x.Commands() {
+			f(y)
+		}
+	}
+
+	f(x)
 }
 
 func runCompletionBash(cmd *cobra.Command) error {

@@ -99,6 +99,11 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		}
 		defer etcdClient.Close()
 
+		err = etcdClient.HealthCheck(ctx)
+		if err != nil {
+			response[name] = errors.Wrap(err, "etcd member is unhealthy")
+			continue
+		}
 		// List etcd members. This checks that the member is healthy, because the request goes through consensus.
 		members, err := etcdClient.Members(ctx)
 		if err != nil {
@@ -143,17 +148,6 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		}
 	}
 
-	// Check etcd cluster alarms
-	etcdClient, err := w.etcdClientGenerator.forNodes(ctx, controlPlaneNodes.Items)
-	if err == nil {
-		defer etcdClient.Close()
-		alarmList, err := etcdClient.Alarms(ctx)
-		if len(alarmList) > 0 || err != nil {
-			conditions.MarkFalse(controlPlane.KCP, controlplanev1.EtcdClusterHealthy, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityWarning, "etcd cluster has alarms.")
-			return response, errors.Errorf("etcd cluster has %d alarms", len(alarmList))
-		}
-	}
-
 	// TODO: ensure that each pod is owned by a node that we're managing. That would ensure there are no out-of-band etcd members
 
 	// Check that there is exactly one etcd member for every healthy pod.
@@ -163,11 +157,44 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		return response, errors.Errorf("there are %d healthy etcd pods, but %d etcd members", expectedMembers, len(knownMemberIDSet))
 	}
 
+	// Check etcd cluster alarms
+	etcdClient, err := w.etcdClientGenerator.forNodes(ctx, controlPlaneNodes.Items)
+	if err != nil {
+		conditions.MarkFalse(controlPlane.KCP, controlplanev1.EtcdClusterHealthy, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityWarning, "failed to get etcd client.")
+		return response, err
+	}
+
+	defer etcdClient.Close()
+	alarmList, err := etcdClient.Alarms(ctx)
+	if len(alarmList) > 0 || err != nil {
+		conditions.MarkFalse(controlPlane.KCP, controlplanev1.EtcdClusterHealthy, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityWarning, "etcd cluster has alarms.")
+		return response, errors.Errorf("etcd cluster has %d alarms", len(alarmList))
+	}
+
+	members, err := etcdClient.Members(ctx)
+	if err != nil {
+		conditions.MarkFalse(controlPlane.KCP, controlplanev1.EtcdClusterHealthy, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityWarning, "failed to get etcd members.")
+		return response, err
+	}
+
+	healthyMembers := 0
+	for _, m := range members {
+		if val, ok := response[m.Name]; ok {
+			if val == nil {
+				healthyMembers++
+			}
+		} else {
+			// There are members in etcd cluster that is not part of controlplane nodes.
+			conditions.MarkFalse(controlPlane.KCP, controlplanev1.EtcdClusterHealthy, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityWarning, "unknown etcd member that is not part of control plane nodes.")
+			return response, err
+		}
+	}
 	// TODO: During provisioning, this condition may be set false for a short time until all pods are provisioned, can add additional checks here to prevent this.
-	if len(knownMemberIDSet) < (controlPlane.Machines.Len()/2.0 + 1) {
+	if healthyMembers < (len(members)/2 + 1) {
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.EtcdClusterHealthy, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityWarning, "etcd cluster's quorum is lost.")
 		return response, errors.Errorf("etcd lost its quorum: there are %d control-plane machines, but %d etcd members", controlPlane.Machines.Len(), len(knownMemberIDSet))
 	}
+
 	return response, nil
 }
 

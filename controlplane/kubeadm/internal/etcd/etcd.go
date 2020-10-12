@@ -24,6 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"
 	"go.etcd.io/etcd/etcdserver/etcdserverpb"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
@@ -53,6 +54,7 @@ type Client struct {
 	EtcdClient etcd
 	Endpoint   string
 	LeaderID   uint64
+	KVClient   *clientv3.Client
 }
 
 // MemberAlarm represents an alarm type association with a cluster member.
@@ -132,14 +134,15 @@ func NewClient(ctx context.Context, endpoints []string, p proxy.Proxy, tlsConfig
 		},
 		TLS: tlsConfig,
 	})
+
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create etcd client")
 	}
 
-	return newEtcdClient(ctx, etcdClient)
+	return newEtcdClient(ctx, etcdClient, etcdClient)
 }
 
-func newEtcdClient(ctx context.Context, etcdClient etcd) (*Client, error) {
+func newEtcdClient(ctx context.Context, etcdClient etcd, kvClient *clientv3.Client) (*Client, error) {
 	endpoints := etcdClient.Endpoints()
 	if len(endpoints) == 0 {
 		return nil, errors.New("etcd client was not configured with any endpoints")
@@ -154,6 +157,7 @@ func newEtcdClient(ctx context.Context, etcdClient etcd) (*Client, error) {
 		Endpoint:   endpoints[0],
 		EtcdClient: etcdClient,
 		LeaderID:   status.Leader,
+		KVClient:   kvClient,
 	}, nil
 }
 
@@ -233,4 +237,18 @@ func (c *Client) Alarms(ctx context.Context) ([]MemberAlarm, error) {
 	}
 
 	return memberAlarms, nil
+}
+
+// HealthCheck checks the healthiness of endpoints specified in endpoints during Client creation.
+// Using the same logic used in etcdctl health command.
+func (c *Client) HealthCheck(ctx context.Context) error {
+	// This check is return nil if FakeEtcdClient.
+	if c.KVClient == nil {
+		return nil
+	}
+	_, err := c.KVClient.Get(ctx, "health")
+	if err == nil || err == rpctypes.ErrPermissionDenied {
+		return nil
+	}
+	return err
 }

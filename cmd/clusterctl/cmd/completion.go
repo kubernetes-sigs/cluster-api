@@ -55,6 +55,10 @@ __clusterctl_override_flags()
     local ${__clusterctl_override_flag_list[*]##*-} two_word_of of var
     for w in "${words[@]}"; do
         if [ -n "${two_word_of}" ]; then
+            # --kubeconfig-context flag of clusterctl corresponds to --context of kubectl.
+            if [ "${two_word_of}" = "--kubeconfig-context" ]; then
+                two_word_of="--context"
+            fi
             eval "${two_word_of##*-}=\"${two_word_of}=\${w}\""
             two_word_of=
             continue
@@ -92,6 +96,21 @@ __clusterctl_kubectl_parse_get()
 __clusterctl_kubectl_get_resource_namespace()
 {
     __clusterctl_kubectl_parse_get "namespace"
+}
+
+# $1 has to be "contexts", "clusters" or "users"
+__clusterctl_kubectl_parse_config()
+{
+    local template kubectl_out
+    template="{{ range .$1  }}{{ .name }} {{ end }}"
+    if kubectl_out=$(__clusterctl_debug_out "kubectl config $(__clusterctl_kubectl_override_flags) -o template --template=\"${template}\" view"); then
+        COMPREPLY=( $( compgen -W "${kubectl_out[*]}" -- "$cur" ) )
+    fi
+}
+
+__clusterctl_kubectl_config_get_contexts()
+{
+    __kubectl_parse_config "contexts"
 }
 `
 )
@@ -149,7 +168,8 @@ var (
 	}
 
 	bashCompletionFlags = map[string]string{
-		"namespace": "__clusterctl_kubectl_get_resource_namespace",
+		"namespace":          "__clusterctl_kubectl_get_resource_namespace",
+		"kubeconfig-context": "__clusterctl_kubectl_config_get_contexts",
 	}
 )
 

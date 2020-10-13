@@ -201,7 +201,8 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 		conditions.WithConditions(
 			clusterv1.InfrastructureReadyCondition,
 			clusterv1.BootstrapReadyCondition,
-			// TODO: add MHC conditions here
+			clusterv1.MachineOwnerRemediatedCondition,
+			clusterv1.MachineHealthCheckSuccededCondition,
 		),
 		conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero()),
 		conditions.WithStepCounterIfOnly(
@@ -219,6 +220,8 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
 			clusterv1.DrainingSucceededCondition,
+			clusterv1.MachineOwnerRemediatedCondition,
+			clusterv1.MachineHealthCheckSuccededCondition,
 		}},
 	)
 

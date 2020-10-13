@@ -1,0 +1,9 @@
+{
+  "name": "docker",
+  "config": {
+    "image": "gcr.io/k8s-staging-cluster-api/capd-manager:dev",
+    "live_reload_deps": [
+      "main.go", "go.mod", "go.sum", "api", "controllers", "cloudinit", "docker", "exp"
+    ]
+  }
+}

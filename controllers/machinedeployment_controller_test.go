@@ -88,6 +88,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 						MaxUnavailable: intOrStrPtr(0),
 						MaxSurge:       intOrStrPtr(1),
+						DeletePolicy:   pointer.StringPtr("Oldest"),
 					},
 				},
 				Template: clusterv1.MachineTemplateSpec{
@@ -170,6 +171,10 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			return len(machineSets.Items)
 		}, timeout).Should(BeEquivalentTo(1))
 
+		By("Verifying that the deployment's deletePolicy was propagated to the machineset", func() {
+			Expect(machineSets.Items[0].Spec.DeletePolicy).Should(Equal("Oldest"))
+		})
+
 		By("Verifying the linked infrastructure template has a cluster owner reference")
 		Eventually(func() bool {
 			obj, err := external.Get(ctx, testEnv, &deployment.Spec.Template.Spec.InfrastructureRef, deployment.Namespace)
@@ -250,6 +255,21 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			}
 			return len(machineSets.Items)
 		}, timeout).Should(BeEquivalentTo(2))
+
+		By("Updating deletePolicy on the MachineDeployment")
+		modifyFunc = func(d *clusterv1.MachineDeployment) {
+			d.Spec.Strategy.RollingUpdate.DeletePolicy = pointer.StringPtr("Newest")
+		}
+		Expect(updateMachineDeployment(ctx, testEnv, deployment, modifyFunc)).To(Succeed())
+		Eventually(func() string {
+			if err := testEnv.List(ctx, machineSets, msListOpts...); err != nil {
+				return ""
+			}
+			return machineSets.Items[0].Spec.DeletePolicy
+		}, timeout).Should(Equal("Newest"))
+
+		//Verify that the old machine set retains its delete policy
+		Expect(machineSets.Items[1].Spec.DeletePolicy).Should(Equal("Oldest"))
 
 		// Verify that all the MachineSets have the expected OwnerRef.
 		By("Verifying MachineSet owner references")

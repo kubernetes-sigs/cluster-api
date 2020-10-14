@@ -249,11 +249,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.MachineRollingUpdateDeployment)(nil), (*MachineRollingUpdateDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(a.(*v1alpha4.MachineRollingUpdateDeployment), b.(*MachineRollingUpdateDeployment), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachineSet)(nil), (*v1alpha4.MachineSet)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_MachineSet_To_v1alpha4_MachineSet(a.(*MachineSet), b.(*v1alpha4.MachineSet), scope)
 	}); err != nil {
@@ -356,6 +351,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*Bootstrap)(nil), (*v1alpha4.Bootstrap)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_Bootstrap_To_v1alpha4_Bootstrap(a.(*Bootstrap), b.(*v1alpha4.Bootstrap), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.MachineRollingUpdateDeployment)(nil), (*MachineRollingUpdateDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(a.(*v1alpha4.MachineRollingUpdateDeployment), b.(*MachineRollingUpdateDeployment), scope)
 	}); err != nil {
 		return err
 	}
@@ -737,7 +737,15 @@ func autoConvert_v1alpha3_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpe
 	if err := Convert_v1alpha3_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	out.Strategy = (*v1alpha4.MachineDeploymentStrategy)(unsafe.Pointer(in.Strategy))
+	if in.Strategy != nil {
+		in, out := &in.Strategy, &out.Strategy
+		*out = new(v1alpha4.MachineDeploymentStrategy)
+		if err := Convert_v1alpha3_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Strategy = nil
+	}
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
 	out.Paused = in.Paused
@@ -757,7 +765,15 @@ func autoConvert_v1alpha4_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpe
 	if err := Convert_v1alpha4_MachineTemplateSpec_To_v1alpha3_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	out.Strategy = (*MachineDeploymentStrategy)(unsafe.Pointer(in.Strategy))
+	if in.Strategy != nil {
+		in, out := &in.Strategy, &out.Strategy
+		*out = new(MachineDeploymentStrategy)
+		if err := Convert_v1alpha4_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Strategy = nil
+	}
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
 	out.Paused = in.Paused
@@ -806,7 +822,15 @@ func Convert_v1alpha4_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatu
 
 func autoConvert_v1alpha3_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in *MachineDeploymentStrategy, out *v1alpha4.MachineDeploymentStrategy, s conversion.Scope) error {
 	out.Type = v1alpha4.MachineDeploymentStrategyType(in.Type)
-	out.RollingUpdate = (*v1alpha4.MachineRollingUpdateDeployment)(unsafe.Pointer(in.RollingUpdate))
+	if in.RollingUpdate != nil {
+		in, out := &in.RollingUpdate, &out.RollingUpdate
+		*out = new(v1alpha4.MachineRollingUpdateDeployment)
+		if err := Convert_v1alpha3_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingUpdateDeployment(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RollingUpdate = nil
+	}
 	return nil
 }
 
@@ -817,7 +841,15 @@ func Convert_v1alpha3_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStr
 
 func autoConvert_v1alpha4_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in *v1alpha4.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s conversion.Scope) error {
 	out.Type = MachineDeploymentStrategyType(in.Type)
-	out.RollingUpdate = (*MachineRollingUpdateDeployment)(unsafe.Pointer(in.RollingUpdate))
+	if in.RollingUpdate != nil {
+		in, out := &in.RollingUpdate, &out.RollingUpdate
+		*out = new(MachineRollingUpdateDeployment)
+		if err := Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RollingUpdate = nil
+	}
 	return nil
 }
 
@@ -996,12 +1028,8 @@ func Convert_v1alpha3_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingU
 func autoConvert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in *v1alpha4.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s conversion.Scope) error {
 	out.MaxUnavailable = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnavailable))
 	out.MaxSurge = (*intstr.IntOrString)(unsafe.Pointer(in.MaxSurge))
+	// WARNING: in.DeletePolicy requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment is an autogenerated conversion function.
-func Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in *v1alpha4.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s conversion.Scope) error {
-	return autoConvert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in, out, s)
 }
 
 func autoConvert_v1alpha3_MachineSet_To_v1alpha4_MachineSet(in *MachineSet, out *v1alpha4.MachineSet, s conversion.Scope) error {

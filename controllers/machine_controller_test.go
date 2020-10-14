@@ -32,10 +32,183 @@ import (
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+func TestWatches(t *testing.T) {
+	g := NewWithT(t)
+	ns, err := testEnv.CreateNamespace(ctx, "test-machine-watches")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	infraMachine := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureMachine",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+			"metadata": map[string]interface{}{
+				"name":      "infra-config1",
+				"namespace": ns.Name,
+			},
+			"spec": map[string]interface{}{
+				"providerID": "test://id-1",
+			},
+			"status": map[string]interface{}{
+				"ready": true,
+				"addresses": []interface{}{
+					map[string]interface{}{
+						"type":    "InternalIP",
+						"address": "10.0.0.1",
+					},
+				},
+			},
+		},
+	}
+
+	defaultBootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "BootstrapMachine",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+			"metadata": map[string]interface{}{
+				"name":      "bootstrap-config-machinereconcile",
+				"namespace": ns.Name,
+			},
+			"spec":   map[string]interface{}{},
+			"status": map[string]interface{}{},
+		},
+	}
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "machine-reconcile-",
+			Namespace:    ns.Name,
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "node-1",
+			Namespace: ns.Name,
+		},
+		Spec: corev1.NodeSpec{
+			ProviderID: "test:///id-1",
+		},
+	}
+
+	g.Expect(testEnv.Create(ctx, testCluster)).To(BeNil())
+	g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+	g.Expect(testEnv.Create(ctx, defaultBootstrap)).To(BeNil())
+	g.Expect(testEnv.Create(ctx, node)).To(Succeed())
+	g.Expect(testEnv.Create(ctx, infraMachine)).To(BeNil())
+
+	defer func(do ...client.Object) {
+		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+	}(ns, testCluster, defaultBootstrap)
+
+	// Patch cluster control plane initialized (this is required to start node watch)
+	patchHelper, err := patch.NewHelper(testCluster, testEnv)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	testCluster.Status.ControlPlaneInitialized = true
+	g.Expect(patchHelper.Patch(ctx, testCluster, patch.WithStatusObservedGeneration{})).To(Succeed())
+
+	// Patch infra machine ready
+	patchHelper, err = patch.NewHelper(infraMachine, testEnv)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
+
+	// Patch bootstrap ready
+	patchHelper, err = patch.NewHelper(defaultBootstrap, testEnv)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
+
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "machine-created-",
+			Namespace:    ns.Name,
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: testCluster.Name,
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+				Kind:       "InfrastructureMachine",
+				Name:       "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+					Kind:       "BootstrapMachine",
+					Name:       "bootstrap-config-machinereconcile",
+				},
+			}},
+	}
+
+	g.Expect(testEnv.Create(ctx, machine)).To(BeNil())
+	defer func() {
+		g.Expect(testEnv.Cleanup(ctx, machine)).To(Succeed())
+	}()
+
+	// Wait for reconciliation to happen.
+	// Since infra and bootstrap objects are ready, a nodeRef will be assigned during node reconciliation.
+	key := client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
+	g.Eventually(func() bool {
+		if err := testEnv.Get(ctx, key, machine); err != nil {
+			return false
+		}
+		return machine.Status.NodeRef != nil
+	}, timeout).Should(BeTrue())
+
+	// Node deletion will trigger node watchers and a request will be added to the queue.
+	g.Expect(testEnv.Delete(ctx, node)).To(Succeed())
+	// TODO: Once conditions are in place, check if node deletion triggered a reconcile.
+
+	// Delete infra machine, external tracker will trigger reconcile
+	// and machine Status.FailureReason should be non-nil after reconcileInfrastructure
+	g.Expect(testEnv.Delete(ctx, infraMachine)).To(Succeed())
+	g.Eventually(func() bool {
+		if err := testEnv.Get(ctx, key, machine); err != nil {
+			return false
+		}
+		return machine.Status.FailureMessage != nil
+	}, timeout).Should(BeTrue())
+}
+
+func TestIndexMachineByNodeName(t *testing.T) {
+	r := &MachineReconciler{}
+	testCases := []struct {
+		name     string
+		object   client.Object
+		expected []string
+	}{
+		{
+			name:     "when the machine has no NodeRef",
+			object:   &clusterv1.Machine{},
+			expected: []string{},
+		},
+		{
+			name: "when the machine has valid a NodeRef",
+			object: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "node1",
+					},
+				},
+			},
+			expected: []string{"node1"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got := r.indexMachineByNodeName(tc.object)
+			g.Expect(got).To(ConsistOf(tc.expected))
+		})
+	}
+}
 
 func TestMachineFinalizer(t *testing.T) {
 	bootstrapData := "some valid data"

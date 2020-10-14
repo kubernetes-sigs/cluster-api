@@ -71,6 +71,7 @@ type MachineReconciler struct {
 	Client  client.Client
 	Tracker *remote.ClusterCacheTracker
 
+	controller      controller.Controller
 	restConfig      *rest.Config
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
@@ -100,6 +101,16 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	if err != nil {
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
 	}
+
+	// Add index to Machine for listing by Node reference.
+	if err := mgr.GetCache().IndexField(ctx, &clusterv1.Machine{},
+		clusterv1.MachineNodeNameIndex,
+		r.indexMachineByNodeName,
+	); err != nil {
+		return errors.Wrap(err, "error setting index fields")
+	}
+
+	r.controller = controller
 
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	r.restConfig = mgr.GetConfig()
@@ -229,6 +240,15 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 }
 
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if cluster.Status.ControlPlaneInitialized {
+		if err := r.watchClusterNodes(ctx, cluster); err != nil {
+			log.Error(err, "error watching nodes on target cluster")
+			return ctrl.Result{}, err
+		}
+	}
+
 	// If the Machine belongs to a cluster, add an owner reference.
 	if r.shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
@@ -599,6 +619,60 @@ func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clus
 
 func (r *MachineReconciler) shouldAdopt(m *clusterv1.Machine) bool {
 	return metav1.GetControllerOf(m) == nil && !util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
+}
+
+func (r *MachineReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
+	// If there is no tracker, don't watch remote nodes
+	if r.Tracker == nil {
+		return nil
+	}
+
+	if err := r.Tracker.Watch(ctx, remote.WatchInput{
+		Name:         "machine-watchNodes",
+		Cluster:      util.ObjectKey(cluster),
+		Watcher:      r.controller,
+		Kind:         &corev1.Node{},
+		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachine),
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *MachineReconciler) nodeToMachine(o client.Object) []reconcile.Request {
+	node, ok := o.(*corev1.Node)
+	if !ok {
+		panic(fmt.Sprintf("Expected a Node but got a %T", o))
+	}
+
+	machineList := &clusterv1.MachineList{}
+	if err := r.Client.List(
+		context.TODO(),
+		machineList,
+		client.MatchingFields{clusterv1.MachineNodeNameIndex: node.Name},
+	); err != nil {
+		return nil
+	}
+
+	// There should be exactly 1 Machine for the node.
+	if len(machineList.Items) != 1 {
+		return nil
+	}
+
+	return []reconcile.Request{{NamespacedName: util.ObjectKey(&machineList.Items[0])}}
+}
+
+func (r *MachineReconciler) indexMachineByNodeName(o client.Object) []string {
+	machine, ok := o.(*clusterv1.Machine)
+	if !ok {
+		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
+	}
+
+	if machine.Status.NodeRef != nil {
+		return []string{machine.Status.NodeRef.Name}
+	}
+
+	return nil
 }
 
 // writer implements io.Writer interface as a pass-through for klog.

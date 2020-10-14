@@ -47,8 +47,6 @@ import (
 )
 
 const (
-	machineNodeNameIndex = "status.nodeRef.name"
-
 	// Event types
 
 	// EventRemediationRestricted is emitted in case when machine remediation
@@ -93,14 +91,6 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
-	}
-
-	// Add index to Machine for listing by Node reference
-	if err := mgr.GetCache().IndexField(&clusterv1.Machine{},
-		machineNodeNameIndex,
-		r.indexMachineByNodeName,
-	); err != nil {
-		return errors.Wrap(err, "error setting index fields")
 	}
 
 	r.controller = controller
@@ -378,7 +368,7 @@ func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clu
 	if err := r.Client.List(
 		context.TODO(),
 		machineList,
-		client.MatchingFields{machineNodeNameIndex: nodeName},
+		client.MatchingFields{clusterv1.MachineNodeNameIndex: nodeName},
 	); err != nil {
 		return nil, errors.Wrap(err, "failed getting machine list")
 	}
@@ -412,20 +402,6 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 	}); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (r *MachineHealthCheckReconciler) indexMachineByNodeName(object runtime.Object) []string {
-	machine, ok := object.(*clusterv1.Machine)
-	if !ok {
-		r.Log.Error(errors.New("incorrect type"), "expected a Machine", "type", fmt.Sprintf("%T", object))
-		return nil
-	}
-
-	if machine.Status.NodeRef != nil {
-		return []string{machine.Status.NodeRef.Name}
-	}
-
 	return nil
 }
 

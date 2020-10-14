@@ -33,6 +33,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -275,6 +276,74 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		g.Expect(m.Spec.Bootstrap.ConfigRef.APIVersion).To(Equal(bootstrapv1.GroupVersion.String()))
 		g.Expect(m.Spec.Bootstrap.ConfigRef.Kind).To(Equal("KubeadmConfig"))
 	}
+}
+
+func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+
+	genericMachineTemplate := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericMachineTemplate",
+			"apiVersion": "generic.io/v1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-foo",
+				"namespace": cluster.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"hello": "world",
+					},
+				},
+			},
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kcp-foo",
+			Namespace: cluster.Namespace,
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			InfrastructureTemplate: corev1.ObjectReference{
+				Kind:       genericMachineTemplate.GetKind(),
+				APIVersion: genericMachineTemplate.GetAPIVersion(),
+				Name:       genericMachineTemplate.GetName(),
+				Namespace:  cluster.Namespace,
+			},
+			Version: "v1.16.6",
+		},
+	}
+
+	fakeClient := newFakeClient(g, cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:   fakeClient,
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
+		JoinConfiguration: &kubeadmv1.JoinConfiguration{},
+	}
+
+	// Try to break Infra Cloning
+	kcp.Spec.InfrastructureTemplate.Name = "something_invalid"
+	g.Expect(r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)).To(HaveOccurred())
+	g.Expect(&kcp.GetConditions()[0]).Should(conditions.HaveSameStateOf(&clusterv1.Condition{
+		Type:     controlplanev1.MachinesCreatedCondition,
+		Status:   corev1.ConditionFalse,
+		Severity: clusterv1.ConditionSeverityError,
+		Reason:   controlplanev1.InfrastructureTemplateCloningFailedReason,
+		Message:  "failed to retrieve GenericMachineTemplate external object \"test\"/\"something_invalid\": genericmachinetemplates.generic.io \"something_invalid\" not found",
+	}))
+
 }
 
 func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {

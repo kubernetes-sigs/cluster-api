@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -141,18 +142,24 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 	})
 	if err != nil {
 		// Safe to return early here since no resources have been created yet.
+		conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedCondition, controlplanev1.InfrastructureTemplateCloningFailedReason,
+			clusterv1.ConditionSeverityError, err.Error())
 		return errors.Wrap(err, "failed to clone infrastructure template")
 	}
 
 	// Clone the bootstrap configuration
 	bootstrapRef, err := r.generateKubeadmConfig(ctx, kcp, cluster, bootstrapSpec)
 	if err != nil {
+		conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedCondition, controlplanev1.BootstrapTemplateCloningFailedReason,
+			clusterv1.ConditionSeverityError, err.Error())
 		errs = append(errs, errors.Wrap(err, "failed to generate bootstrap config"))
 	}
 
 	// Only proceed to generating the Machine if we haven't encountered an error
 	if len(errs) == 0 {
 		if err := r.generateMachine(ctx, kcp, cluster, infraRef, bootstrapRef, failureDomain); err != nil {
+			conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedCondition, controlplanev1.MachineGenerationFailedReason,
+				clusterv1.ConditionSeverityError, err.Error())
 			errs = append(errs, errors.Wrap(err, "failed to create Machine"))
 		}
 	}

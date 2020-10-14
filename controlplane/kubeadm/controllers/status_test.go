@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
@@ -191,6 +192,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
 	g.Expect(conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
+	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
 	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
 
@@ -253,6 +255,65 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
 	g.Expect(kcp.Status.Ready).To(BeTrue())
+}
+
+func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAreNotReady(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      "foo",
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version:  "v1.16.6",
+			Replicas: pointer.Int32Ptr(3),
+		},
+	}
+	kcp.Default()
+	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	machines := map[string]*clusterv1.Machine{}
+	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	// Create the desired number of machines
+	for i := 0; i < 3; i++ {
+		name := fmt.Sprintf("test-%d", i)
+		m, n := createMachineNodePair(name, cluster, kcp, false)
+		machines[m.Name] = m
+		objs = append(objs, n)
+	}
+
+	fakeClient := newFakeClient(g, objs...)
+	log.SetLogger(klogr.New())
+
+	// Set all the machines to `not ready`
+	r := &KubeadmControlPlaneReconciler{
+		Client: fakeClient,
+		managementCluster: &fakeManagementCluster{
+			Machines: machines,
+			Workload: fakeWorkloadCluster{
+				Status: internal.ClusterStatus{
+					Nodes:            0,
+					ReadyNodes:       0,
+					HasKubeadmConfig: true,
+				},
+			},
+		},
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	g.Expect(r.updateStatus(ctx, kcp, cluster)).To(Succeed())
+	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
+	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(0))
+	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(3))
+	g.Expect(kcp.Status.Ready).To(BeFalse())
+	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
 }
 
 func kubeadmConfigMap() *corev1.ConfigMap {

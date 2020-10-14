@@ -208,6 +208,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 	// Always update the readyCondition by summarizing the state of other conditions.
 	conditions.SetSummary(kcp,
 		conditions.WithConditions(
+			controlplanev1.MachinesCreatedCondition,
 			controlplanev1.MachinesSpecUpToDateCondition,
 			controlplanev1.ResizedCondition,
 			controlplanev1.MachinesReadyCondition,
@@ -221,6 +222,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 		ctx,
 		kcp,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			controlplanev1.MachinesCreatedCondition,
 			clusterv1.ReadyCondition,
 			controlplanev1.MachinesSpecUpToDateCondition,
 			controlplanev1.ResizedCondition,

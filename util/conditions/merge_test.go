@@ -140,7 +140,7 @@ func TestMergeRespectPriority(t *testing.T) {
 				g.Expect(got).To(BeNil())
 				return
 			}
-			g.Expect(got).To(haveSameStateOf(tt.want))
+			g.Expect(got).To(HaveSameStateOf(tt.want))
 		})
 	}
 }

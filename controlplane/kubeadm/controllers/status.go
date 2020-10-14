@@ -72,6 +72,9 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// We are scaling down
 	case replicas > desiredReplicas:
 		conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down control plane to %d replicas (actual %d)", desiredReplicas, replicas)
+
+		// This means that there was no error in generating the desired number of machine objects
+		conditions.MarkTrue(kcp, controlplanev1.MachinesCreatedCondition)
 	default:
 		// make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
@@ -80,6 +83,9 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		if int32(len(readyMachines)) == replicas {
 			conditions.MarkTrue(kcp, controlplanev1.ResizedCondition)
 		}
+
+		// This means that there was no error in generating the desired number of machine objects
+		conditions.MarkTrue(kcp, controlplanev1.MachinesCreatedCondition)
 	}
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))

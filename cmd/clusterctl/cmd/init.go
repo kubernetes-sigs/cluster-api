@@ -49,7 +49,7 @@ var initCmd = &cobra.Command{
 		The management cluster must be an existing Kubernetes cluster, make sure
 		to have enough privileges to install the desired components.
 
-		Use 'clusterctl config providers' to get a list of available providers; if necessary, edit
+		Use 'clusterctl config repositories' to get a list of available providers; if necessary, edit
 		$HOME/.cluster-api/clusterctl.yaml file to add new provider or to customize existing ones.
 
 		Some providers require environment variables to be set before running clusterctl init.

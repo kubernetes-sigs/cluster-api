@@ -291,7 +291,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	controlPlane, err := r.createControlPlane(ctx, cluster, kcp)
-	if controlPlane == nil || err != nil {
+	if err != nil {
 		logger.Error(err, "failed to initialize control plane")
 		return ctrl.Result{}, err
 	}
@@ -403,7 +403,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	logger.Info("Reconcile KubeadmControlPlane deletion")
 
 	controlPlane, err := r.createControlPlane(ctx, cluster, kcp)
-	if controlPlane == nil || err != nil {
+	if err != nil {
 		logger.Error(err, "failed to initialize control plane")
 		return ctrl.Result{}, err
 	}
@@ -413,6 +413,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	r.managementCluster.TargetClusterControlPlaneHealthCheck(ctx, controlPlane, util.ObjectKey(cluster)) //nolint
 	r.managementCluster.TargetClusterEtcdHealthCheck(ctx, controlPlane, util.ObjectKey(cluster)) //nolint
 
+	// Gets all machines, not just control plane machines.
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err

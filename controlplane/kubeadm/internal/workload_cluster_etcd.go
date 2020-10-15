@@ -99,8 +99,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context, controlPlane *ControlPlane
 		}
 		defer etcdClient.Close()
 
-		err = etcdClient.HealthCheck(ctx)
-		if err != nil {
+		if err := etcdClient.HealthCheck(ctx); err != nil {
 			response[name] = errors.Wrap(err, "etcd member is unhealthy")
 			continue
 		}

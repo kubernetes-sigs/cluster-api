@@ -39,7 +39,7 @@ func Test_runGetRepositories(t *testing.T) {
 
 		buf := bytes.NewBufferString("")
 
-		for _, val := range RepositoriesOutputs {
+		for val, _ := range RepositoriesOutputs {
 			cro.output = val
 			g.Expect(runGetRepositories(path, buf)).To(Succeed())
 			out, err := ioutil.ReadAll(buf)
@@ -49,8 +49,17 @@ func Test_runGetRepositories(t *testing.T) {
 				g.Expect(string(out)).To(Equal(expectedOutputText))
 			} else if val == RepositoriesOutputYaml {
 				g.Expect(string(out)).To(Equal(expectedOutputYaml))
+			} else if val == RepositoriesOutputName {
+				g.Expect(string(out)).To(Equal(expectedOutputName))
 			}
 		}
+
+		cro.output = RepositoriesOutputName
+		cro.provider = RepositoriesProviderBootstrap
+		g.Expect(runGetRepositories(path, buf)).To(Succeed())
+		out, err := ioutil.ReadAll(buf)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(string(out)).To(Equal(expectedOutputNameBootstrapProvider))
 	})
 
 	t.Run("returns error for bad cfgFile path", func(t *testing.T) {
@@ -192,4 +201,29 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: vsphere
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/
+`
+var expectedOutputName = `cluster-api
+another-provider
+aws-eks
+kubeadm
+talos
+aws-eks
+kubeadm
+talos
+aws
+azure
+do
+docker
+metal3
+my-infra-provider
+openstack
+packet
+sidero
+vsphere
+`
+
+var expectedOutputNameBootstrapProvider = `another-provider
+aws-eks
+kubeadm
+talos
 `

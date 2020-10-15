@@ -123,6 +123,34 @@ __clusterctl_kubectl_config_get_contexts()
     __kubectl_parse_config "contexts"
 }
 
+__clusterctl_config_repositories()
+{
+    local clusterctl_out
+    if clusterctl_out=$(__clusterctl_debug_out "clusterctl config repositories --output name --provider \"$1\""); then
+        COMPREPLY=( $( compgen -W "${clusterctl_out[*]}" -- "$cur" ) )
+    fi
+}
+
+__clusterctl_config_repositories_bootstrap()
+{
+    __clusterctl_config_repositories "bootstrap"
+}
+
+__clusterctl_config_repositories_control-plane()
+{
+    __clusterctl_config_repositories "control-plane"
+}
+
+__clusterctl_config_repositories_core()
+{
+    __clusterctl_config_repositories "core"
+}
+
+__clusterctl_config_repositories_infrastructure()
+{
+    __clusterctl_config_repositories "infrastructure"
+}
+
 __clusterctl_custom_func() {
     case "$last_command" in
         clusterctl_get_kubeconfig)
@@ -195,6 +223,10 @@ var (
 		"from-config-map-namespace": "__clusterctl_kubectl_get_resource_namespace",
 		"target-namespace":          "__clusterctl_kubectl_get_resource_namespace",
 		"watching-namespace":        "__clusterctl_kubectl_get_resource_namespace",
+		"bootstrap":                 "__clusterctl_config_repositories_bootstrap",
+		"core":                      "__clusterctl_config_repositories_core",
+		"control-plane":             "__clusterctl_config_repositories_control-plane",
+		"infrastructure":            "__clusterctl_config_repositories_infrastructure",
 	}
 )
 

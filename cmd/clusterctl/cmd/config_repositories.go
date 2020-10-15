@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/yaml"
 )
@@ -34,15 +35,55 @@ const (
 	RepositoriesOutputYaml = "yaml"
 	// RepositoriesOutputText is an option used to print the repository list in text format.
 	RepositoriesOutputText = "text"
+	// RepositoriesOutputName is an option used to print the repository list by name only.
+	RepositoriesOutputName = "name"
+
+	// RepositoriesProviderBootstrap is an option used to filter the repository list by bootstrap provider.
+	RepositoriesProviderBootstrap = "bootstrap"
+	// RepositoriesProviderControlPlane is an option used to filter the repository list by controle-plane provider.
+	RepositoriesProviderControlPlane = "control-plane"
+	// RepositoriesProviderCore is an option used to filter the repository list by core provider.
+	RepositoriesProviderCore = "core"
+	// RepositoriesProviderInfrastructure is an option used to print the repository list by infrastructure provider.
+	RepositoriesProviderInfrastructure = "infrastructure"
 )
 
 var (
 	// RepositoriesOutputs is a list of valid repository list outputs.
-	RepositoriesOutputs = []string{RepositoriesOutputYaml, RepositoriesOutputText}
+	RepositoriesOutputs = map[string]interface{}{
+		RepositoriesOutputYaml: nil,
+		RepositoriesOutputText: nil,
+		RepositoriesOutputName: nil,
+	}
+
+	// RepositoriesProviders is a list of valid repository list provider types.
+	RepositoriesProviders = map[string]clusterctlv1.ProviderType{
+		RepositoriesProviderBootstrap:      clusterctlv1.BootstrapProviderType,
+		RepositoriesProviderControlPlane:   clusterctlv1.ControlPlaneProviderType,
+		RepositoriesProviderCore:           clusterctlv1.CoreProviderType,
+		RepositoriesProviderInfrastructure: clusterctlv1.InfrastructureProviderType,
+	}
 )
 
+func configRepositoriesGetSupportedOutputs() []string {
+	outputs := []string{}
+	for output, _ := range RepositoriesOutputs {
+		outputs = append(outputs, output)
+	}
+	return outputs
+}
+
+func configRepositoriesGetSupportedProviders() []string {
+	providers := []string{}
+	for provider, _ := range RepositoriesProviders {
+		providers = append(providers, provider)
+	}
+	return providers
+}
+
 type configRepositoriesOptions struct {
-	output string
+	output   string
+	provider string
 }
 
 var cro = &configRepositoriesOptions{}
@@ -62,7 +103,11 @@ var configRepositoryCmd = &cobra.Command{
 		clusterctl config repositories
 		
 		# Print the list of available providers in yaml format.
-		clusterctl config repositories -o yaml`),
+		clusterctl config repositories -o yaml
+
+		# Displays the list of available infrastructure providers.
+		clusterctl config repositories --provider infrastructure
+`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runGetRepositories(cfgFile, os.Stdout)
@@ -71,13 +116,33 @@ var configRepositoryCmd = &cobra.Command{
 
 func init() {
 	configRepositoryCmd.Flags().StringVarP(&cro.output, "output", "o", RepositoriesOutputText,
-		fmt.Sprintf("Output format. Valid values: %v.", RepositoriesOutputs))
+		fmt.Sprintf("Output format. Valid values: %v.", configRepositoriesGetSupportedOutputs()))
+	configRepositoryCmd.Flags().StringVar(&cro.provider, "provider", "",
+		fmt.Sprintf("Provider type. Valid values: %v.", configRepositoriesGetSupportedProviders()))
 	configCmd.AddCommand(configRepositoryCmd)
 }
 
+func repositoriesFilterByType(repositoriesList []client.Provider, providerType clusterctlv1.ProviderType) []client.Provider {
+	var ret []client.Provider
+
+	for _, r := range repositoriesList {
+		if r.Type() == providerType {
+			ret = append(ret, r)
+		}
+	}
+
+	return ret
+}
+
 func runGetRepositories(cfgFile string, out io.Writer) error {
-	if cro.output != RepositoriesOutputText && cro.output != RepositoriesOutputYaml {
-		return errors.Errorf("Invalid output format %q. Valid values: %v.", cro.output, RepositoriesOutputs)
+	if _, ok := RepositoriesOutputs[cro.output]; !ok {
+		return errors.Errorf("Invalid output format %q. Valid values: %v.", cro.output, configRepositoriesGetSupportedOutputs())
+	}
+
+	if cro.provider != "" {
+		if _, ok := RepositoriesProviders[cro.provider]; !ok {
+			return errors.Errorf("Invalid provider type %q. Valid values: %v.", cro.provider, configRepositoriesGetSupportedProviders())
+		}
 	}
 
 	if out == nil {
@@ -92,6 +157,10 @@ func runGetRepositories(cfgFile string, out io.Writer) error {
 	repositoryList, err := c.GetProvidersConfig()
 	if err != nil {
 		return err
+	}
+
+	if cro.provider != "" {
+		repositoryList = repositoriesFilterByType(repositoryList, RepositoriesProviders[cro.provider])
 	}
 
 	w := tabwriter.NewWriter(out, 10, 4, 3, ' ', 0)
@@ -109,6 +178,10 @@ func runGetRepositories(cfgFile string, out io.Writer) error {
 			return err
 		}
 		fmt.Fprintf(w, string(y))
+	case RepositoriesOutputName:
+		for _, r := range repositoryList {
+			fmt.Fprintf(w, "%s\n", r.Name())
+		}
 	}
 	w.Flush()
 	return nil

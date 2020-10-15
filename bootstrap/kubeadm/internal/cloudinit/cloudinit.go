@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	standardJoinCommand            = "kubeadm join --config /tmp/kubeadm-join-config.yaml %s"
+	standardJoinCommand            = "kubeadm join --config /run/kubeadm/kubeadm-join-config.yaml %s"
 	retriableJoinScriptName        = "/usr/local/bin/kubeadm-bootstrap-script"
 	retriableJoinScriptOwner       = "root"
 	retriableJoinScriptPermissions = "0755"

@@ -194,9 +194,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		}, timeout).Should(BeTrue())
 	})
 
-	It("Should successfully patch a cluster object if only removing finalizers", func() {
-		Skip("This test doesn't look correct, if we remove the finalizer the reconciler takes care of re-adding it")
-
+	It("Should re-apply finalizers if removed", func() {
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -219,7 +217,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			return len(cluster.Finalizers) > 0
 		}, timeout).Should(BeTrue())
 
-		// Patch
+		// Remove finalizers
 		Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -230,14 +228,14 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		Expect(cluster.Finalizers).Should(BeEmpty())
 
-		// Assertions
+		// Check finalizers are re-applied
 		Eventually(func() []string {
 			instance := &clusterv1.Cluster{}
 			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return []string{"not-empty"}
 			}
 			return instance.Finalizers
-		}, timeout).Should(BeEmpty())
+		}, timeout).ShouldNot(BeEmpty())
 	})
 
 	It("Should successfully set Status.ControlPlaneInitialized on the cluster object if controlplane is ready", func() {

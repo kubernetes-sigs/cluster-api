@@ -1152,21 +1152,15 @@ func SelectClusterObj(objs []client.Object, namespace, name string) *clusterv1.C
 			continue
 		}
 
-		accessor, err := meta.Accessor(o)
-		if err != nil {
-			panic(fmt.Sprintf("failed to get accessor for %s: %v", o.GetObjectKind(), err))
-		}
-
-		if accessor.GetName() == name && accessor.GetNamespace() == namespace {
-			cluster := &clusterv1.Cluster{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "Cluster",
-				},
-			}
+		if o.GetName() == name && o.GetNamespace() == namespace {
+			// Converts the object to cluster
+			// NB. Convert returns an object without version/kind, so we are enforcing those values back.
+			cluster := &clusterv1.Cluster{}
 			if err := FakeScheme.Convert(o, cluster, nil); err != nil {
 				panic(fmt.Sprintf("failed to convert %s to cluster: %v", o.GetObjectKind(), err))
 			}
+			cluster.APIVersion = o.GetObjectKind().GroupVersionKind().GroupVersion().String()
+			cluster.Kind = o.GetObjectKind().GroupVersionKind().Kind
 			return cluster
 		}
 	}

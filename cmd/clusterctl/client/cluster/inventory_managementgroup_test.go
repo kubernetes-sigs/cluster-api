@@ -28,8 +28,6 @@ import (
 )
 
 func Test_inventoryClient_GetManagementGroups(t *testing.T) {
-	t.Skip("Some of these tests now fail, because they rely on ordering to compare items, needs some rework")
-
 	type fields struct {
 		proxy Proxy
 	}
@@ -157,7 +155,11 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 				return
 			}
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(got).To(ConsistOf(tt.want))
+			g.Expect(got).To(HaveLen(len(tt.want)))
+			for i := range tt.want {
+				g.Expect(got[i].CoreProvider).To(Equal(tt.want[i].CoreProvider))
+				g.Expect(got[i].Providers).To(ConsistOf(tt.want[i].Providers))
+			}
 		})
 	}
 }

@@ -101,13 +101,13 @@ type wantGraph struct {
 func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 	g := NewWithT(t)
 
-	g.Expect(len(got.uidToNode)).To(Equal(len(want.nodes)))
+	g.Expect(len(got.uidToNode)).To(Equal(len(want.nodes)), "the number of nodes in the objectGraph doesn't match the number of expected nodes")
 
 	for uid, wantNode := range want.nodes {
 		gotNode, ok := got.uidToNode[types.UID(uid)]
-		g.Expect(ok).To(BeTrue(), "node ", uid, " not found")
-		g.Expect(gotNode.virtual).To(Equal(wantNode.virtual))
-		g.Expect(gotNode.owners).To(HaveLen(len(wantNode.owners)))
+		g.Expect(ok).To(BeTrue(), "node %q not found", uid)
+		g.Expect(gotNode.virtual).To(Equal(wantNode.virtual), "node %q.virtual does not have the expected value", uid)
+		g.Expect(gotNode.owners).To(HaveLen(len(wantNode.owners)), "node %q.owner does not have the expected length", uid)
 
 		for _, wantOwner := range wantNode.owners {
 			found := false
@@ -117,10 +117,10 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 					break
 				}
 			}
-			g.Expect(found).To(BeTrue())
+			g.Expect(found).To(BeTrue(), "node %q.owners does not contain %q", uid, wantOwner)
 		}
 
-		g.Expect(gotNode.softOwners).To(HaveLen(len(wantNode.softOwners)))
+		g.Expect(gotNode.softOwners).To(HaveLen(len(wantNode.softOwners)), "node %q.softOwners does not have the expected length", uid)
 
 		for _, wantOwner := range wantNode.softOwners {
 			found := false
@@ -130,7 +130,7 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 					break
 				}
 			}
-			g.Expect(found).To(BeTrue())
+			g.Expect(found).To(BeTrue(), "node %q.softOwners does not contain %q", uid, wantOwner)
 		}
 	}
 }
@@ -1017,7 +1017,6 @@ var objectGraphsTests = []struct {
 			},
 		},
 	},
-
 	{
 		name: "Cluster and Global + Namespaced External Objects",
 		args: objectGraphTestArgs{
@@ -1116,8 +1115,6 @@ func getFakeDiscoveryTypes(graph *objectGraph) error {
 }
 
 func TestObjectGraph_Discovery(t *testing.T) {
-	t.Skip("TestObjectGraph_Discovery/A_ClusterResourceSet_applied_to_a_cluster is now failing, needs to be investigated")
-
 	// NB. we are testing the graph is properly built starting from objects (TestGraphBuilder_addObj_WithFakeObjects) or from the same objects read from the cluster (this test).
 	for _, tt := range objectGraphsTests {
 		t.Run(tt.name, func(t *testing.T) {

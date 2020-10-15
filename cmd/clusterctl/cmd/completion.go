@@ -98,6 +98,11 @@ __clusterctl_kubectl_get_resource_namespace()
     __clusterctl_kubectl_parse_get "namespace"
 }
 
+__clusterctl_kubectl_get_resource_configmap()
+{
+    __clusterctl_kubectl_parse_get "configmap"
+}
+
 __clusterctl_kubectl_get_resource_cluster()
 {
     __clusterctl_kubectl_parse_get "cluster"
@@ -184,8 +189,11 @@ var (
 	}
 
 	bashCompletionFlags = map[string]string{
-		"namespace":          "__clusterctl_kubectl_get_resource_namespace",
-		"kubeconfig-context": "__clusterctl_kubectl_config_get_contexts",
+		"namespace":                 "__clusterctl_kubectl_get_resource_namespace",
+		"kubeconfig-context":        "__clusterctl_kubectl_config_get_contexts",
+		"from-config-map":           "__clusterctl_kubectl_get_resource_configmap",
+		"from-config-map-namespace": "__clusterctl_kubectl_get_resource_namespace",
+		"target-namespace":          "__clusterctl_kubectl_get_resource_namespace",
 	}
 )
 

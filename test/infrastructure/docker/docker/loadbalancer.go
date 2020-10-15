@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
+var ErrLoadBalancerNotExist = errors.New("unable to configure load balancer: load balancer container does not exist")
+
 type lbCreator interface {
 	CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error)
 }
@@ -94,7 +96,7 @@ func (s *LoadBalancer) Create() error {
 // UpdateConfiguration updates the external load balancer configuration with new control plane nodes.
 func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 	if s.container == nil {
-		return errors.New("unable to configure load balancer: load balancer container does not exists")
+		return ErrLoadBalancerNotExist
 	}
 
 	// collect info about the existing controlplane nodes

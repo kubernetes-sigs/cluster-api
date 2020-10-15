@@ -326,7 +326,7 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
 	if util.IsControlPlaneMachine(machine) {
-		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil {
+		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil && !errors.Is(err, docker.ErrLoadBalancerNotExist) {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
 	}

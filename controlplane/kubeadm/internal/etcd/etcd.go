@@ -54,7 +54,7 @@ type Client struct {
 	EtcdClient etcd
 	Endpoint   string
 	LeaderID   uint64
-	KVClient   *clientv3.Client
+	KVClient   clientv3.KV
 }
 
 // MemberAlarm represents an alarm type association with a cluster member.
@@ -142,7 +142,7 @@ func NewClient(ctx context.Context, endpoints []string, p proxy.Proxy, tlsConfig
 	return newEtcdClient(ctx, etcdClient, etcdClient)
 }
 
-func newEtcdClient(ctx context.Context, etcdClient etcd, kvClient *clientv3.Client) (*Client, error) {
+func newEtcdClient(ctx context.Context, etcdClient etcd, kvClient clientv3.KV) (*Client, error) {
 	endpoints := etcdClient.Endpoints()
 	if len(endpoints) == 0 {
 		return nil, errors.New("etcd client was not configured with any endpoints")
@@ -242,10 +242,6 @@ func (c *Client) Alarms(ctx context.Context) ([]MemberAlarm, error) {
 // HealthCheck checks the healthiness of endpoints specified in endpoints during Client creation.
 // Using the same logic used in etcdctl health command.
 func (c *Client) HealthCheck(ctx context.Context) error {
-	// This check is return nil if FakeEtcdClient.
-	if c.KVClient == nil {
-		return nil
-	}
 	_, err := c.KVClient.Get(ctx, "health")
 	if err == nil || err == rpctypes.ErrPermissionDenied {
 		return nil

@@ -86,7 +86,11 @@ func TestEtcdMembers_WithSuccess(t *testing.T) {
 		StatusResponse:       &clientv3.StatusResponse{},
 	}
 
-	client, err := newEtcdClient(ctx, fakeEtcdClient, nil)
+	fakeKVClient := &etcdfake.FakeKVClient{
+		GetResponse: &clientv3.GetResponse{},
+	}
+
+	client, err := newEtcdClient(ctx, fakeEtcdClient, fakeKVClient)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	members, err := client.Members(ctx)

@@ -408,10 +408,18 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 		return ctrl.Result{}, err
 	}
 
-	// Ignore the health check results here as well as the errors, they are used to set health related conditions on Machines.
-	// Errors may be dues not being able to get workload cluster nodes.
-	r.managementCluster.TargetClusterControlPlaneHealthCheck(ctx, controlPlane, util.ObjectKey(cluster)) //nolint
-	r.managementCluster.TargetClusterEtcdHealthCheck(ctx, controlPlane, util.ObjectKey(cluster)) //nolint
+	// Ignore the health check results here as well as the errors, health check functions are to set health related conditions on Machines.
+	// Errors may be due to not being able to get workload cluster nodes.
+	_, err = r.managementCluster.TargetClusterControlPlaneHealthCheck(ctx, controlPlane, util.ObjectKey(cluster))
+	if err != nil {
+		// Do nothing
+		r.Log.Info("Control plane did not pass control plane health check during delete reconciliation", "err", err.Error())
+	}
+	_, err = r.managementCluster.TargetClusterEtcdHealthCheck(ctx, controlPlane, util.ObjectKey(cluster))
+	if err != nil {
+		// Do nothing
+		r.Log.Info("Control plane did not pass etcd health check during delete reconciliation", "err", err.Error())
+	}
 
 	// Gets all machines, not just control plane machines.
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))

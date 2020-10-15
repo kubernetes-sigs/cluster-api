@@ -194,6 +194,7 @@ var (
 		"from-config-map":           "__clusterctl_kubectl_get_resource_configmap",
 		"from-config-map-namespace": "__clusterctl_kubectl_get_resource_namespace",
 		"target-namespace":          "__clusterctl_kubectl_get_resource_namespace",
+		"watching-namespace":        "__clusterctl_kubectl_get_resource_namespace",
 	}
 )
 

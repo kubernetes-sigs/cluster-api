@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
@@ -108,6 +109,40 @@ func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.Object
 
 // HealthCheckResult maps nodes that are checked to any errors the node has related to the check.
 type HealthCheckResult map[string]error
+
+// Aggregate will analyse HealthCheckResult and report any errors discovered.
+// It also ensures there is a 1;1 match between nodes and machines.
+func (h HealthCheckResult) Aggregate(controlPlane *ControlPlane) error {
+	var errorList []error
+	kcpMachines := controlPlane.Machines.UnsortedList()
+	// Make sure Cluster API is aware of all the nodes.
+
+	for nodeName, err := range h {
+		if err != nil {
+			errorList = append(errorList, fmt.Errorf("node %q: %v", nodeName, err))
+		}
+	}
+	if len(errorList) != 0 {
+		return kerrors.NewAggregate(errorList)
+	}
+
+	// This check ensures there is a 1 to 1 correspondence of nodes and machines.
+	// If a machine was not checked this is considered an error.
+	for _, machine := range kcpMachines {
+		if machine.Status.NodeRef == nil {
+			// The condition for this case is set by the Machine controller
+			return errors.Errorf("control plane machine %s/%s has no status.nodeRef", machine.Namespace, machine.Name)
+		}
+		if _, ok := h[machine.Status.NodeRef.Name]; !ok {
+			return errors.Errorf("machine's (%s/%s) node (%s) was not checked", machine.Namespace, machine.Name, machine.Status.NodeRef.Name)
+		}
+	}
+	if len(h) != len(kcpMachines) {
+		// MachinesReadyCondition covers this health failure.
+		return errors.Errorf("number of nodes and machines in namespace %s did not match: %d nodes %d machines", controlPlane.Cluster.Namespace, len(h), len(kcpMachines))
+	}
+	return nil
+}
 
 // controlPlaneIsHealthy does a best effort check of the control plane components the kubeadm control plane cares about.
 // The return map is a map of node names as keys to error that that node encountered.

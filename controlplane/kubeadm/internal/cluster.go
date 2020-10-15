@@ -26,15 +26,13 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util/secret"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ManagementCluster defines all behaviors necessary for something to function as a management cluster.
@@ -42,8 +40,6 @@ type ManagementCluster interface {
 	ctrlclient.Reader
 
 	GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...machinefilters.Func) (FilterableMachineCollection, error)
-	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey client.ObjectKey) error
-	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey client.ObjectKey) error
 	GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error)
 }
 
@@ -178,65 +174,4 @@ func (m *Management) getApiServerEtcdClientCert(ctx context.Context, clusterKey 
 		return tls.Certificate{}, errors.Errorf("etcd tls key does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
 	}
 	return tls.X509KeyPair(crtData, keyData)
-}
-
-type healthCheck func(context.Context) (HealthCheckResult, error)
-
-// HealthCheck will run a generic health check function and report any errors discovered.
-// In addition to the health check, it also ensures there is a 1;1 match between nodes and machines.
-func (m *Management) healthCheck(ctx context.Context, check healthCheck, clusterKey client.ObjectKey) error {
-	var errorList []error
-	nodeChecks, err := check(ctx)
-	if err != nil {
-		errorList = append(errorList, err)
-	}
-	for nodeName, err := range nodeChecks {
-		if err != nil {
-			errorList = append(errorList, fmt.Errorf("node %q: %v", nodeName, err))
-		}
-	}
-	if len(errorList) != 0 {
-		return kerrors.NewAggregate(errorList)
-	}
-
-	// Make sure Cluster API is aware of all the nodes.
-	machines, err := m.GetMachinesForCluster(ctx, clusterKey, machinefilters.ControlPlaneMachines(clusterKey.Name))
-	if err != nil {
-		return err
-	}
-
-	// This check ensures there is a 1 to 1 correspondence of nodes and machines.
-	// If a machine was not checked this is considered an error.
-	for _, machine := range machines {
-		if machine.Status.NodeRef == nil {
-			return errors.Errorf("control plane machine %s/%s has no status.nodeRef", machine.Namespace, machine.Name)
-		}
-		if _, ok := nodeChecks[machine.Status.NodeRef.Name]; !ok {
-			return errors.Errorf("machine's (%s/%s) node (%s) was not checked", machine.Namespace, machine.Name, machine.Status.NodeRef.Name)
-		}
-	}
-	if len(nodeChecks) != len(machines) {
-		return errors.Errorf("number of nodes and machines in namespace %s did not match: %d nodes %d machines", clusterKey.Namespace, len(nodeChecks), len(machines))
-	}
-	return nil
-}
-
-// TargetClusterControlPlaneIsHealthy checks every node for control plane health.
-func (m *Management) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey client.ObjectKey) error {
-	// TODO: add checks for expected taints/labels
-	cluster, err := m.GetWorkloadCluster(ctx, clusterKey)
-	if err != nil {
-		return err
-	}
-	return m.healthCheck(ctx, cluster.ControlPlaneIsHealthy, clusterKey)
-}
-
-// TargetClusterEtcdIsHealthy runs a series of checks over a target cluster's etcd cluster.
-// In addition, it verifies that there are the same number of etcd members as control plane Machines.
-func (m *Management) TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey client.ObjectKey) error {
-	cluster, err := m.GetWorkloadCluster(ctx, clusterKey)
-	if err != nil {
-		return err
-	}
-	return m.healthCheck(ctx, cluster.EtcdIsHealthy, clusterKey)
 }

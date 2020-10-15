@@ -98,6 +98,11 @@ __clusterctl_kubectl_get_resource_namespace()
     __clusterctl_kubectl_parse_get "namespace"
 }
 
+__clusterctl_kubectl_get_resource_cluster()
+{
+    __clusterctl_kubectl_parse_get "cluster"
+}
+
 # $1 has to be "contexts", "clusters" or "users"
 __clusterctl_kubectl_parse_config()
 {
@@ -111,6 +116,17 @@ __clusterctl_kubectl_parse_config()
 __clusterctl_kubectl_config_get_contexts()
 {
     __kubectl_parse_config "contexts"
+}
+
+__clusterctl_custom_func() {
+    case "$last_command" in
+        clusterctl_get_kubeconfig)
+            __clusterctl_kubectl_get_resource_cluster
+            return
+            ;;
+        *)
+            ;;
+    esac
 }
 `
 )

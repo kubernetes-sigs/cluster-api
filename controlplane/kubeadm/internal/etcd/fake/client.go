@@ -30,6 +30,7 @@ type FakeEtcdClient struct {
 	MemberUpdateResponse *clientv3.MemberUpdateResponse
 	MoveLeaderResponse   *clientv3.MoveLeaderResponse
 	StatusResponse       *clientv3.StatusResponse
+	GetResponse          *clientv3.GetResponse
 	ErrorResponse        error
 	MovedLeader          uint64
 	RemovedMember        uint64
@@ -64,4 +65,8 @@ func (c *FakeEtcdClient) MemberUpdate(_ context.Context, _ uint64, _ []string) (
 }
 func (c *FakeEtcdClient) Status(_ context.Context, _ string) (*clientv3.StatusResponse, error) {
 	return c.StatusResponse, nil
+}
+
+func (c *FakeEtcdClient) Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
+	return c.GetResponse, nil
 }

@@ -85,6 +85,7 @@ func TestEtcdMembers_WithSuccess(t *testing.T) {
 		MemberRemoveResponse: &clientv3.MemberRemoveResponse{},
 		AlarmResponse:        &clientv3.AlarmResponse{},
 		StatusResponse:       &clientv3.StatusResponse{},
+		GetResponse:          &clientv3.GetResponse{},
 	}
 
 	client, err := newEtcdClient(ctx, fakeEtcdClient)

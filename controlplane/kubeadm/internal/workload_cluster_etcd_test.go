@@ -70,10 +70,12 @@ func TestWorkload_EtcdIsHealthy(t *testing.T) {
 					AlarmResponse: &clientv3.AlarmResponse{
 						Alarms: []*pb.AlarmMember{},
 					},
+					GetResponse: &clientv3.GetResponse{},
 				},
 			},
 		},
 	}
+	ctx := context.Background()
 	health, err := workload.EtcdIsHealthy(ctx)
 	g.Expect(err).NotTo(HaveOccurred())
 

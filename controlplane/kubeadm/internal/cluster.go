@@ -181,7 +181,7 @@ func (m *Management) getApiServerEtcdClientCert(ctx context.Context, clusterKey 
 
 type healthCheck func(context.Context) (HealthCheckResult, error)
 
-// HealthCheck will run a generic health check function and report any errors discovered.
+// healthCheck will run a generic health check function and report any errors discovered.
 // In addition to the health check, it also ensures there is a 1;1 match between nodes and machines.
 func (m *Management) healthCheck(ctx context.Context, check healthCheck, clusterKey client.ObjectKey) error {
 	var errorList []error

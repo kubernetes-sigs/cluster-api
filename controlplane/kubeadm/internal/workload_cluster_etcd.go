@@ -49,6 +49,8 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 
 	expectedMembers := 0
 	response := make(map[string]error)
+	var memberList []*etcd.Member
+	nodesReportSameMemberList := true
 	for _, node := range controlPlaneNodes.Items {
 		name := node.Name
 		response[name] = nil
@@ -85,6 +87,12 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 		}
 		defer etcdClient.Close()
 
+		// Check healthiness of the etcd endpoint by trying to get a random key.
+		if err := etcdClient.IsEndpointHealthy(ctx); err != nil {
+			response[name] = errors.Wrap(err, "etcd member is unhealthy")
+			continue
+		}
+
 		// List etcd members. This checks that the member is healthy, because the request goes through consensus.
 		members, err := etcdClient.Members(ctx)
 		if err != nil {
@@ -92,7 +100,13 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 			continue
 		}
 
+		memberList = members
+
 		member := etcdutil.MemberForName(members, name)
+		if member == nil {
+			response[name] = errors.Wrap(err, "failed to find the member for the machine")
+			continue
+		}
 
 		// Check that the member reports no alarms.
 		if len(member.Alarms) > 0 {
@@ -116,9 +130,10 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 		} else {
 			unknownMembers := memberIDSet.Difference(knownMemberIDSet)
 			if unknownMembers.Len() > 0 {
+				nodesReportSameMemberList = false
 				response[name] = errors.Errorf("etcd member reports members IDs %v, but all previously seen etcd members reported member IDs %v", memberIDSet.UnsortedList(), knownMemberIDSet.UnsortedList())
+				continue
 			}
-			continue
 		}
 	}
 
@@ -128,6 +143,17 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 	// This allows us to handle the expected case where there is a failing pod but it's been removed from the member list.
 	if expectedMembers != len(knownMemberIDSet) {
 		return response, errors.Errorf("there are %d healthy etcd pods, but %d etcd members", expectedMembers, len(knownMemberIDSet))
+	}
+
+	// If the nodes are reporting a consistent member list make a further check ensuring that all the etcd members
+	// have a corresponding node (so there should not be "external" etcd members).
+	if nodesReportSameMemberList {
+		for _, m := range memberList {
+			// NOTE: we are using response for this check because it has a 1:1 correspondence with control plane nodes and map does support existence check
+			if _, ok := response[m.Name]; !ok {
+				return response, errors.Errorf("etcd member %q does not have a corresponding control plane nodes", m.Name)
+			}
+		}
 	}
 
 	return response, nil

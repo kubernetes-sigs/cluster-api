@@ -24,6 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"
 	"go.etcd.io/etcd/etcdserver/etcdserverpb"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
@@ -46,6 +47,7 @@ type etcd interface {
 	MemberUpdate(ctx context.Context, id uint64, peerURLs []string) (*clientv3.MemberUpdateResponse, error)
 	MoveLeader(ctx context.Context, id uint64) (*clientv3.MoveLeaderResponse, error)
 	Status(ctx context.Context, endpoint string) (*clientv3.StatusResponse, error)
+	Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error)
 }
 
 // Client wraps an etcd client formatting its output to something more consumable.
@@ -233,4 +235,17 @@ func (c *Client) Alarms(ctx context.Context) ([]MemberAlarm, error) {
 	}
 
 	return memberAlarms, nil
+}
+
+// IsEndpointHealthy checks the healthiness of endpoints specified in endpoints during Client creation.
+// Using the same logic used in etcdctl health command:
+// "get a random key. As long as we can get the response without an error, the endpoint is health."
+func (c *Client) IsEndpointHealthy(ctx context.Context) error {
+	_, err := c.EtcdClient.Get(ctx, "health")
+
+	// permission denied is OK since it reports the endpoint is working, no matter of the grants on the specific key
+	if err == nil || err == rpctypes.ErrPermissionDenied {
+		return nil
+	}
+	return err
 }

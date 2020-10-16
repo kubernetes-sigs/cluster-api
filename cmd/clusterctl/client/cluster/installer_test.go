@@ -18,15 +18,122 @@ package cluster
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
+
+func Test_providerInstaller_Install(t *testing.T) {
+	unavailableDeployment := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "ns",
+			UID:       "1",
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:   appsv1.DeploymentAvailable,
+					Status: corev1.ConditionFalse,
+				},
+			},
+		},
+	}
+	availableDeployment := unavailableDeployment.DeepCopy()
+	availableDeployment.Status = appsv1.DeploymentStatus{
+		Conditions: []appsv1.DeploymentCondition{
+			{
+				Type:   appsv1.DeploymentAvailable,
+				Status: corev1.ConditionTrue,
+			},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		deployments []*appsv1.Deployment
+		expectErr   bool
+	}{
+		{
+			name:        "should return error if deployment is not available yet",
+			deployments: []*appsv1.Deployment{unavailableDeployment.DeepCopy()},
+			expectErr:   true,
+		},
+		{
+			name:        "should succeed if deployment has the available condition",
+			deployments: []*appsv1.Deployment{availableDeployment.DeepCopy()},
+			expectErr:   false,
+		},
+		{
+			name:        "should return error if one of the deployments is not available yet",
+			deployments: []*appsv1.Deployment{availableDeployment.DeepCopy(), unavailableDeployment.DeepCopy()},
+			expectErr:   true,
+		},
+	}
+
+	fastBackoff := wait.Backoff{
+		Duration: time.Millisecond,
+		Factor:   1,
+		Steps:    1,
+		Jitter:   0,
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			iq := make([]repository.Components, 0, len(tt.deployments))
+			for _, d := range tt.deployments {
+				dus, err := runtime.DefaultUnstructuredConverter.ToUnstructured(d)
+				g.Expect(err).ToNot(HaveOccurred())
+				obj := []unstructured.Unstructured{{Object: dus}}
+
+				comp := newFakeComponents(fakeComponentsInput{
+					name:         "some-component",
+					version:      "v1.0.0",
+					providerType: clusterctlv1.InfrastructureProviderType,
+				}, withInstanceObjs(obj))
+
+				iq = append(iq, comp)
+			}
+
+			proxy := test.NewFakeProxy()
+			i := &providerInstaller{
+				proxy:             proxy,
+				providerInventory: newInventoryClient(proxy, nil),
+				providerComponents: newComponentsClient(
+					proxy,
+					withCreateComponentObjectBackoff(fastBackoff),
+					withReadComponentObjectBackoff(fastBackoff),
+				),
+				installQueue:         iq,
+				installerReadBackoff: fastBackoff,
+			}
+			_, err := i.Install()
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+
+}
 
 func Test_providerInstaller_Validate(t *testing.T) {
 	fakeReader := test.NewFakeReader().
@@ -90,8 +197,18 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			fields: fields{
 				proxy: test.NewFakeProxy(), //empty cluster
 				installQueue: []repository.Components{ // install core + infra1, v1alpha3 contract
-					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
+					newFakeComponents(fakeComponentsInput{
+						name:            "cluster-api",
+						version:         "v1.0.0",
+						targetNamespace: "cluster-api-system",
+						providerType:    clusterctlv1.CoreProviderType,
+					}),
+					newFakeComponents(fakeComponentsInput{
+						name:            "infra1",
+						version:         "v1.0.0",
+						targetNamespace: "infra1-system",
+						providerType:    clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: false,
@@ -103,7 +220,12 @@ func Test_providerInstaller_Validate(t *testing.T) {
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
 								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
 				installQueue: []repository.Components{ // install infra2, v1alpha3 contract
-					newFakeComponents("infra2", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra2-system", ""),
+					newFakeComponents(fakeComponentsInput{
+						name:            "infra2",
+						version:         "v1.0.0",
+						targetNamespace: "infra2-system",
+						providerType:    clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: false,
@@ -115,7 +237,13 @@ func Test_providerInstaller_Validate(t *testing.T) {
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
 								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns1", "ns1"),
 				installQueue: []repository.Components{ // install infra2, v1alpha3 contract
-					newFakeComponents("infra2", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns2", "ns2"),
+					newFakeComponents(fakeComponentsInput{
+						name:              "infra2",
+						version:           "v1.0.0",
+						targetNamespace:   "ns2",
+						watchingNamespace: "ns2",
+						providerType:      clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: false,
@@ -127,7 +255,12 @@ func Test_providerInstaller_Validate(t *testing.T) {
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
 								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "n1", ""),
 				installQueue: []repository.Components{ // install infra1, v1alpha3 contract
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "n1", ""),
+					newFakeComponents(fakeComponentsInput{
+						name:            "infra1",
+						version:         "v1.0.0",
+						targetNamespace: "n1",
+						providerType:    clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: true,
@@ -139,7 +272,12 @@ func Test_providerInstaller_Validate(t *testing.T) {
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
 								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
 				installQueue: []repository.Components{ // install infra1, v1alpha3 contract
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra2-system", ""),
+					newFakeComponents(fakeComponentsInput{
+						name:            "infra1",
+						version:         "v1.0.0",
+						targetNamespace: "infra2-system",
+						providerType:    clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: true,
@@ -151,7 +289,13 @@ func Test_providerInstaller_Validate(t *testing.T) {
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1").
 								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns1", "ns1"),
 				installQueue: []repository.Components{ // install infra1, v1alpha3 contract
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns2", "ns2"),
+					newFakeComponents(fakeComponentsInput{
+						name:              "infra1",
+						version:           "v1.0.0",
+						targetNamespace:   "ns2",
+						watchingNamespace: "ns2",
+						providerType:      clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: true,
@@ -163,7 +307,12 @@ func Test_providerInstaller_Validate(t *testing.T) {
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1").
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns2", "ns2"),
 				installQueue: []repository.Components{ // install infra1, v1alpha3 contract
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
+					newFakeComponents(fakeComponentsInput{
+						name:            "infra1",
+						version:         "v1.0.0",
+						targetNamespace: "infra1-system",
+						providerType:    clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: true,
@@ -173,8 +322,18 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			fields: fields{
 				proxy: test.NewFakeProxy(), //empty cluster
 				installQueue: []repository.Components{ // install core + infra1, v1alpha3 contract
-					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra1-system", ""),
+					newFakeComponents(fakeComponentsInput{
+						name:            "cluster-api",
+						version:         "v1.0.0",
+						targetNamespace: "cluster-api-system",
+						providerType:    clusterctlv1.CoreProviderType,
+					}),
+					newFakeComponents(fakeComponentsInput{
+						name:            "infra1",
+						version:         "v2.0.0",
+						targetNamespace: "infra1-system",
+						providerType:    clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: true,
@@ -185,7 +344,12 @@ func Test_providerInstaller_Validate(t *testing.T) {
 				proxy: test.NewFakeProxy(). // cluster with one core, v1alpha3 contract
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1"),
 				installQueue: []repository.Components{ // install infra1, v1alpha4 contract
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra1-system", ""),
+					newFakeComponents(fakeComponentsInput{
+						name:            "infra1",
+						version:         "v2.0.0",
+						targetNamespace: "infra1-system",
+						providerType:    clusterctlv1.InfrastructureProviderType,
+					}),
 				},
 			},
 			wantErr: true,
@@ -221,10 +385,11 @@ func Test_providerInstaller_Validate(t *testing.T) {
 type fakeComponents struct {
 	config.Provider
 	inventoryObject clusterctlv1.Provider
+	instanceObjs    []unstructured.Unstructured
 }
 
 func (c *fakeComponents) Version() string {
-	panic("not implemented")
+	return ""
 }
 
 func (c *fakeComponents) Variables() []string {
@@ -236,7 +401,7 @@ func (c *fakeComponents) Images() []string {
 }
 
 func (c *fakeComponents) TargetNamespace() string {
-	panic("not implemented")
+	return ""
 }
 
 func (c *fakeComponents) WatchingNamespace() string {
@@ -248,23 +413,40 @@ func (c *fakeComponents) InventoryObject() clusterctlv1.Provider {
 }
 
 func (c *fakeComponents) InstanceObjs() []unstructured.Unstructured {
-	panic("not implemented")
+	return c.instanceObjs
 }
 
 func (c *fakeComponents) SharedObjs() []unstructured.Unstructured {
-	panic("not implemented")
+	return []unstructured.Unstructured{}
 }
 
 func (c *fakeComponents) Yaml() ([]byte, error) {
 	panic("not implemented")
 }
 
-func newFakeComponents(name string, providerType clusterctlv1.ProviderType, version, targetNamespace, watchingNamespace string) repository.Components {
-	inventoryObject := fakeProvider(name, providerType, version, targetNamespace, watchingNamespace)
-	return &fakeComponents{
+type fakeComponentsInput struct {
+	name, version, targetNamespace, watchingNamespace string
+	providerType                                      clusterctlv1.ProviderType
+}
+
+type fakeComponentsOpts func(*fakeComponents)
+
+func withInstanceObjs(o []unstructured.Unstructured) fakeComponentsOpts {
+	return func(f *fakeComponents) {
+		f.instanceObjs = o
+	}
+}
+
+func newFakeComponents(in fakeComponentsInput, opts ...fakeComponentsOpts) repository.Components {
+	inventoryObject := fakeProvider(in.name, in.providerType, in.version, in.targetNamespace, in.watchingNamespace)
+	f := &fakeComponents{
 		Provider:        config.NewProvider(inventoryObject.ProviderName, "", clusterctlv1.ProviderType(inventoryObject.Type)),
 		inventoryObject: inventoryObject,
 	}
+	for _, o := range opts {
+		o(f)
+	}
+	return f
 }
 
 func Test_shouldInstallSharedComponents(t *testing.T) {

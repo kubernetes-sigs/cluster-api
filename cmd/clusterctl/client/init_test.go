@@ -749,6 +749,9 @@ func templateYAML(ns string, clusterName string) []byte {
 
 // infraComponentsYAML defines a namespace and deployment with container
 // images and a variable
+// Including status object as part of the Deployment, so that when the
+// provider components are installed, the providerComponents.Create doesn't
+// fail as part of the check to ensure the deployment is up and running.
 func infraComponentsYAML(namespace string) []byte {
 	var infraComponentsYAML string = `---
 apiVersion: v1
@@ -776,6 +779,12 @@ spec:
       - name: credentials
         secret:
           secretName: ${SOME_VARIABLE}
+status:
+  conditions:
+  - message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
 `
 	return []byte(fmt.Sprintf(infraComponentsYAML, namespace))
 }

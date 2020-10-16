@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -53,18 +54,52 @@ type ComponentsClient interface {
 
 // providerComponents implements ComponentsClient.
 type providerComponents struct {
-	proxy Proxy
+	proxy                        Proxy
+	createComponentObjectBackoff wait.Backoff
+	readComponentObjectBackoff   wait.Backoff
+}
+
+type ProviderComponentsOption func(*providerComponents)
+
+func withCreateComponentObjectBackoff(b wait.Backoff) ProviderComponentsOption {
+	return func(p *providerComponents) {
+		p.createComponentObjectBackoff = b
+	}
+}
+
+func withReadComponentObjectBackoff(b wait.Backoff) ProviderComponentsOption {
+	return func(p *providerComponents) {
+		p.readComponentObjectBackoff = b
+	}
+}
+
+// newComponentsClient returns a providerComponents.
+func newComponentsClient(proxy Proxy, opts ...ProviderComponentsOption) *providerComponents {
+	pc := &providerComponents{
+		proxy:                        proxy,
+		createComponentObjectBackoff: newWriteBackoff(),
+		readComponentObjectBackoff:   newReadBackoff(),
+	}
+
+	for _, o := range opts {
+		o(pc)
+	}
+	return pc
 }
 
 func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
-	createComponentObjectBackoff := newWriteBackoff()
+	c, err := p.proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
 	for i := range objs {
 		obj := objs[i]
 
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make Create more resilient to unexpected conditions.
-		if err := retryWithExponentialBackoff(createComponentObjectBackoff, func() error {
-			return p.createObj(obj)
+		if err := retryWithExponentialBackoff(p.createComponentObjectBackoff, func() error {
+			return p.createObj(c, obj)
 		}); err != nil {
 			return err
 		}
@@ -73,12 +108,8 @@ func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
 	return nil
 }
 
-func (p *providerComponents) createObj(obj unstructured.Unstructured) error {
+func (p *providerComponents) createObj(c client.Client, obj unstructured.Unstructured) error {
 	log := logf.Log
-	c, err := p.proxy.NewClient()
-	if err != nil {
-		return err
-	}
 
 	// check if the component already exists, and eventually update it
 	currentR := &unstructured.Unstructured{}
@@ -209,11 +240,4 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	}
 
 	return kerrors.NewAggregate(errList)
-}
-
-// newComponentsClient returns a providerComponents.
-func newComponentsClient(proxy Proxy) *providerComponents {
-	return &providerComponents{
-		proxy: proxy,
-	}
 }

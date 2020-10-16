@@ -17,13 +17,20 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ProviderInstaller defines methods for enforcing consistency rules for provider installation.
@@ -57,6 +64,7 @@ type providerInstaller struct {
 	providerComponents      ComponentsClient
 	providerInventory       InventoryClient
 	installQueue            []repository.Components
+	installerReadBackoff    wait.Backoff
 }
 
 var _ ProviderInstaller = &providerInstaller{}
@@ -74,7 +82,49 @@ func (i *providerInstaller) Install() ([]repository.Components, error) {
 
 		ret = append(ret, components)
 	}
+
+	c, err := i.proxy.NewClient()
+	if err != nil {
+		return nil, err
+	}
+	// Verify that Deployments in any components to be installed is available
+	// before moving on.
+	for _, components := range i.installQueue {
+		for _, obj := range components.InstanceObjs() {
+			if obj.GetKind() == "Deployment" {
+				err := i.checkDeploymentIsAvailable(c, obj)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
 	return ret, nil
+}
+
+func (i *providerInstaller) checkDeploymentIsAvailable(c client.Client, obj unstructured.Unstructured) error {
+
+	err := retryWithExponentialBackoff(i.installerReadBackoff, func() error {
+		d := appsv1.Deployment{}
+		key := client.ObjectKey{
+			Namespace: obj.GetNamespace(),
+			Name:      obj.GetName(),
+		}
+
+		// TODO: pass in ctx instead of using global.
+		err := c.Get(ctx, key, &d)
+		if err != nil {
+			return err
+		}
+		for _, condition := range d.Status.Conditions {
+			if condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
+				return nil
+			}
+		}
+		return fmt.Errorf("deployment %s/%s is not ready yet", obj.GetNamespace(), obj.GetName())
+	})
+
+	return err
 }
 
 func installComponentsAndUpdateInventory(components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {
@@ -284,12 +334,21 @@ func (i *providerInstaller) Images() []string {
 	return ret.List()
 }
 
-func newProviderInstaller(configClient config.Client, repositoryClientFactory RepositoryClientFactory, proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient) *providerInstaller {
+func newProviderInstaller(
+	configClient config.Client,
+	repositoryClientFactory RepositoryClientFactory,
+	proxy Proxy,
+	providerMetadata InventoryClient,
+	providerComponents ComponentsClient,
+) *providerInstaller {
+	backoff := newReadBackoff()
+	backoff.Steps = 15
 	return &providerInstaller{
 		configClient:            configClient,
 		repositoryClientFactory: repositoryClientFactory,
 		proxy:                   proxy,
 		providerComponents:      providerComponents,
 		providerInventory:       providerMetadata,
+		installerReadBackoff:    backoff,
 	}
 }

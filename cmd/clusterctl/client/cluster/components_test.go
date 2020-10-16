@@ -18,14 +18,18 @@ package cluster
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -292,6 +296,85 @@ func Test_providerComponents_Delete(t *testing.T) {
 					t.Errorf("%v not deleted, expect deleted", key)
 				}
 			}
+		})
+	}
+}
+
+func Test_providerComponents_Create(t *testing.T) {
+
+	tests := []struct {
+		name      string
+		d         *appsv1.Deployment
+		expectErr bool
+	}{
+		{
+			name: "should return error if deployment is not available yet",
+			d: &appsv1.Deployment{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns",
+					UID:       "1",
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "should succeed if deployment has the available condition",
+			d: &appsv1.Deployment{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns",
+					UID:       "1",
+				},
+				Status: appsv1.DeploymentStatus{
+					Conditions: []appsv1.DeploymentCondition{
+						{
+							Type:   appsv1.DeploymentAvailable,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// don't wait, fast backoff
+			b := wait.Backoff{
+				Duration: time.Millisecond,
+				Factor:   1,
+				Steps:    1,
+				Jitter:   0,
+			}
+			proxy := test.NewFakeProxy()
+			c := newComponentsClient(
+				proxy,
+				withCreateComponentObjectBackoff(b),
+				withReadComponentObjectBackoff(b),
+			)
+			// convert the object to unstructured
+			dus, err := runtime.DefaultUnstructuredConverter.ToUnstructured(tt.d)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			objs := []unstructured.Unstructured{{Object: dus}}
+			err = c.Create(objs)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

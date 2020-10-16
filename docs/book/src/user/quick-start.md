@@ -36,7 +36,7 @@ export KUBECONFIG=<...>
 
 [kind] is not designed for production use.
 
-**Minimum [kind] supported version**: v0.7.0
+**Minimum [kind] supported version**: v0.9.0
 
 </aside>
 
@@ -46,20 +46,8 @@ the creation of a temporary [bootstrap cluster] used to provision a target [mana
 The installation procedure depends on the version of kind; if you are planning to use the docker infrastructure provider,
 please follow the additional instructions in the dedicated tab:
 
-{{#tabs name:"install-kind" tabs:"v0.7.x,v0.8.x,Docker"}}
-{{#tab v0.7.x}}
-
-Create the kind cluster:
-```bash
-kind create cluster
-```
-Test to ensure the local kind cluster is ready:
-```
-kubectl cluster-info
-```
-
-{{#/tab }}
-{{#tab v0.8.x}}
+{{#tabs name:"install-kind" tabs:"v0.9.x,Docker"}}
+{{#tab v0.9.x}}
 
 Export the variable **KIND_EXPERIMENTAL_DOCKER_NETWORK=bridge** to let kind run in the default **bridge** network:
 ```bash

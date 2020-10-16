@@ -34,7 +34,7 @@ const (
 	AWSProviderName       = "aws"
 	AzureProviderName     = "azure"
 	DockerProviderName    = "docker"
-	DOProviderName        = "do"
+	DOProviderName        = "digitalocean"
 	Metal3ProviderName    = "metal3"
 	OpenStackProviderName = "openstack"
 	PacketProviderName    = "packet"

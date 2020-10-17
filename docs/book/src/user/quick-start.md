@@ -275,7 +275,7 @@ clusterctl init --infrastructure openstack
 {{#/tab }}
 {{#tab Metal3}}
 
-Please visit the [Metal3 project][Metal3 getting started guide].
+Please visit the [Metal3 project][Metal3 provider].
 
 {{#/tab }}
 {{#tab Packet}}
@@ -494,7 +494,27 @@ A full configuration reference can be found in [configuration.md](https://github
 {{#/tab }}
 {{#tab Metal3}}
 
-Please visit the [Metal3 getting started guide].
+```bash
+# The URL of the kernel to deploy.
+export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"
+# The URL of the ramdisk to deploy.
+export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"
+# The URL of the Ironic endpoint.
+export IRONIC_URL="http://172.22.0.1:6385/v1/"
+# The URL of the Ironic inspector endpoint.
+export IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"
+# Do not use a dedicated CA certificate for Ironic API. Any value provided in this variable disables additional CA certificate validation.
+# To provide a CA certificate, leave this variable unset. If unset, then IRONIC_CA_CERT_B64 must be set.
+export IRONIC_NO_CA_CERT=true
+# Disables basic authentication for Ironic API. Any value provided in this variable disables authentication.
+# To enable authentication, leave this variable unset. If unset, then IRONIC_USERNAME and IRONIC_PASSWORD must be set.
+export IRONIC_NO_BASIC_AUTH=true
+# Disables basic authentication for Ironic inspector API. Any value provided in this variable disables authentication.
+# To enable authentication, leave this variable unset. If unset, then IRONIC_INSPECTOR_USERNAME and IRONIC_INSPECTOR_PASSWORD must be set.
+export IRONIC_INSPECTOR_NO_BASIC_AUTH=true
+```
+
+Please visit the [Metal3 getting started guide] for more details.
 
 {{#/tab }}
 {{#tab Packet}}
@@ -711,7 +731,8 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [KubeadmControlPlane]: ../developer/architecture/controllers/control-plane.md
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [management cluster]: ../reference/glossary.md#management-cluster
-[Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
 [Packet getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-packet#using
 [provider components]: ../reference/glossary.md#provider-components
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/

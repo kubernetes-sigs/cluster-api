@@ -504,7 +504,7 @@ order to get a well tuned and function workload, they are all listed here:
 
 ```bash
 # The project where your cluster will be placed to.
-# You have to get out from Packet Portal if you don't have one already.
+# You have to get out from Packet Portal if you do not have one already.
 export PROJECT_ID="5yd4thd-5h35-5hwk-1111-125gjej40930"
 # The facility where you want your cluster to be provisioned
 export FACILITY="ewr1"

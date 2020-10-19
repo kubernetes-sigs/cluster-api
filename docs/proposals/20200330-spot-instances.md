@@ -34,6 +34,7 @@ superseded-by:
             * [Story 1](#story-1)
             * [Story 2](#story-2)
          * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+         * [Interruptible label](#interruptible-label)
             * [Cloud Provider Implementation Specifics](#cloud-provider-implementation-specifics)
                * [AWS](#aws)
                   * [Launching instances](#launching-instances)
@@ -248,6 +249,40 @@ this will trigger the VM to be deleted which in turn will delete the other resou
 The Node will transition to an unready state which would be detected by a MachineHealthCheck,
 though there may be some delay depending on the configuration of the MachineHealthCheck.
 In the future, a termination handler could trigger the Machine to be deleted sooner.
+
+
+
+
+### 'Interruptible' label
+
+In order to deploy the termination handler, we'll need to create a DaemonSet that runs it on each spot instance node.
+
+Having `"cluster.x-k8s.io/interruptible"` label on Nodes that run on interruptible instances should help us with it.
+
+Based on the discussion here https://github.com/kubernetes-sigs/cluster-api/pull/3668 ([1](https://github.com/kubernetes-sigs/cluster-api/pull/3668#issuecomment-696143653), [2](https://github.com/kubernetes-sigs/cluster-api/pull/3668#issuecomment-696862994).) we can do following: 
+1. User creates InfraMachine with whatever spec field(s) are required for that provider to indicate it's interruptible.
+2. Infra provider sets InfraMachine.status.interruptible=true
+3. Machine controller looks at InfraMachine.status.interruptible and ensures a label is set on the node if it is true.
+4. Machine controller ensures the interruptible label is always present on the Node if InfraMachine.status.interruptible is true.
+
+This snippet should work and it's similar to what is currently done to set node reference:
+
+```
+// Get and set the failure domain from the infrastructure provider.
+var interruptible bool
+err = util.UnstructuredUnmarshalField(infraConfig, &interruptible, "status", "interruptible")
+switch {
+case err == util.ErrUnstructuredFieldNotFound: // no-op
+case err != nil:
+	return errors.Wrapf(err, "failed to get interruptible status from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+}
+
+if !interruptible {
+	return nil
+}
+
+// Here goes logic for assigning a label to node
+```
 
 ### Future Work
 

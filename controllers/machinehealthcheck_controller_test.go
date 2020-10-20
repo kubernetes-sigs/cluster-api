@@ -1234,41 +1234,6 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	}
 }
 
-func TestIndexMachineByNodeName(t *testing.T) {
-	r := &MachineHealthCheckReconciler{}
-
-	testCases := []struct {
-		name     string
-		object   client.Object
-		expected []string
-	}{
-		{
-			name:     "when the machine has no NodeRef",
-			object:   &clusterv1.Machine{},
-			expected: []string{},
-		},
-		{
-			name: "when the machine has valid a NodeRef",
-			object: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
-						Name: "node1",
-					},
-				},
-			},
-			expected: []string{"node1"},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-			got := r.indexMachineByNodeName(tc.object)
-			g.Expect(got).To(ConsistOf(tc.expected))
-		})
-	}
-}
-
 func TestIsAllowedRemediation(t *testing.T) {
 	testCases := []struct {
 		name               string

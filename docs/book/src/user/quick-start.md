@@ -160,7 +160,7 @@ and `kubeadm` control-plane providers.
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3,Packet"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,GCP,vSphere,OpenStack,Metal3,Packet"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path. You need at least version v0.5.5 for these instructions.
@@ -215,6 +215,18 @@ export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -
 # Finally, initialize the management cluster
 clusterctl init --infrastructure azure
 ```
+
+{{#/tab }}
+{{#tab DigitalOcean}}
+
+```bash
+export DIGITALOCEAN_ACCESS_TOKEN=<your-access-token>
+export DO_B64ENCODED_CREDENTIALS="$(echo -n "${DIGITALOCEAN_ACCESS_TOKEN}" | base64 | tr -d '\n')"
+
+# Initialize the management cluster
+clusterctl init --infrastructure digitalocean
+```
+
 
 {{#/tab }}
 {{#tab Docker}}
@@ -362,7 +374,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl config cluster` [command][clusterctl config cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3,Packet"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,GCP,vSphere,OpenStack,Metal3,Packet"}}
 {{#tab AWS}}
 
 ```bash
@@ -385,6 +397,21 @@ export AZURE_LOCATION="centralus"
 # Select VM types.
 export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"
 export AZURE_NODE_MACHINE_TYPE="Standard_D2s_v3"
+```
+
+{{#/tab }}
+{{#tab DigitalOcean}}
+
+A ClusterAPI compatible image must be available in your DigitalOcean account. For instructions on how to build a compatible image
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
+
+```bash
+export DO_REGION=nyc1
+export DO_SSH_KEY_FINGERPRINT=<your-ssh-key-fingerprint>
+export DO_CONTROL_PLANE_MACHINE_TYPE=s-2vcpu-2gb
+export DO_CONTROL_PLANE_MACHINE_IMAGE=<your-capi-image-id>
+export DO_NODE_MACHINE_TYPE=s-2vcpu-2gb
+export DO_NODE_MACHINE_IMAGE==<your-capi-image-id>
 ```
 
 {{#/tab }}
@@ -545,8 +572,8 @@ export WORKER_NODE_TYPE="t1.small"
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|GCP|vSphere|OpenStack|Metal3|Packet,Docker"}}
-{{#tab Azure|AWS|GCP|vSphere|OpenStack|Metal3|Packet}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|DigitalOcean|GCP|vSphere|OpenStack|Metal3|Packet,Docker"}}
+{{#tab Azure|AWS|DigitalOcean|GCP|vSphere|OpenStack|Metal3|Packet}}
 
 ```bash
 clusterctl config cluster capi-quickstart \
@@ -663,8 +690,8 @@ See [Additional Notes for the Docker Provider](../clusterctl/developers.md#addit
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"AWS|Docker|GCP|vSphere|OpenStack|Metal3|Packet,Azure"}}
-{{#tab AWS|Docker|GCP|vSphere|OpenStack|Metal3|Packet}}
+{{#tabs name:"tab-deploy-cni" tabs:"AWS|DigitalOcean|Docker|GCP|vSphere|OpenStack|Metal3|Packet,Azure"}}
+{{#tab AWS|DigitalOcean|Docker|GCP|vSphere|OpenStack|Metal3|Packet}}
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \

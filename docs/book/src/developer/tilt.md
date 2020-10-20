@@ -73,7 +73,7 @@ for more details.
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
 provider's yaml.
 
-{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,GCP"}}
+{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP"}}
 {{#tab AWS}}
 
 For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
@@ -121,6 +121,15 @@ Add the output of the following as a section in your `tilt-settings.json`:
      "AZURE_CLIENT_ID_B64": "$(echo "${AZURE_CLIENT_ID}" | tr -d '\n' | base64 | tr -d '\n')"
     }
   EOF
+```
+
+{{#/tab }}
+{{#tab DigitalOcean}}
+
+```json
+"kustomize_substitutions": {
+  "DO_B64ENCODED_CREDENTIALS": "your credentials here"
+}
 ```
 
 {{#/tab }}

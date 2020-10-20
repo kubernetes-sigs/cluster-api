@@ -199,18 +199,19 @@ easier transition from `kubectl apply` to `clusterctl`.
 As a reference you can consider the labels applied to the following
 providers.
 
-| Provider Name| Label                                              |
-|--------------|----------------------------------------------------|
-|CAPI          | cluster.x-k8s.io/provider=cluster-api              |
-|CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm        |
-|CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm    |
-|CAPA          | cluster.x-k8s.io/provider=infrastructure-aws       |
-|CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere   |
-|CAPD          | cluster.x-k8s.io/provider=infrastructure-docker    |
-|CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3    |
-|CAPP          | cluster.x-k8s.io/provider=infrastructure-packet    |
-|CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure     |
-|CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack |
+| Provider Name| Label                                                  |
+|--------------|--------------------------------------------------------|
+|CAPI          | cluster.x-k8s.io/provider=cluster-api                  |
+|CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm            |
+|CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm        |
+|CAPA          | cluster.x-k8s.io/provider=infrastructure-aws           |
+|CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere       |
+|CAPD          | cluster.x-k8s.io/provider=infrastructure-docker        |
+|CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3        |
+|CAPP          | cluster.x-k8s.io/provider=infrastructure-packet        |
+|CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure         |
+|CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack     |
+|CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean  |
 
 ### Workload cluster templates
 

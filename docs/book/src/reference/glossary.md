@@ -41,6 +41,9 @@ Cluster API Bootstrap Provider Kubeadm
 ### CAPD
 Cluster API Provider Docker
 
+### CAPDO
+Cluster API Provider DigitalOcean
+
 ### CAPG
 Cluster API Google Cloud Provider
 

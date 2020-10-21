@@ -118,7 +118,7 @@ func list(visit func(string, *types.Node), filters ...string) error {
 	cmd := exec.Command("docker", args...)
 	lines, err := exec.CombinedOutputLines(cmd)
 	if err != nil {
-		return errors.Wrap(err, "failed to list nodes")
+		return errors.Wrapf(err, "failed to list nodes. Output: %s", lines)
 	}
 	for _, line := range lines {
 		parts := strings.Split(line, "\t")

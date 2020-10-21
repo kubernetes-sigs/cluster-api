@@ -29,7 +29,7 @@ To get started with this template:
   Aim for single topic PRs to keep discussions focused.
   If you disagree with what is already in a document, open a new PR with suggested changes.
 
-The canonical place for the latest set of instructions (and the likely source of this file) is [here](/proposals/YYYYMMDD-proposal-template.md).
+The canonical place for the latest set of instructions (and the likely source of this file) is [here](/docs/proposals/YYYYMMDD-template.md).
 
 The `Metadata` section above is intended to support the creation of tooling around the proposal process.
 This will be a YAML section that is fenced as a code block.

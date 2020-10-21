@@ -18,6 +18,7 @@ package client
 
 import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/alpha"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -65,6 +66,15 @@ type Client interface {
 	// ProcessYAML provides a direct way to process a yaml and inspect its
 	// variables.
 	ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error)
+
+	// Interface for alpha features in clusterctl
+	AlphaClient
+}
+
+// AlphaClient exposes the alpha features in clusterctl high-level client library.
+type AlphaClient interface {
+	// RolloutRestart provides rollout restart of cluster-api resources
+	RolloutRestart(options RolloutRestartOptions) error
 }
 
 // YamlPrinter exposes methods that prints the processed template and
@@ -82,6 +92,7 @@ type clusterctlClient struct {
 	configClient            config.Client
 	repositoryClientFactory RepositoryClientFactory
 	clusterClientFactory    ClusterClientFactory
+	alphaClient             alpha.Client
 }
 
 // RepositoryClientFactoryInput represents the inputs required by the
@@ -158,6 +169,12 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 	// if there is an injected ClusterFactory, use it, otherwise use a default one.
 	if client.clusterClientFactory == nil {
 		client.clusterClientFactory = defaultClusterFactory(client.configClient)
+	}
+
+	// if there is an injected alphaClient, use it, otherwise use a default one.
+	if client.alphaClient == nil {
+		c := alpha.New()
+		client.alphaClient = c
 	}
 
 	return client, nil

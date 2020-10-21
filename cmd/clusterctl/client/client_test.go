@@ -118,6 +118,10 @@ func (f fakeClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error)
 	return f.internalClient.ProcessYAML(options)
 }
 
+func (f fakeClient) RolloutRestart(options RolloutRestartOptions) error {
+	return f.internalClient.RolloutRestart(options)
+}
+
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(configClient config.Client) *fakeClient {

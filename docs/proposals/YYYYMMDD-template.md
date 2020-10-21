@@ -1,5 +1,5 @@
 ---
-title: proposal Template
+title: Proposal Template
 authors:
   - "@janedoe"
 reviewers:

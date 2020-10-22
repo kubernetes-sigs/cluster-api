@@ -217,7 +217,7 @@ release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a rele
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.
 	docker pull docker.io/docker/dockerfile:experimental
-	docker pull docker.io/library/golang:1.15.2
+	docker pull docker.io/library/golang:1.15.3
 	docker pull gcr.io/distroless/static:latest
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 

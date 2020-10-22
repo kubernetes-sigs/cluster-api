@@ -1,0 +1,9 @@
+namePrefix: capk-
+
+commonLabels:
+  cluster.x-k8s.io/provider: "infrastructure-kubemark"
+
+bases:
+- crd
+# - webhook # Disable this if you're not using the webhook functionality.
+- default

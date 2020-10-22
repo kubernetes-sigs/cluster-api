@@ -1,0 +1,10 @@
+domain: cluster.x-k8s.io
+repo: github.com/benmoss/cluster-api-provider-kubemark
+resources:
+- group: infrastructure
+  kind: KubemarkMachine
+  version: v1alpha3
+- group: infrastructure
+  kind: KubemarkMachineTemplate
+  version: v1alpha3
+version: "2"

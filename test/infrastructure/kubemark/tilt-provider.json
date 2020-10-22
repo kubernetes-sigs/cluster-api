@@ -1,0 +1,17 @@
+{
+  "name": "kubemark",
+  "config": {
+    "image": "gcr.io/k8s-staging-cluster-api/cluster-api-kubemark-controller",
+    "live_reload_deps": [
+      "main.go",
+      "go.mod",
+      "go.sum",
+      "api",
+      "cmd",
+      "controllers",
+      "pkg",
+      "exp",
+      "util"
+    ]
+  }
+}

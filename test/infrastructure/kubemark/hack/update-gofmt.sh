@@ -1,4 +1,5 @@
-# Copyright 2020 The Kubernetes Authors.
+#!/usr/bin/env bash
+# Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,24 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR_RELATIVE := ../..
-include $(ROOT_DIR_RELATIVE)/common.mk
+# script to run gofmt over our code (not vendor)
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# Directories.
-BIN_DIR := bin
+# shellcheck source=./hack/utils.sh
+source "$(git rev-parse --show-toplevel)/hack/utils.sh"
 
-## --------------------------------------
-## Tooling Binaries
-## --------------------------------------
+cd_capd_root_path
 
-$(BIN_DIR):
-	mkdir -p $@
-
-.PHONY: clean
-clean: ## Remove all tools
-	rm -rf bin
-	rm -rf share
-
-KUSTOMIZE := $(BIN_DIR)/kustomize
-$(KUSTOMIZE): $(BIN_DIR) go.mod go.sum # Build kustomize from tools folder.
-	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v3
+# update go fmt
+go fmt ./...

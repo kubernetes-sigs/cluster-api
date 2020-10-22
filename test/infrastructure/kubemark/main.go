@@ -24,12 +24,12 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrastructurev1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/kubemark/api/v1alpha3"
+	infrastructurev1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/kubemark/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kubemark/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -43,7 +43,7 @@ func init() {
 	klog.InitFlags(nil)
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = infrastructurev1alpha3.AddToScheme(scheme)
+	_ = infrastructurev1alpha4.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
@@ -86,7 +86,7 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

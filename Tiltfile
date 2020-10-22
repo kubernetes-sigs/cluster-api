@@ -8,7 +8,7 @@ kustomize_cmd = "./hack/tools/bin/kustomize"
 settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
-    "enable_providers": ["docker"],
+    "enable_providers": ["docker", "kubemark"],
     "kind_cluster_name": "kind",
 }
 
@@ -87,6 +87,21 @@ RUN wget -qO- https://get.docker.com | sh
 COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
 COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 """,
+    },
+    "kubemark": {
+        "context": "test/infrastructure/kubemark",
+        "image": "gcr.io/k8s-staging-cluster-api/cluster-api-kubemark-controller",
+        "live_reload_deps": [
+          "main.go",
+          "go.mod",
+          "go.sum",
+          "api",
+          "cmd",
+          "controllers",
+          "pkg",
+          "exp",
+          "util"
+        ]
     },
 }
 

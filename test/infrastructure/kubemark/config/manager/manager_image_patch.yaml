@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-      - image: gcr.io/k8s-staging-cluster-api/cluster-api-kubemark-controller-amd64:latest
+      - image: gcr.io/k8s-staging-cluster-api/capk-manager:dev
         name: manager

@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 const (
@@ -28,11 +29,6 @@ const (
 
 // KubemarkMachineSpec defines the desired state of KubemarkMachine
 type KubemarkMachineSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of KubemarkMachine. Edit KubemarkMachine_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
 }
 
 // KubemarkMachineStatus defines the observed state of KubemarkMachine
@@ -40,6 +36,10 @@ type KubemarkMachineStatus struct {
 	// Ready is true when the provider resource is ready.
 	// +optional
 	Ready bool `json:"ready"`
+
+	// Conditions defines current service state of the DockerMachine.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:subresource:status
@@ -52,6 +52,14 @@ type KubemarkMachine struct {
 
 	Spec   KubemarkMachineSpec   `json:"spec,omitempty"`
 	Status KubemarkMachineStatus `json:"status,omitempty"`
+}
+
+func (c *KubemarkMachine) GetConditions() clusterv1.Conditions {
+	return c.Status.Conditions
+}
+
+func (c *KubemarkMachine) SetConditions(conditions clusterv1.Conditions) {
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

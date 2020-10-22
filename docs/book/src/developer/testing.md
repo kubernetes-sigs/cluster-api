@@ -54,6 +54,10 @@ Following guidelines should be followed when developing E2E tests:
 See [e2e development] for more information on developing e2e tests for CAPI and external providers.
 
 ## Running the end-to-end tests
+Before running the tests, ensure kind is using the default **bridge** network. This can be done by exporting the variable `KIND_EXPERIMENTAL_DOCKER_NETWORK`:
+```bash
+export KIND_EXPERIMENTAL_DOCKER_NETWORK=bridge
+```
 
 `make docker-build-e2e` will build the images for all providers that will be needed for the e2e test.
 

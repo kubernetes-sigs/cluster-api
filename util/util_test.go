@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -100,7 +100,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 			name: "should reconcile infra-1",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1alpha3",
+				Version: "v1alpha4",
 				Kind:    "TestMachine",
 			},
 			request: &clusterv1.Machine{
@@ -110,7 +110,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "foo.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "foo.cluster.x-k8s.io/v1alpha4",
 						Kind:       "TestMachine",
 						Name:       "infra-1",
 					},
@@ -129,7 +129,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 			name: "should return no matching reconcile requests",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1alpha3",
+				Version: "v1alpha4",
 				Kind:    "TestMachine",
 			},
 			request: &clusterv1.Machine{
@@ -139,7 +139,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "bar.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "bar.cluster.x-k8s.io/v1alpha4",
 						Kind:       "TestMachine",
 						Name:       "bar-1",
 					},
@@ -171,7 +171,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			name: "should reconcile infra-1",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1alpha3",
+				Version: "v1alpha4",
 				Kind:    "TestCluster",
 			},
 			request: &clusterv1.Cluster{
@@ -181,7 +181,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: "foo.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "foo.cluster.x-k8s.io/v1alpha4",
 						Kind:       "TestCluster",
 						Name:       "infra-1",
 					},
@@ -200,7 +200,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			name: "should return no matching reconcile requests",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1alpha3",
+				Version: "v1alpha4",
 				Kind:    "TestCluster",
 			},
 			request: &clusterv1.Cluster{
@@ -210,7 +210,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: "bar.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "bar.cluster.x-k8s.io/v1alpha4",
 						Kind:       "TestCluster",
 						Name:       "bar-1",
 					},
@@ -893,7 +893,7 @@ func TestRemoveOwnerRef(t *testing.T) {
 			Name:       "m4g1c",
 		},
 		{
-			APIVersion: "bar.cluster.x-k8s.io/v1alpha3",
+			APIVersion: "bar.cluster.x-k8s.io/v1alpha4",
 			Kind:       "TestCluster",
 			Name:       "bar-1",
 		},

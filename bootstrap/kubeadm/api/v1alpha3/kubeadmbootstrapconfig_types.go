@@ -133,7 +133,6 @@ type KubeadmConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigs,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // KubeadmConfig is the Schema for the kubeadmconfigs API

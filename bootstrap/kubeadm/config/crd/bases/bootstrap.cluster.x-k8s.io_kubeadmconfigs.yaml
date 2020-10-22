@@ -18,7 +18,7 @@ spec:
     singular: kubeadmconfig
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - name: v1alpha3
     schema:
       openAPIV3Schema:
         description: KubeadmConfig is the Schema for the kubeadmconfigs API
@@ -261,6 +261,66 @@ spec:
                     description: UseHyperKubeImage controls if hyperkube should be used for Kubernetes components instead of their respective separate images
                     type: boolean
                 type: object
+              diskSetup:
+                description: DiskSetup specifies options for the creation of partition tables and file systems on devices.
+                properties:
+                  filesystems:
+                    description: Filesystems specifies the list of file systems to setup.
+                    items:
+                      description: Filesystem defines the file systems to be created.
+                      properties:
+                        device:
+                          description: Device specifies the device name
+                          type: string
+                        extraOpts:
+                          description: ExtraOpts defined extra options to add to the command for creating the file system.
+                          items:
+                            type: string
+                          type: array
+                        filesystem:
+                          description: Filesystem specifies the file system type.
+                          type: string
+                        label:
+                          description: Label specifies the file system label to be used. If set to None, no label is used.
+                          type: string
+                        overwrite:
+                          description: Overwrite defines whether or not to overwrite any existing filesystem. If true, any pre-existing file system will be destroyed. Use with Caution.
+                          type: boolean
+                        partition:
+                          description: 'Partition specifies the partition to use. The valid options are: "auto|any", "auto", "any", "none", and <NUM>, where NUM is the actual partition number.'
+                          type: string
+                        replaceFS:
+                          description: 'ReplaceFS is a special directive, used for Microsoft Azure that instructs cloud-init to replace a file system of <FS_TYPE>. NOTE: unless you define a label, this requires the use of the ''any'' partition directive.'
+                          type: string
+                      required:
+                      - device
+                      - filesystem
+                      - label
+                      type: object
+                    type: array
+                  partitions:
+                    description: Partitions specifies the list of the partitions to setup.
+                    items:
+                      description: Partition defines how to create and layout a partition.
+                      properties:
+                        device:
+                          description: Device is the name of the device.
+                          type: string
+                        layout:
+                          description: Layout specifies the device layout. If it is true, a single partition will be created for the entire device. When layout is false, it means don't partition or ignore existing partitioning.
+                          type: boolean
+                        overwrite:
+                          description: Overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device. Use with caution. Default is 'false'.
+                          type: boolean
+                        tableType:
+                          description: 'TableType specifies the tupe of partition table. The following are supported: ''mbr'': default and setups a MS-DOS partition table ''gpt'': setups a GPT partition table'
+                          type: string
+                      required:
+                      - device
+                      - layout
+                      type: object
+                    type: array
+                type: object
               files:
                 description: Files specifies extra files to be passed to user_data upon creation.
                 items:
@@ -269,6 +329,25 @@ spec:
                     content:
                       description: Content is the actual content of the file.
                       type: string
+                    contentFrom:
+                      description: ContentFrom is a referenced source of content to populate the file.
+                      properties:
+                        secret:
+                          description: Secret represents a secret that should populate this file.
+                          properties:
+                            key:
+                              description: Key is the key in the secret's data map for this value.
+                              type: string
+                            name:
+                              description: Name of the secret in the KubeadmBootstrapConfig's namespace to use.
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                      required:
+                      - secret
+                      type: object
                     encoding:
                       description: Encoding specifies the encoding of the file contents.
                       enum:
@@ -286,7 +365,6 @@ spec:
                       description: Permissions specifies the permissions to assign to the file, e.g. "0640".
                       type: string
                   required:
-                  - content
                   - path
                   type: object
                 type: array
@@ -498,6 +576,14 @@ spec:
                         type: array
                     type: object
                 type: object
+              mounts:
+                description: Mounts specifies a list of mount points to be setup.
+                items:
+                  description: MountPoints defines input for generated mounts in cloud-init.
+                  items:
+                    type: string
+                  type: array
+                type: array
               ntp:
                 description: NTP specifies NTP configuration
                 properties:
@@ -520,6 +606,9 @@ spec:
                 items:
                   type: string
                 type: array
+              useExperimentalRetryJoin:
+                description: "UseExperimentalRetryJoin replaces a basic kubeadm command with a shell script with retries for joins. \n This is meant to be an experimental temporary workaround on some environments where joins fail due to timing (and other issues). The long term goal is to add retries to kubeadm proper and use that functionality. \n This will add about 40KB to userdata \n For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055."
+                type: boolean
               users:
                 description: Users specifies extra users to add
                 items:
@@ -564,20 +653,60 @@ spec:
                   - name
                   type: object
                 type: array
+              verbosity:
+                description: Verbosity is the number for the kubeadm log level verbosity. It overrides the `--v` flag in kubeadm commands.
+                format: int32
+                type: integer
             type: object
           status:
             description: KubeadmConfigStatus defines the observed state of KubeadmConfig
             properties:
               bootstrapData:
-                description: BootstrapData will be a cloud-init script for now
+                description: "BootstrapData will be a cloud-init script for now. \n Deprecated: This field has been deprecated in v1alpha3 and will be removed in a future version. Switch to DataSecretName."
                 format: byte
                 type: string
-              errorMessage:
-                description: ErrorMessage will be set on non-retryable errors
+              conditions:
+                description: Conditions defines current service state of the KubeadmConfig.
+                items:
+                  description: Condition defines an observation of a Cluster API resource operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition in CamelCase. The specific API may choose whether or not this field is considered a guaranteed API. This field may not be empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of Reason code, so the users or machines can immediately understand the current situation and act accordingly. The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase. Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              dataSecretName:
+                description: DataSecretName is the name of the secret that stores the bootstrap data script.
                 type: string
-              errorReason:
-                description: ErrorReason will be set on non-retryable errors
+              failureMessage:
+                description: FailureMessage will be set on non-retryable errors
                 type: string
+              failureReason:
+                description: FailureReason will be set on non-retryable errors
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed by the controller.
+                format: int64
+                type: integer
               ready:
                 description: Ready indicates the BootstrapData field is ready to be consumed
                 type: boolean
@@ -587,7 +716,7 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1alpha3
+  - name: v1alpha4
     schema:
       openAPIV3Schema:
         description: KubeadmConfig is the Schema for the kubeadmconfigs API

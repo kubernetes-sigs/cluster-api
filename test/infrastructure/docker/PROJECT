@@ -8,3 +8,9 @@ resources:
 - group: infrastructure
   version: v1alpha3
   kind: DockerMachine
+- group: infrastructure
+  version: v1alpha4
+  kind: DockerCluster
+- group: infrastructure
+  version: v1alpha4
+  kind: DockerMachine

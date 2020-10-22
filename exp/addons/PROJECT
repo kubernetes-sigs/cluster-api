@@ -5,4 +5,7 @@ resources:
 - group: addons
   kind: ClusterResourceSet
   version: v1alpha3
+- group: addons
+  kind: ClusterResourceSet
+  version: v1alpha4
 

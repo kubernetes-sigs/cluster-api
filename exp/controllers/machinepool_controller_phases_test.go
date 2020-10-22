@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -63,13 +63,13 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
@@ -81,7 +81,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config1",
 				"namespace": "default",
@@ -94,7 +94,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 	defaultInfra := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureConfig",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": "default",
@@ -458,7 +458,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
@@ -487,7 +487,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			name: "new machinepool, bootstrap config ready with data",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -509,7 +509,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			name: "new machinepool, bootstrap config ready with no data",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -529,7 +529,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			name: "new machinepool, bootstrap config not ready",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -547,7 +547,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			name: "new machinepool, bootstrap config is not found",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "wrong-namespace",
@@ -564,7 +564,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			name: "new machinepool, no bootstrap config or data",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "wrong-namespace",
@@ -578,7 +578,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			name: "existing machinepool, bootstrap data should not change",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -599,7 +599,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
 								ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
@@ -622,7 +622,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			name: "existing machinepool, bootstrap provider is to not ready",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -643,7 +643,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
 								ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
@@ -708,13 +708,13 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
@@ -744,7 +744,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			name: "new machinepool, infrastructure config ready",
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",
@@ -787,13 +787,13 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
 								ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
 							},
 							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
@@ -808,7 +808,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			},
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -821,7 +821,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			},
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 				"metadata":   map[string]interface{}{},
 			},
 			expectError:        true,
@@ -837,7 +837,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			name: "infrastructure ref is paused",
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",

@@ -5,3 +5,6 @@ resources:
 - group: exp
   kind: MachinePool
   version: v1alpha3
+- group: exp
+  kind: MachinePool
+  version: v1alpha4

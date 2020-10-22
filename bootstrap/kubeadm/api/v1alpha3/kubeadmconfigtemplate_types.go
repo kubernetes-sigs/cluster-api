@@ -32,7 +32,6 @@ type KubeadmConfigTemplateResource struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigtemplates,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 
 // KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API
 type KubeadmConfigTemplate struct {

@@ -30,7 +30,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -90,13 +90,13 @@ var _ = Describe("MachineSet Reconciler", func() {
 						Version:     &version,
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: &corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 								Kind:       "BootstrapMachineTemplate",
 								Name:       "ms-template",
 							},
 						},
 						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 							Kind:       "InfrastructureMachineTemplate",
 							Name:       "ms-template",
 						},
@@ -108,7 +108,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		// Create bootstrap template resource.
 		bootstrapResource := map[string]interface{}{
 			"kind":       "BootstrapMachine",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata":   map[string]interface{}{},
 		}
 		bootstrapTmpl := &unstructured.Unstructured{
@@ -119,7 +119,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 			},
 		}
 		bootstrapTmpl.SetKind("BootstrapMachineTemplate")
-		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha3")
+		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha4")
 		bootstrapTmpl.SetName("ms-template")
 		bootstrapTmpl.SetNamespace(namespace.Name)
 		Expect(testEnv.Create(ctx, bootstrapTmpl)).To(Succeed())
@@ -127,7 +127,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
 			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size": "3xlarge",
@@ -141,7 +141,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 			},
 		}
 		infraTmpl.SetKind("InfrastructureMachineTemplate")
-		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha3")
+		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
 		infraTmpl.SetName("ms-template")
 		infraTmpl.SetNamespace(namespace.Name)
 		Expect(testEnv.Create(ctx, infraTmpl)).To(Succeed())

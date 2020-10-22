@@ -16,7 +16,55 @@ limitations under the License.
 
 package v1alpha3
 
-func (*KubeadmConfig) Hub()             {}
-func (*KubeadmConfigList) Hub()         {}
-func (*KubeadmConfigTemplate) Hub()     {}
-func (*KubeadmConfigTemplateList) Hub() {}
+import (
+	kubeadmbootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
+
+// ConvertTo converts this KubeadmConfig to the Hub version (v1alpha4).
+func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfig)
+	return Convert_v1alpha3_KubeadmConfig_To_v1alpha4_KubeadmConfig(src, dst, nil)
+}
+
+// ConvertFrom converts from the KubeadmConfig Hub version (v1alpha4) to this version.
+func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfig)
+	return Convert_v1alpha4_KubeadmConfig_To_v1alpha3_KubeadmConfig(src, dst, nil)
+}
+
+// ConvertTo converts this KubeadmConfigList to the Hub version (v1alpha4).
+func (src *KubeadmConfigList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfigList)
+	return Convert_v1alpha3_KubeadmConfigList_To_v1alpha4_KubeadmConfigList(src, dst, nil)
+}
+
+// ConvertFrom converts from the KubeadmConfigList Hub version (v1alpha4) to this version.
+func (dst *KubeadmConfigList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfigList)
+	return Convert_v1alpha4_KubeadmConfigList_To_v1alpha3_KubeadmConfigList(src, dst, nil)
+}
+
+// ConvertTo converts this KubeadmConfigTemplate to the Hub version (v1alpha4).
+func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfigTemplate)
+	return Convert_v1alpha3_KubeadmConfigTemplate_To_v1alpha4_KubeadmConfigTemplate(src, dst, nil)
+}
+
+// ConvertFrom converts from the KubeadmConfigTemplate Hub version (v1alpha4) to this version.
+func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfigTemplate)
+	return Convert_v1alpha4_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(src, dst, nil)
+}
+
+// ConvertTo converts this KubeadmConfigTemplateList to the Hub version (v1alpha3).
+func (src *KubeadmConfigTemplateList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfigTemplateList)
+	return Convert_v1alpha3_KubeadmConfigTemplateList_To_v1alpha4_KubeadmConfigTemplateList(src, dst, nil)
+}
+
+// ConvertFrom converts from the KubeadmConfigTemplateList Hub version (v1alpha3) to this version.
+func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfigTemplateList)
+	return Convert_v1alpha4_KubeadmConfigTemplateList_To_v1alpha3_KubeadmConfigTemplateList(src, dst, nil)
+}

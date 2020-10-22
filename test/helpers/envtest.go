@@ -40,14 +40,14 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	addonv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
-	crs "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	addonv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	crs "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
@@ -256,7 +256,7 @@ func initializeWebhookInEnvironment() {
 	}
 	mutatingWebhooks, validatingWebhooks, err = appendWebhookConfiguration(mutatingWebhooks, validatingWebhooks, controlplaneyamlFile, "cp")
 	if err != nil {
-		klog.Fatalf("Failed to append cocontrolplane controller webhook config: %v", err)
+		klog.Fatalf("Failed to append controlplane controller webhook config: %v", err)
 	}
 	env.WebhookInstallOptions = envtest.WebhookInstallOptions{
 		MaxTime:            20 * time.Second,

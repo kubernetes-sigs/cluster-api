@@ -13,7 +13,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-dockermachinetemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-dockermachinetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.dockermachinetemplate.infrastructure.cluster.x-k8s.io
@@ -21,7 +21,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1alpha3
+    - v1alpha4
     operations:
     - CREATE
     - UPDATE

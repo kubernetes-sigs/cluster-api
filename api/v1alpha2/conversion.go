@@ -119,7 +119,6 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	restoreMachineSpec(&restored.Spec, &dst.Spec)
 	dst.Status.ObservedGeneration = restored.Status.ObservedGeneration
 	dst.Status.Conditions = restored.Status.Conditions
-
 	return nil
 }
 

@@ -39,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/version"
-	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -538,53 +537,19 @@ var (
 	HasPausedAnnotation = annotations.HasPausedAnnotation
 )
 
-// GetCRDWithContract retrieves a list of CustomResourceDefinitions from using controller-runtime Client,
-// filtering with the `contract` label passed in.
-// Returns the first CRD in the list that matches the GroupVersionKind, otherwise returns an error.
-func GetCRDWithContract(ctx context.Context, c client.Client, gvk schema.GroupVersionKind, contract string) (*apiextensionsv1.CustomResourceDefinition, error) {
-	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
-	for {
-		if err := c.List(ctx, crdList, client.Continue(crdList.Continue), client.HasLabels{contract}); err != nil {
-			return nil, errors.Wrapf(err, "failed to list CustomResourceDefinitions for %v", gvk)
-		}
-
-		for i := range crdList.Items {
-			crd := crdList.Items[i]
-			if crd.Spec.Group == gvk.Group &&
-				crd.Spec.Names.Kind == gvk.Kind {
-				return &crd, nil
-			}
-		}
-
-		if crdList.Continue == "" {
-			break
-		}
+// GetCRDMetadataFromGVK retrieves a CustomResourceDefinition metadata from the API server using partial metadata object.
+func GetCRDMetadataFromGVK(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (*metav1.PartialObjectMetadata, error) {
+	crd := &metav1.PartialObjectMetadata{}
+	crd.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   apiextensionsv1.SchemeGroupVersion.Group,
+		Version: apiextensionsv1.SchemeGroupVersion.Version,
+		Kind:    "CustomResourceDefinition",
+	})
+	key := client.ObjectKey{Name: fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group)}
+	if err := c.Get(ctx, key, crd); err != nil {
+		return nil, err
 	}
-
-	return nil, errors.Errorf("failed to find a CustomResourceDefinition for %v with contract %q", gvk, contract)
-}
-
-// GetCRDMetadataFromGVK retrieves a CustomResourceDefinition metadata from the API server using client-go's metadata only client.
-//
-// This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
-func GetCRDMetadataFromGVK(ctx context.Context, restConfig *rest.Config, gvk schema.GroupVersionKind) (*metav1.PartialObjectMetadata, error) {
-	// Make sure a rest config is available.
-	if restConfig == nil {
-		return nil, errors.Errorf("cannot create a metadata client without a rest config")
-	}
-
-	// Create a metadata-only client.
-	metadataClient, err := metadata.NewForConfig(restConfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create metadata only client")
-	}
-
-	// Get the partial metadata CRD.
-	generatedName := fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group)
-
-	return metadataClient.Resource(
-		apiextensionsv1.SchemeGroupVersion.WithResource("customresourcedefinitions"),
-	).Get(ctx, generatedName, metav1.GetOptions{})
+	return crd, nil
 }
 
 // KubeAwareAPIVersions is a sortable slice of kube-like version strings.

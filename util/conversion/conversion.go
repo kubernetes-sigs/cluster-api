@@ -30,6 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metafuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,7 +39,6 @@ import (
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -56,27 +56,19 @@ var (
 //
 // The object passed as input is modified in place if an updated compatible version is found.
 func ConvertReferenceAPIContract(ctx context.Context, c client.Client, restConfig *rest.Config, ref *corev1.ObjectReference) error {
-	log := ctrl.LoggerFrom(ctx)
 	gvk := ref.GroupVersionKind()
-
-	metadata, err := util.GetCRDMetadataFromGVK(ctx, restConfig, gvk)
+	crdmeta, err := util.GetCRDMetadataFromGVK(ctx, c, gvk)
 	if err != nil {
-		log.Info("Cannot retrieve CRD with metadata only client, falling back to slower listing", "err", err.Error())
-		// Fallback to slower and more memory intensive method to get the full CRD.
-		crd, err := util.GetCRDWithContract(ctx, c, gvk, contract)
-		if err != nil {
-			return err
+		if apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "cannot find any CRD matching GroupVersionKind %v", gvk)
 		}
-		metadata = &metav1.PartialObjectMetadata{
-			TypeMeta:   crd.TypeMeta,
-			ObjectMeta: crd.ObjectMeta,
-		}
+		return err
 	}
 
 	// If there is no label, return early without changing the reference.
-	supportedVersions, ok := metadata.Labels[contract]
+	supportedVersions, ok := crdmeta.Labels[contract]
 	if !ok || supportedVersions == "" {
-		return errors.Errorf("cannot find any versions matching contract %q for CRD %v", contract, metadata.Name)
+		return errors.Errorf("cannot find any versions matching contract %q for CRD %v", contract, crdmeta.Name)
 	}
 
 	// Pick the latest version in the slice and validate it.

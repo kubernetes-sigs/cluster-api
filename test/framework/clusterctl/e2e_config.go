@@ -18,7 +18,6 @@ package clusterctl
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -66,15 +65,11 @@ func LoadE2EConfig(ctx context.Context, input LoadE2EConfigInput) *E2EConfig {
 
 // SetCNIEnvVar read CNI from cniManifestPath and sets an environmental variable that keeps CNI resources.
 // A ClusterResourceSet can be used to apply CNI using this environmental variable.
+//
+// Deprecated: Use FileTransformations in the CreateRepositoryInput to embedded CNI into cluster templates during create repository.
+// The new approach does not uses env variables so we can avoid https://github.com/kubernetes-sigs/cluster-api/issues/3797;
+// This func is preserved for avoiding to break users in the v0.3 series, but it is now a no-op.
 func SetCNIEnvVar(cniManifestPath string, cniEnvVar string) {
-	cniData, err := ioutil.ReadFile(cniManifestPath)
-	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test CNI file")
-	Expect(cniData).ToNot(BeEmpty(), "CNI file should not be empty")
-	data := map[string]interface{}{}
-	data["resources"] = string(cniData)
-	marshalledData, err := json.Marshal(data)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(os.Setenv(cniEnvVar, string(marshalledData))).NotTo(HaveOccurred())
 }
 
 // E2EConfig defines the configuration of an e2e test environment.

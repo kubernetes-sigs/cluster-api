@@ -78,7 +78,8 @@ func TestUpdateCoreDNS(t *testing.T) {
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: v1.ObjectMeta{
-					Name: coreDNSKey,
+					Name:   coreDNSKey,
+					Labels: map[string]string{"app": coreDNSKey},
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
@@ -86,6 +87,9 @@ func TestUpdateCoreDNS(t *testing.T) {
 						Image: expectedImage,
 					}},
 				},
+			},
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": coreDNSKey},
 			},
 		},
 	}
@@ -286,63 +290,74 @@ kind: ClusterConfiguration
 	// We are using testEnv as a workload cluster, and given that each test case assumes well known objects with specific
 	// Namespace/Name (e.g. The CoderDNS ConfigMap & Deployment, the kubeadm ConfigMap), it is not possible to run the use cases in parallel.
 	for _, tt := range tests {
-		g := NewWithT(t)
-		t.Log(tt.name)
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 
-		for _, o := range tt.objs {
-			// NB. deep copy test object so changes applied during a test does not affect other tests.
-			o := o.DeepCopyObject().(client.Object)
-			g.Expect(testEnv.Create(ctx, o)).To(Succeed())
-		}
-
-		w := &Workload{
-			Client:          testEnv.GetClient(),
-			CoreDNSMigrator: tt.migrator,
-		}
-		err := w.UpdateCoreDNS(ctx, tt.kcp)
-		if tt.expectErr {
-			g.Expect(err).To(HaveOccurred())
-			return
-		}
-		g.Expect(err).ToNot(HaveOccurred())
-
-		// Assert that CoreDNS updates have been made
-		if tt.expectUpdates {
-			// assert kubeadmConfigMap
-			var expectedKubeadmConfigMap corev1.ConfigMap
-			g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
-			g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("1.7.2")))
-			g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("k8s.gcr.io/some-repo")))
-
-			// assert CoreDNS corefile
-			var expectedConfigMap corev1.ConfigMap
-			g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
-			g.Expect(expectedConfigMap.Data).To(HaveLen(2))
-			g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
-			g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", expectedCorefile))
-
-			// assert CoreDNS deployment
-			var actualDeployment appsv1.Deployment
-			g.Eventually(func() string {
-				g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
-				return actualDeployment.Spec.Template.Spec.Containers[0].Image
-			}, "5s").Should(Equal("k8s.gcr.io/some-repo/coredns:1.7.2"))
-		}
-
-		// Cleanup test objects (and wait for deletion to complete).
-		testEnv.Cleanup(ctx, tt.objs...)
-		g.Eventually(func() bool {
-			for _, o := range []client.Object{cm, depl, kubeadmCM} {
+			for _, o := range tt.objs {
 				// NB. deep copy test object so changes applied during a test does not affect other tests.
 				o := o.DeepCopyObject().(client.Object)
-				key, _ := client.ObjectKeyFromObject(o)
-				err := testEnv.Get(ctx, key, o)
-				if err == nil || (err != nil && !apierrors.IsNotFound(err)) {
-					return false
-				}
+				g.Expect(testEnv.Create(ctx, o)).To(Succeed())
+				// this makes sure that the cache is updated with the object
+				// to avoid 404 errors leading to test flakes
+				g.Eventually(func() bool {
+					key, _ := client.ObjectKeyFromObject(o)
+					err := testEnv.Get(ctx, key, o)
+					return err == nil
+				}, "10s").Should(BeTrue())
 			}
-			return true
-		}, "10s").Should(BeTrue())
+
+			// Register cleanup function
+			t.Cleanup(func() {
+				// Cleanup test objects (and wait for deletion to complete).
+				_ = testEnv.Cleanup(ctx, tt.objs...)
+				g.Eventually(func() bool {
+					for _, o := range tt.objs {
+						o := o.DeepCopyObject().(client.Object)
+						key, _ := client.ObjectKeyFromObject(o)
+						err := testEnv.Get(ctx, key, o)
+						if err == nil || (err != nil && !apierrors.IsNotFound(err)) {
+							return false
+						}
+					}
+					return true
+				}, "10s").Should(BeTrue())
+			})
+
+			w := &Workload{
+				Client:          testEnv.GetClient(),
+				CoreDNSMigrator: tt.migrator,
+			}
+			err := w.UpdateCoreDNS(ctx, tt.kcp)
+
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Assert that CoreDNS updates have been made
+			if tt.expectUpdates {
+				// assert kubeadmConfigMap
+				var expectedKubeadmConfigMap corev1.ConfigMap
+				g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
+				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("1.7.2")))
+				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("k8s.gcr.io/some-repo")))
+
+				// assert CoreDNS corefile
+				var expectedConfigMap corev1.ConfigMap
+				g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+				g.Expect(expectedConfigMap.Data).To(HaveLen(2))
+				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
+				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", expectedCorefile))
+
+				// assert CoreDNS deployment
+				var actualDeployment appsv1.Deployment
+				g.Eventually(func() string {
+					g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+					return actualDeployment.Spec.Template.Spec.Containers[0].Image
+				}, "5s").Should(Equal("k8s.gcr.io/some-repo/coredns:1.7.2"))
+			}
+		})
 	}
 }
 

@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -625,21 +624,18 @@ func TestHealthCheck_NoError(t *testing.T) {
 		controlPlaneMachine("two"),
 		controlPlaneMachine("three"),
 	}
-	controlPlane := createControlPlane(threeMachines)
 	tests := []struct {
 		name             string
-		checkResult      HealthCheckResult
+		checkResult      checkResult
 		controlPlaneName string
-		controlPlane     *ControlPlane
 	}{
 		{
 			name: "simple",
-			checkResult: HealthCheckResult{
+			checkResult: checkResult{
 				"one":   nil,
 				"two":   nil,
 				"three": nil,
 			},
-			controlPlane: controlPlane,
 		},
 	}
 
@@ -647,40 +643,40 @@ func TestHealthCheck_NoError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(tt.checkResult.Aggregate(controlPlane)).To(Succeed())
+			g.Expect(tt.checkResult.CompareWith(threeMachines)).To(Succeed())
 		})
 	}
 }
 
 func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 	tests := []struct {
-		name             string
-		checkResult      HealthCheckResult
-		clusterKey       ctrlclient.ObjectKey
-		controlPlaneName string
-		controlPlane     *ControlPlane
+		name                 string
+		checkResult          checkResult
+		clusterKey           ctrlclient.ObjectKey
+		controlPlaneName     string
+		controlPlaneMachines []*clusterv1.Machine
 		// expected errors will ensure the error contains this list of strings.
 		// If not supplied, no check on the error's value will occur.
 		expectedErrors []string
 	}{
 		{
 			name: "machine's node was not checked for health",
-			controlPlane: createControlPlane([]*clusterv1.Machine{
+			controlPlaneMachines: []*clusterv1.Machine{
 				controlPlaneMachine("one"),
 				controlPlaneMachine("two"),
 				controlPlaneMachine("three"),
-			}),
-			checkResult: HealthCheckResult{
+			},
+			checkResult: checkResult{
 				"one": nil,
 			},
 		},
 		{
 			name: "two nodes error on the check but no overall error occurred",
-			controlPlane: createControlPlane([]*clusterv1.Machine{
+			controlPlaneMachines: []*clusterv1.Machine{
 				controlPlaneMachine("one"),
 				controlPlaneMachine("two"),
-				controlPlaneMachine("three")}),
-			checkResult: HealthCheckResult{
+				controlPlaneMachine("three")},
+			checkResult: checkResult{
 				"one":   nil,
 				"two":   errors.New("two"),
 				"three": errors.New("three"),
@@ -689,9 +685,9 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 		},
 		{
 			name: "more nodes than machines were checked (out of band control plane nodes)",
-			controlPlane: createControlPlane([]*clusterv1.Machine{
-				controlPlaneMachine("one")}),
-			checkResult: HealthCheckResult{
+			controlPlaneMachines: []*clusterv1.Machine{
+				controlPlaneMachine("one")},
+			checkResult: checkResult{
 				"one":   nil,
 				"two":   nil,
 				"three": nil,
@@ -699,11 +695,11 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 		},
 		{
 			name: "a machine that has a nil node reference",
-			controlPlane: createControlPlane([]*clusterv1.Machine{
+			controlPlaneMachines: []*clusterv1.Machine{
 				controlPlaneMachine("one"),
 				controlPlaneMachine("two"),
-				nilNodeRef(controlPlaneMachine("three"))}),
-			checkResult: HealthCheckResult{
+				nilNodeRef(controlPlaneMachine("three"))},
+			checkResult: checkResult{
 				"one":   nil,
 				"two":   nil,
 				"three": nil,
@@ -714,7 +710,7 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.checkResult.Aggregate(tt.controlPlane)
+			err := tt.checkResult.CompareWith(tt.controlPlaneMachines)
 			g.Expect(err).To(HaveOccurred())
 
 			for _, expectedError := range tt.expectedErrors {
@@ -722,25 +718,6 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 			}
 		})
 	}
-}
-func createControlPlane(machines []*clusterv1.Machine) *ControlPlane {
-	defaultInfra := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
-			"metadata": map[string]interface{}{
-				"name":      "infra-config1",
-				"namespace": "default",
-			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
-		},
-	}
-
-	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme(), defaultInfra.DeepCopy())
-
-	controlPlane, _ := NewControlPlane(ctx, fakeClient, &clusterv1.Cluster{}, &v1alpha3.KubeadmControlPlane{}, NewFilterableMachineCollection(machines...))
-	return controlPlane
 }
 
 func controlPlaneMachine(name string) *clusterv1.Machine {

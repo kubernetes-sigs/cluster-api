@@ -384,6 +384,13 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
 	logger.Info("Reconcile KubeadmControlPlane deletion")
 
+	// Gets all machines, not just control plane machines.
+	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	ownedMachines := allMachines.Filter(machinefilters.OwnedMachines(kcp))
+
 	// Ignore the health check results here as well as the errors, health check functions are to set health related conditions on Machines.
 	// Errors may be due to not being able to get workload cluster nodes.
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
@@ -391,26 +398,17 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 		r.Log.V(2).Info("Cannot get remote client to workload cluster during delete reconciliation", "err", err.Error())
 	} else {
 		// Do a health check of the Control Plane components
-		_, err = workloadCluster.ControlPlaneIsHealthy(ctx)
-		if err != nil {
+		if err := workloadCluster.ControlPlaneIsHealthy(ctx, ownedMachines.UnsortedList()); err != nil {
 			// Do nothing
 			r.Log.V(2).Info("Control plane did not pass control plane health check during delete reconciliation", "err", err.Error())
 		}
 
 		// Do a health check of the etcd
-		_, err = workloadCluster.EtcdIsHealthy(ctx)
-		if err != nil {
+		if err := workloadCluster.EtcdIsHealthy(ctx, ownedMachines.UnsortedList()); err != nil {
 			// Do nothing
 			r.Log.V(2).Info("Control plane did not pass etcd health check during delete reconciliation", "err", err.Error())
 		}
 	}
-
-	// Gets all machines, not just control plane machines.
-	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	ownedMachines := allMachines.Filter(machinefilters.OwnedMachines(kcp))
 
 	// If no control plane machines remain, remove the finalizer
 	if len(ownedMachines) == 0 {
@@ -486,11 +484,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneHealth(ctx context.
 
 	errList := []error{}
 
-	// Do a health check of the Control Plane components
-	checkResult, err := workloadCluster.ControlPlaneIsHealthy(ctx)
-	if err != nil {
-		errList = append(errList, errors.Wrap(err, "failed to pass control-plane health check"))
-	} else if err := checkResult.Aggregate(controlPlane); err != nil {
+	// Do a health check of the Control Plane components.
+	if err := workloadCluster.ControlPlaneIsHealthy(ctx, controlPlane.Machines.UnsortedList()); err != nil {
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass control plane health check to continue reconciliation: %v", err)
 		errList = append(errList, errors.Wrap(err, "failed to pass control-plane health check"))
@@ -498,19 +493,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneHealth(ctx context.
 
 	// If KCP should manage etcd, ensure etcd is healthy.
 	if controlPlane.IsEtcdManaged() {
-		checkResult, err := workloadCluster.EtcdIsHealthy(ctx)
-		if err != nil {
-			errList = append(errList, errors.Wrap(err, "failed to pass etcd health check"))
-		} else if err := checkResult.Aggregate(controlPlane); err != nil {
+		if err := workloadCluster.EtcdIsHealthy(ctx, controlPlane.Machines.UnsortedList()); err != nil {
 			errList = append(errList, errors.Wrap(err, "failed to pass etcd health check"))
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 				"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
+
 			// If there are any etcd members that do not have corresponding nodes, remove them from etcd and from the kubeadm configmap.
 			// This will solve issues related to manual control-plane machine deletion.
-			workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
-			if err != nil {
-				errList = append(errList, errors.Wrap(err, "cannot get remote client to workload cluster"))
-			} else if err := workloadCluster.ReconcileEtcdMembers(ctx); err != nil {
+			if err := workloadCluster.ReconcileEtcdMembers(ctx); err != nil {
 				errList = append(errList, errors.Wrap(err, "failed attempt to remove potential hanging etcd members to pass etcd health check to continue reconciliation"))
 			}
 		}

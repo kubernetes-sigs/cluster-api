@@ -96,6 +96,11 @@ func TestCheckStaticPodNotReadyCondition(t *testing.T) {
 func TestControlPlaneIsHealthy(t *testing.T) {
 	g := NewWithT(t)
 
+	machines := []*clusterv1.Machine{
+		controlPlaneMachine("first-control-plane"),
+		controlPlaneMachine("second-control-plane"),
+		controlPlaneMachine("third-control-plane"),
+	}
 	readyStatus := corev1.PodStatus{
 		Conditions: []corev1.PodCondition{
 			{
@@ -118,10 +123,8 @@ func TestControlPlaneIsHealthy(t *testing.T) {
 		},
 	}
 
-	health, err := workloadCluster.ControlPlaneIsHealthy(context.Background())
+	err := workloadCluster.ControlPlaneIsHealthy(context.Background(), machines)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(health).NotTo(HaveLen(0))
-	g.Expect(health).To(HaveLen(len(nodeListForTestControlPlaneIsHealthy().Items)))
 }
 
 func TestGetMachinesForCluster(t *testing.T) {

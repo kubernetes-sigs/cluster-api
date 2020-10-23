@@ -38,17 +38,17 @@ type etcdClientFor interface {
 // This is a best effort check and nodes can become unhealthy after the check is complete. It is not a guarantee.
 // It's used a signal for if we should allow a target cluster to scale up, scale down or upgrade.
 // It returns a map of nodes checked along with an error for a given node.
-func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error) {
+func (w *Workload) EtcdIsHealthy(ctx context.Context, machines []*clusterv1.Machine) error {
 	var knownClusterID uint64
 	var knownMemberIDSet etcdutil.UInt64Set
 
 	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	expectedMembers := 0
-	response := make(map[string]error)
+	response := make(checkResult)
 	for _, node := range controlPlaneNodes.Items {
 		name := node.Name
 		response[name] = nil
@@ -127,10 +127,10 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 	// Check that there is exactly one etcd member for every healthy pod.
 	// This allows us to handle the expected case where there is a failing pod but it's been removed from the member list.
 	if expectedMembers != len(knownMemberIDSet) {
-		return response, errors.Errorf("there are %d healthy etcd pods, but %d etcd members", expectedMembers, len(knownMemberIDSet))
+		return errors.Errorf("there are %d healthy etcd pods, but %d etcd members", expectedMembers, len(knownMemberIDSet))
 	}
 
-	return response, nil
+	return response.CompareWith(machines)
 }
 
 // ReconcileEtcdMembers iterates over all etcd members and finds members that do not have corresponding nodes.

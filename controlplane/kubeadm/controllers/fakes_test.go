@@ -98,18 +98,18 @@ func (f fakeWorkloadCluster) UpdateKubeletConfigMap(ctx context.Context, version
 	return nil
 }
 
-func (f fakeWorkloadCluster) ControlPlaneIsHealthy(ctx context.Context) (internal.HealthCheckResult, error) {
+func (f fakeWorkloadCluster) ControlPlaneIsHealthy(ctx context.Context, machines []*clusterv1.Machine) error {
 	if !f.ControlPlaneHealthy {
-		return nil, errors.New("control plane is not healthy")
+		return errors.New("control plane is not healthy")
 	}
-	return nil, nil
+	return nil
 }
 
-func (f fakeWorkloadCluster) EtcdIsHealthy(ctx context.Context) (internal.HealthCheckResult, error) {
+func (f fakeWorkloadCluster) EtcdIsHealthy(ctx context.Context, machines []*clusterv1.Machine) error {
 	if !f.EtcdHealthy {
-		return nil, errors.New("etcd is not healthy")
+		return errors.New("etcd is not healthy")
 	}
-	return nil, nil
+	return nil
 }
 
 type fakeMigrator struct {

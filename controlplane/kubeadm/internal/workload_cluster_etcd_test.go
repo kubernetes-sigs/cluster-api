@@ -39,6 +39,12 @@ import (
 func TestWorkload_EtcdIsHealthy(t *testing.T) {
 	g := NewWithT(t)
 
+	machines := []*clusterv1.Machine{
+		controlPlaneMachine("test-1"),
+		controlPlaneMachine("test-2"),
+		controlPlaneMachine("test-3"),
+		controlPlaneMachine("test-4"),
+	}
 	workload := &Workload{
 		Client: &fakeClient{
 			get: map[string]interface{}{
@@ -75,12 +81,8 @@ func TestWorkload_EtcdIsHealthy(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	health, err := workload.EtcdIsHealthy(ctx)
+	err := workload.EtcdIsHealthy(ctx, machines)
 	g.Expect(err).NotTo(HaveOccurred())
-
-	for _, err := range health {
-		g.Expect(err).NotTo(HaveOccurred())
-	}
 }
 
 func TestUpdateEtcdVersionInKubeadmConfigMap(t *testing.T) {

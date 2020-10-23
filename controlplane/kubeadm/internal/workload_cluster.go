@@ -58,8 +58,8 @@ var (
 type WorkloadCluster interface {
 	// Basic health and status checks.
 	ClusterStatus(ctx context.Context) (ClusterStatus, error)
-	ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult, error)
-	EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
+	ControlPlaneIsHealthy(ctx context.Context, machines []*clusterv1.Machine) error
+	EtcdIsHealthy(ctx context.Context, machines []*clusterv1.Machine) error
 
 	// Upgrade related tasks.
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error
@@ -107,17 +107,16 @@ func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.Object
 	return original.DeepCopy(), nil
 }
 
-// HealthCheckResult maps nodes that are checked to any errors the node has related to the check.
-type HealthCheckResult map[string]error
+// checkResult maps nodes that are checked to any errors the node has related to the check.
+type checkResult map[string]error
 
-// Aggregate will analyse HealthCheckResult and report any errors discovered.
-// It also ensures there is a 1;1 match between nodes and machines.
-func (h HealthCheckResult) Aggregate(controlPlane *ControlPlane) error {
+// CompareWith compares the current health check result with the list of machines coming from the control plane.
+// Additionally, it checks that for each machine a node is present.
+func (c checkResult) CompareWith(machines []*clusterv1.Machine) error {
 	var errorList []error
-	kcpMachines := controlPlane.Machines.UnsortedList()
 	// Make sure Cluster API is aware of all the nodes.
 
-	for nodeName, err := range h {
+	for nodeName, err := range c {
 		if err != nil {
 			errorList = append(errorList, fmt.Errorf("node %q: %v", nodeName, err))
 		}
@@ -128,18 +127,18 @@ func (h HealthCheckResult) Aggregate(controlPlane *ControlPlane) error {
 
 	// This check ensures there is a 1 to 1 correspondence of nodes and machines.
 	// If a machine was not checked this is considered an error.
-	for _, machine := range kcpMachines {
+	for _, machine := range machines {
 		if machine.Status.NodeRef == nil {
 			// The condition for this case is set by the Machine controller
 			return errors.Errorf("control plane machine %s/%s has no status.nodeRef", machine.Namespace, machine.Name)
 		}
-		if _, ok := h[machine.Status.NodeRef.Name]; !ok {
+		if _, ok := c[machine.Status.NodeRef.Name]; !ok {
 			return errors.Errorf("machine's (%s/%s) node (%s) was not checked", machine.Namespace, machine.Name, machine.Status.NodeRef.Name)
 		}
 	}
-	if len(h) != len(kcpMachines) {
+	if len(c) != len(machines) {
 		// MachinesReadyCondition covers this health failure.
-		return errors.Errorf("number of nodes and machines in namespace %s did not match: %d nodes %d machines", controlPlane.Cluster.Namespace, len(h), len(kcpMachines))
+		return errors.Errorf("number of nodes and machines did not match: %d nodes %d machines", len(c), len(machines))
 	}
 	return nil
 }
@@ -147,13 +146,13 @@ func (h HealthCheckResult) Aggregate(controlPlane *ControlPlane) error {
 // controlPlaneIsHealthy does a best effort check of the control plane components the kubeadm control plane cares about.
 // The return map is a map of node names as keys to error that that node encountered.
 // All nodes will exist in the map with nil errors if there were no errors for that node.
-func (w *Workload) ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult, error) {
+func (w *Workload) ControlPlaneIsHealthy(ctx context.Context, machines []*clusterv1.Machine) error {
 	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	response := make(map[string]error)
+	response := make(checkResult)
 	for _, node := range controlPlaneNodes.Items {
 		name := node.Name
 		response[name] = nil
@@ -186,7 +185,7 @@ func (w *Workload) ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult
 		response[name] = checkStaticPodReadyCondition(controllerManagerPod)
 	}
 
-	return response, nil
+	return response.CompareWith(machines)
 }
 
 // UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.

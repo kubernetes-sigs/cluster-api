@@ -53,10 +53,11 @@ import (
 )
 
 var (
-	errNilNodeRef            = errors.New("noderef is nil")
-	errLastControlPlaneNode  = errors.New("last control plane member")
-	errNoControlPlaneNodes   = errors.New("no control plane members")
-	errClusterIsBeingDeleted = errors.New("cluster is being deleted")
+	errNilNodeRef                 = errors.New("noderef is nil")
+	errLastControlPlaneNode       = errors.New("last control plane member")
+	errNoControlPlaneNodes        = errors.New("no control plane members")
+	errClusterIsBeingDeleted      = errors.New("cluster is being deleted")
+	errControlPlaneIsBeingDeleted = errors.New("control plane is being deleted")
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -288,7 +289,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	isDeleteNodeAllowed := err == nil
 	if err != nil {
 		switch err {
-		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted:
+		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted, errControlPlaneIsBeingDeleted:
 			log.Info("Deleting Kubernetes Node associated with Machine is not allowed", "node", m.Status.NodeRef, "cause", err.Error())
 		default:
 			return ctrl.Result{}, errors.Wrapf(err, "failed to check if Kubernetes Node deletion is allowed")
@@ -432,6 +433,11 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 				// If any other error occurs when trying to get the control plane object,
 				// return the error so we can retry
 				return err
+			}
+
+			// Return early if the object referenced by controlPlaneRef is being deleted.
+			if !controlPlane.GetDeletionTimestamp().IsZero() {
+				return errControlPlaneIsBeingDeleted
 			}
 
 			// Check if the ControlPlane is externally managed (AKS, EKS, GKE, etc)

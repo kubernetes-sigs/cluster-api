@@ -1333,7 +1333,109 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			},
 			expectedError: nil,
 		},
+		{
+			name: "has nodeRef, control plane is being deleted and not externally managed",
+			cluster: &clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: &corev1.ObjectReference{
+						APIVersion: "controlplane.cluster.x-k8s.io/v1alpha4",
+						Kind:       "AWSManagedControlPlane",
+						Name:       "test-cluster-2",
+						Namespace:  "test-cluster",
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "created",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "test",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
+			expectedError: errControlPlaneIsBeingDeleted,
+		},
+		{
+			name: "has nodeRef, control plane is being deleted and is externally managed",
+			cluster: &clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: &corev1.ObjectReference{
+						APIVersion: "controlplane.cluster.x-k8s.io/v1alpha4",
+						Kind:       "AWSManagedControlPlane",
+						Name:       "test-cluster-3",
+						Namespace:  "test-cluster",
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "created",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "test",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
+			expectedError: errControlPlaneIsBeingDeleted,
+		},
 	}
+
+	emp := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": map[string]interface{}{
+				"externalManagedControlPlane": true,
+			},
+		},
+	}
+	emp.SetAPIVersion("controlplane.cluster.x-k8s.io/v1alpha4")
+	emp.SetKind("AWSManagedControlPlane")
+	emp.SetName("test-cluster")
+	emp.SetNamespace("test-cluster")
+
+	mcpBeingDeleted := &unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	mcpBeingDeleted.SetAPIVersion("controlplane.cluster.x-k8s.io/v1alpha4")
+	mcpBeingDeleted.SetKind("AWSManagedControlPlane")
+	mcpBeingDeleted.SetName("test-cluster-2")
+	mcpBeingDeleted.SetNamespace("test-cluster")
+	mcpBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+
+	empBeingDeleted := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": map[string]interface{}{
+				"externalManagedControlPlane": true,
+			},
+		},
+	}
+	empBeingDeleted.SetAPIVersion("controlplane.cluster.x-k8s.io/v1alpha4")
+	empBeingDeleted.SetKind("AWSManagedControlPlane")
+	empBeingDeleted.SetName("test-cluster-3")
+	empBeingDeleted.SetNamespace("test-cluster")
+	empBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1385,18 +1487,6 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				m2.Labels[clusterv1.MachineControlPlaneLabelName] = ""
 			}
 
-			emp := &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"status": map[string]interface{}{
-						"externalManagedControlPlane": true,
-					},
-				},
-			}
-			emp.SetAPIVersion("controlplane.cluster.x-k8s.io/v1alpha4")
-			emp.SetKind("AWSManagedControlPlane")
-			emp.SetName("test-cluster")
-			emp.SetNamespace("test-cluster")
-
 			mr := &MachineReconciler{
 				Client: helpers.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -1405,6 +1495,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					m1,
 					m2,
 					emp,
+					mcpBeingDeleted,
+					empBeingDeleted,
 				),
 			}
 

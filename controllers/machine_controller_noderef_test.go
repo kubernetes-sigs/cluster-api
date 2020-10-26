@@ -26,11 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestGetNodeReference(t *testing.T) {
@@ -108,7 +107,7 @@ func TestGetNodeReference(t *testing.T) {
 			providerID, err := noderefutil.NewProviderID(test.providerID)
 			gt.Expect(err).NotTo(HaveOccurred(), "Expected no error parsing provider id %q, got %v", test.providerID, err)
 
-			reference, err := r.getNodeReference(client, providerID)
+			node, err := r.getNode(client, providerID)
 			if test.err == nil {
 				g.Expect(err).To(BeNil())
 			} else {
@@ -116,13 +115,77 @@ func TestGetNodeReference(t *testing.T) {
 				gt.Expect(err).To(Equal(test.err), "Expected error %v, got %v", test.err, err)
 			}
 
-			if test.expected == nil && reference == nil {
+			if test.expected == nil && node == nil {
 				return
 			}
 
-			gt.Expect(reference.Name).To(Equal(test.expected.Name), "Expected NodeRef's name to be %v, got %v", reference.Name, test.expected.Name)
-			gt.Expect(reference.Namespace).To(Equal(test.expected.Namespace), "Expected NodeRef's namespace to be %v, got %v", reference.Namespace, test.expected.Namespace)
+			gt.Expect(node.Name).To(Equal(test.expected.Name), "Expected NodeRef's name to be %v, got %v", node.Name, test.expected.Name)
+			gt.Expect(node.Namespace).To(Equal(test.expected.Namespace), "Expected NodeRef's namespace to be %v, got %v", node.Namespace, test.expected.Namespace)
 		})
 
+	}
+}
+
+func TestSummarizeNodeConditions(t *testing.T) {
+	testCases := []struct {
+		name       string
+		conditions []corev1.NodeCondition
+		status     corev1.ConditionStatus
+	}{
+		{
+			name: "node is healthy",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+			},
+			status: corev1.ConditionTrue,
+		},
+		{
+			name: "all conditions are unknown",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionUnknown},
+			},
+			status: corev1.ConditionUnknown,
+		},
+		{
+			name: "multiple semantically failed condition",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionTrue},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionTrue},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionTrue},
+			},
+			status: corev1.ConditionFalse,
+		},
+		{
+			name: "one positive condition when the rest is unknown",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionUnknown},
+			},
+			status: corev1.ConditionTrue,
+		},
+	}
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+				Status: corev1.NodeStatus{
+					Conditions: test.conditions,
+				},
+			}
+			status, _ := summarizeNodeConditions(node)
+			g.Expect(status).To(Equal(test.status))
+		})
 	}
 }

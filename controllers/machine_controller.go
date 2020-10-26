@@ -271,7 +271,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	phases := []func(context.Context, *clusterv1.Cluster, *clusterv1.Machine) (ctrl.Result, error){
 		r.reconcileBootstrap,
 		r.reconcileInfrastructure,
-		r.reconcileNodeRef,
+		r.reconcileNode,
 	}
 
 	res := ctrl.Result{}
@@ -355,6 +355,16 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	// Return early and don't remove the finalizer if we got an error or
 	// the external reconciliation deletion isn't ready.
 
+	patchHelper, err := patch.NewHelper(m, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := patchMachine(ctx, patchHelper, m); err != nil {
+		conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityInfo, "")
+		return ctrl.Result{}, errors.Wrap(err, "failed to patch Machine")
+	}
+
 	if ok, err := r.reconcileDeleteInfrastructure(ctx, m); !ok || err != nil {
 		return ctrl.Result{}, err
 	}
@@ -377,6 +387,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		})
 		if waitErr != nil {
 			logger.Error(deleteNodeErr, "Timed out deleting node, moving on", "node", m.Status.NodeRef.Name)
+			conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, "")
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
 		}
 	}

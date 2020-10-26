@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,6 +67,26 @@ func NewClusterCacheTracker(log logr.Logger, manager ctrl.Manager) (*ClusterCach
 		scheme:           manager.GetScheme(),
 		clusterAccessors: make(map[client.ObjectKey]*clusterAccessor),
 	}, nil
+}
+
+// NewTestClusterCacheTracker creates a new dummy ClusterCacheTracker that can be used by unit tests with fake client.
+func NewTestClusterCacheTracker(cl client.Client, scheme *runtime.Scheme, objKey client.ObjectKey) *ClusterCacheTracker {
+	testCacheTracker := &ClusterCacheTracker{
+		log:              log.Log,
+		client:           cl,
+		scheme:           scheme,
+		clusterAccessors: make(map[client.ObjectKey]*clusterAccessor),
+	}
+	testCacheTracker.clusterAccessors[objKey] = &clusterAccessor{
+		cache: nil,
+		client: &client.DelegatingClient{
+			Reader:       cl,
+			Writer:       cl,
+			StatusClient: cl,
+		},
+		watches: nil,
+	}
+	return testCacheTracker
 }
 
 // GetClient returns a client for the given cluster.

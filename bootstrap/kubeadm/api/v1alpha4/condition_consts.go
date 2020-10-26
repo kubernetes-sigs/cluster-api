@@ -40,7 +40,10 @@ const (
 	//
 	// NOTE: Having the control plane machine available is a pre-condition for joining additional control planes
 	// or workers nodes.
-	WaitingForControlPlaneAvailableReason = "WaitingForControlPlaneAvailable"
+	// DEPRECATED: This has been deprecated in v1alpha3 and will be removed in a future version.
+	// Switch to WaitingForControlPlaneAvailableReason constant from the `sigs.k8s.io/cluster-api/api/v1alpha3`
+	// package.
+	WaitingForControlPlaneAvailableReason = clusterv1.WaitingForControlPlaneAvailableReason
 
 	// DataSecretGenerationFailedReason (Severity=Warning) documents a KubeadmConfig controller detecting
 	// an error while generating a data secret; those kind of errors are usually due to misconfigurations

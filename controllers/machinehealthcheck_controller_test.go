@@ -33,10 +33,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -2160,4 +2163,68 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 			},
 		},
 	}
+}
+
+func TestPatchTargets(t *testing.T) {
+	_ = clusterv1.AddToScheme(scheme.Scheme)
+	g := NewWithT(t)
+
+	namespace := defaultNamespaceName
+	clusterName := "test-cluster"
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: namespace,
+		},
+	}
+	labels := map[string]string{"cluster": "foo", "nodepool": "bar"}
+
+	mhc := newMachineHealthCheckWithLabels("mhc", namespace, clusterName, labels)
+	machine1 := newTestMachine("machine1", namespace, clusterName, "nodeName", labels)
+	machine1.ResourceVersion = "1"
+	conditions.MarkTrue(machine1, clusterv1.MachineHealthCheckSuccededCondition)
+	machine2 := machine1.DeepCopy()
+	machine2.Name = "machine2"
+
+	cl := fake.NewFakeClientWithScheme(scheme.Scheme,
+		machine1,
+		machine2,
+		mhc,
+	)
+	r := &MachineHealthCheckReconciler{
+		Client:   cl,
+		recorder: record.NewFakeRecorder(32),
+		Log:      log.Log,
+		scheme:   scheme.Scheme,
+		Tracker:  remote.NewTestClusterCacheTracker(cl, scheme.Scheme, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
+	}
+
+	// To make the patch fail, create patchHelper with a different client.
+	fakeMachine := machine1.DeepCopy()
+	fakeMachine.Name = "fake"
+	patchHelper, _ := patch.NewHelper(fakeMachine, fake.NewFakeClientWithScheme(scheme.Scheme, fakeMachine))
+	// healthCheckTarget with fake patchHelper, patch should fail on this target.
+	target1 := healthCheckTarget{
+		MHC:         mhc,
+		Machine:     machine1,
+		patchHelper: patchHelper,
+		Node:        &corev1.Node{},
+	}
+
+	// healthCheckTarget with correct patchHelper.
+	patchHelper2, _ := patch.NewHelper(machine2, cl)
+	target3 := healthCheckTarget{
+		MHC:         mhc,
+		Machine:     machine2,
+		patchHelper: patchHelper2,
+		Node:        &corev1.Node{},
+	}
+
+	// Target with wrong patch helper will fail but the other one will be patched.
+	g.Expect(len(r.PatchUnhealthyTargets(context.TODO(), []healthCheckTarget{target1, target3}, defaultCluster, mhc))).To(BeNumerically(">", 0))
+	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).NotTo(HaveOccurred())
+	g.Expect(conditions.Get(machine2, clusterv1.MachineOwnerRemediatedCondition).Status).To(Equal(corev1.ConditionFalse))
+
+	// Target with wrong patch helper will fail but the other one will be patched.
+	g.Expect(len(r.PatchHealthyTargets(context.TODO(), []healthCheckTarget{target1, target3}, defaultCluster, mhc))).To(BeNumerically(">", 0))
 }

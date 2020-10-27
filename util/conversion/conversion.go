@@ -27,7 +27,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 	"github.com/onsi/gomega"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
@@ -140,26 +139,57 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer
 // the Hub version of an object and an older version aren't lossy.
 func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Convertible, funcs ...fuzzer.FuzzerFuncs) func(*testing.T) {
 	return func(t *testing.T) {
-		g := gomega.NewWithT(t)
-		fuzzer := GetFuzzer(scheme, funcs...)
+		t.Run("spoke-hub-spoke", func(t *testing.T) {
+			g := gomega.NewWithT(t)
+			fuzzer := GetFuzzer(scheme, funcs...)
 
-		for i := 0; i < 10000; i++ {
-			// Make copies of both objects, to avoid changing or re-using the ones passed in.
-			hubCopy := hub.DeepCopyObject().(conversion.Hub)
-			dstCopy := dst.DeepCopyObject().(conversion.Convertible)
+			for i := 0; i < 10000; i++ {
+				// Create hub object
+				hubExisting := hub.DeepCopyObject().(conversion.Hub)
+				fuzzer.Fuzz(hubExisting)
 
-			// Run the fuzzer on the Hub version copy.
-			fuzzer.Fuzz(hubCopy)
+				// Convert hub object to spoke
+				spokeFirstGet := dst.DeepCopyObject().(conversion.Convertible)
+				g.Expect(spokeFirstGet.ConvertFrom(hubExisting)).To(gomega.Succeed())
 
-			// Use the hub to convert into the convertible object.
-			g.Expect(dstCopy.ConvertFrom(hubCopy)).To(gomega.Succeed())
+				// Do changes in the spoke
+				fuzzer.Fuzz(spokeFirstGet)
+				// Fuzz() might delete the annotation containing the hub serialized. So, re-add it.
+				MarshalData(hubExisting.(metav1.Object), spokeFirstGet.(metav1.Object))
 
-			// Make another copy of hub and convert the convertible object back to the hub version.
-			after := hub.DeepCopyObject().(conversion.Hub)
-			g.Expect(dstCopy.ConvertTo(after)).To(gomega.Succeed())
+				// Convert the changed spoke to hub
+				hubUpdated := hub.DeepCopyObject().(conversion.Hub)
+				g.Expect(spokeFirstGet.ConvertTo(hubUpdated)).To(gomega.Succeed())
 
-			// Make sure that the hub before the conversions and after are the same, include a diff if not.
-			g.Expect(apiequality.Semantic.DeepEqual(hubCopy, after)).To(gomega.BeTrue(), cmp.Diff(hubCopy, after))
-		}
+				// Convert hub back to spoke and check if the changed spoke is still the same after spoke --> hub --> spoke conversion
+				spokeSecondGet := dst.DeepCopyObject().(conversion.Convertible)
+				g.Expect(spokeSecondGet.ConvertFrom(hubUpdated)).To(gomega.Succeed())
+
+				g.Expect(apiequality.Semantic.DeepEqual(spokeFirstGet, spokeSecondGet)).To(gomega.BeTrue(), cmp.Diff(spokeFirstGet, spokeSecondGet))
+			}
+		})
+		t.Run("hub-spoke-hub", func(t *testing.T) {
+			g := gomega.NewWithT(t)
+			fuzzer := GetFuzzer(scheme, funcs...)
+
+			for i := 0; i < 10000; i++ {
+				// Make copies of both objects, to avoid changing or re-using the ones passed in.
+				hubCopy := hub.DeepCopyObject().(conversion.Hub)
+				dstCopy := dst.DeepCopyObject().(conversion.Convertible)
+
+				// Run the fuzzer on the Hub version copy.
+				fuzzer.Fuzz(hubCopy)
+
+				// Use the hub to convert into the convertible object.
+				g.Expect(dstCopy.ConvertFrom(hubCopy)).To(gomega.Succeed())
+
+				// Make another copy of hub and convert the convertible object back to the hub version.
+				after := hub.DeepCopyObject().(conversion.Hub)
+				g.Expect(dstCopy.ConvertTo(after)).To(gomega.Succeed())
+
+				// Make sure that the hub before the conversions and after are the same, include a diff if not.
+				g.Expect(apiequality.Semantic.DeepEqual(hubCopy, after)).To(gomega.BeTrue(), cmp.Diff(hubCopy, after))
+			}
+		})
 	}
 }

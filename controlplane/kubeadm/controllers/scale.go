@@ -62,6 +62,12 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
+	// reconcileControlPlaneHealth returns err if there is a machine being deleted or if the control plane is unhealthy.
+	// If the control plane is not yet initialized, this call shouldn't fail.
+	if result, err := r.reconcileControlPlaneHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
+
 	// Create the bootstrap configuration
 	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
 	fd := controlPlane.NextFailureDomainForScaleUp()
@@ -83,6 +89,12 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	outdatedMachines internal.FilterableMachineCollection,
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
+
+	// reconcileControlPlaneHealth returns err if there is a machine being deleted or if the control plane is unhealthy.
+	// If the control plane is not yet initialized, this call shouldn't fail.
+	if result, err := r.reconcileControlPlaneHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {

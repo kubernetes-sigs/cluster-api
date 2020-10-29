@@ -49,6 +49,15 @@ type MachineHealthCheckSpec struct {
 	// failed and will be remediated.
 	// +optional
 	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
+
+	// RemediationTemplate is a reference to a remediation template
+	// provided by an infrastructure provider.
+	//
+	// This field is completely optional, when filled, the MachineHealthCheck controller
+	// creates a new object from the template referenced and hands off remediation of the machine to
+	// a controller that lives outside of Cluster API.
+	// +optional
+	RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCHeckSpec
@@ -91,6 +100,10 @@ type MachineHealthCheckStatus struct {
 	// Targets shows the current list of machines the machine health check is watching
 	// +optional
 	Targets []string `json:"targets,omitempty"`
+
+	// Conditions defines current service state of the MachineHealthCheck.
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCheckStatus
@@ -112,6 +125,14 @@ type MachineHealthCheck struct {
 
 	// Most recently observed status of MachineHealthCheck resource
 	Status MachineHealthCheckStatus `json:"status,omitempty"`
+}
+
+func (m *MachineHealthCheck) GetConditions() Conditions {
+	return m.Status.Conditions
+}
+
+func (m *MachineHealthCheck) SetConditions(conditions Conditions) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

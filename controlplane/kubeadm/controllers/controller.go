@@ -38,6 +38,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
@@ -295,7 +296,13 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef())
+	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, controlPlane.Machines.ConditionGetters(), conditions.AddSourceRef())
+
+	// reconcileControlPlaneHealth returns err if there is a machine being deleted or if the control plane is unhealthy.
+	// If the control plane is not yet initialized, this call shouldn't fail.
+	if result, err := r.reconcileControlPlaneHealth(ctx, cluster, kcp, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
 	needRollout := controlPlane.MachinesNeedingRollout()
@@ -371,6 +378,28 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 	log.Info("Reconcile KubeadmControlPlane deletion")
 
+	// Ignore the health check results here as well as the errors, health check functions are to set health related conditions on Machines.
+	// Errors may be due to not being able to get workload cluster nodes.
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
+	if err != nil {
+		log.Info("Cannot get remote client to workload cluster during delete reconciliation", "err", err.Error())
+	} else {
+		// Do a health check of the Control Plane components
+		_, err = workloadCluster.ControlPlaneIsHealthy(ctx)
+		if err != nil {
+			// Do nothing
+			log.Info("Control plane did not pass control plane health check during delete reconciliation", "err", err.Error())
+		}
+
+		// Do a health check of the etcd
+		_, err = workloadCluster.EtcdIsHealthy(ctx)
+		if err != nil {
+			// Do nothing
+			log.Info("Control plane did not pass etcd health check during delete reconciliation", "err", err.Error())
+		}
+	}
+
+	// Gets all machines, not just control plane machines.
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
@@ -433,22 +462,40 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o client.Ob
 	return nil
 }
 
-// reconcileHealth performs health checks for control plane components and etcd
+// reconcileControlPlaneHealth performs health checks for control plane components and etcd
 // It removes any etcd members that do not have a corresponding node.
 // Also, as a final step, checks if there is any machines that is being deleted.
-func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneHealth(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet.
+	if controlPlane.Machines.Len() == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
+	if err != nil {
+		// Failing at connecting to the workload cluster can mean workload cluster is unhealthy for a variety of reasons such as etcd quorum loss.
+		return ctrl.Result{}, errors.Wrap(err, "cannot get remote client to workload cluster")
+	}
+
+	errList := []error{}
 
 	// Do a health check of the Control Plane components
-	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {
+	checkResult, err := workloadCluster.ControlPlaneIsHealthy(ctx)
+	if err != nil {
+		errList = append(errList, errors.Wrap(err, "failed to pass control-plane health check"))
+	} else if err := checkResult.Aggregate(controlPlane); err != nil {
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass control plane health check to continue reconciliation: %v", err)
-		return ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}, nil
+		errList = append(errList, errors.Wrap(err, "failed to pass control-plane health check"))
 	}
 
 	// If KCP should manage etcd, ensure etcd is healthy.
 	if controlPlane.IsEtcdManaged() {
-		if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster)); err != nil {
-			errList := []error{errors.Wrap(err, "failed to pass etcd health check")}
+		checkResult, err := workloadCluster.EtcdIsHealthy(ctx)
+		if err != nil {
+			errList = append(errList, errors.Wrap(err, "failed to pass etcd health check"))
+		} else if err := checkResult.Aggregate(controlPlane); err != nil {
+			errList = append(errList, errors.Wrap(err, "failed to pass etcd health check"))
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 				"Waiting for control plane to pass etcd health check to continue reconciliation: %v", err)
 			// If there are any etcd members that do not have corresponding nodes, remove them from etcd and from the kubeadm configmap.
@@ -459,8 +506,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileHealth(ctx context.Context, clu
 			} else if err := workloadCluster.ReconcileEtcdMembers(ctx); err != nil {
 				errList = append(errList, errors.Wrap(err, "failed attempt to remove potential hanging etcd members to pass etcd health check to continue reconciliation"))
 			}
-			return ctrl.Result{}, kerrors.NewAggregate(errList)
 		}
+	}
+
+	if len(errList) > 0 {
+		return ctrl.Result{}, kerrors.NewAggregate(errList)
 	}
 
 	// We need this check for scale up as well as down to avoid scaling up when there is a machine being deleted.

@@ -74,7 +74,7 @@ func (f *componentsClient) Get(options ComponentsOptions) (Components, error) {
 	}
 
 	if file == nil {
-		log.V(5).Info("Fetching", "File", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
+		log.V(5).Info("Fetching", "File", path, "Provider", f.provider.Name(), "Type", f.provider.Type(), "Version", options.Version)
 		file, err = f.repository.GetFile(options.Version, path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())

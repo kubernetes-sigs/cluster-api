@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"reflect"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
@@ -35,10 +37,28 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1alpha3.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Cluster{}, &Cluster{}))
-	t.Run("for Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Machine{}, &Machine{}))
-	t.Run("for MachineSet", utilconversion.FuzzTestFunc(scheme, &v1alpha3.MachineSet{}, &MachineSet{}))
-	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(scheme, &v1alpha3.MachineDeployment{}, &MachineDeployment{}))
+	t.Run("for Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Cluster{}, &Cluster{}, nil))
+	t.Run("for Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Machine{}, &Machine{}, copyObjectMeta))
+	t.Run("for MachineSet", utilconversion.FuzzTestFunc(scheme, &v1alpha3.MachineSet{}, &MachineSet{}, copyObjectMeta))
+	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(scheme, &v1alpha3.MachineDeployment{}, &MachineDeployment{}, copyObjectMeta))
+}
+
+// copyObjectMeta copies ObjectMeta from MachineSpec from one convertible to another so that both of them have the same value
+func copyObjectMeta(c1, c2 conversion.Convertible) {
+	var mSpec1, mSpec2 *MachineSpec
+	switch reflect.TypeOf(c1) {
+	case reflect.TypeOf(&Machine{}):
+		mSpec1, mSpec2 = &c1.(*Machine).Spec, &c2.(*Machine).Spec
+	case reflect.TypeOf(&MachineSet{}):
+		mSpec1, mSpec2 = &c1.(*MachineSet).Spec.Template.Spec, &c2.(*MachineSet).Spec.Template.Spec
+	case reflect.TypeOf(&MachineDeployment{}):
+		mSpec1, mSpec2 = &c1.(*MachineDeployment).Spec.Template.Spec, &c2.(*MachineDeployment).Spec.Template.Spec
+	default:
+		return
+	}
+
+	mSpec2.ObjectMeta = mSpec1.ObjectMeta
+
 }
 
 func TestConvertCluster(t *testing.T) {

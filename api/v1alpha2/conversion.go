@@ -253,7 +253,6 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.ClusterName != "" {
 		dst.Spec.ClusterName = restored.Spec.ClusterName
 	}
-	dst.Spec.Paused = restored.Spec.Paused
 	dst.Status.Phase = restored.Status.Phase
 	restoreMachineSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec)
 

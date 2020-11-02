@@ -137,7 +137,8 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer
 
 // FuzzTestFunc returns a new testing function to be used in tests to make sure conversions between
 // the Hub version of an object and an older version aren't lossy.
-func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Convertible, funcs ...fuzzer.FuzzerFuncs) func(*testing.T) {
+func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Convertible, beforeCompare func(c1, c2 conversion.Convertible),
+	funcs ...fuzzer.FuzzerFuncs) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Run("spoke-hub-spoke", func(t *testing.T) {
 			g := gomega.NewWithT(t)
@@ -164,6 +165,12 @@ func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Con
 				// Convert hub back to spoke and check if the changed spoke is still the same after spoke --> hub --> spoke conversion
 				spokeSecondGet := dst.DeepCopyObject().(conversion.Convertible)
 				g.Expect(spokeSecondGet.ConvertFrom(hubUpdated)).To(gomega.Succeed())
+
+				// Override any fields in spokes before checking for equality
+				// This is typically used for copying over deprecated fields that are not required for comparison
+				if beforeCompare != nil {
+					beforeCompare(spokeFirstGet, spokeSecondGet)
+				}
 
 				g.Expect(apiequality.Semantic.DeepEqual(spokeFirstGet, spokeSecondGet)).To(gomega.BeTrue(), cmp.Diff(spokeFirstGet, spokeSecondGet))
 			}

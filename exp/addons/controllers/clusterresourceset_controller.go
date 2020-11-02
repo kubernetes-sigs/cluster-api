@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -65,36 +66,34 @@ type ClusterResourceSetReconciler struct {
 }
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	_, err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSet),
 		).
+		Watches(
+			&source.Kind{Type: &corev1.ConfigMap{}},
+			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+			builder.WithPredicates(
+				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
+			),
+		).
+		Watches(
+			&source.Kind{Type: &corev1.Secret{}},
+			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+			builder.WithPredicates(
+				resourcepredicates.AddonsSecretCreate(ctrl.LoggerFrom(ctx)),
+			),
+		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
+
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	err = controller.Watch(
-		&source.Kind{Type: &corev1.ConfigMap{}},
-		handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
-		resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
-	)
-	if err != nil {
-		return errors.Wrap(err, "failed adding Watch for ConfigMaps to controller manager")
-	}
-
-	err = controller.Watch(
-		&source.Kind{Type: &corev1.Secret{}},
-		handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
-		resourcepredicates.AddonsSecretCreate(ctrl.LoggerFrom(ctx)),
-	)
-	if err != nil {
-		return errors.Wrap(err, "failed adding Watch for Secret to controller manager")
-	}
 	return nil
 }
 

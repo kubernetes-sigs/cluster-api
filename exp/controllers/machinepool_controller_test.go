@@ -848,7 +848,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			m := &expv1.MachinePool{}
-			machinePoolKey, _ := client.ObjectKeyFromObject(machinePool)
+			machinePoolKey := client.ObjectKeyFromObject(machinePool)
 			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).NotTo(HaveOccurred())
 
 			tt.conditionAssertFunc(t, m)

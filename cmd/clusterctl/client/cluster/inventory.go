@@ -150,11 +150,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 
 		// If the object is a CRDs, waits for it being Established.
 		if apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition").GroupKind() == o.GroupVersionKind().GroupKind() {
-			crdKey, err := client.ObjectKeyFromObject(&o)
-			if err != nil {
-				return nil
-			}
-
+			crdKey := client.ObjectKeyFromObject(&o)
 			if err := p.pollImmediateWaiter(waitInventoryCRDInterval, waitInventoryCRDTimeout, func() (bool, error) {
 				c, err := p.proxy.NewClient()
 				if err != nil {

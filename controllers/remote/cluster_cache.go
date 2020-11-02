@@ -68,6 +68,27 @@ func NewClusterCacheTracker(log logr.Logger, manager ctrl.Manager) (*ClusterCach
 	}, nil
 }
 
+// NewTestClusterCacheTracker creates a new dummy ClusterCacheTracker that can be used by unit tests with fake client.
+func NewTestClusterCacheTracker(log logr.Logger, cl client.Client, scheme *runtime.Scheme, objKey client.ObjectKey) *ClusterCacheTracker {
+	testCacheTracker := &ClusterCacheTracker{
+		log:              log,
+		client:           cl,
+		scheme:           scheme,
+		clusterAccessors: make(map[client.ObjectKey]*clusterAccessor),
+	}
+
+	delegatingClient := client.NewDelegatingClient(client.NewDelegatingClientInput{
+		CacheReader: cl,
+		Client:      cl,
+	})
+	testCacheTracker.clusterAccessors[objKey] = &clusterAccessor{
+		cache:   nil,
+		client:  delegatingClient,
+		watches: nil,
+	}
+	return testCacheTracker
+}
+
 // GetClient returns a client for the given cluster.
 func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
 	t.lock.Lock()

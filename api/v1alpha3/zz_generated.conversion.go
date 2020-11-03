@@ -872,6 +872,7 @@ func autoConvert_v1alpha3_MachineHealthCheckSpec_To_v1alpha4_MachineHealthCheckS
 	out.UnhealthyConditions = *(*[]v1alpha4.UnhealthyCondition)(unsafe.Pointer(&in.UnhealthyConditions))
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.NodeStartupTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
+	out.RemediationTemplate = (*v1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
 }
 
@@ -886,6 +887,7 @@ func autoConvert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckS
 	out.UnhealthyConditions = *(*[]UnhealthyCondition)(unsafe.Pointer(&in.UnhealthyConditions))
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.NodeStartupTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
+	out.RemediationTemplate = (*v1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
 }
 
@@ -899,6 +901,7 @@ func autoConvert_v1alpha3_MachineHealthCheckStatus_To_v1alpha4_MachineHealthChec
 	out.CurrentHealthy = in.CurrentHealthy
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Targets = *(*[]string)(unsafe.Pointer(&in.Targets))
+	out.Conditions = *(*v1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -912,6 +915,7 @@ func autoConvert_v1alpha4_MachineHealthCheckStatus_To_v1alpha3_MachineHealthChec
 	out.CurrentHealthy = in.CurrentHealthy
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Targets = *(*[]string)(unsafe.Pointer(&in.Targets))
+	out.Conditions = *(*Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 

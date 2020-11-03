@@ -130,6 +130,20 @@ const (
 
 	// WaitingForRemediationReason is the reason used when a machine fails a health check and remediation is needed.
 	WaitingForRemediationReason = "WaitingForRemediation"
+
+	// ExternalRemediationTemplateAvailable is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
+	// ExternalRemediationTemplateAvailable is set to false if external remediation template is not found.
+	ExternalRemediationTemplateAvailable ConditionType = "ExternalRemediationTemplateAvailable"
+
+	// ExternalRemediationTemplateNotFound is the reason used when a machine health check fails to find external remediation template.
+	ExternalRemediationTemplateNotFound = "ExternalRemediationTemplateNotFound"
+
+	// ExternalRemediationRequestAvailable is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
+	// ExternalRemediationRequestAvailable is set to false if creating external remediation request fails.
+	ExternalRemediationRequestAvailable ConditionType = "ExternalRemediationRequestAvailable"
+
+	// ExternalRemediationRequestCreationFailed is the reason used when a machine health check fails to create external remediation request.
+	ExternalRemediationRequestCreationFailed = "ExternalRemediationRequestCreationFailed"
 )
 
 // Conditions and condition Reasons for the Machine's Node object

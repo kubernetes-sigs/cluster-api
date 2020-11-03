@@ -264,6 +264,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		r.reconcileBootstrap,
 		r.reconcileInfrastructure,
 		r.reconcileNode,
+		r.reconcileInterruptibleNodeLabel,
 	}
 
 	res := ctrl.Result{}

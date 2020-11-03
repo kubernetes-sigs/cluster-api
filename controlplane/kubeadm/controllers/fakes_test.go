@@ -29,12 +29,10 @@ import (
 
 type fakeManagementCluster struct {
 	// TODO: once all client interactions are moved to the Management cluster this can go away
-	Management          *internal.Management
-	ControlPlaneHealthy bool
-	EtcdHealthy         bool
-	Machines            internal.FilterableMachineCollection
-	Workload            fakeWorkloadCluster
-	Reader              client.Reader
+	Management *internal.Management
+	Machines   internal.FilterableMachineCollection
+	Workload   fakeWorkloadCluster
+	Reader     client.Reader
 }
 
 func (f *fakeManagementCluster) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
@@ -56,23 +54,11 @@ func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n clien
 	return f.Machines, nil
 }
 
-func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(_ context.Context, _ client.ObjectKey) error {
-	if !f.ControlPlaneHealthy {
-		return errors.New("control plane is not healthy")
-	}
-	return nil
-}
-
-func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ client.ObjectKey) error {
-	if !f.EtcdHealthy {
-		return errors.New("etcd is not healthy")
-	}
-	return nil
-}
-
 type fakeWorkloadCluster struct {
 	*internal.Workload
-	Status internal.ClusterStatus
+	Status              internal.ClusterStatus
+	ControlPlaneHealthy bool
+	EtcdHealthy         bool
 }
 
 func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, _ *clusterv1.Machine) error {
@@ -109,6 +95,20 @@ func (f fakeWorkloadCluster) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Con
 
 func (f fakeWorkloadCluster) UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error {
 	return nil
+}
+
+func (f fakeWorkloadCluster) ControlPlaneIsHealthy(ctx context.Context) (internal.HealthCheckResult, error) {
+	if !f.ControlPlaneHealthy {
+		return nil, errors.New("control plane is not healthy")
+	}
+	return nil, nil
+}
+
+func (f fakeWorkloadCluster) EtcdIsHealthy(ctx context.Context) (internal.HealthCheckResult, error) {
+	if !f.EtcdHealthy {
+		return nil, errors.New("etcd is not healthy")
+	}
+	return nil, nil
 }
 
 type fakeMigrator struct {

@@ -34,6 +34,8 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
+	cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+	cluster.Spec.ControlPlaneEndpoint.Port = 6443
 	kcp.Spec.Version = "v1.17.3"
 	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
 	kcp.Spec.Replicas = pointer.Int32Ptr(1)
@@ -44,16 +46,20 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 		Client:   fakeClient,
 		recorder: record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
-			Management:          &internal.Management{Client: fakeClient},
-			Workload:            fakeWorkloadCluster{Status: internal.ClusterStatus{Nodes: 1}},
-			ControlPlaneHealthy: true,
-			EtcdHealthy:         true,
+			Management: &internal.Management{Client: fakeClient},
+			Workload: fakeWorkloadCluster{
+				Status:              internal.ClusterStatus{Nodes: 1},
+				ControlPlaneHealthy: true,
+				EtcdHealthy:         true,
+			},
 		},
 		managementClusterUncached: &fakeManagementCluster{
-			Management:          &internal.Management{Client: fakeClient},
-			Workload:            fakeWorkloadCluster{Status: internal.ClusterStatus{Nodes: 1}},
-			ControlPlaneHealthy: true,
-			EtcdHealthy:         true,
+			Management: &internal.Management{Client: fakeClient},
+			Workload: fakeWorkloadCluster{
+				Status:              internal.ClusterStatus{Nodes: 1},
+				ControlPlaneHealthy: true,
+				EtcdHealthy:         true,
+			},
 		},
 	}
 	controlPlane := &internal.ControlPlane{
@@ -85,10 +91,10 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	g.Expect(bothMachines.Items).To(HaveLen(2))
 
 	// run upgrade a second time, simulate that the node has not appeared yet but the machine exists
-	r.managementCluster.(*fakeManagementCluster).ControlPlaneHealthy = false
-	result, err = r.upgradeControlPlane(ctx, cluster, kcp, controlPlane, needingUpgrade)
-	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: healthCheckFailedRequeueAfter}))
-	g.Expect(err).To(BeNil())
+	r.managementCluster.(*fakeManagementCluster).Workload.ControlPlaneHealthy = false
+	// Unhealthy control plane will be detected during reconcile loop and upgrade will never be called.
+	_, err = r.reconcile(ctx, cluster, kcp)
+	g.Expect(err).To(HaveOccurred())
 	g.Expect(fakeClient.List(ctx, bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(bothMachines.Items).To(HaveLen(2))
 
@@ -96,7 +102,7 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 
 	// manually increase number of nodes, make control plane healthy again
 	r.managementCluster.(*fakeManagementCluster).Workload.Status.Nodes++
-	r.managementCluster.(*fakeManagementCluster).ControlPlaneHealthy = true
+	r.managementCluster.(*fakeManagementCluster).Workload.ControlPlaneHealthy = true
 
 	// run upgrade the second time, expect we scale down
 	result, err = r.upgradeControlPlane(ctx, cluster, kcp, controlPlane, controlPlane.Machines)

@@ -84,9 +84,11 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
 
 		fmc := &fakeManagementCluster{
-			Machines:            internal.NewFilterableMachineCollection(),
-			ControlPlaneHealthy: true,
-			EtcdHealthy:         true,
+			Machines: internal.NewFilterableMachineCollection(),
+			Workload: fakeWorkloadCluster{
+				ControlPlaneHealthy: true,
+				EtcdHealthy:         true,
+			},
 		}
 
 		for i := 0; i < 2; i++ {
@@ -120,6 +122,8 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 	t.Run("does not create a control plane Machine if health checks fail", func(t *testing.T) {
 		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
+		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 
 		beforeMachines := internal.NewFilterableMachineCollection()
 		for i := 0; i < 2; i++ {
@@ -153,9 +157,11 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 			fakeClient := newFakeClient(g, initObjs...)
 			fmc := &fakeManagementCluster{
-				Machines:            beforeMachines.DeepCopy(),
-				ControlPlaneHealthy: !tc.controlPlaneUnHealthy,
-				EtcdHealthy:         !tc.etcdUnHealthy,
+				Machines: beforeMachines.DeepCopy(),
+				Workload: fakeWorkloadCluster{
+					ControlPlaneHealthy: !tc.controlPlaneUnHealthy,
+					EtcdHealthy:         !tc.etcdUnHealthy,
+				},
 			}
 
 			r := &KubeadmControlPlaneReconciler{
@@ -164,18 +170,11 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 				managementClusterUncached: fmc,
 				recorder:                  record.NewFakeRecorder(32),
 			}
-			controlPlane := &internal.ControlPlane{
-				KCP:      kcp,
-				Cluster:  cluster,
-				Machines: beforeMachines,
-			}
 
-			result, err := r.scaleUpControlPlane(ctx, cluster.DeepCopy(), kcp.DeepCopy(), controlPlane)
-			if tc.expectErr {
-				g.Expect(err).To(HaveOccurred())
-			}
-			g.Expect(result).To(Equal(tc.expectResult))
+			_, err := r.reconcile(ctx, cluster, kcp)
+			g.Expect(err).To(HaveOccurred())
 
+			// scaleUpControlPlane is never called due to health check failure and new machine is not created to scale up.
 			controlPlaneMachines := &clusterv1.MachineList{}
 			g.Expect(fakeClient.List(ctx, controlPlaneMachines)).To(Succeed())
 			g.Expect(controlPlaneMachines.Items).To(HaveLen(len(beforeMachines)))
@@ -202,8 +201,10 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		recorder: record.NewFakeRecorder(32),
 		Client:   newFakeClient(g, machines["one"]),
 		managementCluster: &fakeManagementCluster{
-			EtcdHealthy:         true,
-			ControlPlaneHealthy: true,
+			Workload: fakeWorkloadCluster{
+				ControlPlaneHealthy: true,
+				EtcdHealthy:         true,
+			},
 		},
 	}
 	cluster := &clusterv1.Cluster{}

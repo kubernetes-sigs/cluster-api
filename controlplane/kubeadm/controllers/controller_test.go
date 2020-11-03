@@ -360,9 +360,11 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
-			Machines:            internal.FilterableMachineCollection{},
-			ControlPlaneHealthy: true,
-			EtcdHealthy:         true,
+			Machines: internal.FilterableMachineCollection{},
+			Workload: fakeWorkloadCluster{
+				ControlPlaneHealthy: true,
+				EtcdHealthy:         true,
+			},
 		}
 		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
@@ -425,9 +427,11 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
-			Machines:            internal.FilterableMachineCollection{},
-			ControlPlaneHealthy: true,
-			EtcdHealthy:         true,
+			Machines: internal.FilterableMachineCollection{},
+			Workload: fakeWorkloadCluster{
+				ControlPlaneHealthy: true,
+				EtcdHealthy:         true,
+			},
 		}
 		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
@@ -528,7 +532,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster, kcp, tmpl := createClusterWithControlPlane()
-		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com1"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		kcp.Spec.Version = version
 
@@ -536,9 +540,11 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		kcp.DeletionTimestamp = &now
 
 		fmc := &fakeManagementCluster{
-			Machines:            internal.FilterableMachineCollection{},
-			ControlPlaneHealthy: true,
-			EtcdHealthy:         true,
+			Machines: internal.FilterableMachineCollection{},
+			Workload: fakeWorkloadCluster{
+				ControlPlaneHealthy: true,
+				EtcdHealthy:         true,
+			},
 		}
 		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
@@ -594,7 +600,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster, kcp, tmpl := createClusterWithControlPlane()
-		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
+		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com2"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 		kcp.Spec.Version = "v1.17.0"
 
@@ -617,8 +623,10 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					},
 				},
 			},
-			ControlPlaneHealthy: true,
-			EtcdHealthy:         true,
+			Workload: fakeWorkloadCluster{
+				ControlPlaneHealthy: true,
+				EtcdHealthy:         true,
+			},
 		}
 
 		fakeClient := newFakeClient(g, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy(), fmc.Machines["test0"].DeepCopy())
@@ -1121,10 +1129,11 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		r := &KubeadmControlPlaneReconciler{
 			Client: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
-				Management:          &internal.Management{Client: fakeClient},
-				Workload:            fakeWorkloadCluster{},
+				Management: &internal.Management{Client: fakeClient},
+				Workload: fakeWorkloadCluster{
+					ControlPlaneHealthy: true,
+					EtcdHealthy:         true,
+				},
 			},
 
 			recorder: record.NewFakeRecorder(32),
@@ -1173,10 +1182,11 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		r := &KubeadmControlPlaneReconciler{
 			Client: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
-				Management:          &internal.Management{Client: fakeClient},
-				Workload:            fakeWorkloadCluster{},
+				Management: &internal.Management{Client: fakeClient},
+				Workload: fakeWorkloadCluster{
+					ControlPlaneHealthy: true,
+					EtcdHealthy:         true,
+				},
 			},
 			recorder: record.NewFakeRecorder(32),
 		}
@@ -1206,10 +1216,11 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		r := &KubeadmControlPlaneReconciler{
 			Client: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
-				Management:          &internal.Management{Client: fakeClient},
-				Workload:            fakeWorkloadCluster{},
+				Management: &internal.Management{Client: fakeClient},
+				Workload: fakeWorkloadCluster{
+					ControlPlaneHealthy: true,
+					EtcdHealthy:         true,
+				},
 			},
 			recorder: record.NewFakeRecorder(32),
 		}

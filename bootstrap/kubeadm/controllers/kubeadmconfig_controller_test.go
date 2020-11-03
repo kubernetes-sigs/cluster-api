@@ -1821,7 +1821,7 @@ func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request,
 		},
 	}
 
-	configKey, _ := client.ObjectKeyFromObject(config)
+	configKey := client.ObjectKeyFromObject(config)
 	g.Expect(myclient.Get(ctx, configKey, config)).To(Succeed())
 	c := conditions.Get(config, t)
 	g.Expect(c).ToNot(BeNil())
@@ -1838,7 +1838,7 @@ func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, 
 		},
 	}
 
-	configKey, _ := client.ObjectKeyFromObject(config)
+	configKey := client.ObjectKeyFromObject(config)
 	g.Expect(myclient.Get(ctx, configKey, config)).To(Succeed())
 	c := conditions.Get(config, t)
 	g.Expect(c).ToNot(BeNil())

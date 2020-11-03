@@ -300,8 +300,7 @@ kind: ClusterConfiguration
 				// this makes sure that the cache is updated with the object
 				// to avoid 404 errors leading to test flakes
 				g.Eventually(func() bool {
-					key, _ := client.ObjectKeyFromObject(o)
-					err := testEnv.Get(ctx, key, o)
+					err := testEnv.Get(ctx, client.ObjectKeyFromObject(o), o)
 					return err == nil
 				}, "10s").Should(BeTrue())
 			}
@@ -313,8 +312,7 @@ kind: ClusterConfiguration
 				g.Eventually(func() bool {
 					for _, o := range tt.objs {
 						o := o.DeepCopyObject().(client.Object)
-						key, _ := client.ObjectKeyFromObject(o)
-						err := testEnv.Get(ctx, key, o)
+						err := testEnv.Get(ctx, client.ObjectKeyFromObject(o), o)
 						if err == nil || (err != nil && !apierrors.IsNotFound(err)) {
 							return false
 						}

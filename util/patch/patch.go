@@ -187,10 +187,7 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj client.Object, f
 	}
 
 	// Make a copy of the object and store the key used if we have conflicts.
-	key, err := client.ObjectKeyFromObject(after)
-	if err != nil {
-		return err
-	}
+	key := client.ObjectKeyFromObject(after)
 
 	// Define and start a backoff loop to handle conflicts
 	// between controllers working on the same object.

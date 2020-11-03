@@ -514,10 +514,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 				cl, err := proxy.NewClient()
 				g.Expect(err).ToNot(HaveOccurred())
 
-				key, err := client.ObjectKeyFromObject(obj)
-				g.Expect(err).ToNot(HaveOccurred())
-
-				err = cl.Get(ctx, key, obj)
+				err = cl.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 				switch objShouldStillExist {
 				case true:
 					g.Expect(err).ToNot(HaveOccurred())

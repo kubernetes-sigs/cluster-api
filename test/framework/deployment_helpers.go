@@ -100,8 +100,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 	Expect(input.Deployment).NotTo(BeNil(), "input.Deployment is required for WatchControllerLogs")
 
 	deployment := &appsv1.Deployment{}
-	key, err := client.ObjectKeyFromObject(input.Deployment)
-	Expect(err).NotTo(HaveOccurred(), "Failed to get key for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	key := client.ObjectKeyFromObject(input.Deployment)
 	Expect(input.GetLister.Get(ctx, key, deployment)).To(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
 
 	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
@@ -169,8 +168,7 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 	Expect(input.Deployment).NotTo(BeNil(), "input.Deployment is required for dumpContainerMetrics")
 
 	deployment := &appsv1.Deployment{}
-	key, err := client.ObjectKeyFromObject(input.Deployment)
-	Expect(err).NotTo(HaveOccurred(), "Failed to get key for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	key := client.ObjectKeyFromObject(input.Deployment)
 	Expect(input.GetLister.Get(ctx, key, deployment)).To(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
 
 	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)

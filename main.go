@@ -261,8 +261,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if feature.Gates.Enabled(feature.ClusterResourceSet) {
 		if err := (&addonscontrollers.ClusterResourceSetReconciler{
-			Client:  mgr.GetClient(),
-			Tracker: tracker,
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Tracker:   tracker,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSet")
 			os.Exit(1)

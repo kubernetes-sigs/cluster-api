@@ -61,8 +61,9 @@ var (
 
 // ClusterResourceSetReconciler reconciles a ClusterResourceSet object
 type ClusterResourceSetReconciler struct {
-	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Client    client.Client
+	APIReader client.Reader
+	Tracker   *remote.ClusterCacheTracker
 }
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -78,6 +79,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			builder.WithPredicates(
 				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
 			),
+			builder.OnlyMetadata,
 		).
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
@@ -85,6 +87,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			builder.WithPredicates(
 				resourcepredicates.AddonsSecretCreate(ctrl.LoggerFrom(ctx)),
 			),
+			builder.OnlyMetadata,
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
@@ -369,14 +372,14 @@ func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resource
 	var resourceInterface interface{}
 	switch resourceRef.Kind {
 	case string(addonsv1.ConfigMapClusterResourceSetResourceKind):
-		resourceConfigMap, err := getConfigMap(ctx, r.Client, resourceName)
+		resourceConfigMap, err := getConfigMap(ctx, r.APIReader, resourceName)
 		if err != nil {
 			return nil, err
 		}
 
 		resourceInterface = resourceConfigMap.DeepCopyObject()
 	case string(addonsv1.SecretClusterResourceSetResourceKind):
-		resourceSecret, err := getSecret(ctx, r.Client, resourceName)
+		resourceSecret, err := getSecret(ctx, r.APIReader, resourceName)
 		if err != nil {
 			return nil, err
 		}

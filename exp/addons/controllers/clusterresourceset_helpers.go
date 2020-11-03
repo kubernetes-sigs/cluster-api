@@ -146,7 +146,7 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 }
 
 // getConfigMap retrieves any ConfigMap from the given name and namespace.
-func getConfigMap(ctx context.Context, c client.Client, configmapName types.NamespacedName) (*corev1.ConfigMap, error) {
+func getConfigMap(ctx context.Context, c client.Reader, configmapName types.NamespacedName) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
 	configMapKey := client.ObjectKey{
 		Namespace: configmapName.Namespace,
@@ -160,7 +160,7 @@ func getConfigMap(ctx context.Context, c client.Client, configmapName types.Name
 }
 
 // getSecret retrieves any Secret from the given secret name and namespace.
-func getSecret(ctx context.Context, c client.Client, secretName types.NamespacedName) (*corev1.Secret, error) {
+func getSecret(ctx context.Context, c client.Reader, secretName types.NamespacedName) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
 		Namespace: secretName.Namespace,

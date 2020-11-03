@@ -82,7 +82,8 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 		testClusterResourceSetBinding,
 	)
 	r := &ClusterResourceSetReconciler{
-		Client: c,
+		Client:    c,
+		APIReader: c,
 	}
 
 	tests := []struct {

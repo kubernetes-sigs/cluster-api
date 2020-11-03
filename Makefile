@@ -332,8 +332,14 @@ modules: ## Runs go mod to ensure modules are up to date.
 ## Docker
 ## --------------------------------------
 
+.PHONY: docker-pull-prerequisites
+docker-pull-prerequisites:
+	docker pull docker.io/docker/dockerfile:experimental
+	docker pull docker.io/library/golang:1.13.15
+	docker pull gcr.io/distroless/static:latest
+
 .PHONY: docker-build
-docker-build: ## Build the docker images for controller managers
+docker-build: docker-pull-prerequisites ## Build the docker images for controller managers
 	$(MAKE) ARCH=$(ARCH) docker-build-core
 	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-bootstrap
 	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-control-plane
@@ -497,9 +503,6 @@ release-binary: $(RELEASE_DIR)
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.
-	docker pull docker.io/docker/dockerfile:experimental
-	docker pull docker.io/library/golang:1.13.15
-	docker pull gcr.io/distroless/static:latest
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
 RELEASE_ALIAS_TAG=$(PULL_BASE_REF)

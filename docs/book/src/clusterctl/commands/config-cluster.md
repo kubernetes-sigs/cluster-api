@@ -30,14 +30,14 @@ provider to use for the workload cluster:
 
 ```
 clusterctl config cluster my-cluster --kubernetes-version v1.16.3 \
-    --infrastructure:aws > my-cluster.yaml
+    --infrastructure aws > my-cluster.yaml
 ```
 
 or
 
 ```
 clusterctl config cluster my-cluster --kubernetes-version v1.16.3 \
-    --infrastructure:aws:v0.4.1 > my-cluster.yaml
+    --infrastructure aws:v0.4.1 > my-cluster.yaml
 ```
 
 ### Flavors

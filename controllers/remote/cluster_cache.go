@@ -82,14 +82,14 @@ func NewTestClusterCacheTracker(log logr.Logger, cl client.Client, scheme *runti
 		Client:      cl,
 	})
 	testCacheTracker.clusterAccessors[objKey] = &clusterAccessor{
-		cache:   nil,
-		client:  delegatingClient,
-		watches: nil,
+		cache:            nil,
+		delegatingClient: delegatingClient,
+		watches:          nil,
 	}
 	return testCacheTracker
 }
 
-// GetClient returns a client for the given cluster.
+// GetClient returns a cached client for the given cluster.
 func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
@@ -99,14 +99,28 @@ func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.Obje
 		return nil, err
 	}
 
-	return accessor.client, nil
+	return accessor.delegatingClient, nil
 }
 
-// clusterAccessor represents the combination of a client, cache, and watches for a remote cluster.
+// GetLiveClient returns a live client (talks to the api-server directly) for the given cluster.
+func (t *ClusterCacheTracker) GetLiveClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	accessor, err := t.getClusterAccessorLH(ctx, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessor.liveClient, nil
+}
+
+// clusterAccessor represents the combination of a delegating client, live client (direct to api-server), cache, and watches for a remote cluster.
 type clusterAccessor struct {
-	cache   *stoppableCache
-	client  client.Client
-	watches sets.String
+	cache            *stoppableCache
+	delegatingClient client.Client
+	liveClient       client.Client
+	watches          sets.String
 }
 
 // clusterAccessorExists returns true if a clusterAccessor exists for cluster.
@@ -190,9 +204,10 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	})
 
 	return &clusterAccessor{
-		cache:   cache,
-		client:  delegatingClient,
-		watches: sets.NewString(),
+		cache:            cache,
+		delegatingClient: delegatingClient,
+		liveClient:       c,
+		watches:          sets.NewString(),
 	}, nil
 }
 

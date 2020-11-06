@@ -73,7 +73,7 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	}
 }
 
-func Test_newRepositoryClient_YamlProcesor(t *testing.T) {
+func Test_newRepositoryClient_YamlProcessor(t *testing.T) {
 	tests := []struct {
 		name   string
 		opts   []Option

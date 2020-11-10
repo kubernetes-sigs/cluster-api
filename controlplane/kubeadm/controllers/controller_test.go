@@ -397,10 +397,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: internal.FilterableMachineCollection{},
-			Workload: fakeWorkloadCluster{
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
-			},
+			Workload: fakeWorkloadCluster{},
 		}
 		objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
@@ -468,10 +465,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: internal.FilterableMachineCollection{},
-			Workload: fakeWorkloadCluster{
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
-			},
+			Workload: fakeWorkloadCluster{},
 		}
 		objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
@@ -585,10 +579,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: internal.FilterableMachineCollection{},
-			Workload: fakeWorkloadCluster{
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
-			},
+			Workload: fakeWorkloadCluster{},
 		}
 		objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
@@ -671,10 +662,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					},
 				},
 			},
-			Workload: fakeWorkloadCluster{
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
-			},
+			Workload: fakeWorkloadCluster{},
 		}
 
 		fakeClient := newFakeClient(g, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy(), fmc.Machines["test0"].DeepCopy())
@@ -1187,10 +1175,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			Client: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
-				Workload: fakeWorkloadCluster{
-					ControlPlaneHealthy: true,
-					EtcdHealthy:         true,
-				},
+				Workload:   fakeWorkloadCluster{},
 			},
 			Log:      log.Log,
 			recorder: record.NewFakeRecorder(32),
@@ -1240,10 +1225,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			Client: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
-				Workload: fakeWorkloadCluster{
-					ControlPlaneHealthy: true,
-					EtcdHealthy:         true,
-				},
+				Workload:   fakeWorkloadCluster{},
 			},
 			Log:      log.Log,
 			recorder: record.NewFakeRecorder(32),
@@ -1275,10 +1257,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			Client: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
-				Workload: fakeWorkloadCluster{
-					ControlPlaneHealthy: true,
-					EtcdHealthy:         true,
-				},
+				Workload:   fakeWorkloadCluster{},
 			},
 			recorder: record.NewFakeRecorder(32),
 			Log:      log.Log,
@@ -1394,6 +1373,11 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 	return cluster, kcp, genericMachineTemplate
 }
 
+func setKCPHealthy(kcp *controlplanev1.KubeadmControlPlane) {
+	conditions.MarkTrue(kcp, controlplanev1.ControlPlaneComponentsHealthyCondition)
+	conditions.MarkTrue(kcp, controlplanev1.EtcdClusterHealthyCondition)
+}
+
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -1444,6 +1428,14 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		}
 	}
 	return machine, node
+}
+
+func setMachineHealthy(m *clusterv1.Machine) {
+	conditions.MarkTrue(m, controlplanev1.MachineAPIServerPodHealthyCondition)
+	conditions.MarkTrue(m, controlplanev1.MachineControllerManagerPodHealthyCondition)
+	conditions.MarkTrue(m, controlplanev1.MachineSchedulerPodHealthyCondition)
+	conditions.MarkTrue(m, controlplanev1.MachineEtcdPodHealthyCondition)
+	conditions.MarkTrue(m, controlplanev1.MachineEtcdMemberHealthyCondition)
 }
 
 // newCluster return a CAPI cluster object

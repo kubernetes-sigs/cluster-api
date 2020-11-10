@@ -18,15 +18,18 @@ package controllers
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -62,6 +65,11 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
+	// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
+	if result, err := r.preflightChecks(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
+
 	// Create the bootstrap configuration
 	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
 	fd := controlPlane.NextFailureDomainForScaleUp()
@@ -83,6 +91,11 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	outdatedMachines internal.FilterableMachineCollection,
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
+
+	// run preflight checks ensuring the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
+	if result, err := r.preflightChecks(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
@@ -128,6 +141,97 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 
 	// Requeue the control plane, in case there are additional operations to perform
 	return ctrl.Result{Requeue: true}, nil
+}
+
+// preflightChecks checks if the control plane is stable before proceeding with a scale up/scale down operation,
+// where stable means that:
+// - There are no machine deletion in progress
+// - All the health conditions on KCP are true.
+// - All the health conditions on the control plane machines are true.
+// If the control plane is not passing preflight checks, it requeue.
+//
+// NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneConditions before this.
+func (r *KubeadmControlPlaneReconciler) preflightChecks(_ context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) { //nolint:unparam
+	logger := r.Log.WithValues("namespace", controlPlane.KCP.Namespace, "kubeadmControlPlane", controlPlane.KCP.Name, "cluster", controlPlane.Cluster.Name)
+
+	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet,
+	// so it is considered ok to proceed.
+	if controlPlane.Machines.Len() == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	// If there are deleting machines, wait for the operation to complete.
+	if controlPlane.HasDeletingMachine() {
+		logger.Info("Waiting for machines to be deleted", "Machines", strings.Join(controlPlane.Machines.Filter(machinefilters.HasDeletionTimestamp).Names(), ", "))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	// Check machine health conditions; if there are conditions with False or Unknown, then wait.
+	allMachineHealthConditions := []clusterv1.ConditionType{
+		controlplanev1.MachineAPIServerPodHealthyCondition,
+		controlplanev1.MachineControllerManagerPodHealthyCondition,
+		controlplanev1.MachineSchedulerPodHealthyCondition,
+	}
+	if controlPlane.IsEtcdManaged() {
+		allMachineHealthConditions = append(allMachineHealthConditions,
+			controlplanev1.MachineEtcdPodHealthyCondition,
+			controlplanev1.MachineEtcdMemberHealthyCondition,
+		)
+	}
+	machineErrors := []error{}
+	for _, machine := range controlPlane.Machines {
+		for _, condition := range allMachineHealthConditions {
+			if err := preflightCheckCondition("machine", machine, condition); err != nil {
+				machineErrors = append(machineErrors, err)
+			}
+		}
+	}
+	if len(machineErrors) > 0 {
+		aggregatedError := kerrors.NewAggregate(machineErrors)
+		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
+			"Waiting for control plane to pass preflight checks to continue reconciliation: %v", aggregatedError)
+		logger.Info("Waiting for control plane to pass preflight checks", "failures", aggregatedError.Error())
+
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+	}
+
+	// Check KCP conditions ; if there are health problems wait.
+	// NOTE: WE are checking KCP conditions for problems that can't be assigned to a specific machine, e.g.
+	// a control plane node without a corresponding machine
+	allKcpHealthConditions := []clusterv1.ConditionType{
+		controlplanev1.ControlPlaneComponentsHealthyCondition,
+		controlplanev1.EtcdClusterHealthyCondition,
+	}
+	kcpErrors := []error{}
+	for _, condition := range allKcpHealthConditions {
+		if err := preflightCheckCondition("control plane", controlPlane.KCP, condition); err != nil {
+			kcpErrors = append(kcpErrors, err)
+		}
+	}
+	if len(kcpErrors) > 0 {
+		aggregatedError := kerrors.NewAggregate(kcpErrors)
+		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
+			"Waiting for control plane to pass preflight checks to continue reconciliation: %v", aggregatedError)
+		logger.Info("Waiting for control plane to pass preflight checks", "failures", aggregatedError.Error())
+
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func preflightCheckCondition(kind string, obj conditions.Getter, condition clusterv1.ConditionType) error {
+	c := conditions.Get(obj, condition)
+	if c == nil {
+		return errors.Errorf("%s %s does not have %s condition", kind, obj.GetName(), condition)
+	}
+	if c.Status == corev1.ConditionFalse {
+		return errors.Errorf("%s %s reports %s condition is false (%s, %s)", kind, obj.GetName(), condition, c.Severity, c.Message)
+	}
+	if c.Status == corev1.ConditionUnknown {
+		return errors.Errorf("%s %s reports %s condition is unknown (%s)", kind, obj.GetName(), condition, c.Message)
+	}
+	return nil
 }
 
 func selectMachineForScaleDown(controlPlane *internal.ControlPlane, outdatedMachines internal.FilterableMachineCollection) (*clusterv1.Machine, error) {

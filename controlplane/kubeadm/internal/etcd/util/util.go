@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 )
 
@@ -30,11 +31,16 @@ func MemberForName(members []*etcd.Member, name string) *etcd.Member {
 	return nil
 }
 
-// MemberIDSet returns a set of member IDs.
-func MemberIDSet(members []*etcd.Member) UInt64Set {
-	set := UInt64Set{}
+func MemberNames(members []*etcd.Member) []string {
+	names := make([]string, 0, len(members))
 	for _, m := range members {
-		set.Insert(m.ID)
+		names = append(names, m.Name)
 	}
-	return set
+	return names
+}
+
+func MemberEqual(members1, members2 []*etcd.Member) bool {
+	names1 := sets.NewString(MemberNames(members1)...)
+	names2 := sets.NewString(MemberNames(members2)...)
+	return names1.Equal(names2)
 }

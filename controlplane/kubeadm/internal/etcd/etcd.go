@@ -53,6 +53,7 @@ type Client struct {
 	EtcdClient etcd
 	Endpoint   string
 	LeaderID   uint64
+	Errors     []string
 }
 
 // MemberAlarm represents an alarm type association with a cluster member.
@@ -76,6 +77,13 @@ const (
 	// AlarmCorrupt denotes that the cluster member has corrupted data.
 	AlarmCorrupt
 )
+
+// AlarmTypeName provides a text translation for AlarmType codes.
+var AlarmTypeName = map[AlarmType]string{
+	AlarmOk:      "NONE",
+	AlarmNoSpace: "NOSPACE",
+	AlarmCorrupt: "CORRUPT",
+}
 
 // Adapted from kubeadm
 
@@ -154,6 +162,7 @@ func newEtcdClient(ctx context.Context, etcdClient etcd) (*Client, error) {
 		Endpoint:   endpoints[0],
 		EtcdClient: etcdClient,
 		LeaderID:   status.Leader,
+		Errors:     status.Errors,
 	}, nil
 }
 

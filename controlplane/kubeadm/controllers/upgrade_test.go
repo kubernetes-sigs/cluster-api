@@ -41,6 +41,7 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	kcp.Spec.Version = "v1.17.3"
 	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
 	kcp.Spec.Replicas = pointer.Int32Ptr(1)
+	setKCPHealthy(kcp)
 
 	fakeClient := newFakeClient(g, cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy())
 
@@ -51,17 +52,13 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
 			Workload: fakeWorkloadCluster{
-				Status:              internal.ClusterStatus{Nodes: 1},
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
+				Status: internal.ClusterStatus{Nodes: 1},
 			},
 		},
 		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
 			Workload: fakeWorkloadCluster{
-				Status:              internal.ClusterStatus{Nodes: 1},
-				ControlPlaneHealthy: true,
-				EtcdHealthy:         true,
+				Status: internal.ClusterStatus{Nodes: 1},
 			},
 		},
 	}
@@ -79,6 +76,9 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	initialMachine := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(context.Background(), initialMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(initialMachine.Items).To(HaveLen(1))
+	for i := range initialMachine.Items {
+		setMachineHealthy(&initialMachine.Items[i])
+	}
 
 	// change the KCP spec so the machine becomes outdated
 	kcp.Spec.Version = "v1.17.4"
@@ -94,18 +94,20 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	g.Expect(bothMachines.Items).To(HaveLen(2))
 
 	// run upgrade a second time, simulate that the node has not appeared yet but the machine exists
-	r.managementCluster.(*fakeManagementCluster).Workload.ControlPlaneHealthy = false
+
 	// Unhealthy control plane will be detected during reconcile loop and upgrade will never be called.
-	_, err = r.reconcile(context.Background(), cluster, kcp)
-	g.Expect(err).To(HaveOccurred())
+	result, err = r.reconcile(context.Background(), cluster, kcp)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 	g.Expect(fakeClient.List(context.Background(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(bothMachines.Items).To(HaveLen(2))
 
-	controlPlane.Machines = internal.NewFilterableMachineCollectionFromMachineList(bothMachines)
-
 	// manually increase number of nodes, make control plane healthy again
 	r.managementCluster.(*fakeManagementCluster).Workload.Status.Nodes++
-	r.managementCluster.(*fakeManagementCluster).Workload.ControlPlaneHealthy = true
+	for i := range bothMachines.Items {
+		setMachineHealthy(&bothMachines.Items[i])
+	}
+	controlPlane.Machines = internal.NewFilterableMachineCollectionFromMachineList(bothMachines)
 
 	// run upgrade the second time, expect we scale down
 	result, err = r.upgradeControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)

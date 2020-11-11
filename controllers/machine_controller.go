@@ -371,10 +371,10 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 		var deleteNodeErr error
 		waitErr := wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
-			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(deleteNodeErr) {
-				return false, nil
+			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr == nil || apierrors.IsNotFound(errors.Cause(deleteNodeErr)) {
+				return true, nil
 			}
-			return true, nil
+			return false, nil
 		})
 		if waitErr != nil {
 			log.Error(deleteNodeErr, "Timed out deleting node, moving on", "node", m.Status.NodeRef.Name)

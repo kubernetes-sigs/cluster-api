@@ -290,7 +290,6 @@ func (d *Helper) evictPods(ctx context.Context, pods []corev1.Pod, policyGroupVe
 			if err != nil {
 				errors = append(errors, err)
 			}
-		default:
 		}
 	}
 

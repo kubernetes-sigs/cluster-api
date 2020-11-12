@@ -74,6 +74,9 @@ type KubeadmConfigSpec struct {
 	// +optional
 	NTP *NTP `json:"ntp,omitempty"`
 
+	// Proxy specifies the proxy configuration
+	Proxy *Proxy `json:"proxy,omitempty"`
+
 	// Format specifies the output format of the bootstrap data
 	// +optional
 	Format Format `json:"format,omitempty"`
@@ -331,6 +334,20 @@ type Filesystem struct {
 	// ExtraOpts defined extra options to add to the command for creating the file system.
 	// +optional
 	ExtraOpts []string `json:"extraOpts,omitempty"`
+}
+
+// Proxy defines the http proxy settings used by container runtime during bootstrap
+type Proxy struct {
+	// HttpProxy specifies the proxy url for http traffic
+	HttpProxy string `json:"httpProxy,omitempty"`
+	// HttpsProxy specifies the proxy url for https traffic
+	HttpsProxy string `json:"httpsProxy,omitempty"`
+	// +optional
+	NoProxy []string `json:"noProxy,omitempty"`
+	// +optional
+	HttpProxyAuth *string `json:"httpProxyAuth,omitempty"`
+	// +optional
+	HttpsProxyAuth *string `json:"httpsProxyAuth,omitempty"`
 }
 
 // MountPoints defines input for generated mounts in cloud-init.

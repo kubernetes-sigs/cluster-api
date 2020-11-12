@@ -178,7 +178,8 @@ func autoConvert_v1alpha4_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlan
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	out.Version = in.Version
 	out.InfrastructureTemplate = in.InfrastructureTemplate
-	if err := apiv1alpha3.Convert_v1alpha4_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, 0); err != nil {
 		return err
 	}
 	out.UpgradeAfter = (*v1.Time)(unsafe.Pointer(in.UpgradeAfter))

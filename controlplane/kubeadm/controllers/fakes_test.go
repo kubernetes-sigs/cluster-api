@@ -56,7 +56,8 @@ func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n clien
 
 type fakeWorkloadCluster struct {
 	*internal.Workload
-	Status internal.ClusterStatus
+	Status            internal.ClusterStatus
+	EtcdMembersResult []string
 }
 
 func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, _ *clusterv1.Machine) error {
@@ -93,6 +94,18 @@ func (f fakeWorkloadCluster) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Con
 
 func (f fakeWorkloadCluster) UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error {
 	return nil
+}
+
+func (f fakeWorkloadCluster) RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error {
+	return nil
+}
+
+func (f fakeWorkloadCluster) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error {
+	return nil
+}
+
+func (f fakeWorkloadCluster) EtcdMembers(_ context.Context) ([]string, error) {
+	return f.EtcdMembersResult, nil
 }
 
 type fakeMigrator struct {

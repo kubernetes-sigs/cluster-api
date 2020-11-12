@@ -196,3 +196,36 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 	}
 	return nil
 }
+
+type EtcdMemberStatus struct {
+	Name       string
+	Responsive bool
+}
+
+// EtcdStatus returns the current status of the etcd cluster
+// NOTE: This methods uses control plane machines/nodes only to get in contact with etcd,
+// but then it relies on etcd as ultimate source of truth for the list of members.
+// This is intended to allow informed decisions on actions impacting etcd quorum.
+func (w *Workload) EtcdMembers(ctx context.Context) ([]string, error) {
+	nodes, err := w.getControlPlaneNodes(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list control plane nodes")
+	}
+
+	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodes.Items)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create etcd client")
+	}
+	defer etcdClient.Close()
+
+	members, err := etcdClient.Members(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list etcd members using etcd client")
+	}
+
+	names := []string{}
+	for _, member := range members {
+		names = append(names, member.Name)
+	}
+	return names, nil
+}

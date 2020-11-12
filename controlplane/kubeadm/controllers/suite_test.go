@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -42,22 +44,21 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
-	By("bootstrapping test environment")
+func TestMain(m *testing.M) {
+	// Bootstrapping test environment
 	testEnv = helpers.NewTestEnvironment()
-
-	By("starting the manager")
 	go func() {
-		defer GinkgoRecover()
-		Expect(testEnv.StartManager()).To(Succeed())
+		if err := testEnv.StartManager(); err != nil {
+			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
+		}
 	}()
-
-	close(done)
-}, 60)
-
-var _ = AfterSuite(func() {
-	if testEnv != nil {
-		By("tearing down the test environment")
-		Expect(testEnv.Stop()).To(Succeed())
+	// Run tests
+	code := m.Run()
+	// Tearing down the test environment
+	if err := testEnv.Stop(); err != nil {
+		panic(fmt.Sprintf("Failed to stop the envtest: %v", err))
 	}
-})
+
+	// Report exit code
+	os.Exit(code)
+}

@@ -59,6 +59,7 @@ type WorkloadCluster interface {
 	ClusterStatus(ctx context.Context) (ClusterStatus, error)
 	UpdateStaticPodConditions(ctx context.Context, controlPlane *ControlPlane)
 	UpdateEtcdConditions(ctx context.Context, controlPlane *ControlPlane)
+	EtcdMembers(ctx context.Context) ([]string, error)
 
 	// Upgrade related tasks.
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error

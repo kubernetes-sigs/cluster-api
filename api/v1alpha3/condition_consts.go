@@ -124,6 +124,12 @@ const (
 	// WaitingForRemediationReason is the reason used when a machine fails a health check and remediation is needed.
 	WaitingForRemediationReason = "WaitingForRemediation"
 
+	// RemediationFailedReason is the reason used when a remediation owner fails to remediate an unhealthy machine.
+	RemediationFailedReason = "RemediationFailed"
+
+	// RemediationInProgressReason is the reason used when an unhealthy machine is being remediated by the remediation owner.
+	RemediationInProgressReason = "RemediationInProgress"
+
 	// ExternalRemediationTemplateAvailable is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
 	// ExternalRemediationTemplateAvailable is set to false if external remediation template is not found.
 	ExternalRemediationTemplateAvailable ConditionType = "ExternalRemediationTemplateAvailable"

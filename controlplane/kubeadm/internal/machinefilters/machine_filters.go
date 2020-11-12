@@ -140,6 +140,16 @@ func HasDeletionTimestamp(machine *clusterv1.Machine) bool {
 	return !machine.DeletionTimestamp.IsZero()
 }
 
+// HasUnhealthyCondition returns a filter to find all machines that have a MachineHealthCheckSucceeded condition set to False,
+// indicating a problem was detected on the machine, and the MachineOwnerRemediated condition set, indicating that KCP is
+// responsible of performing remediation as owner of the machine.
+func HasUnhealthyCondition(machine *clusterv1.Machine) bool {
+	if machine == nil {
+		return false
+	}
+	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSuccededCondition) && conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
+}
+
 // IsReady returns a filter to find all machines with the ReadyCondition equals to True.
 func IsReady() Func {
 	return func(machine *clusterv1.Machine) bool {

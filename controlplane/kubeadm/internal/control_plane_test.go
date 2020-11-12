@@ -29,6 +29,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestControlPlane(t *testing.T) {
@@ -116,4 +117,31 @@ func withFailureDomain(fd string) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.Spec.FailureDomain = &fd
 	}
+}
+
+func TestHasUnhealthyMachine(t *testing.T) {
+	// healthy machine (without MachineHealthCheckSucceded condition)
+	healthyMachine1 := &clusterv1.Machine{}
+	// healthy machine (with MachineHealthCheckSucceded == true)
+	healthyMachine2 := &clusterv1.Machine{}
+	conditions.MarkTrue(healthyMachine2, clusterv1.MachineHealthCheckSuccededCondition)
+	// unhealthy machine NOT eligible for KCP remediation (with MachineHealthCheckSucceded == False, but without MachineOwnerRemediated condition)
+	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{}
+	conditions.MarkFalse(unhealthyMachineNOTOwnerRemediated, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+	// unhealthy machine eligible for KCP remediation (with MachineHealthCheckSucceded == False, with MachineOwnerRemediated condition)
+	unhealthyMachineOwnerRemediated := &clusterv1.Machine{}
+	conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+	conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
+
+	c := ControlPlane{
+		Machines: NewFilterableMachineCollection(
+			healthyMachine1,
+			healthyMachine2,
+			unhealthyMachineNOTOwnerRemediated,
+			unhealthyMachineOwnerRemediated,
+		),
+	}
+
+	g := NewWithT(t)
+	g.Expect(c.HasUnhealthyMachine()).To(BeTrue())
 }

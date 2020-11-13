@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -34,6 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/dropin"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
@@ -382,6 +384,12 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
 	}
+	proxyFiles, err := r.resolveProxyFiles(ctx, scope.Config)
+	if err != nil {
+		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return ctrl.Result{}, err
+	}
+	files = append(files, proxyFiles...)
 
 	cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
 		BaseUserData: cloudinit.BaseUserData{
@@ -457,6 +465,12 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
 	}
+	proxyFiles, err := r.resolveProxyFiles(ctx, scope.Config)
+	if err != nil {
+		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return ctrl.Result{}, err
+	}
+	files = append(files, proxyFiles...)
 
 	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
@@ -534,6 +548,12 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
 	}
+	proxyFiles, err := r.resolveProxyFiles(ctx, scope.Config)
+	if err != nil {
+		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return ctrl.Result{}, err
+	}
+	files = append(files, proxyFiles...)
 
 	cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 		JoinConfiguration: joinData,
@@ -561,6 +581,77 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// resolveProxyUrl adds the user information to the proxy url
+func resolveProxyUrl(proxyUrl string, secret *corev1.Secret) (string, error) {
+	if secret == nil {
+		return proxyUrl, nil
+	}
+	username := secret.StringData["username"]
+	password := secret.StringData["password"]
+	parsedUrl, err := url.Parse(proxyUrl)
+	if err != nil {
+		return "", err
+	}
+	parsedUrl.User = url.UserPassword(username, password)
+	return parsedUrl.String(), nil
+}
+
+// resolveProxyFiles resolves the required proxy unit files to cloudinit.Files
+func (r *KubeadmConfigReconciler) resolveProxyFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig) ([]bootstrapv1.File, error) {
+	collected := make([]bootstrapv1.File, 0)
+
+	if cfg.Spec.Proxy == nil {
+		return nil, nil
+	}
+
+	// resolve credentials
+	var httpAuth, httpsAuth *corev1.Secret
+	if cfg.Spec.Proxy.HttpProxyAuth != nil {
+		key := types.NamespacedName{Namespace: cfg.Namespace, Name: *cfg.Spec.Proxy.HttpProxyAuth}
+		if err := r.Client.Get(ctx, key, httpAuth); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Wrapf(err, "secret not found: %s", key)
+			}
+			return nil, errors.Wrapf(err, "failed to retrieve Secret %q", key)
+		}
+	}
+	if cfg.Spec.Proxy.HttpsProxyAuth != nil {
+		key := types.NamespacedName{Namespace: cfg.Namespace, Name: *cfg.Spec.Proxy.HttpsProxyAuth}
+		if err := r.Client.Get(ctx, key, httpsAuth); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Wrapf(err, "secret not found: %s", key)
+			}
+			return nil, errors.Wrapf(err, "failed to retrieve Secret %q", key)
+		}
+	}
+	// resolve urls
+	httpProxyUrl, err := resolveProxyUrl(cfg.Spec.Proxy.HttpProxy, httpAuth)
+	if err != nil {
+		return nil, err
+	}
+	httpsProxyUrl, err := resolveProxyUrl(cfg.Spec.Proxy.HttpProxy, httpAuth)
+	if err != nil {
+		return nil, err
+	}
+	proxy := dropin.HttpProxy{
+		HttpProxy:  httpProxyUrl,
+		HttpsProxy: httpsProxyUrl,
+		NoProxy:    cfg.Spec.Proxy.NoProxy,
+	}
+	proxyDropin, err := proxy.Parse()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed parseing proxy template")
+	}
+	// render files
+	proxyFile := bootstrapv1.File{
+		Path:    "/etc/systemd/system/containerd.service.d/http-proxy.conf",
+		Content: string(proxyDropin),
+	}
+	collected = append(collected, proxyFile)
+
+	return collected, nil
 }
 
 // resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references

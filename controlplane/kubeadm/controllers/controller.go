@@ -514,6 +514,13 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return ctrl.Result{}, nil
 	}
 
+	// If there are provisioning machines (machines without a node yet), return.
+	for _, machine := range controlPlane.Machines {
+		if machine.Status.NodeRef == nil {
+			return ctrl.Result{}, nil
+		}
+	}
+
 	// Potential inconsistencies between the list of members and the list of machines/nodes are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
 	if conditions.IsTrue(controlPlane.KCP, controlplanev1.EtcdClusterHealthyCondition) {

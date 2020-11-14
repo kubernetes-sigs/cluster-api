@@ -1601,6 +1601,93 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 	}
 }
 
+func TestKubeadmConfigReconciler_ResolveProxy(t *testing.T) {
+	proxyCredential := "proxy-auth"
+	testSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      proxyCredential,
+			Namespace: "default",
+		},
+		StringData: map[string]string{
+			"username": "fakeuser",
+			"password": "fakepasswd",
+		},
+	}
+
+	cases := map[string]struct {
+		cfg     *bootstrapv1.KubeadmConfig
+		objects []client.Object
+		expect  []bootstrapv1.File
+	}{
+		"proxy url without credentials": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cfg",
+					Namespace: "default",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Proxy: &bootstrapv1.Proxy{
+						HttpProxy:  "http://proxy.infra.local",
+						HttpsProxy: "http://proxy.infra.local",
+					},
+				},
+			},
+			expect: []bootstrapv1.File{
+				{
+					Content: `[Service]
+Environment="HTTP_PROXY=http://proxy.infra.local"
+Environment="HTTPS_PROXY=http://proxy.infra.local"
+`,
+					Path: "/etc/systemd/system/containerd.service.d/http-proxy.conf",
+				},
+			},
+			objects: []client.Object{testSecret},
+		},
+		"proxy url with credentials": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cfg",
+					Namespace: "default",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Proxy: &bootstrapv1.Proxy{
+						HttpProxy:      "http://proxy.infra.local",
+						HttpsProxy:     "http://proxy.infra.local",
+						HttpProxyAuth:  &proxyCredential,
+						HttpsProxyAuth: &proxyCredential,
+					},
+				},
+			},
+			expect: []bootstrapv1.File{
+				{
+					Content: `[Service]
+Environment="HTTP_PROXY=http://fakeuser:fakepasswd@proxy.infra.local"
+Environment="HTTPS_PROXY=http://fakeuser:fakepasswd@proxy.infra.local"
+`,
+					Path: "/etc/systemd/system/containerd.service.d/http-proxy.conf",
+				},
+			},
+			objects: []client.Object{testSecret},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			myclient := helpers.NewFakeClientWithScheme(setupScheme(), tc.objects...)
+			k := &KubeadmConfigReconciler{
+				Client:          myclient,
+				KubeadmInitLock: &myInitLocker{},
+			}
+
+			files, err := k.resolveProxyFiles(ctx, tc.cfg)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(files).To(Equal(tc.expect))
+		})
+	}
+}
+
 // test utils
 
 // newCluster return a CAPI cluster object

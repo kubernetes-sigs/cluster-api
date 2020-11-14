@@ -609,6 +609,7 @@ func (r *KubeadmConfigReconciler) resolveProxyFiles(ctx context.Context, cfg *bo
 	// resolve credentials
 	var httpAuth, httpsAuth *corev1.Secret
 	if cfg.Spec.Proxy.HttpProxyAuth != nil {
+		httpAuth = &corev1.Secret{}
 		key := types.NamespacedName{Namespace: cfg.Namespace, Name: *cfg.Spec.Proxy.HttpProxyAuth}
 		if err := r.Client.Get(ctx, key, httpAuth); err != nil {
 			if apierrors.IsNotFound(err) {
@@ -618,6 +619,7 @@ func (r *KubeadmConfigReconciler) resolveProxyFiles(ctx context.Context, cfg *bo
 		}
 	}
 	if cfg.Spec.Proxy.HttpsProxyAuth != nil {
+		httpsAuth = &corev1.Secret{}
 		key := types.NamespacedName{Namespace: cfg.Namespace, Name: *cfg.Spec.Proxy.HttpsProxyAuth}
 		if err := r.Client.Get(ctx, key, httpsAuth); err != nil {
 			if apierrors.IsNotFound(err) {

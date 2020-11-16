@@ -254,8 +254,8 @@ func (f fakeClusterClient) Proxy() cluster.Proxy {
 	return f.fakeProxy
 }
 
-func (f *fakeClusterClient) CertManager() cluster.CertManagerClient {
-	return f.certManager
+func (f *fakeClusterClient) CertManager() (cluster.CertManagerClient, error) {
+	return f.certManager, nil
 }
 
 func (f fakeClusterClient) ProviderComponents() cluster.ComponentsClient {

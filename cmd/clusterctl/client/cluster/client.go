@@ -63,7 +63,7 @@ type Client interface {
 
 	// CertManager returns a CertManagerClient that can be user for
 	// operating the cert-manager components in the cluster.
-	CertManager() CertManagerClient
+	CertManager() (CertManagerClient, error)
 
 	// ProviderComponents returns a ComponentsClient object that can be user for
 	// operating provider components objects in the management cluster (e.g. the CRDs, controllers, RBAC).
@@ -117,8 +117,8 @@ func (c *clusterClient) Proxy() Proxy {
 	return c.proxy
 }
 
-func (c *clusterClient) CertManager() CertManagerClient {
-	return newCertMangerClient(c.configClient, c.proxy, c.pollImmediateWaiter)
+func (c *clusterClient) CertManager() (CertManagerClient, error) {
+	return newCertManagerClient(c.configClient, c.proxy, c.pollImmediateWaiter)
 }
 
 func (c *clusterClient) ProviderComponents() ComponentsClient {

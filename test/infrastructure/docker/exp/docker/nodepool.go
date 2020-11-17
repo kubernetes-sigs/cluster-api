@@ -83,67 +83,84 @@ func NewNodePool(kClient client.Client, cluster *clusterv1.Cluster, mp *clusterv
 	return np, nil
 }
 
-// ReconcileMachines will build enough machines to satisfy the machine pool / docker machine pool spec and update the
-// docker machine pool status
-func (np *NodePool) ReconcileMachines(ctx context.Context) error {
-	matchingMachineCount := int32(len(np.machinesMatchingInfrastructureSpec()))
-	if matchingMachineCount < *np.machinePool.Spec.Replicas {
-		for i := int32(0); i < *np.machinePool.Spec.Replicas-matchingMachineCount; i++ {
-			if err := np.addMachine(ctx); err != nil {
-				return errors.Wrap(err, "failed to create a new docker machine")
+// ReconcileMachines will build enough machines to satisfy the machine pool / docker machine pool spec
+// eventually delete all the machine in excess, and update the status for all the machines.
+//
+// NOTE: The goal for the current implementation is to verify MachinePool construct; accordingly,
+// currently the nodepool supports only a recreate strategy for replacing old nodes with new ones
+// (all existing machines are killed before new ones are created).
+// TODO: consider if to support a Rollout strategy (a more progressive node replacement).
+func (np *NodePool) ReconcileMachines(ctx context.Context, log logr.Logger) error {
+	desiredReplicas := int(*np.machinePool.Spec.Replicas)
+
+	// Delete all the machines in excess (outdated machines or machines exceeding desired replica count).
+	machineDeleted := false
+	totalNumberOfMachines := 0
+	for _, machine := range np.machines {
+		if totalNumberOfMachines+1 > desiredReplicas || !np.isMachineMatchingInfrastructureSpec(machine) {
+			externalMachine, err := docker.NewMachine(np.cluster.Name, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters, np.logger)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 			}
+			if err := externalMachine.Delete(ctx); err != nil {
+				return errors.Wrapf(err, "failed to delete machine %s", machine.Name())
+			}
+			machineDeleted = true
+			continue
+		}
+		totalNumberOfMachines++
+	}
+	if machineDeleted {
+		if err := np.refresh(); err != nil {
+			return errors.Wrapf(err, "failed to refresh the node pool")
 		}
 	}
 
-	for _, machine := range np.machinesMatchingInfrastructureSpec() {
-		if err := np.reconcileMachine(ctx, machine); err != nil {
+	// Add new machines if missing.
+	machineAdded := false
+	matchingMachineCount := len(np.machinesMatchingInfrastructureSpec())
+	if matchingMachineCount < desiredReplicas {
+		for i := 0; i < desiredReplicas-matchingMachineCount; i++ {
+			if err := np.addMachine(ctx); err != nil {
+				return errors.Wrap(err, "failed to create a new docker machine")
+			}
+			machineAdded = true
+		}
+	}
+	if machineAdded {
+		if err := np.refresh(); err != nil {
+			return errors.Wrapf(err, "failed to refresh the node pool")
+		}
+	}
+
+	// First remove instance status for machines no longer existing, then reconcile the existing machines.
+	// NOTE: the status is the only source of truth for understanding if the machine is already bootstrapped, ready etc.
+	// so we are preserving the existing status and using it as a bases for the next reconcile machine.
+	instances := make([]*infrav1exp.DockerMachinePoolInstanceStatus, 0, len(np.machines))
+	for i := range np.dockerMachinePool.Status.Instances {
+		instance := np.dockerMachinePool.Status.Instances[i]
+		found := false
+		for j := range np.machines {
+			if instance.InstanceName == np.machines[j].Name() {
+				found = true
+			}
+		}
+		if found {
+			instances = append(instances, instance)
+		}
+	}
+	np.dockerMachinePool.Status.Instances = instances
+
+	for i := range np.machines {
+		machine := np.machines[i]
+		if err := np.reconcileMachine(ctx, machine, log); err != nil {
 			if errors.Is(err, &TransientError{}) {
 				return err
 			}
 			return errors.Wrap(err, "failed to reconcile machine")
 		}
 	}
-
-	return np.refresh()
-}
-
-// DeleteExtraMachines will delete all of the machines outside of the machine pool / docker machine pool spec and update
-// the docker machine pool status.
-func (np *NodePool) DeleteExtraMachines(ctx context.Context) error {
-	outOfSpecMachineNames := map[string]interface{}{}
-	for _, outOfSpecMachine := range np.machinesNotMatchingInfrastructureSpec() {
-		externalMachine, err := docker.NewMachine(np.cluster.Name, outOfSpecMachine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters, np.logger)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", outOfSpecMachine.Name())
-		}
-
-		if err := externalMachine.Delete(ctx); err != nil {
-			return errors.Wrapf(err, "failed to delete machine %s", outOfSpecMachine.Name())
-		}
-
-		outOfSpecMachineNames[outOfSpecMachine.Name()] = nil
-	}
-
-	var stats []*infrav1exp.DockerMachinePoolInstanceStatus
-	for _, machineStatus := range np.dockerMachinePool.Status.Instances {
-		if _, ok := outOfSpecMachineNames[machineStatus.InstanceName]; !ok {
-			stats = append(stats, machineStatus)
-		}
-	}
-
-	for _, overprovisioned := range stats[*np.machinePool.Spec.Replicas:] {
-		externalMachine, err := docker.NewMachine(np.cluster.Name, overprovisioned.InstanceName, np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters, np.logger)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", overprovisioned.InstanceName)
-		}
-
-		if err := externalMachine.Delete(ctx); err != nil {
-			return errors.Wrapf(err, "failed to delete machine %s", overprovisioned.InstanceName)
-		}
-	}
-
-	np.dockerMachinePool.Status.Instances = stats[:*np.machinePool.Spec.Replicas]
-	return np.refresh()
+	return nil
 }
 
 // Delete will delete all of the machines in the node pool
@@ -162,23 +179,15 @@ func (np *NodePool) Delete(ctx context.Context) error {
 	return nil
 }
 
+func (np *NodePool) isMachineMatchingInfrastructureSpec(machine *docker.Machine) bool {
+	return machine.ImageVersion() == *np.machinePool.Spec.Template.Spec.Version
+}
+
 // machinesMatchingInfrastructureSpec returns all of the docker.Machines which match the machine pool / docker machine pool spec
 func (np *NodePool) machinesMatchingInfrastructureSpec() []*docker.Machine {
 	var matchingMachines []*docker.Machine
 	for _, machine := range np.machines {
-		if !machine.IsControlPlane() && machine.ImageVersion() == *np.machinePool.Spec.Template.Spec.Version {
-			matchingMachines = append(matchingMachines, machine)
-		}
-	}
-
-	return matchingMachines
-}
-
-// machinesNotMatchingInfrastructureSpec returns all of the machines which do not match the machine pool / docker machine pool spec
-func (np *NodePool) machinesNotMatchingInfrastructureSpec() []*docker.Machine {
-	var matchingMachines []*docker.Machine
-	for _, machine := range np.machines {
-		if !machine.IsControlPlane() && machine.ImageVersion() != *np.machinePool.Spec.Template.Spec.Version {
+		if np.isMachineMatchingInfrastructureSpec(machine) {
 			matchingMachines = append(matchingMachines, machine)
 		}
 	}
@@ -197,13 +206,7 @@ func (np *NodePool) addMachine(ctx context.Context) error {
 	if err := externalMachine.Create(ctx, constants.WorkerNodeRoleValue, np.machinePool.Spec.Template.Spec.Version, np.dockerMachinePool.Spec.Template.ExtraMounts); err != nil {
 		return errors.Wrapf(err, "failed to create docker machine with instance name %s", instanceName)
 	}
-
-	np.dockerMachinePool.Status.Instances = append(np.dockerMachinePool.Status.Instances, &infrav1exp.DockerMachinePoolInstanceStatus{
-		InstanceName: instanceName,
-		Version:      np.machinePool.Spec.Template.Spec.Version,
-	})
-
-	return np.refresh()
+	return nil
 }
 
 // refresh asks docker to list all the machines matching the node pool label and updates the cached list of node pool
@@ -214,19 +217,29 @@ func (np *NodePool) refresh() error {
 		return errors.Wrapf(err, "failed to list all machines in the cluster")
 	}
 
-	np.machines = machines
+	np.machines = make([]*docker.Machine, 0, len(machines))
+	for i := range machines {
+		machine := machines[i]
+		// makes sure no control plane machines gets selected by chance.
+		if !machine.IsControlPlane() {
+			np.machines = append(np.machines, machine)
+		}
+	}
 	return nil
 }
 
 // reconcileMachine will build and provision a docker machine and update the docker machine pool status for that instance
-func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine) error {
+func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine, log logr.Logger) error {
 	machineStatus := getInstanceStatusByMachineName(np.dockerMachinePool, machine.Name())
 	if machineStatus == nil {
+		log.Info("Creating instance record", "instance", machine.Name())
 		machineStatus = &infrav1exp.DockerMachinePoolInstanceStatus{
 			InstanceName: machine.Name(),
 			Version:      np.machinePool.Spec.Template.Spec.Version,
 		}
 		np.dockerMachinePool.Status.Instances = append(np.dockerMachinePool.Status.Instances, machineStatus)
+		// return to surface the new machine exists.
+		return nil
 	}
 
 	externalMachine, err := docker.NewMachine(np.cluster.Name, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters, np.logger)
@@ -236,6 +249,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !machineStatus.Bootstrapped {
+		log.Info("Bootstrapping instance", "instance", machine.Name())
 		if err := externalMachine.PreloadLoadImages(ctx, np.dockerMachinePool.Spec.Template.PreLoadImages); err != nil {
 			return errors.Wrapf(err, "failed to pre-load images into the docker machine with instance name %s", machine.Name())
 		}
@@ -252,9 +266,12 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 			return errors.Wrapf(err, "failed to exec DockerMachinePool instance bootstrap for instance named %s", machine.Name())
 		}
 		machineStatus.Bootstrapped = true
+		// return to surface the machine has been bootstrapped.
+		return nil
 	}
 
 	if machineStatus.Addresses == nil {
+		log.Info("Fetching instance addresses", "instance", machine.Name())
 		// set address in machine status
 		machineAddress, err := externalMachine.Address(ctx)
 		if err != nil {
@@ -281,6 +298,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 	}
 
 	if machineStatus.ProviderID == nil {
+		log.Info("Fetching instance provider ID", "instance", machine.Name())
 		// Usually a cloud provider will do this, but there is no docker-cloud provider.
 		// Requeue if there is an error, as this is likely momentary load balancer
 		// state changes during control plane provisioning.

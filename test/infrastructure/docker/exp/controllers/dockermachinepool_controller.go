@@ -179,8 +179,8 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
 	}
 
-	// if we don't have enough nodes matching spec, build them
-	if err := pool.ReconcileMachines(ctx); err != nil {
+	// Reconcile machines and updates Status.Instances
+	if err := pool.ReconcileMachines(ctx, log); err != nil {
 		if errors.Is(err, &docker.TransientError{}) {
 			log.V(4).Info("requeue in 5 seconds due docker machine reconcile transient error")
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
@@ -189,10 +189,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile machines")
 	}
 
-	if err := pool.DeleteExtraMachines(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to delete overprovisioned or out of spec machines")
-	}
-
+	// Derive info from Status.Instances
 	dockerMachinePool.Spec.ProviderIDList = []string{}
 	for _, instance := range dockerMachinePool.Status.Instances {
 		if instance.ProviderID != nil && instance.Ready {

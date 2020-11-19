@@ -17,6 +17,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -198,11 +199,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   2,
-			CurrentHealthy:     2,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    2,
+			CurrentHealthy:      2,
+			RemediationsAllowed: 2,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 	})
 
 	t.Run("it marks unhealthy machines for remediation when there is one unhealthy Machine", func(t *testing.T) {
@@ -246,10 +254,17 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   3,
-			CurrentHealthy:     2,
-			ObservedGeneration: 1,
-			Targets:            targetMachines,
+			ExpectedMachines:    3,
+			CurrentHealthy:      2,
+			RemediationsAllowed: 2,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
 		}))
 	})
 
@@ -296,11 +311,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   3,
-			CurrentHealthy:     1,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    3,
+			CurrentHealthy:      1,
+			RemediationsAllowed: 0,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:     clusterv1.RemediationAllowedCondition,
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityWarning,
+					Reason:   clusterv1.TooManyUnhealthyReason,
+					Message:  "Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: 3, unhealthy: 2, maxUnhealthy: 40%)",
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -381,11 +406,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   3,
-			CurrentHealthy:     2,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    3,
+			CurrentHealthy:      2,
+			RemediationsAllowed: 2,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -471,11 +503,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}, timeout, 100*time.Millisecond).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   3,
-			CurrentHealthy:     2,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    3,
+			CurrentHealthy:      2,
+			RemediationsAllowed: 2,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -558,11 +597,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   3,
-			CurrentHealthy:     2,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    3,
+			CurrentHealthy:      2,
+			RemediationsAllowed: 2,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -633,11 +679,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     1,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    1,
+			CurrentHealthy:      1,
+			RemediationsAllowed: 1,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Transition the node to unhealthy.
 		node := nodes[0]
@@ -662,8 +715,14 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			ExpectedMachines:   1,
 			CurrentHealthy:     0,
 			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			Targets:            targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -878,8 +937,14 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			ExpectedMachines:   1,
 			CurrentHealthy:     1,
 			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			Targets:            targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Pause the machine
 		machinePatch := client.MergeFrom(machines[0].DeepCopy())
@@ -908,11 +973,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     0,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    1,
+			CurrentHealthy:      0,
+			RemediationsAllowed: 0,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -1011,11 +1083,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     1,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    1,
+			CurrentHealthy:      1,
+			RemediationsAllowed: 1,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Transition the node to unhealthy.
 		node := nodes[0]
@@ -1037,11 +1116,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     0,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    1,
+			CurrentHealthy:      0,
+			RemediationsAllowed: 0,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -1143,11 +1229,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     1,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    1,
+			CurrentHealthy:      1,
+			RemediationsAllowed: 1,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Transition the node to unhealthy.
 		node := nodes[0]
@@ -1169,11 +1262,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     0,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    1,
+			CurrentHealthy:      0,
+			RemediationsAllowed: 0,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -1213,11 +1313,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     1,
-			ObservedGeneration: 1,
-			Targets:            targetMachines},
-		))
+			ExpectedMachines:    1,
+			CurrentHealthy:      1,
+			RemediationsAllowed: 1,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
 
 		// Calculate how many Machines have health check succeeded = false.
 		g.Eventually(func() (unhealthy int) {
@@ -1628,6 +1735,75 @@ func TestIsAllowedRemediation(t *testing.T) {
 	}
 }
 
+func TestGetMaxUnhealthy(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		maxUnhealthy         *intstr.IntOrString
+		expectedMaxUnhealthy int
+		actualMachineCount   int32
+		expectedErr          error
+	}{
+		{
+			name:                 "when maxUnhealthy is nil",
+			maxUnhealthy:         nil,
+			expectedMaxUnhealthy: 0,
+			actualMachineCount:   7,
+			expectedErr:          errors.New("spec.maxUnhealthy must be set"),
+		},
+		{
+			name:                 "when maxUnhealthy is not an int or percentage",
+			maxUnhealthy:         &intstr.IntOrString{Type: intstr.String, StrVal: "abcdef"},
+			expectedMaxUnhealthy: 0,
+			actualMachineCount:   3,
+			expectedErr:          errors.New("invalid value for IntOrString: invalid value \"abcdef\": strconv.Atoi: parsing \"abcdef\": invalid syntax"),
+		},
+		{
+			name:                 "when maxUnhealthy is an int",
+			maxUnhealthy:         &intstr.IntOrString{Type: intstr.Int, IntVal: 3},
+			actualMachineCount:   2,
+			expectedMaxUnhealthy: 3,
+			expectedErr:          nil,
+		},
+		{
+			name:                 "when maxUnhealthy is a 40% (of 5)",
+			maxUnhealthy:         &intstr.IntOrString{Type: intstr.String, StrVal: "40%"},
+			actualMachineCount:   5,
+			expectedMaxUnhealthy: 2,
+			expectedErr:          nil,
+		},
+		{
+			name:                 "when maxUnhealthy is a 60% (of 7)",
+			maxUnhealthy:         &intstr.IntOrString{Type: intstr.String, StrVal: "60%"},
+			actualMachineCount:   7,
+			expectedMaxUnhealthy: 4,
+			expectedErr:          nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mhc := &clusterv1.MachineHealthCheck{
+				Spec: clusterv1.MachineHealthCheckSpec{
+					MaxUnhealthy: tc.maxUnhealthy,
+				},
+				Status: clusterv1.MachineHealthCheckStatus{
+					ExpectedMachines: tc.actualMachineCount,
+				},
+			}
+
+			maxUnhealthy, err := getMaxUnhealthy(mhc)
+			if tc.expectedErr != nil {
+				g.Expect(err).To(MatchError(tc.expectedErr.Error()))
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(maxUnhealthy).To(Equal(tc.expectedMaxUnhealthy))
+		})
+	}
+}
+
 func ownerReferenceForCluster(ctx context.Context, g *WithT, c *clusterv1.Cluster) metav1.OwnerReference {
 	// Fetch the cluster to populate the UID
 	cc := &clusterv1.Cluster{}
@@ -1884,6 +2060,7 @@ func newMachineHealthCheckWithLabels(name, namespace, cluster string, labels map
 }
 
 func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHealthCheck {
+	maxUnhealthy := intstr.FromString("100%")
 	return &clusterv1.MachineHealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-mhc-",
@@ -1896,6 +2073,7 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 					"selector": string(uuid.NewUUID()),
 				},
 			},
+			MaxUnhealthy:       &maxUnhealthy,
 			NodeStartupTimeout: &metav1.Duration{Duration: 1 * time.Millisecond},
 			UnhealthyConditions: []clusterv1.UnhealthyCondition{
 				{

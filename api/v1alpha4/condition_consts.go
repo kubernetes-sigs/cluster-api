@@ -166,3 +166,15 @@ const (
 	// NodeConditionsFailedReason (Severity=Warning) documents a node is not in a healthy state due to the failed state of at least 1 Kubelet condition.
 	NodeConditionsFailedReason = "NodeConditionsFailed"
 )
+
+// Conditions and condition Reasons for the MachineHealthCheck object
+
+const (
+	// RemediationAllowedCondition is set on MachineHealthChecks to show the status of whether the MachineHealthCheck is
+	// allowed to remediate any Machines or whether it is blocked from remediating any further.
+	RemediationAllowedCondition ConditionType = "RemediationAllowed"
+
+	// TooManyUnhealthy is the reason used when too many Machines are unhealthy and the MachineHealthCheck is blocked
+	// from making any further remediations.
+	TooManyUnhealthyReason = "TooManyUnhealthy"
+)

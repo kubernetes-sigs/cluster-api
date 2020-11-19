@@ -189,6 +189,11 @@ spec:
                 description: ObservedGeneration is the latest generation observed by the controller.
                 format: int64
                 type: integer
+              remediationsAllowed:
+                description: RemediationsAllowed is the number of further remediations allowed by this machine health check before maxUnhealthy short circuiting will be applied
+                format: int32
+                minimum: 0
+                type: integer
               targets:
                 description: Targets shows the current list of machines the machine health check is watching
                 items:
@@ -367,6 +372,11 @@ spec:
               observedGeneration:
                 description: ObservedGeneration is the latest generation observed by the controller.
                 format: int64
+                type: integer
+              remediationsAllowed:
+                description: RemediationsAllowed is the number of further remediations allowed by this machine health check before maxUnhealthy short circuiting will be applied
+                format: int32
+                minimum: 0
                 type: integer
               targets:
                 description: Targets shows the current list of machines the machine health check is watching

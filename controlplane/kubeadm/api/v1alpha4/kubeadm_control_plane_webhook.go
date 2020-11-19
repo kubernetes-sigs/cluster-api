@@ -87,6 +87,7 @@ const (
 	preKubeadmCommands   = "preKubeadmCommands"
 	postKubeadmCommands  = "postKubeadmCommands"
 	files                = "files"
+	users                = "users"
 )
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -106,6 +107,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, postKubeadmCommands},
 		{spec, kubeadmConfigSpec, files},
 		{spec, kubeadmConfigSpec, "verbosity"},
+		{spec, kubeadmConfigSpec, users},
 		{spec, "infrastructureTemplate", "name"},
 		{spec, "replicas"},
 		{spec, "version"},

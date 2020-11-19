@@ -209,6 +209,14 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 						Path: "test",
 					},
 				},
+				Users: []bootstrapv1.User{
+					{
+						Name: "user",
+						SSHAuthorizedKeys: []string{
+							"ssh-rsa foo",
+						},
+					},
+				},
 			},
 			Version: "v1.16.6",
 		},
@@ -242,6 +250,15 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 	}
 	validUpdate.Spec.Version = "v1.17.1"
+	validUpdate.Spec.KubeadmConfigSpec.Users = []bootstrapv1.User{
+		{
+			Name: "bar",
+			SSHAuthorizedKeys: []string{
+				"ssh-rsa bar",
+				"ssh-rsa foo",
+			},
+		},
+	}
 	validUpdate.Spec.InfrastructureTemplate.Name = "orange"
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
 	now := metav1.NewTime(time.Now())

@@ -43,86 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestCheckStaticPodReadyCondition(t *testing.T) {
-	table := []checkStaticPodReadyConditionTest{
-		{
-			name:       "pod is ready",
-			conditions: []corev1.PodCondition{podReady(corev1.ConditionTrue)},
-		},
-	}
-	for _, test := range table {
-		t.Run(test.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			pod := corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-pod",
-				},
-				Spec:   corev1.PodSpec{},
-				Status: corev1.PodStatus{Conditions: test.conditions},
-			}
-			g.Expect(checkStaticPodReadyCondition(pod)).To(Succeed())
-		})
-	}
-}
-
-func TestCheckStaticPodNotReadyCondition(t *testing.T) {
-	table := []checkStaticPodReadyConditionTest{
-		{
-			name: "no pod status",
-		},
-		{
-			name:       "not ready pod status",
-			conditions: []corev1.PodCondition{podReady(corev1.ConditionFalse)},
-		},
-	}
-	for _, test := range table {
-		t.Run(test.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			pod := corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-pod",
-				},
-				Spec:   corev1.PodSpec{},
-				Status: corev1.PodStatus{Conditions: test.conditions},
-			}
-			g.Expect(checkStaticPodReadyCondition(pod)).NotTo(Succeed())
-		})
-	}
-}
-
-func TestControlPlaneIsHealthy(t *testing.T) {
-	g := NewWithT(t)
-
-	readyStatus := corev1.PodStatus{
-		Conditions: []corev1.PodCondition{
-			{
-				Type:   corev1.PodReady,
-				Status: corev1.ConditionTrue,
-			},
-		},
-	}
-	workloadCluster := &Workload{
-		Client: &fakeClient{
-			list: nodeListForTestControlPlaneIsHealthy(),
-			get: map[string]interface{}{
-				"kube-system/kube-apiserver-first-control-plane":           &corev1.Pod{Status: readyStatus},
-				"kube-system/kube-apiserver-second-control-plane":          &corev1.Pod{Status: readyStatus},
-				"kube-system/kube-apiserver-third-control-plane":           &corev1.Pod{Status: readyStatus},
-				"kube-system/kube-controller-manager-first-control-plane":  &corev1.Pod{Status: readyStatus},
-				"kube-system/kube-controller-manager-second-control-plane": &corev1.Pod{Status: readyStatus},
-				"kube-system/kube-controller-manager-third-control-plane":  &corev1.Pod{Status: readyStatus},
-			},
-		},
-	}
-
-	health, err := workloadCluster.ControlPlaneIsHealthy(ctx)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(health).NotTo(HaveLen(0))
-	g.Expect(health).To(HaveLen(len(nodeListForTestControlPlaneIsHealthy().Items)))
-}
-
 func TestGetMachinesForCluster(t *testing.T) {
 	g := NewWithT(t)
 
@@ -307,40 +227,6 @@ func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 
 	c, err := x509.ParseCertificate(b)
 	return c, err
-}
-
-func podReady(isReady corev1.ConditionStatus) corev1.PodCondition {
-	return corev1.PodCondition{
-		Type:   corev1.PodReady,
-		Status: isReady,
-	}
-}
-
-type checkStaticPodReadyConditionTest struct {
-	name       string
-	conditions []corev1.PodCondition
-}
-
-func nodeListForTestControlPlaneIsHealthy() *corev1.NodeList {
-	return &corev1.NodeList{
-		Items: []corev1.Node{
-			nodeNamed("first-control-plane"),
-			nodeNamed("second-control-plane"),
-			nodeNamed("third-control-plane"),
-		},
-	}
-}
-
-func nodeNamed(name string, options ...func(n corev1.Node) corev1.Node) corev1.Node {
-	node := corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-	for _, opt := range options {
-		node = opt(node)
-	}
-	return node
 }
 
 func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {

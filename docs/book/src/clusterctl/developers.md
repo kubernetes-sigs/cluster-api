@@ -99,12 +99,12 @@ containing all the required setting to make clusterctl use the local repository.
 <h1>Warnings</h1>
 
 You must pass `--config ~/.cluster-api/dev-repository/config.yaml` to all the clusterctl commands you are running
-during your dev session. 
+during your dev session.
 
 The above config file changes the location of the [overrides layer] folder thus ensuring
 you dev session isn't hijacked by other local artifacts.
 
-With the only exception of the docker provider, the local repository folder does not contain cluster templates, 
+With the only exception of the docker provider, the local repository folder does not contain cluster templates,
 so `clusterctl config cluster` command will fail.
 
 </aside>
@@ -139,24 +139,38 @@ See [Install and/or configure a kubernetes cluster] for more about how.
 Before running clusterctl init, you must ensure all the required images are available in the kind cluster.
 
 This is always the case for images published in some image repository like docker hub or gcr.io, but it can't be
-the case for images built locally; in this case, you can use `kind load` to move the images built locally. e.g 
- 
+the case for images built locally; in this case, you can use `kind load` to move the images built locally. e.g
+
 ```
 kind load docker-image gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:dev
 kind load docker-image gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:dev
 kind load docker-image gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:dev
 kind load docker-image gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev
-``` 
+```
 
 to make the controller images available for the kubelet in the management cluster.
 
 ## Additional Notes for the Docker Provider
+
+### Select the appropriate kubernetes version
+
+When selecting the `--kubernetes-version`, ensure that the `kindest/node`
+image is available.
+
+For example, on [docker hub][kind-docker-hub] there is no
+image for version `v1.19.2`, therefore creating a CAPD workload cluster with
+`--kubernetes-version=v1.19.2` will fail. See [issue 3795] for more details.
+
+
+### Get the kubeconfig for the workload cluster
 
 The command for getting the kubeconfig file for connecting to a workload cluster is the following:
 
 ```bash
 clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 ```
+
+### Fix kubeconfig (when using docker on MacOS)
 
 When using docker on MacOS, you will need to do a couple of additional
 steps to get the correct kubeconfig for a workload cluster created with the docker provider:
@@ -174,3 +188,5 @@ sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./c
 [providers repositories]: configuration.md#provider-repositories
 [overrides layer]: configuration.md#overrides-layer
 [Install and/or configure a kubernetes cluster]: ../user/quick-start.md#install-andor-configure-a-kubernetes-cluster
+[kind-docker-hub]: https://hub.docker.com/r/kindest/node/tags
+[issue 3795]: https://github.com/kubernetes-sigs/cluster-api/issues/3795

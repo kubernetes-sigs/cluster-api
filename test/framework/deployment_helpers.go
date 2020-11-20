@@ -158,7 +158,7 @@ type WatchPodMetricsInput struct {
 
 // WatchPodMetrics captures metrics from all pods every 5s. It expects to find port 8080 open on the controller.
 // Use replacements in an e2econfig to enable metrics scraping without kube-rbac-proxy, e.g:
-//     - new: --metrics-addr=:8080
+//     - new: --metrics-bind-addr=:8080
 //       old: --metrics-addr=127.0.0.1:8080
 func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 	// Dump machine metrics every 5 seconds

@@ -33,8 +33,8 @@ providers:
   # Use manifest from source files
     value: ../../../config
     replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
+    - old: --metrics-bind-addr=127.0.0.1:8080
+      new: --metrics-bind-addr=:8080
 
 - name: kubeadm
   type: BootstrapProvider
@@ -43,8 +43,8 @@ providers:
   # Use manifest from source files
     value: ../../../bootstrap/kubeadm/config
     replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
+    - old: --metrics-bind-addr=127.0.0.1:8080
+      new: --metrics-bind-addr=:8080
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -53,8 +53,8 @@ providers:
   # Use manifest from source files
     value: ../../../controlplane/kubeadm/config
     replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
+    - old: --metrics-bind-addr=127.0.0.1:8080
+      new: --metrics-bind-addr=:8080
 
 - name: docker
   type: InfrastructureProvider
@@ -63,8 +63,8 @@ providers:
   # Use manifest from source files
     value: ../../../test/infrastructure/docker/config
     replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
+    - old: --metrics-bind-addr=127.0.0.1:8080
+      new: --metrics-bind-addr=:8080
   files:
   # Add cluster templates
   - sourcePath: "../data/infrastructure-docker/cluster-template.yaml"

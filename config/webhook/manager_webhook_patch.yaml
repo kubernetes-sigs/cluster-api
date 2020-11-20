@@ -9,7 +9,7 @@ spec:
       containers:
       - name: manager
         args:
-        - "--metrics-addr=127.0.0.1:8080"
+        - "--metrics-bind-addr=127.0.0.1:8080"
         - "--webhook-port=9443"
         - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},ClusterResourceSet=${EXP_CLUSTER_RESOURCE_SET:=false}"
         ports:

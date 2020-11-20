@@ -58,7 +58,7 @@ func init() {
 }
 
 var (
-	metricsAddr                 string
+	metricsBindAddr             string
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -71,19 +71,19 @@ var (
 )
 
 func InitFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&metricsAddr, "metrics-addr", ":8080",
+	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", ":8080",
 		"The address the metric endpoint binds to.")
 
-	fs.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 
-	fs.DurationVar(&leaderElectionLeaseDuration, "leader-election-lease-duration", 15*time.Second,
+	fs.DurationVar(&leaderElectionLeaseDuration, "leader-elect-lease-duration", 15*time.Second,
 		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)")
 
-	fs.DurationVar(&leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second,
+	fs.DurationVar(&leaderElectionRenewDeadline, "leader-elect-renew-deadline", 10*time.Second,
 		"Duration that the leading controller manager will retry refreshing leadership before giving up (duration string)")
 
-	fs.DurationVar(&leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second,
+	fs.DurationVar(&leaderElectionRetryPeriod, "leader-elect-retry-period", 2*time.Second,
 		"Duration the LeaderElector clients should wait between tries of actions (duration string)")
 
 	fs.StringVar(&watchNamespace, "namespace", "",
@@ -125,7 +125,7 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
+		MetricsBindAddress: metricsBindAddr,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "kubeadm-bootstrap-manager-leader-election-capi",
 		LeaseDuration:      &leaderElectionLeaseDuration,

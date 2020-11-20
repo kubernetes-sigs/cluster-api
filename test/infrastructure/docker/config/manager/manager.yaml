@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - args:
-        - --enable-leader-election
+        - --leader-elect
         image: controller:latest
         name: manager
         ports:

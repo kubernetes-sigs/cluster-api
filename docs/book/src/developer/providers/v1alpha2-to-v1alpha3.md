@@ -369,7 +369,7 @@ Steps:
     - **manager_webhook_patch.yaml**
       - Under `containers` find `manager` and add after `name`
         ```yaml
-        - "--metrics-addr=127.0.0.1:8080"
+        - "--metrics-bind-addr=127.0.0.1:8080"
         - "--webhook-port=9443"
         ```
       - Under `volumes` find `cert` and replace `secretName`'s value with `$(SERVICE_NAME)-cert`.

@@ -22,5 +22,5 @@ spec:
       - name: manager
         args:
         - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false}"
-        - "--metrics-addr=0"
+        - "--metrics-bind-addr=0"
         - "-v=4"

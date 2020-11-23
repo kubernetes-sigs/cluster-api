@@ -225,10 +225,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, nil
 	// Migrate plaintext data to secret.
 	case config.Status.BootstrapData != nil && config.Status.DataSecretName == nil:
-		if err := r.storeBootstrapData(ctx, scope, config.Status.BootstrapData); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, r.storeBootstrapData(ctx, scope, config.Status.BootstrapData)
 	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
 	case configOwner.DataSecretName() != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
@@ -240,26 +237,14 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	case config.Status.Ready:
 		// If the BootstrapToken has been generated for a join and the infrastructure is not ready.
 		// This indicates the token in the join config has not been consumed and it may need a refresh.
-		if (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil) && !configOwner.IsInfrastructureReady() {
-
-			token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
-
-			remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
-			if err != nil {
-				log.Error(err, "Error creating remote cluster client")
-				return ctrl.Result{}, err
+		if config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil {
+			if !configOwner.IsInfrastructureReady() {
+				return r.refreshBootstrapToken(ctx, log, cluster, config)
+			} else if (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil) && configOwner.IsMachinePool() {
+				// If the BootstrapToken has been generated and infrastructure is ready but the configOwner is a MachinePool,
+				// we rotate the token to keep it fresh for future scale ups.
+				return r.rotateMachinePoolBootstrapToken(ctx, log, cluster, config, scope)
 			}
-
-			log.Info("Refreshing token until the infrastructure has a chance to consume it")
-			err = refreshToken(remoteClient, token)
-			if err != nil {
-				// It would be nice to re-create the bootstrap token if the error was "not found", but we have no way to update the Machine's bootstrap data
-				return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
-			}
-			// NB: this may not be sufficient to keep the token live if we don't see it before it expires, but when we generate a config we will set the status to "ready" which should generate an update event
-			return ctrl.Result{
-				RequeueAfter: DefaultTokenTTL / 2,
-			}, nil
 		}
 		// In any other case just return as the config is already generated and need not be generated again.
 		return ctrl.Result{}, nil
@@ -288,6 +273,54 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// It's a worker join
 	return r.joinWorker(ctx, scope)
+}
+
+func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) (ctrl.Result, error) {
+	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
+
+	remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+	if err != nil {
+		log.Error(err, "Error creating remote cluster client")
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Refreshing token until the infrastructure has a chance to consume it")
+	if err := refreshToken(remoteClient, token); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
+	}
+	return ctrl.Result{
+		RequeueAfter: DefaultTokenTTL / 2,
+	}, nil
+}
+
+func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, scope *Scope) (ctrl.Result, error) {
+	log.V(2).Info("Config is owned by a MachinePool, checking if token should be rotated")
+	remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
+	shouldRotate, err := shouldRotate(remoteClient, token)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if shouldRotate {
+		log.V(2).Info("Creating new bootstrap token")
+		token, err := createToken(remoteClient)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
+		}
+
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
+		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "Token", token)
+
+		// update the bootstrap data
+		return r.joinWorker(ctx, scope)
+	}
+	return ctrl.Result{
+		RequeueAfter: DefaultTokenTTL / 3,
+	}, nil
 }
 
 func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Context, scope *Scope) (_ ctrl.Result, reterr error) {
@@ -839,7 +872,10 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
-		r.Log.Info("bootstrap data secret for KubeadmConfig already exists", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
+		r.Log.Info("bootstrap data secret for KubeadmConfig already exists, updating", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
+		if err := r.Client.Update(ctx, secret); err != nil {
+			return errors.Wrapf(err, "failed to update bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
+		}
 	}
 	scope.Config.Status.DataSecretName = pointer.StringPtr(secret.Name)
 	scope.Config.Status.Ready = true

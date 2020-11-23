@@ -944,6 +944,148 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 }
 
+func TestBootstrapTokenRotationMachinePool(t *testing.T) {
+	_ = feature.MutableGates.Set("MachinePool=true")
+	g := NewWithT(t)
+
+	cluster := newCluster("cluster")
+	cluster.Status.InfrastructureReady = true
+	cluster.Status.ControlPlaneInitialized = true
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
+
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-config")
+	workerMachinePool := newWorkerMachinePool(cluster)
+	workerJoinConfig := newWorkerPoolJoinKubeadmConfig(workerMachinePool)
+	objects := []runtime.Object{
+		cluster,
+		workerMachinePool,
+		workerJoinConfig,
+	}
+
+	objects = append(objects, createSecrets(t, cluster, initConfig)...)
+	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
+	k := &KubeadmConfigReconciler{
+		Log:                log.Log,
+		Client:             myclient,
+		KubeadmInitLock:    &myInitLocker{},
+		remoteClientGetter: fakeremote.NewClusterClient,
+	}
+	request := ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Namespace: "default",
+			Name:      "workerpool-join-cfg",
+		},
+	}
+	result, err := k.Reconcile(request)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+
+	cfg, err := getKubeadmConfig(myclient, "workerpool-join-cfg")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(cfg.Status.Ready).To(BeTrue())
+	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
+
+	l := &corev1.SecretList{}
+	err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(1))
+
+	// ensure that the token is refreshed...
+	tokenExpires := make([][]byte, len(l.Items))
+
+	for i, item := range l.Items {
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
+	<-time.After(1 * time.Second)
+
+	for _, req := range []ctrl.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: "default",
+				Name:      "workerpool-join-cfg",
+			},
+		},
+	} {
+
+		result, err := k.Reconcile(req)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", DefaultTokenTTL))
+	}
+
+	l = &corev1.SecretList{}
+	err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(1))
+
+	for i, item := range l.Items {
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
+	// ...until the infrastructure is marked "ready"
+	workerMachinePool.Status.InfrastructureReady = true
+	err = myclient.Update(context.Background(), workerMachinePool)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	<-time.After(1 * time.Second)
+
+	request = ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Namespace: "default",
+			Name:      "workerpool-join-cfg",
+		},
+	}
+	result, err = k.Reconcile(request)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.RequeueAfter).To(Equal(DefaultTokenTTL / 3))
+
+	l = &corev1.SecretList{}
+	err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(1))
+
+	for i, item := range l.Items {
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
+	}
+
+	// before token expires, it should rotate it
+	tokenExpires[0] = []byte(time.Now().UTC().Add(DefaultTokenTTL / 5).Format(time.RFC3339))
+	l.Items[0].Data[bootstrapapi.BootstrapTokenExpirationKey] = tokenExpires[0]
+	err = myclient.Update(context.TODO(), &l.Items[0])
+	g.Expect(err).NotTo(HaveOccurred())
+
+	request = ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Namespace: "default",
+			Name:      "workerpool-join-cfg",
+		},
+	}
+	result, err = k.Reconcile(request)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+
+	l = &corev1.SecretList{}
+	err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(2))
+	foundOld := false
+	foundNew := true
+	for _, item := range l.Items {
+		if bytes.Equal(item.Data[bootstrapapi.BootstrapTokenExpirationKey], tokenExpires[0]) {
+			foundOld = true
+		} else {
+			g.Expect(string(item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(Equal(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339)))
+			foundNew = true
+		}
+	}
+	g.Expect(foundOld).To(BeTrue())
+	g.Expect(foundNew).To(BeTrue())
+}
+
 // Ensure the discovery portion of the JoinConfiguration gets generated correctly.
 func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testing.T) {
 	k := &KubeadmConfigReconciler{

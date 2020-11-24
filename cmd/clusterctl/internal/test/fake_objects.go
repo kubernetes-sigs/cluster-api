@@ -25,14 +25,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	fakebootstrap "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/bootstrap"
 	fakecontrolplane "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/controlplane"
 	fakeexternal "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/external"
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
-	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -986,17 +986,17 @@ func (f *FakeClusterResourceSet) ApplyToCluster(cluster *clusterv1.Cluster) *Fak
 }
 
 func (f *FakeClusterResourceSet) Objs() []client.Object {
-	crs := &addonsv1alpha3.ClusterResourceSet{
+	crs := &addonsv1.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterResourceSet",
-			APIVersion: addonsv1alpha3.GroupVersion.String(),
+			APIVersion: addonsv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
 			Namespace: f.namespace,
 		},
-		Spec: addonsv1alpha3.ClusterResourceSetSpec{
-			Resources: []addonsv1alpha3.ResourceRef{},
+		Spec: addonsv1.ClusterResourceSetSpec{
+			Resources: []addonsv1.ResourceRef{},
 		},
 	}
 
@@ -1017,7 +1017,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 			UID:        crs.UID,
 		}})
 
-		crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
+		crs.Spec.Resources = append(crs.Spec.Resources, addonsv1.ResourceRef{
 			Name: secret.Name,
 			Kind: secret.Kind,
 		})
@@ -1037,7 +1037,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 			UID:        crs.UID,
 		}})
 
-		crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
+		crs.Spec.Resources = append(crs.Spec.Resources, addonsv1.ResourceRef{
 			Name: configMap.Name,
 			Kind: configMap.Kind,
 		})
@@ -1047,17 +1047,17 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 
 	// Ensures all the binding with the clusters where resources are applied.
 	for _, cluster := range f.clusters {
-		binding := &addonsv1alpha3.ClusterResourceSetBinding{
+		binding := &addonsv1.ClusterResourceSetBinding{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ClusterResourceSetBinding",
-				APIVersion: addonsv1alpha3.GroupVersion.String(),
+				APIVersion: addonsv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      cluster.Name,
 				Namespace: cluster.Namespace,
 			},
-			Spec: addonsv1alpha3.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1alpha3.ResourceSetBinding{
+			Spec: addonsv1.ClusterResourceSetBindingSpec{
+				Bindings: []*addonsv1.ResourceSetBinding{
 					{
 						ClusterResourceSetName: crs.Name,
 					},
@@ -1085,15 +1085,15 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 			UID:        cluster.UID,
 		}))
 
-		resourceSetBinding := addonsv1alpha3.ResourceSetBinding{
+		resourceSetBinding := addonsv1.ResourceSetBinding{
 			ClusterResourceSetName: crs.Name,
-			Resources:              []addonsv1alpha3.ResourceBinding{},
+			Resources:              []addonsv1.ResourceBinding{},
 		}
 		binding.Spec.Bindings = append(binding.Spec.Bindings, &resourceSetBinding)
 
 		// creates map entries for each cluster/resource of type Secret
 		for _, secret := range f.secrets {
-			resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1alpha3.ResourceBinding{ResourceRef: addonsv1alpha3.ResourceRef{
+			resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1.ResourceBinding{ResourceRef: addonsv1.ResourceRef{
 				Name: secret.Name,
 				Kind: "Secret",
 			}})
@@ -1101,7 +1101,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 
 		// creates map entries for each cluster/resource of type ConfigMap
 		for _, configMap := range f.configMaps {
-			resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1alpha3.ResourceBinding{ResourceRef: addonsv1alpha3.ResourceRef{
+			resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1.ResourceBinding{ResourceRef: addonsv1.ResourceRef{
 				Name: configMap.Name,
 				Kind: "ConfigMap",
 			}})
@@ -1213,7 +1213,7 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 
 // FakeCRDList returns FakeCustomResourceDefinitions for all the Types used in the test object graph
 func FakeCRDList() []*apiextensionslv1.CustomResourceDefinition {
-	version := "v1alpha3"
+	version := "v1alpha4"
 
 	// Ensure external objects are of a CRD type with the "force move" label
 	externalCRD := FakeCustomResourceDefinition(fakeexternal.GroupVersion.Group, "GenericExternalObject", version)
@@ -1225,8 +1225,8 @@ func FakeCRDList() []*apiextensionslv1.CustomResourceDefinition {
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
 		FakeCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", version),
-		FakeCustomResourceDefinition(addonsv1alpha3.GroupVersion.Group, "ClusterResourceSet", version),
-		FakeCustomResourceDefinition(addonsv1alpha3.GroupVersion.Group, "ClusterResourceSetBinding", version),
+		FakeCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSet", version),
+		FakeCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSetBinding", version),
 		FakeCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlane", version),
 		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureCluster", version),
 		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachine", version),

@@ -27,10 +27,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	secretutil "sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -389,7 +389,7 @@ func (o *objectGraph) getNodes() []*node {
 func (o *objectGraph) getCRSs() []*node {
 	clusters := []*node{}
 	for _, node := range o.uidToNode {
-		if node.identity.GroupVersionKind().GroupKind() == addonsv1alpha3.GroupVersion.WithKind("ClusterResourceSet").GroupKind() {
+		if node.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSet").GroupKind() {
 			clusters = append(clusters, node)
 		}
 	}

@@ -485,10 +485,6 @@ source /tmp/env.rc <path/to/clouds.yaml> <cloud>
 
 Apart from the script, the following OpenStack environment variables are required.
 ```bash
-# The IP address on which the API server is serving.
-export OPENSTACK_CONTROLPLANE_IP=<control plane ip>
-# The ID of an external OpenStack Network. This is necessary to get public internet to the VMs.
-export OPENSTACK_EXTERNAL_NETWORK_ID=<external network id>
 # The list of nameservers for OpenStack Subnet being created.
 # Set this value when you need create a new network/subnet while the access through DNS is required.
 export OPENSTACK_DNS_NAMESERVERS=<dns nameserver>
@@ -500,8 +496,8 @@ export OPENSTACK_CONTROL_PLANE_MACHINE_FLAVOR=<flavor>
 export OPENSTACK_NODE_MACHINE_FLAVOR=<flavor>
 # The name of the image to use for your server instance. If the RootVolume is specified, this will be ignored and use rootVolume directly.
 export OPENSTACK_IMAGE_NAME=<image name>
-# SSHAuthorizedKeys specifies a list of ssh authorized keys for the user
-export OPENSTACK_SSH_AUTHORIZED_KEY=<ssh key>
+# The SSH key pair name
+export OPENSTACK_SSH_KEY_NAME=<ssh key pair name>
 ```
 
 A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/configuration.md).

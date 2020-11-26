@@ -137,6 +137,16 @@ func (c *ControlPlane) MachineInFailureDomainWithMostMachines(machines Filterabl
 	return machineToMark, nil
 }
 
+// MachineWithDeleteAnnotation returns a machine that has been annotated with DeleteMachineAnnotation key.
+func (c *ControlPlane) MachineWithDeleteAnnotation(machines FilterableMachineCollection) (*clusterv1.Machine) {
+	// See if there are any machines with DeleteMachineAnnotation key.
+	annotatedmachines := machines.Filter(machinefilters.HasAnnotationKey(clusterv1.DeleteMachineAnnotation))
+	// If there are, then pick the oldest machine from the filtered machines.
+	machineToPick := annotatedmachines.Oldest()
+
+	return machineToPick
+}
+
 // FailureDomainWithMostMachines returns a fd which exists both in machines and control-plane machines and has the most
 // control-plane machines on it.
 func (c *ControlPlane) FailureDomainWithMostMachines(machines FilterableMachineCollection) *string {

@@ -239,5 +239,8 @@ func selectMachineForScaleDown(controlPlane *internal.ControlPlane, outdatedMach
 	if outdatedMachines.Len() > 0 {
 		machines = outdatedMachines
 	}
+	if withDeleteAnnotation := controlPlane.MachineWithDeleteAnnotation(machines); withDeleteAnnotation != nil {
+		return withDeleteAnnotation, nil
+	}
 	return controlPlane.MachineInFailureDomainWithMostMachines(machines)
 }

@@ -32,6 +32,25 @@ import (
 type etcdClientGenerator struct {
 	restConfig *rest.Config
 	tlsConfig  *tls.Config
+	clientFactory
+}
+
+type clientFactory func(ctx context.Context, endpoints []string) (*etcd.Client, error)
+
+func (c *etcdClientGenerator) getClientFactory() clientFactory {
+	if c.clientFactory == nil {
+		c.clientFactory = func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+			p := proxy.Proxy{
+				Kind:       "pods",
+				Namespace:  metav1.NamespaceSystem,
+				KubeConfig: c.restConfig,
+				TLSConfig:  c.tlsConfig,
+				Port:       2379,
+			}
+			return etcd.NewClient(ctx, endpoints, p, c.tlsConfig)
+		}
+	}
+	return c.clientFactory
 }
 
 func (c *etcdClientGenerator) forNodes(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
@@ -40,14 +59,7 @@ func (c *etcdClientGenerator) forNodes(ctx context.Context, nodeNames []string) 
 		endpoints[i] = staticPodName("etcd", name)
 	}
 
-	p := proxy.Proxy{
-		Kind:       "pods",
-		Namespace:  metav1.NamespaceSystem,
-		KubeConfig: c.restConfig,
-		TLSConfig:  c.tlsConfig,
-		Port:       2379,
-	}
-	return etcd.NewClient(ctx, endpoints, p, c.tlsConfig)
+	return c.getClientFactory()(ctx, endpoints)
 }
 
 // forLeader takes a list of nodes and returns a client to the leader node

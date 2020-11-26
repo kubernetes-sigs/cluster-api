@@ -53,13 +53,18 @@ $(KUSTOMIZE): # Build kustomize from tools folder.
 DOCKER_TEMPLATES := $(REPO_ROOT)/test/e2e/data/infrastructure-docker
 
 .PHONY: cluster-templates
-cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/cluster-template --load_restrictor none > $(DOCKER_TEMPLATES)/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/cluster-template-mhc --load_restrictor none > $(DOCKER_TEMPLATES)/cluster-template-mhc.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption/step1 --load_restrictor none > $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption.yaml
-	echo "---" >> $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption/step2 --load_restrictor none >> $(DOCKER_TEMPLATES)/cluster-template-kcp-adoption.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/cluster-template-machine-pool --load_restrictor none > $(DOCKER_TEMPLATES)/cluster-template-machine-pool.yaml
+cluster-templates: $(KUSTOMIZE) cluster-templates-v1alpha3 cluster-templates-v1alpha4 ## Generate cluster templates for all versions
+
+cluster-templates-v1alpha3: $(KUSTOMIZE) ## Generate cluster templates for v1alpha3
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha3/cluster-template --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha3/cluster-template.yaml
+
+cluster-templates-v1alpha4: $(KUSTOMIZE) ## Generate cluster templates for v1alpha4
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-mhc --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-mhc.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption/step1 --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption.yaml
+	echo "---" >> $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption/step2 --load_restrictor none >> $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-machine-pool --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-machine-pool.yaml
 
 ## --------------------------------------
 ## Testing

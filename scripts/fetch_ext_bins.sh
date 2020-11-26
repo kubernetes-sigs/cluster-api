@@ -66,10 +66,9 @@ tmp_root=/tmp
 # $ SKIP_FETCH_TOOLS=1 ./fetch_ext_bins.sh
 #
 # If you skip fetching tools, this script will use the tools already on your
-# machine, but rebuild the kubebuilder and kubebuilder-bin binaries.
+# machine.
 SKIP_FETCH_TOOLS=${SKIP_FETCH_TOOLS:-""}
 
-# fetch k8s API gen tools and make it available under kb_root_dir/bin.
 function fetch_tools {
   if [[ -n "$SKIP_FETCH_TOOLS" ]]; then
     return 0
@@ -94,6 +93,7 @@ function fetch_tools {
     curl -fsL ${kb_tools_download_url} -o "${kb_tools_archive_path}"
   fi
   tar -zvxf "${kb_tools_archive_path}" -C "${tmp_root}/"
+  rm "${kb_tools_archive_path}"
 }
 
 function setup_envs {

@@ -28,8 +28,6 @@ import (
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/etcdserver/etcdserverpb"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
@@ -40,14 +38,10 @@ var (
 	subject *etcdClientGenerator
 )
 
-func TestGetClientFactoryDefault(t *testing.T) {
+func TestNewEtcdClientGenerator(t *testing.T) {
 	g := NewWithT(t)
-	subject = &etcdClientGenerator{
-		restConfig: &rest.Config{},
-		tlsConfig:  &tls.Config{},
-	}
-	subject.getClientFactory()
-	g.Expect(subject.clientFactory).To(Not(BeNil()))
+	subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{})
+	g.Expect(subject.createClient).To(Not(BeNil()))
 }
 
 func TestForNodes(t *testing.T) {
@@ -56,7 +50,7 @@ func TestForNodes(t *testing.T) {
 	tests := []struct {
 		name  string
 		nodes []string
-		cf    clientFactory
+		cc    clientCreator
 
 		expectedErr    string
 		expectedClient etcd.Client
@@ -64,29 +58,38 @@ func TestForNodes(t *testing.T) {
 		{
 			name:  "Returns client successfully",
 			nodes: []string{"node-1"},
-			cf: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				return &etcd.Client{Endpoint: endpoints[0]}, nil
 			},
 			expectedClient: etcd.Client{Endpoint: "etcd-node-1"},
 		},
 		{
 			name:  "Returns error",
-			nodes: []string{"node-1"},
-			cf: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+			nodes: []string{"node-1", "node-2"},
+			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				return nil, errors.New("something went wrong")
 			},
-			expectedErr: "something went wrong",
+			expectedErr: "could not establish a connection to any etcd node: something went wrong",
+		},
+		{
+			name:  "Returns client when nodes are down but atleast one node is up",
+			nodes: []string{"node-down-1", "node-down-2", "node-up"},
+			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+				if strings.Contains(endpoints[0], "node-down") {
+					return nil, errors.New("node down")
+				}
+
+				return &etcd.Client{Endpoint: endpoints[0]}, nil
+			},
+			expectedClient: etcd.Client{Endpoint: "etcd-node-up"},
 		},
 	}
 
 	for _, tt := range tests {
-		subject = &etcdClientGenerator{
-			restConfig:    &rest.Config{},
-			tlsConfig:     &tls.Config{},
-			clientFactory: tt.cf,
-		}
+		subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{})
+		subject.createClient = tt.cc
 
-		client, err := subject.forNodes(ctx, toNodes(tt.nodes))
+		client, err := subject.forFirstAvailableNode(ctx, tt.nodes)
 
 		if tt.expectedErr != "" {
 			g.Expect(err).To(HaveOccurred())
@@ -104,7 +107,7 @@ func TestForLeader(t *testing.T) {
 	tests := []struct {
 		name  string
 		nodes []string
-		cf    clientFactory
+		cc    clientCreator
 
 		expectedErr    string
 		expectedClient etcd.Client
@@ -112,7 +115,7 @@ func TestForLeader(t *testing.T) {
 		{
 			name:  "Returns client for leader successfully",
 			nodes: []string{"node-1", "node-leader"},
-			cf: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				return &etcd.Client{
 					Endpoint: endpoints[0],
 					LeaderID: 1729,
@@ -123,8 +126,7 @@ func TestForLeader(t *testing.T) {
 								{ID: 1729, Name: "node-leader"},
 							},
 						},
-						AlarmResponse: &clientv3.AlarmResponse{
-						},
+						AlarmResponse: &clientv3.AlarmResponse{},
 					}}, nil
 			},
 			expectedClient: etcd.Client{
@@ -136,15 +138,14 @@ func TestForLeader(t *testing.T) {
 							{ID: 1729, Name: "node-leader"},
 						},
 					},
-					AlarmResponse: &clientv3.AlarmResponse{
-					},
+					AlarmResponse: &clientv3.AlarmResponse{},
 				}},
 		},
 
 		{
 			name:  "Returns client for leader even when one or more nodes are down",
 			nodes: []string{"node-down-1", "node-down-2", "node-leader"},
-			cf: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				if strings.Contains(endpoints[0], "node-down") {
 					return nil, errors.New("node down")
 				}
@@ -157,8 +158,7 @@ func TestForLeader(t *testing.T) {
 								{ID: 1729, Name: "node-leader"},
 							},
 						},
-						AlarmResponse: &clientv3.AlarmResponse{
-						},
+						AlarmResponse: &clientv3.AlarmResponse{},
 					}}, nil
 			},
 			expectedClient: etcd.Client{
@@ -169,28 +169,24 @@ func TestForLeader(t *testing.T) {
 							{ID: 1729, Name: "node-leader"},
 						},
 					},
-					AlarmResponse: &clientv3.AlarmResponse{
-					},
+					AlarmResponse: &clientv3.AlarmResponse{},
 				}},
 		},
 		{
 			name:  "Returns error when all nodes are down",
 			nodes: []string{"node-down-1", "node-down-2", "node-down-3"},
-			cf: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				return nil, errors.New("node down")
 			},
-			expectedErr: "could not establish a connection to the etcd leader: node down",
+			expectedErr: "could not establish a connection to the etcd leader: could not establish a connection to any etcd node: node down",
 		},
 	}
 
 	for _, tt := range tests {
-		subject = &etcdClientGenerator{
-			restConfig:    &rest.Config{},
-			tlsConfig:     &tls.Config{},
-			clientFactory: tt.cf,
-		}
+		subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{})
+		subject.createClient = tt.cc
 
-		client, err := subject.forLeader(ctx, toNodes(tt.nodes))
+		client, err := subject.forLeader(ctx, tt.nodes)
 
 		if tt.expectedErr != "" {
 			g.Expect(err).To(HaveOccurred())
@@ -200,14 +196,4 @@ func TestForLeader(t *testing.T) {
 		}
 	}
 
-}
-
-func toNodes(nodeNames []string) []corev1.Node {
-	nodes := make([]corev1.Node, len(nodeNames))
-	for i, n := range nodeNames {
-		nodes[i] = corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{Name: n},
-		}
-	}
-	return nodes
 }

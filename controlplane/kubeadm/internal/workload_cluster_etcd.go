@@ -29,7 +29,7 @@ import (
 )
 
 type etcdClientFor interface {
-	forNodes(ctx context.Context, nodeNames []string) (*etcd.Client, error)
+	forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error)
 	forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error)
 }
 
@@ -40,7 +40,7 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string)
 	errs := []error{}
 	for _, nodeName := range nodeNames {
 		// Create the etcd Client for the etcd Pod scheduled on the Node
-		etcdClient, err := w.etcdClientGenerator.forNodes(ctx, []string{nodeName})
+		etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{nodeName})
 		if err != nil {
 			continue
 		}
@@ -126,7 +126,7 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 			remainingNodes = append(remainingNodes, n.Name)
 		}
 	}
-	etcdClient, err := w.etcdClientGenerator.forNodes(ctx, remainingNodes)
+	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, remainingNodes)
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}

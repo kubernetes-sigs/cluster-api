@@ -123,18 +123,15 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(crtData)
-	cfg := &tls.Config{
+	tlsConfig := &tls.Config{
 		RootCAs:      caPool,
 		Certificates: []tls.Certificate{clientCert},
 	}
-	cfg.InsecureSkipVerify = true
+	tlsConfig.InsecureSkipVerify = true
 	return &Workload{
-		Client:          c,
-		CoreDNSMigrator: &CoreDNSMigrator{},
-		etcdClientGenerator: &etcdClientGenerator{
-			restConfig: restConfig,
-			tlsConfig:  cfg,
-		},
+		Client:              c,
+		CoreDNSMigrator:     &CoreDNSMigrator{},
+		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig),
 	}, nil
 }
 

@@ -101,14 +101,14 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		}
 
 		// Create the etcd Client for the etcd Pod scheduled on the Node
-		etcdClient, err := w.etcdClientGenerator.forNodes(ctx, []string{node.Name})
+		etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{node.Name})
 		if err != nil {
 			conditions.MarkUnknown(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberInspectionFailedReason, "Failed to connect to the etcd pod on the %s node", node.Name)
 			continue
 		}
 		defer etcdClient.Close()
 
-		// While creating a new client, forNodes retrieves the status for the endpoint; check if the endpoint has errors.
+		// While creating a new client, forFirstAvailableNode retrieves the status for the endpoint; check if the endpoint has errors.
 		if len(etcdClient.Errors) > 0 {
 			conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Etcd member status reports errors: %s", strings.Join(etcdClient.Errors, ", "))
 			continue
@@ -117,7 +117,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		// Gets the list etcd members known by this member.
 		currentMembers, err := etcdClient.Members(ctx)
 		if err != nil {
-			// NB. We should never be in here, given that we just received answer to the etcd calls included in forNodes;
+			// NB. We should never be in here, given that we just received answer to the etcd calls included in forFirstAvailableNode;
 			// however, we are considering the calls to Members a signal of etcd not being stable.
 			conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Failed get answer from the etcd member on the %s node", node.Name)
 			continue
@@ -134,7 +134,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		}
 
 		// Retrieve the member and check for alarms.
-		// NB. The member for this node always exists given forNodes(node) used above
+		// NB. The member for this node always exists given forFirstAvailableNode(node) used above
 		member := etcdutil.MemberForName(currentMembers, node.Name)
 		if len(member.Alarms) > 0 {
 			alarmList := []string{}

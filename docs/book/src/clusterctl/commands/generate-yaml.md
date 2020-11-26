@@ -1,6 +1,6 @@
 # clusterctl generate yaml
 
-The `clusterctl generate yaml` command processes yaml using clusterct's yaml
+The `clusterctl generate yaml` command processes yaml using clusterctl's yaml
 processor.
 
 The intent of this command is to allow users who may have specific templates

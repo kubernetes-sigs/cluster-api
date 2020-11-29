@@ -16,7 +16,7 @@ at the bottom of this page for full details of MachineHealthCheck limitations.
 
 ## What is a MachineHealthCheck?
 
-A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machine's within a Cluster should be considered unhealthy.
+A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machines within a Cluster should be considered unhealthy.
 
 When defining a MachineHealthCheck, users specify a timeout for each of the conditions that they define to check on the Machine's Node,
 if any of these conditions is met for the duration of the timeout, the Machine will be remediated.

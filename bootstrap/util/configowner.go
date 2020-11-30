@@ -76,6 +76,11 @@ func (co ConfigOwner) IsControlPlaneMachine() bool {
 	return ok
 }
 
+// IsMachinePool checks if an unstructured object is a MachinePool.
+func (co ConfigOwner) IsMachinePool() bool {
+	return co.GetKind() == "MachinePool"
+}
+
 // GetConfigOwner returns the Unstructured object owning the current resource.
 func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
 	allowedGKs := []schema.GroupKind{

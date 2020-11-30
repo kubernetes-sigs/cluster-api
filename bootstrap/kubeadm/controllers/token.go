@@ -71,24 +71,47 @@ func createToken(c client.Client) (string, error) {
 	return token, nil
 }
 
-// refreshToken extends the TTL for an existing token
-func refreshToken(c client.Client, token string) error {
+// getToken fetches the token Secret and returns an error if it is invalid.
+func getToken(c client.Client, token string) (*v1.Secret, error) {
 	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
 	if len(substrs) != 3 {
-		return errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
+		return nil, errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
 	}
 	tokenID := substrs[1]
 
 	secretName := bootstraputil.BootstrapTokenSecretName(tokenID)
 	secret := &v1.Secret{}
 	if err := c.Get(context.TODO(), client.ObjectKey{Name: secretName, Namespace: metav1.NamespaceSystem}, secret); err != nil {
-		return err
+		return secret, err
 	}
 
 	if secret.Data == nil {
-		return errors.Errorf("Invalid bootstrap secret %q, remove the token from the kubadm config to re-create", secretName)
+		return nil, errors.Errorf("Invalid bootstrap secret %q, remove the token from the kubadm config to re-create", secretName)
+	}
+	return secret, nil
+}
+
+// refreshToken extends the TTL for an existing token.
+func refreshToken(c client.Client, token string) error {
+	secret, err := getToken(c, token)
+	if err != nil {
+		return err
 	}
 	secret.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339))
 
 	return c.Update(context.TODO(), secret)
+}
+
+// shouldRotate returns true if an existing token is past half of its TTL and should to be rotated.
+func shouldRotate(c client.Client, token string) (bool, error) {
+	secret, err := getToken(c, token)
+	if err != nil {
+		return false, err
+	}
+
+	expiration, err := time.Parse(time.RFC3339, string(secret.Data[bootstrapapi.BootstrapTokenExpirationKey]))
+	if err != nil {
+		return false, err
+	}
+	return expiration.Before(time.Now().UTC().Add(DefaultTokenTTL / 2)), nil
 }

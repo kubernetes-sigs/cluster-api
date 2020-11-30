@@ -116,6 +116,8 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha4 release series
+					{Major: 0, Minor: 4, Contract: "v1alpha4"},
 					// v1alpha3 release series
 					{Major: 0, Minor: 3, Contract: "v1alpha3"},
 					// v1alpha2 release series are supported only for upgrades
@@ -135,6 +137,8 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha4 release series
+					{Major: 0, Minor: 4, Contract: "v1alpha4"},
 					// v1alpha3 release series
 					{Major: 0, Minor: 3, Contract: "v1alpha3"}, // From this release series CABPK version scheme is linked to CAPI; The 0.2 release series was skipped when doing this change.
 					// v1alpha2 release series are supported only for upgrades
@@ -179,6 +183,8 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha4 release series
+					{Major: 0, Minor: 4, Contract: "v1alpha4"},
 					// v1alpha3 release series
 					{Major: 0, Minor: 3, Contract: "v1alpha3"}, // KCP version scheme is linked to CAPI.
 					// there are no older version for KCP
@@ -259,6 +265,8 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha4 release series
+					{Major: 0, Minor: 4, Contract: "v1alpha4"},
 					// v1alpha3 release series
 					{Major: 0, Minor: 3, Contract: "v1alpha3"},
 					// v1alpha2 release series are supported only for upgrades

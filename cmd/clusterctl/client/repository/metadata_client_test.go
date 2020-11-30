@@ -87,6 +87,7 @@ func Test_metadataClient_Get(t *testing.T) {
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 4, Contract: "v1alpha4"},
 					{Major: 0, Minor: 3, Contract: "v1alpha3"},
 					{Major: 0, Minor: 2, Contract: "v1alpha2"},
 				},

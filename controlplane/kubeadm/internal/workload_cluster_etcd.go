@@ -18,6 +18,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -59,6 +60,11 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context) ([]string, error) {
 		// Check if any member's node is missing from workload cluster
 		// If any, delete it with best effort
 		for _, member := range members {
+			// If this member is just added, it has a empty name until the etcd pod starts. Ignore it.
+			if member.Name == "" {
+				continue
+			}
+
 			isFound := false
 			for _, node := range controlPlaneNodes.Items {
 				if member.Name == node.Name {
@@ -70,7 +76,7 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context) ([]string, error) {
 			if isFound {
 				continue
 			}
-			removedMembers = append(removedMembers, member.Name)
+			removedMembers = append(removedMembers, fmt.Sprintf("%d (Name: %s)", member.ID, member.Name))
 			if err := w.removeMemberForNode(ctx, member.Name); err != nil {
 				errs = append(errs, err)
 			}

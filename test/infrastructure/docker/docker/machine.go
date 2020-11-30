@@ -27,12 +27,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/cloudinit"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/exec"
@@ -50,7 +50,6 @@ type nodeCreator interface {
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
 type Machine struct {
-	log       logr.Logger
 	cluster   string
 	machine   string
 	image     string
@@ -61,15 +60,12 @@ type Machine struct {
 }
 
 // NewMachine returns a new Machine service for the given Cluster/DockerCluster pair.
-func NewMachine(cluster, machine, image string, labels map[string]string, logger logr.Logger) (*Machine, error) {
+func NewMachine(cluster, machine, image string, labels map[string]string) (*Machine, error) {
 	if cluster == "" {
 		return nil, errors.New("cluster is required when creating a docker.Machine")
 	}
 	if machine == "" {
 		return nil, errors.New("machine is required when creating a docker.Machine")
-	}
-	if logger == nil {
-		return nil, errors.New("logger is required when creating a docker.Machine")
 	}
 
 	filters := []string{
@@ -91,18 +87,13 @@ func NewMachine(cluster, machine, image string, labels map[string]string, logger
 		image:       image,
 		container:   container,
 		labels:      labels,
-		log:         logger,
 		nodeCreator: &Manager{},
 	}, nil
 }
 
-func ListMachinesByCluster(cluster string, labels map[string]string, logger logr.Logger) ([]*Machine, error) {
+func ListMachinesByCluster(cluster string, labels map[string]string) ([]*Machine, error) {
 	if cluster == "" {
 		return nil, errors.New("cluster is required when listing machines in the cluster")
-	}
-
-	if logger == nil {
-		return nil, errors.New("logger is required when listing machines in the cluster")
 	}
 
 	filters := []string{
@@ -125,7 +116,6 @@ func ListMachinesByCluster(cluster string, labels map[string]string, logger logr
 			image:       container.Image,
 			labels:      labels,
 			container:   container,
-			log:         logger,
 			nodeCreator: &Manager{},
 		}
 	}
@@ -181,6 +171,8 @@ func (m *Machine) Address(ctx context.Context) (string, error) {
 
 // Create creates a docker container hosting a Kubernetes node.
 func (m *Machine) Create(ctx context.Context, role string, version *string, mounts []infrav1.Mount) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Create if not exists.
 	if m.container == nil {
 		var err error
@@ -192,7 +184,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 
 		switch role {
 		case constants.ControlPlaneNodeRoleValue:
-			m.log.Info("Creating control plane machine container")
+			log.Info("Creating control plane machine container")
 			m.container, err = m.nodeCreator.CreateControlPlaneNode(
 				m.ContainerName(),
 				machineImage,
@@ -207,7 +199,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 				return errors.WithStack(err)
 			}
 		case constants.WorkerNodeRoleValue:
-			m.log.Info("Creating worker machine container")
+			log.Info("Creating worker machine container")
 			m.container, err = m.nodeCreator.CreateWorkerNode(
 				m.ContainerName(),
 				machineImage,
@@ -286,6 +278,8 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 
 // ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`
 func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	if m.container == nil {
 		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exists")
 	}
@@ -297,7 +291,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 
 	commands, err := cloudinit.Commands(cloudConfig)
 	if err != nil {
-		m.log.Info("cloud config failed to parse", "bootstrap data", data)
+		log.Info("cloud config failed to parse", "bootstrap data", data)
 		return errors.Wrap(err, "failed to join a control plane node with kubeadm")
 	}
 
@@ -312,7 +306,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 		}
 		err := cmd.Run(ctx)
 		if err != nil {
-			m.log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
+			log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
 			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
 		}
 	}
@@ -322,6 +316,8 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 
 // SetNodeProviderID sets the docker provider ID for the kubernetes node
 func (m *Machine) SetNodeProviderID(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	kubectlNode, err := m.getKubectlNode()
 	if err != nil {
 		return errors.Wrapf(err, "unable to set NodeProviderID. error getting a kubectl node")
@@ -330,7 +326,7 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 		return errors.New("unable to set NodeProviderID. there are no kubectl node available")
 	}
 
-	m.log.Info("Setting Kubernetes node providerID")
+	log.Info("Setting Kubernetes node providerID")
 	patch := fmt.Sprintf(`{"spec": {"providerID": "%s"}}`, m.ProviderID())
 	cmd := kubectlNode.Commander.Command(
 		"kubectl",
@@ -342,7 +338,7 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	lines, err := cmd.RunLoggingOutputOnFail(ctx)
 	if err != nil {
 		for _, line := range lines {
-			m.log.Info(line)
+			log.Info(line)
 		}
 		return errors.Wrap(err, "failed update providerID")
 	}
@@ -376,9 +372,11 @@ func (m *Machine) getKubectlNode() (*types.Node, error) {
 
 // Delete deletes a docker container hosting a Kubernetes node.
 func (m *Machine) Delete(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Delete if exists.
 	if m.container != nil {
-		m.log.Info("Deleting machine container")
+		log.Info("Deleting machine container")
 		if err := m.container.Delete(ctx); err != nil {
 			return err
 		}
@@ -390,7 +388,6 @@ func (m *Machine) Delete(ctx context.Context) error {
 func (m *Machine) machineImage(version *string) string {
 	if version == nil {
 		defaultImage := fmt.Sprintf("%s:%s", defaultImageName, defaultImageTag)
-		m.log.Info("Image for machine container not specified, using default comtainer image", defaultImage)
 		return defaultImage
 	}
 

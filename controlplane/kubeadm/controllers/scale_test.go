@@ -246,7 +246,7 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)))
 	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)))
 	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)))
-	m6 := machine("machine-6", withFailureDomain("two"), withTimestamp(startDate.Add(-7*time.Hour)), withAnnotation("shrug"))
+	m6 := machine("machine-6", withFailureDomain("two"), withTimestamp(startDate.Add(-7*time.Hour)))
 	m7 := machine("machine-7", withFailureDomain("two"), withTimestamp(startDate.Add(-5*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"))
 	m8 := machine("machine-8", withFailureDomain("two"), withTimestamp(startDate.Add(-6*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"))
 
@@ -269,19 +269,13 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 			return m.Name != "machine-5"
 		}),
 	}
-	withWrongAnnotationControlPlane := &internal.ControlPlane{
-		KCP:      &kcp,
-		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
-		Machines: mc6,
-	}
-
 	annotatedControlPlane := &internal.ControlPlane{
 		KCP:     &kcp,
 		Cluster: &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
 		Machines: mc6.Filter(func(m *clusterv1.Machine) bool {
 			return m.Name != "machine-6"
 		}),
-}
+	}
 
 	testCases := []struct {
 		name             string
@@ -305,16 +299,16 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}},
 		},
 		{
-			name:             "when there is a machine(s) marked with incorrect delete annotation key, it returns only machine(s) with proper annotation",
-			cp:               withWrongAnnotationControlPlane,
+			name:             "when there is a single machine marked with delete annotation key in machine collection, it returns only that marked machine",
+			cp:               annotatedControlPlane,
 			outDatedMachines: internal.NewFilterableMachineCollection(m6, m7),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-7"}},
 		},
 		{
-			name:             "when there is more than one machine with delete annotation key, it returns the oldest machine first to proceed with deletion",
+			name:             "when there are multiple machines marked with delete annotation key in machine collection, it returns the oldest marked machine first",
 			cp:               annotatedControlPlane,
-			outDatedMachines: internal.NewFilterableMachineCollection(),
+			outDatedMachines: internal.NewFilterableMachineCollection(m7, m8),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
 		},

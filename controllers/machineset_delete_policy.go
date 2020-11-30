@@ -31,10 +31,6 @@ type (
 )
 
 const (
-	// DeleteMachineAnnotation marks nodes that will be given priority for deletion
-	// when a machineset scales down. This annotation is given top priority on all delete policies.
-	DeleteMachineAnnotation = "cluster.x-k8s.io/delete-machine"
-
 	mustDelete    deletePriority = 100.0
 	betterDelete  deletePriority = 50.0
 	couldDelete   deletePriority = 20.0
@@ -48,7 +44,7 @@ func oldestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
-	if _, ok := machine.ObjectMeta.Annotations[DeleteMachineAnnotation]; ok {
+	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return mustDelete
 	}
 	if machine.Status.NodeRef == nil {
@@ -71,7 +67,7 @@ func newestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
-	if _, ok := machine.ObjectMeta.Annotations[DeleteMachineAnnotation]; ok {
+	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return mustDelete
 	}
 	if machine.Status.NodeRef == nil {
@@ -87,7 +83,7 @@ func randomDeletePolicy(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
-	if _, ok := machine.ObjectMeta.Annotations[DeleteMachineAnnotation]; ok {
+	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return betterDelete
 	}
 	if machine.Status.NodeRef == nil {

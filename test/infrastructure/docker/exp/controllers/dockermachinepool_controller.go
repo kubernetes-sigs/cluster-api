@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -182,13 +181,8 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	// Reconcile machines and updates Status.Instances
-	if err := pool.ReconcileMachines(ctx); err != nil {
-		if errors.Is(err, &docker.TransientError{}) {
-			log.V(4).Info("requeue in 5 seconds due docker machine reconcile transient error")
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-		}
-
-		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile machines")
+	if res, err := pool.ReconcileMachines(ctx); err != nil || !res.IsZero() {
+		return res, err
 	}
 
 	// Derive info from Status.Instances

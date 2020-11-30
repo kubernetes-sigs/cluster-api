@@ -38,21 +38,6 @@ const (
 	dockerMachinePoolLabel = "docker.cluster.x-k8s.io/machine-pool"
 )
 
-// TransientError represents an error from docker provisioning which should be retried
-type TransientError struct {
-	InstanceName string
-	Reason       string
-}
-
-func (e *TransientError) Error() string {
-	return fmt.Sprintf("container addresses for instance %s due to %s", e.InstanceName, e.Reason)
-}
-
-func (e *TransientError) Is(target error) bool {
-	_, ok := target.(*TransientError)
-	return ok
-}
-
 // NodePool is a wrapper around a collection of like machines which are owned by a DockerMachinePool. A node pool
 // provides a friendly way of managing (adding, deleting, reimaging) a set of docker machines. The node pool will also
 // sync the docker machine pool status Instances field with the state of the docker machines.
@@ -88,29 +73,29 @@ func NewNodePool(kClient client.Client, cluster *clusterv1.Cluster, mp *clusterv
 // currently the nodepool supports only a recreate strategy for replacing old nodes with new ones
 // (all existing machines are killed before new ones are created).
 // TODO: consider if to support a Rollout strategy (a more progressive node replacement).
-func (np *NodePool) ReconcileMachines(ctx context.Context) error {
+func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) {
 	desiredReplicas := int(*np.machinePool.Spec.Replicas)
 
 	// Delete all the machines in excess (outdated machines or machines exceeding desired replica count).
 	machineDeleted := false
 	totalNumberOfMachines := 0
 	for _, machine := range np.machines {
-		if totalNumberOfMachines+1 > desiredReplicas || !np.isMachineMatchingInfrastructureSpec(machine) {
+		totalNumberOfMachines++
+		if totalNumberOfMachines > desiredReplicas || !np.isMachineMatchingInfrastructureSpec(machine) {
 			externalMachine, err := docker.NewMachine(np.cluster.Name, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
 			if err != nil {
-				return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
+				return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 			}
 			if err := externalMachine.Delete(ctx); err != nil {
-				return errors.Wrapf(err, "failed to delete machine %s", machine.Name())
+				return ctrl.Result{}, errors.Wrapf(err, "failed to delete machine %s", machine.Name())
 			}
 			machineDeleted = true
-			continue
+			totalNumberOfMachines-- // remove deleted machine from the count
 		}
-		totalNumberOfMachines++
 	}
 	if machineDeleted {
 		if err := np.refresh(); err != nil {
-			return errors.Wrapf(err, "failed to refresh the node pool")
+			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh the node pool")
 		}
 	}
 
@@ -120,14 +105,14 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) error {
 	if matchingMachineCount < desiredReplicas {
 		for i := 0; i < desiredReplicas-matchingMachineCount; i++ {
 			if err := np.addMachine(ctx); err != nil {
-				return errors.Wrap(err, "failed to create a new docker machine")
+				return ctrl.Result{}, errors.Wrap(err, "failed to create a new docker machine")
 			}
 			machineAdded = true
 		}
 	}
 	if machineAdded {
 		if err := np.refresh(); err != nil {
-			return errors.Wrapf(err, "failed to refresh the node pool")
+			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh the node pool")
 		}
 	}
 
@@ -137,28 +122,26 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) error {
 	instances := make([]*infrav1exp.DockerMachinePoolInstanceStatus, 0, len(np.machines))
 	for i := range np.dockerMachinePool.Status.Instances {
 		instance := np.dockerMachinePool.Status.Instances[i]
-		found := false
 		for j := range np.machines {
 			if instance.InstanceName == np.machines[j].Name() {
-				found = true
+				instances = append(instances, instance)
+				break
 			}
-		}
-		if found {
-			instances = append(instances, instance)
 		}
 	}
 	np.dockerMachinePool.Status.Instances = instances
 
+	result := ctrl.Result{}
 	for i := range np.machines {
 		machine := np.machines[i]
-		if err := np.reconcileMachine(ctx, machine); err != nil {
-			if errors.Is(err, &TransientError{}) {
-				return err
+		if res, err := np.reconcileMachine(ctx, machine); err != nil || !res.IsZero() {
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to reconcile machine")
 			}
-			return errors.Wrap(err, "failed to reconcile machine")
+			result = util.LowestNonZeroResult(result, res)
 		}
 	}
-	return nil
+	return result, nil
 }
 
 // Delete will delete all of the machines in the node pool
@@ -227,7 +210,7 @@ func (np *NodePool) refresh() error {
 }
 
 // reconcileMachine will build and provision a docker machine and update the docker machine pool status for that instance
-func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine) error {
+func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	machineStatus := getInstanceStatusByMachineName(np.dockerMachinePool, machine.Name())
@@ -239,35 +222,35 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		}
 		np.dockerMachinePool.Status.Instances = append(np.dockerMachinePool.Status.Instances, machineStatus)
 		// return to surface the new machine exists.
-		return nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	externalMachine, err := docker.NewMachine(np.cluster.Name, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 	}
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !machineStatus.Bootstrapped {
 		log.Info("Bootstrapping instance", "instance", machine.Name())
 		if err := externalMachine.PreloadLoadImages(ctx, np.dockerMachinePool.Spec.Template.PreLoadImages); err != nil {
-			return errors.Wrapf(err, "failed to pre-load images into the docker machine with instance name %s", machine.Name())
+			return ctrl.Result{}, errors.Wrapf(err, "failed to pre-load images into the docker machine with instance name %s", machine.Name())
 		}
 
 		bootstrapData, err := getBootstrapData(ctx, np.client, np.machinePool)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get bootstrap data for instance named %s", machine.Name())
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get bootstrap data for instance named %s", machine.Name())
 		}
 
 		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
 		// Run the bootstrap script. Simulates cloud-init.
 		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
-			return errors.Wrapf(err, "failed to exec DockerMachinePool instance bootstrap for instance named %s", machine.Name())
+			return ctrl.Result{}, errors.Wrapf(err, "failed to exec DockerMachinePool instance bootstrap for instance named %s", machine.Name())
 		}
 		machineStatus.Bootstrapped = true
 		// return to surface the machine has been bootstrapped.
-		return nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	if machineStatus.Addresses == nil {
@@ -275,10 +258,9 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		// set address in machine status
 		machineAddress, err := externalMachine.Address(ctx)
 		if err != nil {
-			return &TransientError{
-				InstanceName: machine.Name(),
-				Reason:       "failed to fetch addresses for container",
-			}
+			// Requeue if there is an error, as this is likely momentary load balancer
+			// state changes during control plane provisioning.
+			return ctrl.Result{Requeue: true}, nil
 		}
 
 		machineStatus.Addresses = []clusterv1.MachineAddress{
@@ -304,10 +286,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		// state changes during control plane provisioning.
 		if err := externalMachine.SetNodeProviderID(ctx); err != nil {
 			log.V(4).Info("transient error setting the provider id")
-			return &TransientError{
-				InstanceName: machine.Name(),
-				Reason:       "failed to patch the Kubernetes node with the machine providerID",
-			}
+			return ctrl.Result{Requeue: true}, nil
 		}
 		// Set ProviderID so the Cluster API Machine Controller can pull it
 		providerID := externalMachine.ProviderID()
@@ -315,7 +294,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 	}
 
 	machineStatus.Ready = true
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // getBootstrapData fetches the bootstrap data for the machine pool

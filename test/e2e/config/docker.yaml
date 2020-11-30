@@ -67,10 +67,10 @@ providers:
       new: --metrics-bind-addr=:8080
   files:
   # Add cluster templates
-  - sourcePath: "../data/infrastructure-docker/cluster-template.yaml"
-  - sourcePath: "../data/infrastructure-docker/cluster-template-mhc.yaml"
-  - sourcePath: "../data/infrastructure-docker/cluster-template-kcp-adoption.yaml"
-  - sourcePath: "../data/infrastructure-docker/cluster-template-machine-pool.yaml"
+  - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template.yaml"
+  - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-mhc.yaml"
+  - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-adoption.yaml"
+  - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-machine-pool.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.19.1"

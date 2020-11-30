@@ -25,12 +25,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,9 +40,10 @@ import (
 // It should never need to connect to a service, that responsibility lies outside of this struct.
 // Going forward we should be trying to add more logic to here and reduce the amount of logic in the reconciler.
 type ControlPlane struct {
-	KCP      *controlplanev1.KubeadmControlPlane
-	Cluster  *clusterv1.Cluster
-	Machines FilterableMachineCollection
+	KCP                  *controlplanev1.KubeadmControlPlane
+	Cluster              *clusterv1.Cluster
+	Machines             FilterableMachineCollection
+	machinesPatchHelpers map[string]*patch.Helper
 
 	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
 	reconciliationTime metav1.Time
@@ -61,13 +64,23 @@ func NewControlPlane(ctx context.Context, client client.Client, cluster *cluster
 	if err != nil {
 		return nil, err
 	}
+	patchHelpers := map[string]*patch.Helper{}
+	for _, machine := range ownedMachines {
+		patchHelper, err := patch.NewHelper(machine, client)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create patch helper for machine %s", machine.Name)
+		}
+		patchHelpers[machine.Name] = patchHelper
+	}
+
 	return &ControlPlane{
-		KCP:                kcp,
-		Cluster:            cluster,
-		Machines:           ownedMachines,
-		kubeadmConfigs:     kubeadmConfigs,
-		infraResources:     infraObjects,
-		reconciliationTime: metav1.Now(),
+		KCP:                  kcp,
+		Cluster:              cluster,
+		Machines:             ownedMachines,
+		machinesPatchHelpers: patchHelpers,
+		kubeadmConfigs:       kubeadmConfigs,
+		infraResources:       infraObjects,
+		reconciliationTime:   metav1.Now(),
 	}, nil
 }
 
@@ -285,4 +298,25 @@ func getKubeadmConfigs(ctx context.Context, cl client.Client, machines Filterabl
 // IsEtcdManaged returns true if the control plane relies on a managed etcd.
 func (c *ControlPlane) IsEtcdManaged() bool {
 	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
+}
+
+func (c *ControlPlane) PatchMachines(ctx context.Context) error {
+	errList := []error{}
+	for i := range c.Machines {
+		machine := c.Machines[i]
+		if helper, ok := c.machinesPatchHelpers[machine.Name]; ok {
+			if err := helper.Patch(ctx, machine, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				controlplanev1.MachineAPIServerPodHealthyCondition,
+				controlplanev1.MachineControllerManagerPodHealthyCondition,
+				controlplanev1.MachineSchedulerPodHealthyCondition,
+				controlplanev1.MachineEtcdPodHealthyCondition,
+				controlplanev1.MachineEtcdMemberHealthyCondition,
+			}}); err != nil {
+				errList = append(errList, errors.Wrapf(err, "failed to patch machine %s", machine.Name))
+			}
+			continue
+		}
+		errList = append(errList, errors.Errorf("failed to get patch helper for machine %s", machine.Name))
+	}
+	return kerrors.NewAggregate(errList)
 }

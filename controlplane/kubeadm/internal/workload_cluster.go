@@ -34,7 +34,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
@@ -58,8 +57,8 @@ var (
 type WorkloadCluster interface {
 	// Basic health and status checks.
 	ClusterStatus(ctx context.Context) (ClusterStatus, error)
-	ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult, error)
-	EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
+	UpdateStaticPodConditions(ctx context.Context, controlPlane *ControlPlane)
+	UpdateEtcdConditions(ctx context.Context, controlPlane *ControlPlane)
 
 	// Upgrade related tasks.
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error
@@ -77,7 +76,7 @@ type WorkloadCluster interface {
 	AllowBootstrapTokensToGetNodes(ctx context.Context) error
 
 	// State recovery tasks.
-	ReconcileEtcdMembers(ctx context.Context) error
+	ReconcileEtcdMembers(ctx context.Context) ([]string, error)
 }
 
 // Workload defines operations on workload clusters.
@@ -105,88 +104,6 @@ func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.Object
 		return nil, errors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMap.Namespace, configMap.Name)
 	}
 	return original.DeepCopy(), nil
-}
-
-// HealthCheckResult maps nodes that are checked to any errors the node has related to the check.
-type HealthCheckResult map[string]error
-
-// Aggregate will analyse HealthCheckResult and report any errors discovered.
-// It also ensures there is a 1;1 match between nodes and machines.
-func (h HealthCheckResult) Aggregate(controlPlane *ControlPlane) error {
-	var errorList []error
-	kcpMachines := controlPlane.Machines.UnsortedList()
-	// Make sure Cluster API is aware of all the nodes.
-
-	for nodeName, err := range h {
-		if err != nil {
-			errorList = append(errorList, fmt.Errorf("node %q: %v", nodeName, err))
-		}
-	}
-	if len(errorList) != 0 {
-		return kerrors.NewAggregate(errorList)
-	}
-
-	// This check ensures there is a 1 to 1 correspondence of nodes and machines.
-	// If a machine was not checked this is considered an error.
-	for _, machine := range kcpMachines {
-		if machine.Status.NodeRef == nil {
-			// The condition for this case is set by the Machine controller
-			return errors.Errorf("control plane machine %s/%s has no status.nodeRef", machine.Namespace, machine.Name)
-		}
-		if _, ok := h[machine.Status.NodeRef.Name]; !ok {
-			return errors.Errorf("machine's (%s/%s) node (%s) was not checked", machine.Namespace, machine.Name, machine.Status.NodeRef.Name)
-		}
-	}
-	if len(h) != len(kcpMachines) {
-		// MachinesReadyCondition covers this health failure.
-		return errors.Errorf("number of nodes and machines in namespace %s did not match: %d nodes %d machines", controlPlane.Cluster.Namespace, len(h), len(kcpMachines))
-	}
-	return nil
-}
-
-// controlPlaneIsHealthy does a best effort check of the control plane components the kubeadm control plane cares about.
-// The return map is a map of node names as keys to error that that node encountered.
-// All nodes will exist in the map with nil errors if there were no errors for that node.
-func (w *Workload) ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult, error) {
-	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	response := make(map[string]error)
-	for _, node := range controlPlaneNodes.Items {
-		name := node.Name
-		response[name] = nil
-
-		if err := checkNodeNoExecuteCondition(node); err != nil {
-			response[name] = err
-			continue
-		}
-
-		apiServerPodKey := ctrlclient.ObjectKey{
-			Namespace: metav1.NamespaceSystem,
-			Name:      staticPodName("kube-apiserver", name),
-		}
-		apiServerPod := corev1.Pod{}
-		if err := w.Client.Get(ctx, apiServerPodKey, &apiServerPod); err != nil {
-			response[name] = err
-			continue
-		}
-		response[name] = checkStaticPodReadyCondition(apiServerPod)
-
-		controllerManagerPodKey := ctrlclient.ObjectKey{
-			Namespace: metav1.NamespaceSystem,
-			Name:      staticPodName("kube-controller-manager", name),
-		}
-		controllerManagerPod := corev1.Pod{}
-		if err := w.Client.Get(ctx, controllerManagerPodKey, &controllerManagerPod); err != nil {
-			response[name] = err
-			continue
-		}
-		response[name] = checkStaticPodReadyCondition(controllerManagerPod)
-	}
-
-	return response, nil
 }
 
 // UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
@@ -381,31 +298,6 @@ func newClientCert(caCert *x509.Certificate, key *rsa.PrivateKey, caKey crypto.S
 
 func staticPodName(component, nodeName string) string {
 	return fmt.Sprintf("%s-%s", component, nodeName)
-}
-
-func checkStaticPodReadyCondition(pod corev1.Pod) error {
-	found := false
-	for _, condition := range pod.Status.Conditions {
-		if condition.Type == corev1.PodReady {
-			found = true
-		}
-		if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
-			return errors.Errorf("static pod %s/%s is not ready", pod.Namespace, pod.Name)
-		}
-	}
-	if !found {
-		return errors.Errorf("pod does not have ready condition: %v", pod.Name)
-	}
-	return nil
-}
-
-func checkNodeNoExecuteCondition(node corev1.Node) error {
-	for _, taint := range node.Spec.Taints {
-		if taint.Key == corev1.TaintNodeUnreachable && taint.Effect == corev1.TaintEffectNoExecute {
-			return errors.Errorf("node has NoExecute taint: %v", node.Name)
-		}
-	}
-	return nil
 }
 
 // UpdateKubeProxyImageInfo updates kube-proxy image in the kube-proxy DaemonSet.

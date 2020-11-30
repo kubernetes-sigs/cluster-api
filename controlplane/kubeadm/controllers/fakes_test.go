@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"errors"
 
 	"github.com/blang/semver"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -56,17 +55,15 @@ func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n clien
 
 type fakeWorkloadCluster struct {
 	*internal.Workload
-	Status              internal.ClusterStatus
-	ControlPlaneHealthy bool
-	EtcdHealthy         bool
+	Status internal.ClusterStatus
 }
 
 func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, _ *clusterv1.Machine) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) ReconcileEtcdMembers(ctx context.Context) error {
-	return nil
+func (f fakeWorkloadCluster) ReconcileEtcdMembers(ctx context.Context) ([]string, error) {
+	return nil, nil
 }
 
 func (f fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterStatus, error) {
@@ -95,20 +92,6 @@ func (f fakeWorkloadCluster) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Con
 
 func (f fakeWorkloadCluster) UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error {
 	return nil
-}
-
-func (f fakeWorkloadCluster) ControlPlaneIsHealthy(ctx context.Context) (internal.HealthCheckResult, error) {
-	if !f.ControlPlaneHealthy {
-		return nil, errors.New("control plane is not healthy")
-	}
-	return nil, nil
-}
-
-func (f fakeWorkloadCluster) EtcdIsHealthy(ctx context.Context) (internal.HealthCheckResult, error) {
-	if !f.EtcdHealthy {
-		return nil, errors.New("etcd is not healthy")
-	}
-	return nil, nil
 }
 
 type fakeMigrator struct {

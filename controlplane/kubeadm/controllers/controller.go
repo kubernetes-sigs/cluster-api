@@ -514,11 +514,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return ctrl.Result{}, nil
 	}
 
-	// If there are provisioning machines (machines without a node yet), return.
+	// Collect all the node names.
+	nodeNames := []string{}
 	for _, machine := range controlPlane.Machines {
 		if machine.Status.NodeRef == nil {
+			// If there are provisioning machines (machines without a node yet), return.
 			return ctrl.Result{}, nil
 		}
+		nodeNames = append(nodeNames, machine.Status.NodeRef.Name)
 	}
 
 	// Potential inconsistencies between the list of members and the list of machines/nodes are
@@ -533,7 +536,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return ctrl.Result{}, errors.Wrap(err, "cannot get remote client to workload cluster")
 	}
 
-	removedMembers, err := workloadCluster.ReconcileEtcdMembers(ctx)
+	removedMembers, err := workloadCluster.ReconcileEtcdMembers(ctx, nodeNames)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed attempt to reconcile etcd members")
 	}

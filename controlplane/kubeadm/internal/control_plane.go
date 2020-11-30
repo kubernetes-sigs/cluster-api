@@ -300,6 +300,21 @@ func (c *ControlPlane) IsEtcdManaged() bool {
 	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
 }
 
+// UnhealthyMachines returns the list of control plane machines marked as unhealthy by MHC.
+func (c *ControlPlane) UnhealthyMachines() FilterableMachineCollection {
+	return c.Machines.Filter(machinefilters.HasUnhealthyCondition)
+}
+
+// HealthyMachines returns the list of control plane machines not marked as unhealthy by MHC.
+func (c *ControlPlane) HealthyMachines() FilterableMachineCollection {
+	return c.Machines.Filter(machinefilters.Not(machinefilters.HasUnhealthyCondition))
+}
+
+// HasUnhealthyMachine returns true if any machine in the control plane is marked as unhealthy by MHC.
+func (c *ControlPlane) HasUnhealthyMachine() bool {
+	return len(c.UnhealthyMachines()) > 0
+}
+
 func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 	errList := []error{}
 	for i := range c.Machines {

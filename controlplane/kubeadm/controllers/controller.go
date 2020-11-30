@@ -295,7 +295,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, controlPlane.Machines.ConditionGetters(), conditions.AddSourceRef())
+	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef(), conditions.WithStepCounterIf(false))
 
 	// Updates conditions reporting the status of static pods and the status of the etcd cluster.
 	// NOTE: Conditions reporting KCP operation progress like e.g. Resized or SpecUpToDate are inlined with the rest of the execution.
@@ -306,6 +306,12 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// Ensures the number of etcd members is in sync with the number of machines/nodes.
 	// NOTE: This is usually required after a machine deletion.
 	if result, err := r.reconcileEtcdMembers(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
+
+	// Reconcile unhealthy machines by triggering deletion and requeue if it is considered safe to remediate,
+	// otherwise continue with the other KCP operations.
+	if result, err := r.reconcileUnhealthyMachines(ctx, controlPlane); err != nil || !result.IsZero() {
 		return result, err
 	}
 

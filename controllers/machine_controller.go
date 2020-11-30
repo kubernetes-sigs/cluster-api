@@ -211,10 +211,13 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 	// after provisioning - e.g. when a MHC condition exists - or during the deletion process).
 	conditions.SetSummary(machine,
 		conditions.WithConditions(
+			// Infrastructure problems should take precedence over all the other conditions
 			clusterv1.InfrastructureReadyCondition,
+			// Boostrap comes after, but it is relevant only during initial machine provisioning.
 			clusterv1.BootstrapReadyCondition,
-			clusterv1.MachineOwnerRemediatedCondition,
+			// MHC reported condition should take precedence over the remediation progress
 			clusterv1.MachineHealthCheckSuccededCondition,
+			clusterv1.MachineOwnerRemediatedCondition,
 		),
 		conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero()),
 		conditions.WithStepCounterIfOnly(
@@ -232,8 +235,8 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
 			clusterv1.DrainingSucceededCondition,
-			clusterv1.MachineOwnerRemediatedCondition,
 			clusterv1.MachineHealthCheckSuccededCondition,
+			clusterv1.MachineOwnerRemediatedCondition,
 		}},
 	)
 

@@ -241,29 +241,14 @@ func (c Certificates) EnsureAllExist() error {
 	return nil
 }
 
-// TODO: consider moving a generating function into the Certificate object itself?
-type certGenerator func() (*certs.KeyPair, error)
-
 // Generate will generate any certificates that do not have KeyPair data.
 func (c Certificates) Generate() error {
 	for _, certificate := range c {
 		if certificate.KeyPair == nil {
-			var generator certGenerator
-			switch certificate.Purpose {
-			case APIServerEtcdClient: // Do not generate the APIServerEtcdClient key pair. It is user supplied
-				continue
-			case ServiceAccount:
-				generator = generateServiceAccountKeys
-			default:
-				generator = generateCACert
-			}
-
-			kp, err := generator()
+			err := certificate.Generate()
 			if err != nil {
 				return err
 			}
-			certificate.KeyPair = kp
-			certificate.Generated = true
 		}
 	}
 	return nil
@@ -345,6 +330,7 @@ func (c *Certificate) AsSecret(clusterName client.ObjectKey, owner metav1.OwnerR
 			TLSKeyDataName: c.KeyPair.Key,
 			TLSCrtDataName: c.KeyPair.Cert,
 		},
+		Type: clusterv1.ClusterSecretType,
 	}
 
 	if c.Generated {
@@ -373,6 +359,27 @@ func (c *Certificate) AsFiles() []bootstrapv1.File {
 		})
 	}
 	return out
+}
+
+func (c *Certificate) Generate() error {
+	// Do not generate the APIServerEtcdClient key pair. It is user supplied
+	if c.Purpose == APIServerEtcdClient {
+		return nil
+	}
+
+	generator := generateCACert
+	if c.Purpose == ServiceAccount {
+		generator = generateServiceAccountKeys
+	}
+
+	kp, err := generator()
+	if err != nil {
+		return err
+	}
+	c.KeyPair = kp
+	c.Generated = true
+
+	return nil
 }
 
 // AsFiles converts a slice of certificates into bootstrap files.

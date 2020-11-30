@@ -74,6 +74,7 @@ users:
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: []byte(validKubeConfig),
 		},
+		Type: clusterv1.ClusterSecretType,
 	}
 )
 
@@ -281,6 +282,7 @@ func TestCreateSecretWithOwner(t *testing.T) {
 	key := client.ObjectKey{Name: "test1-kubeconfig", Namespace: "test"}
 	g.Expect(c.Get(ctx, key, s)).To(Succeed())
 	g.Expect(s.OwnerReferences).To(ContainElement(owner))
+	g.Expect(s.Type).To(Equal(clusterv1.ClusterSecretType))
 
 	clientConfig, err := clientcmd.NewClientConfigFromBytes(s.Data[secret.KubeconfigDataName])
 	g.Expect(err).NotTo(HaveOccurred())
@@ -343,6 +345,7 @@ func TestCreateSecret(t *testing.T) {
 			APIVersion: clusterv1.GroupVersion.String(),
 		},
 	))
+	g.Expect(s.Type).To(Equal(clusterv1.ClusterSecretType))
 
 	clientConfig, err := clientcmd.NewClientConfigFromBytes(s.Data[secret.KubeconfigDataName])
 	g.Expect(err).NotTo(HaveOccurred())

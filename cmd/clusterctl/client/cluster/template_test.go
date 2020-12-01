@@ -37,10 +37,10 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-var template = `apiVersion: cluster.x-k8s.io/v1alpha3
+var template = `apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Cluster
 ---
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Machine`
 
 func Test_templateClient_GetFromConfigMap(t *testing.T) {

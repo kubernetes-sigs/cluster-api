@@ -24,7 +24,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,13 +47,13 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/foo-ca",
 				"/v1, Kind=Secret, ns1/foo-kubeconfig",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/foo",
 			},
 		},
 		wantErr: false,
@@ -65,7 +65,7 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo",
 				// objects with force move flag
 				"/v1, Kind=Secret, ns1/foo-cloud-config",
 			},
@@ -73,7 +73,7 @@ var moveTests = []struct {
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/foo-ca",
 				"/v1, Kind=Secret, ns1/foo-kubeconfig",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/foo",
 			},
 		},
 		wantErr: false,
@@ -89,22 +89,22 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 				"/v1, Kind=Secret, ns1/cluster1-ca",
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m2",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m2",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
 			},
 			{ //group 3 (objects with ownerReferences in group 1,2)
 				// owned by Machines
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m2",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m2",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m2",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m2",
 			},
 			{ //group 4 (objects with ownerReferences in group 1,2,3)
 				// owned by GenericBootstrapConfigs
@@ -129,28 +129,28 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/cluster1-ca",
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/ms1",
-				"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/ms1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/ms1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfigTemplate, ns1/ms1",
+				"cluster.x-k8s.io/v1alpha4, Kind=MachineSet, ns1/ms1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachineTemplate, ns1/ms1",
 			},
 			{ //group 3 (objects with ownerReferences in group 1,2)
 				// owned by MachineSets
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m2",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m2",
 			},
 			{ //group 4 (objects with ownerReferences in group 1,2,3)
 				// owned by Machines
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m2",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m2",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m2",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m2",
 			},
 			{ //group 5 (objects with ownerReferences in group 1,2,3,4)
 				// owned by GenericBootstrapConfigs
@@ -177,32 +177,32 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/cluster1-ca",
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/md1",
-				"cluster.x-k8s.io/v1alpha3, Kind=MachineDeployment, ns1/md1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/md1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfigTemplate, ns1/md1",
+				"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachineTemplate, ns1/md1",
 			},
 			{ //group 3 (objects with ownerReferences in group 1,2)
 				// owned by MachineDeployments
-				"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/ms1",
+				"cluster.x-k8s.io/v1alpha4, Kind=MachineSet, ns1/ms1",
 			},
 			{ //group 4 (objects with ownerReferences in group 1,2,3)
 				// owned by MachineSets
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m2",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m2",
 			},
 			{ //group 5 (objects with ownerReferences in group 1,2,3,4)
 				// owned by Machines
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m2",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m2",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m2",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m2",
 			},
 			{ //group 6 (objects with ownerReferences in group 1,2,3,5,6)
 				// owned by GenericBootstrapConfigs
@@ -226,27 +226,27 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/cluster1-ca",
-				"controlplane.cluster.x-k8s.io/v1alpha3, Kind=GenericControlPlane, ns1/cp1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/cp1",
+				"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachineTemplate, ns1/cp1",
 			},
 			{ //group 3 (objects with ownerReferences in group 1,2)
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 				"/v1, Kind=Secret, ns1/cluster1-sa",
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m2",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m2",
 			},
 			{ //group 4 (objects with ownerReferences in group 1,2,3)
 				// owned by Machines
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m1",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/m2",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/m2",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m2",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m2",
 			},
 			{ //group 5 (objects with ownerReferences in group 1,2,3,4)
 				// owned by GenericBootstrapConfigs
@@ -266,16 +266,16 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/cluster1-ca",
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/mp1",
-				"exp.cluster.x-k8s.io/v1alpha3, Kind=MachinePool, ns1/mp1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/mp1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfigTemplate, ns1/mp1",
+				"exp.cluster.x-k8s.io/v1alpha4, Kind=MachinePool, ns1/mp1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachineTemplate, ns1/mp1",
 			},
 		},
 		wantErr: false,
@@ -292,17 +292,17 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo",
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/bar",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/bar",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/foo-ca",
 				"/v1, Kind=Secret, ns1/foo-kubeconfig",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/foo",
 				"/v1, Kind=Secret, ns1/bar-ca",
 				"/v1, Kind=Secret, ns1/bar-kubeconfig",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/bar",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/bar",
 			},
 		},
 	},
@@ -339,34 +339,34 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ //group 1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/cluster1-ca",
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/cluster1-ms1",
-				"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/cluster1-ms1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfigTemplate, ns1/cluster1-ms1",
+				"cluster.x-k8s.io/v1alpha4, Kind=MachineSet, ns1/cluster1-ms1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
 				"/v1, Kind=Secret, ns1/cluster2-ca",
 				"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfigTemplate, ns1/cluster2-ms1",
-				"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/cluster2-ms1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster2",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachineTemplate, ns1/shared", //shared object
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfigTemplate, ns1/cluster2-ms1",
+				"cluster.x-k8s.io/v1alpha4, Kind=MachineSet, ns1/cluster2-ms1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster2",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachineTemplate, ns1/shared", //shared object
 			},
 			{ //group 3 (objects with ownerReferences in group 1,2)
 				// owned by MachineSets
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/cluster1-m1",
-				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/cluster2-m1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/cluster1-m1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/cluster2-m1",
 			},
 			{ //group 4 (objects with ownerReferences in group 1,2,3)
 				// owned by Machines
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/cluster1-m1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/cluster1-m1",
-				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=GenericBootstrapConfig, ns1/cluster2-m1",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureMachine, ns1/cluster2-m1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/cluster1-m1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/cluster1-m1",
+				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/cluster2-m1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/cluster2-m1",
 			},
 			{ //group 5 (objects with ownerReferences in group 1,2,3,4)
 				// owned by GenericBootstrapConfigs
@@ -394,20 +394,20 @@ var moveTests = []struct {
 		wantMoveGroups: [][]string{
 			{ //group 1
 				// Cluster
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 				// ClusterResourceSet
-				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSet, ns1/crs1",
+				"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSet, ns1/crs1",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/cluster1-ca",
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
 				// owned by ClusterResourceSet
 				"/v1, Kind=Secret, ns1/resource-s1",
 				"/v1, Kind=ConfigMap, ns1/resource-c1",
 				// owned by ClusterResourceSet & Cluster
-				"addons.cluster.x-k8s.io/v1alpha3, Kind=ClusterResourceSetBinding, ns1/cluster1",
+				"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSetBinding, ns1/cluster1",
 			},
 		},
 	},
@@ -424,15 +424,15 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ // group1
-				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo",
-				"external.cluster.x-k8s.io/v1alpha3, Kind=GenericExternalObject, ns1/externalTest1",
-				"external.cluster.x-k8s.io/v1alpha3, Kind=GenericExternalObject, /externalTest2",
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo",
+				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, ns1/externalTest1",
+				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, /externalTest2",
 			},
 			{ //group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters
 				"/v1, Kind=Secret, ns1/foo-ca",
 				"/v1, Kind=Secret, ns1/foo-kubeconfig",
-				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=GenericInfrastructureCluster, ns1/foo",
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/foo",
 			},
 		},
 		wantErr: false,

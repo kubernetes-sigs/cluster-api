@@ -241,7 +241,7 @@ func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error 
 		if err := retryWithExponentialBackoff(deleteCertManagerBackoff, func() error {
 			if err := cm.deleteObj(obj); err != nil {
 				// tolerate NotFound errors when deleting the test resources
-				if apierrors.IsNotFound(err) {
+				if apierrors.IsNotFound(errors.Cause(err)) {
 					return nil
 				}
 				return err
@@ -483,7 +483,7 @@ func (cm *certManagerClient) waitForAPIReady(ctx context.Context, retry bool) er
 		if err := retryWithExponentialBackoff(deleteCertManagerBackoff, func() error {
 			if err := cm.deleteObj(obj); err != nil {
 				// tolerate NotFound errors when deleting the test resources
-				if apierrors.IsNotFound(err) {
+				if apierrors.IsNotFound(errors.Cause(err)) {
 					return nil
 				}
 				return err

@@ -383,7 +383,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 		var deleteNodeErr error
 		waitErr := wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
-			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(deleteNodeErr) {
+			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(errors.Cause(deleteNodeErr)) {
 				return false, nil
 			}
 			return true, nil
@@ -446,7 +446,7 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 	// managed control plane check if it is nil
 	if cluster.Spec.ControlPlaneRef != nil {
 		controlPlane, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Spec.ControlPlaneRef.Namespace)
-		if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(errors.Cause(err)) {
 			// If control plane object in the reference does not exist, log and skip check for
 			// external managed control plane
 			r.Log.Error(err, "control plane object specified in cluster spec.controlPlaneRef does not exist", "kind", cluster.Spec.ControlPlaneRef.Kind, "name", cluster.Spec.ControlPlaneRef.Name)

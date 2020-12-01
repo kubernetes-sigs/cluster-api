@@ -148,7 +148,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Look up the owner of this KubeConfig if there is one
 	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config)
-	if apierrors.IsNotFound(err) {
+	if apierrors.IsNotFound(errors.Cause(err)) {
 		// Could not find the owner yet, this is not an error and will rereconcile when the owner gets set.
 		return ctrl.Result{}, nil
 	}
@@ -169,7 +169,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, nil
 		}
 
-		if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(errors.Cause(err)) {
 			log.Info("Cluster does not exist yet, waiting until it is created")
 			return ctrl.Result{}, nil
 		}

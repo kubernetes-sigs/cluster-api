@@ -50,7 +50,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	controllerOwnerRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
 	configSecret, err := secret.GetFromNamespacedName(ctx, r.Client, clusterName, secret.Kubeconfig)
 	switch {
-	case apierrors.IsNotFound(err):
+	case apierrors.IsNotFound(errors.Cause(err)):
 		createErr := kubeconfig.CreateSecretWithOwner(
 			ctx,
 			r.Client,

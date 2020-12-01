@@ -85,6 +85,7 @@ variables:
   CNI: "./data/cni/kindnet/kindnet.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_MACHINE_POOL: "true"
+  KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

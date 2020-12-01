@@ -48,6 +48,9 @@ const (
 
 	// ClusterSecretType defines the type of secret created by core components
 	ClusterSecretType corev1.SecretType = "cluster.x-k8s.io/secret" //nolint:gosec
+
+	// InterruptibleLabel is the label used to mark the nodes that run on interruptible instances
+	InterruptibleLabel = "cluster.x-k8s.io/interruptible"
 )
 
 // MachineAddressType describes a valid MachineAddress type.

@@ -181,7 +181,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, cl
 		}
 		node, err := r.getNodeFromMachine(ctx, clusterClient, target.Machine)
 		if err != nil {
-			if !apierrors.IsNotFound(err) {
+			if !apierrors.IsNotFound(errors.Cause(err)) {
 				return nil, errors.Wrap(err, "error getting node")
 			}
 

@@ -289,7 +289,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RetrievingResourceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 
 				// Continue without adding the error to the aggregate if we can't find the resource.
-				if apierrors.IsNotFound(err) {
+				if apierrors.IsNotFound(errors.Cause(err)) {
 					continue
 				}
 			}

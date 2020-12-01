@@ -75,12 +75,12 @@ func (r *ClusterResourceSetBindingReconciler) Reconcile(req ctrl.Request) (_ ctr
 	}
 
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, binding.ObjectMeta)
-	if err != nil && !apierrors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 		return ctrl.Result{}, err
 	}
 
 	// If the owner cluster is already deleted or in deletion process, delete its ClusterResourceSetBinding
-	if apierrors.IsNotFound(err) || !cluster.DeletionTimestamp.IsZero() {
+	if apierrors.IsNotFound(errors.Cause(err)) || !cluster.DeletionTimestamp.IsZero() {
 		log.Info("deleting ClusterResourceSetBinding because the owner Cluster no longer exists")
 		err := r.Client.Delete(ctx, binding)
 		return ctrl.Result{}, err

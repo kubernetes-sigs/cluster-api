@@ -134,7 +134,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 }
 
 // Reconcile returns an error in this case because the owning machine should not go away before the things it owns.
-func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFound(t *testing.T) {
+func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfReferencedMachineIsNotFound(t *testing.T) {
 	g := NewWithT(t)
 
 	machine := newMachine(nil, "machine")
@@ -158,7 +158,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFo
 		},
 	}
 	_, err := k.Reconcile(request)
-	g.Expect(err).To(HaveOccurred())
+	g.Expect(err).To(BeNil())
 }
 
 // If the machine has bootstrap data secret reference, there is no need to generate more bootstrap data.

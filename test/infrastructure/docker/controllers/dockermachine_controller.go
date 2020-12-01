@@ -413,7 +413,7 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o handler.MapObj
 
 	cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
 	switch {
-	case apierrors.IsNotFound(err) || cluster == nil:
+	case apierrors.IsNotFound(errors.Cause(err)) || cluster == nil:
 		return result
 	case err != nil:
 		log.Error(err, "failed to get owning cluster")

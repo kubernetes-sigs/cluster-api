@@ -270,11 +270,9 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		}),
 	}
 	annotatedControlPlane := &internal.ControlPlane{
-		KCP:     &kcp,
-		Cluster: &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
-		Machines: mc6.Filter(func(m *clusterv1.Machine) bool {
-			return m.Name != "machine-6"
-		}),
+		KCP:      &kcp,
+		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
+		Machines: mc6,
 	}
 
 	testCases := []struct {
@@ -522,7 +520,7 @@ func withFailureDomain(fd string) machineOpt {
 
 func withAnnotation(annotation string) machineOpt {
 	return func(m *clusterv1.Machine) {
-		m.ObjectMeta.Annotations = (map[string]string{clusterv1.DeleteMachineAnnotation: annotation})
+		m.ObjectMeta.Annotations = (map[string]string{annotation: ""})
 	}
 }
 

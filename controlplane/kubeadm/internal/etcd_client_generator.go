@@ -21,10 +21,8 @@ import (
 	"crypto/tls"
 
 	"github.com/pkg/errors"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
-
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
@@ -36,10 +34,10 @@ type etcdClientGenerator struct {
 	tlsConfig  *tls.Config
 }
 
-func (c *etcdClientGenerator) forNodes(ctx context.Context, nodes []corev1.Node) (*etcd.Client, error) {
-	endpoints := make([]string, len(nodes))
-	for i, node := range nodes {
-		endpoints[i] = staticPodName("etcd", node.Name)
+func (c *etcdClientGenerator) forNodes(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
+	endpoints := make([]string, len(nodeNames))
+	for i, name := range nodeNames {
+		endpoints[i] = staticPodName("etcd", name)
 	}
 
 	p := proxy.Proxy{
@@ -53,11 +51,11 @@ func (c *etcdClientGenerator) forNodes(ctx context.Context, nodes []corev1.Node)
 }
 
 // forLeader takes a list of nodes and returns a client to the leader node
-func (c *etcdClientGenerator) forLeader(ctx context.Context, nodes []corev1.Node) (*etcd.Client, error) {
+func (c *etcdClientGenerator) forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
 	var errs []error
 
-	for _, node := range nodes {
-		client, err := c.forNodes(ctx, []corev1.Node{node})
+	for _, nodeName := range nodeNames {
+		client, err := c.forNodes(ctx, []string{nodeName})
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -69,8 +67,8 @@ func (c *etcdClientGenerator) forLeader(ctx context.Context, nodes []corev1.Node
 			continue
 		}
 		for _, member := range members {
-			if member.Name == node.Name && member.ID == client.LeaderID {
-				return c.forNodes(ctx, []corev1.Node{node})
+			if member.Name == nodeName && member.ID == client.LeaderID {
+				return c.forNodes(ctx, []string{nodeName})
 			}
 		}
 	}

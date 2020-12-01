@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:experimental
+# syntax=docker/dockerfile:1.1-experimental
 
 # Copyright 2019 The Kubernetes Authors.
 #
@@ -32,7 +32,8 @@ COPY test/infrastructure/docker/go.sum go.sum
 
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # This needs to build with the entire Cluster API context
 WORKDIR /workspace
@@ -44,6 +45,7 @@ WORKDIR /workspace/test/infrastructure/docker
 
 # Build the CAPD manager using the compiler cache folder
 RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
 
 # Use alpine:latest as minimal base image to package the manager binary and its dependencies

@@ -18,10 +18,8 @@ package internal
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -31,23 +29,18 @@ import (
 )
 
 type etcdClientFor interface {
-	forNodes(ctx context.Context, nodes []corev1.Node) (*etcd.Client, error)
-	forLeader(ctx context.Context, nodes []corev1.Node) (*etcd.Client, error)
+	forNodes(ctx context.Context, nodeNames []string) (*etcd.Client, error)
+	forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error)
 }
 
 // ReconcileEtcdMembers iterates over all etcd members and finds members that do not have corresponding nodes.
 // If there are any such members, it deletes them from etcd and removes their nodes from the kubeadm configmap so that kubeadm does not run etcd health checks on them.
-func (w *Workload) ReconcileEtcdMembers(ctx context.Context) ([]string, error) {
-	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string) ([]string, error) {
 	removedMembers := []string{}
 	errs := []error{}
-	for _, node := range controlPlaneNodes.Items {
+	for _, nodeName := range nodeNames {
 		// Create the etcd Client for the etcd Pod scheduled on the Node
-		etcdClient, err := w.etcdClientGenerator.forNodes(ctx, []corev1.Node{node})
+		etcdClient, err := w.etcdClientGenerator.forNodes(ctx, []string{nodeName})
 		if err != nil {
 			continue
 		}
@@ -57,26 +50,25 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context) ([]string, error) {
 		if err != nil {
 			continue
 		}
+
 		// Check if any member's node is missing from workload cluster
 		// If any, delete it with best effort
+	loopmembers:
 		for _, member := range members {
 			// If this member is just added, it has a empty name until the etcd pod starts. Ignore it.
 			if member.Name == "" {
 				continue
 			}
 
-			isFound := false
-			for _, node := range controlPlaneNodes.Items {
-				if member.Name == node.Name {
-					isFound = true
-					break
+			for _, nodeName := range nodeNames {
+				if member.Name == nodeName {
+					// We found the matching node, continue with the outer loop.
+					continue loopmembers
 				}
 			}
-			// Stop here if we found the member to be in the list of control plane nodes.
-			if isFound {
-				continue
-			}
-			removedMembers = append(removedMembers, fmt.Sprintf("%d (Name: %s)", member.ID, member.Name))
+
+			// If we're here, the node cannot be found.
+			removedMembers = append(removedMembers, member.Name)
 			if err := w.removeMemberForNode(ctx, member.Name); err != nil {
 				errs = append(errs, err)
 			}
@@ -86,6 +78,7 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context) ([]string, error) {
 			}
 		}
 	}
+
 	return removedMembers, kerrors.NewAggregate(errs)
 }
 
@@ -127,10 +120,10 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 	}
 
 	// Exclude node being removed from etcd client node list
-	var remainingNodes []corev1.Node
+	var remainingNodes []string
 	for _, n := range controlPlaneNodes.Items {
 		if n.Name != name {
-			remainingNodes = append(remainingNodes, n)
+			remainingNodes = append(remainingNodes, n.Name)
 		}
 	}
 	etcdClient, err := w.etcdClientGenerator.forNodes(ctx, remainingNodes)
@@ -174,8 +167,11 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 	if err != nil {
 		return errors.Wrap(err, "failed to list control plane nodes")
 	}
-
-	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodes.Items)
+	nodeNames := make([]string, 0, len(nodes.Items))
+	for _, node := range nodes.Items {
+		nodeNames = append(nodeNames, node.Name)
+	}
+	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodeNames)
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}
@@ -217,8 +213,11 @@ func (w *Workload) EtcdMembers(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list control plane nodes")
 	}
-
-	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodes.Items)
+	nodeNames := make([]string, 0, len(nodes.Items))
+	for _, node := range nodes.Items {
+		nodeNames = append(nodeNames, node.Name)
+	}
+	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodeNames)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create etcd client")
 	}

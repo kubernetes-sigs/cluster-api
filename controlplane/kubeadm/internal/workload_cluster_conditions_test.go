@@ -206,8 +206,8 @@ func TestUpdateEtcdConditions(t *testing.T) {
 				},
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(n []corev1.Node) (*etcd.Client, error) {
-					switch n[0].Name {
+				forNodesClientFunc: func(n []string) (*etcd.Client, error) {
+					switch n[0] {
 					case "n1":
 						return &etcd.Client{
 							EtcdClient: &fake2.FakeEtcdClient{
@@ -274,8 +274,8 @@ func TestUpdateEtcdConditions(t *testing.T) {
 				},
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(n []corev1.Node) (*etcd.Client, error) {
-					switch n[0].Name {
+				forNodesClientFunc: func(n []string) (*etcd.Client, error) {
+					switch n[0] {
 					case "n1":
 						return &etcd.Client{
 							EtcdClient: &fake2.FakeEtcdClient{
@@ -342,8 +342,8 @@ func TestUpdateEtcdConditions(t *testing.T) {
 				},
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(n []corev1.Node) (*etcd.Client, error) {
-					switch n[0].Name {
+				forNodesClientFunc: func(n []string) (*etcd.Client, error) {
+					switch n[0] {
 					case "n1":
 						return &etcd.Client{
 							EtcdClient: &fake2.FakeEtcdClient{
@@ -392,8 +392,8 @@ func TestUpdateEtcdConditions(t *testing.T) {
 				},
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(n []corev1.Node) (*etcd.Client, error) {
-					switch n[0].Name {
+				forNodesClientFunc: func(n []string) (*etcd.Client, error) {
+					switch n[0] {
 					case "n1":
 						return &etcd.Client{
 							EtcdClient: &fake2.FakeEtcdClient{

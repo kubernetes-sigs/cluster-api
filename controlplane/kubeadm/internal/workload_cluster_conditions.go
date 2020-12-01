@@ -101,7 +101,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		}
 
 		// Create the etcd Client for the etcd Pod scheduled on the Node
-		etcdClient, err := w.etcdClientGenerator.forNodes(ctx, []corev1.Node{node})
+		etcdClient, err := w.etcdClientGenerator.forNodes(ctx, []string{node.Name})
 		if err != nil {
 			conditions.MarkUnknown(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberInspectionFailedReason, "Failed to connect to the etcd pod on the %s node", node.Name)
 			continue

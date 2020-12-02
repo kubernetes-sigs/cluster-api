@@ -145,10 +145,18 @@ process.
 
 ## Backporting a Patch
 
-Cluster API maintains older versions through `release-X.Y` branches. We accept backports of bug fixes to the most recent
-release branch. For example, if the most recent branch is `release-0.2`, and the `master` branch is under active
-development for v0.3.0, a bug fix that merged to `master` that also affects `v0.2.x` may be considered for backporting
-to `release-0.2`. We generally do not accept PRs against older release branches.
+Cluster API maintains older versions through `release-X.Y` branches.
+We accept backports of bug fixes and non breaking features to the most recent release branch.
+Backports MUST not be breaking for both API and behavioral changes.
+We generally do not accept PRs against older release branches.
+
+As an example:
+
+  Let's assume that the most recent release branch is `release-0.3`
+  and the main branch is under active development for the next release.
+  A pull request that has been merged in the main branch can be backported to the `release-0.3`
+  if at least one maintainer approves the cherry pick, or asks the PR's author to backport.
+
 
 ## Features and bugs
 

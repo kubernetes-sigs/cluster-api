@@ -47,7 +47,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -682,24 +681,6 @@ func IsSupportedVersionSkew(a, b semver.Version) bool {
 		return a.Minor-b.Minor == 1
 	}
 	return b.Minor-a.Minor <= 1
-}
-
-// NewDelegatingClientFunc returns a manager.NewClientFunc to be used when creating
-// a new controller runtime manager.
-//
-// A delegating client reads from the cache and writes directly to the server.
-// This avoids getting unstructured objects directly from the server
-//
-// See issue: https://github.com/kubernetes-sigs/cluster-api/issues/1663
-func ManagerDelegatingClientFunc(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error) {
-	c, err := client.New(config, options)
-	if err != nil {
-		return nil, err
-	}
-	return client.NewDelegatingClient(client.NewDelegatingClientInput{
-		CacheReader: cache,
-		Client:      c,
-	}), nil
 }
 
 // LowestNonZeroResult compares two reconciliation results

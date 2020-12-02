@@ -131,7 +131,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			gs := NewGomegaWithT(t)
 
 			gs.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-			k8sClient := fake.NewFakeClientWithScheme(scheme.Scheme, tc.toCreate...)
+			k8sClient := fake.NewClientBuilder().WithObjects(tc.toCreate...).Build()
 
 			// Create a test reconciler
 			reconciler := &MachineHealthCheckReconciler{

@@ -484,7 +484,7 @@ func TestMachineSetToMachines(t *testing.T) {
 	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	r := &MachineSetReconciler{
-		Client: fake.NewFakeClientWithScheme(scheme.Scheme, append(machineSetList, &m, &m2, &m3)...),
+		Client: fake.NewClientBuilder().WithObjects(append(machineSetList, &m, &m2, &m3)...).Build(),
 	}
 
 	for _, tc := range testsCases {

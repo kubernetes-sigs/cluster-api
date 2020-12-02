@@ -92,8 +92,15 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
-	// run preflight checks ensuring the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
-	if result, err := r.preflightChecks(ctx, controlPlane); err != nil || !result.IsZero() {
+	// Pick the Machine that we should scale down.
+	machineToDelete, err := selectMachineForScaleDown(controlPlane, outdatedMachines)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to select machine for scale down")
+	}
+
+	// Run preflight checks ensuring the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
+	// Given that we're scaling down, we can exclude the machineToDelete from the preflight checks.
+	if result, err := r.preflightChecks(ctx, controlPlane, machineToDelete); err != nil || !result.IsZero() {
 		return result, err
 	}
 
@@ -101,11 +108,6 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	if err != nil {
 		logger.Error(err, "Failed to create client to workload cluster")
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create client to workload cluster")
-	}
-
-	machineToDelete, err := selectMachineForScaleDown(controlPlane, outdatedMachines)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to select machine for scale down")
 	}
 
 	if machineToDelete == nil {
@@ -151,7 +153,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 // If the control plane is not passing preflight checks, it requeue.
 //
 // NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneConditions before this.
-func (r *KubeadmControlPlaneReconciler) preflightChecks(_ context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) { //nolint:unparam
+func (r *KubeadmControlPlaneReconciler) preflightChecks(_ context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) (ctrl.Result, error) { //nolint:unparam
 	logger := controlPlane.Logger()
 
 	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet,
@@ -179,7 +181,18 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(_ context.Context, contr
 		)
 	}
 	machineErrors := []error{}
+
+loopmachines:
 	for _, machine := range controlPlane.Machines {
+
+		for _, excluded := range excludeFor {
+			// If this machine should be excluded from the individual
+			// health check, continue the out loop.
+			if machine.Name == excluded.Name {
+				continue loopmachines
+			}
+		}
+
 		for _, condition := range allMachineHealthConditions {
 			if err := preflightCheckCondition("machine", machine, condition); err != nil {
 				machineErrors = append(machineErrors, err)
@@ -188,28 +201,6 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(_ context.Context, contr
 	}
 	if len(machineErrors) > 0 {
 		aggregatedError := kerrors.NewAggregate(machineErrors)
-		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
-			"Waiting for control plane to pass preflight checks to continue reconciliation: %v", aggregatedError)
-		logger.Info("Waiting for control plane to pass preflight checks", "failures", aggregatedError.Error())
-
-		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
-	}
-
-	// Check KCP conditions ; if there are health problems wait.
-	// NOTE: WE are checking KCP conditions for problems that can't be assigned to a specific machine, e.g.
-	// a control plane node without a corresponding machine
-	allKcpHealthConditions := []clusterv1.ConditionType{
-		controlplanev1.ControlPlaneComponentsHealthyCondition,
-		controlplanev1.EtcdClusterHealthyCondition,
-	}
-	kcpErrors := []error{}
-	for _, condition := range allKcpHealthConditions {
-		if err := preflightCheckCondition("control plane", controlPlane.KCP, condition); err != nil {
-			kcpErrors = append(kcpErrors, err)
-		}
-	}
-	if len(kcpErrors) > 0 {
-		aggregatedError := kerrors.NewAggregate(kcpErrors)
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
 			"Waiting for control plane to pass preflight checks to continue reconciliation: %v", aggregatedError)
 		logger.Info("Waiting for control plane to pass preflight checks", "failures", aggregatedError.Error())

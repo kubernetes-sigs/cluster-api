@@ -236,11 +236,13 @@ func preflightCheckCondition(kind string, obj conditions.Getter, condition clust
 
 func selectMachineForScaleDown(controlPlane *internal.ControlPlane, outdatedMachines internal.FilterableMachineCollection) (*clusterv1.Machine, error) {
 	machines := controlPlane.Machines
-	if outdatedMachines.Len() > 0 {
+	switch {
+	case controlPlane.MachineWithDeleteAnnotation(outdatedMachines).Len() > 0:
+		machines = controlPlane.MachineWithDeleteAnnotation(outdatedMachines)
+	case controlPlane.MachineWithDeleteAnnotation(machines).Len() > 0:
+		machines = controlPlane.MachineWithDeleteAnnotation(machines)
+	case outdatedMachines.Len() > 0:
 		machines = outdatedMachines
-	}
-	if withDeleteAnnotation := controlPlane.MachineWithDeleteAnnotation(machines); withDeleteAnnotation.Len() > 0 {
-		machines = withDeleteAnnotation
 	}
 	return controlPlane.MachineInFailureDomainWithMostMachines(machines)
 }

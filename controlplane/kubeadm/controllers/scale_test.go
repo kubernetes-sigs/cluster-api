@@ -283,7 +283,7 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		expectedMachine  clusterv1.Machine
 	}{
 		{
-			name:             "when there are are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
+			name:             "when there are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
 			cp:               needsUpgradeControlPlane,
 			outDatedMachines: internal.NewFilterableMachineCollection(m5),
 			expectErr:        false,
@@ -304,9 +304,30 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-7"}},
 		},
 		{
-			name:             "when there are multiple machines marked with delete annotation key in machine collection, it returns the oldest marked machine first",
+			name:             "when there are machines marked with delete annotation key in machine collection, it returns the oldest marked machine first",
 			cp:               annotatedControlPlane,
 			outDatedMachines: internal.NewFilterableMachineCollection(m7, m8),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
+		},
+		{
+			name:             "when there are annotated machines which are part of the annotatedControlPlane but not in outdatedMachines, it returns the oldest marked machine first",
+			cp:               annotatedControlPlane,
+			outDatedMachines: internal.NewFilterableMachineCollection(),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
+		},
+		{
+			name:             "when there are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
+			cp:               needsUpgradeControlPlane,
+			outDatedMachines: internal.NewFilterableMachineCollection(m7, m3),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-7"}},
+		},
+		{
+			name:             "when there is an up to date machine with delete annotation, while there are any outdated machines without annotatio that still exist, it returns oldest marked machine first",
+			cp:               upToDateControlPlane,
+			outDatedMachines: internal.NewFilterableMachineCollection(m5, m3, m8, m7, m6, m1, m2),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
 		},

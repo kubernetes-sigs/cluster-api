@@ -208,13 +208,54 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(0))
 	})
-	t.Run("does not deletes control plane Machine if preflight checks fails", func(t *testing.T) {
+	t.Run("deletes the oldest control plane Machine even if preflight checks fails", func(t *testing.T) {
 		g := NewWithT(t)
 
 		machines := map[string]*clusterv1.Machine{
-			"one": machine("one"),
+			"one":   machine("one", withTimestamp(time.Now().Add(-1*time.Minute))),
+			"two":   machine("two", withTimestamp(time.Now())),
+			"three": machine("three", withTimestamp(time.Now())),
 		}
-		fakeClient := newFakeClient(g, machines["one"])
+		setMachineHealthy(machines["two"])
+		setMachineHealthy(machines["three"])
+		fakeClient := newFakeClient(g, machines["one"], machines["two"], machines["three"])
+
+		r := &KubeadmControlPlaneReconciler{
+			Log:      log.Log,
+			recorder: record.NewFakeRecorder(32),
+			Client:   fakeClient,
+			managementCluster: &fakeManagementCluster{
+				Workload: fakeWorkloadCluster{},
+			},
+		}
+
+		cluster := &clusterv1.Cluster{}
+		kcp := &controlplanev1.KubeadmControlPlane{}
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: machines,
+		}
+
+		result, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+		controlPlaneMachines := clusterv1.MachineList{}
+		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
+		g.Expect(controlPlaneMachines.Items).To(HaveLen(2))
+	})
+
+	t.Run("does not scale down if preflight checks fail on any machine other than the one being deleted", func(t *testing.T) {
+		g := NewWithT(t)
+
+		machines := map[string]*clusterv1.Machine{
+			"one":   machine("one", withTimestamp(time.Now().Add(-1*time.Minute))),
+			"two":   machine("two", withTimestamp(time.Now())),
+			"three": machine("three", withTimestamp(time.Now())),
+		}
+		setMachineHealthy(machines["three"])
+		fakeClient := newFakeClient(g, machines["one"], machines["two"], machines["three"])
 
 		r := &KubeadmControlPlaneReconciler{
 			Log:      log.Log,
@@ -239,7 +280,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
-		g.Expect(controlPlaneMachines.Items).To(HaveLen(1))
+		g.Expect(controlPlaneMachines.Items).To(HaveLen(3))
 	})
 }
 
@@ -347,31 +388,6 @@ func TestPreflightChecks(t *testing.T) {
 					Status: clusterv1.MachineStatus{
 						Conditions: clusterv1.Conditions{
 							*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
-							*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-							*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
-							*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
-							*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
-						},
-					},
-				},
-			},
-			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
-		},
-		{
-			name: "control plane with healthy machine conditions but with unhealthy kcp conditions should requeue",
-			kcp: &controlplanev1.KubeadmControlPlane{
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Conditions: clusterv1.Conditions{
-						*conditions.FalseCondition(controlplanev1.ControlPlaneComponentsHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
-						*conditions.TrueCondition(controlplanev1.EtcdClusterHealthyCondition),
-					},
-				},
-			},
-			machines: []*clusterv1.Machine{
-				{
-					Status: clusterv1.MachineStatus{
-						Conditions: clusterv1.Conditions{
-							*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
 							*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
 							*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
 							*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),

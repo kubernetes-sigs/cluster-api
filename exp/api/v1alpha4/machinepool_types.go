@@ -43,11 +43,6 @@ type MachinePoolSpec struct {
 	// Template describes the machines that will be created.
 	Template clusterv1.MachineTemplateSpec `json:"template"`
 
-	// The deployment strategy to use to replace existing machine instances with
-	// new ones.
-	// +optional
-	Strategy *clusterv1.MachineDeploymentStrategy `json:"strategy,omitempty"`
-
 	// Minimum number of seconds for which a newly created machine instances should
 	// be ready.
 	// Defaults to 0 (machine instance will be considered available as soon as it

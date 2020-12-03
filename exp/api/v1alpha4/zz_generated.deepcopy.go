@@ -95,11 +95,6 @@ func (in *MachinePoolSpec) DeepCopyInto(out *MachinePoolSpec) {
 		**out = **in
 	}
 	in.Template.DeepCopyInto(&out.Template)
-	if in.Strategy != nil {
-		in, out := &in.Strategy, &out.Strategy
-		*out = new(apiv1alpha4.MachineDeploymentStrategy)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.MinReadySeconds != nil {
 		in, out := &in.MinReadySeconds, &out.MinReadySeconds
 		*out = new(int32)

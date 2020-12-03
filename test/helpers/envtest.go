@@ -48,7 +48,6 @@ import (
 	addonv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	crs "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -132,7 +131,6 @@ func NewTestEnvironment() *TestEnvironment {
 	options := manager.Options{
 		Scheme:             scheme.Scheme,
 		MetricsBindAddress: "0",
-		NewClient:          util.ManagerDelegatingClientFunc,
 		CertDir:            env.WebhookInstallOptions.LocalServingCertDir,
 		Port:               env.WebhookInstallOptions.LocalServingPort,
 	}

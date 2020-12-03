@@ -454,7 +454,11 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 		},
 	}
 
-	c := fake.NewFakeClientWithScheme(scheme, myCluster)
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(myCluster).
+		Build()
+
 	objm := metav1.ObjectMeta{
 		OwnerReferences: []metav1.OwnerReference{
 			{
@@ -490,7 +494,11 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 		},
 	}
 
-	c := fake.NewFakeClientWithScheme(scheme, myMachine)
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(myMachine).
+		Build()
+
 	objm := metav1.ObjectMeta{
 		OwnerReferences: []metav1.OwnerReference{
 			{
@@ -520,7 +528,11 @@ func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
 		},
 	}
 
-	c := fake.NewFakeClientWithScheme(scheme, myMachine)
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(myMachine).
+		Build()
+
 	objm := metav1.ObjectMeta{
 		OwnerReferences: []metav1.OwnerReference{
 			{
@@ -784,7 +796,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 
 	for _, tc := range table {
 		tc.objects = append(tc.objects, cluster)
-		client := fake.NewFakeClientWithScheme(scheme, tc.objects...)
+		client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.objects...).Build()
 		f, err := ClusterToObjectsMapper(client, tc.input, scheme)
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
 		g.Expect(f(cluster)).To(ConsistOf(tc.output))

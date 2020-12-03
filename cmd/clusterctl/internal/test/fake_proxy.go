@@ -75,8 +75,7 @@ func (f *FakeProxy) NewClient() (client.Client, error) {
 	if f.cs != nil {
 		return f.cs, nil
 	}
-	f.cs = fake.NewFakeClientWithScheme(FakeScheme, f.objs...)
-
+	f.cs = fake.NewClientBuilder().WithScheme(FakeScheme).WithObjects(f.objs...).Build()
 	return f.cs, nil
 }
 

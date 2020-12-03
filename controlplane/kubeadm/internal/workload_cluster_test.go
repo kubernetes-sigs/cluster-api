@@ -147,7 +147,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			objects := []client.Object{
 				&tt.ds,
 			}
-			fakeClient := fake.NewFakeClientWithScheme(scheme, objects...)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -252,7 +252,7 @@ kind: ClusterStatus
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -309,7 +309,7 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -388,7 +388,7 @@ kubernetesVersion: v1.16.1
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -466,7 +466,7 @@ imageRepository: k8s.gcr.io
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -547,7 +547,7 @@ func TestClusterStatus(t *testing.T) {
 			g := NewWithT(t)
 			scheme := runtime.NewScheme()
 			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
-			fakeClient := fake.NewFakeClientWithScheme(scheme, tt.objs...)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}

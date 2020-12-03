@@ -64,7 +64,7 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 		// Intentionally omitted
 		newMachine(clusterName, "my-machine-2", nil),
 	}
-	c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+	c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 	r := DockerMachineReconciler{
 		Client: c,
 	}

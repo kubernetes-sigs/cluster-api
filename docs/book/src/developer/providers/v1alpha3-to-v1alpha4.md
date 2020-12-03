@@ -28,3 +28,16 @@
 
 - Rename `--metrics-addr` to `--metrics-bind-addr`
 - Rename `--leader-election` to `--leader-elect`
+
+## util.ManagerDelegatingClientFunc has been removed
+
+This function was originally used to generate a delegating client when creating a new manager.
+
+Controller Runtime v0.7.x now uses a `ClientBuilder` in its Options struct and it uses
+the delegating client by default under the hood, so this can be now removed.
+
+## Use to Controller Runtime's new fake client builder
+
+- The functions `fake.NewFakeClientWithScheme` and `fake.NewFakeClient` have been deprecated.
+- Switch to `fake.NewClientBuilder().WithObjects().Build()` instead, which provides a cleaner interface
+  to create a new fake client with objects, lists, or a scheme.

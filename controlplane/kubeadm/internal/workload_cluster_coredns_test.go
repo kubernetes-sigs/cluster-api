@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
@@ -480,7 +479,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 	t.Run("returns error if migrate failed to update corefile", func(t *testing.T) {
 		g := NewWithT(t)
 		objs := []client.Object{depl, cm}
-		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
+		fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 		fakeMigrator := &fakeMigrator{
 			migrateErr: errors.New("failed to migrate"),
 		}
@@ -512,7 +511,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		// Not including the deployment so as to fail early and verify that
 		// the intermediate config map update occurred
 		objs := []client.Object{cm}
-		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
+		fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 		fakeMigrator := &fakeMigrator{
 			migratedCorefile: "updated-core-file",
 		}
@@ -544,7 +543,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 
 		g := NewWithT(t)
 		objs := []client.Object{depl, cm}
-		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
+		fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 		fakeMigrator := &fakeMigrator{
 			migratedCorefile: "updated-core-file",
 		}
@@ -747,7 +746,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
-				fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tt.objs...)
+				fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 				w := &Workload{
 					Client: fakeClient,
 				}
@@ -857,7 +856,7 @@ scheduler: {}`,
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tt.objs...)
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -961,7 +960,7 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tt.objs...)
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 
 			w := &Workload{
 				Client: fakeClient,

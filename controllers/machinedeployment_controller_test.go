@@ -461,7 +461,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 
 	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 	r := &MachineDeploymentReconciler{
-		Client:   fake.NewFakeClientWithScheme(scheme.Scheme, machineDeplopymentList...),
+		Client:   fake.NewClientBuilder().WithObjects(machineDeplopymentList...).Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -527,7 +527,7 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 
 	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 	r := &MachineDeploymentReconciler{
-		Client:   fake.NewFakeClientWithScheme(scheme.Scheme, append(machineDeploymentList, &ms1, &ms2)...),
+		Client:   fake.NewClientBuilder().WithObjects(append(machineDeploymentList, &ms1, &ms2)...).Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -687,7 +687,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			r := &MachineDeploymentReconciler{
-				Client:   fake.NewFakeClientWithScheme(scheme.Scheme, machineSetList...),
+				Client:   fake.NewClientBuilder().WithObjects(machineSetList...).Build(),
 				recorder: record.NewFakeRecorder(32),
 			}
 

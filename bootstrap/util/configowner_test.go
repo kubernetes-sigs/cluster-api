@@ -64,7 +64,7 @@ func TestGetConfigOwner(t *testing.T) {
 			},
 		}
 
-		c := fake.NewFakeClientWithScheme(scheme, myMachine)
+		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(myMachine).Build()
 		obj := &bootstrapv1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{
@@ -107,7 +107,7 @@ func TestGetConfigOwner(t *testing.T) {
 			},
 		}
 
-		c := fake.NewFakeClientWithScheme(scheme, myPool)
+		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(myPool).Build()
 		obj := &bootstrapv1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{
@@ -132,7 +132,7 @@ func TestGetConfigOwner(t *testing.T) {
 
 	t.Run("return an error when not found", func(t *testing.T) {
 		g := NewWithT(t)
-		c := fake.NewFakeClientWithScheme(scheme)
+		c := fake.NewClientBuilder().WithScheme(scheme).Build()
 		obj := &bootstrapv1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{
@@ -152,7 +152,7 @@ func TestGetConfigOwner(t *testing.T) {
 
 	t.Run("return nothing when there is no owner", func(t *testing.T) {
 		g := NewWithT(t)
-		c := fake.NewFakeClientWithScheme(scheme)
+		c := fake.NewClientBuilder().WithScheme(scheme).Build()
 		obj := &bootstrapv1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{},

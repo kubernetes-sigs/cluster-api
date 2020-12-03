@@ -24,6 +24,8 @@ issues:
   exclude:
     - Using the variable on range scope `(tc)|(rt)|(tt)|(test)|(testcase)|(testCase)` in function literal
     - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
+    - "fake.NewFakeClientWithScheme is deprecated: Please use NewClientBuilder instead."
+    - "fake.NewFakeClient is deprecated: Please use NewClientBuilder instead."
 run:
   timeout: 10m
   skip-files:

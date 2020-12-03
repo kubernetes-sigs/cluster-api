@@ -83,35 +83,8 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 
 	inventoryObject := components.InventoryObject()
 
-	// Check the list of providers currently in the cluster and decide if to install shared components (CRDs, web-hooks) or not.
-	// We are required to install shared components in two cases:
-	// - when this is the first instance of the provider being installed.
-	// - when the version of the provider being installed is newer than the max version already installed in the cluster.
-	// Nb. this assumes the newer version of shared components are fully retro-compatible.
-	providerList, err := providerInventory.List()
-	if err != nil {
-		return err
-	}
-
-	installSharedComponents, err := shouldInstallSharedComponents(providerList, inventoryObject)
-	if err != nil {
-		return err
-	}
-	if installSharedComponents {
-		log.V(1).Info("Creating shared objects", "Provider", components.ManifestLabel(), "Version", components.Version())
-		// TODO: currently shared components overrides existing shared components. As a future improvement we should
-		//  consider if to delete (preserving CRDs) before installing so there will be no left-overs in case the list of resources changes
-		if err := providerComponents.Create(components.SharedObjs()); err != nil {
-			return err
-		}
-	} else {
-		log.V(1).Info("Shared objects already up to date", "Provider", components.ManifestLabel())
-	}
-
-	// Then always install the instance specific objects and the then inventory item for the provider
-
-	log.V(1).Info("Creating instance objects", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
-	if err := providerComponents.Create(components.InstanceObjs()); err != nil {
+	log.V(1).Info("Creating objects", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
+	if err := providerComponents.Create(components.Objs()); err != nil {
 		return err
 	}
 
@@ -121,40 +94,6 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 	}
 
 	return nil
-}
-
-// shouldInstallSharedComponents checks if it is required to install shared components for a provider.
-func shouldInstallSharedComponents(providerList *clusterctlv1.ProviderList, provider clusterctlv1.Provider) (bool, error) {
-	// Get the max version of the provider already installed in the cluster.
-	var maxVersion *version.Version
-	for _, other := range providerList.FilterByProviderNameAndType(provider.ProviderName, provider.GetProviderType()) {
-		otherVersion, err := version.ParseSemantic(other.Version)
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to parse version for the %s provider", other.InstanceName())
-		}
-		if maxVersion == nil || otherVersion.AtLeast(maxVersion) {
-			maxVersion = otherVersion
-		}
-	}
-	// If there is no max version, this is the first instance of the provider being installed, so it is required
-	// to install the shared components.
-	if maxVersion == nil {
-		return true, nil
-	}
-
-	// If the installed version is newer or equal than than the version of the provider being installed,
-	// return false because we should not down grade the shared components.
-	providerVersion, err := version.ParseSemantic(provider.Version)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to parse version for the %s provider", provider.InstanceName())
-	}
-	if maxVersion.AtLeast(providerVersion) {
-		return false, nil
-	}
-
-	// Otherwise, the version of the provider being installed is newer that the current max version, so it is
-	// required to install also the new version of shared components.
-	return true, nil
 }
 
 func (i *providerInstaller) Validate() error {

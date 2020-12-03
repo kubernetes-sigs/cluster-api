@@ -25,23 +25,8 @@ const (
 	// ClusterctlCoreLabelName is applied to all the core objects managed by clusterctl.
 	ClusterctlCoreLabelName = "clusterctl.cluster.x-k8s.io/core"
 
-	// ClusterctlResourceLifecyleLabelName describes the lifecyle for a specific resource.
-	//
-	// Example: resources shared between instances of the same provider:  CRDs,
-	// ValidatingWebhookConfiguration, MutatingWebhookConfiguration, and so on.
-	ClusterctlResourceLifecyleLabelName = "clusterctl.cluster.x-k8s.io/lifecycle"
-
 	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move that are not part of a cluster
 	ClusterctlMoveLabelName = "clusterctl.cluster.x-k8s.io/move"
-)
-
-// ResourceLifecycle configures the lifecycle of a resource
-type ResourceLifecycle string
-
-const (
-	// ResourceLifecycleShared is used to indicate that a resource is shared between
-	// multiple instances of a provider.
-	ResourceLifecycleShared = ResourceLifecycle("shared")
 )
 
 // ManifestLabel returns the cluster.x-k8s.io/provider label value for a provider/type.

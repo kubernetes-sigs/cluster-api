@@ -110,7 +110,7 @@ func (cm *certManagerClient) setManifestVersion() error {
 
 	for i := range objs {
 		o := objs[i]
-		if o.GetKind() == "CustomResourceDefinition" {
+		if o.GetKind() == customResourceDefinitionKind {
 			labels := o.GetLabels()
 			version, ok := labels[certmanagerVersionLabel]
 			if ok {
@@ -271,7 +271,7 @@ func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error 
 
 		// CRDs, and namespace are preserved in order to avoid deletion of user objects;
 		// web-hooks are preserved to avoid a user attempting to CREATE a cert-manager resource while the upgrade is in progress.
-		if obj.GetKind() == "CustomResourceDefinition" ||
+		if obj.GetKind() == customResourceDefinitionKind ||
 			obj.GetKind() == "Namespace" ||
 			obj.GetKind() == "MutatingWebhookConfiguration" ||
 			obj.GetKind() == "ValidatingWebhookConfiguration" {

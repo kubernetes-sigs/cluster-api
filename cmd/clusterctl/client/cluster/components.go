@@ -17,9 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -27,11 +24,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const customResourceDefinitionKind = "CustomResourceDefinition"
 
 type DeleteOptions struct {
 	Provider         clusterctlv1.Provider
@@ -117,10 +114,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 
 	// Fetch all the components belonging to a provider.
 	// We want that the delete operation is able to clean-up everything in a the most common use case that is
-	// single-tenant management clusters. However, the downside of this is that this operation might be destructive
-	// in multi-tenant scenario, because a single operation could delete both instance specific and shared CRDs/web-hook components.
-	// This is considered acceptable because we are considering the multi-tenant scenario an advanced use case, and the assumption
-	// is that user in this case understand the potential impacts of this operation.
+	// single-tenant management clusters.
 	// TODO: in future we can eventually block delete --IncludeCRDs in case more than one instance of a provider exists
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabelName: "",
@@ -128,10 +122,6 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	}
 
 	namespaces := []string{options.Provider.Namespace}
-	if options.IncludeCRDs {
-		namespaces = append(namespaces, repository.WebhookNamespaceName)
-	}
-
 	resources, err := p.proxy.ListResources(labels, namespaces...)
 	if err != nil {
 		return err
@@ -140,12 +130,10 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	// Filter the resources according to the delete options
 	resourcesToDelete := []unstructured.Unstructured{}
 	namespacesToDelete := sets.NewString()
-	instanceNamespacePrefix := fmt.Sprintf("%s-", options.Provider.Namespace)
 	for _, obj := range resources {
-		// If the CRDs (and by extensions, all the shared resources) should NOT be deleted, skip it;
+		// If the CRDs should NOT be deleted, skip it;
 		// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
-		isSharedResource := util.IsSharedResource(obj)
-		if !options.IncludeCRDs && isSharedResource {
+		if !options.IncludeCRDs && obj.GetKind() == customResourceDefinitionKind {
 			continue
 		}
 
@@ -162,19 +150,6 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 				continue
 			}
 			namespacesToDelete.Insert(obj.GetName())
-		}
-
-		// If not a shared resource or not a namespace
-		if !isSharedResource && !isNamespace {
-			// If the resource is a cluster resource, skip it if the resource name does not start with the instance prefix.
-			// This is required because there are cluster resources like e.g. ClusterRoles and ClusterRoleBinding, which are instance specific;
-			// During the installation, clusterctl adds the instance namespace prefix to such resources (see fixRBAC), and so we can rely
-			// on that for deleting only the global resources belonging the the instance we are processing.
-			if util.IsClusterResource(obj.GetKind()) {
-				if !strings.HasPrefix(obj.GetName(), instanceNamespacePrefix) {
-					continue
-				}
-			}
 		}
 
 		resourcesToDelete = append(resourcesToDelete, obj)

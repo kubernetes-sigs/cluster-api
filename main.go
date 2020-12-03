@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -155,16 +156,21 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "controller-leader-election-capi",
-		LeaseDuration:          &leaderElectionLeaseDuration,
-		RenewDeadline:          &leaderElectionRenewDeadline,
-		RetryPeriod:            &leaderElectionRetryPeriod,
-		Namespace:              watchNamespace,
-		SyncPeriod:             &syncPeriod,
-		NewClient:              util.ManagerDelegatingClientFunc,
+		Scheme:             scheme,
+		MetricsBindAddress: metricsAddr,
+		LeaderElection:     enableLeaderElection,
+		LeaderElectionID:   "controller-leader-election-capi",
+		LeaseDuration:      &leaderElectionLeaseDuration,
+		RenewDeadline:      &leaderElectionRenewDeadline,
+		RetryPeriod:        &leaderElectionRetryPeriod,
+		Namespace:          watchNamespace,
+		SyncPeriod:         &syncPeriod,
+		NewClient: util.DelegatingClientFuncWithUncached(
+			&corev1.ConfigMap{},
+			&corev1.ConfigMapList{},
+			&corev1.Secret{},
+			&corev1.SecretList{},
+		),
 		Port:                   webhookPort,
 		HealthProbeBindAddress: healthAddr,
 	})

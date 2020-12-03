@@ -64,6 +64,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	By("starting the manager")
 	go func() {
+		defer GinkgoRecover()
 		Expect(testEnv.StartManager()).To(Succeed())
 	}()
 

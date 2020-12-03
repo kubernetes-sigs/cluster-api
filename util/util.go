@@ -684,7 +684,7 @@ func IsSupportedVersionSkew(a, b semver.Version) bool {
 	return b.Minor-a.Minor <= 1
 }
 
-// NewDelegatingClientFunc returns a manager.NewClientFunc to be used when creating
+// ManagerDelegatingClientFunc is a manager.NewClientFunc to be used when creating
 // a new controller runtime manager.
 //
 // A delegating client reads from the cache and writes directly to the server.
@@ -701,6 +701,91 @@ func ManagerDelegatingClientFunc(cache cache.Cache, config *rest.Config, options
 		Writer:       c,
 		StatusClient: c,
 	}, nil
+}
+
+// DelegatingClientFuncWithUncached returns a manager.NewClientFunc to be used when creating
+// a new controller runtime manager.
+//
+// A delegating client reads from the cache and writes directly to the server.
+// This avoids getting unstructured objects directly from the server.
+//
+// In addition, this function builds a custom reader that used the input list of objects
+// to determine which GVK should always query the live server, instead of going through a cache.
+func DelegatingClientFuncWithUncached(uncachedObjects ...runtime.Object) func(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error) {
+	return func(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error) {
+		uncachedGVKs := make(map[schema.GroupVersionKind]struct{}, len(uncachedObjects))
+		for _, obj := range uncachedObjects {
+			gvk, err := apiutil.GVKForObject(obj, options.Scheme)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to retrieve GVK for uncached object")
+			}
+			uncachedGVKs[gvk] = struct{}{}
+		}
+
+		// Create a live client.
+		c, err := client.New(config, options)
+		if err != nil {
+			return nil, err
+		}
+		return &client.DelegatingClient{
+			// The custom delegatingReader is defined in this package and is a custom client.Reader
+			// that routes the uncached GVK to the API Server using the live client created above.
+			//
+			// It also maintains the client.DelegatingReader behavior of bypassing the cache for
+			// unstructured objects and lists.
+			Reader: &delegatingReader{
+				liveReader:   c,
+				cacheReader:  cache,
+				uncachedGVKs: uncachedGVKs,
+				scheme:       options.Scheme,
+			},
+			Writer:       c,
+			StatusClient: c,
+		}, nil
+	}
+}
+
+type delegatingReader struct {
+	liveReader   client.Reader
+	cacheReader  client.Reader
+	uncachedGVKs map[schema.GroupVersionKind]struct{}
+	scheme       *runtime.Scheme
+}
+
+func (d *delegatingReader) shouldBypassCache(obj runtime.Object) (bool, error) {
+	if _, isUnstructured := obj.(*unstructured.Unstructured); isUnstructured {
+		return true, nil
+	}
+	if _, isUnstructuredList := obj.(*unstructured.UnstructuredList); isUnstructuredList {
+		return true, nil
+	}
+
+	gvk, err := apiutil.GVKForObject(obj, d.scheme)
+	if err != nil {
+		return false, err
+	}
+	_, isUncached := d.uncachedGVKs[gvk]
+	return isUncached, nil
+}
+
+// Get retrieves an obj for a given object key from the Kubernetes Cluster.
+func (d *delegatingReader) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+	if isUncached, err := d.shouldBypassCache(obj); err != nil {
+		return err
+	} else if isUncached {
+		return d.liveReader.Get(ctx, key, obj)
+	}
+	return d.cacheReader.Get(ctx, key, obj)
+}
+
+// List retrieves list of objects for a given namespace and list options.
+func (d *delegatingReader) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+	if isUncached, err := d.shouldBypassCache(list); err != nil {
+		return err
+	} else if isUncached {
+		return d.liveReader.List(ctx, list, opts...)
+	}
+	return d.cacheReader.List(ctx, list, opts...)
 }
 
 // LowestNonZeroResult compares two reconciliation results

@@ -463,6 +463,12 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 }
 
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
+	// reconcileControlPlane instead).
+	if cluster.Spec.ControlPlaneRef != nil {
+		return ctrl.Result{}, nil
+	}
+
 	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return ctrl.Result{}, nil
 	}
@@ -505,7 +511,7 @@ func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl
 		return nil
 	}
 
-	if cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return nil
 	}
 

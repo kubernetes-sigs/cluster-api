@@ -112,7 +112,7 @@ func TestWatches(t *testing.T) {
 	// Patch cluster control plane initialized (this is required to start node watch)
 	patchHelper, err := patch.NewHelper(testCluster, testEnv)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	testCluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(testCluster, clusterv1.ControlPlaneInitializedCondition)
 	g.Expect(patchHelper.Patch(ctx, testCluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch infra machine ready

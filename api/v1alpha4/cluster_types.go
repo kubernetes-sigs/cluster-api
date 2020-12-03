@@ -128,10 +128,6 @@ type ClusterStatus struct {
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
 
-	// ControlPlaneInitialized defines if the control plane has been initialized.
-	// +optional
-	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
-
 	// ControlPlaneReady defines if the control plane is ready.
 	// +optional
 	ControlPlaneReady bool `json:"controlPlaneReady,omitempty"`

@@ -137,6 +137,14 @@ func (c *ControlPlane) MachineInFailureDomainWithMostMachines(machines Filterabl
 	return machineToMark, nil
 }
 
+// MachineWithDeleteAnnotation returns a machine that has been annotated with DeleteMachineAnnotation key.
+func (c *ControlPlane) MachineWithDeleteAnnotation(machines FilterableMachineCollection) FilterableMachineCollection {
+	// See if there are any machines with DeleteMachineAnnotation key.
+	annotatedMachines := machines.Filter(machinefilters.HasAnnotationKey(clusterv1.DeleteMachineAnnotation))
+	// If there are, return list of annotated machines.
+	return annotatedMachines
+}
+
 // FailureDomainWithMostMachines returns a fd which exists both in machines and control-plane machines and has the most
 // control-plane machines on it.
 func (c *ControlPlane) FailureDomainWithMostMachines(machines FilterableMachineCollection) *string {
@@ -150,7 +158,6 @@ func (c *ControlPlane) FailureDomainWithMostMachines(machines FilterableMachineC
 		// in the cluster status.
 		return notInFailureDomains.Oldest().Spec.FailureDomain
 	}
-
 	return PickMost(c, machines)
 }
 
@@ -275,7 +282,7 @@ func getInfraResources(ctx context.Context, cl client.Client, machines Filterabl
 	return result, nil
 }
 
-// getInfraResources fetches the kubeadm config for each machine in the collection and returns a map of machine.Name -> KubeadmConfig.
+// getKubeadmConfigs fetches the kubeadm config for each machine in the collection and returns a map of machine.Name -> KubeadmConfig.
 func getKubeadmConfigs(ctx context.Context, cl client.Client, machines FilterableMachineCollection) (map[string]*bootstrapv1.KubeadmConfig, error) {
 	result := map[string]*bootstrapv1.KubeadmConfig{}
 	for _, m := range machines {

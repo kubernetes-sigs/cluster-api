@@ -592,12 +592,11 @@ func TestGetMachinesForCluster(t *testing.T) {
 		},
 	}
 
-	c := fake.NewFakeClientWithScheme(
-		scheme,
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		machine,
 		machineDifferentClusterNameSameNamespace,
 		machineSameClusterNameDifferentNamespace,
-	)
+	).Build()
 
 	machines, err := GetMachinesForCluster(ctx, c, cluster)
 	g.Expect(err).NotTo(HaveOccurred())

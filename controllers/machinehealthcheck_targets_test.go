@@ -302,7 +302,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			gs := NewGomegaWithT(t)
 
 			gs.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-			k8sClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
 			// Create a test reconciler
 			reconciler := &MachineHealthCheckReconciler{

@@ -131,9 +131,13 @@ func TestClusterReconcilePhases(t *testing.T) {
 				var c client.Client
 				if tt.infraRef != nil {
 					infraConfig := &unstructured.Unstructured{Object: tt.infraRef}
-					c = fake.NewClientBuilder().WithObjects(external.TestGenericInfrastructureCRD.DeepCopy(), tt.cluster, infraConfig).Build()
+					c = fake.NewClientBuilder().
+						WithObjects(external.TestGenericInfrastructureCRD.DeepCopy(), tt.cluster, infraConfig).
+						Build()
 				} else {
-					c = fake.NewClientBuilder().WithObjects(external.TestGenericInfrastructureCRD.DeepCopy(), tt.cluster).Build()
+					c = fake.NewClientBuilder().
+						WithObjects(external.TestGenericInfrastructureCRD.DeepCopy(), tt.cluster).
+						Build()
 				}
 				r := &ClusterReconciler{
 					Client: c,
@@ -208,9 +212,15 @@ func TestClusterReconcilePhases(t *testing.T) {
 				g := NewWithT(t)
 				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
-				c := fake.NewFakeClientWithScheme(scheme.Scheme, tt.cluster)
+				c := fake.NewClientBuilder().
+					WithScheme(scheme.Scheme).
+					WithObjects(tt.cluster).
+					Build()
 				if tt.secret != nil {
-					c = fake.NewFakeClientWithScheme(scheme.Scheme, tt.cluster, tt.secret)
+					c = fake.NewClientBuilder().
+						WithScheme(scheme.Scheme).
+						WithObjects(tt.cluster, tt.secret).
+						Build()
 				}
 				r := &ClusterReconciler{
 					Client: c,
@@ -359,7 +369,10 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
-			c := fake.NewFakeClientWithScheme(scheme.Scheme, tt.cluster)
+			c := fake.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithObjects(tt.cluster).
+				Build()
 
 			r := &ClusterReconciler{
 				Client: c,

@@ -8,8 +8,8 @@ The Machine controller's main responsibilities are:
     * Each Machine object to the Cluster object.
     * The associated BootstrapConfig object.
     * The associated InfrastructureMachine object.
-* Copy data from `BootstrapConfig.Status.BootstrapData` to `Machine.Spec.Bootstrap.Data` if
-`Machine.Spec.Bootstrap.Data` is empty.
+* Copy data from `BootstrapConfig.Status.DataSecretName` to `Machine.Spec.Bootstrap.DataSecretName` if
+`Machine.Spec.Bootstrap.DataSecretName` is empty.
 * Setting NodeRefs to be able to associate machines and kubernetes nodes.
 * Deleting Nodes in the target cluster when the associated machine is deleted.
 * Cleanup of related objects.

@@ -278,7 +278,7 @@ spec:
                 description: Bootstrap is a reference to a local struct which encapsulates fields to configure the Machine’s bootstrapping mechanism.
                 properties:
                   configRef:
-                    description: ConfigRef is a reference to a bootstrap provider-specific resource that holds configuration details. The reference is optional to allow users/operators to specify Bootstrap.Data without the need of a controller.
+                    description: ConfigRef is a reference to a bootstrap provider-specific resource that holds configuration details. The reference is optional to allow users/operators to specify Bootstrap.DataSecretName without the need of a controller.
                     properties:
                       apiVersion:
                         description: API version of the referent.
@@ -302,9 +302,6 @@ spec:
                         description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                         type: string
                     type: object
-                  data:
-                    description: "Data contains the bootstrap data, such as cloud-init details scripts. If nil, the Machine should remain in the Pending state. \n Deprecated: This field has been deprecated in v1alpha4 and will be removed in a future version. Switch to DataSecretName."
-                    type: string
                   dataSecretName:
                     description: DataSecretName is the name of the secret that stores the bootstrap data script. If nil, the Machine should remain in the Pending state.
                     type: string

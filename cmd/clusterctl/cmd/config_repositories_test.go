@@ -112,6 +112,7 @@ aws                 InfrastructureProvider                                      
 azure               InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/               infrastructure-components.yaml
 digitalocean        InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/releases/latest/        infrastructure-components.yaml
 docker              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                              infrastructure-components-development.yaml
+gcp                 InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/                 infrastructure-components.yaml
 metal3              InfrastructureProvider   https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                    infrastructure-components.yaml
 my-infra-provider   InfrastructureProvider   /home/.cluster-api/overrides/infrastructure-docker/latest/                                   infrastructure-components.yaml
 openstack           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/           infrastructure-components.yaml
@@ -168,6 +169,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: docker
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
+- File: infrastructure-components.yaml
+  Name: gcp
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/
 - File: infrastructure-components.yaml
   Name: metal3
   ProviderType: InfrastructureProvider

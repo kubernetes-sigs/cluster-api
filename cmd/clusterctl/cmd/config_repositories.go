@@ -60,7 +60,7 @@ var configRepositoryCmd = &cobra.Command{
 	Example: Examples(`
 		# Displays the list of available providers.
 		clusterctl config repositories
-		
+
 		# Print the list of available providers in yaml format.
 		clusterctl config repositories -o yaml`),
 

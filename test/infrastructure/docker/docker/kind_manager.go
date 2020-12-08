@@ -118,6 +118,7 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 		// some k8s things want to read /lib/modules
 		"--volume", "/lib/modules:/lib/modules:ro",
 		"--hostname", name, // make hostname match container name
+		"--network", defaultNetwork,
 		"--name", name, // ... and set the container name
 		// label the node with the cluster ID
 		"--label", clusterLabel,
@@ -186,8 +187,7 @@ type proxyDetails struct {
 }
 
 const (
-	// Docker default bridge network is named "bridge" (https://docs.docker.com/network/bridge/#use-the-default-bridge-network)
-	defaultNetwork = "bridge"
+	defaultNetwork = "kind"
 	httpProxy      = "HTTP_PROXY"
 	httpsProxy     = "HTTPS_PROXY"
 	noProxy        = "NO_PROXY"

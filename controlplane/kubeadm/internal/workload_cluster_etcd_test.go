@@ -577,7 +577,7 @@ type fakeEtcdClientGenerator struct {
 	forLeaderErr       error
 }
 
-func (c *fakeEtcdClientGenerator) forNodes(_ context.Context, n []string) (*etcd.Client, error) {
+func (c *fakeEtcdClientGenerator) forFirstAvailableNode(_ context.Context, n []string) (*etcd.Client, error) {
 	if c.forNodesClientFunc != nil {
 		return c.forNodesClientFunc(n)
 	}

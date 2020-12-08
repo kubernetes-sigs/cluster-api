@@ -30,24 +30,44 @@ import (
 
 // etcdClientGenerator generates etcd clients that connect to specific etcd members on particular control plane nodes.
 type etcdClientGenerator struct {
-	restConfig *rest.Config
-	tlsConfig  *tls.Config
+	restConfig   *rest.Config
+	tlsConfig    *tls.Config
+	createClient clientCreator
 }
 
-func (c *etcdClientGenerator) forNodes(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
-	endpoints := make([]string, len(nodeNames))
-	for i, name := range nodeNames {
-		endpoints[i] = staticPodName("etcd", name)
+type clientCreator func(ctx context.Context, endpoints []string) (*etcd.Client, error)
+
+// NewEtcdClientGenerator returns a new etcdClientGenerator instance.
+func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config) *etcdClientGenerator {
+	ecg := &etcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
+
+	ecg.createClient = func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+		p := proxy.Proxy{
+			Kind:       "pods",
+			Namespace:  metav1.NamespaceSystem,
+			KubeConfig: ecg.restConfig,
+			TLSConfig:  ecg.tlsConfig,
+			Port:       2379,
+		}
+		return etcd.NewClient(ctx, endpoints, p, ecg.tlsConfig)
 	}
 
-	p := proxy.Proxy{
-		Kind:       "pods",
-		Namespace:  metav1.NamespaceSystem,
-		KubeConfig: c.restConfig,
-		TLSConfig:  c.tlsConfig,
-		Port:       2379,
+	return ecg
+}
+
+// forFirstAvailableNode takes a list of nodes and returns a client for the first one that connects.
+func (c *etcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
+	var errs []error
+	for _, name := range nodeNames {
+		endpoints := []string{staticPodName("etcd", name)}
+		client, err := c.createClient(ctx, endpoints)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		return client, nil
 	}
-	return etcd.NewClient(ctx, endpoints, p, c.tlsConfig)
+	return nil, errors.Wrap(kerrors.NewAggregate(errs), "could not establish a connection to any etcd node")
 }
 
 // forLeader takes a list of nodes and returns a client to the leader node
@@ -55,7 +75,7 @@ func (c *etcdClientGenerator) forLeader(ctx context.Context, nodeNames []string)
 	var errs []error
 
 	for _, nodeName := range nodeNames {
-		client, err := c.forNodes(ctx, []string{nodeName})
+		client, err := c.forFirstAvailableNode(ctx, []string{nodeName})
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -68,7 +88,7 @@ func (c *etcdClientGenerator) forLeader(ctx context.Context, nodeNames []string)
 		}
 		for _, member := range members {
 			if member.Name == nodeName && member.ID == client.LeaderID {
-				return c.forNodes(ctx, []string{nodeName})
+				return c.forFirstAvailableNode(ctx, []string{nodeName})
 			}
 		}
 	}

@@ -1,0 +1,33 @@
+@startuml
+
+start
+
+:MachinePool controller;
+repeat
+:MachinePool controller enqueues a Reconcile call;
+if (Deleted?) then (yes)
+    :Reconcile deletion;
+    :Delete implementation-specific finalizer;
+else (no)
+        :Add implementation-specific finalizer if needed;
+        if (Bootstrap config is ready) then (yes)
+          #LightBlue:Set Bootstrap.DataSecretName for machine pool if nil;
+          if (Infrastructure is ready) then (yes)
+            #LightBlue:Update MachinePool ProviderIDList and Status;
+            :Delete retired nodes;
+            #LightBlue:Update NodeRefs and Status replicas;
+            #LightBlue:Set MachinePool Phase;
+          else (no)
+          endif
+        else (no)
+        endif
+endif
+#LightBlue:Patch MachinePool back to API server;
+repeat while (Reconcile returned RequeueError?) is (yes)
+if (Reconcile returned error) then (yes)
+#Pink:Error reconciling control plane;
+else (no)
+endif
+stop
+
+@enduml

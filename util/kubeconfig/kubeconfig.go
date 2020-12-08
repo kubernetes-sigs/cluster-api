@@ -143,6 +143,7 @@ func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner me
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: data,
 		},
+		Type: clusterv1.ClusterSecretType,
 	}
 }
 

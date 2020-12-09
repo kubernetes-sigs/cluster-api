@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -207,6 +208,8 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	for i, t := range targets {
 		m.Status.Targets[i] = t.Machine.Name
 	}
+	// do sort to avoid keep changing m.Status as the returned machines are not in order
+	sort.Strings(m.Status.Targets)
 
 	// health check all targets and reconcile mhc status
 	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)

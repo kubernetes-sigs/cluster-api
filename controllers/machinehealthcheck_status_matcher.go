@@ -54,7 +54,7 @@ func (m machineHealthCheckStatusMatcher) Match(actual interface{}) (success bool
 	if !ok {
 		return ok, err
 	}
-	ok, err = ConsistOf(m.expected.Targets).Match(actualStatus.Targets)
+	ok, err = Equal(m.expected.Targets).Match(actualStatus.Targets)
 	if !ok {
 		return ok, err
 	}

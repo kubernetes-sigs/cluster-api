@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -203,6 +204,8 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
+
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
 			err := testEnv.Get(ctx, util.ObjectKey(mhc), mhc)
@@ -258,6 +261,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
@@ -316,6 +320,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
@@ -412,6 +417,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
@@ -508,6 +514,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Make sure the MHC status matches. We have two healthy machines and
 		// one unhealthy.
@@ -596,6 +603,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Forcibly remove the last machine's node.
 		g.Eventually(func() bool {
@@ -688,6 +696,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
@@ -945,6 +954,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
@@ -1094,6 +1104,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
@@ -1240,6 +1251,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		for i, m := range machines {
 			targetMachines[i] = m.Name
 		}
+		sort.Strings(targetMachines)
 
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {

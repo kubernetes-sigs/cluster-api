@@ -7,9 +7,13 @@ approvers:
   - cluster-api-maintainers
 
 emeritus_approvers:
-  - roberthbailey
-  - kris-nova
   - chuckha
+  - kris-nova
+  - ncdc
+  - roberthbailey
+
+emeritus_maintainers:
+  - ncdc
 
 reviewers:
   - cluster-api-maintainers

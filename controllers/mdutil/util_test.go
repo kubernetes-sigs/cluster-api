@@ -411,7 +411,7 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 	*(ms1.Spec.Replicas) = 1
 	ms1.Status.Replicas = 2
 	ms2 := generateMS(generateDeployment("bar"))
-	*(ms2.Spec.Replicas) = 2
+	*(ms2.Spec.Replicas) = 5
 	ms2.Status.Replicas = 3
 
 	tests := []struct {
@@ -419,18 +419,21 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 		Sets           []*clusterv1.MachineSet
 		ExpectedCount  int32
 		ExpectedActual int32
+		ExpectedTotal  int32
 	}{
 		{
 			Name:           "1:2 Replicas",
 			Sets:           []*clusterv1.MachineSet{&ms1},
 			ExpectedCount:  1,
 			ExpectedActual: 2,
+			ExpectedTotal:  2,
 		},
 		{
-			Name:           "3:5 Replicas",
+			Name:           "6:5 Replicas",
 			Sets:           []*clusterv1.MachineSet{&ms1, &ms2},
-			ExpectedCount:  3,
+			ExpectedCount:  6,
 			ExpectedActual: 5,
+			ExpectedTotal:  7,
 		},
 	}
 
@@ -440,6 +443,7 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 
 			g.Expect(GetReplicaCountForMachineSets(test.Sets)).To(Equal(test.ExpectedCount))
 			g.Expect(GetActualReplicaCountForMachineSets(test.Sets)).To(Equal(test.ExpectedActual))
+			g.Expect(TotalMachineSetsReplicaSum(test.Sets)).To(Equal(test.ExpectedTotal))
 		})
 	}
 }

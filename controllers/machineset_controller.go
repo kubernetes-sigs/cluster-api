@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -208,7 +207,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
 		machine := &allMachines.Items[idx]
-		if shouldExcludeMachine(machineSet, machine, log) {
+		if shouldExcludeMachine(machineSet, machine) {
 			continue
 		}
 
@@ -228,6 +227,11 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 
 	var errs []error
 	for _, machine := range filteredMachines {
+		// filteredMachines contains machines in deleting status to calculate correct status.
+		// skip remediation for those in deleting status.
+		if !machine.DeletionTimestamp.IsZero() {
+			continue
+		}
 		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
 			log.Info("Deleting unhealthy machine", "machine", machine.GetName())
 			patch := client.MergeFrom(machine.DeepCopy())
@@ -436,12 +440,12 @@ func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *
 }
 
 // shouldExcludeMachine returns true if the machine should be filtered out, false otherwise.
-func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine, logger logr.Logger) bool {
+func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) bool {
 	if metav1.GetControllerOf(machine) != nil && !metav1.IsControlledBy(machine, machineSet) {
-		logger.V(4).Info("Machine is not controlled by machineset", "machine", machine.Name)
 		return true
 	}
-	return !machine.ObjectMeta.DeletionTimestamp.IsZero()
+
+	return false
 }
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.

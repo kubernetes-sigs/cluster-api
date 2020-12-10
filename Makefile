@@ -532,17 +532,6 @@ release-notes: $(RELEASE_NOTES)  ## Generates a release notes template to be use
 	$(RELEASE_NOTES)
 
 ## --------------------------------------
-## Docker - Example Provider
-## --------------------------------------
-
-EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
-
-.PHONY: docker-build-example-provider
-docker-build-example-provider: ## Build the docker image for example provider
-	DOCKER_BUILDKIT=1 docker build --pull --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
-	sed -i'' -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager/manager_image_patch.yaml
-
-## --------------------------------------
 ## Cleanup / Verification
 ## --------------------------------------
 

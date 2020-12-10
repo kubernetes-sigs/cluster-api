@@ -23,7 +23,6 @@ aliases:
   cluster-api-maintainers:
   - justinsb
   - detiber
-  - ncdc
   - vincepri
   - CecileRobertMichon
 
@@ -48,7 +47,7 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-provider-docker-maintainers:
-  - ncdc
+  - fabriziopandini
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm
@@ -56,12 +55,10 @@ aliases:
 
   cluster-api-bootstrap-provider-kubeadm-maintainers:
   - fabriziopandini
-  - ncdc
   - SataQiu
 
   cluster-api-bootstrap-provider-kubeadm-reviewers:
   - fabriziopandini
-  - ncdc
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for cmd/clusterctl

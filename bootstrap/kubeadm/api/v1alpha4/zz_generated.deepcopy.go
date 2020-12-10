@@ -273,11 +273,6 @@ func (in *KubeadmConfigStatus) DeepCopyInto(out *KubeadmConfigStatus) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.BootstrapData != nil {
-		in, out := &in.BootstrapData, &out.BootstrapData
-		*out = make([]byte, len(*in))
-		copy(*out, *in)
-	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1alpha4.Conditions, len(*in))

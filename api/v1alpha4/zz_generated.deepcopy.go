@@ -51,11 +51,6 @@ func (in *Bootstrap) DeepCopyInto(out *Bootstrap) {
 		*out = new(v1.ObjectReference)
 		**out = **in
 	}
-	if in.Data != nil {
-		in, out := &in.Data, &out.Data
-		*out = new(string)
-		**out = **in
-	}
 	if in.DataSecretName != nil {
 		in, out := &in.DataSecretName, &out.DataSecretName
 		*out = new(string)

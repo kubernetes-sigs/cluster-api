@@ -522,7 +522,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError: true,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
-				g.Expect(m.Spec.Template.Spec.Bootstrap.Data).To(BeNil())
+				g.Expect(m.Spec.Template.Spec.Bootstrap.DataSecretName).To(BeNil())
 			},
 		},
 		{
@@ -603,7 +603,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
-								Data: pointer.StringPtr("#!/bin/bash ... data"),
+								DataSecretName: pointer.StringPtr("data"),
 							},
 						},
 					},
@@ -615,7 +615,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError: false,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(*m.Spec.Template.Spec.Bootstrap.Data).To(Equal("#!/bin/bash ... data"))
+				g.Expect(*m.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("data"))
 			},
 		},
 		{
@@ -647,7 +647,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
-								Data: pointer.StringPtr("#!/bin/bash ... data"),
+								DataSecretName: pointer.StringPtr("data"),
 							},
 						},
 					},

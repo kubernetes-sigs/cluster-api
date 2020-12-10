@@ -367,7 +367,7 @@ func TestMachineFinalizer(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				Data: &bootstrapData,
+				DataSecretName: &bootstrapData,
 			},
 			ClusterName: "valid-cluster",
 		},
@@ -381,7 +381,7 @@ func TestMachineFinalizer(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				Data: &bootstrapData,
+				DataSecretName: &bootstrapData,
 			},
 			ClusterName: "valid-cluster",
 		},
@@ -463,7 +463,7 @@ func TestMachineOwnerReference(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				Data: &bootstrapData,
+				DataSecretName: &bootstrapData,
 			},
 			ClusterName: "test-cluster",
 		},
@@ -487,7 +487,7 @@ func TestMachineOwnerReference(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				Data: &bootstrapData,
+				DataSecretName: &bootstrapData,
 			},
 			ClusterName: "test-cluster",
 		},
@@ -512,7 +512,7 @@ func TestMachineOwnerReference(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				Data: &bootstrapData,
+				DataSecretName: &bootstrapData,
 			},
 			ClusterName: "test-cluster",
 		},
@@ -1127,7 +1127,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 				Kind:       "InfrastructureMachine",
 				Name:       "infra-config1",
 			},
-			Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
@@ -1247,7 +1247,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1264,7 +1264,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
 				},
 
@@ -1291,7 +1291,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
 				},
 				Status: clusterv1.MachineStatus{
@@ -1317,7 +1317,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Conditions: clusterv1.Conditions{
@@ -1370,7 +1370,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1388,7 +1388,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1415,7 +1415,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1440,7 +1440,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1484,7 +1484,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1518,7 +1518,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1552,7 +1552,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1614,7 +1614,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1634,7 +1634,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{

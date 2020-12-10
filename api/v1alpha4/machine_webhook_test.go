@@ -65,7 +65,7 @@ func TestMachineBootstrapValidation(t *testing.T) {
 		},
 		{
 			name:      "should not return error if config ref is set",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}, Data: nil},
+			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}, DataSecretName: nil},
 			expectErr: false,
 		},
 	}

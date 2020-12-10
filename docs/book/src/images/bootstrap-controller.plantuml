@@ -5,10 +5,10 @@ title Figure 1: State diagram with a generic provider
 
 note right
 - Bootstrap provider watches Machines in "pending" state,
-  generates //BootstrapConfig.Status.BootstrapData// and sets
+  generates //BootstrapConfig.Status.DataSecretName// and sets
   //BootstrapConfig.Status.Ready// = true.
-- Machine controller sets //Machine.Spec.Bootstrap.Data//
-  from //BootstrapConfig.Status.BootstrapData//.
+- Machine controller sets //Machine.Spec.Bootstrap.DataSecretName//
+  from //BootstrapConfig.Status.DataSecretName//.
 - Machine controller can now transition to the next state.
 end note
 

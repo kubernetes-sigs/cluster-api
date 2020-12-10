@@ -1359,10 +1359,6 @@ spec:
           status:
             description: KubeadmConfigStatus defines the observed state of KubeadmConfig
             properties:
-              bootstrapData:
-                description: "BootstrapData will be a cloud-init script for now. \n Deprecated: This field has been deprecated in v1alpha3 and will be removed in a future version. Switch to DataSecretName."
-                format: byte
-                type: string
               conditions:
                 description: Conditions defines current service state of the KubeadmConfig.
                 items:

@@ -184,7 +184,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 	}
 
 	// If the bootstrap data secret is populated, set ready and return.
-	if m.Spec.Template.Spec.Bootstrap.Data != nil || m.Spec.Template.Spec.Bootstrap.DataSecretName != nil {
+	if m.Spec.Template.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
 		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil

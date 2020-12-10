@@ -287,7 +287,7 @@ var _ = Describe("Cluster Reconciler", func() {
 				ClusterName: cluster.Name,
 				ProviderID:  pointer.StringPtr("aws:///id-node-1"),
 				Bootstrap: clusterv1.Bootstrap{
-					Data: pointer.StringPtr(""),
+					DataSecretName: pointer.StringPtr(""),
 				},
 			},
 		}

@@ -622,7 +622,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			expectError: true,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
-				g.Expect(m.Spec.Bootstrap.Data).To(BeNil())
+				g.Expect(m.Spec.Bootstrap.DataSecretName).To(BeNil())
 			},
 		},
 		{
@@ -701,7 +701,7 @@ func TestReconcileBootstrap(t *testing.T) {
 							Kind:       "BootstrapMachine",
 							Name:       "bootstrap-config1",
 						},
-						Data: pointer.StringPtr("#!/bin/bash ... data"),
+						DataSecretName: pointer.StringPtr("secret-data"),
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -711,7 +711,6 @@ func TestReconcileBootstrap(t *testing.T) {
 			expectError: false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(m.Spec.Bootstrap.Data).To(BeNil())
 				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(BeEquivalentTo("secret-data"))
 			},
 		},

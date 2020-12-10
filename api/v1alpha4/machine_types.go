@@ -214,19 +214,10 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 type Bootstrap struct {
 	// ConfigRef is a reference to a bootstrap provider-specific resource
 	// that holds configuration details. The reference is optional to
-	// allow users/operators to specify Bootstrap.Data without
+	// allow users/operators to specify Bootstrap.DataSecretName without
 	// the need of a controller.
 	// +optional
 	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
-
-	// Data contains the bootstrap data, such as cloud-init details scripts.
-	// If nil, the Machine should remain in the Pending state.
-	//
-	// Deprecated: This field has been deprecated in v1alpha4 and
-	// will be removed in a future version. Switch to DataSecretName.
-	//
-	// +optional
-	Data *string `json:"data,omitempty"`
 
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.

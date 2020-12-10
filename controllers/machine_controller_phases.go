@@ -228,7 +228,6 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
-	m.Spec.Bootstrap.Data = nil
 	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
 	m.Status.BootstrapReady = true
 	return ctrl.Result{}, nil

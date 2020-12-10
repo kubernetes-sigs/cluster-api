@@ -184,50 +184,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 }
 
-// Test the logic to migrate plaintext bootstrap data to a field.
-func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
-	g := NewWithT(t)
-
-	cluster := newCluster("cluster")
-	cluster.Status.InfrastructureReady = true
-	machine := newMachine(cluster, "machine")
-	config := newKubeadmConfig(machine, "cfg")
-	config.Status.Ready = true
-	config.Status.BootstrapData = []byte("test")
-	objects := []client.Object{
-		cluster,
-		machine,
-		config,
-	}
-	myclient := helpers.NewFakeClientWithScheme(setupScheme(), objects...)
-
-	k := &KubeadmConfigReconciler{
-		Client: myclient,
-	}
-
-	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: "default",
-			Name:      "cfg",
-		},
-	}
-
-	result, err := k.Reconcile(ctx, request)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
-	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
-
-	g.Expect(k.Client.Get(ctx, client.ObjectKey{Name: config.Name, Namespace: config.Namespace}, config)).To(Succeed())
-	g.Expect(config.Status.DataSecretName).NotTo(BeNil())
-
-	secret := &corev1.Secret{}
-	g.Expect(k.Client.Get(ctx, client.ObjectKey{Namespace: config.Namespace, Name: *config.Status.DataSecretName}, secret)).To(Succeed())
-	g.Expect(secret.Data["value"]).NotTo(Equal("test"))
-	g.Expect(secret.Type).To(Equal(clusterv1.ClusterSecretType))
-	clusterName := secret.Labels[clusterv1.ClusterLabelName]
-	g.Expect(clusterName).To(Equal("cluster"))
-}
-
 func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 	g := NewWithT(t)
 

@@ -62,6 +62,21 @@ You'll need to [install `kubebuilder`][kubebuilder].
 
 [kubebuilder]: https://book.kubebuilder.io/quick-start.html#installation
 
+### Envsubst
+
+You'll need [`drone/envsubst`][envsubst] or similar to handle clusterctl var replacement. `envsubst` in GNU gettext package is insufficient and we've noticed some parsing differences, e.g. when parsing a YAML configuration file containing variables with default values. Note: drone/envsubst releases v1.0.2 and earlier do not have the binary packaged under cmd/envsubst. It is available in Go psuedo-version `v1.0.3-0.20200709231038-aa43e1c1a629`
+
+We provide a make target to generate the `envsubst` binary if desired. See the [provider contract][provider-contract] for more details about how clusterctl uses variables.
+
+```
+make envsubst
+```
+
+The generated binary can be found at ./hack/tools/bin/envsubst
+
+[envsubst]: https://github.com/drone/envsubst
+[provider-contract]: ./../clusterctl/provider-contract.md
+
 ### Cert-Manager
 
 You'll need to deploy [cert-manager] components on your [management cluster][mcluster], using `kubectl`
@@ -154,7 +169,7 @@ spec:
 
 ### Apply the manifests
 ```shell
-$ kustomize build config/ | kubectl apply -f -
+$ kustomize build config/ | ./hack/tools/bin/envsubst | kubectl apply -f -
 namespace/capi-system configured
 customresourcedefinition.apiextensions.k8s.io/clusters.cluster.x-k8s.io configured
 customresourcedefinition.apiextensions.k8s.io/kubeadmconfigs.bootstrap.cluster.x-k8s.io configured
@@ -168,7 +183,7 @@ rolebinding.rbac.authorization.k8s.io/capi-leader-election-rolebinding configure
 clusterrolebinding.rbac.authorization.k8s.io/capi-manager-rolebinding configured
 deployment.apps/capi-controller-manager created
 
-$ kustomize build test/infrastructure/docker/config | kubectl apply -f -
+$ kustomize build test/infrastructure/docker/config | ./hack/tools/bin/envsubst | kubectl apply -f -
 namespace/capd-system configured
 customresourcedefinition.apiextensions.k8s.io/dockerclusters.infrastructure.cluster.x-k8s.io configured
 customresourcedefinition.apiextensions.k8s.io/dockermachines.infrastructure.cluster.x-k8s.io configured

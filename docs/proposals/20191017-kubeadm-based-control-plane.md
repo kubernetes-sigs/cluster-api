@@ -93,7 +93,7 @@ During 2019 we saw control plane management implementations in each infrastructu
 bootstrapping was identified as being reimplemented in every infrastructure provider and then extracted into Cluster API
 Bootstrap Provider Kubeadm (CABPK), we believe we can reduce the redundancy of control plane management across providers
 and centralize the logic in Cluster API. We also wanted to ensure that any default control plane management that we
-for the default implementation would not preclude the use of alternative control plane management solutions. 
+for the default implementation would not preclude the use of alternative control plane management solutions.
 
 ### Goals
 
@@ -173,12 +173,12 @@ With the following validations:
 - `KubeadmControlPlane.Spec.KubeadmConfigSpec` allows mutations required for supporting following use cases:
     - Change of imagesRepository/imageTags (with validation of CoreDNS supported upgrade)
     - Change of node registration options
-    - Change of pre/post kubeadm commands 
+    - Change of pre/post kubeadm commands
     - Change of cloud init files
 
 And the following defaulting:
 
-- `KubeadmControlPlane.Spec.Replicas: 1` 
+- `KubeadmControlPlane.Spec.Replicas: 1`
 
 #### Modifications required to existing API Types
 
@@ -322,7 +322,7 @@ spec:
   - Upgrading machines
 - Scale up operations are blocked based on Etcd and control plane health checks.
   - See [Health checks](#Health checks) below.
-- Scale up operations creates the next machine in the failure domain with the fewest number of machines. 
+- Scale up operations creates the next machine in the failure domain with the fewest number of machines.
 
 ![controlplane-init-6](images/controlplane/controlplane-init-6.png)
 
@@ -331,12 +331,17 @@ spec:
 - Allow scale down a control plane with stacked etcd to only odd numbers, as per
   [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).
 - However, allow a control plane using an external etcd cluster to scale down to other numbers such as 2 or 4.
-- Scale up operations must not be done in conjunction with:
+- Scale down operations must not be done in conjunction with:
   - Adopting machines
   - Upgrading machines
-- Scale up operations are blocked based on Etcd and control plane health checks.
+- Scale down operations are blocked based on Etcd and control plane health checks.
   - See [Health checks](#Health checks) below.
-- Scale down operations removes the oldest machine in the failure domain that has the most control-plane machines on it 
+- Scale down operations removes the oldest machine in the failure domain that has the most control-plane machines on it.
+- Allow scaling down of KCP with the possibility of marking specific control plane machine(s) to be deleted with delete annotation key. The presence of the annotation will affect the rollout strategy in a way that, it implements the following prioritization logic in descending order, while selecting machines for scale down:
+  - outdatedMachines with the delete annotation
+  - machines with the delete annotation
+  - outdated machines
+  - all machines
 
 ![controlplane-init-7](images/controlplane/controlplane-init-7.png)
 
@@ -348,7 +353,7 @@ spec:
 
 ##### KubeadmControlPlane rollout (using create-swap-and-delete)
 
-- Triggered by: 
+- Triggered by:
     - Changes to Version
     - Changes to the kubeadmConfigSpec
     - Changes to the infrastructureRef
@@ -366,13 +371,13 @@ spec:
   - If there is a machine requiring rollout
     - Scale up control plane creating a machine with the new spec
     - Scale down control plane by removing one of the machine that needs rollout (the oldest out-of date machine in the failure domain that has the most control-plane machines on it)
-    
+
 - In order to determine if a Machine to be rolled out, KCP implements the following:
     - The infrastructureRef link used by each machine at creation time is stored in annotations at machine level.
     - The kubeadmConfigSpec used by each machine at creation time is stored in annotations at machine level.
         - If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
            Users should use KCP.Spec.UpgradeAfter field to force a rollout in this case.
-    
+
 - The controller should tolerate the manual or automatic removal of a replica during the upgrade process. A replica that fails during the upgrade may block the completion of the upgrade. Removal or other remedial action may be necessary to allow the upgrade to complete.
 
 ###### Constraints and Assumptions
@@ -381,23 +386,23 @@ spec:
 
 * Infrastructure templates are expected to be immutable, so infrastructure template contents do not have to hashed in order to detect
   changes.
-   
+
 ##### Remediation (using delete-and-recreate)
 
-- KCP remediation is triggered by the MachineHealthCheck controller marking a machine for remediation. See 
+- KCP remediation is triggered by the MachineHealthCheck controller marking a machine for remediation. See
   [machine-health-checking proposal](https://github.com/kubernetes-sigs/cluster-api/blob/11485f4f817766c444840d8ea7e4e7d1a6b94cc9/docs/proposals/20191030-machine-health-checking.md)
   for additional details. When there are multiple machines that are marked for remediation, the oldest one will be remediated first.
-  
+
 - Following rules should be satisfied in order to start remediation
   - The cluster MUST have spec.replicas >= 3, because this is the smallest cluster size that allows any etcd failure tolerance.
   - The number of replicas MUST be equal to or greater than the desired replicas. This rule ensures that when the cluster
-    is missing replicas, we skip remediation and instead perform regular scale up/rollout operations first. 
+    is missing replicas, we skip remediation and instead perform regular scale up/rollout operations first.
   - The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.
   - Remediation MUST preserve etcd quorum. This rule ensures that we will not remove a member that would result in etcd
     losing a majority of members and thus become unable to field new requests.
 
 - When all the conditions for starting remediation are satisfied, KCP temporarily suspend any operation in progress
-  in order to perform remediation. 
+  in order to perform remediation.
 - Remediation will be performed by issuing a delete on the unhealthy machine; after deleting the machine, KCP
   will restore the target number of machines by triggering a scale up (current replicas<desired replicas) and then
   eventually resume the rollout action.
@@ -437,7 +442,7 @@ not (yet) marked for remediation by the MachineHealthCheck.
 ###### Scenario 1: Three replicas, one machine marked for remediation
 
 If MachineHealthCheck marks one machine for remediation in a control-plane with three replicas, we will look at the etcd
-status of each machine to determine if we have at most one failed member. Assuming the etcd cluster is still all healthy, 
+status of each machine to determine if we have at most one failed member. Assuming the etcd cluster is still all healthy,
 or the only unresponsive member is the one to be remediated, we will scale down the machine that failed the MHC and
 then scale up a new machine to replace it.
 
@@ -446,7 +451,7 @@ then scale up a new machine to replace it.
 If MachineHealthCheck marks two machines for remediation in a control-plane with three replicas, remediation might happen
 depending on the status of the etcd members on the three replicas.
 
-As long as we continue to only have at most one unhealthy etcd member, we will scale down an unhealthy machine, 
+As long as we continue to only have at most one unhealthy etcd member, we will scale down an unhealthy machine,
 wait for it to provision and join the cluster, and then scale down the other machine.
 
 However, if more than one etcd member is unhealthy, remediation would not happen and manual intervention would be required
@@ -454,21 +459,21 @@ to fix the unhealthy machine.
 
 ###### Scenario 3: Three replicas, one unresponsive etcd member, one (different) unhealthy machine
 
-It is possible to have a scenario where a different machine than the one that failed the MHC has an unresponsive etcd. 
+It is possible to have a scenario where a different machine than the one that failed the MHC has an unresponsive etcd.
 In this scenario, remediation would not happen and manual intervention would be required to fix the unhealthy machine.
 
 ###### Scenario 4: Unhealthy machines combined with rollout
 
-When there exist unhealthy machines and there also have been configuration changes that trigger a rollout of new machines to occur, 
-remediation and rollout will occur in tandem. 
+When there exist unhealthy machines and there also have been configuration changes that trigger a rollout of new machines to occur,
+remediation and rollout will occur in tandem.
 
-This is to say that unhealthy machines will first be scaled down, and replaced with new machines that match the desired new spec. 
+This is to say that unhealthy machines will first be scaled down, and replaced with new machines that match the desired new spec.
 Once the unhealthy machines have been replaced, the remaining healthy machines will also be replaced one-by-one as well to complete the rollout operation.
- 
+
 ##### Health checks
 
-> NOTE:  This paragraph describes KCP health checks specifically designed to ensure a kubeadm 
-generated control-plane is stable before proceeding with KCP actions like scale up, scale down and rollout. 
+> NOTE:  This paragraph describes KCP health checks specifically designed to ensure a kubeadm
+generated control-plane is stable before proceeding with KCP actions like scale up, scale down and rollout.
 KCP health checks are different from the one implemented by the MachineHealthCheck controller.  
 
 - Will be used during scaling and upgrade operations.

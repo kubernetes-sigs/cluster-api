@@ -472,6 +472,22 @@ func GetActualReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) in
 	return totalActualReplicas
 }
 
+// TotalMachineSetsReplicaSum returns sum of max(ms.Spec.Replicas, ms.Status.Replicas) across all the machine sets.
+//
+// This is used to guarantee that the total number of machines will not exceed md.Spec.Replicas + maxSurge.
+// Use max(spec.Replicas,status.Replicas) to cover the cases that:
+// 1. Scale up, where spec.Replicas increased but no machine created yet, so spec.Replicas > status.Replicas
+// 2. Scale down, where spec.Replicas decreased but machine not deleted yet, so spec.Replicas < status.Replicas
+func TotalMachineSetsReplicaSum(machineSets []*clusterv1.MachineSet) int32 {
+	totalReplicas := int32(0)
+	for _, ms := range machineSets {
+		if ms != nil {
+			totalReplicas += integer.Int32Max(*(ms.Spec.Replicas), ms.Status.Replicas)
+		}
+	}
+	return totalReplicas
+}
+
 // GetReadyReplicaCountForMachineSets returns the number of ready machines corresponding to the given machine sets.
 func GetReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 	totalReadyReplicas := int32(0)
@@ -521,7 +537,7 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 			return 0, err
 		}
 		// Find the total number of machines
-		currentMachineCount := GetReplicaCountForMachineSets(allMSs)
+		currentMachineCount := TotalMachineSetsReplicaSum(allMSs)
 		maxTotalMachines := *(deployment.Spec.Replicas) + int32(maxSurge)
 		if currentMachineCount >= maxTotalMachines {
 			// Cannot scale up.
@@ -533,24 +549,7 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 		scaleUpCount = integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas))
 		return *(newMS.Spec.Replicas) + scaleUpCount, nil
 	default:
-		// Check if we can scale up.
-		maxSurge, err := intstrutil.GetValueFromIntOrPercent(deployment.Spec.Strategy.RollingUpdate.MaxSurge, int(*(deployment.Spec.Replicas)), true)
-		if err != nil {
-			return 0, err
-		}
-		// Find the total number of machines
-		currentMachineCount := GetReplicaCountForMachineSets(allMSs)
-		maxTotalMachines := *(deployment.Spec.Replicas) + int32(maxSurge)
-		if currentMachineCount >= maxTotalMachines {
-			// Cannot scale up.
-			return *(newMS.Spec.Replicas), nil
-		}
-		// Scale up.
-		scaleUpCount := maxTotalMachines - currentMachineCount
-		// Do not exceed the number of desired replicas.
-		scaleUpCount = integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas))
-		return *(newMS.Spec.Replicas) + scaleUpCount, nil
-		// -- return 0, errors.Errorf("deployment type %v isn't supported", deployment.Spec.Strategy.Type)
+		return 0, fmt.Errorf("deployment strategy %v isn't supported", deployment.Spec.Strategy.Type)
 	}
 }
 

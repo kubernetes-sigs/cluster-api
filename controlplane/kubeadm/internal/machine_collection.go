@@ -97,6 +97,7 @@ func (s FilterableMachineCollection) Len() int {
 	return len(s)
 }
 
+// newFilteredMachineCollection creates a FilterableMachineCollection from a filtered list of values.
 func newFilteredMachineCollection(filter machinefilters.Func, machines ...*clusterv1.Machine) FilterableMachineCollection {
 	ss := make(FilterableMachineCollection, len(machines))
 	for i := range machines {

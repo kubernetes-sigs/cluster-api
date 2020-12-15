@@ -44,7 +44,7 @@ func TestMachineToDelete(t *testing.T) {
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{DeleteMachineAnnotation: ""}},
+		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}},
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{}
@@ -231,7 +231,7 @@ func TestMachineNewestDelete(t *testing.T) {
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
+		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	unhealthyMachine := &clusterv1.Machine{
@@ -344,7 +344,7 @@ func TestMachineOldestDelete(t *testing.T) {
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
+		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	unhealthyMachine := &clusterv1.Machine{

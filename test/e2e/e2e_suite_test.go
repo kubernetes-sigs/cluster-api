@@ -21,15 +21,12 @@ package e2e
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -84,8 +81,8 @@ func TestE2E(t *testing.T) {
 	}
 
 	RegisterFailHandler(Fail)
-	junitPath := filepath.Join(artifactFolder, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
-	junitReporter := reporters.NewJUnitReporter(junitPath)
+
+	junitReporter := framework.CreateJUnitReporterForProw(artifactFolder)
 	RunSpecsWithDefaultAndCustomReporters(t, "capi-e2e", []Reporter{junitReporter})
 }
 

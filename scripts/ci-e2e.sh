@@ -61,7 +61,6 @@ export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export SKIP_RESOURCE_CLEANUP=false
 export USE_EXISTING_CLUSTER=false
-export KIND_EXPERIMENTAL_DOCKER_NETWORK="bridge"
 
 # Run e2e tests
 mkdir -p "$ARTIFACTS"

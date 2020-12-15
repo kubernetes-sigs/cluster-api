@@ -37,6 +37,7 @@ require (
 	k8s.io/cluster-bootstrap v0.19.2
 	k8s.io/component-base v0.19.2
 	k8s.io/klog v1.0.0
+	k8s.io/kubectl v0.19.2
 	k8s.io/utils v0.0.0-20200912215256-4140de9c8800
 	sigs.k8s.io/controller-runtime v0.7.0-alpha.8
 	sigs.k8s.io/kind v0.9.0

@@ -73,10 +73,6 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			By("Creating a clusterAccessor for the cluster")
 			_, err := cct.GetClient(ctx, testClusterKey)
 			Expect(err).To(BeNil())
-
-			By("Retrieving a live client for the cluster")
-			_, err = cct.GetLiveClient(ctx, testClusterKey)
-			Expect(err).To(BeNil())
 		}
 
 		BeforeEach(func() {

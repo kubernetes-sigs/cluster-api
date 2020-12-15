@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -40,6 +41,7 @@ import (
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	"sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
@@ -153,15 +155,19 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsBindAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "controller-leader-election-capi",
-		LeaseDuration:          &leaderElectionLeaseDuration,
-		RenewDeadline:          &leaderElectionRenewDeadline,
-		RetryPeriod:            &leaderElectionRetryPeriod,
-		Namespace:              watchNamespace,
-		SyncPeriod:             &syncPeriod,
+		Scheme:             scheme,
+		MetricsBindAddress: metricsBindAddr,
+		LeaderElection:     enableLeaderElection,
+		LeaderElectionID:   "controller-leader-election-capi",
+		LeaseDuration:      &leaderElectionLeaseDuration,
+		RenewDeadline:      &leaderElectionRenewDeadline,
+		RetryPeriod:        &leaderElectionRetryPeriod,
+		Namespace:          watchNamespace,
+		SyncPeriod:         &syncPeriod,
+		ClientDisableCacheFor: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+		},
 		Port:                   webhookPort,
 		HealthProbeBindAddress: healthAddr,
 	})

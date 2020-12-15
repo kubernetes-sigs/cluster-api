@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -78,28 +79,14 @@ func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.Obje
 		return nil, err
 	}
 
-	return accessor.delegatingClient, nil
+	return accessor.client, nil
 }
 
-// GetLiveClient returns a live client (talks to the api-server directly) for the given cluster.
-func (t *ClusterCacheTracker) GetLiveClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
-	accessor, err := t.getClusterAccessorLH(ctx, cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	return accessor.liveClient, nil
-}
-
-// clusterAccessor represents the combination of a delegating client, live client (direct to api-server), cache, and watches for a remote cluster.
+// clusterAccessor represents the combination of a delegating client, cache, and watches for a remote cluster.
 type clusterAccessor struct {
-	cache            *stoppableCache
-	delegatingClient client.Client
-	liveClient       client.Client
-	watches          sets.String
+	cache   *stoppableCache
+	client  client.Client
+	watches sets.String
 }
 
 // clusterAccessorExists returns true if a clusterAccessor exists for cluster.
@@ -180,16 +167,19 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	delegatingClient, err := client.NewDelegatingClient(client.NewDelegatingClientInput{
 		CacheReader: cache,
 		Client:      c,
+		UncachedObjects: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &clusterAccessor{
-		cache:            cache,
-		delegatingClient: delegatingClient,
-		liveClient:       c,
-		watches:          sets.NewString(),
+		cache:   cache,
+		client:  delegatingClient,
+		watches: sets.NewString(),
 	}, nil
 }
 

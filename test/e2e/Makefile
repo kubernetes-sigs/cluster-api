@@ -65,6 +65,7 @@ cluster-templates-v1alpha4: $(KUSTOMIZE) ## Generate cluster templates for v1alp
 	echo "---" >> $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption/step2 --load_restrictor none >> $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-machine-pool --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-machine-pool.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-node-drain --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-node-drain.yaml
 
 ## --------------------------------------
 ## Testing

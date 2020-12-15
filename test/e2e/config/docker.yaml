@@ -71,6 +71,7 @@ providers:
   - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-mhc.yaml"
   - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-adoption.yaml"
   - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-machine-pool.yaml"
+  - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-node-drain.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.19.1"
@@ -86,6 +87,7 @@ variables:
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_MACHINE_POOL: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
+  NODE_DRAIN_TIMEOUT: "60s"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
@@ -97,3 +99,5 @@ intervals:
   default/wait-machine-upgrade: ["20m", "10s"]
   default/wait-machine-pool-upgrade: ["5m", "10s"]
   default/wait-machine-remediation: ["5m", "10s"]
+  node-drain/wait-deployment-available: ["3m", "10s"]
+  node-drain/wait-control-plane: ["15m", "10s"]

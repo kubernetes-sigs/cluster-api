@@ -213,7 +213,7 @@ type WaitForMachineDeploymentRollingUpgradeToCompleteInput struct {
 	MachineDeployment *clusterv1.MachineDeployment
 }
 
-// WaitForMachineDeploymentNodesToExist waits until rolling upgrade is complete.
+// WaitForMachineDeploymentRollingUpgradeToComplete waits until rolling upgrade is complete.
 func WaitForMachineDeploymentRollingUpgradeToComplete(ctx context.Context, input WaitForMachineDeploymentRollingUpgradeToCompleteInput, intervals ...interface{}) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentRollingUpgradeToComplete")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentRollingUpgradeToComplete")

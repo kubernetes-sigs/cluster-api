@@ -68,7 +68,7 @@ type DiscoverClusterResourceSetAndWaitForSuccessInput struct {
 	Cluster      *clusterv1.Cluster
 }
 
-// DiscoverClusterResourceSetAndWaitForSuccessInput patches a ClusterResourceSet label to the cluster and waits for resources to be created in that cluster.
+// DiscoverClusterResourceSetAndWaitForSuccess patches a ClusterResourceSet label to the cluster and waits for resources to be created in that cluster.
 func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input DiscoverClusterResourceSetAndWaitForSuccessInput, intervals ...interface{}) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoverClusterResourceSetAndWaitForSuccess")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DiscoverClusterResourceSetAndWaitForSuccess")

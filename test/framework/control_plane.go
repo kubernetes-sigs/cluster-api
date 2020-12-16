@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// WaitForControlPlaneToBeReadyInput is the input for WaitForControlPlaneToBeReady.
+// WaitForControlPlaneToBeUpToDateInput is the input for WaitForControlPlaneToBeUpToDate.
 type WaitForControlPlaneToBeUpToDateInput struct {
 	Getter       Getter
 	ControlPlane *controlplanev1.KubeadmControlPlane

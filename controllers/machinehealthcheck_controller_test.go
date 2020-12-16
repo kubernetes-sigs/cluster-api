@@ -1383,7 +1383,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 func TestClusterToMachineHealthCheck(t *testing.T) {
 	_ = clusterv1.AddToScheme(scheme.Scheme)
-	fakeClient := fake.NewFakeClient()
+	fakeClient := fake.NewClientBuilder().Build()
 
 	r := &MachineHealthCheckReconciler{
 		Client: fakeClient,
@@ -1463,7 +1463,7 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 
 func TestMachineToMachineHealthCheck(t *testing.T) {
 	_ = clusterv1.AddToScheme(scheme.Scheme)
-	fakeClient := fake.NewFakeClient()
+	fakeClient := fake.NewClientBuilder().Build()
 
 	r := &MachineHealthCheckReconciler{
 		Client: fakeClient,
@@ -1539,7 +1539,7 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 
 func TestNodeToMachineHealthCheck(t *testing.T) {
 	_ = clusterv1.AddToScheme(scheme.Scheme)
-	fakeClient := fake.NewFakeClient()
+	fakeClient := fake.NewClientBuilder().Build()
 
 	r := &MachineHealthCheckReconciler{
 		Client: fakeClient,
@@ -2123,11 +2123,11 @@ func TestPatchTargets(t *testing.T) {
 	machine2 := machine1.DeepCopy()
 	machine2.Name = "machine2"
 
-	cl := fake.NewFakeClientWithScheme(scheme.Scheme,
+	cl := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 		machine1,
 		machine2,
 		mhc,
-	)
+	).Build()
 	r := &MachineHealthCheckReconciler{
 		Client:   cl,
 		recorder: record.NewFakeRecorder(32),
@@ -2137,7 +2137,7 @@ func TestPatchTargets(t *testing.T) {
 	// To make the patch fail, create patchHelper with a different client.
 	fakeMachine := machine1.DeepCopy()
 	fakeMachine.Name = "fake"
-	patchHelper, _ := patch.NewHelper(fakeMachine, fake.NewFakeClientWithScheme(scheme.Scheme, fakeMachine))
+	patchHelper, _ := patch.NewHelper(fakeMachine, fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(fakeMachine).Build())
 	// healthCheckTarget with fake patchHelper, patch should fail on this target.
 	target1 := healthCheckTarget{
 		MHC:         mhc,

@@ -316,13 +316,12 @@ func TestMachineSetOwnerReference(t *testing.T) {
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			msr := &MachineSetReconciler{
-				Client: fake.NewFakeClientWithScheme(
-					scheme.Scheme,
+				Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 					testCluster,
 					ms1,
 					ms2,
 					ms3,
-				),
+				).Build(),
 				recorder: record.NewFakeRecorder(32),
 			}
 
@@ -369,7 +368,7 @@ func TestMachineSetReconcile(t *testing.T) {
 		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 		msr := &MachineSetReconciler{
-			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, ms),
+			Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(testCluster, ms).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(ctx, request)
@@ -393,7 +392,7 @@ func TestMachineSetReconcile(t *testing.T) {
 
 		rec := record.NewFakeRecorder(32)
 		msr := &MachineSetReconciler{
-			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, ms),
+			Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(testCluster, ms).Build(),
 			recorder: rec,
 		}
 		_, _ = msr.Reconcile(ctx, request)
@@ -628,7 +627,7 @@ func TestAdoptOrphan(t *testing.T) {
 	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	r := &MachineSetReconciler{
-		Client: fake.NewFakeClientWithScheme(scheme.Scheme, &m),
+		Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(&m).Build(),
 	}
 	for _, tc := range testCases {
 		g.Expect(r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())).To(Succeed())

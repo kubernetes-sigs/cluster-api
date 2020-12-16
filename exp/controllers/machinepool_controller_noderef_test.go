@@ -37,7 +37,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	r := &MachinePoolReconciler{
-		Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
+		Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
 

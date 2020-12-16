@@ -118,15 +118,16 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-				defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				external.TestGenericBootstrapCRD.DeepCopy(),
-				external.TestGenericInfrastructureCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			),
+			Client: fake.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithObjects(defaultCluster,
+					defaultKubeconfigSecret,
+					machine,
+					external.TestGenericBootstrapCRD.DeepCopy(),
+					external.TestGenericInfrastructureCRD.DeepCopy(),
+					bootstrapConfig,
+					infraConfig,
+				).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -152,15 +153,16 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-				defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				external.TestGenericBootstrapCRD.DeepCopy(),
-				external.TestGenericInfrastructureCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			),
+			Client: fake.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithObjects(defaultCluster,
+					defaultKubeconfigSecret,
+					machine,
+					external.TestGenericBootstrapCRD.DeepCopy(),
+					external.TestGenericInfrastructureCRD.DeepCopy(),
+					bootstrapConfig,
+					infraConfig,
+				).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -191,15 +193,16 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		machine.Status.LastUpdated = &lastUpdated
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-				defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				external.TestGenericBootstrapCRD.DeepCopy(),
-				external.TestGenericInfrastructureCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			),
+			Client: fake.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithObjects(defaultCluster,
+					defaultKubeconfigSecret,
+					machine,
+					external.TestGenericBootstrapCRD.DeepCopy(),
+					external.TestGenericInfrastructureCRD.DeepCopy(),
+					bootstrapConfig,
+					infraConfig,
+				).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -262,16 +265,17 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			},
 			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 		}
-		cl := fake.NewFakeClientWithScheme(scheme.Scheme,
-			defaultCluster,
-			machine,
-			node,
-			external.TestGenericBootstrapCRD.DeepCopy(),
-			external.TestGenericInfrastructureCRD.DeepCopy(),
-			bootstrapConfig,
-			infraConfig,
-			defaultKubeconfigSecret,
-		)
+		cl := fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(defaultCluster,
+				machine,
+				node,
+				external.TestGenericBootstrapCRD.DeepCopy(),
+				external.TestGenericInfrastructureCRD.DeepCopy(),
+				bootstrapConfig,
+				infraConfig,
+				defaultKubeconfigSecret,
+			).Build()
 		r := &MachineReconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -324,16 +328,17 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			},
 			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 		}
-		cl := fake.NewFakeClientWithScheme(scheme.Scheme,
-			defaultCluster,
-			machine,
-			node,
-			external.TestGenericBootstrapCRD.DeepCopy(),
-			external.TestGenericInfrastructureCRD.DeepCopy(),
-			bootstrapConfig,
-			infraConfig,
-			defaultKubeconfigSecret,
-		)
+		cl := fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(defaultCluster,
+				machine,
+				node,
+				external.TestGenericBootstrapCRD.DeepCopy(),
+				external.TestGenericInfrastructureCRD.DeepCopy(),
+				bootstrapConfig,
+				infraConfig,
+				defaultKubeconfigSecret,
+			).Build()
 		r := &MachineReconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -396,16 +401,17 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			},
 			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 		}
-		cl := fake.NewFakeClientWithScheme(scheme.Scheme,
-			defaultCluster,
-			machine,
-			node,
-			external.TestGenericBootstrapCRD.DeepCopy(),
-			external.TestGenericInfrastructureCRD.DeepCopy(),
-			bootstrapConfig,
-			infraConfig,
-			defaultKubeconfigSecret,
-		)
+		cl := fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(defaultCluster,
+				machine,
+				node,
+				external.TestGenericBootstrapCRD.DeepCopy(),
+				external.TestGenericInfrastructureCRD.DeepCopy(),
+				bootstrapConfig,
+				infraConfig,
+				defaultKubeconfigSecret,
+			).Build()
 		r := &MachineReconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -443,15 +449,16 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		machine.Status.LastUpdated = &lastUpdated
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-				defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				external.TestGenericBootstrapCRD.DeepCopy(),
-				external.TestGenericInfrastructureCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			),
+			Client: fake.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithObjects(defaultCluster,
+					defaultKubeconfigSecret,
+					machine,
+					external.TestGenericBootstrapCRD.DeepCopy(),
+					external.TestGenericInfrastructureCRD.DeepCopy(),
+					bootstrapConfig,
+					infraConfig,
+				).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -515,16 +522,17 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
 
-		cl := fake.NewFakeClientWithScheme(scheme.Scheme,
-			defaultCluster,
-			defaultKubeconfigSecret,
-			machine,
-			machineSecond,
-			external.TestGenericBootstrapCRD.DeepCopy(),
-			external.TestGenericInfrastructureCRD.DeepCopy(),
-			bootstrapConfig,
-			infraConfig,
-		)
+		cl := fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(defaultCluster,
+				defaultKubeconfigSecret,
+				machine,
+				machineSecond,
+				external.TestGenericBootstrapCRD.DeepCopy(),
+				external.TestGenericInfrastructureCRD.DeepCopy(),
+				bootstrapConfig,
+				infraConfig,
+			).Build()
 		r := &MachineReconciler{
 			Client:   cl,
 			Tracker:  remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -821,12 +829,13 @@ func TestReconcileBootstrap(t *testing.T) {
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &MachineReconciler{
-				Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-					tc.machine,
-					external.TestGenericBootstrapCRD.DeepCopy(),
-					external.TestGenericInfrastructureCRD.DeepCopy(),
-					bootstrapConfig,
-				),
+				Client: fake.NewClientBuilder().
+					WithScheme(scheme.Scheme).
+					WithObjects(tc.machine,
+						external.TestGenericBootstrapCRD.DeepCopy(),
+						external.TestGenericInfrastructureCRD.DeepCopy(),
+						bootstrapConfig,
+					).Build(),
 			}
 
 			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machine)
@@ -1034,12 +1043,13 @@ func TestReconcileInfrastructure(t *testing.T) {
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &MachineReconciler{
-				Client: fake.NewFakeClientWithScheme(scheme.Scheme,
-					tc.machine,
-					external.TestGenericBootstrapCRD.DeepCopy(),
-					external.TestGenericInfrastructureCRD.DeepCopy(),
-					infraConfig,
-				),
+				Client: fake.NewClientBuilder().
+					WithScheme(scheme.Scheme).
+					WithObjects(tc.machine,
+						external.TestGenericBootstrapCRD.DeepCopy(),
+						external.TestGenericInfrastructureCRD.DeepCopy(),
+						infraConfig,
+					).Build(),
 			}
 
 			_, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machine)

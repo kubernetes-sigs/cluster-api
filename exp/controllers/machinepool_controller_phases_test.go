@@ -118,7 +118,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -144,7 +144,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -168,7 +168,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -208,7 +208,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -260,7 +260,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -290,7 +290,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -327,7 +327,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -377,7 +377,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -432,7 +432,7 @@ var _ = Describe("Reconcile MachinePool Phases", func() {
 		machinepool.SetDeletionTimestamp(&deletionTimestamp)
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig),
+			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -675,7 +675,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &MachinePoolReconciler{
-				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machinepool, bootstrapConfig),
+				Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(tc.machinepool, bootstrapConfig).Build(),
 			}
 
 			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machinepool)
@@ -884,7 +884,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &MachinePoolReconciler{
-				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machinepool, infraConfig),
+				Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(tc.machinepool, infraConfig).Build(),
 			}
 
 			res, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machinepool)

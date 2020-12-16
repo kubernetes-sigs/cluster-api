@@ -94,7 +94,7 @@ func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewFakeClientWithScheme(testScheme, validSecret)
+		client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(validSecret).Build()
 		_, err := NewClusterClient(ctx, client, clusterWithValidKubeConfig)
 		// Since we do not have a remote server to connect to, we should expect to get
 		// an error to that effect for the purpose of this test.
@@ -108,7 +108,7 @@ func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewFakeClientWithScheme(testScheme)
+		client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 		_, err := NewClusterClient(ctx, client, clusterWithNoKubeConfig)
 		gs.Expect(err).To(MatchError(ContainSubstring("not found")))
 	})
@@ -116,7 +116,7 @@ func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with invalid kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewFakeClientWithScheme(testScheme, invalidSecret)
+		client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(invalidSecret).Build()
 		_, err := NewClusterClient(ctx, client, clusterWithInvalidKubeConfig)
 		gs.Expect(err).To(HaveOccurred())
 		gs.Expect(apierrors.IsNotFound(err)).To(BeFalse())

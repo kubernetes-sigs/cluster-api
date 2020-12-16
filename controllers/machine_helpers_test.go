@@ -115,7 +115,7 @@ func Test_getActiveMachinesInCluster(t *testing.T) {
 
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
-			c := fake.NewFakeClientWithScheme(scheme.Scheme, &ns1Cluster1, &ns1Cluster2, &ns1Cluster1Deleted, &ns2Cluster2)
+			c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(&ns1Cluster1, &ns1Cluster2, &ns1Cluster1Deleted, &ns2Cluster2).Build()
 			got, err := getActiveMachinesInCluster(ctx, c, tt.args.namespace, tt.args.name)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

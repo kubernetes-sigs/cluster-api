@@ -19,7 +19,9 @@ package framework
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
+	osExec "os/exec"
 	"path/filepath"
 	"strings"
 
@@ -54,6 +56,35 @@ func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClu
 			return execOnContainer(containerName, f, command, args...)
 		}
 	}
+	copyDirFn := func(containerDir, dirName string) func() error {
+		return func() error {
+			f, err := ioutil.TempFile("", containerName)
+			if err != nil {
+				return err
+			}
+
+			tempfileName := f.Name()
+			outputDir := filepath.Join(outputPath, dirName)
+
+			defer os.Remove(tempfileName)
+
+			err = execOnContainer(
+				containerName,
+				f,
+				"tar", "--hard-dereference", "--dereference", "--directory", containerDir, "--create", "--file", "-", ".",
+			)
+			if err != nil {
+				return err
+			}
+
+			err = os.MkdirAll(outputDir, os.ModePerm)
+			if err != nil {
+				return err
+			}
+
+			return osExec.Command("tar", "--extract", "--file", tempfileName, "--directory", outputDir).Run()
+		}
+	}
 	return errors.AggregateConcurrent([]func() error{
 		execToPathFn(
 			"journal.log",
@@ -79,6 +110,7 @@ func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClu
 			"containerd.log",
 			"journalctl", "--no-pager", "--output=short-precise", "-u", "containerd.service",
 		),
+		copyDirFn("/var/log/pods", "pods"),
 	})
 }
 

@@ -33,7 +33,6 @@ import (
 	"k8s.io/utils/pointer"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlconfig "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/yaml"
 )
@@ -70,7 +69,7 @@ type E2EConfig struct {
 	ManagementClusterName string `json:"managementClusterName,omitempty"`
 
 	// Images is a list of container images to load into the Kind cluster.
-	Images []framework.ContainerImage `json:"images,omitempty"`
+	Images []ContainerImage `json:"images,omitempty"`
 
 	// Providers is a list of providers to be configured in the local repository that will be created for the e2e test.
 	// It is required to provide following providers
@@ -100,10 +99,134 @@ type ProviderConfig struct {
 
 	// Versions is a list of component YAML to be added to the local repository, one for each release.
 	// Please note that the first source will be used a a default release for this provider.
-	Versions []framework.ComponentSource `json:"versions,omitempty"`
+	Versions []ProviderVersionSource `json:"versions,omitempty"`
 
-	// Files is a list of test files to be copied into the local repository for the default release of this provider.
+	// Files is a list of files to be copied into the local repository for all the releases.
 	Files []Files `json:"files,omitempty"`
+}
+
+// LoadImageBehavior indicates the behavior when loading an image.
+type LoadImageBehavior string
+
+const (
+	// MustLoadImage causes a load operation to fail if the image cannot be
+	// loaded.
+	MustLoadImage LoadImageBehavior = "mustLoad"
+
+	// TryLoadImage causes any errors that occur when loading an image to be
+	// ignored.
+	TryLoadImage LoadImageBehavior = "tryLoad"
+)
+
+// ContainerImage describes an image to load into a cluster and the behavior
+// when loading the image.
+type ContainerImage struct {
+	// Name is the fully qualified name of the image.
+	Name string
+
+	// LoadBehavior may be used to dictate whether a failed load operation
+	// should fail the test run. This is useful when wanting to load images
+	// *if* they exist locally, but not wanting to fail if they don't.
+	//
+	// Defaults to MustLoadImage.
+	LoadBehavior LoadImageBehavior
+}
+
+// ComponentSourceType indicates how a component's source should be obtained.
+type ComponentSourceType string
+
+const (
+	// URLSource is component YAML available directly via a URL.
+	// The URL may begin with file://, http://, or https://.
+	URLSource ComponentSourceType = "url"
+
+	// KustomizeSource is a valid kustomization root that can be used to produce
+	// the component YAML.
+	KustomizeSource ComponentSourceType = "kustomize"
+)
+
+// ProviderVersionSource describes how to obtain a component's YAML.
+type ProviderVersionSource struct {
+	// Name is used for logging when a component has multiple sources.
+	Name string `json:"name,omitempty"`
+
+	// Value is the source of the component's YAML.
+	// May be a URL or a kustomization root (specified by Type).
+	// If a Type=url then Value may begin with file://, http://, or https://.
+	// If a Type=kustomize then Value may be any valid go-getter URL. For
+	// more information please see https://github.com/hashicorp/go-getter#url-format.
+	Value string `json:"value"`
+
+	// Type describes how to process the source of the component's YAML.
+	//
+	// Defaults to "kustomize".
+	Type ComponentSourceType `json:"type,omitempty"`
+
+	// Replacements is a list of patterns to replace in the component YAML
+	// prior to application.
+	Replacements []ComponentReplacement `json:"replacements,omitempty"`
+
+	// Files is a list of files to be copied into the local repository for this release.
+	Files []Files `json:"files,omitempty"`
+}
+
+// ComponentWaiterType indicates the type of check to use to determine if the
+// installed components are ready.
+type ComponentWaiterType string
+
+const (
+	// ServiceWaiter indicates to wait until a service's condition is Available.
+	// When ComponentWaiter.Value is set to "service", the ComponentWaiter.Value
+	// should be set to the name of a Service resource.
+	ServiceWaiter ComponentWaiterType = "service"
+
+	// PodsWaiter indicates to wait until all the pods in a namespace have a
+	// condition of Ready.
+	// When ComponentWaiter.Value is set to "pods", the ComponentWaiter.Value
+	// should be set to the name of a Namespace resource.
+	PodsWaiter ComponentWaiterType = "pods"
+)
+
+// ComponentWaiter contains information to help determine whether installed
+// components are ready.
+type ComponentWaiter struct {
+	// Value varies depending on the specified Type.
+	// Please see the documentation for the different WaiterType constants to
+	// understand the valid values for this field.
+	Value string `json:"value"`
+
+	// Type describes the type of check to perform.
+	//
+	// Defaults to "pods".
+	Type ComponentWaiterType `json:"type,omitempty"`
+}
+
+// ComponentReplacement is used to replace some of the generated YAML prior
+// to application.
+type ComponentReplacement struct {
+	// Old is the pattern to replace.
+	// A regular expression may be used.
+	Old string `json:"old"`
+	// New is the string used to replace the old pattern.
+	// An empty string is valid.
+	New string `json:"new,omitempty"`
+}
+
+// ComponentConfig describes a component required by the e2e test environment.
+type ComponentConfig struct {
+	// Name is the name of the component.
+	// This field is primarily used for logging.
+	Name string `json:"name"`
+
+	// Sources is an optional list of component YAML to apply to the management
+	// cluster.
+	// This field may be omitted when wanting only to block progress via one or
+	// more Waiters.
+	Sources []ProviderVersionSource `json:"sources,omitempty"`
+
+	// Waiters is an optional list of checks to perform in order to determine
+	// whether or not the installed components are ready.
+	Waiters []ComponentWaiter `json:"waiters,omitempty"`
 }
 
 // Files contains information about files to be copied into the local repository
@@ -130,7 +253,13 @@ func (c *E2EConfig) Defaults() {
 		for j := range provider.Versions {
 			version := &provider.Versions[j]
 			if version.Type == "" {
-				version.Type = framework.KustomizeSource
+				version.Type = KustomizeSource
+			}
+			for j := range version.Files {
+				file := &version.Files[j]
+				if file.SourcePath != "" && file.TargetName == "" {
+					file.TargetName = filepath.Base(file.SourcePath)
+				}
 			}
 		}
 		for j := range provider.Files {
@@ -143,7 +272,7 @@ func (c *E2EConfig) Defaults() {
 	for i := range c.Images {
 		containerImage := &c.Images[i]
 		if containerImage.LoadBehavior == "" {
-			containerImage.LoadBehavior = framework.MustLoadImage
+			containerImage.LoadBehavior = MustLoadImage
 		}
 	}
 }
@@ -154,9 +283,17 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 		provider := &c.Providers[i]
 		for j := range provider.Versions {
 			version := &provider.Versions[j]
-			if version.Type != framework.URLSource && version.Value != "" {
+			if version.Type != URLSource && version.Value != "" {
 				if !filepath.IsAbs(version.Value) {
 					version.Value = filepath.Join(basePath, version.Value)
+				}
+			}
+			for j := range version.Files {
+				file := &version.Files[j]
+				if file.SourcePath != "" {
+					if !filepath.IsAbs(file.SourcePath) {
+						file.SourcePath = filepath.Join(basePath, file.SourcePath)
+					}
 				}
 			}
 		}
@@ -202,7 +339,7 @@ func (c *E2EConfig) Validate() error {
 			return errEmptyArg(fmt.Sprintf("Images[%d].Name=%q", i, containerImage.Name))
 		}
 		switch containerImage.LoadBehavior {
-		case framework.MustLoadImage, framework.TryLoadImage:
+		case MustLoadImage, TryLoadImage:
 			// Valid
 		default:
 			return errInvalidArg("Images[%d].LoadBehavior=%q", i, containerImage.LoadBehavior)
@@ -266,7 +403,7 @@ func (c *E2EConfig) validateProviders() error {
 				return errInvalidArg("Providers[%d].Sources[%d].Name=%q", i, j, providerVersion.Name)
 			}
 			switch providerVersion.Type {
-			case framework.URLSource, framework.KustomizeSource:
+			case URLSource, KustomizeSource:
 				if providerVersion.Value == "" {
 					return errEmptyArg(fmt.Sprintf("Providers[%d].Sources[%d].Value", i, j))
 				}
@@ -276,6 +413,18 @@ func (c *E2EConfig) validateProviders() error {
 			for k, replacement := range providerVersion.Replacements {
 				if _, err := regexp.Compile(replacement.Old); err != nil {
 					return errInvalidArg("Providers[%d].Sources[%d].Replacements[%d].Old=%q: %v", i, j, k, replacement.Old, err)
+				}
+			}
+			// Providers files should be an existing file and have a target name.
+			for k, file := range providerVersion.Files {
+				if file.SourcePath == "" {
+					return errInvalidArg("Providers[%d].Sources[%d].Files[%d].SourcePath=%q", i, j, k, file.SourcePath)
+				}
+				if !fileExists(file.SourcePath) {
+					return errInvalidArg("Providers[%d].Sources[%d].Files[%d].SourcePath=%q", i, j, k, file.SourcePath)
+				}
+				if file.TargetName == "" {
+					return errInvalidArg("Providers[%d].Sources[%d].Files[%d].TargetName=%q", i, j, k, file.TargetName)
 				}
 			}
 		}

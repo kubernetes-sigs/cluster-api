@@ -24,6 +24,7 @@ spec:
         image: controller:latest
         name: manager
       terminationGracePeriodSeconds: 10
+      serviceAccountName: manager-cabpk
       tolerations:
         - effect: NoSchedule
           key: node-role.kubernetes.io/master

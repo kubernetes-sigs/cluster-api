@@ -43,7 +43,7 @@ A github release can be used as a provider repository if:
 * The release tag is a valid semantic version number
 * The components YAML, the metadata YAML and eventually the workload cluster templates are include into the release assets.
 
-See the [GitHub help](https://help.github.com/en/github/administering-a-repository/creating-releases) for more information 
+See the [GitHub help](https://help.github.com/en/github/administering-a-repository/creating-releases) for more information
 about how to create a release.
 
 #### Creating a local provider repository
@@ -81,28 +81,22 @@ releaseSeries:
 
 <aside class="note">
 
-<h1> Embedded metadata </h1>
-
-The `clusterctl` command can ship with embedded metadata for pre-defined providers.
-If, as a provider implementer, you are interested to this feature, please send a PR to the [Cluster API repository](https://sigs.k8s.io/cluster-api).
-
-</aside>
-
-<aside class="note">
-
 <h1> Note on user experience </h1>
 
-If provider implementers only update the clusterctl's built-in metadata and don't
-provide a `metadata.yaml` in a new release, users are forced to update `clusterctl`
+For clusterctl versions pre-v1alpha4, if provider implementers only update the clusterctl's built-in metadata and don't provide a `metadata.yaml` in a new release, users are forced to update `clusterctl`
 to the latest released version in order to properly install the provider.
 
 As a related example, see the details in [issue 3418].
+
+To address the above explained issue, the embedded metadata within clusterctl has been removed (as of v1alpha4) to prevent the reliance on using the latest version of clusterctl in order to pull newer provider releases.
+
+For more information see the details in [issue 3515].
 </aside>
 
 ### Components YAML
 
 The provider is required to generate a **components YAML** file and publish it to the provider's repository.
-This file is a single YAML with _all_ the components required for installing the provider itself (CRDs, Controller, RBAC etc.). 
+This file is a single YAML with _all_ the components required for installing the provider itself (CRDs, Controller, RBAC etc.).
 
 The following rules apply:
 
@@ -124,7 +118,7 @@ The objects contained in a component YAML file can be divided in two sets:
   Deployment implementing the web-hook servers and related Service and Certificates.
 
 As per the Cluster API contract, all the shared objects are expected to be deployed in a namespace named `capi-webhook-system`
-(if applicable). 
+(if applicable).
 
 clusterctl implements a different lifecycle for shared resources e.g.
 - ensuring that the version of the shared objects for each provider matches the latest version installed in the cluster.
@@ -136,13 +130,13 @@ The instance components should contain one Namespace object, which will be used 
 when creating the provider components.
 
 All the objects in the components YAML MUST belong to the target namespace, with the exception of objects that
-are not namespaced, like ClusterRoles/ClusterRoleBinding and CRD objects. 
+are not namespaced, like ClusterRoles/ClusterRoleBinding and CRD objects.
 
 <aside class="note warning">
 
 <h1>Warning</h1>
 
-If the generated component YAML does't contain a Namespace object, the user will be required to provide one to `clusterctl init` 
+If the generated component YAML does't contain a Namespace object, the user will be required to provide one to `clusterctl init`
 using the `--target-namespace` flag.
 
 In case there is more than one Namespace object in the components YAML, `clusterctl` will generate an error and abort
@@ -227,14 +221,14 @@ Cluster templates MUST be stored in the same folder as the component YAML and fo
 2. Additional cluster template should be named `cluster-template-{flavor}.yaml`. e.g `cluster-template-prod.yaml`
 
 `{flavor}` is the name the user can pass to the `clusterctl config cluster --flavor` flag to identify the specific template to use.
- 
+
 Each provider SHOULD create user facing documentation with the list of available cluster templates.
 
 #### Target namespace
 
 The cluster template YAML MUST assume the target namespace already exists.
 
-All the objects in the cluster template YAML MUST be deployed in the same namespace. 
+All the objects in the cluster template YAML MUST be deployed in the same namespace.
 
 #### Variables
 
@@ -257,20 +251,20 @@ Templates writers should use the common variables to ensure consistency across p
 |`--controlplane-machine-count`| `${CONTROL_PLANE_MACHINE_COUNT}` | The number of control plane machines to be added to the workload cluster |
 |`--worker-machine-count`| `${WORKER_MACHINE_COUNT}` | The number of worker machines to be added to the workload cluster |
 
-Additionally, value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will 
+Additionally, value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will
 be applied to every occurrence of the `${ CLUSTER_NAME }` variable.
 
 ## OwnerReferences chain
 
-Each provider is responsible to ensure that all the providers resources (like e.g. `VSphereCluster`, `VSphereMachine`, `VSphereVM` etc. 
+Each provider is responsible to ensure that all the providers resources (like e.g. `VSphereCluster`, `VSphereMachine`, `VSphereVM` etc.
 for the `vsphere` provider) MUST have a `Metadata.OwnerReferences` entry that links directly or indirectly to a `Cluster` object.
 
 Please note that all the provider specific resources that are referenced by the Cluster API core objects will get the `OwnerReference`
 sets by the Cluster API core controllers, e.g.:
 
-- The Cluster controller ensures that all the objects referenced in `Cluster.Spec.InfrastructureRef` get an `OwnerReference` 
+- The Cluster controller ensures that all the objects referenced in `Cluster.Spec.InfrastructureRef` get an `OwnerReference`
   that links directly to the corresponding `Cluster`.
-- The Machine controller ensures that all the objects referenced in `Machine.Spec.InfrastructureRef` get an `OwnerReference` 
+- The Machine controller ensures that all the objects referenced in `Machine.Spec.InfrastructureRef` get an `OwnerReference`
   that links to the corresponding `Machine`, and the `Machine` is linked to the `Cluster` through its own `OwnerReference` chain.  
 
 That means that, practically speaking, provider implementers are responsible for ensuring that the `OwnerReference`s
@@ -289,8 +283,8 @@ Provider authors should be aware of the following transformations that `clusterc
 * Enforcement of target namespace:
     * The name of the namespace object is set;
     * The namespace field of all the objects is set (with exception of cluster wide objects like e.g. ClusterRoles);
-    * ClusterRole and ClusterRoleBinding are renamed by adding a “${namespace}-“ prefix to the name; this change reduces the risks 
-    of conflicts between several instances of the same provider in case of multi tenancy; 
+    * ClusterRole and ClusterRoleBinding are renamed by adding a “${namespace}-“ prefix to the name; this change reduces the risks
+    of conflicts between several instances of the same provider in case of multi tenancy;
 * Enforcement of watching namespace;
 * All components are labeled;
 
@@ -304,7 +298,7 @@ Provider authors should be aware of the following transformations that `clusterc
 
 ### Links to external objects
 
-The `clusterctl` command requires that both the components YAML and the cluster templates contain _all_ the required 
+The `clusterctl` command requires that both the components YAML and the cluster templates contain _all_ the required
 objects.
 
 If, for any reason, the provider authors/YAML designers decide not to comply with this recommendation and e.g. to
@@ -315,11 +309,11 @@ If, for any reason, the provider authors/YAML designers decide not to comply wit
 The provider authors/YAML designers should be aware that it is their responsibility to ensure the proper
 functioning of all the `clusterctl` features both in single tenancy or multi-tenancy scenarios and/or document known limitations.
 
-### Move 
+### Move
 
 Provider authors should be aware that `clusterctl move` command implements a discovery mechanism that considers:
 
-* All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init`. 
+* All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init`.
 * `Secret` and `ConfigMap` objects.
 * The `OwnerReference` chain of the above objects.
 * Any object of Kind in which its CRD has the "move" label (`clusterctl.cluster.x-k8s.io/move`) attached to it.
@@ -349,3 +343,4 @@ Additionally, provider authors should be aware that `clusterctl move` assumes al
 <!--LINKS-->
 [drone-envsubst]: https://github.com/drone/envsubst
 [issue 3418]: https://github.com/kubernetes-sigs/cluster-api/issues/3418
+[issue 3515]: https://github.com/kubernetes-sigs/cluster-api/issues/3515

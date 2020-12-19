@@ -80,7 +80,7 @@ func (m *ClusterResourceSet) validate(old *ClusterResourceSet) error {
 	}
 
 	// Validate that the selector isn't empty as null selectors do not select any objects.
-	if selector != nil && selector.Empty() {
+	if selector != nil {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec", "clusterSelector"), m.Spec.ClusterSelector, "selector must not be empty"),

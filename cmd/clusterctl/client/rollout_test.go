@@ -27,54 +27,29 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
 
-func Test_clusterctlClient_RolloutRestart(t *testing.T) {
-	type fields struct {
-		client *fakeClient
-	}
-	type args struct {
-		options RolloutRestartOptions
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "do not return error if machinedeployment found",
-			fields: fields{
-				client: fakeClientForRollout(),
-			},
-			args: args{
-				options: RolloutRestartOptions{
-					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Resources:  []string{"machinedeployment/md-1"},
-					Namespace:  "default",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "do not return error if all machinedeployments found",
-			fields: fields{
-				client: fakeClientForRollout(),
-			},
-			args: args{
-				options: RolloutRestartOptions{
-					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-2"},
-					Namespace:  "default",
-				},
-			},
-			wantErr: false,
-		},
+type rolloutTest struct {
+	name    string
+	fields  fields
+	args    args
+	wantErr bool
+}
+type fields struct {
+	client *fakeClient
+}
+type args struct {
+	options RolloutOptions
+}
+
+// genericTestCases are test cases that can be passed to any of the rollout subcommands.
+func genericTestCases() []rolloutTest {
+	return []rolloutTest{
 		{
 			name: "return an error is machinedeployment not found",
 			fields: fields{
 				client: fakeClientForRollout(),
 			},
 			args: args{
-				options: RolloutRestartOptions{
+				options: RolloutOptions{
 					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					Resources:  []string{"machinedeployment/foo"},
 					Namespace:  "default",
@@ -88,7 +63,7 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 				client: fakeClientForRollout(),
 			},
 			args: args{
-				options: RolloutRestartOptions{
+				options: RolloutOptions{
 					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-does-not-exist"},
 					Namespace:  "default",
@@ -102,7 +77,7 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 				client: fakeClientForRollout(),
 			},
 			args: args{
-				options: RolloutRestartOptions{
+				options: RolloutOptions{
 					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					Resources:  []string{"foo/bar"},
 					Namespace:  "default",
@@ -110,19 +85,19 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 			},
 			wantErr: true,
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			err := tt.fields.client.RolloutRestart(tt.args.options)
-			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
-				return
-			}
-			g.Expect(err).NotTo(HaveOccurred())
-		})
+		{
+			name: "return error if no resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
 	}
 }
 
@@ -163,4 +138,85 @@ func fakeClientForRollout() *fakeClient {
 		WithCluster(cluster1)
 
 	return client
+}
+
+func Test_clusterctlClient_RolloutRestart(t *testing.T) {
+	tests := genericTestCases()
+	additionalTests := []rolloutTest{
+		{
+			name: "do not return error if machinedeployment found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/md-1"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "do not return error if all machinedeployments found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-2"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	tests = append(tests, additionalTests...)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := tt.fields.client.RolloutRestart(tt.args.options)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}
+
+func Test_clusterctlClient_RolloutPause(t *testing.T) {
+	tests := genericTestCases()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := tt.fields.client.RolloutPause(tt.args.options)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}
+
+func Test_clusterctlClient_RolloutResume(t *testing.T) {
+	tests := genericTestCases()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := tt.fields.client.RolloutResume(tt.args.options)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
 }

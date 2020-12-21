@@ -78,7 +78,11 @@ type Client interface {
 // AlphaClient exposes the alpha features in clusterctl high-level client library.
 type AlphaClient interface {
 	// RolloutRestart provides rollout restart of cluster-api resources
-	RolloutRestart(options RolloutRestartOptions) error
+	RolloutRestart(options RolloutOptions) error
+	// RolloutPause provides rollout pause of cluster-api resources
+	RolloutPause(options RolloutOptions) error
+	// RolloutResume provides rollout resume of paused cluster-api resources
+	RolloutResume(options RolloutOptions) error
 }
 
 // YamlPrinter exposes methods that prints the processed template and

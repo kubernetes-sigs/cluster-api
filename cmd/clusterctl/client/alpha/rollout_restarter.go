@@ -29,8 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var validResourceTypes = []string{"machinedeployment"}
-
 // ObjectRestarter will issue a restart on the specified cluster-api resource.
 func (r *rollout) ObjectRestarter(proxy cluster.Proxy, tuple util.ResourceTuple, namespace string) error {
 	switch tuple.Resource {

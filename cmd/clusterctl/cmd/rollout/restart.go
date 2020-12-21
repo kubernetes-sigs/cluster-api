@@ -30,7 +30,7 @@ type restartOptions struct {
 	namespace         string
 }
 
-var ro = &restartOptions{}
+var restartOpt = &restartOptions{}
 
 var (
 	restartLong = templates.LongDesc(`
@@ -56,27 +56,27 @@ func NewCmdRolloutRestart(cfgFile string) *cobra.Command {
 			return runRestart(cfgFile, cmd, args)
 		},
 	}
-	cmd.Flags().StringVar(&ro.kubeconfig, "kubeconfig", "",
+	cmd.Flags().StringVar(&restartOpt.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
-	cmd.Flags().StringVar(&ro.kubeconfigContext, "kubeconfig-context", "",
+	cmd.Flags().StringVar(&restartOpt.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
-	cmd.Flags().StringVar(&ro.namespace, "namespace", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
+	cmd.Flags().StringVar(&restartOpt.namespace, "namespace", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
 
 	return cmd
 }
 
 func runRestart(cfgFile string, cmd *cobra.Command, args []string) error {
-	ro.resources = args
+	restartOpt.resources = args
 
 	c, err := client.New(cfgFile)
 	if err != nil {
 		return err
 	}
 
-	if err := c.RolloutRestart(client.RolloutRestartOptions{
-		Kubeconfig: client.Kubeconfig{Path: ro.kubeconfig, Context: ro.kubeconfigContext},
-		Namespace:  ro.namespace,
-		Resources:  ro.resources,
+	if err := c.RolloutRestart(client.RolloutOptions{
+		Kubeconfig: client.Kubeconfig{Path: restartOpt.kubeconfig, Context: restartOpt.kubeconfigContext},
+		Namespace:  restartOpt.namespace,
+		Resources:  restartOpt.resources,
 	}); err != nil {
 		return err
 	}

@@ -83,6 +83,8 @@ type AlphaClient interface {
 	RolloutPause(options RolloutOptions) error
 	// RolloutResume provides rollout resume of paused cluster-api resources
 	RolloutResume(options RolloutOptions) error
+	// RolloutUndo provides rollout rollback of cluster-api resources
+	RolloutUndo(options RolloutOptions) error
 }
 
 // YamlPrinter exposes methods that prints the processed template and

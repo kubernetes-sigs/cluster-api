@@ -58,7 +58,7 @@ func Test_ObjectResumer(t *testing.T) {
 					},
 				},
 				tuple: util.ResourceTuple{
-					Resource: "machinedeployment",
+					Resource: MachineDeployment,
 					Name:     "md-1",
 				},
 				namespace: "default",
@@ -84,7 +84,7 @@ func Test_ObjectResumer(t *testing.T) {
 					},
 				},
 				tuple: util.ResourceTuple{
-					Resource: "machinedeployment",
+					Resource: MachineDeployment,
 					Name:     "md-1",
 				},
 				namespace: "default",

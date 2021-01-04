@@ -66,7 +66,7 @@ type ClusterResourceSetReconciler struct {
 }
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	_, err := ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
@@ -75,6 +75,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+			builder.OnlyMetadata,
 			builder.WithPredicates(
 				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
 			),
@@ -82,13 +83,14 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+			builder.OnlyMetadata,
 			builder.WithPredicates(
 				resourcepredicates.AddonsSecretCreate(ctrl.LoggerFrom(ctx)),
 			),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
-		Build(r)
+		Complete(r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

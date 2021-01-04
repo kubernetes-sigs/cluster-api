@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
@@ -36,6 +37,7 @@ import (
 	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
@@ -126,7 +128,11 @@ func main() {
 		RetryPeriod:        &leaderElectionRetryPeriod,
 		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,
-		Port:               webhookPort,
+		ClientDisableCacheFor: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+		},
+		Port: webhookPort,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

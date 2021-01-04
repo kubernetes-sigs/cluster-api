@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	kind "sigs.k8s.io/kind/pkg/cluster"
@@ -42,7 +42,7 @@ type CreateKindBootstrapClusterAndLoadImagesInput struct {
 	RequiresDockerSock bool
 
 	// Images to be loaded in the cluster (this is kind specific)
-	Images []framework.ContainerImage
+	Images []clusterctl.ContainerImage
 }
 
 // CreateKindBootstrapClusterAndLoadImages returns a new Kubernetes cluster with pre-loaded images.
@@ -82,7 +82,7 @@ type LoadImagesToKindClusterInput struct {
 	Name string
 
 	// Images to be loaded in the cluster (this is kind specific)
-	Images []framework.ContainerImage
+	Images []clusterctl.ContainerImage
 }
 
 // LoadImagesToKindCluster provides a utility for loading images into a kind cluster.
@@ -98,9 +98,9 @@ func LoadImagesToKindCluster(ctx context.Context, input LoadImagesToKindClusterI
 		log.Logf("Loading image: %q", image.Name)
 		if err := loadImage(ctx, input.Name, image.Name); err != nil {
 			switch image.LoadBehavior {
-			case framework.MustLoadImage:
+			case clusterctl.MustLoadImage:
 				return errors.Wrapf(err, "Failed to load image %q into the kind cluster %q", image.Name, input.Name)
-			case framework.TryLoadImage:
+			case clusterctl.TryLoadImage:
 				log.Logf("[WARNING] Unable to load image %q into the kind cluster %q: %v", image.Name, input.Name, err)
 			}
 		}

@@ -141,7 +141,8 @@ func Run(ctx context.Context, input RunInput) error {
 		return errors.Wrap(err, "unable to determine current user")
 	}
 	userArg := user.Uid + ":" + user.Gid
-	e2eCmd := exec.Command("docker", "run", "--user", userArg, kubeConfigVolumeMount, outputVolumeMount, viperVolumeMount, "-t", input.ConformanceImage)
+	networkArg := "--network=kind"
+	e2eCmd := exec.Command("docker", "run", "--user", userArg, kubeConfigVolumeMount, outputVolumeMount, viperVolumeMount, "-t", networkArg, input.ConformanceImage)
 	e2eCmd.Args = append(e2eCmd.Args, "/usr/local/bin/ginkgo")
 	e2eCmd.Args = append(e2eCmd.Args, ginkgoArgs...)
 	e2eCmd.Args = append(e2eCmd.Args, "/usr/local/bin/e2e.test")

@@ -113,8 +113,14 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, d *c
 		annotationsUpdated := mdutil.SetNewMachineSetAnnotations(d, msCopy, newRevision, true, log)
 
 		minReadySecondsNeedsUpdate := msCopy.Spec.MinReadySeconds != *d.Spec.MinReadySeconds
-		if annotationsUpdated || minReadySecondsNeedsUpdate {
+		deletePolicyNeedsUpdate := d.Spec.Strategy.RollingUpdate.DeletePolicy != nil && msCopy.Spec.DeletePolicy != *d.Spec.Strategy.RollingUpdate.DeletePolicy
+		if annotationsUpdated || minReadySecondsNeedsUpdate || deletePolicyNeedsUpdate {
 			msCopy.Spec.MinReadySeconds = *d.Spec.MinReadySeconds
+
+			if deletePolicyNeedsUpdate {
+				msCopy.Spec.DeletePolicy = *d.Spec.Strategy.RollingUpdate.DeletePolicy
+			}
+
 			return nil, patchHelper.Patch(ctx, msCopy)
 		}
 
@@ -160,6 +166,10 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, d *c
 			Selector:        *newMSSelector,
 			Template:        newMSTemplate,
 		},
+	}
+
+	if d.Spec.Strategy.RollingUpdate.DeletePolicy != nil {
+		newMS.Spec.DeletePolicy = *d.Spec.Strategy.RollingUpdate.DeletePolicy
 	}
 
 	// Add foregroundDeletion finalizer to MachineSet if the MachineDeployment has it

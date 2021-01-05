@@ -270,7 +270,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// Generate Cluster Kubeconfig if needed
-	if err := r.reconcileKubeconfig(ctx, util.ObjectKey(cluster), cluster.Spec.ControlPlaneEndpoint, kcp); err != nil {
+	if err := r.reconcileKubeconfig(ctx, cluster, kcp); err != nil {
 		logger.Error(err, "failed to reconcile Kubeconfig")
 		return ctrl.Result{}, err
 	}

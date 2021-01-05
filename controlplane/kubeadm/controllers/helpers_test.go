@@ -34,87 +34,32 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
-	g := NewWithT(t)
-
-	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "test",
-		},
-		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "v1.16.6",
-		},
-	}
-	clusterName := client.ObjectKey{Namespace: "test", Name: "foo"}
-
-	fakeClient := newFakeClient(g, kcp.DeepCopy())
-	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		Log:      log.Log,
-		recorder: record.NewFakeRecorder(32),
-	}
-
-	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, clusterv1.APIEndpoint{}, kcp)).To(Succeed())
-
-	kubeconfigSecret := &corev1.Secret{}
-	secretName := client.ObjectKey{
-		Namespace: "test",
-		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
-	}
-	g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(MatchError(ContainSubstring("not found")))
-}
-
-func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
-	g := NewWithT(t)
-
-	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "test",
-		},
-		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "v1.16.6",
-		},
-	}
-	clusterName := client.ObjectKey{Namespace: "test", Name: "foo"}
-	endpoint := clusterv1.APIEndpoint{Host: "test.local", Port: 8443}
-
-	fakeClient := newFakeClient(g, kcp.DeepCopy())
-	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		Log:      log.Log,
-		recorder: record.NewFakeRecorder(32),
-	}
-
-	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).NotTo(Succeed())
-
-	kubeconfigSecret := &corev1.Secret{}
-	secretName := client.ObjectKey{
-		Namespace: "test",
-		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
-	}
-	g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(MatchError(ContainSubstring("not found")))
-}
-
-func TestReconcileKubeconfigSecretAlreadyExists(t *testing.T) {
-	g := NewWithT(t)
-
+func TestReconcileKubeconfig(t *testing.T) {
 	cluster := &clusterv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
 		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "test.local", Port: 8443},
+		},
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "KubeadmControlPlane",
+			APIVersion: controlplanev1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
@@ -123,83 +68,113 @@ func TestReconcileKubeconfigSecretAlreadyExists(t *testing.T) {
 			Version: "v1.16.6",
 		},
 	}
-	clusterName := util.ObjectKey(cluster)
-	endpoint := clusterv1.APIEndpoint{Host: "test.local", Port: 8443}
 
-	existingKubeconfigSecret := kubeconfig.GenerateSecretWithOwner(
-		client.ObjectKey{Name: "foo", Namespace: "test"},
-		[]byte{},
-		*metav1.NewControllerRef(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
-	)
+	t.Run("Empty API Endpoints", func(t *testing.T) {
+		g := NewWithT(t)
+		fakeClient := newFakeClient(g, kcp.DeepCopy())
+		r := &KubeadmControlPlaneReconciler{
+			Client:   fakeClient,
+			Log:      log.Log,
+			recorder: record.NewFakeRecorder(32),
+		}
 
-	fakeClient := newFakeClient(g, kcp.DeepCopy(), existingKubeconfigSecret.DeepCopy())
-	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		Log:      log.Log,
-		recorder: record.NewFakeRecorder(32),
-	}
+		c := cluster.DeepCopy()
+		c.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{}
+		g.Expect(r.reconcileKubeconfig(context.Background(), c, kcp)).To(Succeed())
 
-	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).To(Succeed())
-
-	kubeconfigSecret := &corev1.Secret{}
-	secretName := client.ObjectKey{
-		Namespace: "test",
-		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
-	}
-	g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(Succeed())
-	g.Expect(kubeconfigSecret.Labels).To(Equal(existingKubeconfigSecret.Labels))
-	g.Expect(kubeconfigSecret.Data).To(Equal(existingKubeconfigSecret.Data))
-	g.Expect(kubeconfigSecret.OwnerReferences).NotTo(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
-
-}
-
-func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
-	g := NewWithT(t)
-
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
+		kubeconfigSecret := &corev1.Secret{}
+		secretName := client.ObjectKey{
 			Namespace: "test",
-		},
-	}
+			Name:      secret.Name(c.Name, secret.Kubeconfig),
+		}
+		g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(MatchError(ContainSubstring("not found")))
+	})
 
-	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
+	t.Run("Missing CA Certificate", func(t *testing.T) {
+		g := NewWithT(t)
+		fakeClient := newFakeClient(g, kcp.DeepCopy())
+		r := &KubeadmControlPlaneReconciler{
+			Client:   fakeClient,
+			Log:      log.Log,
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		g.Expect(r.reconcileKubeconfig(context.Background(), cluster, kcp)).NotTo(Succeed())
+
+		kubeconfigSecret := &corev1.Secret{}
+		secretName := client.ObjectKey{
 			Namespace: "test",
-		},
-		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "v1.16.6",
-		},
-	}
-	clusterName := util.ObjectKey(cluster)
-	endpoint := clusterv1.APIEndpoint{Host: "test.local", Port: 8443}
+			Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+		}
+		g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(MatchError(ContainSubstring("not found")))
+	})
 
-	clusterCerts := secret.NewCertificatesForInitialControlPlane(&kubeadmv1.ClusterConfiguration{})
-	g.Expect(clusterCerts.Generate()).To(Succeed())
-	caCert := clusterCerts.GetByPurpose(secret.ClusterCA)
-	existingCACertSecret := caCert.AsSecret(
-		client.ObjectKey{Namespace: "test", Name: "foo"},
-		*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
-	)
+	t.Run("Adopts v1alpha2 Secrets", func(t *testing.T) {
+		g := NewWithT(t)
+		existingKubeconfigSecret := kubeconfig.GenerateSecretWithOwner(
+			client.ObjectKey{Name: "foo", Namespace: "test"},
+			[]byte{},
+			metav1.OwnerReference{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Cluster",
+				Name:       cluster.Name,
+				UID:        cluster.UID,
+			}, // the Cluster ownership defines v1alpha2 controlled secrets
+		)
 
-	fakeClient := newFakeClient(g, kcp.DeepCopy(), existingCACertSecret.DeepCopy())
-	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		Log:      log.Log,
-		recorder: record.NewFakeRecorder(32),
-	}
-	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).To(Succeed())
+		fakeClient := newFakeClient(g, kcp.DeepCopy(), existingKubeconfigSecret.DeepCopy())
+		r := &KubeadmControlPlaneReconciler{
+			Client:   fakeClient,
+			Log:      log.Log,
+			recorder: record.NewFakeRecorder(32),
+		}
 
-	kubeconfigSecret := &corev1.Secret{}
-	secretName := client.ObjectKey{
-		Namespace: "test",
-		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
-	}
-	g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(Succeed())
-	g.Expect(kubeconfigSecret.OwnerReferences).NotTo(BeEmpty())
-	g.Expect(kubeconfigSecret.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
-	g.Expect(kubeconfigSecret.Labels).To(HaveKeyWithValue(clusterv1.ClusterLabelName, clusterName.Name))
+		g.Expect(r.reconcileKubeconfig(context.Background(), cluster, kcp)).To(Succeed())
+
+		kubeconfigSecret := &corev1.Secret{}
+		secretName := client.ObjectKey{
+			Namespace: "test",
+			Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+		}
+		g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(Succeed())
+		g.Expect(kubeconfigSecret.Labels).To(Equal(existingKubeconfigSecret.Labels))
+		g.Expect(kubeconfigSecret.Data).To(Equal(existingKubeconfigSecret.Data))
+		g.Expect(kubeconfigSecret.OwnerReferences).ToNot(ContainElement(metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		}))
+		g.Expect(kubeconfigSecret.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
+	})
+
+	t.Run("Does not adopt user secrets", func(t *testing.T) {
+		g := NewWithT(t)
+		existingKubeconfigSecret := kubeconfig.GenerateSecretWithOwner(
+			client.ObjectKey{Name: "foo", Namespace: "test"},
+			[]byte{},
+			metav1.OwnerReference{},
+		)
+
+		fakeClient := newFakeClient(g, kcp.DeepCopy(), existingKubeconfigSecret.DeepCopy())
+		r := &KubeadmControlPlaneReconciler{
+			Client:   fakeClient,
+			Log:      log.Log,
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		g.Expect(r.reconcileKubeconfig(context.Background(), cluster, kcp)).To(Succeed())
+
+		kubeconfigSecret := &corev1.Secret{}
+		secretName := client.ObjectKey{
+			Namespace: "test",
+			Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+		}
+		g.Expect(r.Client.Get(context.Background(), secretName, kubeconfigSecret)).To(Succeed())
+		g.Expect(kubeconfigSecret.Labels).To(Equal(existingKubeconfigSecret.Labels))
+		g.Expect(kubeconfigSecret.Data).To(Equal(existingKubeconfigSecret.Data))
+		g.Expect(kubeconfigSecret.OwnerReferences).ToNot(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
+	})
 }
 
 func TestCloneConfigsAndGenerateMachine(t *testing.T) {

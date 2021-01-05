@@ -39,15 +39,16 @@ import (
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName client.ObjectKey, endpoint clusterv1.APIEndpoint, kcp *controlplanev1.KubeadmControlPlane) error {
+func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) error {
+	endpoint := cluster.Spec.ControlPlaneEndpoint
 	if endpoint.IsZero() {
 		return nil
 	}
 
 	controllerOwnerRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
+	clusterName := util.ObjectKey(cluster)
 	configSecret, err := secret.GetFromNamespacedName(ctx, r.Client, clusterName, secret.Kubeconfig)
 	switch {
 	case apierrors.IsNotFound(errors.Cause(err)):
@@ -68,6 +69,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		return errors.Wrap(err, "failed to retrieve kubeconfig Secret")
 	}
 
+	// check if the kubeconfig secret was created by v1alpha2 controllers, and thus it has the Cluster as the owner instead of KCP;
+	// if yes, adopt it.
+	if util.IsOwnedByObject(configSecret, cluster) && !util.IsControlledBy(configSecret, kcp) {
+		if err := r.adoptKubeconfigSecret(ctx, cluster, configSecret, controllerOwnerRef); err != nil {
+			return err
+		}
+	}
+
 	// only do rotation on owned secrets
 	if !util.IsControlledBy(configSecret, kcp) {
 		return nil
@@ -85,6 +94,26 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		}
 	}
 
+	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, controllerOwnerRef metav1.OwnerReference) error {
+	r.Log.Info("Adopting KubeConfig secret created by v1alpha2 controllers", "Name", configSecret.Name)
+
+	patchHelper, err := patch.NewHelper(configSecret, r.Client)
+	if err != nil {
+		return errors.Wrap(err, "failed to create patch helper for the kubeconfig secret")
+	}
+	configSecret.OwnerReferences = util.RemoveOwnerRef(configSecret.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	})
+	configSecret.OwnerReferences = util.EnsureOwnerRef(configSecret.OwnerReferences, controllerOwnerRef)
+	if err := patchHelper.Patch(ctx, configSecret); err != nil {
+		return errors.Wrap(err, "failed to patch the kubeconfig secret")
+	}
 	return nil
 }
 

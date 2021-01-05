@@ -77,6 +77,7 @@ providers = {
             "cloudinit",
             "controllers",
             "docker",
+            "exp",
             "third_party",
         ],
         "additional_docker_helper_commands": """

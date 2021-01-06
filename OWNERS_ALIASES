@@ -16,7 +16,6 @@ aliases:
   cluster-api-admins:
   - justinsb
   - detiber
-  - davidewatson
   - vincepri
 
   # non-admin folks who have write-access and can approve any PRs in the repo

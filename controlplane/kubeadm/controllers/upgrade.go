@@ -82,6 +82,20 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		}
 	}
 
+	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
+		if err := workloadCluster.UpdateAPIServerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to update api server in the kubeadm config map")
+		}
+
+		if err := workloadCluster.UpdateControllerManagerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to update controller manager in the kubeadm config map")
+		}
+
+		if err := workloadCluster.UpdateSchedulerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to update scheduler in the kubeadm config map")
+		}
+	}
+
 	if err := workloadCluster.UpdateKubeletConfigMap(ctx, parsedVersion); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to upgrade kubelet config map")
 	}

@@ -17,11 +17,13 @@ limitations under the License.
 package internal
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/yaml"
 )
@@ -36,6 +38,9 @@ const (
 	dnsImageRepositoryKey    = "imageRepository"
 	dnsImageTagKey           = "imageTag"
 	configImageRepositoryKey = "imageRepository"
+	apiServerKey             = "apiServer"
+	controllerManagerKey     = "controllerManager"
+	schedulerKey             = "scheduler"
 )
 
 // kubeadmConfig wraps up interactions necessary for modifying the kubeadm config during an upgrade.
@@ -194,6 +199,74 @@ func (k *kubeadmConfig) UpdateCoreDNSImageInfo(repository, tag string) error {
 	}
 	k.ConfigMap.Data[clusterConfigurationKey] = string(updated)
 	return nil
+}
+
+// UpdateAPIServer sets the api server configuration to values set in `apiServer` in kubeadm config map.
+func (k *kubeadmConfig) UpdateAPIServer(apiServer kubeadmv1.APIServer) (bool, error) {
+	changed, err := k.updateClusterConfiguration(apiServer, apiServerKey)
+	if err != nil {
+		return false, errors.Wrap(err, "unable to update api server configuration in kubeadm config map")
+	}
+	return changed, nil
+}
+
+// UpdateControllerManager sets the controller manager configuration to values set in `controllerManager` in kubeadm config map.
+func (k *kubeadmConfig) UpdateControllerManager(controllerManager kubeadmv1.ControlPlaneComponent) (bool, error) {
+	changed, err := k.updateClusterConfiguration(controllerManager, controllerManagerKey)
+	if err != nil {
+		return false, errors.Wrap(err, "unable to update controller manager configuration in kubeadm config map")
+	}
+	return changed, nil
+}
+
+// UpdateScheduler sets the scheduler configuration to values set in `scheduler` in kubeadm config map.
+func (k *kubeadmConfig) UpdateScheduler(scheduler kubeadmv1.ControlPlaneComponent) (bool, error) {
+	changed, err := k.updateClusterConfiguration(scheduler, schedulerKey)
+	if err != nil {
+		return false, errors.Wrap(err, "unable to update scheduler configuration in kubeadm config map")
+	}
+	return changed, nil
+}
+
+// updateClusterConfiguration is a generic method to update any kubeadm ClusterConfiguration spec with custom types in the specified path.
+func (k *kubeadmConfig) updateClusterConfiguration(config interface{}, path ...string) (bool, error) {
+	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
+	if !ok {
+		return false, errors.Errorf("unable to find %q in kubeadm ConfigMap", clusterConfigurationKey)
+	}
+
+	configuration, err := yamlToUnstructured([]byte(data))
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to decode kubeadm ConfigMap's %q to Unstructured object", clusterConfigurationKey)
+	}
+
+	currentConfig, _, err := unstructured.NestedFieldCopy(configuration.UnstructuredContent(), path...)
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to retrieve %q from kubeadm ConfigMap", strings.Join(path, "."))
+	}
+
+	// convert config to map[string]interface because unstructured.SetNestedField does not accept custom structs.
+	newConfig, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&config)
+	if err != nil {
+		return false, errors.Wrap(err, "unable to convert config to unstructured")
+	}
+
+	// if there are no changes, return early.
+	if reflect.DeepEqual(newConfig, currentConfig) {
+		return false, nil
+	}
+
+	if err := unstructured.SetNestedField(configuration.UnstructuredContent(), newConfig, path...); err != nil {
+		return false, errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap", strings.Join(path, "."))
+	}
+
+	updated, err := yaml.Marshal(configuration)
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to encode kubeadm ConfigMap's %q to YAML", clusterConfigurationKey)
+	}
+
+	k.ConfigMap.Data[clusterConfigurationKey] = string(updated)
+	return true, nil
 }
 
 // yamlToUnstructured looks inside a config map for a specific key and extracts the embedded YAML into an

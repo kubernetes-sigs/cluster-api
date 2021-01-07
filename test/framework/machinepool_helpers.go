@@ -129,7 +129,8 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 	Expect(input.MachinePools).ToNot(BeNil(), "Invalid argument. input.MachinePools can't be empty when calling UpgradeMachinePoolAndWait")
 
 	mgmtClient := input.ClusterProxy.GetClient()
-	for _, mp := range input.MachinePools {
+	for i := range input.MachinePools {
+		mp := input.MachinePools[i]
 		log.Logf("Patching the new kubernetes version to Machine Pool %s/%s", mp.Namespace, mp.Name)
 		patchHelper, err := patch.NewHelper(mp, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
@@ -138,7 +139,8 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 		Expect(patchHelper.Patch(ctx, mp)).To(Succeed())
 	}
 
-	for _, mp := range input.MachinePools {
+	for i := range input.MachinePools {
+		mp := input.MachinePools[i]
 		oldVersion := mp.Spec.Template.Spec.Version
 		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s/%s to be upgraded from %s to %s",
 			mp.Namespace, mp.Name, *oldVersion, input.UpgradeVersion)
@@ -169,7 +171,7 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 
 	mgmtClient := input.ClusterProxy.GetClient()
 	for _, mp := range input.MachinePools {
-		log.Logf("Patching the new kubernetes version to Machine Pool %s/%s", mp.Namespace, mp.Name)
+		log.Logf("Patching the replica count in Machine Pool %s/%s", mp.Namespace, mp.Name)
 		patchHelper, err := patch.NewHelper(mp, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 

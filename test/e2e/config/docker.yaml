@@ -74,6 +74,8 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-node-drain.yaml"
 
 variables:
+  # default variables for the e2e test; those values could be overridden via env variables, thus
+  # allowing the same e2e config file to be re-used in different prow jobs e.g. each one with a K8s version permutation
   KUBERNETES_VERSION: "v1.19.1"
   ETCD_VERSION_UPGRADE_TO: "3.4.9-0"
   COREDNS_VERSION_UPGRADE_TO: "1.7.0"

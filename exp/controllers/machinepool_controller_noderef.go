@@ -19,9 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -74,7 +75,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 		return ctrl.Result{}, nil
 	}
 
-	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster))
+	clusterClient, err := remote.NewClusterClient(ctx, MachinePoolControllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
 	}

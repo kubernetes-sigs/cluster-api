@@ -42,11 +42,10 @@ import (
 )
 
 const (
-	defaultClientTimeout = 10 * time.Second
-
 	healthCheckPollInterval       = 10 * time.Second
 	healthCheckRequestTimeout     = 5 * time.Second
 	healthCheckUnhealthyThreshold = 10
+	ClusterCacheControllerName    = "cluster-cache-tracker"
 )
 
 // ClusterCacheTracker manages client caches for workload clusters.
@@ -119,11 +118,10 @@ func (t *ClusterCacheTracker) getClusterAccessorLH(ctx context.Context, cluster 
 // newClusterAccessor creates a new clusterAccessor.
 func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster client.ObjectKey) (*clusterAccessor, error) {
 	// Get a rest config for the remote cluster
-	config, err := RESTConfig(ctx, t.client, cluster)
+	config, err := RESTConfig(ctx, ClusterCacheControllerName, t.client, cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error fetching REST client config for remote cluster %q", cluster.String())
 	}
-	config.Timeout = defaultClientTimeout
 
 	// Create a mapper for it
 	mapper, err := apiutil.NewDynamicRESTMapper(config)

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -36,6 +37,10 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	machinesRequireUpgrade collections.Machines,
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
+
+	if kcp.Spec.RolloutStrategy == nil && kcp.Spec.RolloutStrategy.RollingUpdate == nil {
+		return ctrl.Result{}, errors.New("rolloutStrategy is not set")
+	}
 
 	// TODO: handle reconciliation of etcd members and kubeadm config in case they get out of sync with cluster
 
@@ -105,9 +110,18 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return ctrl.Result{}, err
 	}
 
-	if status.Nodes <= *kcp.Spec.Replicas {
-		// scaleUp ensures that we don't continue scaling up while waiting for Machines to have NodeRefs
-		return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
+	switch kcp.Spec.RolloutStrategy.Type {
+	case controlplanev1.RollingUpdateStrategyType:
+		// RolloutStrategy is currently defaulted and validated to be RollingUpdate
+		// We can ignore MaxUnavailable because we are enforcing health checks before we get here.
+		maxNodes := *kcp.Spec.Replicas + int32(kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntValue())
+		if status.Nodes < maxNodes {
+			// scaleUp ensures that we don't continue scaling up while waiting for Machines to have NodeRefs
+			return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
+		}
+		return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, machinesRequireUpgrade)
+	default:
+		logger.Info("RolloutStrategy type is not set to RollingUpdateStrategyType, unable to determine the strategy for rolling out machines")
+		return ctrl.Result{}, nil
 	}
-	return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, machinesRequireUpgrade)
 }

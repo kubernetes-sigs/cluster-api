@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/util/container"
@@ -60,6 +61,25 @@ func (in *KubeadmControlPlane) Default() {
 
 	if !strings.HasPrefix(in.Spec.Version, "v") {
 		in.Spec.Version = "v" + in.Spec.Version
+	}
+
+	ios1 := intstr.FromInt(1)
+
+	if in.Spec.RolloutStrategy == nil {
+		in.Spec.RolloutStrategy = &RolloutStrategy{}
+	}
+
+	// Enforce RollingUpdate strategy and default MaxSurge if not set.
+	if in.Spec.RolloutStrategy != nil {
+		if len(in.Spec.RolloutStrategy.Type) == 0 {
+			in.Spec.RolloutStrategy.Type = RollingUpdateStrategyType
+		}
+		if in.Spec.RolloutStrategy.Type == RollingUpdateStrategyType {
+			if in.Spec.RolloutStrategy.RollingUpdate == nil {
+				in.Spec.RolloutStrategy.RollingUpdate = &RollingUpdate{}
+			}
+			in.Spec.RolloutStrategy.RollingUpdate.MaxSurge = intstr.ValueOrDefault(in.Spec.RolloutStrategy.RollingUpdate.MaxSurge, ios1)
+		}
 	}
 }
 
@@ -116,6 +136,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, "version"},
 		{spec, "upgradeAfter"},
 		{spec, "nodeDrainTimeout"},
+		{spec, "rolloutStrategy"},
 	}
 
 	allErrs := in.validateCommon()
@@ -267,6 +288,42 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 
 	if !version.KubeSemver.MatchString(in.Spec.Version) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), in.Spec.Version, "must be a valid semantic version"))
+	}
+
+	if in.Spec.RolloutStrategy != nil {
+
+		if in.Spec.RolloutStrategy.Type != RollingUpdateStrategyType {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					field.NewPath("spec", "rolloutStrategy", "type"),
+					"only RollingUpdateStrategyType is supported",
+				),
+			)
+		}
+
+		ios1 := intstr.FromInt(1)
+		ios0 := intstr.FromInt(0)
+
+		if *in.Spec.RolloutStrategy.RollingUpdate.MaxSurge == ios0 && *in.Spec.Replicas < int32(3) {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					field.NewPath("spec", "rolloutStrategy", "rollingUpdate"),
+					"when KubeadmControlPlane is configured to scale-in, replica count needs to be at least 3",
+				),
+			)
+		}
+
+		if *in.Spec.RolloutStrategy.RollingUpdate.MaxSurge != ios1 && *in.Spec.RolloutStrategy.RollingUpdate.MaxSurge != ios0 {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					field.NewPath("spec", "rolloutStrategy", "rollingUpdate", "maxSurge"),
+					"value must be 1 or 0",
+				),
+			)
+		}
 	}
 
 	allErrs = append(allErrs, in.validateCoreDNSImage()...)

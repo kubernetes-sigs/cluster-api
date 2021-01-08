@@ -19,9 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/cluster-api/util/collections"
 
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -166,6 +167,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			g.Expect(m).To(Equal(bm))
 		}
 	})
+
 }
 
 func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.T) {

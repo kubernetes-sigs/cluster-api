@@ -35,6 +35,8 @@ providers:
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
       new: --metrics-bind-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
 
 - name: kubeadm
   type: BootstrapProvider
@@ -45,6 +47,8 @@ providers:
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
       new: --metrics-bind-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -55,6 +59,8 @@ providers:
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
       new: --metrics-bind-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
 
 - name: docker
   type: InfrastructureProvider
@@ -72,6 +78,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-adoption.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-machine-pool.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-node-drain.yaml"
+    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.19.1"

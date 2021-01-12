@@ -78,13 +78,13 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 
-	fs.DurationVar(&leaderElectionLeaseDuration, "leader-elect-lease-duration", 15*time.Second,
+	fs.DurationVar(&leaderElectionLeaseDuration, "leader-elect-lease-duration", 1*time.Minute,
 		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)")
 
-	fs.DurationVar(&leaderElectionRenewDeadline, "leader-elect-renew-deadline", 10*time.Second,
+	fs.DurationVar(&leaderElectionRenewDeadline, "leader-elect-renew-deadline", 40*time.Second,
 		"Duration that the leading controller manager will retry refreshing leadership before giving up (duration string)")
 
-	fs.DurationVar(&leaderElectionRetryPeriod, "leader-elect-retry-period", 2*time.Second,
+	fs.DurationVar(&leaderElectionRetryPeriod, "leader-elect-retry-period", 5*time.Second,
 		"Duration the LeaderElector clients should wait between tries of actions (duration string)")
 
 	fs.StringVar(&watchNamespace, "namespace", "",

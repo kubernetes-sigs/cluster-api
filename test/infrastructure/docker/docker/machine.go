@@ -317,6 +317,28 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 	return nil
 }
 
+// CheckForBootstrapSuccess checks if bootstrap was successful by checking for existence of the sentinel file.
+func (m *Machine) CheckForBootstrapSuccess(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	if m.container == nil {
+		return errors.New("unable to set CheckForBootstrapSuccess. the container hosting this machine does not exists")
+	}
+
+	var outErr bytes.Buffer
+	var outStd bytes.Buffer
+	cmd := m.container.Commander.Command("test", "-f", "/run/cluster-api/bootstrap-success.complete")
+	cmd.SetStderr(&outErr)
+	cmd.SetStdout(&outStd)
+	err := cmd.Run(ctx)
+	if err != nil {
+		log.Info("Failed running command", "command", "test -f /run/cluster-api/bootstrap-success.complete", "stdout", outStd.String(), "stderr", outErr.String())
+		return errors.Wrap(errors.WithStack(err), "failed to run bootstrap check")
+	}
+
+	return nil
+}
+
 // SetNodeProviderID sets the docker provider ID for the kubernetes node
 func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)

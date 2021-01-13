@@ -267,6 +267,12 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 			return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 		}
+		// Check for bootstrap success
+		if err := externalMachine.CheckForBootstrapSuccess(timeoutctx); err != nil {
+			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
+			return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
+		}
+
 		dockerMachine.Spec.Bootstrapped = true
 	}
 

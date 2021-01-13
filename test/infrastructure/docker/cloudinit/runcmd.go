@@ -18,7 +18,6 @@ package cloudinit
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -92,15 +91,18 @@ func (a *runCmd) Commands() ([]Cmd, error) {
 func hackKubeadmIgnoreErrors(c Cmd) Cmd {
 	// case kubeadm commands are defined as a string
 	if c.Cmd == "/bin/sh" && len(c.Args) >= 2 {
-		if c.Args[0] == "-c" && (strings.Contains(c.Args[1], "kubeadm init") || strings.Contains(c.Args[1], "kubeadm join")) {
-			c.Args[1] = fmt.Sprintf("%s %s", c.Args[1], "--ignore-preflight-errors=all")
+		if c.Args[0] == "-c" {
+			c.Args[1] = strings.Replace(c.Args[1], "kubeadm init", "kubeadm init --ignore-preflight-errors=all", 1)
+			c.Args[1] = strings.Replace(c.Args[1], "kubeadm join", "kubeadm join --ignore-preflight-errors=all", 1)
 		}
 	}
 
 	// case kubeadm commands are defined as a list
 	if c.Cmd == "kubeadm" && len(c.Args) >= 1 {
 		if c.Args[0] == "init" || c.Args[0] == "join" {
-			c.Args = append(c.Args, "--ignore-preflight-errors=all")
+			c.Args = append(c.Args, "")                 // make space
+			copy(c.Args[2:], c.Args[1:])                // shift elements
+			c.Args[1] = "--ignore-preflight-errors=all" // insert the additional arg
 		}
 	}
 

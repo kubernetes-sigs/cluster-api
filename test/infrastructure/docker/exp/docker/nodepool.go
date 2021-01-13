@@ -249,6 +249,11 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to exec DockerMachinePool instance bootstrap for instance named %s", machine.Name())
 		}
+		// Check for bootstrap success
+		if err := externalMachine.CheckForBootstrapSuccess(timeoutctx); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
+		}
+
 		machineStatus.Bootstrapped = true
 		// return to surface the machine has been bootstrapped.
 		return ctrl.Result{Requeue: true}, nil

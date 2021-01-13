@@ -68,7 +68,7 @@ func TestRunCmdRun(t *testing.T) {
 				},
 			},
 			expectedCmds: []Cmd{
-				{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /run/kubeadm/kubeadm.yaml --ignore-preflight-errors=all"}},
+				{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=all --config /run/kubeadm/kubeadm.yaml"}},
 			},
 		},
 	}
@@ -98,11 +98,11 @@ runcmd:
 
 	r.Cmds[0] = hackKubeadmIgnoreErrors(r.Cmds[0])
 
-	expected0 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config=/run/kubeadm/kubeadm.yaml --ignore-preflight-errors=all"}}
+	expected0 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=all --config=/run/kubeadm/kubeadm.yaml"}}
 	g.Expect(r.Cmds[0]).To(Equal(expected0))
 
 	r.Cmds[1] = hackKubeadmIgnoreErrors(r.Cmds[1])
 
-	expected1 := Cmd{Cmd: "kubeadm", Args: []string{"join", "--config=/run/kubeadm/kubeadm-controlplane-join-config.yaml", "--ignore-preflight-errors=all"}}
+	expected1 := Cmd{Cmd: "kubeadm", Args: []string{"join", "--ignore-preflight-errors=all", "--config=/run/kubeadm/kubeadm-controlplane-join-config.yaml"}}
 	g.Expect(r.Cmds[1]).To(Equal(expected1))
 }

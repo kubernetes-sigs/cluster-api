@@ -26,7 +26,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-	"sigs.k8s.io/cluster-api/cmd/version"
+	"sigs.k8s.io/cluster-api/version"
 )
 
 var _ Proxy = &test.FakeProxy{}

@@ -346,7 +346,9 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 	err := wait.PollImmediateUntil(in.interval, runHealthCheckWithThreshold, ctx.Done())
 	// An error returned implies the health check has failed a sufficient number of
 	// times for the cluster to be considered unhealthy
-	if err != nil {
+	// NB. we are ignoring ErrWaitTimeout because this error happens when the channel is close, that in this case
+	// happens when the cache is explicitly stopped.
+	if err != nil && err != wait.ErrWaitTimeout {
 		t.log.Error(err, "Error health checking cluster", "cluster", in.cluster.String())
 		t.deleteAccessor(in.cluster)
 	}

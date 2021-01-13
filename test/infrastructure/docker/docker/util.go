@@ -110,7 +110,7 @@ func list(visit func(string, *types.Node), filters ...string) error {
 		// filter for nodes with the cluster label
 		"--filter", "label=" + clusterLabelKey,
 		// format to include friendly name and the cluster name
-		"--format", fmt.Sprintf(`{{.Names}}\t{{.Label "%s"}}\t{{.Image}}`, clusterLabelKey),
+		"--format", fmt.Sprintf(`{{.Names}}\t{{.Label "%s"}}\t{{.Image}}\t{{.Status}}`, clusterLabelKey),
 	}
 	for _, filter := range filters {
 		args = append(args, "--filter", filter)
@@ -122,13 +122,14 @@ func list(visit func(string, *types.Node), filters ...string) error {
 	}
 	for _, line := range lines {
 		parts := strings.Split(line, "\t")
-		if len(parts) != 3 {
+		if len(parts) != 4 {
 			return errors.Errorf("invalid output when listing nodes: %s", line)
 		}
 		names := strings.Split(parts[0], ",")
 		cluster := parts[1]
 		image := parts[2]
-		visit(cluster, types.NewNode(names[0], image, "undetermined"))
+		status := parts[3]
+		visit(cluster, types.NewNode(names[0], image, "undetermined").WithStatus(status))
 	}
 	return nil
 }

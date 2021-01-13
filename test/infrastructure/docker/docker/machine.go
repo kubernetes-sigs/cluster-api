@@ -325,6 +325,9 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	if kubectlNode == nil {
 		return errors.New("unable to set NodeProviderID. there are no kubectl node available")
 	}
+	if !kubectlNode.IsRunning() {
+		return errors.Wrapf(ContainerNotRunningError{Name: kubectlNode.Name}, "unable to set NodeProviderID")
+	}
 
 	log.Info("Setting Kubernetes node providerID")
 	patch := fmt.Sprintf(`{"spec": {"providerID": "%s"}}`, m.ProviderID())

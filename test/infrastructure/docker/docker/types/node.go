@@ -35,6 +35,7 @@ type Node struct {
 	ClusterRole string
 	InternalIP  string
 	Image       string
+	status      string
 	Commander   *containerCmder
 }
 
@@ -46,6 +47,12 @@ func NewNode(name, image, role string) *Node {
 		ClusterRole: role,
 		Commander:   ContainerCmder(name),
 	}
+}
+
+// WithStatus sets the status of the container and returns the node
+func (n *Node) WithStatus(status string) *Node {
+	n.status = status
+	return n
 }
 
 // String returns the name of the node.
@@ -77,6 +84,11 @@ func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
 		return "", "", errors.Errorf("container addresses should have 2 values, got %d values", len(ips))
 	}
 	return ips[0], ips[1], nil
+}
+
+// IsRunning returns if the container is running
+func (n *Node) IsRunning() bool {
+	return strings.HasPrefix(n.status, "Up")
 }
 
 // Delete removes the container.

@@ -299,6 +299,9 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	// Requeue if there is an error, as this is likely momentary load balancer
 	// state changes during control plane provisioning.
 	if err := externalMachine.SetNodeProviderID(ctx); err != nil {
+		if errors.As(err, &docker.ContainerNotRunningError{}) {
+			return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
+		}
 		log.Error(err, "failed to patch the Kubernetes node with the machine providerID")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}

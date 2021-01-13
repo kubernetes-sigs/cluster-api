@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -190,7 +191,7 @@ func (v APIEndpoint) IsValid() bool {
 
 // String returns a formatted version HOST:PORT of this APIEndpoint.
 func (v APIEndpoint) String() string {
-	return fmt.Sprintf("%s:%d", v.Host, v.Port)
+	return net.JoinHostPort(v.Host, fmt.Sprintf("%d", v.Port))
 }
 
 // ANCHOR_END: APIEndpoint

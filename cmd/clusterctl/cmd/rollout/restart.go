@@ -34,7 +34,7 @@ var ro = &restartOptions{}
 
 var (
 	restartLong = templates.LongDesc(`
-		Restart of cluser-api resources.
+		Restart of cluster-api resources.
 
 	        Resources will be rollout restarted.`)
 

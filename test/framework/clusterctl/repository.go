@@ -121,8 +121,8 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			"overridesFolder": overridePath,
 		},
 	}
-	for key, value := range input.E2EConfig.Variables {
-		clusterctlConfigFile.Values[key] = value
+	for key := range input.E2EConfig.Variables {
+		clusterctlConfigFile.Values[key] = input.E2EConfig.GetVariable(key)
 	}
 	clusterctlConfigFile.write()
 

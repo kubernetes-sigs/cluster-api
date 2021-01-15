@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing MachinePools", func() {
+var _ = Describe("When testing MachinePools [Periodic-K8SVersion]", func() {
 	MachinePoolSpec(context.TODO(), func() MachinePoolInput {
 		return MachinePoolInput{
 			E2EConfig:             e2eConfig,

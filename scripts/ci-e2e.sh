@@ -15,11 +15,13 @@
 # limitations under the License.
 
 set -o errexit
-set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "${REPO_ROOT}" || exit 1
+
+# shellcheck source=./scripts/ci-e2e-lib.sh
+source "${REPO_ROOT}/scripts/ci-e2e-lib.sh"
 
 # shellcheck source=./hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
@@ -27,31 +29,38 @@ source "${REPO_ROOT}/hack/ensure-go.sh"
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=./hack/ensure-kustomize.sh
 source "${REPO_ROOT}/hack/ensure-kustomize.sh"
+# shellcheck source=./hack/ensure-kind.sh
+source "${REPO_ROOT}/hack/ensure-kind.sh"
 
 # Make sure the tools binaries are on the path.
 export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
 
-# Configure provider images generation;
-# please ensure the generated image name matches image names used in the E2E_CONF_FILE
-export REGISTRY=gcr.io/k8s-staging-cluster-api
-export TAG=dev
-export ARCH=amd64
-export PULL_POLICY=IfNotPresent
+# Builds CAPI (and CAPD) images.
+capi:buildDockerImages
 
-## Rebuild all Cluster API provider images
-make docker-build
+# Checks all the e2e test variables representing a Kubernetes version,
+# and resolves kubernetes version labels (e.g. latest) to the corresponding version numbers.
+# Following variables are currently checked (if defined):
+# - KUBERNETES_VERSION
+# - KUBERNETES_VERSION_UPGRADE_TO
+# - KUBERNETES_VERSION_UPGRADE_FROM
+# - BUILD_NODE_IMAGE_TAG
+k8s::resolveAllVersions
 
-## Rebuild CAPD provider images
-make -C test/infrastructure/docker docker-build
+# If it is required to build a kindest/node image, build it ensuring the generated binary gets
+# the expected version.
+if [ -n "${BUILD_NODE_IMAGE_TAG:-}" ]; then
+  kind::buildNodeImage "$BUILD_NODE_IMAGE_TAG"
+fi
 
-## Pulling cert manager images so we can pre-load in kind nodes
-docker pull quay.io/jetstack/cert-manager-cainjector:v0.16.1
-docker pull quay.io/jetstack/cert-manager-webhook:v0.16.1
-docker pull quay.io/jetstack/cert-manager-controller:v0.16.1
-
-## Pulling kind images used by tests
-docker pull kindest/node:v1.19.1
-docker pull kindest/node:v1.18.2
+# pre-pull all the images that will be used in the e2e, thus making the actual test run
+# less sensible to the network speed. This includes:
+# - cert-manager images
+# - kindest/node:KUBERNETES_VERSION (if defined)
+# - kindest/node:KUBERNETES_VERSION_UPGRADE_TO (if defined)
+# - kindest/node:KUBERNETES_VERSION_UPGRADE_FROM (if defined)
+# - kindest/node:BUILD_NODE_IMAGE_TAG (if defined)
+kind:prepullImages
 
 # Configure e2e tests
 export GINKGO_NODES=3
@@ -64,4 +73,5 @@ export USE_EXISTING_CLUSTER=false
 
 # Run e2e tests
 mkdir -p "$ARTIFACTS"
+echo "+ run tests!"
 make -C test/e2e/ run

@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing KCP upgrade", func() {
+var _ = Describe("When testing KCP upgrade [Periodic-K8SVersion]", func() {
 
 	KCPUpgradeSpec(context.TODO(), func() KCPUpgradeSpecInput {
 		return KCPUpgradeSpecInput{

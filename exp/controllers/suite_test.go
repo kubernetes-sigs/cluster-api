@@ -57,7 +57,7 @@ var _ = BeforeSuite(func(done Done) {
 	By("starting the manager")
 	go func() {
 		defer GinkgoRecover()
-		Expect(testEnv.StartManager(ctx)).To(Succeed())
+		Expect(testEnv.StartManager(ctx)).To(Succeed(), "Failed to start test env")
 	}()
 
 	close(done)
@@ -66,6 +66,6 @@ var _ = BeforeSuite(func(done Done) {
 var _ = AfterSuite(func() {
 	if testEnv != nil {
 		By("tearing down the test environment")
-		Expect(testEnv.Stop()).To(Succeed())
+		Expect(testEnv.Stop()).To(Succeed(), "Failed to stop test env")
 	}
 })

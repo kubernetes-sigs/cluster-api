@@ -4,6 +4,7 @@ resources:
 - namespace.yaml
 - manifests.yaml
 - service.yaml
+- service_account.yaml
 - ../certmanager
 - ../manager
 

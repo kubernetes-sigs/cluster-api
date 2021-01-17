@@ -41,6 +41,7 @@ spec:
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
+      serviceAccountName: manager-capd
       volumes:
         - name: dockersock
           hostPath:

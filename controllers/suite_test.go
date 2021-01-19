@@ -107,6 +107,8 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
 		}
 	}()
+	<-testEnv.Manager.Elected()
+
 	// wait for webhook port to be open prior to running tests
 	testEnv.WaitForWebhooks()
 

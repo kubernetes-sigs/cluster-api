@@ -65,6 +65,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			go func() {
 				Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
+			<-testEnv.Manager.Elected()
 
 			k8sClient = mgr.GetClient()
 

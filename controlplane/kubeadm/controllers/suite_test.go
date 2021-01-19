@@ -54,6 +54,8 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
 		}
 	}()
+	<-testEnv.Manager.Elected()
+
 	// Run tests
 	code := m.Run()
 	// Tearing down the test environment

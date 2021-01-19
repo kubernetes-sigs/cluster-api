@@ -59,6 +59,7 @@ var _ = BeforeSuite(func(done Done) {
 		Expect(testEnv.StartManager(ctx)).To(Succeed())
 	}()
 
+	<-testEnv.Manager.Elected()
 	close(done)
 }, 60)
 

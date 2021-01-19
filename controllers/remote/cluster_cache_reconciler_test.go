@@ -101,6 +101,7 @@ var _ = Describe("ClusterCache Reconciler suite", func() {
 			go func() {
 				Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
+			<-testEnv.Manager.Elected()
 
 			k8sClient = mgr.GetClient()
 

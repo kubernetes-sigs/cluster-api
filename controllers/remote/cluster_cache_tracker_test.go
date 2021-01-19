@@ -80,6 +80,7 @@ var _ = Describe("ClusterCache Tracker suite", func() {
 			go func() {
 				Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
+			<-testEnv.Manager.Elected()
 
 			k8sClient = mgr.GetClient()
 

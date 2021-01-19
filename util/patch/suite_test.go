@@ -49,7 +49,7 @@ func TestPatch(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 	testEnv = helpers.NewTestEnvironment()
 
@@ -60,7 +60,6 @@ var _ = BeforeSuite(func(done Done) {
 	}()
 
 	<-testEnv.Manager.Elected()
-	close(done)
 }, 60)
 
 var _ = AfterSuite(func() {

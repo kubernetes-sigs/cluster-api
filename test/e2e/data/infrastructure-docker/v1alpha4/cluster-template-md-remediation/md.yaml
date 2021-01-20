@@ -1,0 +1,9 @@
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: MachineDeployment
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    metadata:
+      labels:
+        "e2e.remediation.label": ""

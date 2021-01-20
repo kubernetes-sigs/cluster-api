@@ -74,7 +74,8 @@ providers:
     files:
     # Add cluster templates
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-mhc.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-md-remediation.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-remediation.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-adoption.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-machine-pool.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-node-drain.yaml"

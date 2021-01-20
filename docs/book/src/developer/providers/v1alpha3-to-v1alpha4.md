@@ -41,3 +41,16 @@ the delegating client by default under the hood, so this can be now removed.
 - The functions `fake.NewFakeClientWithScheme` and `fake.NewFakeClient` have been deprecated.
 - Switch to `fake.NewClientBuilder().WithObjects().Build()` instead, which provides a cleaner interface
   to create a new fake client with objects, lists, or a scheme.
+
+## Multi tenancy
+
+Up until v1alpha3, the need of supporting multiple credentials was addressed by running multiple
+instances of the same provider, each one with its own set of credentials while watching different namespaces.
+
+Starting from v1alpha4 instead we are going require that an infrastructure provider should manage different credentials,
+each one of them corresponding to an infrastructure tenant.
+
+see [Multi-tenancy](../architecture/controllers/multi-tenancy.md) and [Support multiple instances](../architecture/controllers/support-multiple-instances.md) for
+more details.
+
+Specific changes related to this topic will be detailed in this document.

@@ -283,8 +283,6 @@ Provider authors should be aware of the following transformations that `clusterc
 * Enforcement of target namespace:
     * The name of the namespace object is set;
     * The namespace field of all the objects is set (with exception of cluster wide objects like e.g. ClusterRoles);
-    * ClusterRole and ClusterRoleBinding are renamed by adding a “${namespace}-“ prefix to the name; this change reduces the risks
-    of conflicts between several instances of the same provider in case of multi tenancy;
 * Enforcement of watching namespace;
 * All components are labeled;
 
@@ -307,7 +305,7 @@ If, for any reason, the provider authors/YAML designers decide not to comply wit
 * implement link to external objects from a cluster template (e.g. secrets, configMaps NOT included in the cluster template)
 
 The provider authors/YAML designers should be aware that it is their responsibility to ensure the proper
-functioning of all the `clusterctl` features both in single tenancy or multi-tenancy scenarios and/or document known limitations.
+functioning of `clusterctl` when using non-compliant component YAML or cluster templates.
 
 ### Move
 

@@ -43,6 +43,8 @@
         - [MachineHealthCheck](./developer/architecture/controllers/machine-health-check.md)
         - [Control Plane](./developer/architecture/controllers/control-plane.md)
         - [MachinePool](./developer/architecture/controllers/machine-pool.md)
+        - [Multi-tenancy](./developer/architecture/controllers/multi-tenancy.md)
+        - [Support multiple instances](./developer/architecture/controllers/support-multiple-instances.md)
     - [Provider Implementers](./developer/providers/implementers.md)
         - [v1alpha1 to v1alpha2](./developer/providers/v1alpha1-to-v1alpha2.md)
         - [v1alpha2 to v1alpha3](./developer/providers/v1alpha2-to-v1alpha3.md)

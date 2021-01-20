@@ -125,66 +125,6 @@ same namespace.
 
 </aside>
 
-#### Multi-tenancy
-
-*Multi-tenancy* for Cluster API means a management cluster where multiple instances of the same provider are installed.
-
-The user can achieve multi-tenancy configurations with `clusterctl` by a combination of:
-
-- Multiple calls to `clusterctl init`;
-- Usage of the `--target-namespace` flag;
-- Usage of the `--watching-namespace` flag;
-
-The `clusterctl` command officially supports the following multi-tenancy configurations:
-
-{{#tabs name:"tab-multi-tenancy" tabs:"n-Infra, n-Core"}}
-{{#tab n-Infra}}
-A management cluster with <em>n (n>1)</em> instances of an infrastructure provider, and <em>only one</em> instance 
-of Cluster API core provider, bootstrap provider and control plane provider (optional).
-
-For example:
-
-* Cluster API core provider installed in the `capi-system` namespace, watching objects in all namespaces;
-* The kubeadm bootstrap provider in `capbpk-system`, watching all namespaces;
-* The kubeadm control plane provider in `cacpk-system`, watching all namespaces;
-* The `aws` infrastructure provider in `aws-system1`, watching objects in `aws-system1` only;
-* The `aws` infrastructure provider in `aws-system2`, watching objects in `aws-system2` only;
-* etc. (more instances of the `aws` provider)
-
-{{#/tab }}
-{{#tab n-Core}}
-A management cluster with <em>n (n>1)</em> instances of the Cluster API core provider, each one with <em>a dedicated</em> 
-instance of infrastructure provider, bootstrap provider, and control plane provider (optional).
-
-For example:
-
-* A Cluster API core provider installed in the `capi-system1` namespace, watching objects in `capi-system1` only, and with:
-    * The kubeadm bootstrap provider in `capi-system1`, watching `capi-system1`;
-    * The kubeadm control plane provider in `capi-system1`, watching `capi-system1`;
-    * The `aws` infrastructure provider in `capi-system1`, watching objects `capi-system1`;
-* A Cluster API core provider installed in the `capi-system2` namespace, watching objects in `capi-system2` only, and with:
-    * The kubeadm bootstrap provider in `capi-system2`, watching `capi-system2`;
-    * The kubeadm control plane provider in `capi-system2`, watching `capi-system2`;
-    * The `aws` infrastructure provider in `capi-system2`, watching objects `capi-system2`;
-* etc. (more instances of the Cluster API core provider and the dedicated providers)
-
-
-{{#/tab }}
-{{#/tabs }}
-
-
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-It is possible to achieve many other different configurations of multi-tenancy with `clusterctl`.
-
-However, the user should be aware that configurations not listed above are not verified by the `clusterctl`tests
-and support will be provided at best effort only.
- 
-</aside>
- 
-
 ## Provider repositories
 
 To access provider specific information, such as the components YAML to be used for installing a provider,

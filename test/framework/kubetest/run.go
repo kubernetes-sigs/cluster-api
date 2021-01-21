@@ -36,7 +36,7 @@ import (
 
 const (
 	standardImage   = "us.gcr.io/k8s-artifacts-prod/conformance"
-	ciArtifactImage = "gcr.io/kubernetes-ci-images/conformance"
+	ciArtifactImage = "gcr.io/k8s-staging-ci-images/conformance"
 )
 
 const (

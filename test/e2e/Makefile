@@ -60,7 +60,8 @@ cluster-templates-v1alpha3: $(KUSTOMIZE) ## Generate cluster templates for v1alp
 
 cluster-templates-v1alpha4: $(KUSTOMIZE) ## Generate cluster templates for v1alpha4
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-mhc --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-mhc.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-md-remediation --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-md-remediation.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-remediation --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-remediation.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption/step1 --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption.yaml
 	echo "---" >> $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption/step2 --load_restrictor none >> $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-adoption.yaml

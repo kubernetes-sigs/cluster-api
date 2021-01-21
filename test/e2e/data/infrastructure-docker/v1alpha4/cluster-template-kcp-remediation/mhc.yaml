@@ -1,0 +1,18 @@
+---
+# MachineHealthCheck object with
+# - a selector that targets all the machines with label cluster.x-k8s.io/control-plane=""
+# - unhealthyConditions triggering remediation after 10s the condition is set
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: MachineHealthCheck
+metadata:
+  name: "${CLUSTER_NAME}-mhc-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  maxUnhealthy: 100%
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/control-plane: ""
+  unhealthyConditions:
+    - type: e2e.remediation.condition
+      status: "False"
+      timeout: 10s

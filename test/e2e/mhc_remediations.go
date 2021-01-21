@@ -65,7 +65,7 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 	})
 
-	It("Should successfully remediate unhealthy machines with MachineHealthCheck", func() {
+	It("Should successfully trigger machine deployment remediation", func() {
 
 		By("Creating a workload cluster")
 
@@ -76,7 +76,7 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "mhc",
+				Flavor:                   "md-remediation",
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
@@ -88,7 +88,40 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
 
-		By("Waiting for MachineHealthCheck remediation")
+		By("Setting a machine unhealthy and wait for MachineDeployment remediation")
+		framework.DiscoverMachineHealthChecksAndWaitForRemediation(ctx, framework.DiscoverMachineHealthCheckAndWaitForRemediationInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   clusterResources.Cluster,
+			WaitForMachineRemediation: input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"),
+		})
+
+		By("PASSED!")
+	})
+
+	It("Should successfully trigger KCP remediation", func() {
+
+		By("Creating a workload cluster")
+
+		clusterResources = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			ConfigCluster: clusterctl.ConfigClusterInput{
+				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+				ClusterctlConfigPath:     input.ClusterctlConfigPath,
+				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+				Flavor:                   "kcp-remediation",
+				Namespace:                namespace.Name,
+				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				ControlPlaneMachineCount: pointer.Int64Ptr(3),
+				WorkerMachineCount:       pointer.Int64Ptr(1),
+			},
+			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		By("Setting a machine unhealthy and wait for KubeadmControlPlane remediation")
 		framework.DiscoverMachineHealthChecksAndWaitForRemediation(ctx, framework.DiscoverMachineHealthCheckAndWaitForRemediationInput{
 			ClusterProxy:              input.BootstrapClusterProxy,
 			Cluster:                   clusterResources.Cluster,

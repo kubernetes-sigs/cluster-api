@@ -19,11 +19,11 @@ of [envtest]; see the quick reference below.
 
 ## Integration tests
 
-Integration tests are focuses on testing the behavior of an entire controller or the interactions between two or
+Integration tests are focused on testing the behavior of an entire controller or the interactions between two or
 more Cluster API controllers.
 
 In older versions of Cluster API, integration test were based on a real cluster and meant to be run in CI only; however,
-now we are considering a different approach base on [envtest] and with one or more controllers configured to run against
+now we are considering a different approach based on [envtest] and with one or more controllers configured to run against
 the test cluster.
 
 With this approach it is possible to interact with Cluster API like in a real environment, by creating/updating

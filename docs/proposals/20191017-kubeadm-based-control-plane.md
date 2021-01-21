@@ -56,7 +56,7 @@ status: implementable
                   * [Scenario 2: Three replicas, two machines marked for remediation](#scenario-2-three-replicas-two-machines-marked-for-remediation)
                   * [Scenario 3: Three replicas, one unresponsive etcd member, one (different) unhealthy machine](#scenario-3-three-replicas-one-unresponsive-etcd-member-one-different-unhealthy-machine)
                   * [Scenario 4: Unhealthy machines combined with rollout](#scenario-4-unhealthy-machines-combined-with-rollout)
-               * [Health checks](#health-checks)
+               * [Preflight checks](#preflight-checks)
                   * [Etcd (external)](#etcd-external)
                   * [Etcd (stacked)](#etcd-stacked)
                   * [Kubernetes Control Plane](#kubernetes-control-plane)
@@ -392,8 +392,8 @@ spec:
 - Scale up operations must not be done in conjunction with:
   - Adopting machines
   - Upgrading machines
-- Scale up operations are blocked based on Etcd and control plane health checks.
-  - See [Health checks](#Health checks) below.
+- Scale up operations are blocked based on Etcd and control plane preflight checks.
+  - See [Preflight checks](#preflight-checks) below.
 - Scale up operations creates the next machine in the failure domain with the fewest number of machines.
 
 ![controlplane-init-6](images/controlplane/controlplane-init-6.png)
@@ -406,8 +406,8 @@ spec:
 - Scale down operations must not be done in conjunction with:
   - Adopting machines
   - Upgrading machines
-- Scale down operations are blocked based on Etcd and control plane health checks.
-  - See [Health checks](#Health checks) below.
+- Scale down operations are blocked based on Etcd and control plane preflight checks.
+  - See [Preflight checks](#preflight-checks) below.
 - Scale down operations removes the oldest machine in the failure domain that has the most control-plane machines on it.
 - Allow scaling down of KCP with the possibility of marking specific control plane machine(s) to be deleted with delete annotation key. The presence of the annotation will affect the rollout strategy in a way that, it implements the following prioritization logic in descending order, while selecting machines for scale down:
   - outdatedMachines with the delete annotation
@@ -425,10 +425,11 @@ spec:
 
 ##### KubeadmControlPlane rollout
 
-KubeadmControlPlane rollout operations rely on [scale up](#scale up) and [scale down](#scale_down) which are be blocked based on Etcd and control plane health checks
-  - See [Health checks](#Health checks) below.
+KubeadmControlPlane rollout operations rely on [scale up](#scale up) and [scale down](#scale_down) which are be blocked based on Etcd and control plane preflight checks.
+  - See [Preflight checks](#preflight-checks) below.
 
 KubeadmControlPlane rollout is triggered by:
+
   - Changes to Version
   - Changes to the kubeadmConfigSpec
   - Changes to the infrastructureRef
@@ -465,7 +466,7 @@ When `MaxUnavailable` is set to 1 and `MaxSurge` is set to 0 the rollout algorit
   - Find Machines that have an outdated spec and scale down the control plane by removing the oldest out-of-date machine.
   - Scale up control plane by creating a new machine with the updated spec
 
-> NOTE: Setting `MaxUnavailable` to 1 and `MaxSurge` to 0 could be use in resource constrained environment like bare-metal, OpenStack or vSphere resource pools, etc when there is no capacity to Scale up the control plane. 
+> NOTE: Setting `MaxUnavailable` to 1 and `MaxSurge` to 0 could be use in resource constrained environment like bare-metal, OpenStack or vSphere resource pools, etc when there is no capacity to Scale up the control plane.
 
 ###### Constraints and Assumptions
 
@@ -562,13 +563,12 @@ remediation and rollout will occur in tandem.
 This is to say that unhealthy machines will first be scaled down, and replaced with new machines that match the desired new spec.
 Once the unhealthy machines have been replaced, the remaining healthy machines will also be replaced one-by-one as well to complete the rollout operation.
 
-##### Health checks
+##### Preflight checks
 
-> NOTE:  This paragraph describes KCP health checks specifically designed to ensure a kubeadm
+This paragraph describes KCP preflight checks specifically designed to ensure a kubeadm
 generated control-plane is stable before proceeding with KCP actions like scale up, scale down and rollout.
-KCP health checks are different from the one implemented by the MachineHealthCheck controller.  
 
-- Will be used during scaling and upgrade operations.
+Preflight checks status is accessible via conditions on the KCP object and/or on the controlled machines.
 
 ###### Etcd (external)
 
@@ -577,6 +577,7 @@ Etcd connectivity is the only metric used to assert etcd cluster health.
 ###### Etcd (stacked)
 
 Etcd is considered healthy if:
+
 - There are an equal number of control plane Machines and members in the etcd cluster.
   - This ensures there are no members that are unaccounted for.
 - Each member reports the same list of members.
@@ -588,13 +589,11 @@ The KubeadmControlPlane controller uses port-forwarding to get to a specific etc
 
 ###### Kubernetes Control Plane
 
-- For stacked control planes, we will present etcd quorum status within the `KubeadmControlPlane.Status.Ready` field, and also report the number of active cluster members through `KubeadmControlPlane.Status.ReadyReplicas`.
-
 - There are an equal number of control plane Machines and api server pods checked.
   - This ensures that Cluster API is tracking all control plane machines.
 - Each control plane node has an api server pod that has the Ready condition.
   - This ensures that the API server can contact etcd and is ready to accept requests.
-- Each control plane node has a controller manager pod that has the Ready condition.
+- Each control plane node has a controller manager and a scheduler pod that has the Ready condition.
   - This ensures the control plane can manage default Kubernetes resources.
 
 ##### Adoption of pre-v1alpha3 Control Plane Machines
@@ -603,6 +602,7 @@ The KubeadmControlPlane controller uses port-forwarding to get to a specific etc
 - The KubeadmConfigSpec can be re-created from the referenced KubeadmConfigs for the Machines matching the label selector.
   - If there is not an existing initConfiguration/clusterConfiguration only the joinConfiguration will be populated.
 - In v1alpha2, the Cluster API Bootstrap Provider is responsible for generating certificates based upon the first machine to join a cluster. The OwnerRef for these certificates are set to that of the initial machine, which causes an issue if that machine is later deleted. For v1alpha3, control plane certificate generation will be replicated in the KubeadmControlPlane provider. Given that for v1alpha2 these certificates are generated with deterministic names, i.e. prefixed with the cluster name, the migration mechanism should replace the owner reference of these certificates during migration. The bootstrap provider will need to be updated to only fallback to the v1alpha2 secret generation behavior if Cluster.Spec.ControlPlaneRef is nil.
+- In v1alpha2, the Cluster API Bootstrap Provider is responsible for generating the kubeconfig secret; during adoption the adoption of this secret is set to the KubeadmConfig object.
 - To ease the adoption of v1alpha3, the migration mechanism should be built into Cluster API controllers.
 
 #### Code organization

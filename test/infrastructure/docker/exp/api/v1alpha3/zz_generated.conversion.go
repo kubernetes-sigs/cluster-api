@@ -260,10 +260,9 @@ func autoConvert_v1alpha3_DockerMachinePoolStatus_To_v1alpha4_DockerMachinePoolS
 	out.ObservedGeneration = in.ObservedGeneration
 	if in.Instances != nil {
 		in, out := &in.Instances, &out.Instances
-		*out = make([]*v1alpha4.DockerMachinePoolInstanceStatus, len(*in))
+		*out = make([]v1alpha4.DockerMachinePoolInstanceStatus, len(*in))
 		for i := range *in {
-			// TODO: Inefficient conversion - can we improve it?
-			if err := s.Convert(&(*in)[i], &(*out)[i], 0); err != nil {
+			if err := Convert_v1alpha3_DockerMachinePoolInstanceStatus_To_v1alpha4_DockerMachinePoolInstanceStatus(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -295,10 +294,9 @@ func autoConvert_v1alpha4_DockerMachinePoolStatus_To_v1alpha3_DockerMachinePoolS
 	out.ObservedGeneration = in.ObservedGeneration
 	if in.Instances != nil {
 		in, out := &in.Instances, &out.Instances
-		*out = make([]*DockerMachinePoolInstanceStatus, len(*in))
+		*out = make([]DockerMachinePoolInstanceStatus, len(*in))
 		for i := range *in {
-			// TODO: Inefficient conversion - can we improve it?
-			if err := s.Convert(&(*in)[i], &(*out)[i], 0); err != nil {
+			if err := Convert_v1alpha4_DockerMachinePoolInstanceStatus_To_v1alpha3_DockerMachinePoolInstanceStatus(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

@@ -54,3 +54,7 @@ see [Multi-tenancy](../architecture/controllers/multi-tenancy.md) and [Support m
 more details.
 
 Specific changes related to this topic will be detailed in this document.
+
+## Change types with arrays of pointers to custom objects
+
+The conversion-gen code from the `1.20.x` release onward generates incorrect conversion functions for types having arrays of pointers to custom objects. Change the existing types to contain objects instead of pointer references.

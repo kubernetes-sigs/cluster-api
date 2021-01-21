@@ -120,7 +120,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 	// First remove instance status for machines no longer existing, then reconcile the existing machines.
 	// NOTE: the status is the only source of truth for understanding if the machine is already bootstrapped, ready etc.
 	// so we are preserving the existing status and using it as a bases for the next reconcile machine.
-	instances := make([]*infrav1exp.DockerMachinePoolInstanceStatus, 0, len(np.machines))
+	instances := make([]infrav1exp.DockerMachinePoolInstanceStatus, 0, len(np.machines))
 	for i := range np.dockerMachinePool.Status.Instances {
 		instance := np.dockerMachinePool.Status.Instances[i]
 		for j := range np.machines {
@@ -214,10 +214,10 @@ func (np *NodePool) refresh() error {
 func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	machineStatus := getInstanceStatusByMachineName(np.dockerMachinePool, machine.Name())
-	if machineStatus == nil {
+	machineStatus, err := getInstanceStatusByMachineName(np.dockerMachinePool, machine.Name())
+	if err != nil {
 		log.Info("Creating instance record", "instance", machine.Name())
-		machineStatus = &infrav1exp.DockerMachinePoolInstanceStatus{
+		machineStatus = infrav1exp.DockerMachinePoolInstanceStatus{
 			InstanceName: machine.Name(),
 			Version:      np.machinePool.Spec.Template.Spec.Version,
 		}
@@ -318,13 +318,13 @@ func getBootstrapData(ctx context.Context, kClient client.Client, machinePool *c
 	return base64.StdEncoding.EncodeToString(value), nil
 }
 
-// getInstanceStatusByMachineName returns the instance status for a given machine by name or nil if it doesn't exist
-func getInstanceStatusByMachineName(dockerMachinePool *infrav1exp.DockerMachinePool, machineName string) *infrav1exp.DockerMachinePoolInstanceStatus {
-	for _, machine := range dockerMachinePool.Status.Instances {
+// getInstanceStatusByMachineName returns the instance status for a given machine by name or error if it doesn't exist
+func getInstanceStatusByMachineName(dockerMachinePool *infrav1exp.DockerMachinePool, machineName string) (infrav1exp.DockerMachinePoolInstanceStatus, error) {
+	var machine infrav1exp.DockerMachinePoolInstanceStatus
+	for _, machine = range dockerMachinePool.Status.Instances {
 		if machine.InstanceName == machineName {
-			return machine
+			return machine, nil
 		}
 	}
-
-	return nil
+	return machine, errors.Errorf("no machine found with name %s", machineName)
 }

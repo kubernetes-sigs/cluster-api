@@ -44,12 +44,14 @@ func TestGetResourceFound(t *testing.T) {
 	testResourceName := "greenTemplate"
 	testResourceKind := "GreenTemplate"
 	testResourceAPIVersion := "green.io/v1"
+	testResourceVersion := "1"
 
 	testResource := &unstructured.Unstructured{}
 	testResource.SetKind(testResourceKind)
 	testResource.SetAPIVersion(testResourceAPIVersion)
 	testResource.SetName(testResourceName)
 	testResource.SetNamespace(namespace)
+	testResource.SetResourceVersion(testResourceVersion)
 
 	testResourceReference := &corev1.ObjectReference{
 		Kind:       testResourceKind,

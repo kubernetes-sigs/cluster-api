@@ -77,7 +77,7 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 	}
 }
 
-var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1"}}
+var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1", ResourceVersion: "1"}}
 
 func Test_inventoryClient_List(t *testing.T) {
 	type fields struct {
@@ -127,6 +127,8 @@ func Test_inventoryClient_Create(t *testing.T) {
 		m clusterctlv1.Provider
 	}
 	providerV2 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.2.0", "", "")
+	// since this test object is used in a Create request, wherein setting ResourceVersion should no be set
+	providerV2.ResourceVersion = ""
 	providerV3 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.3.0", "", "")
 
 	tests := []struct {

@@ -12,9 +12,9 @@
 
 - The KIND version used for this release is v0.9.x
 
-## Upgrade kube-rbac-proxy to v0.5.0
+## Upgrade kube-rbac-proxy to v0.8.0
 
-- Find and replace the `kube-rbac-proxy` version (usually the image is `gcr.io/kubebuilder/kube-rbac-proxy`) and update it to `v0.5.0`.
+- Find and replace the `kube-rbac-proxy` version (usually the image is `gcr.io/kubebuilder/kube-rbac-proxy`) and update it to `v0.8.0`.
 
 ## The controllers.DeleteNodeAnnotation constant has been removed
 

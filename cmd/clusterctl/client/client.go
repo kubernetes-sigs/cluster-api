@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 )
 
 // Client is exposes the clusterctl high-level client library.
@@ -65,6 +66,9 @@ type Client interface {
 	// ProcessYAML provides a direct way to process a yaml and inspect its
 	// variables.
 	ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error)
+
+	// DescribeCluster returns the object tree representing the status of a Cluster API cluster.
+	DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error)
 }
 
 // YamlPrinter exposes methods that prints the processed template and

@@ -10,6 +10,7 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/drone/envsubst v1.0.3-0.20200709223903-efdb65b94e5a
 	github.com/evanphx/json-patch v4.9.0+incompatible
+	github.com/fatih/color v1.7.0
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/flect v0.2.2
 	github.com/gogo/protobuf v1.3.1 // indirect
@@ -18,6 +19,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/gofuzz v1.1.0
+	github.com/gosuri/uitable v0.0.4
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0 // indirect

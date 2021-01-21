@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
@@ -115,6 +116,10 @@ func (f fakeClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 
 func (f fakeClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error) {
 	return f.internalClient.ProcessYAML(options)
+}
+
+func (f fakeClient) DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error) {
+	return f.internalClient.DescribeCluster(options)
 }
 
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.

@@ -174,7 +174,6 @@ func run() int {
 		}
 	}
 
-	fmt.Println("The image for this release is: `<ADD_IMAGE_HERE>`.")
 	fmt.Println("")
 	fmt.Println("_Thanks to all our contributors!_ 😊")
 

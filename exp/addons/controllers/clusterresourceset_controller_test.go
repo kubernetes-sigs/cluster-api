@@ -34,11 +34,13 @@ import (
 )
 
 const (
-	timeout              = time.Second * 20
+	timeout              = time.Second * 10
 	defaultNamespaceName = "default"
 )
 
 var _ = Describe("ClusterResourceSet Reconciler", func() {
+
+	var clusterResourceSetName string
 
 	var testCluster *clusterv1.Cluster
 	var clusterName string
@@ -47,6 +49,8 @@ var _ = Describe("ClusterResourceSet Reconciler", func() {
 	var configmap2Name = "test-configmap2"
 
 	BeforeEach(func() {
+		clusterResourceSetName = fmt.Sprintf("clusterresourceset-%s", util.RandomString(6))
+
 		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
 		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: defaultNamespaceName}}
 
@@ -99,7 +103,7 @@ metadata:
 
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-clusterresourceset",
+				Name:      clusterResourceSetName,
 				Namespace: defaultNamespaceName,
 			},
 		}
@@ -129,7 +133,7 @@ metadata:
 		By("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-clusterresourceset",
+				Name:      clusterResourceSetName,
 				Namespace: defaultNamespaceName,
 			},
 			Spec: addonsv1.ClusterResourceSetSpec{
@@ -181,7 +185,7 @@ metadata:
 
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-clusterresourceset",
+				Name:      clusterResourceSetName,
 				Namespace: defaultNamespaceName,
 			},
 			Spec: addonsv1.ClusterResourceSetSpec{
@@ -243,7 +247,7 @@ metadata:
 
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-clusterresourceset",
+				Name:      clusterResourceSetName,
 				Namespace: defaultNamespaceName,
 			},
 			Spec: addonsv1.ClusterResourceSetSpec{
@@ -293,6 +297,15 @@ metadata:
 			Data: map[string]string{},
 		}
 		Expect(testEnv.Create(ctx, testConfigmap)).To(Succeed())
+		cmKey := client.ObjectKey{
+			Namespace: defaultNamespaceName,
+			Name:      newCMName,
+		}
+		Eventually(func() bool {
+			m := &corev1.ConfigMap{}
+			err := testEnv.Get(ctx, cmKey, m)
+			return err == nil
+		}, timeout).Should(BeTrue())
 
 		// When the ConfigMap resource is created, CRS should get reconciled immediately.
 		Eventually(func() bool {
@@ -317,7 +330,7 @@ metadata:
 		By("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSetInstance2 := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-clusterresourceset",
+				Name:      clusterResourceSetName,
 				Namespace: defaultNamespaceName,
 			},
 			Spec: addonsv1.ClusterResourceSetSpec{
@@ -396,7 +409,7 @@ metadata:
 		labels := map[string]string{"foo": "bar"}
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "test-clusterresourceset",
+				Name:              clusterResourceSetName,
 				Namespace:         defaultNamespaceName,
 				Finalizers:        []string{addonsv1.ClusterResourceSetFinalizer},
 				DeletionTimestamp: &dt,

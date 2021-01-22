@@ -59,6 +59,10 @@ The following diagram shows the typical logic for a bootstrap provider:
 1. Set `status.ready` to true
 1. Patch the resource to persist changes
 
+## Sentinel File
+
+A bootstrap provider's bootstrap data must create `/run/cluster-api/bootstrap-success.complete` (or `C:\run\cluster-api\bootstrap-success.complete` for Windows machines) upon successful bootstrapping of a Kubernetes node. This allows infrastructure providers to detect and act on bootstrap failures.
+
 ## RBAC
 
 ### Provider controller

@@ -45,7 +45,9 @@ const (
 )
 
 const (
-	// BootstrapExecSucceededCondition provide an observation of the DockerMachine bootstrap process.
+	// BootstrapExecSucceededCondition provides an observation of the DockerMachine bootstrap process.
+	// 	It is set based on successful execution of bootstrap commands and on the existence of
+	//	the /run/cluster-api/bootstrap-success.complete file.
 	// The condition gets generated after ContainerProvisionedCondition is True.
 	//
 	// NOTE as a difference from other providers, container provisioning and bootstrap are directly managed

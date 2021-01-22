@@ -28,6 +28,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -101,7 +103,10 @@ func TestGetWorkloadCluster(t *testing.T) {
 	delete(emptyKeyEtcdSecret.Data, secret.TLSKeyDataName)
 	badCrtEtcdSecret := etcdSecret.DeepCopy()
 	badCrtEtcdSecret.Data[secret.TLSCrtDataName] = []byte("bad cert")
-
+	tracker, err := remote.NewClusterCacheTracker(
+		log.Log,
+		testEnv.Manager,
+	)
 	// Create kubeconfig secret
 	// Store the envtest config as the contents of the kubeconfig secret.
 	// This way we are using the envtest environment as both the
@@ -182,7 +187,8 @@ func TestGetWorkloadCluster(t *testing.T) {
 			}
 
 			m := Management{
-				Client: testEnv,
+				Client:  testEnv,
+				Tracker: tracker,
 			}
 
 			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey)

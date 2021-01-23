@@ -23,21 +23,21 @@ import (
 	"strings"
 	"time"
 
-	"sigs.k8s.io/cluster-api/util"
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -106,6 +106,33 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 	if annotations.IsPaused(cluster, obj) {
 		log.V(3).Info("External object referenced is paused")
 		return external.ReconcileOutput{Paused: true}, nil
+	}
+
+	if strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
+		owner := &metav1.OwnerReference{
+			APIVersion: expv1.GroupVersion.String(),
+			Kind:       "MachinePool",
+			Name:       m.Name,
+			UID:        m.UID,
+		}
+		ref, err = external.CloneTemplate(ctx, &external.CloneTemplateInput{
+			Client:      r.Client,
+			TemplateRef: ref,
+			Namespace:   m.Namespace,
+			ClusterName: cluster.Name,
+			OwnerRef:    owner,
+		})
+		if err != nil {
+			return external.ReconcileOutput{}, errors.Wrap(err, "failed to clone template")
+		}
+		obj, err = external.Get(ctx, r.Client, ref, m.Namespace)
+		if err != nil {
+			if apierrors.IsNotFound(errors.Cause(err)) {
+				return external.ReconcileOutput{}, errors.Wrapf(err, "could not find %v %q for MachinePool %q in namespace %q, requeuing",
+					ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
+			}
+			return external.ReconcileOutput{}, err
+		}
 	}
 
 	// Initialize the patch helper.

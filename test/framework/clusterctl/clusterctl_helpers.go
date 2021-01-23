@@ -102,6 +102,23 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 	}
 }
 
+// ApplyAndWaitHook is a function that provides an update as ApplyClusterTemplateAndWait progresses
+type ApplyAndWaitHook func(res *ApplyClusterTemplateAndWaitResult) error
+
+// Do will execute the hook if it is not nil
+func (hook ApplyAndWaitHook) Do(res *ApplyClusterTemplateAndWaitResult) error {
+	if hook != nil {
+		return hook(res)
+	}
+
+	return nil
+}
+
+// ExpectSucceedDo will execute the hook if it is not nil and expect success, else fail test suite
+func (hook ApplyAndWaitHook) ExpectSucceedDo(res *ApplyClusterTemplateAndWaitResult) {
+	Expect(hook.Do(res)).To(Succeed())
+}
+
 // ApplyClusterTemplateAndWaitInput is the input type for ApplyClusterTemplateAndWait.
 type ApplyClusterTemplateAndWaitInput struct {
 	ClusterProxy                 framework.ClusterProxy
@@ -111,6 +128,15 @@ type ApplyClusterTemplateAndWaitInput struct {
 	WaitForControlPlaneIntervals []interface{}
 	WaitForMachineDeployments    []interface{}
 	WaitForMachinePools          []interface{}
+
+	// Event hooks in order of execution
+
+	PostWorkloadClusterProvisioned   ApplyAndWaitHook
+	PostControlPlaneInitialized      ApplyAndWaitHook
+	PostCNIApplied                   ApplyAndWaitHook
+	PostControlPlaneAndMachinesReady ApplyAndWaitHook
+	PostMachineDeploymentsReady      ApplyAndWaitHook
+	PostMachinePoolsReady            ApplyAndWaitHook
 }
 
 type ApplyClusterTemplateAndWaitResult struct {
@@ -122,6 +148,14 @@ type ApplyClusterTemplateAndWaitResult struct {
 
 // ApplyClusterTemplateAndWait gets a cluster template using clusterctl, and waits for the cluster to be ready.
 // Important! this method assumes the cluster uses a KubeadmControlPlane and MachineDeployments.
+//
+// Event hooks execute in the following order
+// - PostWorkloadClusterProvisioned
+// - PostControlPlaneInitialized
+// - PostCNIApplied
+// - PostControlPlaneAndMachinesReady
+// - PostMachineDeploymentsReady
+// - PostMachinePoolsReady
 func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplateAndWaitInput) *ApplyClusterTemplateAndWaitResult {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 
@@ -154,21 +188,26 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
 
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")
-	cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+	result := new(ApplyClusterTemplateAndWaitResult)
+	result.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.ClusterProxy.GetClient(),
 		Namespace: input.ConfigCluster.Namespace,
 		Name:      input.ConfigCluster.ClusterName,
 	}, input.WaitForClusterIntervals...)
 
+	input.PostWorkloadClusterProvisioned.ExpectSucceedDo(result)
+
 	log.Logf("Waiting for control plane to be initialized")
-	controlPlane := framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
+	result.ControlPlane = framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
 		Lister:  input.ClusterProxy.GetClient(),
-		Cluster: cluster,
+		Cluster: result.Cluster,
 	}, input.WaitForControlPlaneIntervals...)
+
+	input.PostControlPlaneInitialized.ExpectSucceedDo(result)
 
 	if input.CNIManifestPath != "" {
 		log.Logf("Installing a CNI plugin to the workload cluster")
-		workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
+		workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, result.Cluster.Namespace, result.Cluster.Name)
 
 		cniYaml, err := ioutil.ReadFile(input.CNIManifestPath)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -176,30 +215,32 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		Expect(workloadCluster.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
 	}
 
+	input.PostCNIApplied.ExpectSucceedDo(result)
+
 	log.Logf("Waiting for control plane to be ready")
 	framework.WaitForControlPlaneAndMachinesReady(ctx, framework.WaitForControlPlaneAndMachinesReadyInput{
 		GetLister:    input.ClusterProxy.GetClient(),
-		Cluster:      cluster,
-		ControlPlane: controlPlane,
+		Cluster:      result.Cluster,
+		ControlPlane: result.ControlPlane,
 	}, input.WaitForControlPlaneIntervals...)
 
+	input.PostMachineDeploymentsReady.ExpectSucceedDo(result)
+
 	log.Logf("Waiting for the machine deployments to be provisioned")
-	machineDeployments := framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
+	result.MachineDeployments = framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
 		Lister:  input.ClusterProxy.GetClient(),
-		Cluster: cluster,
+		Cluster: result.Cluster,
 	}, input.WaitForMachineDeployments...)
+
+	input.PostMachineDeploymentsReady.ExpectSucceedDo(result)
 
 	log.Logf("Waiting for the machine pools to be provisioned")
-	machinePools := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
+	result.MachinePools = framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
 		Getter:  input.ClusterProxy.GetClient(),
 		Lister:  input.ClusterProxy.GetClient(),
-		Cluster: cluster,
+		Cluster: result.Cluster,
 	}, input.WaitForMachineDeployments...)
 
-	return &ApplyClusterTemplateAndWaitResult{
-		Cluster:            cluster,
-		ControlPlane:       controlPlane,
-		MachineDeployments: machineDeployments,
-		MachinePools:       machinePools,
-	}
+	input.PostMachinePoolsReady.ExpectSucceedDo(result)
+	return result
 }

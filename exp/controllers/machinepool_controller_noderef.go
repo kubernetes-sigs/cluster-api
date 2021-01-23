@@ -19,14 +19,14 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/pkg/errors"
-	apicorev1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -42,7 +42,7 @@ var (
 )
 
 type getNodeReferencesResult struct {
-	references []apicorev1.ObjectReference
+	references []corev1.ObjectReference
 	available  int
 	ready      int
 }
@@ -90,7 +90,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
-		r.recorder.Event(mp, apicorev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
+		r.recorder.Event(mp, corev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get node references")
 	}
 
@@ -100,7 +100,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	mp.Status.NodeRefs = nodeRefsResult.references
 
 	log.Info("Set MachinePools's NodeRefs", "noderefs", mp.Status.NodeRefs)
-	r.recorder.Event(mp, apicorev1.EventTypeNormal, "SuccessfulSetNodeRefs", fmt.Sprintf("%+v", mp.Status.NodeRefs))
+	r.recorder.Event(mp, corev1.EventTypeNormal, "SuccessfulSetNodeRefs", fmt.Sprintf("%+v", mp.Status.NodeRefs))
 
 	// Reconcile node annotations.
 	for _, nodeRef := range nodeRefsResult.references {
@@ -141,9 +141,9 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 // deleteRetiredNodes deletes nodes that don't have a corresponding ProviderID in Spec.ProviderIDList.
 // A MachinePool infrastructure provider indicates an instance in the set has been deleted by
 // removing its ProviderID from the slice.
-func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []apicorev1.ObjectReference, providerIDList []string) error {
+func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string) error {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
-	nodeRefsMap := make(map[string]*apicorev1.Node, len(nodeRefs))
+	nodeRefsMap := make(map[string]*corev1.Node, len(nodeRefs))
 	for _, nodeRef := range nodeRefs {
 		node := &corev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
@@ -179,8 +179,8 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 
 	var ready, available int
-	nodeRefsMap := make(map[string]apicorev1.Node)
-	nodeList := apicorev1.NodeList{}
+	nodeRefsMap := make(map[string]corev1.Node)
+	nodeList := corev1.NodeList{}
 	for {
 		if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
 			return getNodeReferencesResult{}, errors.Wrapf(err, "failed to List nodes")
@@ -201,7 +201,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 		}
 	}
 
-	var nodeRefs []apicorev1.ObjectReference
+	var nodeRefs []corev1.ObjectReference
 	for _, providerID := range providerIDList {
 		pid, err := noderefutil.NewProviderID(providerID)
 		if err != nil {
@@ -213,7 +213,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 			if nodeIsReady(&node) {
 				ready++
 			}
-			nodeRefs = append(nodeRefs, apicorev1.ObjectReference{
+			nodeRefs = append(nodeRefs, corev1.ObjectReference{
 				Kind:       node.Kind,
 				APIVersion: node.APIVersion,
 				Name:       node.Name,
@@ -228,10 +228,10 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 	return getNodeReferencesResult{nodeRefs, available, ready}, nil
 }
 
-func nodeIsReady(node *apicorev1.Node) bool {
+func nodeIsReady(node *corev1.Node) bool {
 	for _, n := range node.Status.Conditions {
-		if n.Type == apicorev1.NodeReady {
-			return n.Status == apicorev1.ConditionTrue
+		if n.Type == corev1.NodeReady {
+			return n.Status == corev1.ConditionTrue
 		}
 	}
 	return false

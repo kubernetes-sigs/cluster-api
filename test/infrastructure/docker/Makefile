@@ -45,12 +45,16 @@ GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-STAGING_REGISTRY := gcr.io/k8s-staging-cluster-api
 IMAGE_NAME ?= capd-manager
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
-TAG ?= dev
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64
+
+STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api
+STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api.appspot.com
+
+# TAG is set to GIT_TAG in GCB, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971.
+TAG ?= dev
 
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
@@ -198,8 +202,8 @@ set-manifest-pull-policy:
 ## Release
 ## --------------------------------------
 
-GIT_TAG := $(shell git describe --abbrev=0 2>/dev/null)
-RELEASE_TAG := $(lastword $(subst /, ,$(GIT_TAG)))
+RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
+RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
 RELEASE_DIR := out
 
 $(RELEASE_DIR):
@@ -209,12 +213,15 @@ $(RELEASE_DIR):
 release: clean-release ## Builds and push container images using the latest git tag for the commit.
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
-	git checkout "${GIT_TAG}"
+	git checkout "${RELEASE_TAG}"
 	# Set the manifest image to the staging bucket.
-	MANIFEST_IMG=$(STAGING_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-		$(MAKE) set-manifest-image
-	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) manifest-modification
 	$(MAKE) release-manifests
+
+.PHONY: manifest-modification
+manifest-modification: # Set the manifest images to the staging/production bucket.
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG)
+	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
@@ -224,7 +231,16 @@ release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a rele
 release-staging: ## Builds and push container images to the staging bucket.
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
-RELEASE_ALIAS_TAG=$(PULL_BASE_REF)
+.PHONY: release-staging-nightly
+release-staging-nightly: ## Tags and push container images to the staging bucket. Example image tag: cluster-api-controller:nightly_master_20210121
+	$(eval NEW_RELEASE_ALIAS_TAG := nightly_$(RELEASE_ALIAS_TAG)_$(shell date +'%Y%m%d'))
+	$(MAKE) release-alias-tag TAG=$(RELEASE_ALIAS_TAG) RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
+	# Set the manifest image to the production bucket.
+	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
+	## Build the manifests
+	$(MAKE) release-manifests
+	# Example manifest location: artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210121/infrastructure-components.yaml
+	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
 
 .PHONY: release-alias-tag
 release-alias-tag: # Adds the tag to the last build tag.

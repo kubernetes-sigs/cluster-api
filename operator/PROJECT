@@ -1,0 +1,3 @@
+domain: cluster.x-k8s.io
+repo: sigs.k8s.io/cluster-api
+version: "2"

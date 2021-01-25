@@ -219,10 +219,20 @@ type Bootstrap struct {
 	// +optional
 	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
 
-	// DataSecretName is the name of the secret that stores the bootstrap data script.
+	// DataSecret is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.
 	// +optional
-	DataSecretName *string `json:"dataSecretName,omitempty"`
+	DataSecret *DataSecret `json:"dataSecret,omitempty"`
+}
+
+// DataSecret represents data secret refence and key
+type DataSecret struct {
+	corev1.ObjectReference `json:",inline"`
+
+	// Key secret key used to obtain bootstrap data script content, defaults to 'value'
+	// +optional
+	// +kubebuilder:default:=value
+	Key *string `json:"key,omitempty"`
 }
 
 // ANCHOR_END: Bootstrap

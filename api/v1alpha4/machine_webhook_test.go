@@ -55,17 +55,17 @@ func TestMachineBootstrapValidation(t *testing.T) {
 	}{
 		{
 			name:      "should return error if configref and data are nil",
-			bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: nil},
+			bootstrap: Bootstrap{ConfigRef: nil, DataSecret: nil},
 			expectErr: true,
 		},
 		{
-			name:      "should not return error if dataSecretName is set",
-			bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
+			name:      "should not return error if dataSecretRef is set",
+			bootstrap: Bootstrap{ConfigRef: nil, DataSecret: &DataSecret{ObjectReference: corev1.ObjectReference{Name: "test"}}},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if config ref is set",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}, DataSecretName: nil},
+			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}, DataSecret: nil},
 			expectErr: false,
 		},
 	}
@@ -232,7 +232,7 @@ func TestMachineVersionValidation(t *testing.T) {
 			m := &Machine{
 				Spec: MachineSpec{
 					Version:   &tt.version,
-					Bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
+					Bootstrap: Bootstrap{ConfigRef: nil, DataSecret: &DataSecret{ObjectReference: corev1.ObjectReference{Name: "test"}}},
 				},
 			}
 

@@ -86,6 +86,11 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			PostWorkloadClusterProvisioned: func(res *clusterctl.ApplyClusterTemplateAndWaitResult) error {
+				// in case the cluster fails to initialize set an intermediate result for logging
+				clusterResources = res
+				return nil
+			},
 		})
 
 		By("Setting a machine unhealthy and wait for MachineDeployment remediation")

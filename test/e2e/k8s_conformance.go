@@ -98,6 +98,11 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			PostControlPlaneInitialized: func(res *clusterctl.ApplyClusterTemplateAndWaitResult) error {
+				// in case the cluster fails the initialize set an intermediate result
+				clusterResources = res
+				return nil
+			},
 		})
 
 		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)

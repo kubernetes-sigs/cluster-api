@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -51,7 +52,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 		input              NodeDrainTimeoutSpecInput
 		namespace          *corev1.Namespace
 		cancelWatches      context.CancelFunc
-		cluster            *clusterv1.Cluster
+		clusterResources   *clusterctl.ApplyClusterTemplateAndWaitResult
 		machineDeployments []*clusterv1.MachineDeployment
 		controlplane       *controlplanev1.KubeadmControlPlane
 	)
@@ -73,7 +74,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 	It("A node should be forcefully removed if it cannot be drained in time", func() {
 		By("Creating a workload cluster")
 		controlPlaneReplicas := 3
-		applyClusterTemplateResult := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+		clusterResources = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
@@ -90,10 +91,15 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			PostWorkloadClusterProvisioned: func(res *clusterctl.ApplyClusterTemplateAndWaitResult) error {
+				// in case the cluster fails to initialize set an intermediate result for logging
+				clusterResources = res
+				return nil
+			},
 		})
-		cluster = applyClusterTemplateResult.Cluster
-		controlplane = applyClusterTemplateResult.ControlPlane
-		machineDeployments = applyClusterTemplateResult.MachineDeployments
+		cluster := clusterResources.Cluster
+		controlplane = clusterResources.ControlPlane
+		machineDeployments = clusterResources.MachineDeployments
 
 		By("Add a deployment with unevictable pods and podDisruptionBudget to the workload cluster. The deployed pods cannot be evicted in the node draining process.")
 		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(context.TODO(), cluster.Namespace, cluster.Name)
@@ -142,7 +148,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }
 

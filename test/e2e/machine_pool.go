@@ -88,6 +88,11 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachinePools:          input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+			PostWorkloadClusterProvisioned: func(res *clusterctl.ApplyClusterTemplateAndWaitResult) error {
+				// in case the cluster fails to initialize set an intermediate result for logging
+				clusterResources = res
+				return nil
+			},
 		})
 
 		By("Scaling the machine pool up")

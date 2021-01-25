@@ -26,8 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	operatorv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/controllers"
+	operatorv1alpha4 "sigs.k8s.io/cluster-api/operator/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
 

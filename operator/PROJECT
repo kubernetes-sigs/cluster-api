@@ -10,4 +10,7 @@ resources:
 - group: operator
   kind: ControlPlaneProvider
   version: v1alpha4
+- group: operator
+  kind: InfrastructureProvider
+  version: v1alpha4
 version: "2"

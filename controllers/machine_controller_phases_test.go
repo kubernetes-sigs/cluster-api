@@ -30,7 +30,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -609,8 +608,8 @@ func TestReconcileBootstrap(t *testing.T) {
 			expectError: false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(m.Spec.Bootstrap.DataSecretName).ToNot(BeNil())
-				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(ContainSubstring("secret-data"))
+				g.Expect(m.Spec.Bootstrap.DataSecret).ToNot(BeNil())
+				g.Expect(m.Spec.Bootstrap.DataSecret.Name).To(ContainSubstring("secret-data"))
 			},
 		},
 		{
@@ -630,7 +629,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			expectError: true,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
-				g.Expect(m.Spec.Bootstrap.DataSecretName).To(BeNil())
+				g.Expect(m.Spec.Bootstrap.DataSecret).To(BeNil())
 			},
 		},
 		{
@@ -709,7 +708,11 @@ func TestReconcileBootstrap(t *testing.T) {
 							Kind:       "BootstrapMachine",
 							Name:       "bootstrap-config1",
 						},
-						DataSecretName: pointer.StringPtr("secret-data"),
+						DataSecret: &clusterv1.DataSecret{
+							ObjectReference: corev1.ObjectReference{
+								Name: "secret-data",
+							},
+						},
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -719,7 +722,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			expectError: false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(BeEquivalentTo("secret-data"))
+				g.Expect(m.Spec.Bootstrap.DataSecret.Name).To(BeEquivalentTo("secret-data"))
 			},
 		},
 		{

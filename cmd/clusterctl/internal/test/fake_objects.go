@@ -844,7 +844,11 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 					Name:       machineBootstrap.Name,
 					Namespace:  cluster.Namespace,
 				},
-				DataSecretName: &bootstrapDataSecretName,
+				DataSecret: &clusterv1.DataSecret{
+					ObjectReference: corev1.ObjectReference{
+						Name: bootstrapDataSecretName,
+					},
+				},
 			},
 			ClusterName: cluster.Name,
 		},

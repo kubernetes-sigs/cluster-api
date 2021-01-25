@@ -19,10 +19,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sort"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	. "github.com/onsi/gomega"
 
@@ -818,7 +819,11 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: cluster.Name,
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.StringPtr("test-data-secret-name"),
+							DataSecret: &clusterv1.DataSecret{
+								ObjectReference: corev1.ObjectReference{
+									Name: "test-data-secret-name",
+								},
+							},
 						},
 						InfrastructureRef: corev1.ObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
@@ -1871,7 +1876,11 @@ func newRunningMachine(c *clusterv1.Cluster, labels map[string]string) *clusterv
 		Spec: clusterv1.MachineSpec{
 			ClusterName: c.Name,
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: pointer.StringPtr("data-secret-name"),
+				DataSecret: &clusterv1.DataSecret{
+					ObjectReference: corev1.ObjectReference{
+						Name: "data-secret-name",
+					},
+				},
 			},
 		},
 		Status: clusterv1.MachineStatus{

@@ -104,7 +104,11 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 							Name:       "md-template",
 						},
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.StringPtr("data-secret-name"),
+							DataSecret: &clusterv1.DataSecret{
+								ObjectReference: corev1.ObjectReference{
+									Name: "data-secret-name",
+								},
+							},
 						},
 					},
 				},

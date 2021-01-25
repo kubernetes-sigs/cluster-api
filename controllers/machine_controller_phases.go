@@ -176,7 +176,7 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	// If the bootstrap data is populated, set ready and return.
-	if m.Spec.Bootstrap.DataSecretName != nil {
+	if m.Spec.Bootstrap.DataSecret != nil {
 		m.Status.BootstrapReady = true
 		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil
@@ -228,7 +228,7 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
-	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
+	m.Spec.Bootstrap.DataSecret = &clusterv1.DataSecret{ObjectReference: corev1.ObjectReference{Name: secretName}}
 	m.Status.BootstrapReady = true
 	return ctrl.Result{}, nil
 }

@@ -60,17 +60,17 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 	}{
 		{
 			name:      "should return error if configref and data are nil",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecret: nil},
 			expectErr: true,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecret: &clusterv1.DataSecret{ObjectReference: corev1.ObjectReference{Name: "test"}}},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if config ref is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}, DataSecret: nil},
 			expectErr: false,
 		},
 	}

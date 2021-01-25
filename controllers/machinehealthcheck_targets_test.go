@@ -352,7 +352,11 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 		Spec: clusterv1.MachineSpec{
 			ClusterName: clusterName,
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: &bootstrap,
+				DataSecret: &clusterv1.DataSecret{
+					ObjectReference: corev1.ObjectReference{
+						Name: bootstrap,
+					},
+				},
 			},
 		},
 		Status: clusterv1.MachineStatus{

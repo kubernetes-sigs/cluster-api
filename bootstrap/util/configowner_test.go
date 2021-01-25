@@ -21,9 +21,9 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
@@ -56,7 +56,7 @@ func TestGetConfigOwner(t *testing.T) {
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "my-cluster",
 				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: pointer.StringPtr("my-data-secret"),
+					DataSecret: &clusterv1.DataSecret{ObjectReference: corev1.ObjectReference{Name: "my-data-secret"}},
 				},
 			},
 			Status: clusterv1.MachineStatus{

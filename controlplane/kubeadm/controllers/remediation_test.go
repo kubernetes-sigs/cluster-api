@@ -558,7 +558,11 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: utilpointer.StringPtr("secret"),
+				DataSecret: &clusterv1.DataSecret{
+					ObjectReference: corev1.ObjectReference{
+						Name: "secret",
+					},
+				},
 			},
 		},
 	}
@@ -586,7 +590,11 @@ func getDeletingMachine(namespace, name string, options ...machineOption) *clust
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: utilpointer.StringPtr("secret"),
+				DataSecret: &clusterv1.DataSecret{
+					ObjectReference: corev1.ObjectReference{
+						Name: "secret",
+					},
+				},
 			},
 		},
 	}

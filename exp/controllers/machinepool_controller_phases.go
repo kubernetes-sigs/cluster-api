@@ -184,7 +184,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 	}
 
 	// If the bootstrap data secret is populated, set ready and return.
-	if m.Spec.Template.Spec.Bootstrap.DataSecretName != nil {
+	if m.Spec.Template.Spec.Bootstrap.DataSecret != nil {
 		m.Status.BootstrapReady = true
 		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil
@@ -220,7 +220,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
 	}
 
-	m.Spec.Template.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
+	m.Spec.Template.Spec.Bootstrap.DataSecret = &clusterv1.DataSecret{ObjectReference: corev1.ObjectReference{Name: secretName}}
 	m.Status.BootstrapReady = true
 	return ctrl.Result{}, nil
 }

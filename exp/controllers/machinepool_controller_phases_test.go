@@ -501,8 +501,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError: false,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(m.Spec.Template.Spec.Bootstrap.DataSecretName).ToNot(BeNil())
-				g.Expect(*m.Spec.Template.Spec.Bootstrap.DataSecretName).To(ContainSubstring("secret-data"))
+				g.Expect(m.Spec.Template.Spec.Bootstrap.DataSecret).ToNot(BeNil())
+				g.Expect(*&m.Spec.Template.Spec.Bootstrap.DataSecret.Name).To(ContainSubstring("secret-data"))
 			},
 		},
 		{
@@ -522,7 +522,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError: true,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
-				g.Expect(m.Spec.Template.Spec.Bootstrap.DataSecretName).To(BeNil())
+				g.Expect(m.Spec.Template.Spec.Bootstrap.DataSecret).To(BeNil())
 			},
 		},
 		{
@@ -603,7 +603,11 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
-								DataSecretName: pointer.StringPtr("data"),
+								DataSecret: &clusterv1.DataSecret{
+									ObjectReference: corev1.ObjectReference{
+										Name: "data",
+									},
+								},
 							},
 						},
 					},
@@ -615,7 +619,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError: false,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(*m.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("data"))
+				g.Expect(m.Spec.Template.Spec.Bootstrap.DataSecret.Name).To(Equal("data"))
 			},
 		},
 		{
@@ -647,7 +651,11 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
-								DataSecretName: pointer.StringPtr("data"),
+								DataSecret: &clusterv1.DataSecret{
+									ObjectReference: corev1.ObjectReference{
+										Name: "data",
+									},
+								},
 							},
 						},
 					},

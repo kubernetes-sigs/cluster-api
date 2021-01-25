@@ -54,9 +54,9 @@ func (co ConfigOwner) ClusterName() string {
 	return clusterName
 }
 
-// DataSecretName extracts spec.bootstrap.dataSecretName from the config owner.
+// DataSecretName extracts spec.bootstrap.dataSecret.name from the config owner.
 func (co ConfigOwner) DataSecretName() *string {
-	dataSecretName, exist, err := unstructured.NestedString(co.Object, "spec", "bootstrap", "dataSecretName")
+	dataSecretName, exist, err := unstructured.NestedString(co.Object, "spec", "bootstrap", "dataSecret", "name")
 	if err != nil || !exist {
 		return nil
 	}

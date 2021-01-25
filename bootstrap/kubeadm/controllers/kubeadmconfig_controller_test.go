@@ -21,9 +21,10 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/cluster-api/util/patch"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -159,7 +160,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	g := NewWithT(t)
 
 	machine := newMachine(nil, "machine")
-	machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("something")
+	machine.Spec.Bootstrap.DataSecret = &clusterv1.DataSecret{ObjectReference: corev1.ObjectReference{Name: "test"}}
 
 	config := newKubeadmConfig(machine, "cfg")
 	objects := []client.Object{

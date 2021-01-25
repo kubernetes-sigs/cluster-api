@@ -55,7 +55,11 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: &bootstrapData,
+						DataSecret: &clusterv1.DataSecret{
+							ObjectReference: corev1.ObjectReference{
+								Name: bootstrapData,
+							},
+						},
 					},
 				},
 			},
@@ -74,7 +78,11 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: &bootstrapData,
+						DataSecret: &clusterv1.DataSecret{
+							ObjectReference: corev1.ObjectReference{
+								Name: bootstrapData,
+							},
+						},
 					},
 				},
 			},
@@ -164,7 +172,11 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: &bootstrapData,
+						DataSecret: &clusterv1.DataSecret{
+							ObjectReference: corev1.ObjectReference{
+								Name: bootstrapData,
+							},
+						},
 					},
 				},
 			},
@@ -185,7 +197,11 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: &bootstrapData,
+						DataSecret: &clusterv1.DataSecret{
+							ObjectReference: corev1.ObjectReference{
+								Name: bootstrapData,
+							},
+						},
 					},
 				},
 			},
@@ -325,7 +341,13 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecret: &clusterv1.DataSecret{
+									ObjectReference: corev1.ObjectReference{
+										Name: "data",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -361,7 +383,13 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecret: &clusterv1.DataSecret{
+									ObjectReference: corev1.ObjectReference{
+										Name: "data",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -400,7 +428,13 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecret: &clusterv1.DataSecret{
+									ObjectReference: corev1.ObjectReference{
+										Name: "data",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -592,7 +626,13 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecret: &clusterv1.DataSecret{
+							ObjectReference: corev1.ObjectReference{
+								Name: "data",
+							},
+						},
+					},
 				},
 			},
 		},

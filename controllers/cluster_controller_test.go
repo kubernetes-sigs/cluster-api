@@ -287,11 +287,11 @@ var _ = Describe("Cluster Reconciler", func() {
 				ClusterName: cluster.Name,
 				ProviderID:  pointer.StringPtr("aws:///id-node-1"),
 				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: pointer.StringPtr(""),
+					DataSecret: &clusterv1.DataSecret{ObjectReference: corev1.ObjectReference{Name: ""}},
 				},
 			},
 		}
-		machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("test6-bootstrapdata")
+		machine.Spec.Bootstrap.DataSecret.Name = "test6-bootstrapdata"
 		Expect(testEnv.Create(ctx, machine)).To(BeNil())
 		key = client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 		defer func() {

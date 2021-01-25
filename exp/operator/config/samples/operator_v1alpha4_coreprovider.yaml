@@ -1,0 +1,7 @@
+apiVersion: operator.cluster.x-k8s.io/v1alpha4
+kind: CoreProvider
+metadata:
+  name: coreprovider-sample
+spec:
+  # Add fields here
+  foo: bar

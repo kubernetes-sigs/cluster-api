@@ -1,3 +1,7 @@
 domain: cluster.x-k8s.io
 repo: sigs.k8s.io/cluster-api
+resources:
+- group: operator
+  kind: CoreProvider
+  version: v1alpha4
 version: "2"

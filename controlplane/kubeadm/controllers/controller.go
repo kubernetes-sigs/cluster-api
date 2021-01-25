@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
@@ -62,6 +63,7 @@ type KubeadmControlPlaneReconciler struct {
 	Client     client.Client
 	controller controller.Controller
 	recorder   record.EventRecorder
+	Tracker    *remote.ClusterCacheTracker
 
 	managementCluster         internal.ManagementCluster
 	managementClusterUncached internal.ManagementCluster
@@ -91,7 +93,10 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
 
 	if r.managementCluster == nil {
-		r.managementCluster = &internal.Management{Client: r.Client}
+		if r.Tracker == nil {
+			return errors.New("cluster cache tracker is nil, cannot create the internal management cluster resource")
+		}
+		r.managementCluster = &internal.Management{Client: r.Client, Tracker: r.Tracker}
 	}
 	if r.managementClusterUncached == nil {
 		r.managementClusterUncached = &internal.Management{Client: mgr.GetAPIReader()}

@@ -432,6 +432,7 @@ docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))
 	$(MAKE) docker-push-core-manifest
 	$(MAKE) docker-push-kubeadm-bootstrap-manifest
 	$(MAKE) docker-push-kubeadm-control-plane-manifest
+	$(MAKE) docker-push-operator-manifest
 
 docker-push-%:
 	$(MAKE) ARCH=$* docker-push
@@ -462,6 +463,15 @@ docker-push-kubeadm-control-plane-manifest: ## Push the fat manifest docker imag
 	docker manifest push --purge $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
+
+.PHONY: docker-push-operator-manifest
+docker-push-operator-manifest: ## Push the fat manifest docker image for the operator image.
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(OPERATOR_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(OPERATOR_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${OPERATOR_CONTROLLER_IMG}:${TAG} ${OPERATOR_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(OPERATOR_CONTROLLER_IMG):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(OPERATOR_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./operator/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./operator/config/default/manager_pull_policy.yaml"
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:

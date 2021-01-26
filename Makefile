@@ -300,6 +300,7 @@ generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	$(MAKE) generate-core-manifests
 	$(MAKE) generate-kubeadm-bootstrap-manifests
 	$(MAKE) generate-kubeadm-control-plane-manifests
+	$(MAKE) generate-operator-manifests
 
 .PHONY: generate-core-manifests
 generate-core-manifests: $(CONTROLLER_GEN) ## Generate manifests for the core provider e.g. CRD, RBAC etc.
@@ -345,6 +346,18 @@ generate-kubeadm-control-plane-manifests: $(CONTROLLER_GEN) ## Generate manifest
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
 		output:rbac:dir=./controlplane/kubeadm/config/rbac \
 		output:webhook:dir=./controlplane/kubeadm/config/webhook \
+		webhook
+
+.PHONY: generate-operator-manifests
+generate-operator-manifests: $(CONTROLLER_GEN) ## Generate manifests for the operator e.g. CRD, RBAC etc.
+	$(CONTROLLER_GEN) \
+		paths=./operator/api/... \
+		paths=./operator/controllers/... \
+		crd:crdVersions=v1 \
+		rbac:roleName=manager-role \
+		output:crd:dir=./operator/config/crd/bases \
+		output:rbac:dir=./operator/config/rbac \
+		output:webhook:dir=./operator/config/webhook \
 		webhook
 
 .PHONY: modules

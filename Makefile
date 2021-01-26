@@ -135,7 +135,7 @@ test-e2e: ## Run the e2e tests
 ## --------------------------------------
 
 .PHONY: operator
-operator: ## Build management cluster operator binary
+operator: ## Build operator binary
 	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/operator sigs.k8s.io/cluster-api/operator
 
 .PHONY: manager-core
@@ -226,6 +226,7 @@ generate-go: $(GOBINDATA) ## Runs Go related generate targets
 	$(MAKE) generate-go-core
 	$(MAKE) generate-go-kubeadm-bootstrap
 	$(MAKE) generate-go-kubeadm-control-plane
+	$(MAKE) generate-go-operator
 
 .PHONY: generate-go-core
 generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN)
@@ -270,6 +271,12 @@ generate-go-kubeadm-control-plane: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs G
 		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha3,sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+
+.PHONY: generate-go-operator
+generate-go-operator: $(CONTROLLER_GEN) ## Runs Go related generate targets for the operator
+	$(CONTROLLER_GEN) \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		paths=./operator/api/...
 
 .PHONY: generate-bindata
 generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata $(CLOUDINIT_GENERATED) ## Generate code for embedding the clusterctl api manifest

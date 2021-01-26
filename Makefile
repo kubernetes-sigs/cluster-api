@@ -85,6 +85,10 @@ KUBEADM_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME)
 KUBEADM_CONTROL_PLANE_IMAGE_NAME ?= kubeadm-control-plane-controller
 KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME)
 
+# operator
+OPERATOR_IMAGE_NAME ?= operator-controller
+OPERATOR_CONTROLLER_IMG ?= $(REGISTRY)/$(OPERATOR_IMAGE_NAME)
+
 TAG ?= dev
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
@@ -381,6 +385,7 @@ docker-build: docker-pull-prerequisites ## Build the docker images for controlle
 	$(MAKE) ARCH=$(ARCH) docker-build-core
 	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-bootstrap
 	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-control-plane
+	$(MAKE) ARCH=$(ARCH) docker-build-operator
 
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
@@ -399,6 +404,12 @@ docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm contro
 	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
+
+.PHONY: docker-build-operator
+docker-build-operator: ## Build the docker image for management cluster operator
+	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./operator --build-arg ldflags="$(LDFLAGS)" . -t $(OPERATOR_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(OPERATOR_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./operator/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./operator/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-push
 docker-push: ## Push the docker images

@@ -134,6 +134,10 @@ test-e2e: ## Run the e2e tests
 ## Binaries
 ## --------------------------------------
 
+.PHONY: operator
+operator: ## Build management cluster operator binary
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/operator sigs.k8s.io/cluster-api/operator
+
 .PHONY: manager-core
 manager-core: ## Build core manager binary
 	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api

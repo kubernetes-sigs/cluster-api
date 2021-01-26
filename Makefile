@@ -512,9 +512,14 @@ release: clean-release ## Builds and push container images using the latest git 
 	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(PROD_REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_image_patch.yaml"
+	# Set the operator image to the production bucket.
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(PROD_REGISTRY)/$(OPERATOR_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="./operator/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/kubeadm/config/manager/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/manager/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./operator/config/default/manager_pull_policy.yaml"
 	## Build the manifests
 	$(MAKE) release-manifests clean-release-git
 	## Build the development manifests

@@ -45,6 +45,15 @@ type MachineHealthCheckSpec struct {
 	// +optional
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
 
+	// Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
+	// is within the range of "UnhealthyRange". Takes precedence over MaxUnhealthy.
+	// Eg. "[3-5]" - This means that remediation will be allowed only when:
+	// (a) there are at least 3 unhealthy machines (and)
+	// (b) there are at most 5 unhealthy machines
+	// +optional
+	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
+	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
+
 	// Machines older than this duration without a node will be considered to have
 	// failed and will be remediated.
 	// +optional

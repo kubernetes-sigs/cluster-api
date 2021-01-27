@@ -38,6 +38,7 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Machine{}, &Machine{}, BootstrapFuzzFuncs))
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(scheme, &v1alpha4.MachineSet{}, &MachineSet{}, BootstrapFuzzFuncs))
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(scheme, &v1alpha4.MachineDeployment{}, &MachineDeployment{}, BootstrapFuzzFuncs))
+	t.Run("for MachineHealthCheckSpec", utilconversion.FuzzTestFunc(scheme, &v1alpha4.MachineHealthCheck{}, &MachineHealthCheck{}))
 }
 
 func BootstrapFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

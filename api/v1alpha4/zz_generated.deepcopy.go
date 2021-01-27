@@ -577,6 +577,11 @@ func (in *MachineHealthCheckSpec) DeepCopyInto(out *MachineHealthCheckSpec) {
 		*out = new(intstr.IntOrString)
 		**out = **in
 	}
+	if in.UnhealthyRange != nil {
+		in, out := &in.UnhealthyRange, &out.UnhealthyRange
+		*out = new(string)
+		**out = **in
+	}
 	if in.NodeStartupTimeout != nil {
 		in, out := &in.NodeStartupTimeout, &out.NodeStartupTimeout
 		*out = new(metav1.Duration)

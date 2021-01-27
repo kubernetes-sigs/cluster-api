@@ -152,13 +152,36 @@ func (dst *MachineDeploymentList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.MachineHealthCheck)
 
-	return Convert_v1alpha3_MachineHealthCheck_To_v1alpha4_MachineHealthCheck(src, dst, nil)
+	if err := Convert_v1alpha3_MachineHealthCheck_To_v1alpha4_MachineHealthCheck(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1alpha4.MachineHealthCheck{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.UnhealthyRange != nil {
+		dst.Spec.UnhealthyRange = restored.Spec.UnhealthyRange
+	}
+
+	return nil
 }
 
 func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.MachineHealthCheck)
 
-	return Convert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(src, dst, nil)
+	if err := Convert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *MachineHealthCheckList) ConvertTo(dstRaw conversion.Hub) error {
@@ -180,4 +203,8 @@ func Convert_v1alpha3_Bootstrap_To_v1alpha4_Bootstrap(in *Bootstrap, out *v1alph
 
 func Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in *v1alpha4.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s apiconversion.Scope) error {
 	return autoConvert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in, out, s)
+}
+
+func Convert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in *v1alpha4.MachineHealthCheckSpec, out *MachineHealthCheckSpec, s apiconversion.Scope) error {
+	return autoConvert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in, out, s)
 }

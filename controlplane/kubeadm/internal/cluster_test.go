@@ -107,9 +107,8 @@ func TestGetWorkloadCluster(t *testing.T) {
 		log.Log,
 		testEnv.Manager,
 	)
-	if err != nil {
-		panic(fmt.Sprintf("unable to create cluster cache tracker: %v", err))
-	}
+	g.Expect(err).ToNot(HaveOccurred())
+
 	// Create kubeconfig secret
 	// Store the envtest config as the contents of the kubeconfig secret.
 	// This way we are using the envtest environment as both the

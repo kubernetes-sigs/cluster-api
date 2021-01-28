@@ -98,6 +98,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		}
 		r.managementCluster = &internal.Management{Client: r.Client, Tracker: r.Tracker}
 	}
+
 	if r.managementClusterUncached == nil {
 		r.managementClusterUncached = &internal.Management{Client: mgr.GetAPIReader()}
 	}

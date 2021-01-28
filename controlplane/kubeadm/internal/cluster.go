@@ -97,6 +97,10 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	}
 	restConfig.Timeout = 30 * time.Second
 
+	if m.Tracker == nil {
+		return nil, errors.New("Cannot get WorkloadCluster: No remote Cluster Cache")
+	}
+
 	c, err := m.Tracker.GetClient(ctx, clusterKey)
 	if err != nil {
 		return nil, err

@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,7 +29,6 @@ import (
 // CoreProviderReconciler reconciles a CoreProvider object
 type CoreProviderReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
@@ -38,8 +36,8 @@ type CoreProviderReconciler struct {
 // +kubebuilder:rbac:groups=operator.cluster.x-k8s.io,resources=coreproviders/status,verbs=get;update;patch
 
 func (r *CoreProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("coreprovider", req.NamespacedName)
-
+	log := ctrl.LoggerFrom(ctx)
+	_ = log
 	// your logic here
 
 	return ctrl.Result{}, nil

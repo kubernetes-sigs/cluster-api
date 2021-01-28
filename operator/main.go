@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"sigs.k8s.io/cluster-api/cmd/version"
 	operatorv1alpha4 "sigs.k8s.io/cluster-api/operator/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/operator/controllers"
 	// +kubebuilder:scaffold:imports
@@ -66,9 +67,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Setup the context that's going to be used in controllers and for the manager.
+	ctx := ctrl.SetupSignalHandler()
+
 	if err = (&controllers.CoreProviderReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("CoreProvider"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoreProvider")
@@ -76,8 +79,8 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	setupLog.Info("starting manager", "version", version.Get().String())
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

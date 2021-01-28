@@ -1,0 +1,60 @@
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-operator-cluster-x-k8s-io-v1alpha4-coreprovider
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.coreprovider.operator.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - operator.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - coreproviders
+  sideEffects: None
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-operator-cluster-x-k8s-io-v1alpha4-coreprovider
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.coreprovider.operator.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - operator.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - coreproviders
+  sideEffects: None

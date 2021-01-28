@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing K8S conformance", func() {
+var _ = Describe("When testing K8S conformance [Conformance]", func() {
 
 	K8SConformanceSpec(context.TODO(), func() K8SConformanceSpecInput {
 		return K8SConformanceSpecInput{

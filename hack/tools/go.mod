@@ -8,7 +8,7 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/golangci/golangci-lint v1.32.0
 	github.com/joelanford/go-apidiff v0.1.0
-	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/ginkgo v1.15.0
 	github.com/sergi/go-diff v1.1.0 // indirect
 	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	k8s.io/code-generator v0.21.0-beta.0

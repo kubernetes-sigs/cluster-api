@@ -20,9 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -31,6 +28,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -44,7 +43,7 @@ var _ = Describe("ClusterResourceSet Reconciler", func() {
 	var clusterName string
 
 	var configmapName = "test-configmap"
-	var configmap2Name = "test-configmap2"
+	var secretName = "test-secret"
 
 	BeforeEach(func() {
 		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
@@ -54,7 +53,6 @@ var _ = Describe("ClusterResourceSet Reconciler", func() {
 		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
 		By("Creating the remote Cluster kubeconfig")
 		Expect(testEnv.CreateKubeconfigSecret(testCluster)).To(Succeed())
-
 		testConfigmap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configmapName,
@@ -68,13 +66,14 @@ kind: ConfigMap
 apiVersion: v1`,
 			},
 		}
-
-		testConfigmap2 := &corev1.ConfigMap{
+		testEnv.Create(ctx, testConfigmap)
+		testSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      configmap2Name,
+				Name:      secretName,
 				Namespace: defaultNamespaceName,
 			},
-			Data: map[string]string{
+			Type: "addons.cluster.x-k8s.io/resource-set",
+			StringData: map[string]string{
 				"cm": `metadata:
 kind: ConfigMap
 apiVersion: v1
@@ -83,9 +82,9 @@ metadata:
  namespace: default`,
 			},
 		}
-		By("Creating 2 ConfigMaps with ConfigMap in their data field")
+		By("Creating a Secret and a ConfigMap with ConfigMap in their data field")
 		testEnv.Create(ctx, testConfigmap)
-		testEnv.Create(ctx, testConfigmap2)
+		testEnv.Create(ctx, testSecret)
 	})
 	AfterEach(func() {
 		By("Deleting the Kubeconfigsecret")
@@ -136,7 +135,7 @@ metadata:
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
 				},
-				Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}, {Name: configmap2Name, Kind: "ConfigMap"}},
+				Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}, {Name: secretName, Kind: "Secret"}},
 			},
 		}
 		// Create the ClusterResourceSet.
@@ -340,7 +339,7 @@ metadata:
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
 				},
-				Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}, {Name: configmap2Name, Kind: "ConfigMap"}},
+				Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}, {Name: secretName, Kind: "Secret"}},
 			},
 		}
 		// Create the ClusterResourceSet.

@@ -35,6 +35,28 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-operator-cluster-x-k8s-io-v1alpha4-controlplaneprovider
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.controlplaneprovider.operator.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - operator.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - controlplaneproviders
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-operator-cluster-x-k8s-io-v1alpha4-coreprovider
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -79,6 +101,28 @@ webhooks:
     - UPDATE
     resources:
     - bootstrapproviders
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-operator-cluster-x-k8s-io-v1alpha4-controlplaneprovider
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.controlplaneprovider.operator.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - operator.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - controlplaneproviders
   sideEffects: None
 - admissionReviewVersions:
   - v1beta1

@@ -85,6 +85,10 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "BootstrapProvider")
 		os.Exit(1)
 	}
+	if err = (&operatorv1alpha4.ControlPlaneProvider{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ControlPlaneProvider")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager", "version", version.Get().String())

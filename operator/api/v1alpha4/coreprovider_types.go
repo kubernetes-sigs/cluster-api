@@ -33,7 +33,7 @@ type CoreProviderStatus struct {
 // +kubebuilder:object:root=true
 
 // CoreProvider is the Schema for the coreproviders API
-type CoreProvider struct {
+type CoreProvider struct { //nolint:maligned
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 

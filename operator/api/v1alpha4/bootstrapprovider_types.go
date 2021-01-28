@@ -33,7 +33,7 @@ type BootstrapProviderStatus struct {
 // +kubebuilder:object:root=true
 
 // BootstrapProvider is the Schema for the bootstrapproviders API
-type BootstrapProvider struct {
+type BootstrapProvider struct { //nolint:maligned
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 

@@ -33,7 +33,7 @@ type InfrastructureProviderStatus struct {
 // +kubebuilder:object:root=true
 
 // InfrastructureProvider is the Schema for the infrastructureproviders API
-type InfrastructureProvider struct {
+type InfrastructureProvider struct { //nolint:maligned
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 

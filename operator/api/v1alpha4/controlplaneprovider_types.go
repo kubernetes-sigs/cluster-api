@@ -33,7 +33,7 @@ type ControlPlaneProviderStatus struct {
 // +kubebuilder:object:root=true
 
 // ControlPlaneProvider is the Schema for the controlplaneproviders API
-type ControlPlaneProvider struct {
+type ControlPlaneProvider struct { //nolint:maligned
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 

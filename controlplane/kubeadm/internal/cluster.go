@@ -34,6 +34,11 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	// KubeadmControlPlaneControllerName defines the controller used when creating clients
+	KubeadmControlPlaneControllerName = "kubeadm-controlplane-controller"
+)
+
 // ManagementCluster defines all behaviors necessary for something to function as a management cluster.
 type ManagementCluster interface {
 	ctrlclient.Reader
@@ -86,7 +91,7 @@ func (m *Management) GetMachinesForCluster(ctx context.Context, cluster client.O
 func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error) {
 	// TODO(chuckha): Inject this dependency.
 	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
-	restConfig, err := remote.RESTConfig(ctx, m.Client, clusterKey)
+	restConfig, err := remote.RESTConfig(ctx, KubeadmControlPlaneControllerName, m.Client, clusterKey)
 	if err != nil {
 		return nil, err
 	}

@@ -51,6 +51,11 @@ import (
 // +kubebuilder:rbac:groups=exp.infrastructure.cluster.x-k8s.io;infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;create;update;patch;delete
 
+const (
+	// MachinePoolControllerName defines the controller used when creating clients
+	MachinePoolControllerName = "machinepool-controller"
+)
+
 // MachinePoolReconciler reconciles a MachinePool object
 type MachinePoolReconciler struct {
 	Client client.Client
@@ -230,7 +235,7 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 		return nil
 	}
 
-	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster))
+	clusterClient, err := remote.NewClusterClient(ctx, MachinePoolControllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
 		return err
 	}

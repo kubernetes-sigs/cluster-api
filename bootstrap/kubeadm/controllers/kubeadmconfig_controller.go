@@ -53,6 +53,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+const (
+	// KubeadmConfigControllerName defines the controller used when creating clients
+	KubeadmConfigControllerName = "kubeadmconfig-controller"
+)
+
 // InitLocker is a lock that is used around kubeadm init
 type InitLocker interface {
 	Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool
@@ -266,7 +271,7 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 	log := ctrl.LoggerFrom(ctx)
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-	remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster))
+	remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
 		log.Error(err, "Error creating remote cluster client")
 		return ctrl.Result{}, err
@@ -284,7 +289,7 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster, scope *Scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(2).Info("Config is owned by a MachinePool, checking if token should be rotated")
-	remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster))
+	remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -757,7 +762,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster))
+		remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
 		if err != nil {
 			return ctrl.Result{}, err
 		}

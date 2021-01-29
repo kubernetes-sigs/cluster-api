@@ -60,7 +60,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 
-	fs.IntVar(&webhookPort, "webhook-port", 0,
+	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 
 }
@@ -100,7 +100,7 @@ func main() {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+func setupReconcilers(_ context.Context, mgr ctrl.Manager) {
 	if webhookPort != 0 {
 		return
 	}

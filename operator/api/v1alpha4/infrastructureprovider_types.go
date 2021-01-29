@@ -31,6 +31,8 @@ type InfrastructureProviderStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=infrastructureproviders,scope=Namespaced,categories=providers
+// +kubebuilder:storageversion
 
 // InfrastructureProvider is the Schema for the infrastructureproviders API
 type InfrastructureProvider struct { //nolint:maligned

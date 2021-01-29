@@ -31,6 +31,8 @@ type ControlPlaneProviderStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=controlplaneproviders,scope=Namespaced,categories=providers
+// +kubebuilder:storageversion
 
 // ControlPlaneProvider is the Schema for the controlplaneproviders API
 type ControlPlaneProvider struct { //nolint:maligned

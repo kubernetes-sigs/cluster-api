@@ -31,6 +31,8 @@ type BootstrapProviderStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=bootstrapproviders,scope=Namespaced,categories=providers
+// +kubebuilder:storageversion
 
 // BootstrapProvider is the Schema for the bootstrapproviders API
 type BootstrapProvider struct { //nolint:maligned

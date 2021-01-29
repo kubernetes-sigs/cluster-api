@@ -10,6 +10,8 @@ metadata:
 spec:
   group: operator.cluster.x-k8s.io
   names:
+    categories:
+    - providers
     kind: InfrastructureProvider
     listKind: InfrastructureProviderList
     plural: infrastructureproviders

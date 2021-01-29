@@ -31,6 +31,8 @@ type CoreProviderStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=coreproviders,scope=Namespaced,categories=providers
+// +kubebuilder:storageversion
 
 // CoreProvider is the Schema for the coreproviders API
 type CoreProvider struct { //nolint:maligned

@@ -26,9 +26,9 @@ import (
 	"k8s.io/klog/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api/cmd/version"
 	operatorv1alpha4 "sigs.k8s.io/cluster-api/operator/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/operator/controllers"
+	"sigs.k8s.io/cluster-api/version"
 	// +kubebuilder:scaffold:imports
 )
 

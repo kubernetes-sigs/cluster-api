@@ -24,6 +24,7 @@ in case the above limitations/extra complexity are acceptable for them.
 In order to make it possible for users to deploy multiple instances of the same provider:
 
 - Providers MUST support the `--namespace` flag in their controllers.
+- Providers MUST support the `--watch-filter` flag in their controllers.
 
 ⚠️ Users selecting this deployment model, please be aware:
 

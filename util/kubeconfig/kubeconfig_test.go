@@ -93,7 +93,9 @@ func TestGetKubeConfigSecret(t *testing.T) {
 		Name:      "test1",
 		Namespace: "test",
 	}
-	client := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(validSecret).Build()
+	// creating a local copy to ensure validSecret.ObjectMeta.ResourceVersion does not get set by fakeClient
+	validSec := validSecret.DeepCopy()
+	client := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(validSec).Build()
 
 	found, err := FromSecret(ctx, client, clusterKey)
 	g.Expect(err).NotTo(HaveOccurred())

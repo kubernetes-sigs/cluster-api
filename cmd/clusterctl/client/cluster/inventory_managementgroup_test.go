@@ -171,8 +171,9 @@ func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, 
 			Kind:       "Provider",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: targetNamespace,
-			Name:      clusterctlv1.ManifestLabel(name, providerType),
+			ResourceVersion: "1",
+			Namespace:       targetNamespace,
+			Name:            clusterctlv1.ManifestLabel(name, providerType),
 			Labels: map[string]string{
 				clusterctlv1.ClusterctlLabelName:     "",
 				clusterv1.ProviderLabelName:          clusterctlv1.ManifestLabel(name, providerType),

@@ -77,7 +77,7 @@ type DockerMachinePoolStatus struct {
 
 	// Instances contains the status for each instance in the pool
 	// +optional
-	Instances []*DockerMachinePoolInstanceStatus `json:"instances,omitempty"`
+	Instances []DockerMachinePoolInstanceStatus `json:"instances,omitempty"`
 
 	// Conditions defines current service state of the DockerMachinePool.
 	// +optional

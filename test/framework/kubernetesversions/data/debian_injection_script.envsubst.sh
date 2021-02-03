@@ -95,7 +95,7 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
     $${GSUTIL} cp "$${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}" "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
     $${SUDO} ctr -n k8s.io images import "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}" || echo "* ignoring expected 'ctr images import' result"
     $${SUDO} ctr -n k8s.io images tag "k8s.gcr.io/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "k8s.gcr.io/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
-    $${SUDO} ctr -n k8s.io images tag "k8s.gcr.io/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "gcr.io/kubernetes-ci-images/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
+    $${SUDO} ctr -n k8s.io images tag "k8s.gcr.io/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "gcr.io/k8s-staging-ci-images/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
   done
 fi
 echo "* checking binary versions"

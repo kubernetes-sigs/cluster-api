@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -386,16 +385,16 @@ func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resource
 		if resourceSecret.Type != addonsv1.ClusterResourceSetSecretType {
 			return nil, ErrSecretTypeNotSupported
 		}
-
 		resourceInterface = resourceSecret.DeepCopyObject()
 	}
 
-	raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resourceInterface)
+	raw := &unstructured.Unstructured{}
+	err := r.Client.Scheme().Convert(resourceInterface, raw, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &unstructured.Unstructured{Object: raw}, nil
+	return raw, nil
 }
 
 // patchOwnerRefToResource adds the ClusterResourceSet as a OwnerReference to the resource.

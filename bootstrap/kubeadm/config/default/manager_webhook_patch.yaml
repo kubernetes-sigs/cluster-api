@@ -8,9 +8,6 @@ spec:
     spec:
       containers:
       - name: manager
-        args:
-        - "--metrics-bind-addr=127.0.0.1:8080"
-        - "--webhook-port=9443"
         ports:
         - containerPort: 9443
           name: webhook-server

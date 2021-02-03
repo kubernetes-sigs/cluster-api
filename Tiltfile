@@ -145,7 +145,7 @@ COPY manager .
 #
 # 1. Enables a local_resource go build of the provider's manager binary
 # 2. Configures a docker build for the provider, with live updating of the manager binary
-# 3. Runs kustomize for the provider's config/ and applies it
+# 3. Runs kustomize for the provider's config/default and applies it
 def enable_provider(name):
     p = providers.get(name)
 
@@ -205,7 +205,7 @@ def enable_provider(name):
         os.environ.update(substitutions)
 
         # Apply the kustomized yaml for this provider
-        yaml = str(kustomize_with_envsubst(context + "/config"))
+        yaml = str(kustomize_with_envsubst(context + "/config/default"))
         k8s_yaml(blob(yaml))
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will

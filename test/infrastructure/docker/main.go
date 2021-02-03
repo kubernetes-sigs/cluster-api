@@ -53,6 +53,7 @@ var (
 	syncPeriod           time.Duration
 	concurrency          int
 	healthAddr           string
+	webhookPort          int
 )
 
 func init() {
@@ -82,7 +83,7 @@ func main() {
 		LeaderElectionID:       "controller-leader-election-capd",
 		SyncPeriod:             &syncPeriod,
 		HealthProbeBindAddress: healthAddr,
-		Port:                   9443,
+		Port:                   webhookPort,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -105,13 +106,19 @@ func main() {
 }
 
 func initFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", ":8080", "The address the metric endpoint binds to.")
-	fs.IntVar(&concurrency, "concurrency", 10, "The number of docker machines to process simultaneously")
+	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", ":8080",
+		"The address the metric endpoint binds to.")
+	fs.IntVar(&concurrency, "concurrency", 10,
+		"The number of docker machines to process simultaneously")
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
-	fs.StringVar(&healthAddr, "health-addr", ":9440", "The address the health endpoint binds to.")
+	fs.StringVar(&healthAddr, "health-addr", ":9440",
+		"The address the health endpoint binds to.")
+	fs.IntVar(&webhookPort, "webhook-port", 9443,
+		"Webhook Server port")
+
 	feature.MutableGates.AddFlag(fs)
 }
 

@@ -1,9 +1,0 @@
-namePrefix: capd-
-
-commonLabels:
-  cluster.x-k8s.io/provider: "infrastructure-docker"
-
-resources:
-- crd
-- default
-- webhook

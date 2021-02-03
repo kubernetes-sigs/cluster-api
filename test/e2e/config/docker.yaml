@@ -31,7 +31,7 @@ providers:
   versions:
   - name: v0.3.0
   # Use manifest from source files
-    value: ../../../config
+    value: ../../../config/default
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
       new: --metrics-bind-addr=:8080
@@ -43,7 +43,7 @@ providers:
   versions:
   - name: v0.3.0
   # Use manifest from source files
-    value: ../../../bootstrap/kubeadm/config
+    value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
       new: --metrics-bind-addr=:8080
@@ -55,7 +55,7 @@ providers:
   versions:
   - name: v0.3.0
   # Use manifest from source files
-    value: ../../../controlplane/kubeadm/config
+    value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
       new: --metrics-bind-addr=:8080
@@ -67,7 +67,7 @@ providers:
   versions:
   - name: v0.3.0
   # Use manifest from source files
-    value: ../../../test/infrastructure/docker/config
+    value: ../../../test/infrastructure/docker/config/default
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
       new: --metrics-bind-addr=:8080

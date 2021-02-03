@@ -19,8 +19,3 @@ spec:
         ports:
         - containerPort: 8443
           name: https
-      - name: manager
-        args:
-        - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false}"
-        - "--metrics-bind-addr=0"
-        - "-v=4"

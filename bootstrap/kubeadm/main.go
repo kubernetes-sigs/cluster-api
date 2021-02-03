@@ -102,8 +102,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&kubeadmbootstrapcontrollers.DefaultTokenTTL, "bootstrap-token-ttl", 15*time.Minute,
 		"The amount of time the bootstrap token will be valid")
 
-	fs.IntVar(&webhookPort, "webhook-port", 0,
-		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
+	fs.IntVar(&webhookPort, "webhook-port", 9443,
+		"Webhook Server port")
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -160,10 +160,6 @@ func main() {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
-	if webhookPort != 0 {
-		return
-	}
-
 	if err := (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 		Client: mgr.GetClient(),
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
@@ -173,10 +169,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if webhookPort == 0 {
-		return
-	}
-
 	if err := (&kubeadmbootstrapv1.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
 		os.Exit(1)

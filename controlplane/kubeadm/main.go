@@ -99,8 +99,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	fs.IntVar(&webhookPort, "webhook-port", 0,
-		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
+	fs.IntVar(&webhookPort, "webhook-port", 9443,
+		"Webhook Server port")
 }
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -154,10 +154,6 @@ func main() {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
-	if webhookPort != 0 {
-		return
-	}
-
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client: mgr.GetClient(),
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
@@ -167,10 +163,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if webhookPort == 0 {
-		return
-	}
-
 	if err := (&kcpv1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 		os.Exit(1)

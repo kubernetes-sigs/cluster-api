@@ -17,7 +17,9 @@ spec:
     spec:
       containers:
       - args:
-        - --leader-elect
+        - "--leader-elect"
+        - "--metrics-bind-addr=127.0.0.1:8080"
+        - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false}"
         image: controller:latest
         name: manager
         ports:

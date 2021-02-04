@@ -25,7 +25,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
@@ -49,7 +48,8 @@ type ManagementCluster interface {
 
 // Management holds operations on the management cluster.
 type Management struct {
-	Client ctrlclient.Reader
+	Client  ctrlclient.Reader
+	Tracker *remote.ClusterCacheTracker
 }
 
 // RemoteClusterConnectionError represents a failure to connect to a remote cluster
@@ -97,9 +97,13 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	}
 	restConfig.Timeout = 30 * time.Second
 
-	c, err := client.New(restConfig, client.Options{Scheme: scheme.Scheme})
+	if m.Tracker == nil {
+		return nil, errors.New("Cannot get WorkloadCluster: No remote Cluster Cache")
+	}
+
+	c, err := m.Tracker.GetClient(ctx, clusterKey)
 	if err != nil {
-		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
+		return nil, err
 	}
 
 	// Retrieves the etcd CA key Pair

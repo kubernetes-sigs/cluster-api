@@ -119,12 +119,20 @@ func (f fakeClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error)
 	return f.internalClient.ProcessYAML(options)
 }
 
-func (f fakeClient) RolloutRestart(options RolloutRestartOptions) error {
+func (f fakeClient) RolloutRestart(options RolloutOptions) error {
 	return f.internalClient.RolloutRestart(options)
 }
 
 func (f fakeClient) DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error) {
 	return f.internalClient.DescribeCluster(options)
+}
+
+func (f fakeClient) RolloutPause(options RolloutOptions) error {
+	return f.internalClient.RolloutPause(options)
+}
+
+func (f fakeClient) RolloutResume(options RolloutOptions) error {
+	return f.internalClient.RolloutResume(options)
 }
 
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.

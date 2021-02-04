@@ -20,16 +20,17 @@ import (
 	"fmt"
 	"strings"
 
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 )
 
-// RolloutRestartOptions carries the options supported by rollout restart.
-type RolloutRestartOptions struct {
+// RolloutOptions carries the base set of options supported by rollout command.
+type RolloutOptions struct {
 	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
 	// default rules for kubeconfig discovery will be used.
 	Kubeconfig Kubeconfig
 
-	// Resources to be rollout restarted.
+	// Resources for the rollout command
 	Resources []string
 
 	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
@@ -37,36 +38,76 @@ type RolloutRestartOptions struct {
 	Namespace string
 }
 
-func (c *clusterctlClient) RolloutRestart(options RolloutRestartOptions) error {
+func (c *clusterctlClient) RolloutRestart(options RolloutOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}
-
-	// If the option specifying the Namespace is empty, try to detect it.
-	if options.Namespace == "" {
-		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
-		if err != nil {
-			return err
-		}
-		options.Namespace = currentNamespace
-	}
-
-	if len(options.Resources) == 0 {
-		return fmt.Errorf("required resource not specified")
-	}
-	normalized := normalizeResources(options.Resources)
-	tuples, err := util.ResourceTypeAndNameArgs(normalized...)
+	tuples, err := getResourceTuples(clusterClient, options)
 	if err != nil {
 		return err
 	}
-
 	for _, t := range tuples {
 		if err := c.alphaClient.Rollout().ObjectRestarter(clusterClient.Proxy(), t, options.Namespace); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (c *clusterctlClient) RolloutPause(options RolloutOptions) error {
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	if err != nil {
+		return err
+	}
+	tuples, err := getResourceTuples(clusterClient, options)
+	if err != nil {
+		return err
+	}
+	for _, t := range tuples {
+		if err := c.alphaClient.Rollout().ObjectPauser(clusterClient.Proxy(), t, options.Namespace); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *clusterctlClient) RolloutResume(options RolloutOptions) error {
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	if err != nil {
+		return err
+	}
+	tuples, err := getResourceTuples(clusterClient, options)
+	if err != nil {
+		return err
+	}
+	for _, t := range tuples {
+		if err := c.alphaClient.Rollout().ObjectResumer(clusterClient.Proxy(), t, options.Namespace); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getResourceTuples(clusterClient cluster.Client, options RolloutOptions) ([]util.ResourceTuple, error) {
+	// If the option specifying the Namespace is empty, try to detect it.
+	if options.Namespace == "" {
+		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
+		if err != nil {
+			return []util.ResourceTuple{}, err
+		}
+		options.Namespace = currentNamespace
+	}
+
+	if len(options.Resources) == 0 {
+		return []util.ResourceTuple{}, fmt.Errorf("required resource not specified")
+	}
+	normalized := normalizeResources(options.Resources)
+	tuples, err := util.ResourceTypeAndNameArgs(normalized...)
+	if err != nil {
+		return []util.ResourceTuple{}, err
+	}
+	return tuples, nil
 }
 
 func normalizeResources(input []string) []string {

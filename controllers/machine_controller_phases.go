@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -97,9 +96,8 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return external.ReconcileOutput{}, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
-				"could not find %v %q for Machine %q in namespace %q, requeuing",
-				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
+			log.Info("could not find external ref, requeueing", "RefGVK", ref.GroupVersionKind(), "RefName", ref.Name, "Machine", m.Name, "Namespace", m.Namespace)
+			return external.ReconcileOutput{RequeueAfter: externalReadyWait}, nil
 		}
 		return external.ReconcileOutput{}, err
 	}
@@ -192,6 +190,9 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if externalResult.RequeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: externalResult.RequeueAfter}, nil
+	}
 	if externalResult.Paused {
 		return ctrl.Result{}, nil
 	}
@@ -240,14 +241,18 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
 	if err != nil {
-		if m.Status.InfrastructureReady && strings.Contains(err.Error(), "could not find") {
-			// Infra object went missing after the machine was up and running
+		return ctrl.Result{}, err
+	}
+	if infraReconcileResult.RequeueAfter > 0 {
+		// Infra object went missing after the machine was up and running
+		if m.Status.InfrastructureReady {
 			log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
 			m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
 			m.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
+			return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeueing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: infraReconcileResult.RequeueAfter}, nil
 	}
 	// if the external object is paused, return without any further processing
 	if infraReconcileResult.Paused {

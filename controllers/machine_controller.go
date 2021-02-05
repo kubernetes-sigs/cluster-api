@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	kubedrain "sigs.k8s.io/cluster-api/third_party/kubernetes-drain"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -333,10 +332,12 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 				return ctrl.Result{}, errors.Wrap(err, "failed to patch Machine")
 			}
 
-			if err := r.drainNode(ctx, cluster, m.Status.NodeRef.Name); err != nil {
-				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
-				return ctrl.Result{}, err
+			if result, err := r.drainNode(ctx, cluster, m.Status.NodeRef.Name); !result.IsZero() || err != nil {
+				if err != nil {
+					conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+					r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
+				}
+				return result, err
 			}
 
 			conditions.MarkTrue(m, clusterv1.DrainingSucceededCondition)
@@ -489,18 +490,18 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 	}
 }
 
-func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) error {
+func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name, "node", nodeName)
 
 	restConfig, err := remote.RESTConfig(ctx, MachineControllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
 		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")
-		return nil
+		return ctrl.Result{}, nil
 	}
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	node, err := kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
@@ -508,9 +509,9 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
 			log.Error(err, "Could not find node from noderef, it may have already been deleted")
-			return nil
+			return ctrl.Result{}, nil
 		}
-		return errors.Errorf("unable to get node %q: %v", nodeName, err)
+		return ctrl.Result{}, errors.Errorf("unable to get node %q: %v", nodeName, err)
 	}
 
 	drainer := &kubedrain.Helper{
@@ -543,17 +544,17 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 	if err := kubedrain.RunCordonOrUncordon(ctx, drainer, node, true); err != nil {
 		// Machine will be re-reconciled after a cordon failure.
 		log.Error(err, "Cordon failed")
-		return errors.Errorf("unable to cordon node %s: %v", node.Name, err)
+		return ctrl.Result{}, errors.Errorf("unable to cordon node %s: %v", node.Name, err)
 	}
 
 	if err := kubedrain.RunNodeDrain(ctx, drainer, node.Name); err != nil {
 		// Machine will be re-reconciled after a drain failure.
-		log.Error(err, "Drain failed")
-		return &capierrors.RequeueAfterError{RequeueAfter: 20 * time.Second}
+		log.Error(err, "Drain failed, retry in 20s")
+		return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
 	}
 
 	log.Info("Drain successful")
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {

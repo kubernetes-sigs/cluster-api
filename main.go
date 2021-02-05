@@ -68,6 +68,7 @@ var (
 	machineHealthCheckConcurrency int
 	syncPeriod                    time.Duration
 	webhookPort                   int
+	webhookCertDir                string
 	healthAddr                    string
 )
 
@@ -132,6 +133,9 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
 
+	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
+		"Webhook cert dir, only used when webhook-port is specified.")
+
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
@@ -169,6 +173,7 @@ func main() {
 			&corev1.Secret{},
 		},
 		Port:                   webhookPort,
+		CertDir:                webhookCertDir,
 		HealthProbeBindAddress: healthAddr,
 	})
 	if err != nil {

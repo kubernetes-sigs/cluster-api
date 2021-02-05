@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -76,7 +77,9 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.reconcileKubeconfig(ctx, cluster, kcp)).To(Succeed())
+	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(BeZero())
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
@@ -123,7 +126,9 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.reconcileKubeconfig(ctx, cluster, kcp)).NotTo(Succeed())
+	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: dependentCertRequeueAfter}))
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
@@ -181,7 +186,9 @@ func TestReconcileKubeconfigSecretAdoptsV1alpha2Secrets(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.reconcileKubeconfig(ctx, cluster, kcp)).To(Succeed())
+	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
@@ -243,7 +250,9 @@ func TestReconcileKubeconfigSecretDoesNotAdoptsUserSecrets(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	g.Expect(r.reconcileKubeconfig(ctx, cluster, kcp)).To(Succeed())
+	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+	g.Expect(err).To(Succeed())
+	g.Expect(result).To(BeZero())
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
@@ -300,7 +309,9 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 		Client:   fakeClient,
 		recorder: record.NewFakeRecorder(32),
 	}
-	g.Expect(r.reconcileKubeconfig(ctx, cluster, kcp)).To(Succeed())
+	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{

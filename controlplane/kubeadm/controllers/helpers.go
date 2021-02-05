@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -43,12 +42,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) error {
+func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	endpoint := cluster.Spec.ControlPlaneEndpoint
 	if endpoint.IsZero() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	controllerOwnerRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
@@ -64,41 +63,40 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 			controllerOwnerRef,
 		)
 		if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
-			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: dependentCertRequeueAfter},
-				"could not find secret %q, requeuing", secret.ClusterCA)
+			return ctrl.Result{RequeueAfter: dependentCertRequeueAfter}, nil
 		}
 		// always return if we have just created in order to skip rotation checks
-		return createErr
+		return ctrl.Result{}, createErr
 	case err != nil:
-		return errors.Wrap(err, "failed to retrieve kubeconfig Secret")
+		return ctrl.Result{}, errors.Wrap(err, "failed to retrieve kubeconfig Secret")
 	}
 
 	// check if the kubeconfig secret was created by v1alpha2 controllers, and thus it has the Cluster as the owner instead of KCP;
 	// if yes, adopt it.
 	if util.IsOwnedByObject(configSecret, cluster) && !util.IsControlledBy(configSecret, kcp) {
 		if err := r.adoptKubeconfigSecret(ctx, cluster, configSecret, controllerOwnerRef); err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
 	// only do rotation on owned secrets
 	if !util.IsControlledBy(configSecret, kcp) {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	needsRotation, err := kubeconfig.NeedsClientCertRotation(configSecret, certs.ClientCertificateRenewalDuration)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	if needsRotation {
 		log.Info("rotating kubeconfig secret")
 		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret); err != nil {
-			return errors.Wrap(err, "failed to regenerate kubeconfig")
+			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
 		}
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, controllerOwnerRef metav1.OwnerReference) error {

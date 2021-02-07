@@ -28,6 +28,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -542,7 +544,35 @@ func (b *machineBuilder) build() clusterv1.Machine {
 	return b.m
 }
 
+type machinePoolBuilder struct {
+	mp expv1.MachinePool
+}
+
+func newMachinePoolBuilder() *machinePoolBuilder {
+	return &machinePoolBuilder{}
+}
+
+func (b *machinePoolBuilder) named(name string) *machinePoolBuilder {
+	b.mp.Name = name
+	return b
+}
+
+func (b *machinePoolBuilder) ownedBy(c *clusterv1.Cluster) *machinePoolBuilder {
+	b.mp.OwnerReferences = append(b.mp.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       c.Name,
+	})
+	return b
+}
+
+func (b *machinePoolBuilder) build() expv1.MachinePool {
+	return b.mp
+}
+
 func TestFilterOwnedDescendants(t *testing.T) {
+
+	_ = feature.MutableGates.Set("MachinePool=true")
 	g := NewWithT(t)
 
 	c := clusterv1.Cluster{
@@ -571,6 +601,11 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	m4NotOwnedByCluster := newMachineBuilder().named("m4").build()
 	m5OwnedByCluster := newMachineBuilder().named("m5").ownedBy(&c).build()
 	m6ControlPlaneOwnedByCluster := newMachineBuilder().named("m6").ownedBy(&c).controlPlane().build()
+
+	mp1NotOwnedByCluster := newMachinePoolBuilder().named("mp1").build()
+	mp2OwnedByCluster := newMachinePoolBuilder().named("mp2").ownedBy(&c).build()
+	mp3NotOwnedByCluster := newMachinePoolBuilder().named("mp3").build()
+	mp4OwnedByCluster := newMachinePoolBuilder().named("mp4").ownedBy(&c).build()
 
 	d := clusterDescendants{
 		machineDeployments: clusterv1.MachineDeploymentList{
@@ -603,12 +638,22 @@ func TestFilterOwnedDescendants(t *testing.T) {
 				m5OwnedByCluster,
 			},
 		},
+		machinePools: expv1.MachinePoolList{
+			Items: []expv1.MachinePool{
+				mp1NotOwnedByCluster,
+				mp2OwnedByCluster,
+				mp3NotOwnedByCluster,
+				mp4OwnedByCluster,
+			},
+		},
 	}
 
 	actual, err := d.filterOwnedDescendants(&c)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	expected := []client.Object{
+		&mp2OwnedByCluster,
+		&mp4OwnedByCluster,
 		&md2OwnedByCluster,
 		&md4OwnedByCluster,
 		&ms2OwnedByCluster,

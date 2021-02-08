@@ -156,3 +156,28 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
     - update provider sources reading from `/config` to read from `/config/default` instead.
 - clusterctl-settings.json file
     - if the `configFolder` value is defined, update from `/config` to `/config/default`.
+
+## Upgrade cert-manager to v1.1.0
+
+NB. instructions assumes "Required kustomize changes to have a single manager watching all namespaces and answer to webhook calls"
+should be executed before this changes.
+
+**Changes in the `/config/certmanager` folder:**
+
+1. Edit the `/config/certmanager/certificates.yaml` file and replace all the occurencies of `cert-manager.io/v1alpha2`
+with `cert-manager.io/v1`
+
+**Changes in the `/config/default` folder:**
+
+1. Edit the `/config/default/kustomization.yaml` file and replace all the occurencies of
+   ```
+         kind: Certificate
+         group: cert-manager.io
+         version: v1alpha2
+   ```
+   with
+   ```
+         kind: Certificate
+         group: cert-manager.io
+         version: v1
+   ```

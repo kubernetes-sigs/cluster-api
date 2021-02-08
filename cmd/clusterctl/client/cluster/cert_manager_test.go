@@ -42,7 +42,7 @@ import (
 const (
 	// Those values are dummy for test only
 	expectedHash    = "dummy-hash"
-	expectedVersion = "v0.11.2"
+	expectedVersion = "v1.1.0"
 )
 
 func Test_VersionMarkerUpToDate(t *testing.T) {
@@ -345,7 +345,7 @@ func Test_shouldUpgrade(t *testing.T) {
 							"kind": "Endpoints",
 							"metadata": map[string]interface{}{
 								"annotations": map[string]interface{}{
-									certmanagerVersionAnnotation: "v0.11.0",
+									certmanagerVersionAnnotation: expectedVersion,
 								},
 							},
 						},

@@ -236,6 +236,6 @@ load_provider_tiltfiles()
 load("ext://cert_manager", "deploy_cert_manager")
 
 if settings.get("deploy_cert_manager"):
-    deploy_cert_manager()
+    deploy_cert_manager(version = "v1.1.0")
 
 enable_providers()

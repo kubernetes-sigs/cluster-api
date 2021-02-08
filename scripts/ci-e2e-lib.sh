@@ -132,9 +132,9 @@ kind::buildNodeImage() {
 # the actual test run less sensible to the network speed.
 kind:prepullImages () {
   # Pulling cert manager images so we can pre-load in kind nodes
-  kind::prepullImage "quay.io/jetstack/cert-manager-cainjector:v0.16.1"
-  kind::prepullImage "quay.io/jetstack/cert-manager-webhook:v0.16.1"
-  kind::prepullImage "quay.io/jetstack/cert-manager-controller:v0.16.1"
+  kind::prepullImage "quay.io/jetstack/cert-manager-cainjector:v1.1.0"
+  kind::prepullImage "quay.io/jetstack/cert-manager-webhook:v1.1.0"
+  kind::prepullImage "quay.io/jetstack/cert-manager-controller:v1.1.0"
 
   # Pulling kindest/node images used by tests
   # NB. some of those versions might be the same

@@ -20,7 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"strings"
+	"regexp"
 	"time"
 
 	"github.com/pkg/errors"
@@ -50,8 +50,6 @@ const (
 
 	certmanagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
 	certmanagerHashAnnotation    = "certmanager.clusterctl.cluster.x-k8s.io/hash"
-
-	certmanagerVersionLabel = "helm.sh/chart"
 )
 
 // CertManagerUpgradePlan defines the upgrade plan if cert-manager needs to be
@@ -101,30 +99,22 @@ func (cm *certManagerClient) setManifestHash() error {
 }
 
 func (cm *certManagerClient) setManifestVersion() error {
-	// Gets the cert-manager objects from the embedded assets.
-	objs, err := cm.getManifestObjs()
+	// Gets the cert-manager version from the image version in the raw yaml
+	yaml, err := manifests.Asset(embeddedCertManagerManifestPath)
 	if err != nil {
 		return err
 	}
-	found := false
 
-	for i := range objs {
-		o := objs[i]
-		if o.GetKind() == "CustomResourceDefinition" {
-			labels := o.GetLabels()
-			version, ok := labels[certmanagerVersionLabel]
-			if ok {
-				s := strings.Split(version, "-")
-				cm.embeddedCertManagerManifestVersion = s[2]
-				found = true
-				break
-			}
-		}
+	r, err := regexp.Compile("(?:quay.io/jetstack/cert-manager-controller:)(.*)")
+	if err != nil {
+		return err
 	}
-	if !found {
-		return errors.Errorf("Failed to detect cert-manager version by searching for label %s in all CRDs", certmanagerVersionLabel)
+
+	if match := r.FindStringSubmatch(string(yaml)); len(match) > 0 {
+		cm.embeddedCertManagerManifestVersion = match[1]
+		return nil
 	}
-	return nil
+	return errors.New("Failed to detect cert-manager version by searching for quay.io/jetstack/cert-manager-controller image version")
 }
 
 // newCertManagerClient returns a certManagerClient.
@@ -305,10 +295,9 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 			continue
 		}
 
-		// if no version then upgrade (v0.11.0)
+		// if there is no version annotation, this means the obj is cert-manager v0.11.0 (installed with older version of clusterctl)
 		objVersion, ok := obj.GetAnnotations()[certmanagerVersionAnnotation]
 		if !ok {
-			// if there is no version annotation, this means the obj is cert-manager v0.11.0 (installed with older version of clusterctl)
 			currentVersion = "v0.11.0"
 			needUpgrade = true
 			break

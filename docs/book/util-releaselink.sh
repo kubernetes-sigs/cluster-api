@@ -18,6 +18,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-RELEASELINK="../../hack/tools/bin/mdbook-releaselink"
-make ${RELEASELINK} GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
+RELEASELINK=$(realpath ../../hack/tools/bin/mdbook-releaselink)
+make "${RELEASELINK}" GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
 ${RELEASELINK} "$@"

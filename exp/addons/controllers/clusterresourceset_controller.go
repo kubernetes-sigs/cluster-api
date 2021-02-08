@@ -232,7 +232,6 @@ func (r *ClusterResourceSetReconciler) getClustersByClusterResourceSetSelector(c
 // TODO: If a resource already exists in the cluster but not applied by ClusterResourceSet, the resource will be updated ?
 func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) error {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-	log.Info("Applying ClusterResourceSet to cluster")
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {

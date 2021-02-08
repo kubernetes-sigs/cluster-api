@@ -398,6 +398,29 @@ func TestMachineSetReconcile(t *testing.T) {
 		_, _ = msr.Reconcile(ctx, request)
 		g.Eventually(rec.Events).Should(Receive())
 	})
+
+	t.Run("reconcile successfully when labels are missing", func(t *testing.T) {
+		g := NewWithT(t)
+
+		ms := newMachineSet("machineset1", "test-cluster")
+		ms.Labels = nil
+		ms.Spec.Selector.MatchLabels = nil
+		ms.Spec.Template.Labels = nil
+
+		request := reconcile.Request{
+			NamespacedName: util.ObjectKey(ms),
+		}
+
+		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+		rec := record.NewFakeRecorder(32)
+		msr := &MachineSetReconciler{
+			Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(testCluster, ms).Build(),
+			recorder: rec,
+		}
+		_, err := msr.Reconcile(ctx, request)
+		g.Expect(err).NotTo(HaveOccurred())
+	})
 }
 
 func TestMachineSetToMachines(t *testing.T) {

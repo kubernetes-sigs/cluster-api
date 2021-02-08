@@ -193,6 +193,14 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 	}
 
 	// Make sure selector and template to be in the same cluster.
+	if machineSet.Spec.Selector.MatchLabels == nil {
+		machineSet.Spec.Selector.MatchLabels = make(map[string]string)
+	}
+
+	if machineSet.Spec.Template.Labels == nil {
+		machineSet.Spec.Template.Labels = make(map[string]string)
+	}
+
 	machineSet.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
 	machineSet.Spec.Template.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
 

@@ -18,6 +18,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-EMBED="../../hack/tools/bin/mdbook-embed"
-make ${EMBED} GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
+EMBED=$(realpath ../../hack/tools/bin/mdbook-embed)
+make "${EMBED}" GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
 ${EMBED} "$@"

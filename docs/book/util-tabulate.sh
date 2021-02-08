@@ -18,6 +18,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-TABULATE="../../hack/tools/bin/mdbook-tabulate"
-make ${TABULATE} GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
+TABULATE=$(realpath ../../hack/tools/bin/mdbook-tabulate)
+make "${TABULATE}" GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
 ${TABULATE} "$@"

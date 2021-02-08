@@ -73,6 +73,71 @@ func Test_metadataClient_Get(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "Pass with embedded metadata for CoreProviderType",
+			fields: fields{
+				provider: config.NewProvider(config.ClusterAPIProviderName, "", clusterctlv1.CoreProviderType),
+				version:  "v1.0.0",
+				repository: test.NewFakeRepository(). //repository without a metadata file
+									WithPaths("root", "").
+									WithDefaultVersion("v1.0.0"),
+			},
+			want: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 4, Contract: "v1alpha4"},
+					{Major: 0, Minor: 3, Contract: "v1alpha3"},
+					{Major: 0, Minor: 2, Contract: "v1alpha2"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Pass with embedded metadata for KubeadmBootstrapProvider Type",
+			fields: fields{
+				provider: config.NewProvider(config.KubeadmBootstrapProviderName, "", clusterctlv1.BootstrapProviderType),
+				version:  "v1.0.0",
+				repository: test.NewFakeRepository(). //repository without a metadata file
+									WithPaths("root", "").
+									WithDefaultVersion("v1.0.0"),
+			},
+			want: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 4, Contract: "v1alpha4"},
+					{Major: 0, Minor: 3, Contract: "v1alpha3"},
+					{Major: 0, Minor: 1, Contract: "v1alpha2"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Pass with embedded metadata for KubeadmControlPlaneProvider Type",
+			fields: fields{
+				provider: config.NewProvider(config.KubeadmControlPlaneProviderName, "", clusterctlv1.ControlPlaneProviderType),
+				version:  "v1.0.0",
+				repository: test.NewFakeRepository(). //repository without a metadata file
+									WithPaths("root", "").
+									WithDefaultVersion("v1.0.0"),
+			},
+			want: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 4, Contract: "v1alpha4"},
+					{Major: 0, Minor: 3, Contract: "v1alpha3"},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "Fails if the file does not exists",
 			fields: fields{
 				provider: config.NewProvider("p1", "", clusterctlv1.CoreProviderType),

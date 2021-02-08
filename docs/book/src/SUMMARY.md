@@ -13,6 +13,7 @@
     - [Configure a MachineHealthCheck](./tasks/healthcheck.md)
     - [Kubeadm based control plane management](./tasks/kubeadm-control-plane.md)
     - [Changing a Machine Template](./tasks/change-machine-template.md)
+    - [Using the Cluster Autoscaler](./tasks/cluster-autoscaler.md)
     - [Experimental Features](./tasks/experimental-features/experimental-features.md)
         - [MachinePools](./tasks/experimental-features/machine-pools.md)
         - [ClusterResourceSet](./tasks/experimental-features/cluster-resource-set.md)

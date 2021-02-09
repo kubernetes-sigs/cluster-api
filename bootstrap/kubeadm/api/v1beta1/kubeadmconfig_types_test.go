@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func TestClusterValidate(t *testing.T) {
@@ -137,6 +138,78 @@ func TestClusterValidate(t *testing.T) {
 							Content: "bar",
 						},
 					},
+				},
+			},
+			expectErr: true,
+		},
+		"Ignition field is set, format is not Ignition": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Ignition: &IgnitionSpec{},
+				},
+			},
+			expectErr: true,
+		},
+		"Ignition field is not set, format is Ignition": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+				},
+			},
+		},
+		"format is Ignition, user is inactive": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+					Users: []User{
+						{
+							Inactive: pointer.BoolPtr(true),
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"format is Ignition, non-GPT partition configured": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+					DiskSetup: &DiskSetup{
+						Partitions: []Partition{
+							{
+								TableType: pointer.StringPtr("MS-DOS"),
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"format is Ignition, experimental retry join is set": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format:                   Ignition,
+					UseExperimentalRetryJoin: true,
 				},
 			},
 			expectErr: true,

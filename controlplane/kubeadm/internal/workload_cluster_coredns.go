@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/version"
 
 	"github.com/coredns/corefile-migration/migration"
 	"github.com/pkg/errors"
@@ -28,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/util"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -298,7 +298,7 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 }
 
 func extractImageVersion(tag string) (string, error) {
-	ver, err := util.ParseMajorMinorPatch(tag)
+	ver, err := version.ParseMajorMinorPatchTolerant(tag)
 	if err != nil {
 		return "", err
 	}
@@ -309,11 +309,11 @@ func extractImageVersion(tag string) (string, error) {
 // Some of the checks come from
 // https://github.com/coredns/corefile-migration/blob/v1.0.6/migration/migrate.go#L414
 func validateCoreDNSImageTag(fromTag, toTag string) error {
-	from, err := util.ParseMajorMinorPatch(fromTag)
+	from, err := version.ParseMajorMinorPatchTolerant(fromTag)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse CoreDNS current version %q", fromTag)
 	}
-	to, err := util.ParseMajorMinorPatch(toTag)
+	to, err := version.ParseMajorMinorPatchTolerant(toTag)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse CoreDNS target version %q", toTag)
 	}

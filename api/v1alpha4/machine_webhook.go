@@ -18,11 +18,11 @@ package v1alpha4
 
 import (
 	"fmt"
-	"regexp"
+	"sigs.k8s.io/cluster-api/util/version"
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -39,8 +39,6 @@ func (m *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 var _ webhook.Validator = &Machine{}
 var _ webhook.Defaulter = &Machine{}
-
-var kubeSemver = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (m *Machine) Default() {
@@ -124,7 +122,7 @@ func (m *Machine) validate(old *Machine) error {
 	}
 
 	if m.Spec.Version != nil {
-		if !kubeSemver.MatchString(*m.Spec.Version) {
+		if !version.KubeSemver.MatchString(*m.Spec.Version) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), *m.Spec.Version, "must be a valid semantic version"))
 		}
 	}

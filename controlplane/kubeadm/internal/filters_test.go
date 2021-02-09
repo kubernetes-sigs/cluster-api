@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machinefilters
+package internal
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -30,13 +31,13 @@ import (
 
 func TestMatchClusterConfiguration(t *testing.T) {
 	t.Run("machine without the ClusterConfiguration annotation should match (not enough information to make a decision)", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		m := &clusterv1.Machine{}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
 	})
 	t.Run("machine without an invalid ClusterConfiguration annotation should not match (only solution is to rollout)", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		m := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
@@ -45,10 +46,10 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(gomega.BeFalse())
+		g.Expect(matchClusterConfiguration(kcp, m)).To(BeFalse())
 	})
 	t.Run("Return true if cluster configuration matches", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -65,10 +66,10 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
 	})
 	t.Run("Return false if cluster configuration does not match", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -85,10 +86,10 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(gomega.BeFalse())
+		g.Expect(matchClusterConfiguration(kcp, m)).To(BeFalse())
 	})
 	t.Run("Return true if cluster configuration is nil (special case)", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
@@ -101,13 +102,13 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
 	})
 }
 
 func TestGetAdjustedKcpConfig(t *testing.T) {
 	t.Run("if the machine is the first control plane, kcp config should get InitConfiguration", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -122,11 +123,11 @@ func TestGetAdjustedKcpConfig(t *testing.T) {
 			},
 		}
 		kcpConfig := getAdjustedKcpConfig(kcp, machineConfig)
-		g.Expect(kcpConfig.InitConfiguration).ToNot(gomega.BeNil())
-		g.Expect(kcpConfig.JoinConfiguration).To(gomega.BeNil())
+		g.Expect(kcpConfig.InitConfiguration).ToNot(BeNil())
+		g.Expect(kcpConfig.JoinConfiguration).To(BeNil())
 	})
 	t.Run("if the machine is a joining control plane, kcp config should get JoinConfiguration", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -141,14 +142,14 @@ func TestGetAdjustedKcpConfig(t *testing.T) {
 			},
 		}
 		kcpConfig := getAdjustedKcpConfig(kcp, machineConfig)
-		g.Expect(kcpConfig.InitConfiguration).To(gomega.BeNil())
-		g.Expect(kcpConfig.JoinConfiguration).ToNot(gomega.BeNil())
+		g.Expect(kcpConfig.InitConfiguration).To(BeNil())
+		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
 	})
 }
 
 func TestCleanupConfigFields(t *testing.T) {
 	t.Run("ClusterConfiguration gets removed from KcpConfig and MachineConfig", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{},
 		}
@@ -158,11 +159,11 @@ func TestCleanupConfigFields(t *testing.T) {
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.ClusterConfiguration).To(gomega.BeNil())
-		g.Expect(machineConfig.Spec.ClusterConfiguration).To(gomega.BeNil())
+		g.Expect(kcpConfig.ClusterConfiguration).To(BeNil())
+		g.Expect(machineConfig.Spec.ClusterConfiguration).To(BeNil())
 	})
 	t.Run("JoinConfiguration gets removed from MachineConfig if it was not derived by KCPConfig", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			JoinConfiguration: nil, // KCP not providing a JoinConfiguration
 		}
@@ -172,11 +173,11 @@ func TestCleanupConfigFields(t *testing.T) {
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.JoinConfiguration).To(gomega.BeNil())
-		g.Expect(machineConfig.Spec.JoinConfiguration).To(gomega.BeNil())
+		g.Expect(kcpConfig.JoinConfiguration).To(BeNil())
+		g.Expect(machineConfig.Spec.JoinConfiguration).To(BeNil())
 	})
 	t.Run("JoinConfiguration.Discovery gets removed because it is not relevant for compare", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 				Discovery: kubeadmv1beta1.Discovery{TLSBootstrapToken: "aaa"},
@@ -190,11 +191,11 @@ func TestCleanupConfigFields(t *testing.T) {
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.JoinConfiguration.Discovery).To(gomega.Equal(kubeadmv1beta1.Discovery{}))
-		g.Expect(machineConfig.Spec.JoinConfiguration.Discovery).To(gomega.Equal(kubeadmv1beta1.Discovery{}))
+		g.Expect(kcpConfig.JoinConfiguration.Discovery).To(Equal(kubeadmv1beta1.Discovery{}))
+		g.Expect(machineConfig.Spec.JoinConfiguration.Discovery).To(Equal(kubeadmv1beta1.Discovery{}))
 	})
 	t.Run("JoinConfiguration.ControlPlane gets removed from MachineConfig if it was not derived by KCPConfig", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 				ControlPlane: nil, // Control plane configuration missing in KCP
@@ -208,11 +209,11 @@ func TestCleanupConfigFields(t *testing.T) {
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.JoinConfiguration).ToNot(gomega.BeNil())
-		g.Expect(machineConfig.Spec.JoinConfiguration.ControlPlane).To(gomega.BeNil())
+		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
+		g.Expect(machineConfig.Spec.JoinConfiguration.ControlPlane).To(BeNil())
 	})
 	t.Run("JoinConfiguration.NodeRegistrationOptions gets removed from MachineConfig if it was not derived by KCPConfig", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{}, // NodeRegistrationOptions configuration missing in KCP
@@ -226,11 +227,11 @@ func TestCleanupConfigFields(t *testing.T) {
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.JoinConfiguration).ToNot(gomega.BeNil())
-		g.Expect(machineConfig.Spec.JoinConfiguration.NodeRegistration).To(gomega.Equal(kubeadmv1beta1.NodeRegistrationOptions{}))
+		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
+		g.Expect(machineConfig.Spec.JoinConfiguration.NodeRegistration).To(Equal(kubeadmv1beta1.NodeRegistrationOptions{}))
 	})
 	t.Run("InitConfiguration.TypeMeta gets removed from MachineConfig", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			InitConfiguration: &kubeadmv1beta1.InitConfiguration{},
 		}
@@ -245,11 +246,11 @@ func TestCleanupConfigFields(t *testing.T) {
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.InitConfiguration).ToNot(gomega.BeNil())
-		g.Expect(machineConfig.Spec.InitConfiguration.TypeMeta).To(gomega.Equal(metav1.TypeMeta{}))
+		g.Expect(kcpConfig.InitConfiguration).ToNot(BeNil())
+		g.Expect(machineConfig.Spec.InitConfiguration.TypeMeta).To(Equal(metav1.TypeMeta{}))
 	})
 	t.Run("JoinConfiguration.TypeMeta gets removed from MachineConfig", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
 		}
@@ -264,20 +265,20 @@ func TestCleanupConfigFields(t *testing.T) {
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.JoinConfiguration).ToNot(gomega.BeNil())
-		g.Expect(machineConfig.Spec.JoinConfiguration.TypeMeta).To(gomega.Equal(metav1.TypeMeta{}))
+		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
+		g.Expect(machineConfig.Spec.JoinConfiguration.TypeMeta).To(Equal(metav1.TypeMeta{}))
 	})
 }
 
 func TestMatchInitOrJoinConfiguration(t *testing.T) {
 	t.Run("returns true if the machine does not have a bootstrap config", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		m := &clusterv1.Machine{}
-		g.Expect(matchInitOrJoinConfiguration(nil, kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(nil, kcp, m)).To(BeTrue())
 	})
 	t.Run("returns true if the there are problems reading the bootstrap config", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		m := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
@@ -286,10 +287,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(nil, kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(nil, kcp, m)).To(BeTrue())
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -334,10 +335,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeTrue())
 	})
 	t.Run("returns false if InitConfiguration is NOT equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -386,10 +387,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeFalse())
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -434,10 +435,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeTrue())
 	})
 	t.Run("returns false if JoinConfiguration is NOT equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -486,10 +487,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeFalse())
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -535,13 +536,13 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(gomega.BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeFalse())
 	})
 }
 
 func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 	t.Run("returns true if ClusterConfiguration is equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -562,10 +563,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			m.Name: {},
 		}
 		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-		g.Expect(f(m)).To(gomega.BeTrue())
+		g.Expect(f(m)).To(BeTrue())
 	})
 	t.Run("returns false if ClusterConfiguration is NOT equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -586,10 +587,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			m.Name: {},
 		}
 		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-		g.Expect(f(m)).To(gomega.BeFalse())
+		g.Expect(f(m)).To(BeFalse())
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -635,10 +636,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-		g.Expect(f(m)).To(gomega.BeTrue())
+		g.Expect(f(m)).To(BeTrue())
 	})
 	t.Run("returns false if InitConfiguration is NOT equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -688,10 +689,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-		g.Expect(f(m)).To(gomega.BeFalse())
+		g.Expect(f(m)).To(BeFalse())
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -737,10 +738,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-		g.Expect(f(m)).To(gomega.BeTrue())
+		g.Expect(f(m)).To(BeTrue())
 	})
 	t.Run("returns false if JoinConfiguration is NOT equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -790,10 +791,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-		g.Expect(f(m)).To(gomega.BeFalse())
+		g.Expect(f(m)).To(BeFalse())
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
-		g := gomega.NewWithT(t)
+		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -840,6 +841,116 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-		g.Expect(f(m)).To(gomega.BeFalse())
+		g.Expect(f(m)).To(BeFalse())
 	})
+}
+
+func TestMatchesTemplateClonedFrom(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(
+			MatchesTemplateClonedFrom(nil, nil)(nil),
+		).To(BeFalse())
+	})
+
+	t.Run("returns true if machine not found", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{}
+		machine := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "KubeadmConfig",
+					Namespace:  "default",
+					Name:       "test",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+			},
+		}
+		g.Expect(
+			MatchesTemplateClonedFrom(map[string]*unstructured.Unstructured{}, kcp)(machine),
+		).To(BeTrue())
+	})
+}
+
+func TestMatchesTemplateClonedFrom_WithClonedFromAnnotations(t *testing.T) {
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			InfrastructureTemplate: corev1.ObjectReference{
+				Kind:       "GenericMachineTemplate",
+				Namespace:  "default",
+				Name:       "infra-foo",
+				APIVersion: "generic.io/v1",
+			},
+		},
+	}
+	machine := &clusterv1.Machine{
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+				Kind:       "InfrastructureMachine",
+				Name:       "infra-config1",
+				Namespace:  "default",
+			},
+		},
+	}
+	tests := []struct {
+		name        string
+		annotations map[string]interface{}
+		expectMatch bool
+	}{
+		{
+			name:        "returns true if annotations don't exist",
+			annotations: map[string]interface{}{},
+			expectMatch: true,
+		},
+		{
+			name: "returns false if annotations don't match anything",
+			annotations: map[string]interface{}{
+				clusterv1.TemplateClonedFromNameAnnotation:      "barfoo1",
+				clusterv1.TemplateClonedFromGroupKindAnnotation: "barfoo2",
+			},
+			expectMatch: false,
+		},
+		{
+			name: "returns false if TemplateClonedFromNameAnnotation matches but TemplateClonedFromGroupKindAnnotation doesn't",
+			annotations: map[string]interface{}{
+				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
+				clusterv1.TemplateClonedFromGroupKindAnnotation: "barfoo2",
+			},
+			expectMatch: false,
+		},
+		{
+			name: "returns true if both annotations match",
+			annotations: map[string]interface{}{
+				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
+				clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericMachineTemplate.generic.io",
+			},
+			expectMatch: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			infraConfigs := map[string]*unstructured.Unstructured{
+				machine.Name: {
+					Object: map[string]interface{}{
+						"kind":       "InfrastructureMachine",
+						"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+						"metadata": map[string]interface{}{
+							"name":        "infra-config1",
+							"namespace":   "default",
+							"annotations": tt.annotations,
+						},
+					},
+				},
+			}
+			g.Expect(
+				MatchesTemplateClonedFrom(infraConfigs, kcp)(machine),
+			).To(Equal(tt.expectMatch))
+		})
+	}
 }

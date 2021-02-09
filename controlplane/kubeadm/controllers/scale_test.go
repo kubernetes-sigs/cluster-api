@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 	"time"
 
@@ -87,7 +88,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
 
 		fmc := &fakeManagementCluster{
-			Machines: internal.NewFilterableMachineCollection(),
+			Machines: collections.New(),
 			Workload: fakeWorkloadCluster{},
 		}
 
@@ -126,7 +127,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
 
-		beforeMachines := internal.NewFilterableMachineCollection()
+		beforeMachines := collections.New()
 		for i := 0; i < 2; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster.DeepCopy(), kcp.DeepCopy(), true)
 			beforeMachines.Insert(m)
@@ -157,7 +158,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(len(beforeMachines)))
 
-		endMachines := internal.NewFilterableMachineCollectionFromMachineList(controlPlaneMachines)
+		endMachines := collections.FromMachineList(controlPlaneMachines)
 		for _, m := range endMachines {
 			bm, ok := beforeMachines[m.Name]
 			bm.SetResourceVersion("1")
@@ -290,8 +291,8 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 	m7 := machine("machine-7", withFailureDomain("two"), withTimestamp(startDate.Add(-5*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"))
 	m8 := machine("machine-8", withFailureDomain("two"), withTimestamp(startDate.Add(-6*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"))
 
-	mc3 := internal.NewFilterableMachineCollection(m1, m2, m3, m4, m5)
-	mc6 := internal.NewFilterableMachineCollection(m6, m7, m8)
+	mc3 := collections.FromMachines(m1, m2, m3, m4, m5)
+	mc6 := collections.FromMachines(m6, m7, m8)
 	fd := clusterv1.FailureDomains{
 		"one": failureDomain(true),
 		"two": failureDomain(true),
@@ -318,56 +319,56 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 	testCases := []struct {
 		name             string
 		cp               *internal.ControlPlane
-		outDatedMachines internal.FilterableMachineCollection
+		outDatedMachines collections.Machines
 		expectErr        bool
 		expectedMachine  clusterv1.Machine
 	}{
 		{
 			name:             "when there are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
 			cp:               needsUpgradeControlPlane,
-			outDatedMachines: internal.NewFilterableMachineCollection(m5),
+			outDatedMachines: collections.FromMachines(m5),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-5"}},
 		},
 		{
 			name:             "when there are no outdated machines, it returns the oldest machine in the largest failure domain",
 			cp:               upToDateControlPlane,
-			outDatedMachines: internal.NewFilterableMachineCollection(),
+			outDatedMachines: collections.New(),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}},
 		},
 		{
 			name:             "when there is a single machine marked with delete annotation key in machine collection, it returns only that marked machine",
 			cp:               annotatedControlPlane,
-			outDatedMachines: internal.NewFilterableMachineCollection(m6, m7),
+			outDatedMachines: collections.FromMachines(m6, m7),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-7"}},
 		},
 		{
 			name:             "when there are machines marked with delete annotation key in machine collection, it returns the oldest marked machine first",
 			cp:               annotatedControlPlane,
-			outDatedMachines: internal.NewFilterableMachineCollection(m7, m8),
+			outDatedMachines: collections.FromMachines(m7, m8),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
 		},
 		{
 			name:             "when there are annotated machines which are part of the annotatedControlPlane but not in outdatedMachines, it returns the oldest marked machine first",
 			cp:               annotatedControlPlane,
-			outDatedMachines: internal.NewFilterableMachineCollection(),
+			outDatedMachines: collections.New(),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
 		},
 		{
 			name:             "when there are machines needing upgrade, it returns the oldest machine in the failure domain with the most machines needing upgrade",
 			cp:               needsUpgradeControlPlane,
-			outDatedMachines: internal.NewFilterableMachineCollection(m7, m3),
+			outDatedMachines: collections.FromMachines(m7, m3),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-7"}},
 		},
 		{
 			name:             "when there is an up to date machine with delete annotation, while there are any outdated machines without annotatio that still exist, it returns oldest marked machine first",
 			cp:               upToDateControlPlane,
-			outDatedMachines: internal.NewFilterableMachineCollection(m5, m3, m8, m7, m6, m1, m2),
+			outDatedMachines: collections.FromMachines(m5, m3, m8, m7, m6, m1, m2),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
 		},
@@ -471,7 +472,7 @@ func TestPreflightChecks(t *testing.T) {
 			controlPlane := &internal.ControlPlane{
 				Cluster:  &clusterv1.Cluster{},
 				KCP:      tt.kcp,
-				Machines: internal.NewFilterableMachineCollection(tt.machines...),
+				Machines: collections.FromMachines(tt.machines...),
 			}
 			result, err := r.preflightChecks(context.TODO(), controlPlane)
 			g.Expect(err).NotTo(HaveOccurred())

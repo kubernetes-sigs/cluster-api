@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package internal
+package collections_test
 
 import (
+	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 	"time"
 
@@ -32,10 +33,10 @@ func TestMachineCollection(t *testing.T) {
 }
 
 var _ = Describe("Machine Collection", func() {
-	Describe("FilterableMachineCollection", func() {
-		var collection FilterableMachineCollection
+	Describe("Machines", func() {
+		var collection collections.Machines
 		BeforeEach(func() {
-			collection = FilterableMachineCollection{
+			collection = collections.Machines{
 				"machine-4": machine("machine-4", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 04, 02, 03, 04, 05, 06, time.UTC)})),
 				"machine-5": machine("machine-5", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 05, 02, 03, 04, 05, 06, time.UTC)})),
 				"machine-2": machine("machine-2", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 02, 02, 03, 04, 05, 06, time.UTC)})),
@@ -66,8 +67,8 @@ var _ = Describe("Machine Collection", func() {
 
 		Describe("Names", func() {
 			It("returns a slice of names of each machine in the collection", func() {
-				Expect(NewFilterableMachineCollection().Names()).To(BeEmpty())
-				Expect(NewFilterableMachineCollection(machine("1"), machine("2")).Names()).To(ConsistOf("1", "2"))
+				Expect(collections.New().Names()).To(BeEmpty())
+				Expect(collections.FromMachines(machine("1"), machine("2")).Names()).To(ConsistOf("1", "2"))
 			})
 		})
 	})

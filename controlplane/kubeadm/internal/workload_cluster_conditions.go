@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -333,7 +334,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	})
 }
 
-func hasProvisioningMachine(machines FilterableMachineCollection) bool {
+func hasProvisioningMachine(machines collections.Machines) bool {
 	for _, machine := range machines {
 		if machine.Status.NodeRef == nil {
 			return true

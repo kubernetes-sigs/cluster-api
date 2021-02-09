@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -82,7 +83,7 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	kcp.Spec.Version = "v1.17.4"
 
 	// run upgrade the first time, expect we scale up
-	needingUpgrade := internal.NewFilterableMachineCollectionFromMachineList(initialMachine)
+	needingUpgrade := collections.FromMachineList(initialMachine)
 	controlPlane.Machines = needingUpgrade
 	result, err = r.upgradeControlPlane(ctx, cluster, kcp, controlPlane, needingUpgrade)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
@@ -105,7 +106,7 @@ func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
 	for i := range bothMachines.Items {
 		setMachineHealthy(&bothMachines.Items[i])
 	}
-	controlPlane.Machines = internal.NewFilterableMachineCollectionFromMachineList(bothMachines)
+	controlPlane.Machines = collections.FromMachineList(bothMachines)
 
 	// run upgrade the second time, expect we scale down
 	result, err = r.upgradeControlPlane(ctx, cluster, kcp, controlPlane, controlPlane.Machines)

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"time"
 
 	"github.com/blang/semver"
@@ -36,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -270,20 +270,20 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return result, err
 	}
 
-	controlPlaneMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, util.ObjectKey(cluster), machinefilters.ControlPlaneMachines(cluster.Name))
+	controlPlaneMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, util.ObjectKey(cluster), collections.ControlPlaneMachines(cluster.Name))
 	if err != nil {
 		log.Error(err, "failed to retrieve control plane machines for cluster")
 		return ctrl.Result{}, err
 	}
 
-	adoptableMachines := controlPlaneMachines.Filter(machinefilters.AdoptableControlPlaneMachines(cluster.Name))
+	adoptableMachines := controlPlaneMachines.Filter(collections.AdoptableControlPlaneMachines(cluster.Name))
 	if len(adoptableMachines) > 0 {
 		// We adopt the Machines and then wait for the update event for the ownership reference to re-queue them so the cache is up-to-date
 		err = r.adoptMachines(ctx, kcp, adoptableMachines, cluster)
 		return ctrl.Result{}, err
 	}
 
-	ownedMachines := controlPlaneMachines.Filter(machinefilters.OwnedMachines(kcp))
+	ownedMachines := controlPlaneMachines.Filter(collections.OwnedMachines(kcp))
 	if len(ownedMachines) != len(controlPlaneMachines) {
 		log.Info("Not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
 		return ctrl.Result{}, nil
@@ -353,7 +353,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	case numMachines > desiredReplicas:
 		log.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
-		return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, internal.FilterableMachineCollection{})
+		return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, collections.Machines{})
 	}
 
 	// Get the workload cluster client.
@@ -394,7 +394,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	ownedMachines := allMachines.Filter(machinefilters.OwnedMachines(kcp))
+	ownedMachines := allMachines.Filter(collections.OwnedMachines(kcp))
 
 	// If no control plane machines remain, remove the finalizer
 	if len(ownedMachines) == 0 {
@@ -428,7 +428,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	}
 
 	// Delete control plane machines in parallel
-	machinesToDelete := ownedMachines.Filter(machinefilters.Not(machinefilters.HasDeletionTimestamp))
+	machinesToDelete := ownedMachines.Filter(collections.Not(collections.HasDeletionTimestamp))
 	var errs []error
 	for i := range machinesToDelete {
 		m := machinesToDelete[i]
@@ -542,7 +542,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	return ctrl.Result{}, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machines internal.FilterableMachineCollection, cluster *clusterv1.Cluster) error {
+func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, cluster *clusterv1.Cluster) error {
 	// We do an uncached full quorum read against the KCP to avoid re-adopting Machines the garbage collector just intentionally orphaned
 	// See https://github.com/kubernetes/kubernetes/issues/42639
 	uncached := controlplanev1.KubeadmControlPlane{}

@@ -18,18 +18,17 @@ package controllers
 
 import (
 	"context"
-
 	"github.com/blang/semver"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type fakeManagementCluster struct {
 	// TODO: once all client interactions are moved to the Management cluster this can go away
 	Management *internal.Management
-	Machines   internal.FilterableMachineCollection
+	Machines   collections.Machines
 	Workload   fakeWorkloadCluster
 	Reader     client.Reader
 }
@@ -46,7 +45,7 @@ func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ client.O
 	return f.Workload, nil
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n client.ObjectKey, filters ...machinefilters.Func) (internal.FilterableMachineCollection, error) {
+func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n client.ObjectKey, filters ...collections.Func) (collections.Machines, error) {
 	if f.Management != nil {
 		return f.Management.GetMachinesForCluster(c, n, filters...)
 	}

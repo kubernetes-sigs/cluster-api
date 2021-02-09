@@ -14,19 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package internal
+package failuredomains
 
 import (
+	"k8s.io/klog/klogr"
 	"sort"
 
-	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/collections"
 )
-
-// Log is the global logger for the internal package.
-var Log = klogr.New()
 
 type failureDomainAggregation struct {
 	id    string
@@ -50,10 +48,10 @@ func (f failureDomainAggregations) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
-// PickMost returns a failure domain that is in machines and has most control-plane machines on.
-func PickMost(c *ControlPlane, machines FilterableMachineCollection) *string {
-	// orderDescending sorts failure domains according to all control plane machines
-	fds := orderDescending(c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines)
+// PickMost returns a failure domain that is in machines and has most of the group of machines on.
+func PickMost(failureDomains clusterv1.FailureDomains, groupMachines, machines collections.Machines) *string {
+	// orderDescending sorts failure domains according to all machines belonging to the group.
+	fds := orderDescending(failureDomains, groupMachines)
 	for _, fd := range fds {
 		for _, m := range machines {
 			if m.Spec.FailureDomain == nil {
@@ -68,7 +66,7 @@ func PickMost(c *ControlPlane, machines FilterableMachineCollection) *string {
 }
 
 // orderDescending returns the sorted failure domains in decreasing order.
-func orderDescending(failureDomains clusterv1.FailureDomains, machines FilterableMachineCollection) failureDomainAggregations {
+func orderDescending(failureDomains clusterv1.FailureDomains, machines collections.Machines) failureDomainAggregations {
 	aggregations := pick(failureDomains, machines)
 	if len(aggregations) == 0 {
 		return nil
@@ -78,7 +76,7 @@ func orderDescending(failureDomains clusterv1.FailureDomains, machines Filterabl
 }
 
 // PickFewest returns the failure domain with the fewest number of machines.
-func PickFewest(failureDomains clusterv1.FailureDomains, machines FilterableMachineCollection) *string {
+func PickFewest(failureDomains clusterv1.FailureDomains, machines collections.Machines) *string {
 	aggregations := pick(failureDomains, machines)
 	if len(aggregations) == 0 {
 		return nil
@@ -87,7 +85,7 @@ func PickFewest(failureDomains clusterv1.FailureDomains, machines FilterableMach
 	return pointer.StringPtr(aggregations[0].id)
 }
 
-func pick(failureDomains clusterv1.FailureDomains, machines FilterableMachineCollection) failureDomainAggregations {
+func pick(failureDomains clusterv1.FailureDomains, machines collections.Machines) failureDomainAggregations {
 	if len(failureDomains) == 0 {
 		return failureDomainAggregations{}
 	}
@@ -106,7 +104,7 @@ func pick(failureDomains clusterv1.FailureDomains, machines FilterableMachineCol
 		}
 		id := *m.Spec.FailureDomain
 		if _, ok := failureDomains[id]; !ok {
-			Log.Info("unknown failure domain", "machine-name", m.GetName(), "failure-domain-id", id, "known-failure-domains", failureDomains)
+			klogr.New().Info("unknown failure domain", "machine-name", m.GetName(), "failure-domain-id", id, "known-failure-domains", failureDomains)
 			continue
 		}
 		counters[id]++

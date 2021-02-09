@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sync"
 	"testing"
 	"time"
@@ -360,7 +361,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
-			Machines: internal.FilterableMachineCollection{},
+			Machines: collections.Machines{},
 			Workload: fakeWorkloadCluster{},
 		}
 		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
@@ -424,7 +425,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
-			Machines: internal.FilterableMachineCollection{},
+			Machines: collections.Machines{},
 			Workload: fakeWorkloadCluster{},
 		}
 		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
@@ -534,7 +535,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		kcp.DeletionTimestamp = &now
 
 		fmc := &fakeManagementCluster{
-			Machines: internal.FilterableMachineCollection{},
+			Machines: collections.Machines{},
 			Workload: fakeWorkloadCluster{},
 		}
 		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
@@ -596,7 +597,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		kcp.Spec.Version = "v1.17.0"
 
 		fmc := &fakeManagementCluster{
-			Machines: internal.FilterableMachineCollection{
+			Machines: collections.Machines{
 				"test0": &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: cluster.Namespace,

@@ -63,7 +63,8 @@ const (
 
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
-	Client client.Client
+	Client           client.Client
+	WatchFilterValue string
 
 	restConfig      *rest.Config
 	recorder        record.EventRecorder
@@ -78,7 +79,7 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {

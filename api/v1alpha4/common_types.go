@@ -53,6 +53,12 @@ const (
 	// on the reconciled object.
 	PausedAnnotation = "cluster.x-k8s.io/paused"
 
+	// WatchLabel is a label othat can be applied to any Cluster API object.
+	//
+	// Controllers which allow for selective reconciliation may check this label and proceed
+	// with reconciliation of the object only if this label and a configured value is present.
+	WatchLabel = "cluster.x-k8s.io/watch-filter"
+
 	// DeleteMachineAnnotation marks control plane and worker nodes that will be given priority for deletion
 	// when KCP or a machineset scales down. This annotation is given top priority on all delete policies.
 	DeleteMachineAnnotation = "cluster.x-k8s.io/delete-machine"

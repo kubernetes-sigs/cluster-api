@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -58,6 +59,7 @@ var (
 	leaderElectionRenewDeadline   time.Duration
 	leaderElectionRetryPeriod     time.Duration
 	watchNamespace                string
+	watchFilterValue              string
 	profilerAddress               string
 	clusterConcurrency            int
 	machineConcurrency            int
@@ -101,6 +103,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&watchNamespace, "namespace", "",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
+
+	fs.StringVar(&watchFilterValue, "watch-filter", "",
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
 
 	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
@@ -224,27 +229,31 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.ClusterReconciler{
-		Client: mgr.GetClient(),
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineReconciler{
-		Client:  mgr.GetClient(),
-		Tracker: tracker,
+		Client:           mgr.GetClient(),
+		Tracker:          tracker,
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Machine")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineSetReconciler{
-		Client:  mgr.GetClient(),
-		Tracker: tracker,
+		Client:           mgr.GetClient(),
+		Tracker:          tracker,
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineDeploymentReconciler{
-		Client: mgr.GetClient(),
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)
@@ -252,7 +261,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&expcontrollers.MachinePoolReconciler{
-			Client: mgr.GetClient(),
+			Client:           mgr.GetClient(),
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
 			os.Exit(1)
@@ -261,14 +271,16 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if feature.Gates.Enabled(feature.ClusterResourceSet) {
 		if err := (&addonscontrollers.ClusterResourceSetReconciler{
-			Client:  mgr.GetClient(),
-			Tracker: tracker,
+			Client:           mgr.GetClient(),
+			Tracker:          tracker,
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSet")
 			os.Exit(1)
 		}
 		if err := (&addonscontrollers.ClusterResourceSetBindingReconciler{
-			Client: mgr.GetClient(),
+			Client:           mgr.GetClient(),
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSetBinding")
 			os.Exit(1)
@@ -276,8 +288,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.MachineHealthCheckReconciler{
-		Client:  mgr.GetClient(),
-		Tracker: tracker,
+		Client:           mgr.GetClient(),
+		Tracker:          tracker,
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineHealthCheckConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineHealthCheck")
 		os.Exit(1)

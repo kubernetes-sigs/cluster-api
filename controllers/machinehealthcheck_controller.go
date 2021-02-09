@@ -65,8 +65,9 @@ const (
 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object
 type MachineHealthCheckReconciler struct {
-	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Client           client.Client
+	Tracker          *remote.ClusterCacheTracker
+	WatchFilterValue string
 
 	controller controller.Controller
 	recorder   record.EventRecorder
@@ -80,7 +81,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(r.machineToMachineHealthCheck),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

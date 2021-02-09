@@ -21,6 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/labels"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -127,6 +128,25 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 	}
 }
 
+// ResourceHasFilterLabel returns a predicate that returns true only if the provided resource contains
+// a label with the WatchLabel key and the configured label value exactly.
+func ResourceHasFilterLabel(logger logr.Logger, labelValue string) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return processIfLabelMatch(logger.WithValues("predicate", "updateEvent"), e.ObjectNew, labelValue)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return processIfLabelMatch(logger.WithValues("predicate", "createEvent"), e.Object, labelValue)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return processIfLabelMatch(logger.WithValues("predicate", "deleteEvent"), e.Object, labelValue)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return processIfLabelMatch(logger.WithValues("predicate", "genericEvent"), e.Object, labelValue)
+		},
+	}
+}
+
 // ResourceNotPaused returns a Predicate that returns true only if the provided resource does not contain the
 // paused annotation.
 // This implements a common requirement for all cluster-api and provider controllers skip reconciliation when the paused
@@ -157,6 +177,12 @@ func ResourceNotPaused(logger logr.Logger) predicate.Funcs {
 	}
 }
 
+// ResourceNotPausedAndHasFilterLabel returns a predicate that returns true only if the
+// ResourceNotPaused and ResourceHasFilterLabel predicates return true.
+func ResourceNotPausedAndHasFilterLabel(logger logr.Logger, labelValue string) predicate.Funcs {
+	return All(logger, ResourceNotPaused(logger), ResourceHasFilterLabel(logger, labelValue))
+}
+
 func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
 	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
@@ -166,4 +192,20 @@ func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
 	}
 	log.V(4).Info("Resource is not paused, will attempt to map resource")
 	return true
+}
+
+func processIfLabelMatch(logger logr.Logger, obj client.Object, labelValue string) bool {
+	// Return early if no labelValue was set.
+	if labelValue == "" {
+		return true
+	}
+
+	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
+	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+	if labels.HasWatchLabel(obj, labelValue) {
+		log.V(4).Info("Resource matches label, will attempt to map resource")
+		return true
+	}
+	log.V(4).Info("Resource does not match label, will not attempt to map resource")
+	return false
 }

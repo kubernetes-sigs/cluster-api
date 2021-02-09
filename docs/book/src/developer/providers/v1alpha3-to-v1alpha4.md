@@ -80,7 +80,7 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
       - ../manager
       ```
     - Remove the `patchesStrategicMerge` list
-    - Copy the `vars` list into a temporary file to be used later in the process  
+    - Copy the `vars` list into a temporary file to be used later in the process
     - Remove the `vars` list
 1. Edit the `config/webhook/kustomizeconfig.yaml` file:
     - In the `varReference:` list, remove the item with `kind: Deployment`
@@ -181,3 +181,27 @@ with `cert-manager.io/v1`
          group: cert-manager.io
          version: v1
    ```
+## Support the cluster.x-k8s.io/watch-filter label and watch-filter flag.
+
+- A new label `cluster.x-k8s.io/watch-filter` provides the ability to filter the controllers to only reconcile objects with a specific label.
+- A new flag `watch-filter` enables users to specify the label value for the `cluster.x-k8s.io/watch-filter` label on controller boot.
+- The flag which enables users to set the flag value can be structured like this:
+  ```go
+  	fs.StringVar(&watchFilterValue, "watch-filter", "", fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
+  ```
+- The `ResourceNotPausedAndHasFilterLabel` predicate is a useful helper to check for the pause annotation and the filter label easily:
+  ```go
+  c, err := ctrl.NewControllerManagedBy(mgr).
+		For(&clusterv1.MachineSet{}).
+		Owns(&clusterv1.Machine{}).
+		Watches(
+			&source.Kind{Type: &clusterv1.Machine{}},
+			handler.EnqueueRequestsFromMapFunc(r.MachineToMachineSets),
+		).
+		WithOptions(options).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		Build(r)
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+  ```

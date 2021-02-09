@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -38,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/version"
+	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/klogr"
@@ -46,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -67,34 +66,7 @@ var (
 	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano()))
 	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
-	kubeSemver                   = regexp.MustCompile(`^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
 )
-
-// ParseMajorMinorPatch returns a semver.Version from the string provided
-// by looking only at major.minor.patch and stripping everything else out.
-func ParseMajorMinorPatch(version string) (semver.Version, error) {
-	groups := kubeSemver.FindStringSubmatch(version)
-	if len(groups) < 4 {
-		return semver.Version{}, errors.Errorf("failed to parse major.minor.patch from %q", version)
-	}
-	major, err := strconv.ParseUint(groups[1], 10, 64)
-	if err != nil {
-		return semver.Version{}, errors.Wrapf(err, "failed to parse major version from %q", version)
-	}
-	minor, err := strconv.ParseUint(groups[2], 10, 64)
-	if err != nil {
-		return semver.Version{}, errors.Wrapf(err, "failed to parse minor version from %q", version)
-	}
-	patch, err := strconv.ParseUint(groups[3], 10, 64)
-	if err != nil {
-		return semver.Version{}, errors.Wrapf(err, "failed to parse patch version from %q", version)
-	}
-	return semver.Version{
-		Major: major,
-		Minor: minor,
-		Patch: patch,
-	}, nil
-}
 
 // RandomString returns a random alphanumeric string.
 func RandomString(n int) string {
@@ -126,6 +98,13 @@ func Ordinalize(n int) string {
 		return fmt.Sprintf("%d%s", n, m[an])
 	}
 	return fmt.Sprintf("%d%s", n, m[an%10])
+}
+
+// ParseMajorMinorPatch returns a semver.Version from the string provided
+// by looking only at major.minor.patch and stripping everything else out.
+// Deprecated: Please use the function in util/version
+func ParseMajorMinorPatch(v string) (semver.Version, error) {
+	return version.ParseMajorMinorPatchTolerant(v)
 }
 
 // ModifyImageRepository takes an imageName (e.g., repository/image:tag), and returns an image name with updated repository
@@ -597,7 +576,7 @@ type KubeAwareAPIVersions []string
 func (k KubeAwareAPIVersions) Len() int      { return len(k) }
 func (k KubeAwareAPIVersions) Swap(i, j int) { k[i], k[j] = k[j], k[i] }
 func (k KubeAwareAPIVersions) Less(i, j int) bool {
-	return version.CompareKubeAwareVersionStrings(k[i], k[j]) < 0
+	return k8sversion.CompareKubeAwareVersionStrings(k[i], k[j]) < 0
 }
 
 // MachinesByCreationTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.

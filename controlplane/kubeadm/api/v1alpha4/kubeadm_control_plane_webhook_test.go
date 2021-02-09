@@ -133,7 +133,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			kcp:       validVersion,
 		},
 		{
-			name:      "should succeed when given a valid semantic version without 'v'",
+			name:      "should error when given a valid semantic version without 'v'",
 			expectErr: true,
 			kcp:       invalidVersion2,
 		},

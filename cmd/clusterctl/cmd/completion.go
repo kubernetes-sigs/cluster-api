@@ -131,7 +131,10 @@ func runCompletionZsh(out io.Writer, cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "%s\n%s%s", string(line), completionBoilerPlate, b.String())
+	fmt.Fprintf(out, "%s\n%s%s\n", string(line), completionBoilerPlate, b.String())
+
+	// Cobra doesn't source zsh completion file, explicitly doing it here
+	fmt.Fprintln(out, "compdef _clusterctl clusterctl")
 
 	return nil
 }

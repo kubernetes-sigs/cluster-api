@@ -33,12 +33,12 @@ func IsPaused(cluster *clusterv1.Cluster, o metav1.Object) bool {
 
 // HasPausedAnnotation returns true if the object has the `paused` annotation.
 func HasPausedAnnotation(o metav1.Object) bool {
-	annotations := o.GetAnnotations()
-	if annotations == nil {
-		return false
-	}
-	_, ok := annotations[clusterv1.PausedAnnotation]
-	return ok
+	return hasAnnotation(o, clusterv1.PausedAnnotation)
+}
+
+// HasSkipRemediationAnnotation returns true if the object has the `skip-remediation` annotation.
+func HasSkipRemediationAnnotation(o metav1.Object) bool {
+	return hasAnnotation(o, clusterv1.MachineSkipRemediationAnnotation)
 }
 
 func HasWithPrefix(prefix string, annotations map[string]string) bool {
@@ -48,4 +48,30 @@ func HasWithPrefix(prefix string, annotations map[string]string) bool {
 		}
 	}
 	return false
+}
+
+// AddAnnotations sets the desired annotations on the object and returns true if the annotations have changed.
+func AddAnnotations(o metav1.Object, desired map[string]string) bool {
+	annotations := o.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	hasChanged := false
+	for k, v := range desired {
+		if cur, ok := annotations[k]; !ok || cur != v {
+			annotations[k] = v
+			hasChanged = true
+		}
+	}
+	return hasChanged
+}
+
+// hasAnnotation returns true if the object has the specified annotation
+func hasAnnotation(o metav1.Object, annotation string) bool {
+	annotations := o.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+	_, ok := annotations[annotation]
+	return ok
 }

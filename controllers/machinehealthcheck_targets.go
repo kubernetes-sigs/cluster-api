@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -159,8 +160,8 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
 // and their nodes targeted by the health check, ready for health checking.
-func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
-	machines, err := r.getMachinesFromMHC(mhc)
+func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
+	machines, err := r.getMachinesFromMHC(ctx, mhc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
 	}
@@ -170,6 +171,12 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Re
 
 	targets := []healthCheckTarget{}
 	for k := range machines {
+		skip, reason := shouldSkipRemediation(&machines[k])
+		if skip {
+			logger.Info("skipping remediation", "machine", machines[k].Name, "reason", reason)
+			continue
+		}
+
 		patchHelper, err := patch.NewHelper(&machines[k], r.Client)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to initialize patch helper")
@@ -196,7 +203,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Re
 
 //getMachinesFromMHC fetches Machines matched by the MachineHealthCheck's
 // label selector
-func (r *MachineHealthCheckReconciler) getMachinesFromMHC(mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
+func (r *MachineHealthCheckReconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
 	selector, err := metav1.LabelSelectorAsSelector(metav1.CloneSelectorAndAddLabel(
 		&mhc.Spec.Selector, clusterv1.ClusterLabelName, mhc.Spec.ClusterName,
 	))
@@ -206,7 +213,7 @@ func (r *MachineHealthCheckReconciler) getMachinesFromMHC(mhc *clusterv1.Machine
 
 	var machineList clusterv1.MachineList
 	if err := r.Client.List(
-		context.Background(),
+		ctx,
 		&machineList,
 		client.MatchingLabelsSelector{Selector: selector},
 		client.InNamespace(mhc.GetNamespace()),
@@ -297,4 +304,18 @@ func minDuration(durations []time.Duration) time.Duration {
 		}
 	}
 	return minDuration
+}
+
+// shouldSkipRemediation checks if the machine should be skipped for remediation.
+// Returns true if it should be skipped along with the reason for skipping.
+func shouldSkipRemediation(m *clusterv1.Machine) (bool, string) {
+	if annotations.HasPausedAnnotation(m) {
+		return true, fmt.Sprintf("machine has %q annotation", clusterv1.PausedAnnotation)
+	}
+
+	if annotations.HasSkipRemediationAnnotation(m) {
+		return true, fmt.Sprintf("machine has %q annotation", clusterv1.MachineSkipRemediationAnnotation)
+	}
+
+	return false, ""
 }

@@ -100,6 +100,18 @@ If `maxUnhealthy` is set to `40%` and there are 6 Machines being checked:
 
 Note, when the percentage is not a whole number, the allowed number is rounded down.
 
+## Skipping Remediation
+
+There are scenarios where remediation for a machine may be undesirable (eg. during cluster migration using `clustrctl move`). For such cases, MachineHealthCheck provides 2 mechanisms to skip machines for remediation.
+
+Implicit skipping when the resource is paused (using `cluster.x-k8s.io/paused` annotation):
+- When a cluster is paused, none of the machines in that cluster are considered for remediation.
+- When a machine is paused, only that machine is not considered for remediation.
+- A cluster or a machine is usually paused automatically by cluster api when it detects a migration.
+
+Explicit skipping using `cluster.x-k8s.io/skip-remediation` annotation:
+- Users can also skip any machine for remediation by setting the `cluster.x-k8s.io/skip-remediation` for that machine.
+
 ## Limitations and Caveats of a MachineHealthCheck
 
 Before deploying a MachineHealthCheck, please familiarise yourself with the following limitations and caveats:

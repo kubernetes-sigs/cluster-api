@@ -46,14 +46,8 @@ WORKDIR /workspace/test/infrastructure/docker
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
 
-# Use alpine:latest as minimal base image to package the manager binary and its dependencies
-FROM alpine:latest
-
-# install a couple of dependencies
+FROM golang:1.13.15
 WORKDIR /tmp
-RUN apk add --update \
-    curl \
-    && rm -rf /var/cache/apk/*
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.15.0/bin/linux/amd64/kubectl && \
     chmod +x ./kubectl && \

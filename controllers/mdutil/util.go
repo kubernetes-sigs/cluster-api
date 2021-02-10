@@ -20,9 +20,11 @@ import (
 	"fmt"
 	"hash"
 	"hash/fnv"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
@@ -522,6 +524,85 @@ func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clus
 		newStatus.Replicas == *(deployment.Spec.Replicas) &&
 		newStatus.AvailableReplicas == *(deployment.Spec.Replicas) &&
 		newStatus.ObservedGeneration >= deployment.Generation
+}
+
+// DeploymentProgressing reports progress for a deployment. Progress is estimated by comparing the
+// current with the new status of the deployment that the controller is observing. More specifically,
+// when new machines are scaled up or become ready or available, or old machines are scaled down, then we
+// consider the deployment is progressing.
+func DeploymentProgressing(deployment *clusterv1.MachineDeployment, newStatus *clusterv1.MachineDeploymentStatus) bool {
+	oldStatus := deployment.Status
+
+	// Old replicas that need to be scaled down
+	oldStatusOldReplicas := oldStatus.Replicas - oldStatus.UpdatedReplicas
+	newStatusOldReplicas := newStatus.Replicas - newStatus.UpdatedReplicas
+
+	return (newStatus.UpdatedReplicas > oldStatus.UpdatedReplicas) ||
+		(newStatusOldReplicas < oldStatusOldReplicas) ||
+		newStatus.ReadyReplicas > deployment.Status.ReadyReplicas ||
+		newStatus.AvailableReplicas > deployment.Status.AvailableReplicas
+}
+
+// DeploymentTimedOut considers a deployment to have timed out once its condition that reports progress
+// is older than progressDeadlineSeconds or a Progressing condition with a TimedOutReason reason already
+// exists.
+func DeploymentTimedOut(deployment *clusterv1.MachineDeployment, newStatus *clusterv1.MachineDeploymentStatus) bool {
+	if !HasProgressDeadline(deployment) {
+		return false
+	}
+
+	// Look for the Progressing condition. If it doesn't exist, we have no base to estimate progress.
+	// If it's already set with a TimedOutReason reason, we have already timed out, no need to check
+	// again.
+	condition := GetMachineDeploymentCondition(*newStatus, clusterv1.MachineDeploymentProgressing)
+	if condition == nil {
+		return false
+	}
+	// If the previous condition has been a successful rollout then we shouldn't try to
+	// estimate any progress. Scenario:
+	//
+	// * progressDeadlineSeconds is smaller than the difference between now and the time
+	//   the last rollout finished in the past.
+	// * the creation of a new ReplicaSet triggers a resync of the MachineDeployment prior to the
+	//   cached copy of the MachineDeployment getting updated with the status.condition that indicates
+	//   the creation of the new ReplicaSet.
+	//
+	// The MachineDeployment will be resynced and eventually its Progressing condition will catch
+	// up with the state of the world.
+	if condition.Reason == clusterv1.NewMSAvailableReason {
+		return false
+	}
+	if condition.Reason == clusterv1.TimedOutReason {
+		return true
+	}
+
+	// Look at the difference in seconds between now and the last time we reported any
+	// progress or tried to create a replica set, or resumed a paused MachineDeployment and
+	// compare against progressDeadlineSeconds.
+	from := condition.LastTransitionTime
+	now := time.Now()
+	delta := time.Duration(*deployment.Spec.ProgressDeadlineSeconds) * time.Second
+	timedOut := from.Add(delta).Before(now)
+
+	// logger.V(4).Info(fmt.Sprintf("MachineDeployment %q timed out (%t) [last progress check: %v - now: %v]", deployment.Name, timedOut, from, now))
+	return timedOut
+}
+
+// HasProgressDeadline checks if the MachineDeployment d is expected to surface the reason
+// "ProgressDeadlineExceeded" when the MachineDeployment progress takes longer than expected time.
+func HasProgressDeadline(d *clusterv1.MachineDeployment) bool {
+	return d.Spec.ProgressDeadlineSeconds != nil && *d.Spec.ProgressDeadlineSeconds != math.MaxInt32
+}
+
+// GetMachineDeploymentCondition returns the condition with the provided type.
+func GetMachineDeploymentCondition(status clusterv1.MachineDeploymentStatus, condType clusterv1.ConditionType) *clusterv1.Condition {
+	for i := range status.Conditions {
+		c := status.Conditions[i]
+		if c.Type == condType {
+			return &c
+		}
+	}
+	return nil
 }
 
 // NewMSNewReplicas calculates the number of replicas a deployment's new MS should have.

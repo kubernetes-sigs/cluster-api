@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/mdutil"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,7 +56,7 @@ func (r *MachineDeploymentReconciler) sync(ctx context.Context, d *clusterv1.Mac
 	// // TODO: Clean up the deployment when it's paused and no rollback is in flight.
 	//
 	allMSs := append(oldMSs, newMS)
-	return r.syncDeploymentStatus(allMSs, newMS, d)
+	return r.syncDeploymentStatus(ctx, allMSs, newMS, d)
 }
 
 // getAllMachineSetsAndSyncRevision returns all the machine sets for the provided deployment (new and all old), with new MS's and deployment's revision updated.
@@ -351,8 +352,85 @@ func (r *MachineDeploymentReconciler) scale(ctx context.Context, deployment *clu
 }
 
 // syncDeploymentStatus checks if the status is up-to-date and sync it if necessary
-func (r *MachineDeploymentReconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, d *clusterv1.MachineDeployment) error {
-	d.Status = calculateStatus(allMSs, newMS, d)
+func (r *MachineDeploymentReconciler) syncDeploymentStatus(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, d *clusterv1.MachineDeployment) error {
+
+	log := ctrl.LoggerFrom(ctx)
+	// If there is no progressDeadlineSeconds set, remove any Progressing condition.
+	if !mdutil.HasProgressDeadline(d) {
+		conditions.Delete(d, clusterv1.MachineDeploymentProgressing)
+	}
+
+	newStatus := calculateStatus(allMSs, newMS, d)
+
+	currentCond := conditions.Get(d, clusterv1.MachineDeploymentProgressing)
+	isCompleteDeployment := newStatus.Replicas == newStatus.UpdatedReplicas && currentCond != nil && currentCond.Reason == clusterv1.NewMSAvailableReason
+	var cond *clusterv1.Condition
+	if mdutil.HasProgressDeadline(d) && !isCompleteDeployment {
+		switch {
+		case mdutil.DeploymentComplete(d, &newStatus):
+			log.V(4).Info("MachineDeployment successfully progressed", "machinedeployment", d.Name)
+			// Update the deployment conditions with a message for the new machine set that
+			// was successfully deployed. If the condition already exists, we ignore this update.
+			msg := fmt.Sprintf("MachineDeployment %q has successfully progressed.", d.Name)
+			if newMS != nil {
+				msg = fmt.Sprintf("MachineSet %q has successfully progressed.", newMS.Name)
+			}
+			cond = &clusterv1.Condition{
+				Type:     clusterv1.MachineDeploymentProgressing,
+				Status:   corev1.ConditionTrue,
+				Reason:   clusterv1.NewMSAvailableReason,
+				Severity: clusterv1.ConditionSeverityInfo,
+				Message:  msg,
+			}
+		case mdutil.DeploymentProgressing(d, &newStatus):
+			log.V(4).Info("MachineDeployment is progressing", "machinedeployment", d.Name)
+			// If there is any progress made, continue by not checking if the deployment failed. This
+			// behavior emulates the rolling updater progressDeadline check.
+			msg := fmt.Sprintf("MachineDeployment %q is progressing.", d.Name)
+			if newMS != nil {
+				msg = fmt.Sprintf("MachineSet %q is progressing.", newMS.Name)
+			}
+			cond = &clusterv1.Condition{
+				Type:     clusterv1.MachineDeploymentProgressing,
+				Status:   corev1.ConditionTrue,
+				Reason:   clusterv1.MachineSetUpdatedReason,
+				Severity: clusterv1.ConditionSeverityInfo,
+				Message:  msg,
+			}
+		case mdutil.DeploymentTimedOut(d, &newStatus):
+			log.V(4).Info("MachineDeployment has timed out progressing", "machinedeployment", d.Name)
+			// Update the deployment with a timeout condition. If the condition already exists,
+			// we ignore this update.
+			msg := fmt.Sprintf("MachineDeployment %q has timed out progressing.", d.Name)
+			if newMS != nil {
+				msg = fmt.Sprintf("MachineSet %q has timed out progressing.", newMS.Name)
+			}
+			cond = &clusterv1.Condition{
+				Type:     clusterv1.MachineDeploymentProgressing,
+				Status:   corev1.ConditionFalse,
+				Reason:   clusterv1.TimedOutReason,
+				Severity: clusterv1.ConditionSeverityError,
+				Message:  msg,
+			}
+		}
+	}
+	d.Status = newStatus
+	if cond != nil {
+		conditions.Set(d, cond)
+	}
+	if failed, reason, msg := getMachineSetFailures(allMSs); failed {
+		conditions.Set(d, &clusterv1.Condition{
+			Type:    clusterv1.MachineDeploymentReadyCondition,
+			Status:  corev1.ConditionFalse,
+			Reason:  reason,
+			Message: msg,
+		})
+	} else {
+		conditions.Set(d, &clusterv1.Condition{
+			Type:   clusterv1.MachineDeploymentReadyCondition,
+			Status: corev1.ConditionTrue,
+		})
+	}
 	return nil
 }
 
@@ -382,6 +460,20 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 		UnavailableReplicas: unavailableReplicas,
 	}
 
+	// Copy conditions one by one so we won't mutate the original object.
+	existingConditions := deployment.Status.Conditions
+	for i := range existingConditions {
+		status.Conditions = append(status.Conditions, existingConditions[i])
+	}
+	if availableReplicas >= *(deployment.Spec.Replicas)-mdutil.MaxUnavailable(*deployment) {
+		status.Conditions = append(status.Conditions, clusterv1.Condition{
+			Type:    clusterv1.MachineDeploymentAvailable,
+			Status:  corev1.ConditionTrue,
+			Reason:  clusterv1.MinimumMachinesAvailable,
+			Message: "MachineDeployment has minimum availability",
+		})
+	}
+
 	if *deployment.Spec.Replicas == status.ReadyReplicas {
 		status.Phase = string(clusterv1.MachineDeploymentPhaseRunning)
 	}
@@ -393,14 +485,11 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 	if totalReplicas-availableReplicas < 0 {
 		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
 	}
-	for _, ms := range allMSs {
-		if ms != nil {
-			if ms.Status.FailureReason != nil || ms.Status.FailureMessage != nil {
-				status.Phase = string(clusterv1.MachineDeploymentPhaseFailed)
-				break
-			}
-		}
+
+	if failed, _, _ := getMachineSetFailures(allMSs); failed {
+		status.Phase = string(clusterv1.MachineDeploymentPhaseFailed)
 	}
+
 	return status
 }
 
@@ -525,4 +614,23 @@ func updateMachineDeployment(ctx context.Context, c client.Client, d *clusterv1.
 		modify(d)
 		return patchHelper.Patch(ctx, d)
 	})
+}
+
+// getMachineSetFailures returns true if any one of the MachineSets have failed.
+func getMachineSetFailures(allMSs []*clusterv1.MachineSet) (bool, string, string) {
+	for _, ms := range allMSs {
+		if ms != nil {
+			if ms.Status.FailureReason != nil || ms.Status.FailureMessage != nil {
+				var reason, msg string
+				if ms.Status.FailureReason != nil {
+					reason = string(*ms.Status.FailureReason)
+				}
+				if ms.Status.FailureMessage != nil {
+					msg = *ms.Status.FailureMessage
+				}
+				return true, reason, msg
+			}
+		}
+	}
+	return false, "", ""
 }

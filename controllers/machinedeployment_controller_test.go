@@ -389,6 +389,24 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			return len(machineSets.Items)
 		}, timeout*5).Should(BeEquivalentTo(0))
 
+		By("Verifying MachineDeployment has correct Conditions")
+		Eventually(func() bool {
+			key := client.ObjectKey{Name: deployment.Name, Namespace: deployment.Namespace}
+			if err := testEnv.Get(ctx, key, deployment); err != nil {
+				return false
+			}
+			var availableCond, progressingCond bool
+			for _, c := range deployment.Status.Conditions {
+				if c.Type == clusterv1.MachineDeploymentAvailable && c.Status == corev1.ConditionTrue && c.Reason == clusterv1.MinimumMachinesAvailable {
+					availableCond = true
+				}
+				if c.Type == clusterv1.MachineDeploymentProgressing && c.Status == corev1.ConditionTrue && c.Reason == clusterv1.NewMSAvailableReason {
+					progressingCond = true
+				}
+			}
+			return availableCond && progressingCond
+		}, timeout).Should(BeTrue())
+
 		// Validate that the controller set the cluster name label in selector.
 		Expect(deployment.Status.Selector).To(ContainSubstring(testCluster.Name))
 	})

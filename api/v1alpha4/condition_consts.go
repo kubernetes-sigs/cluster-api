@@ -184,3 +184,34 @@ const (
 	// from making any further remediations.
 	TooManyUnhealthyReason = "TooManyUnhealthy"
 )
+
+// These are valid conditions of a MachineDeployment.
+const (
+	// MachineDeploymentReady reports an aggregate of current status of the machines controlled by the MachineDeployment.
+	MachineDeploymentReadyCondition ConditionType = "MachineDeploymentReady"
+	// Available means the MachineDeployment is available, ie. at least the minimum available
+	// machines required are up and running for at least minReadySeconds.
+	MachineDeploymentAvailable ConditionType = "MachineDeploymentAvailable"
+	// Progressing means the MachineDeployment is progressing. Progress for a MachineDeployment is
+	// considered when a new machine set is created or adopted, and when new machine scale
+	// up or old machine scale down. Progress is not estimated for paused deployments or
+	// when progressDeadlineSeconds is not specified.
+	MachineDeploymentProgressing ConditionType = "MachineDeploymentProgressing"
+
+	// Reasons for deployment conditions
+	//
+	// Progressing:
+	// NewMSAvailableReason is added in a deployment when its newest machine set is made available
+	NewMSAvailableReason = "NewMachineSetAvailable"
+	// TimedOutReason is added in a deployment when its newest machine set fails to show any progress
+	// within the given deadline (progressDeadlineSeconds).
+	TimedOutReason = "ProgressDeadlineExceeded"
+	// MachineSetUpdatedReason is added in a deployment when one of its machine sets is updated as part
+	// of the rollout process.
+	MachineSetUpdatedReason = "MachineSetUpdated"
+	//
+	// Available:
+
+	// MinimumMachinesAvailable is added in a deployment when it has its minimum machines required available.
+	MinimumMachinesAvailable = "MinimumMachinesAvailable"
+)

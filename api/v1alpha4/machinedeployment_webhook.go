@@ -107,10 +107,6 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 	}
 	d.Labels[ClusterLabelName] = d.Spec.ClusterName
 
-	if d.Spec.Replicas == nil {
-		d.Spec.Replicas = pointer.Int32Ptr(1)
-	}
-
 	if d.Spec.MinReadySeconds == nil {
 		d.Spec.MinReadySeconds = pointer.Int32Ptr(0)
 	}

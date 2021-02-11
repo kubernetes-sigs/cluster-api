@@ -30,7 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
@@ -210,7 +210,7 @@ func Test_getComponentsByName_withEmptyVariables(t *testing.T) {
 		WithFile("v1.0.0", "components.yaml", componentsYAML("${FOO}")).
 		WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 1, Minor: 0, Contract: "v1alpha3"},
+				{Major: 1, Minor: 0, Contract: "v1alpha4"},
 			},
 		})
 

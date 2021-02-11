@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	secretutil "sigs.k8s.io/cluster-api/util/secret"

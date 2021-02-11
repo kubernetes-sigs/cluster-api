@@ -47,8 +47,8 @@ var upgradeApplyCmd = &cobra.Command{
 
 	Example: Examples(`
 		# Upgrades all the providers in the capi-system/cluster-api management group to the latest version available which is compliant
-		# to the v1alpha3 API Version of Cluster API (contract).
-		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha3
+		# to the v1alpha4 API Version of Cluster API (contract).
+		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha4
 
 		# Upgrades only the capa-system/aws provider instance in the capi-system/cluster-api management group to the v0.5.0 version.
 		clusterctl upgrade apply --management-group capi-system/cluster-api  --infrastructure capa-system/aws:v0.5.0`),

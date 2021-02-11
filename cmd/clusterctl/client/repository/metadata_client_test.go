@@ -22,17 +22,17 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-var metadataYaml = []byte("apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\n" +
+var metadataYaml = []byte("apiVersion: clusterctl.cluster.x-k8s.io/v1alpha4\n" +
 	"kind: Metadata\n" +
 	"releaseSeries:\n" +
 	" - major: 1\n" +
 	"   minor: 2\n" +
-	"   contract: v1alpha3\n" +
+	"   contract: v1alpha4\n" +
 	"")
 
 func Test_metadataClient_Get(t *testing.T) {
@@ -59,14 +59,14 @@ func Test_metadataClient_Get(t *testing.T) {
 			},
 			want: &clusterctlv1.Metadata{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "clusterctl.cluster.x-k8s.io/v1alpha3",
+					APIVersion: "clusterctl.cluster.x-k8s.io/v1alpha4",
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{
 						Major:    1,
 						Minor:    2,
-						Contract: "v1alpha3",
+						Contract: "v1alpha4",
 					},
 				},
 			},

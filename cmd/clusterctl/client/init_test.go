@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
@@ -620,13 +620,13 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 		WithFile("v1.0.0", "components.yaml", componentsYAML("ns1")).
 		WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 1, Minor: 0, Contract: "v1alpha3"},
+				{Major: 1, Minor: 0, Contract: "v1alpha4"},
 			},
 		}).
 		WithFile("v1.1.0", "components.yaml", componentsYAML("ns1")).
 		WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 1, Minor: 1, Contract: "v1alpha3"},
+				{Major: 1, Minor: 1, Contract: "v1alpha4"},
 			},
 		})
 	repository2 := newFakeRepository(bootstrapProviderConfig, config).
@@ -635,13 +635,13 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
 		WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 0, Contract: "v1alpha3"},
+				{Major: 2, Minor: 0, Contract: "v1alpha4"},
 			},
 		}).
 		WithFile("v2.1.0", "components.yaml", componentsYAML("ns2")).
 		WithMetadata("v2.1.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 1, Contract: "v1alpha3"},
+				{Major: 2, Minor: 1, Contract: "v1alpha4"},
 			},
 		})
 	repository3 := newFakeRepository(controlPlaneProviderConfig, config).
@@ -650,13 +650,13 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns3")).
 		WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 0, Contract: "v1alpha3"},
+				{Major: 2, Minor: 0, Contract: "v1alpha4"},
 			},
 		}).
 		WithFile("v2.1.0", "components.yaml", componentsYAML("ns3")).
 		WithMetadata("v2.1.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 1, Contract: "v1alpha3"},
+				{Major: 2, Minor: 1, Contract: "v1alpha4"},
 			},
 		})
 	repository4 := newFakeRepository(infraProviderConfig, config).
@@ -665,13 +665,13 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 		WithFile("v3.0.0", "components.yaml", infraComponentsYAML("ns4")).
 		WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 3, Minor: 0, Contract: "v1alpha3"},
+				{Major: 3, Minor: 0, Contract: "v1alpha4"},
 			},
 		}).
 		WithFile("v3.1.0", "components.yaml", infraComponentsYAML("ns4")).
 		WithMetadata("v3.1.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 3, Minor: 1, Contract: "v1alpha3"},
+				{Major: 3, Minor: 1, Contract: "v1alpha4"},
 			},
 		}).
 		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns4", "test"))
@@ -686,7 +686,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 				WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
 				WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 2, Minor: 0, Contract: "v1alpha3"},
+						{Major: 2, Minor: 0, Contract: "v1alpha4"},
 					},
 				}))
 	}

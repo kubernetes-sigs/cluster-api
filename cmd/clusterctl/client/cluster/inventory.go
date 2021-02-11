@@ -25,7 +25,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
-	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"

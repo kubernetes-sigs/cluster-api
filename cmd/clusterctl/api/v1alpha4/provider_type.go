@@ -14,16 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// +kubebuilder:skipversion
 // +kubebuilder:resource:path=providers,scope=Namespaced,categories=cluster-api
+// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".type"
+// +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".providerName"
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".version"
+// +kubebuilder:printcolumn:name="Watch Namespace",type="string",JSONPath=".watchedNamespace"
 
 // Provider defines an entry in the provider inventory.
 type Provider struct {

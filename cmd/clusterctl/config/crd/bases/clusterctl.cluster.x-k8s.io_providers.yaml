@@ -31,7 +31,7 @@ spec:
     - jsonPath: .watchedNamespace
       name: Watch Namespace
       type: string
-    name: v1alpha3
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: Provider defines an entry in the provider inventory.

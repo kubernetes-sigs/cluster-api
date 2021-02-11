@@ -36,7 +36,6 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	md.Default()
 
 	g.Expect(md.Labels[ClusterLabelName]).To(Equal(md.Spec.ClusterName))
-	g.Expect(md.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
 	g.Expect(md.Spec.MinReadySeconds).To(Equal(pointer.Int32Ptr(0)))
 	g.Expect(md.Spec.RevisionHistoryLimit).To(Equal(pointer.Int32Ptr(1)))
 	g.Expect(md.Spec.ProgressDeadlineSeconds).To(Equal(pointer.Int32Ptr(600)))

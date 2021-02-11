@@ -457,6 +457,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	withoutClusterConfiguration := before.DeepCopy()
 	withoutClusterConfiguration.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
 
+	afterEtcdLocalDirAddition := before.DeepCopy()
+	afterEtcdLocalDirAddition.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
+		DataDir: "/data",
+	}
+
 	disallowedUpgrade118Prev := prevKCPWithVersion("v1.18.8")
 	disallowedUpgrade119Version := before.DeepCopy()
 	disallowedUpgrade119Version.Spec.Version = "v1.19.0"
@@ -700,6 +705,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    withoutClusterConfiguration,
 			kcp:       withoutClusterConfiguration,
+		},
+		{
+			name:      "should fail if etcd local dir is changed from missing ClusterConfiguration",
+			expectErr: true,
+			before:    withoutClusterConfiguration,
+			kcp:       afterEtcdLocalDirAddition,
 		},
 		{
 			name:      "should fail when skipping control plane minor versions",

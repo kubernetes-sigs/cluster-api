@@ -368,7 +368,7 @@ func (in *KubeadmControlPlane) validateEtcd(prev *KubeadmControlPlane) (allErrs 
 	}
 
 	// update validations
-	if prev != nil {
+	if prev != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
 		if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
 			allErrs = append(
 				allErrs,

@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package internal
+package failuredomains
 
 import (
+	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -41,7 +42,7 @@ func TestNewFailureDomainPicker(t *testing.T) {
 	testcases := []struct {
 		name     string
 		fds      clusterv1.FailureDomains
-		machines FilterableMachineCollection
+		machines collections.Machines
 		expected []*string
 	}{
 		{
@@ -58,7 +59,7 @@ func TestNewFailureDomainPicker(t *testing.T) {
 		{
 			name:     "one machine in a failure domain",
 			fds:      fds,
-			machines: NewFilterableMachineCollection(machinea.DeepCopy()),
+			machines: collections.FromMachines(machinea.DeepCopy()),
 			expected: []*string{b},
 		},
 		{
@@ -66,7 +67,7 @@ func TestNewFailureDomainPicker(t *testing.T) {
 			fds: clusterv1.FailureDomains{
 				*a: clusterv1.FailureDomainSpec{},
 			},
-			machines: NewFilterableMachineCollection(machinenil.DeepCopy()),
+			machines: collections.FromMachines(machinenil.DeepCopy()),
 			expected: []*string{a},
 		},
 		{
@@ -74,7 +75,7 @@ func TestNewFailureDomainPicker(t *testing.T) {
 			fds: clusterv1.FailureDomains{
 				*a: clusterv1.FailureDomainSpec{},
 			},
-			machines: NewFilterableMachineCollection(machineb.DeepCopy()),
+			machines: collections.FromMachines(machineb.DeepCopy()),
 			expected: []*string{a},
 		},
 		{
@@ -112,7 +113,7 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 	testcases := []struct {
 		name     string
 		fds      clusterv1.FailureDomains
-		machines FilterableMachineCollection
+		machines collections.Machines
 		expected []*string
 	}{
 		{
@@ -129,7 +130,7 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 		{
 			name:     "one machine in a failure domain",
 			fds:      fds,
-			machines: NewFilterableMachineCollection(machinea.DeepCopy()),
+			machines: collections.FromMachines(machinea.DeepCopy()),
 			expected: []*string{a},
 		},
 		{
@@ -137,7 +138,7 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 			fds: clusterv1.FailureDomains{
 				*a: clusterv1.FailureDomainSpec{ControlPlane: true},
 			},
-			machines: NewFilterableMachineCollection(machinenil.DeepCopy()),
+			machines: collections.FromMachines(machinenil.DeepCopy()),
 			expected: nil,
 		},
 		{
@@ -145,7 +146,7 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 			fds: clusterv1.FailureDomains{
 				*a: clusterv1.FailureDomainSpec{ControlPlane: true},
 			},
-			machines: NewFilterableMachineCollection(machineb.DeepCopy()),
+			machines: collections.FromMachines(machineb.DeepCopy()),
 			expected: nil,
 		},
 		{
@@ -155,7 +156,7 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 		},
 		{
 			name:     "nil failure domains with machines",
-			machines: NewFilterableMachineCollection(machineb.DeepCopy()),
+			machines: collections.FromMachines(machineb.DeepCopy()),
 			expected: nil,
 		},
 		{
@@ -167,8 +168,7 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fd := PickMost(&ControlPlane{Machines: tc.machines,
-				Cluster: &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: tc.fds}}}, tc.machines)
+			fd := PickMost(tc.fds, tc.machines, tc.machines)
 			if tc.expected == nil {
 				g.Expect(fd).To(BeNil())
 			} else {

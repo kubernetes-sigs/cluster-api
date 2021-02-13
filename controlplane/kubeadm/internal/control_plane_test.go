@@ -17,6 +17,7 @@ limitations under the License.
 package internal
 
 import (
+	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -47,7 +48,7 @@ func TestControlPlane(t *testing.T) {
 					},
 				},
 			},
-			Machines: FilterableMachineCollection{
+			Machines: collections.Machines{
 				"machine-1": machine("machine-1", withFailureDomain("one")),
 				"machine-2": machine("machine-2", withFailureDomain("two")),
 				"machine-3": machine("machine-3", withFailureDomain("two")),
@@ -93,18 +94,6 @@ func TestControlPlane(t *testing.T) {
 	})
 }
 
-func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
-	return clusterv1.FailureDomainSpec{
-		ControlPlane: controlPlane,
-	}
-}
-
-func withFailureDomain(fd string) machineOpt {
-	return func(m *clusterv1.Machine) {
-		m.Spec.FailureDomain = &fd
-	}
-}
-
 func TestHasUnhealthyMachine(t *testing.T) {
 	// healthy machine (without MachineHealthCheckSucceded condition)
 	healthyMachine1 := &clusterv1.Machine{}
@@ -120,7 +109,7 @@ func TestHasUnhealthyMachine(t *testing.T) {
 	conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 
 	c := ControlPlane{
-		Machines: NewFilterableMachineCollection(
+		Machines: collections.FromMachines(
 			healthyMachine1,
 			healthyMachine2,
 			unhealthyMachineNOTOwnerRemediated,
@@ -130,4 +119,30 @@ func TestHasUnhealthyMachine(t *testing.T) {
 
 	g := NewWithT(t)
 	g.Expect(c.HasUnhealthyMachine()).To(BeTrue())
+}
+
+type machineOpt func(*clusterv1.Machine)
+
+func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
+	return clusterv1.FailureDomainSpec{
+		ControlPlane: controlPlane,
+	}
+}
+
+func withFailureDomain(fd string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Spec.FailureDomain = &fd
+	}
+}
+
+func machine(name string, opts ...machineOpt) *clusterv1.Machine {
+	m := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
 }

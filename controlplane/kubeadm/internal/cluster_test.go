@@ -24,6 +24,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"math/big"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 	"time"
 
@@ -38,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/machinefilters"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -60,7 +60,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	g.Expect(machines).To(HaveLen(3))
 
 	// Test the ControlPlaneMachines works
-	machines, err = m.GetMachinesForCluster(ctx, clusterKey, machinefilters.ControlPlaneMachines("my-cluster"))
+	machines, err = m.GetMachinesForCluster(ctx, clusterKey, collections.ControlPlaneMachines("my-cluster"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 
@@ -68,7 +68,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	nameFilter := func(cluster *clusterv1.Machine) bool {
 		return cluster.Name == "first-machine"
 	}
-	machines, err = m.GetMachinesForCluster(ctx, clusterKey, machinefilters.ControlPlaneMachines("my-cluster"), nameFilter)
+	machines, err = m.GetMachinesForCluster(ctx, clusterKey, collections.ControlPlaneMachines("my-cluster"), nameFilter)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 }

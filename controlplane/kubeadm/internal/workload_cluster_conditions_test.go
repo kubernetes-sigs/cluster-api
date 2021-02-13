@@ -17,6 +17,7 @@ limitations under the License.
 package internal
 
 import (
+	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -474,7 +475,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			}
 			controlPane := &ControlPlane{
 				KCP:      tt.kcp,
-				Machines: NewFilterableMachineCollection(tt.machines...),
+				Machines: collections.FromMachines(tt.machines...),
 			}
 			w.UpdateEtcdConditions(ctx, controlPane)
 
@@ -746,7 +747,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			}
 			controlPane := &ControlPlane{
 				KCP:      tt.kcp,
-				Machines: NewFilterableMachineCollection(tt.machines...),
+				Machines: collections.FromMachines(tt.machines...),
 			}
 			w.UpdateStaticPodConditions(ctx, controlPane)
 

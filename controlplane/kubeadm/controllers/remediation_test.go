@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -50,7 +51,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		controlPlane := &internal.ControlPlane{
 			KCP:      &controlplanev1.KubeadmControlPlane{},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(),
+			Machines: collections.New(),
 		}
 		ret, err := r.reconcileUnhealthyMachines(context.TODO(), controlPlane)
 
@@ -66,7 +67,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		controlPlane := &internal.ControlPlane{
 			KCP:      &controlplanev1.KubeadmControlPlane{},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m),
+			Machines: collections.FromMachines(m),
 		}
 		ret, err := r.reconcileUnhealthyMachines(context.TODO(), controlPlane)
 
@@ -82,7 +83,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(1),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m),
+			Machines: collections.FromMachines(m),
 		}
 		ret, err := r.reconcileUnhealthyMachines(context.TODO(), controlPlane)
 
@@ -101,7 +102,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m),
+			Machines: collections.FromMachines(m),
 		}
 		ret, err := r.reconcileUnhealthyMachines(context.TODO(), controlPlane)
 
@@ -122,7 +123,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3),
+			Machines: collections.FromMachines(m1, m2, m3),
 		}
 		ret, err := r.reconcileUnhealthyMachines(context.TODO(), controlPlane)
 
@@ -144,7 +145,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3),
+			Machines: collections.FromMachines(m1, m2, m3),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -179,7 +180,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3, m4, m5),
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -217,7 +218,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3),
+			Machines: collections.FromMachines(m1, m2, m3),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -269,7 +270,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(1),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1),
+			Machines: collections.FromMachines(m1),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -299,7 +300,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(2),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2),
+			Machines: collections.FromMachines(m1, m2),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -330,7 +331,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3),
+			Machines: collections.FromMachines(m1, m2, m3),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -361,7 +362,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3),
+			Machines: collections.FromMachines(m1, m2, m3),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -394,7 +395,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3, m4, m5),
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -427,7 +428,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3, m4, m5),
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -462,7 +463,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3, m4, m5, m6, m7),
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5, m6, m7),
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -497,7 +498,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				Replicas: utilpointer.Int32Ptr(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
-			Machines: internal.NewFilterableMachineCollection(m1, m2, m3, m4, m5, m6, m7),
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5, m6, m7),
 		}
 
 		r := &KubeadmControlPlaneReconciler{

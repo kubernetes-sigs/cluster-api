@@ -17,13 +17,15 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
-
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clusterctlv1old "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,41 +35,93 @@ func fakePollImmediateWaiter(interval, timeout time.Duration, condition wait.Con
 	return nil
 }
 
-func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
+func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
+	type args struct {
+		tolerateContract string
+	}
 	type fields struct {
-		alreadyHasCRD bool
+		hasCRDVersion string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
+		name       string
+		args       args
+		fields     fields
+		wantResult bool
+		wantErr    bool
 	}{
 		{
 			name: "Has not CRD",
+			args: args{},
 			fields: fields{
-				alreadyHasCRD: false,
+				hasCRDVersion: "",
 			},
-			wantErr: false,
+			wantResult: false,
+			wantErr:    false,
 		},
 		{
 			name: "Already has CRD",
+			args: args{},
 			fields: fields{
-				alreadyHasCRD: true,
+				hasCRDVersion: clusterctlv1.GroupVersion.Version,
 			},
-			wantErr: false,
+			wantResult: true,
+			wantErr:    false,
+		},
+		{
+			name: "Already has CRD but in the old version (not explicitly tolerated by the command)",
+			args: args{},
+			fields: fields{
+				hasCRDVersion: clusterctlv1old.GroupVersion.Version,
+			},
+			wantResult: true,
+			wantErr:    true,
+		},
+		{
+			name: "Already has CRD but in the old version, tolerated by the command",
+			args: args{
+				tolerateContract: clusterctlv1old.GroupVersion.Version,
+			},
+			fields: fields{
+				hasCRDVersion: clusterctlv1old.GroupVersion.Version,
+			},
+			wantResult: true,
+			wantErr:    false,
+		},
+		{
+			name: "Already has CRD but in another version, which is not the tolerated one",
+			args: args{
+				tolerateContract: clusterctlv1old.GroupVersion.Version,
+			},
+			fields: fields{
+				hasCRDVersion: "anotherVersion",
+			},
+			wantResult: true,
+			wantErr:    true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			p := newInventoryClient(test.NewFakeProxy(), fakePollImmediateWaiter)
-			if tt.fields.alreadyHasCRD {
-				//forcing creation of metadata before test
-				g.Expect(p.EnsureCustomResourceDefinitions()).To(Succeed())
+			proxy := test.NewFakeProxy()
+			if tt.fields.hasCRDVersion != "" {
+				crd := &apiextensionsv1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{Name: "providers.clusterctl.cluster.x-k8s.io"},
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+							{
+								Name: tt.fields.hasCRDVersion,
+							},
+						},
+					},
+				}
+				c, err := proxy.NewClient()
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(c.Create(context.TODO(), crd)).ToNot(HaveOccurred())
 			}
 
-			err := p.EnsureCustomResourceDefinitions()
+			res, err := checkInventoryCRDs(proxy, tt.args.tolerateContract)
+			g.Expect(res).To(Equal(tt.wantResult))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -77,9 +131,27 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 	}
 }
 
-var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1", ResourceVersion: "1"}}
-
 func Test_inventoryClient_List(t *testing.T) {
+
+	var fooProvider = clusterctlv1.Provider{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Provider",
+			APIVersion: clusterctlv1.GroupVersion.String(),
+		}, ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "ns1", ResourceVersion: "1",
+		},
+	}
+	var oldFooProvider = clusterctlv1old.Provider{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Provider",
+			APIVersion: clusterctlv1old.GroupVersion.String(),
+		}, ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "ns1", ResourceVersion: "1",
+		},
+	}
+
 	type fields struct {
 		initObjs []client.Object
 	}
@@ -94,6 +166,18 @@ func Test_inventoryClient_List(t *testing.T) {
 			fields: fields{
 				initObjs: []client.Object{
 					&fooProvider,
+				},
+			},
+			want: []clusterctlv1.Provider{
+				fooProvider,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Get list when the cluster is still with old providers types",
+			fields: fields{
+				initObjs: []client.Object{
+					&oldFooProvider,
 				},
 			},
 			want: []clusterctlv1.Provider{

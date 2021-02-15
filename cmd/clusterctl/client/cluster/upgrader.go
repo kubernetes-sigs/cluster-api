@@ -140,6 +140,10 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 }
 
 func (u *providerUpgrader) ApplyPlan(coreProvider clusterctlv1.Provider, contract string) error {
+	if contract != clusterctlv1.GroupVersion.Version {
+		return errors.Errorf("current version of clusterctl could only upgrade to %s contract, requested %s", clusterctlv1.GroupVersion.Version, contract)
+	}
+
 	log := logf.Log
 	log.Info("Performing upgrade...")
 
@@ -243,6 +247,10 @@ func (u *providerUpgrader) createCustomPlan(coreProvider clusterctlv1.Provider, 
 	targetContract, err := u.getProviderContractByVersion(managementGroup.CoreProvider, targetCoreProviderVersion)
 	if err != nil {
 		return nil, err
+	}
+
+	if targetContract != clusterctlv1.GroupVersion.Version {
+		return nil, errors.Errorf("current version of clusterctl could only upgrade to %s contract, requested %s", clusterctlv1.GroupVersion.Version, targetContract)
 	}
 
 	// Builds the custom upgrade plan, by adding all the upgrade items after checking consistency with the targetContract.

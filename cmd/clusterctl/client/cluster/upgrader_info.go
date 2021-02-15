@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 // upgradeInfo holds all the information required for taking upgrade decisions for a provider
@@ -45,6 +46,8 @@ type upgradeInfo struct {
 
 // getUpgradeInfo returns all the info required for taking upgrade decisions for a provider.
 func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgradeInfo, error) {
+	log := logf.Log
+
 	// Gets the list of versions available in the provider repository.
 	configRepository, err := u.configClient.Providers().Get(provider.ProviderName, provider.GetProviderType())
 	if err != nil {
@@ -56,6 +59,11 @@ func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgr
 		return nil, err
 	}
 
+	currentVersion, err := version.ParseSemantic(provider.Version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse current version for the %s provider", provider.InstanceName())
+	}
+
 	repositoryVersions, err := providerRepository.GetVersions()
 	if err != nil {
 		return nil, err
@@ -65,53 +73,55 @@ func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgr
 		return nil, errors.Errorf("failed to get available versions for the %s provider", provider.InstanceName())
 	}
 
-	//  Pick the provider's latest version available in the repository and use it to get the most recent metadata for the provider.
-	var latestVersion *version.Version
-	for _, availableVersion := range repositoryVersions {
-		availableSemVersion, err := version.ParseSemantic(availableVersion)
+	// Check all the versions are semantic versions
+	repositorySemVersions := make([]version.Version, 0, len(repositoryVersions))
+	for _, v := range repositoryVersions {
+		semV, err := version.ParseSemantic(v)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse available version for the %s provider", provider.InstanceName())
 		}
+		repositorySemVersions = append(repositorySemVersions, *semV)
+	}
 
-		if latestVersion == nil || latestVersion.LessThan(availableSemVersion) {
-			latestVersion = availableSemVersion
+	// Pick the most recent metadata that this version of clusterctl can process.
+	// E.g. clusterctl v1alpha4 can process v1alpha3 and v1alpha4 metadata files, but not v1alpha5 metadata files;
+	// so it will use the latest v1alpha4 metadata file available (ignoring v1alpha5 metadata files).
+	var latestMetadata *clusterctlv1.Metadata
+	sort.Slice(repositorySemVersions, func(i, j int) bool {
+		return !repositorySemVersions[i].LessThan(&repositorySemVersions[j])
+	})
+	for i := range repositorySemVersions {
+		tag := versionTag(&repositorySemVersions[i])
+		if vMetadata, err := providerRepository.Metadata(tag).Get(); err == nil {
+			latestMetadata = vMetadata
+			break
 		}
+		log.Info("Failed to get metadata, falling back to previous version ...", "Provider", provider.Name, "Version", tag)
+	}
+	if latestMetadata == nil {
+		return nil, errors.Errorf("failer to get metadata for upgrading provider %s", provider.InstanceName())
 	}
 
-	latestMetadata, err := providerRepository.Metadata(versionTag(latestVersion)).Get()
-	if err != nil {
-		return nil, err
-	}
-
-	// Get current provider version and check if the releaseSeries defined in metadata includes it.
-	currentVersion, err := version.ParseSemantic(provider.Version)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse current version for the %s provider", provider.InstanceName())
-	}
-
+	// Check if the releaseSeries defined in metadata includes the current version.
 	if latestMetadata.GetReleaseSeriesForVersion(currentVersion) == nil {
 		return nil, errors.Errorf("invalid provider metadata: version %s (the current version) for the provider %s does not match any release series", provider.Version, provider.InstanceName())
 	}
 
-	// Filters the versions to be considered for upgrading the provider (next
-	// versions) and checks if the releaseSeries defined in metadata includes
-	// all of them.
+	// Filters the versions to be considered for upgrading the provider (next versions).
 	nextVersions := []version.Version{}
-	for _, repositoryVersion := range repositoryVersions {
-		// we are ignoring the conversion error here because a first check already passed above
-		repositorySemVersion, _ := version.ParseSemantic(repositoryVersion)
+	for i := range repositorySemVersions {
+		semV := repositorySemVersions[i]
 
 		// Drop the nextVersion version if older or equal that the current version
-		// NB. Using !LessThan because version does not implements a GreaterThan method.
-		if !currentVersion.LessThan(repositorySemVersion) {
-			continue
+		if currentVersion.LessThan(&semV) {
+			nextVersions = append(nextVersions, semV)
 		}
 
-		if latestMetadata.GetReleaseSeriesForVersion(repositorySemVersion) == nil {
-			return nil, errors.Errorf("invalid provider metadata: version %s (one of the available versions) for the provider %s does not match any release series", repositoryVersion, provider.InstanceName())
+		// Drop the nextVersion version not included in the metadata file; this incluedes
+		// also version of the next clusterctl contract, e.g. v1alpha5.
+		if latestMetadata.GetReleaseSeriesForVersion(&semV) == nil {
+			log.Info("Skipping version not included in metadata", "Provider", provider.Name, "Version", versionTag(&semV))
 		}
-
-		nextVersions = append(nextVersions, *repositorySemVersion)
 	}
 
 	return newUpgradeInfo(latestMetadata, currentVersion, nextVersions), nil

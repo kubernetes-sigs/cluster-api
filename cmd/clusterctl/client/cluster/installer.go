@@ -244,6 +244,10 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 		return "", errors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", provider.Version, provider.InstanceName())
 	}
 
+	if releaseSeries.Contract != clusterctlv1.GroupVersion.Version {
+		return "", errors.Errorf("current version of clusterctl could install only %s providers, detected %s", clusterctlv1.GroupVersion.Version, releaseSeries.Contract)
+	}
+
 	providerInstanceContracts[provider.InstanceName()] = releaseSeries.Contract
 	return releaseSeries.Contract, nil
 }

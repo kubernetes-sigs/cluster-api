@@ -17,9 +17,13 @@ limitations under the License.
 package repository
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	clusterctlv1old "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
@@ -85,7 +89,31 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
 
 	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, obj); err != nil {
-		return nil, errors.Wrapf(err, "error decoding %q for provider %q", name, f.provider.ManifestLabel())
+		if !(runtime.IsNotRegisteredError(err) || strings.Contains(err.Error(), "unknown conversion")) {
+			return nil, errors.Wrapf(err, "error decoding Metadata file %q for provider %q; only %q and %q versions are supported", name, f.provider.ManifestLabel(), clusterctlv1old.GroupVersion.String(), clusterctlv1.GroupVersion.String())
+		}
+
+		// If we are getting IsNotRegisteredError, try to convert from previous version of Metadata.
+		// NOTE: we are performing an on-the-flight, in memory conversion given that the metatadata file is stored in the provider's repository.
+		objOld := &clusterctlv1old.Metadata{}
+		if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, objOld); err != nil {
+			return nil, errors.Wrapf(err, "error decoding Metadata file %q for provider %q; only %q and %q versions are supported", name, f.provider.ManifestLabel(), clusterctlv1old.GroupVersion.String(), clusterctlv1.GroupVersion.String())
+		}
+		if objOld.APIVersion != clusterctlv1old.GroupVersion.String() {
+			return nil, errors.Errorf("error decoding Metadata file %q for provider %q; only %q and %q versions are supported, %q detected", name, f.provider.ManifestLabel(), clusterctlv1old.GroupVersion.String(), clusterctlv1.GroupVersion.String(), objOld.APIVersion)
+		}
+
+		obj.TypeMeta = metav1.TypeMeta{
+			Kind:       "Metadata",
+			APIVersion: clusterctlv1.GroupVersion.String(),
+		}
+		for _, oldReleaseSeries := range objOld.ReleaseSeries {
+			obj.ReleaseSeries = append(obj.ReleaseSeries, clusterctlv1.ReleaseSeries{
+				Major:    oldReleaseSeries.Major,
+				Minor:    oldReleaseSeries.Minor,
+				Contract: oldReleaseSeries.Contract,
+			})
+		}
 	}
 
 	//TODO: consider if to add metadata validation (TBD)

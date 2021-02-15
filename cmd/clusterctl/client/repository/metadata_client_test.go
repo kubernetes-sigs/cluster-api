@@ -27,14 +27,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-var metadataYaml = []byte("apiVersion: clusterctl.cluster.x-k8s.io/v1alpha4\n" +
-	"kind: Metadata\n" +
-	"releaseSeries:\n" +
-	" - major: 1\n" +
-	"   minor: 2\n" +
-	"   contract: v1alpha4\n" +
-	"")
-
 func Test_metadataClient_Get(t *testing.T) {
 	type fields struct {
 		provider   config.Provider
@@ -55,18 +47,22 @@ func Test_metadataClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "metadata.yaml", metadataYaml),
+					WithMetadata("v1.0.0", &clusterctlv1.Metadata{
+						ReleaseSeries: []clusterctlv1.ReleaseSeries{
+							{Major: 1, Minor: 2, Contract: clusterctlv1.GroupVersion.Version},
+						},
+					}),
 			},
 			want: &clusterctlv1.Metadata{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "clusterctl.cluster.x-k8s.io/v1alpha4",
+					APIVersion: clusterctlv1.GroupVersion.String(),
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{
 						Major:    1,
 						Minor:    2,
-						Contract: "v1alpha4",
+						Contract: clusterctlv1.GroupVersion.Version,
 					},
 				},
 			},
@@ -92,7 +88,11 @@ func Test_metadataClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v2.0.0").
-					WithFile("v2.0.0", "metadata.yaml", metadataYaml), // metadata file exists for version 2.0.0, while we are checking metadata for v1.0.0
+					WithMetadata("v2.0.0", &clusterctlv1.Metadata{ // metadata file exists for version 2.0.0, while we are checking metadata for v1.0.0
+						ReleaseSeries: []clusterctlv1.ReleaseSeries{
+							{Major: 1, Minor: 2, Contract: clusterctlv1.GroupVersion.Version},
+						},
+					}),
 			},
 			want:    nil,
 			wantErr: true,
@@ -108,6 +108,57 @@ func Test_metadataClient_Get(t *testing.T) {
 					WithFile("v2.0.0", "metadata.yaml", []byte("not a valid metadata file!")), // metadata file exists but is invalid
 			},
 			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Pass with a v1alpha3 version of metadata file",
+			fields: fields{
+				provider: config.NewProvider("p1", "", clusterctlv1.CoreProviderType),
+				version:  "v1.0.0",
+				repository: test.NewFakeRepository().
+					WithPaths("root", "").
+					WithDefaultVersion("v1.0.0").
+					WithRawMetadata("v1.0.0",
+						"apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\n"+ // this can be processed by clusterctl v1alpha4
+							"kind: Metadata\n"+
+							"releaseSeries:\n"+
+							"- major: 1\n"+
+							"  minor: 2\n"+
+							"  contract: v1alpha3\n",
+					),
+			},
+			want: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{
+						Major:    1,
+						Minor:    2,
+						Contract: "v1alpha3",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Fails with a v1alpha5 version of metadata file (unsupported)",
+			fields: fields{
+				provider: config.NewProvider("p1", "", clusterctlv1.CoreProviderType),
+				version:  "v1.0.0",
+				repository: test.NewFakeRepository().
+					WithPaths("root", "").
+					WithDefaultVersion("v1.0.0").
+					WithRawMetadata("v1.0.0",
+						"apiVersion: clusterctl.cluster.x-k8s.io/v1alpha5\n"+ // this can be processed by clusterctl v1alpha4
+							"kind: Metadata\n"+
+							"releaseSeries:\n"+
+							"- major: 1\n"+
+							"  minor: 2\n"+
+							"  contract: v1alpha5\n",
+					),
+			},
 			wantErr: true,
 		},
 	}

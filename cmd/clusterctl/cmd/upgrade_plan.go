@@ -22,6 +22,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
@@ -116,9 +117,14 @@ func runUpgradePlan() error {
 		fmt.Println("")
 
 		if upgradeAvailable {
-			fmt.Println("You can now apply the upgrade by executing the following command:")
-			fmt.Println("")
-			fmt.Printf("   upgrade apply --management-group %s --contract %s\n", plan.CoreProvider.InstanceName(), plan.Contract)
+			if plan.Contract == clusterctlv1.GroupVersion.Version {
+				fmt.Println("You can now apply the upgrade by executing the following command:")
+				fmt.Println("")
+				fmt.Printf("   upgrade apply --management-group %s --contract %s\n", plan.CoreProvider.InstanceName(), plan.Contract)
+			} else {
+				fmt.Printf("The current version of clusterctl could only upgrade to %s contract.\n", clusterctlv1.GroupVersion.Version)
+				fmt.Printf("For upgrading to %s contract, use an older version.\n", plan.Contract)
+			}
 		} else {
 			fmt.Println("You are already up to date!")
 		}

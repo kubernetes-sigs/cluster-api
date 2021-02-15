@@ -17,14 +17,17 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
+	clusterctlv1old "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -39,12 +42,36 @@ const (
 	waitInventoryCRDTimeout  = 1 * time.Minute
 )
 
+// EnsureCustomResourceDefinitionsOption is some configuration that modifies options for EnsureCustomResourceDefinitions.
+type EnsureCustomResourceDefinitionsOption interface {
+	// Apply applies this configuration to the given EnsureCustomResourceDefinitionsOptions.
+	Apply(*EnsureCustomResourceDefinitionsOptions)
+}
+
+// EnsureCustomResourceDefinitionsOptions contains options for EnsureCustomResourceDefinitions.
+type EnsureCustomResourceDefinitionsOptions struct {
+	// TolerateContract instructs EnsureCustomResourceDefinitions to tolerate cluster
+	// running the previous version of the Cluster API contract.
+	TolerateContract string
+}
+
+// TolerateContract allows specif calls to EnsureCustomResourceDefinitions to tolerate cluster running the previous version of the Cluster API contract.
+// e.g. While running clusterctl v1alpha4 upgrades, we want to tolerate cluster currently running the v1alpha3 contract.
+type TolerateContract struct {
+	Contract string
+}
+
+// Apply applies this configuration to the given EnsureCustomResourceDefinitionsOptions.
+func (t TolerateContract) Apply(in *EnsureCustomResourceDefinitionsOptions) {
+	in.TolerateContract = t.Contract
+}
+
 // InventoryClient exposes methods to interface with a cluster's provider inventory.
 type InventoryClient interface {
 	// EnsureCustomResourceDefinitions installs the CRD required for creating inventory items, if necessary.
 	// Nb. In order to provide a simpler out-of-the box experience, the inventory CRD
 	// is embedded in the clusterctl binary.
-	EnsureCustomResourceDefinitions() error
+	EnsureCustomResourceDefinitions(...EnsureCustomResourceDefinitionsOption) error
 
 	// Create an inventory item for a provider instance installed in the cluster.
 	Create(clusterctlv1.Provider) error
@@ -88,8 +115,13 @@ func newInventoryClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *i
 	}
 }
 
-func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
+func (p *inventoryClient) EnsureCustomResourceDefinitions(options ...EnsureCustomResourceDefinitionsOption) error {
 	log := logf.Log
+
+	opt := &EnsureCustomResourceDefinitionsOptions{}
+	for _, o := range options {
+		o.Apply(opt)
+	}
 
 	if err := p.proxy.ValidateKubernetesVersion(); err != nil {
 		return err
@@ -111,10 +143,10 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	listInventoryBackoff := newReadBackoff()
 	if err := retryWithExponentialBackoff(listInventoryBackoff, func() error {
 		var err error
-		crdIsIstalled, err = checkInventoryCRDs(p.proxy)
+		crdIsIstalled, err = checkInventoryCRDs(p.proxy, opt.TolerateContract)
 		return err
 	}); err != nil {
-		return err
+		return errors.Cause(err)
 	}
 	if crdIsIstalled {
 		return nil
@@ -178,20 +210,33 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 }
 
 // checkInventoryCRDs checks if the inventory CRDs are installed in the cluster.
-func checkInventoryCRDs(proxy Proxy) (bool, error) {
+// We are requesting the CRD to be of the version supported by clusterctl or
+// of an additional version (e.g. upgrade command should tolerate also old version).
+func checkInventoryCRDs(proxy Proxy, tolerateContract string) (bool, error) {
 	c, err := proxy.NewClient()
 	if err != nil {
 		return false, err
 	}
 
-	l := &clusterctlv1.ProviderList{}
-	if err = c.List(ctx, l); err == nil {
-		return true, nil
-	}
-	if !apimeta.IsNoMatchError(err) {
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	if err := c.Get(ctx, client.ObjectKey{Name: "providers.clusterctl.cluster.x-k8s.io"}, crd); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.Wrap(err, "failed to check if the clusterctl inventory CRD exists")
 	}
-	return false, nil
+
+	for _, version := range crd.Spec.Versions {
+		if version.Name != clusterctlv1.GroupVersion.Version && version.Name != tolerateContract {
+			supported := fmt.Sprintf("%q", clusterctlv1.GroupVersion.Version)
+			if tolerateContract != "" {
+				supported = fmt.Sprintf("%s (and %q for this command)", supported, tolerateContract)
+			}
+			return true, errors.Errorf("this version of clusterctl could be used to manage %s versions Cluster API only, %q detected", supported, version.Name)
+		}
+	}
+
+	return true, nil
 }
 
 func (p *inventoryClient) createObj(o unstructured.Unstructured) error {
@@ -273,9 +318,44 @@ func listProviders(proxy Proxy, providerList *clusterctlv1.ProviderList) error {
 		return err
 	}
 
-	if err := cl.List(ctx, providerList); err != nil {
+	if err := cl.List(ctx, providerList); err != nil && !apimeta.IsNoMatchError(err) {
 		return errors.Wrap(err, "failed get providers")
 	}
+
+	// if the list is empty, it could be we are dealing with a cluster being updated, so try to read previous version of
+	// inventory and convert to the current one.
+	// NB. This performs an on-the-flight, in memory conversion, but the actual stored version must not be changed;
+	// it is responsibility of clusterctl upgrade apply operation to perform the actual conversion.
+	if len(providerList.Items) == 0 {
+		oldProviderList := &clusterctlv1old.ProviderList{}
+		if err := cl.List(ctx, oldProviderList); err != nil {
+			if !apimeta.IsNoMatchError(err) {
+				return errors.Wrap(err, "failed get providers")
+			}
+		}
+
+		for _, oldProvider := range oldProviderList.Items {
+			newProvider := clusterctlv1.Provider{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Provider",
+					APIVersion: clusterctlv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: oldProvider.Namespace,
+					Name:      oldProvider.Name,
+					Labels:    oldProvider.Labels,
+					// this is required for having test to pass.
+					ResourceVersion: oldProvider.ResourceVersion,
+				},
+				ProviderName:     oldProvider.ProviderName,
+				Type:             oldProvider.Type,
+				Version:          oldProvider.Version,
+				WatchedNamespace: oldProvider.WatchedNamespace,
+			}
+			providerList.Items = append(providerList.Items, newProvider)
+		}
+	}
+
 	return nil
 }
 

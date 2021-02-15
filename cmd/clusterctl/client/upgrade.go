@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterctlv1old "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
@@ -33,12 +34,12 @@ type PlanUpgradeOptions struct {
 
 func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return CertManagerUpgradePlan{}, err
 	}
 
-	certManager, err := cluster.CertManager()
+	certManager, err := clusterClient.CertManager()
 	if err != nil {
 		return CertManagerUpgradePlan{}, err
 	}
@@ -48,17 +49,17 @@ func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (C
 
 func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return nil, err
 	}
 
-	// Ensures the custom resource definitions required by clusterctl are in place.
-	if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	// Ensures the custom resource definitions required by clusterctl are in place; for upgrades, we are tolerating cluster with v1alpha3 contract.
+	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(cluster.TolerateContract{Contract: clusterctlv1old.GroupVersion.Version}); err != nil {
 		return nil, err
 	}
 
-	upgradePlans, err := cluster.ProviderUpgrader().Plan()
+	upgradePlans, err := clusterClient.ProviderUpgrader().Plan()
 	if err != nil {
 		return nil, err
 	}
@@ -103,14 +104,18 @@ type ApplyUpgradeOptions struct {
 }
 
 func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
+	if options.Contract != "" && options.Contract != clusterctlv1.GroupVersion.Version {
+		return errors.Errorf("current version of clusterctl could only upgrade to %s contract, requested %s", clusterctlv1.GroupVersion.Version, options.Contract)
+	}
+
 	// Get the client for interacting with the management cluster.
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}
 
-	// Ensures the custom resource definitions required by clusterctl are in place.
-	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	// Ensures the custom resource definitions required by clusterctl are in place; for upgrades, we are tolerating cluster with v1alpha3 contract.
+	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(cluster.TolerateContract{Contract: clusterctlv1old.GroupVersion.Version}); err != nil {
 		return err
 	}
 

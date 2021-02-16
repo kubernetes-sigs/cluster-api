@@ -297,7 +297,7 @@ func Test_updateGroupNode(t *testing.T) {
 
 	group := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "virtual.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "virtual.cluster.x-k8s.io/v1alpha3",
 			"kind":       "MachineGroup",
 			"metadata": map[string]interface{}{
 				"namespace": "ns",
@@ -338,7 +338,7 @@ func Test_updateGroupNode(t *testing.T) {
 
 	want := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "virtual.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "virtual.cluster.x-k8s.io/v1alpha3",
 			"kind":       "MachineGroup",
 			"metadata": map[string]interface{}{
 				"namespace": "ns",

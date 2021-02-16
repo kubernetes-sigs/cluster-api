@@ -99,6 +99,10 @@ type ApplyUpgradeOptions struct {
 }
 
 func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
+	if options.Contract != "" && options.Contract != clusterctlv1.GroupVersion.Version {
+		return errors.Errorf("current version of clusterctl could only upgrade to %s contract, requested %s", clusterctlv1.GroupVersion.Version, options.Contract)
+	}
+
 	// Get the client for interacting with the management cluster.
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {

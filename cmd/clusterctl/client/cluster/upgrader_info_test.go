@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -45,13 +44,13 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "returns all the expected info",
+			name: "pass when current and next version contract are v1alpha3",
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository(). //without metadata
-									WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
-									WithMetadata("v1.1.0", &clusterctlv1.Metadata{
+				repository: test.NewFakeRepository().
+					WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
+					WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
 							{Major: 1, Minor: 0, Contract: "v1alpha3"},
 							{Major: 1, Minor: 1, Contract: "v1alpha3"},
@@ -83,7 +82,54 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "fails if metadata file is not available for the target version",
+			name: "pass when current is v1alpha3 contract, next v1alpha4 (it should fall back to latest known metadata)",
+			fields: fields{
+				reader: test.NewFakeReader().
+					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				repository: test.NewFakeRepository().
+					WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
+					WithMetadata("v1.0.2", &clusterctlv1.Metadata{
+						ReleaseSeries: []clusterctlv1.ReleaseSeries{
+							{Major: 1, Minor: 0, Contract: "v1alpha3"},
+						},
+					}).
+					WithRawMetadata("v1.1.0",
+						"apiVersion: clusterctl.cluster.x-k8s.io/v1alpha4\n"+ // this can't be processed by clusterctl v1alpha3
+							"kind: Metadata\n"+
+							"releaseSeries:\n"+
+							"- major: 1\n"+
+							"  minor: 0\n"+
+							"  contract: v1alpha3\n"+
+							"- major: 1\n"+
+							"  minor: 1\n"+
+							"  contract: v1alpha4\n",
+					),
+			},
+			args: args{
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.1", "p1-system", ""),
+			},
+			want: &upgradeInfo{
+				metadata: &clusterctlv1.Metadata{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: clusterctlv1.GroupVersion.String(),
+						Kind:       "Metadata",
+					},
+					ReleaseSeries: []clusterctlv1.ReleaseSeries{
+						{Major: 1, Minor: 0, Contract: "v1alpha3"}, // Fallback to latest known metadata
+					},
+				},
+				currentVersion:  version.MustParseSemantic("v1.0.1"),
+				currentContract: "v1alpha3",
+				nextVersions: []version.Version{
+					// v1.0.1 (the current version) and older are ignored
+					*version.MustParseSemantic("v1.0.2"),
+					*version.MustParseSemantic("v1.1.0"), // this will be dropped later.
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "fails if a metadata file for upgrades can't be found",
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
@@ -97,11 +143,11 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "fails if metadata file is not available for the target version",
+			name: "fails if a metadata file for upgrades can't be found",
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository(). //with metadata but not for the target version
+				repository: test.NewFakeRepository(). // with metadata but only for versions <= current version (not for next versions)
 									WithVersions("v1.0.0", "v1.0.1").
 									WithMetadata("v1.0.0", &clusterctlv1.Metadata{}),
 			},
@@ -112,33 +158,13 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "fails if current version does not match release series",
+			name: "fails if when current version does not match any release series in metadata",
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: test.NewFakeRepository(). //without metadata
 									WithVersions("v1.0.0", "v1.0.1").
 									WithMetadata("v1.0.1", &clusterctlv1.Metadata{}),
-			},
-			args: args{
-				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "fails if available version does not match release series",
-			fields: fields{
-				reader: test.NewFakeReader().
-					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository(). //without metadata
-									WithVersions("v1.0.0", "v1.0.1", "v1.1.1").
-									WithMetadata("v1.1.1", &clusterctlv1.Metadata{
-						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 0, Contract: "v1alpha3"},
-							// missing 1.1 series
-						},
-					}),
 			},
 			args: args{
 				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
@@ -200,7 +226,7 @@ func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
 				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different contracts
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
 						{Major: 0, Minor: 1, Contract: "v1alpha3"},
-						{Major: 0, Minor: 2, Contract: "v1alpha4"},
+						{Major: 0, Minor: 2, Contract: "v1alpha4"}, // this is not actually supported in clusterctl v1alpha3, but this should work in future versions
 					},
 				},
 				currentVersion: "v0.1.1", // current version linked to the first contract
@@ -213,7 +239,7 @@ func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
 				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different contracts
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
 						{Major: 0, Minor: 1, Contract: "v1alpha3"},
-						{Major: 0, Minor: 2, Contract: "v1alpha4"},
+						{Major: 0, Minor: 2, Contract: "v1alpha4"}, // this is not actually supported in clusterctl v1alpha3, but this should work in future versions
 					},
 				},
 				currentVersion: "v0.2.1", // current version linked to the second/the last contract
@@ -297,7 +323,7 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
 						{Major: 1, Minor: 2, Contract: "v1alpha3"},
 						{Major: 1, Minor: 3, Contract: "v1alpha3"},
-						{Major: 2, Minor: 0, Contract: "v1alpha4"},
+						{Major: 2, Minor: 0, Contract: "v1alpha4"}, // this is not actually supported in clusterctl v1alpha3, but this should work in future versions
 					},
 				},
 			},
@@ -315,14 +341,32 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
 						{Major: 1, Minor: 2, Contract: "v1alpha3"},
 						{Major: 1, Minor: 3, Contract: "v1alpha3"},
-						{Major: 2, Minor: 0, Contract: "v1alpha4"},
+						{Major: 2, Minor: 0, Contract: "v1alpha4"}, // this is not actually supported in clusterctl v1alpha3, but this should work in future versions
 					},
 				},
 			},
 			args: args{
-				contract: "v1alpha4",
+				contract: "v1alpha4", // not supported in current clusterctl release.
 			},
 			want: "v2.0.2", // skipping v2.0.1 because it is not the latest version available; ignoring v1.* because linked to a different contract
+		},
+		{
+			name: "Find an upgrade version in the previous contract",
+			field: field{
+				currentVersion: "v1.2.3",
+				nextVersions:   []string{"v1.2.4", "v1.3.1", "v2.0.1", "v2.0.2"},
+				metadata: &clusterctlv1.Metadata{
+					ReleaseSeries: []clusterctlv1.ReleaseSeries{
+						{Major: 1, Minor: 2, Contract: "v1alpha3"},
+						{Major: 1, Minor: 3, Contract: "v1alpha3"},
+						{Major: 2, Minor: 0, Contract: "v1alpha4"}, // not supported in current clusterctl release.
+					},
+				},
+			},
+			args: args{
+				contract: "v1alpha3",
+			},
+			want: "v1.3.1", // skipping v1.2.4 because it is not the latest version available; ignoring v1.* because linked to a different contract
 		},
 	}
 	for _, tt := range tests {

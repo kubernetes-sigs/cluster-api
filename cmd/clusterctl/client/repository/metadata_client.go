@@ -91,6 +91,9 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
 
 	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, obj); err != nil {
+		if runtime.IsNotRegisteredError(err) {
+			return nil, errors.Errorf("%q for provider \"%s:%s\" appears to be in an usupported version. This version of clusterctl supports %q metadata and provider versions only", name, f.provider.ManifestLabel(), version, clusterctlv1.GroupVersion.Version)
+		}
 		return nil, errors.Wrapf(err, "error decoding %q for provider %q", name, f.provider.ManifestLabel())
 	}
 

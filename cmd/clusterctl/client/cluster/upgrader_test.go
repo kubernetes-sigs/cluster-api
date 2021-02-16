@@ -40,7 +40,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Single Management group, no multi-tenancy, upgrade within the same contract",
+			name: "Single Management group, no multi-tenancy, upgrade within the same contract - v1alpha3 (current)",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -140,7 +140,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Single Management group, no multi-tenancy, upgrade for two contracts",
+			name: "Single Management group, no multi-tenancy, upgrade for two contracts - v1alpha3 (current), v1alpha4 (not supported)",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -150,18 +150,27 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				repository: map[string]repository.Repository{
 					"cluster-api": test.NewFakeRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
-						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: "v1alpha3"},
-								{Major: 2, Minor: 0, Contract: "v1alpha4"},
 							},
-						}),
+						}).
+						WithRawMetadata("v2.0.0",
+							"apiVersion: clusterctl.cluster.x-k8s.io/v1alpha4\n"+ // this can't be processed by clusterctl v1alpha3
+								"kind: Metadata\n"+
+								"releaseSeries:\n"+
+								"- major: 1\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha3\n"+
+								"- major: 2\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha4\n",
+						),
 					"infrastructure-infra": test.NewFakeRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 2, Minor: 0, Contract: "v1alpha3"},
-								{Major: 3, Minor: 0, Contract: "v1alpha4"},
 							},
 						}),
 				},
@@ -185,25 +194,12 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						},
 					},
 				},
-				{ // one upgrade plan with the latest releases in the v1alpha4 contract
-					Contract:     "v1alpha4",
-					CoreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-					Providers: []UpgradeItem{
-						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-							NextVersion: "v2.0.0",
-						},
-						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
-							NextVersion: "v3.0.0",
-						},
-					},
-				},
+				// upgrade plan with for the v1alpha4 contract should be ignored
 			},
 			wantErr: false,
 		},
 		{
-			name: "Single Management group, n-Infra multi-tenancy, upgrade within the same contract",
+			name: "Single Management group, n-Infra multi-tenancy, upgrade within the same contract - v1alpha3 (current)",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -255,7 +251,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Single Management group, n-Infra multi-tenancy, upgrade for two contracts",
+			name: "Single Management group, n-Infra multi-tenancy, upgrade for two contracts - v1alpha3 (current), v1alpha4 (not supported)",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -265,20 +261,40 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				repository: map[string]repository.Repository{
 					"cluster-api": test.NewFakeRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
-						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: "v1alpha3"},
-								{Major: 2, Minor: 0, Contract: "v1alpha4"},
 							},
-						}),
+						}).
+						WithRawMetadata("v2.0.0",
+							"apiVersion: clusterctl.cluster.x-k8s.io/v1alpha4\n"+ // this can't be processed by clusterctl v1alpha3
+								"kind: Metadata\n"+
+								"releaseSeries:\n"+
+								"- major: 1\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha3\n"+
+								"- major: 2\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha4\n",
+						),
 					"infrastructure-infra": test.NewFakeRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
-						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 2, Minor: 0, Contract: "v1alpha3"},
-								{Major: 3, Minor: 0, Contract: "v1alpha4"},
 							},
-						}),
+						}).
+						WithRawMetadata("v3.0.0",
+							"apiVersion: clusterctl.cluster.x-k8s.io/v1alpha4\n"+ // this can't be processed by clusterctl v1alpha3
+								"kind: Metadata\n"+
+								"releaseSeries:\n"+
+								"- major: 2\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha3\n"+
+								"- major: 3\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha4\n",
+						),
 				},
 				// one core and two infra providers existing in the cluster
 				proxy: test.NewFakeProxy().
@@ -305,29 +321,12 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						},
 					},
 				},
-				{ // one upgrade plan with the latest releases in the v1alpha4 contract
-					Contract:     "v1alpha4",
-					CoreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-					Providers: []UpgradeItem{
-						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-							NextVersion: "v2.0.0",
-						},
-						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system1", "ns1"),
-							NextVersion: "v3.0.0",
-						},
-						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system2", "ns2"),
-							NextVersion: "v3.0.0",
-						},
-					},
-				},
+				// upgrade plan for the v1alpha4 contract should be ignored
 			},
 			wantErr: false,
 		},
 		{
-			name: "Single Management group, n-Core multi-tenancy, upgrade within the same contract",
+			name: "Single Management group, n-Core multi-tenancy, upgrade within the same contract - v1alpha3 (current)",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -390,7 +389,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Single Management group, n-Core multi-tenancy, upgrade for two contracts",
+			name: "Single Management group, n-Core multi-tenancy, upgrade for two contracts - v1alpha3 (current), v1alpha4 (not supported)",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -400,20 +399,41 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				repository: map[string]repository.Repository{
 					"cluster-api": test.NewFakeRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
-						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: "v1alpha3"},
 								{Major: 2, Minor: 0, Contract: "v1alpha4"},
 							},
-						}),
+						}).
+						WithRawMetadata("v2.0.0",
+							"apiVersion: clusterctl.cluster.x-k8s.io/v1alpha4\n"+ // this can't be processed by clusterctl v1alpha3
+								"kind: Metadata\n"+
+								"releaseSeries:\n"+
+								"- major: 1\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha3\n"+
+								"- major: 2\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha4\n",
+						),
 					"infrastructure-infra": test.NewFakeRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
-						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 2, Minor: 0, Contract: "v1alpha3"},
-								{Major: 3, Minor: 0, Contract: "v1alpha4"},
 							},
-						}),
+						}).
+						WithRawMetadata("v3.0.0",
+							"apiVersion: clusterctl.cluster.x-k8s.io/v1alpha4\n"+ // this can't be processed by clusterctl v1alpha3
+								"kind: Metadata\n"+
+								"releaseSeries:\n"+
+								"- major: 2\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha3\n"+
+								"- major: 3\n"+
+								"  minor: 0\n"+
+								"  contract: v1alpha4\n",
+						),
 				},
 				// two management groups existing in the cluster
 				proxy: test.NewFakeProxy().
@@ -437,20 +457,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						},
 					},
 				},
-				{ // one upgrade plan with the latest releases in the v1alpha4 contract for the first management group
-					Contract:     "v1alpha4",
-					CoreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system1", "ns1"),
-					Providers: []UpgradeItem{
-						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system1", "ns1"),
-							NextVersion: "v2.0.0",
-						},
-						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system1", "ns1"),
-							NextVersion: "v3.0.0",
-						},
-					},
-				},
+				// upgrade plan for the v1alpha4 contract for the first management group not supported
 				{ // one upgrade plan with the latest releases in the v1alpha3 contract for the second management group
 					Contract:     "v1alpha3",
 					CoreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system2", "ns2"),
@@ -465,42 +472,28 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						},
 					},
 				},
-				{ // one upgrade plan with the latest releases in the v1alpha4 contract for the second management group
-					Contract:     "v1alpha4",
-					CoreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system2", "ns2"),
-					Providers: []UpgradeItem{
-						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system2", "ns2"),
-							NextVersion: "v2.0.0",
-						},
-						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system2", "ns2"),
-							NextVersion: "v3.0.0",
-						},
-					},
-				},
+				// upgrade plan for the v1alpha4 contract for the second management group not supported
 			},
 			wantErr: false,
 		},
 		{
-			name: "Single Management group, no multi-tenancy, upgrade for two contracts, but the upgrade for the second one is partially available",
+			name: "Single Management group, no multi-tenancy, upgrade partial upgrades for v1alpha3 (current)",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				// two provider repositories, the first with a new version for current v1alpha3 contract and a new version for the v1alpha4 contract, the second without new releases
+				// two provider repositories, the first with a new version for current v1alpha3 contract, the second without new releases
 				repository: map[string]repository.Repository{
 					"cluster-api": test.NewFakeRepository().
-						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
+						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: "v1alpha3"},
-								{Major: 2, Minor: 0, Contract: "v1alpha4"},
 							},
 						}),
 					"infrastructure-infra": test.NewFakeRepository().
-						WithVersions("v2.0.0"). // no v1alpha3 or v1alpha3 new releases yet available for the infra provider (only the current release exists)
+						WithVersions("v2.0.0"). // no v1alpha3 new releases yet available for the infra provider (only the current release exists)
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 2, Minor: 0, Contract: "v1alpha3"},
@@ -527,7 +520,6 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						},
 					},
 				},
-				// the upgrade plan with the latest releases in the v1alpha4 contract should be dropped because all the provider are required to change the contract at the same time
 			},
 			wantErr: false,
 		},
@@ -675,7 +667,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "fail if upgrade infra provider, changing contract",
+			name: "fail if upgrade infra provider, changing contract", // not supported in current clusterctl release.
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -688,7 +680,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: "v1alpha3"},
-								{Major: 2, Minor: 0, Contract: "v1alpha4"},
+								{Major: 2, Minor: 0, Contract: "v1alpha4"}, // not supported in current clusterctl release, but this makes it possible to test the scenario that is required in future versions of clusterctl.
 							},
 						}),
 					"infra": test.NewFakeRepository().
@@ -696,7 +688,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 2, Minor: 0, Contract: "v1alpha3"},
-								{Major: 3, Minor: 0, Contract: "v1alpha4"},
+								{Major: 3, Minor: 0, Contract: "v1alpha4"}, // not supported in current clusterctl release, but this makes it possible to test the scenario that is required in future versions of clusterctl.
 							},
 						}),
 				},
@@ -710,7 +702,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				providersToUpgrade: []UpgradeItem{
 					{
 						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
-						NextVersion: "v3.0.0", // upgrade to next release in the v1alpha4 contract
+						NextVersion: "v3.0.0", // upgrade to next release in the v1alpha4 contract; not supported in current clusterctl release.
 					},
 				},
 			},
@@ -731,7 +723,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: "v1alpha3"},
-								{Major: 2, Minor: 0, Contract: "v1alpha4"},
+								{Major: 2, Minor: 0, Contract: "v1alpha4"}, // not supported in current clusterctl release, but this makes it possible to test the scenario that is required in future versions of clusterctl.
 							},
 						}),
 					"infra": test.NewFakeRepository().
@@ -739,7 +731,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 2, Minor: 0, Contract: "v1alpha3"},
-								{Major: 3, Minor: 0, Contract: "v1alpha4"},
+								{Major: 3, Minor: 0, Contract: "v1alpha4"}, // not supported in current clusterctl release, but this makes it possible to test the scenario that is required in future versions of clusterctl.
 							},
 						}),
 				},
@@ -753,7 +745,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				providersToUpgrade: []UpgradeItem{
 					{
 						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-						NextVersion: "v2.0.0", // upgrade to next release in the v1alpha4 contract
+						NextVersion: "v2.0.0", // upgrade to next release in the v1alpha4 contract; not supported in current clusterctl release.
 					},
 				},
 			},
@@ -761,7 +753,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "pass if upgrade core and infra provider, changing contract",
+			name: "fail if upgrade core and infra provider, changing contract", // not supported in current clusterctl release
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -774,7 +766,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: "v1alpha3"},
-								{Major: 2, Minor: 0, Contract: "v1alpha4"},
+								{Major: 2, Minor: 0, Contract: "v1alpha4"}, // not supported in current clusterctl release, but this makes it possible to test the scenario that is required in future versions of clusterctl.
 							},
 						}),
 					"infra": test.NewFakeRepository().
@@ -782,7 +774,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 2, Minor: 0, Contract: "v1alpha3"},
-								{Major: 3, Minor: 0, Contract: "v1alpha4"},
+								{Major: 3, Minor: 0, Contract: "v1alpha4"}, // not supported in current clusterctl release, but this makes it possible to test the scenario that is required in future versions of clusterctl.
 							},
 						}),
 				},
@@ -796,29 +788,16 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				providersToUpgrade: []UpgradeItem{
 					{
 						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-						NextVersion: "v2.0.0", // upgrade to next release in the v1alpha4 contract
+						NextVersion: "v2.0.0", // upgrade to next release in the v1alpha4 contract; not supported in current clusterctl release.
 					},
 					{
 						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
-						NextVersion: "v3.0.0", // upgrade to next release in the v1alpha4 contract
+						NextVersion: "v3.0.0", // upgrade to next release in the v1alpha4 contract; not supported in current clusterctl release.
 					},
 				},
 			},
-			want: &UpgradePlan{
-				Contract:     "v1alpha4",
-				CoreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-				Providers: []UpgradeItem{
-					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
-						NextVersion: "v2.0.0", // upgrade to next release in the v1alpha4 contract
-					},
-					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
-						NextVersion: "v3.0.0", // upgrade to next release in the v1alpha4 contract
-					},
-				},
-			},
-			wantErr: false,
+			want:    nil,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

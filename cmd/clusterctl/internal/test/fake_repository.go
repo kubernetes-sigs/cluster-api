@@ -122,6 +122,10 @@ func (f *FakeRepository) WithMetadata(version string, metadata *clusterctlv1.Met
 	return f.WithFile(version, "metadata.yaml", data)
 }
 
+func (f *FakeRepository) WithRawMetadata(version string, raw string) *FakeRepository {
+	return f.WithFile(version, "metadata.yaml", []byte(raw))
+}
+
 func vpath(version string, path string) string {
 	return fmt.Sprintf("%s/%s", version, path)
 }

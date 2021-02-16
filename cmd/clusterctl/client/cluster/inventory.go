@@ -17,12 +17,12 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -114,7 +114,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		crdIsIstalled, err = checkInventoryCRDs(p.proxy)
 		return err
 	}); err != nil {
-		return err
+		return errors.Cause(err)
 	}
 	if crdIsIstalled {
 		return nil
@@ -182,20 +182,29 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 }
 
 // checkInventoryCRDs checks if the inventory CRDs are installed in the cluster.
+// We are requesting the CRD to be of the version supported by clusterctl.
 func checkInventoryCRDs(proxy Proxy) (bool, error) {
 	c, err := proxy.NewClient()
 	if err != nil {
 		return false, err
 	}
 
-	l := &clusterctlv1.ProviderList{}
-	if err = c.List(ctx, l); err == nil {
-		return true, nil
-	}
-	if !apimeta.IsNoMatchError(err) {
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	if err := c.Get(ctx, client.ObjectKey{Name: "providers.clusterctl.cluster.x-k8s.io"}, crd); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.Wrap(err, "failed to check if the clusterctl inventory CRD exists")
 	}
-	return false, nil
+
+	for _, version := range crd.Spec.Versions {
+		if version.Name != clusterctlv1.GroupVersion.Version {
+			supported := fmt.Sprintf("%q", clusterctlv1.GroupVersion.Version)
+			return true, errors.Errorf("this version of clusterctl could be used to manage %s versions Cluster API only, %q detected", supported, version.Name)
+		}
+	}
+
+	return true, nil
 }
 
 func (p *inventoryClient) createObj(o unstructured.Unstructured) error {

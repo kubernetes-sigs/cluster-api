@@ -118,7 +118,7 @@ func runUpgradePlan() error {
 		if upgradeAvailable {
 			fmt.Println("You can now apply the upgrade by executing the following command:")
 			fmt.Println("")
-			fmt.Printf("   upgrade apply --management-group %s --contract %s\n", plan.CoreProvider.InstanceName(), plan.Contract)
+			fmt.Printf(" clusterctl upgrade apply --management-group %s --contract %s\n", plan.CoreProvider.InstanceName(), plan.Contract)
 		} else {
 			fmt.Println("You are already up to date!")
 		}

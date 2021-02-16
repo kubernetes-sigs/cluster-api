@@ -17,11 +17,12 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
-
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -33,41 +34,64 @@ func fakePollImmediateWaiter(interval, timeout time.Duration, condition wait.Con
 	return nil
 }
 
-func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
+func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 	type fields struct {
-		alreadyHasCRD bool
+		hasCRDVersion string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
+		name       string
+		fields     fields
+		wantResult bool
+		wantErr    bool
 	}{
 		{
 			name: "Has not CRD",
 			fields: fields{
-				alreadyHasCRD: false,
+				hasCRDVersion: "",
 			},
-			wantErr: false,
+			wantResult: false,
+			wantErr:    false,
 		},
 		{
 			name: "Already has CRD",
 			fields: fields{
-				alreadyHasCRD: true,
+				hasCRDVersion: clusterctlv1.GroupVersion.Version,
 			},
-			wantErr: false,
+			wantResult: true,
+			wantErr:    false,
+		},
+		{
+			name: "Already has CRD but in another version",
+			fields: fields{
+				hasCRDVersion: "anotherVersion",
+			},
+			wantResult: true,
+			wantErr:    true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			p := newInventoryClient(test.NewFakeProxy(), fakePollImmediateWaiter)
-			if tt.fields.alreadyHasCRD {
-				//forcing creation of metadata before test
-				g.Expect(p.EnsureCustomResourceDefinitions()).To(Succeed())
+			proxy := test.NewFakeProxy()
+			if tt.fields.hasCRDVersion != "" {
+				crd := &apiextensionsv1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{Name: "providers.clusterctl.cluster.x-k8s.io"},
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+							{
+								Name: tt.fields.hasCRDVersion,
+							},
+						},
+					},
+				}
+				c, err := proxy.NewClient()
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(c.Create(context.TODO(), crd)).ToNot(HaveOccurred())
 			}
 
-			err := p.EnsureCustomResourceDefinitions()
+			res, err := checkInventoryCRDs(proxy)
+			g.Expect(res).To(Equal(tt.wantResult))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

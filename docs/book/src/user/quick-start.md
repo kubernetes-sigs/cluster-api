@@ -374,9 +374,17 @@ See the [AWS provider prerequisites] document for more details.
 {{#/tab }}
 {{#tab Azure}}
 
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Make sure you choose a VM size which is available in the desired location for your subscription. To see available SKUs, use `az vm list-skus -l <your_location> -r virtualMachines -o table` 
+
+</aside>
+
 ```bash
-# Name of the Azure datacenter location.
-export AZURE_LOCATION="centralus"
+# Name of the Azure datacenter location. Change this value to your desired location.
+export AZURE_LOCATION="centralus" 
 
 # Select VM types.
 export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"
@@ -557,7 +565,7 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
 ```bash
 clusterctl config cluster capi-quickstart \
-  --kubernetes-version v1.19.1 \
+  --kubernetes-version v1.19.7 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -576,7 +584,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl config cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.19.1 \
+  --kubernetes-version v1.19.7 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -620,6 +628,12 @@ The cluster will now start provisioning. You can check status with:
 kubectl get cluster --all-namespaces
 ```
 
+You can also get an "at glance" view of the cluster and its resources by running:
+
+```bash
+clusterctl describe cluster capi-quickstart
+```
+
 To verify the first control plane is up:
 
 ```bash
@@ -629,8 +643,8 @@ kubectl get kubeadmcontrolplane --all-namespaces
 You should see an output is similar to this:
 
 ```bash
-NAME                              READY   INITIALIZED   REPLICAS   READY REPLICAS   UPDATED REPLICAS   UNAVAILABLE REPLICAS
-capi-quickstart-control-plane             true          3                           3                  3
+NAME                            INITIALIZED   API SERVER AVAILABLE   VERSION   REPLICAS   READY   UPDATED   UNAVAILABLE
+capi-quickstart-control-plane   true                                 v1.19.7   3                  3         3
 ```
 
 <aside class="note warning">

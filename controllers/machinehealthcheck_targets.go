@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -159,7 +160,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
 // and their nodes targeted by the health check, ready for health checking.
-func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
+func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
 	machines, err := r.getMachinesFromMHC(ctx, mhc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
@@ -170,6 +171,12 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, cl
 
 	targets := []healthCheckTarget{}
 	for k := range machines {
+		skip, reason := shouldSkipRemediation(&machines[k])
+		if skip {
+			logger.Info("skipping remediation", "machine", machines[k].Name, "reason", reason)
+			continue
+		}
+
 		patchHelper, err := patch.NewHelper(&machines[k], r.Client)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to initialize patch helper")
@@ -297,4 +304,18 @@ func minDuration(durations []time.Duration) time.Duration {
 		}
 	}
 	return minDuration
+}
+
+// shouldSkipRemediation checks if the machine should be skipped for remediation.
+// Returns true if it should be skipped along with the reason for skipping.
+func shouldSkipRemediation(m *clusterv1.Machine) (bool, string) {
+	if annotations.HasPausedAnnotation(m) {
+		return true, fmt.Sprintf("machine has %q annotation", clusterv1.PausedAnnotation)
+	}
+
+	if annotations.HasSkipRemediationAnnotation(m) {
+		return true, fmt.Sprintf("machine has %q annotation", clusterv1.MachineSkipRemediationAnnotation)
+	}
+
+	return false, ""
 }

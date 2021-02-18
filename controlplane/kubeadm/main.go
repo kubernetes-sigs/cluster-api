@@ -69,6 +69,7 @@ var (
 	kubeadmControlPlaneConcurrency int
 	syncPeriod                     time.Duration
 	webhookPort                    int
+	webhookCertDir                 string
 )
 
 // InitFlags initializes the flags.
@@ -102,6 +103,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
+
+	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
+		"Webhook cert dir, only used when webhook-port is specified.")
 }
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -133,7 +137,8 @@ func main() {
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
 		},
-		Port: webhookPort,
+		Port:    webhookPort,
+		CertDir: webhookCertDir,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

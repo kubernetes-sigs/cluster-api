@@ -59,6 +59,10 @@ Specific changes related to this topic will be detailed in this document.
 
 The conversion-gen code from the `1.20.x` release onward generates incorrect conversion functions for types having arrays of pointers to custom objects. Change the existing types to contain objects instead of pointer references.
 
+## Optional flag for specifying webhook certificates dir
+Add optional flag `--webhook-cert-dir={string-value}` which allows user to specify directory where webhooks will get tls certificates. 
+If flag has not provided, default value from `controller-runtime` should be used.
+
 ## Required kustomize changes to have a single manager watching all namespaces and answer to webhook calls
 
 In an effort to simplify the management of Cluster API components, and realign with Kubebuilder configuration,

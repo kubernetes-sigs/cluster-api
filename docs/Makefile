@@ -32,5 +32,5 @@ diagrams: $(DIAGRAMS)
 		--rm \
 		--volume ${ROOT_DIR}:/workdir$(DOCKER_VOL_OPTS) \
 		--user $(shell id -u):$(shell id -g) \
-		us.gcr.io/k8s-artifacts-prod/cluster-api/plantuml:1.2019.6 \
+		k8s.gcr.io/cluster-api/plantuml:1.2019.6 \
 		-v /workdir/$(shell echo '$^' | sed -e 's,.*docs/,,g' )

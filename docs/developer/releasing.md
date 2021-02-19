@@ -37,10 +37,10 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 
 ### Artifact locations
 
-1. The container image is found in the registry `us.gcr.io/k8s-artifacts-prod/cluster-api/` with an image
+1. The container image is found in the registry `k8s.gcr.io/cluster-api/` with an image
    name of `cluster-api-controller` and a tag that matches the release version. For
    example, in the `v0.1.5` release, the container image location is
-   `us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.1.5`
+   `k8s.gcr.io/cluster-api/cluster-api-controller:v0.1.5`
 
 2. Prior to the `v0.1.5` release, the container image is found in the registry
    `gcr.io/k8s-cluster-api` with an image name of `cluster-api-controller` and a tag
@@ -61,7 +61,7 @@ For version v0.x.y:
 1. Push the tag to the GitHub repository `git push origin v0.x.y`
     1. NB: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
 1. Run `make release` to build artifacts (the image is automatically built by CI)
-1. Follow the [Image Promotion process](https://git.k8s.io/k8s.io/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `us.gcr.io/k8s-artifacts-prod/cluster-api`
+1. Follow the [Image Promotion process](https://git.k8s.io/k8s.io/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `k8s.gcr.io/cluster-api`
 1. Create a release in GitHub based on the tag created above
 1. Release notes can be created by running `make release-notes`, which will generate an output that can be copied to the drafted release in GitHub.
    Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.

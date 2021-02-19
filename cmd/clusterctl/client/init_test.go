@@ -81,7 +81,7 @@ func Test_clusterctlClient_InitImages(t *testing.T) {
 			},
 			expectedImages: []string{
 				"gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0",
-				"us.gcr.io/k8s-artifacts-prod/cluster-api-aws/cluster-api-aws-controller:v0.5.3",
+				"k8s.gcr.io/cluster-api-aws/cluster-api-aws-controller:v0.5.3",
 			},
 			wantErr: false,
 		},
@@ -767,7 +767,7 @@ spec:
       containers:
       - image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
         name: kube-rbac-proxy
-      - image: us.gcr.io/k8s-artifacts-prod/cluster-api-aws/cluster-api-aws-controller:v0.5.3
+      - image: k8s.gcr.io/cluster-api-aws/cluster-api-aws-controller:v0.5.3
         name: manager
         volumeMounts:
         - mountPath: /home/.aws

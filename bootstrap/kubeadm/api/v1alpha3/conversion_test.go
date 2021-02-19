@@ -19,7 +19,9 @@ package v1alpha3
 import (
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
@@ -32,6 +34,19 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(scheme, &v1alpha4.KubeadmConfig{}, &KubeadmConfig{}))
+	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(scheme, &v1alpha4.KubeadmConfig{}, &KubeadmConfig{}, KubeadmConfigStatusFuzzFuncs))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(scheme, &v1alpha4.KubeadmConfigTemplate{}, &KubeadmConfigTemplate{}))
+}
+
+func KubeadmConfigStatusFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		KubeadmConfigStatusFuzzer,
+	}
+}
+
+func KubeadmConfigStatusFuzzer(obj *KubeadmConfigStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.BootstrapData = nil
 }

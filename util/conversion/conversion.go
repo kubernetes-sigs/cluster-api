@@ -141,33 +141,27 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer
 func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Convertible, funcs ...fuzzer.FuzzerFuncs) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Run("spoke-hub-spoke", func(t *testing.T) {
-			t.Skip("skipping this because it should account for data loss when there are api changes between versions, needs rework ")
 			g := gomega.NewWithT(t)
 			fuzzer := GetFuzzer(scheme, funcs...)
 
 			for i := 0; i < 10000; i++ {
-				// Create hub object
-				hubExisting := hub.DeepCopyObject().(conversion.Hub)
-				fuzzer.Fuzz(hubExisting)
+				// Create the spoke and fuzz it
+				spokeBefore := dst.DeepCopyObject().(conversion.Convertible)
+				fuzzer.Fuzz(spokeBefore)
 
-				// Convert hub object to spoke
-				spokeFirstGet := dst.DeepCopyObject().(conversion.Convertible)
-				g.Expect(spokeFirstGet.ConvertFrom(hubExisting)).To(gomega.Succeed())
+				// First convert spoke to hub
+				hubCopy := hub.DeepCopyObject().(conversion.Hub)
+				g.Expect(spokeBefore.ConvertTo(hubCopy)).To(gomega.Succeed())
 
-				// Do changes in the spoke
-				fuzzer.Fuzz(spokeFirstGet)
-				// Fuzz() might delete the annotation containing the hub serialized. So, re-add it.
-				MarshalData(hubExisting.(metav1.Object), spokeFirstGet.(metav1.Object))
+				// Convert hub back to spoke and check if the resulting spoke is equal to the spoke before the round trip
+				spokeAfter := dst.DeepCopyObject().(conversion.Convertible)
+				g.Expect(spokeAfter.ConvertFrom(hubCopy)).To(gomega.Succeed())
 
-				// Convert the changed spoke to hub
-				hubUpdated := hub.DeepCopyObject().(conversion.Hub)
-				g.Expect(spokeFirstGet.ConvertTo(hubUpdated)).To(gomega.Succeed())
+				// Remove data annotation eventually added by ConvertFrom for avoiding data loss in hub-spoke-hub round trips
+				metaAfter := spokeAfter.(metav1.Object)
+				delete(metaAfter.GetAnnotations(), DataAnnotation)
 
-				// Convert hub back to spoke and check if the changed spoke is still the same after spoke --> hub --> spoke conversion
-				spokeSecondGet := dst.DeepCopyObject().(conversion.Convertible)
-				g.Expect(spokeSecondGet.ConvertFrom(hubUpdated)).To(gomega.Succeed())
-
-				g.Expect(apiequality.Semantic.DeepEqual(spokeFirstGet, spokeSecondGet)).To(gomega.BeTrue(), cmp.Diff(spokeFirstGet, spokeSecondGet))
+				g.Expect(apiequality.Semantic.DeepEqual(spokeBefore, spokeAfter)).To(gomega.BeTrue(), cmp.Diff(spokeBefore, spokeAfter))
 			}
 		})
 		t.Run("hub-spoke-hub", func(t *testing.T) {
@@ -175,22 +169,19 @@ func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Con
 			fuzzer := GetFuzzer(scheme, funcs...)
 
 			for i := 0; i < 10000; i++ {
-				// Make copies of both objects, to avoid changing or re-using the ones passed in.
-				hubCopy := hub.DeepCopyObject().(conversion.Hub)
+				// Create the hub and fuzz it
+				hubBefore := hub.DeepCopyObject().(conversion.Hub)
+				fuzzer.Fuzz(hubBefore)
+
+				// First convert hub to spoke
 				dstCopy := dst.DeepCopyObject().(conversion.Convertible)
+				g.Expect(dstCopy.ConvertFrom(hubBefore)).To(gomega.Succeed())
 
-				// Run the fuzzer on the Hub version copy.
-				fuzzer.Fuzz(hubCopy)
+				// Convert spoke back to hub and check if the resulting hub is equal to the hub before the round trip
+				hubAfter := hub.DeepCopyObject().(conversion.Hub)
+				g.Expect(dstCopy.ConvertTo(hubAfter)).To(gomega.Succeed())
 
-				// Use the hub to convert into the convertible object.
-				g.Expect(dstCopy.ConvertFrom(hubCopy)).To(gomega.Succeed())
-
-				// Make another copy of hub and convert the convertible object back to the hub version.
-				after := hub.DeepCopyObject().(conversion.Hub)
-				g.Expect(dstCopy.ConvertTo(after)).To(gomega.Succeed())
-
-				// Make sure that the hub before the conversions and after are the same, include a diff if not.
-				g.Expect(apiequality.Semantic.DeepEqual(hubCopy, after)).To(gomega.BeTrue(), cmp.Diff(hubCopy, after))
+				g.Expect(apiequality.Semantic.DeepEqual(hubBefore, hubAfter)).To(gomega.BeTrue(), cmp.Diff(hubBefore, hubAfter))
 			}
 		})
 	}

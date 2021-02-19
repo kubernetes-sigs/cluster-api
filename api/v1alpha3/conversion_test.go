@@ -19,9 +19,11 @@ package v1alpha3
 import (
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/cluster-api/api/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -33,7 +35,20 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Cluster{}, &Cluster{}))
-	t.Run("for Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Machine{}, &Machine{}))
-	t.Run("for MachineSet", utilconversion.FuzzTestFunc(scheme, &v1alpha4.MachineSet{}, &MachineSet{}))
-	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(scheme, &v1alpha4.MachineDeployment{}, &MachineDeployment{}))
+	t.Run("for Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Machine{}, &Machine{}, BootstrapFuzzFuncs))
+	t.Run("for MachineSet", utilconversion.FuzzTestFunc(scheme, &v1alpha4.MachineSet{}, &MachineSet{}, BootstrapFuzzFuncs))
+	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(scheme, &v1alpha4.MachineDeployment{}, &MachineDeployment{}, BootstrapFuzzFuncs))
+}
+
+func BootstrapFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		BootstrapFuzzer,
+	}
+}
+
+func BootstrapFuzzer(obj *Bootstrap, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// Bootstrap.Data has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.Data = nil
 }

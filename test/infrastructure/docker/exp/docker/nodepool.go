@@ -214,8 +214,15 @@ func (np *NodePool) refresh() error {
 func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	machineStatus, err := getInstanceStatusByMachineName(np.dockerMachinePool, machine.Name())
-	if err != nil {
+	var machineStatus infrav1exp.DockerMachinePoolInstanceStatus
+	isFound := false
+	for _, instanceStatus := range np.dockerMachinePool.Status.Instances {
+		if instanceStatus.InstanceName == machine.Name() {
+			machineStatus = instanceStatus
+			isFound = true
+		}
+	}
+	if !isFound {
 		log.Info("Creating instance record", "instance", machine.Name())
 		machineStatus = infrav1exp.DockerMachinePoolInstanceStatus{
 			InstanceName: machine.Name(),
@@ -225,6 +232,14 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		// return to surface the new machine exists.
 		return ctrl.Result{Requeue: true}, nil
 	}
+
+	defer func() {
+		for i, instanceStatus := range np.dockerMachinePool.Status.Instances {
+			if instanceStatus.InstanceName == machine.Name() {
+				np.dockerMachinePool.Status.Instances[i] = machineStatus
+			}
+		}
+	}()
 
 	externalMachine, err := docker.NewMachine(np.cluster.Name, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
 	if err != nil {
@@ -321,15 +336,4 @@ func getBootstrapData(ctx context.Context, kClient client.Client, machinePool *c
 	}
 
 	return base64.StdEncoding.EncodeToString(value), nil
-}
-
-// getInstanceStatusByMachineName returns the instance status for a given machine by name or error if it doesn't exist
-func getInstanceStatusByMachineName(dockerMachinePool *infrav1exp.DockerMachinePool, machineName string) (infrav1exp.DockerMachinePoolInstanceStatus, error) {
-	var machine infrav1exp.DockerMachinePoolInstanceStatus
-	for _, machine = range dockerMachinePool.Status.Instances {
-		if machine.InstanceName == machineName {
-			return machine, nil
-		}
-	}
-	return machine, errors.Errorf("no machine found with name %s", machineName)
 }

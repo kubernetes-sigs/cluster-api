@@ -44,5 +44,5 @@ func init() {
 var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
 	MachinePool:        {Default: false, PreRelease: featuregate.Alpha},
-	ClusterResourceSet: {Default: false, PreRelease: featuregate.Alpha},
+	ClusterResourceSet: {Default: true, PreRelease: featuregate.Beta},
 }

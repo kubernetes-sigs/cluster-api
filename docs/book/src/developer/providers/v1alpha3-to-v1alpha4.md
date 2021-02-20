@@ -6,7 +6,7 @@
 
 ## Controller Runtime version
 
-- The Controller Runtime version is now v0.7.+
+- The Controller Runtime version is now v0.8.+
 
 ## Kind version
 
@@ -120,7 +120,7 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
    - kind: Deployment
      path: spec/template/spec/volumes/secret/secretName
    ```
-1. Edit the `/config/manager/kustomization.yaml` file:
+1. Edit the `/config/default/kustomization.yaml` file:
     - Add the `namePrefix` and the `commonLabels` configuration values copying values from the `/config/kustomization.yaml` file
     - In the `bases:` list, add the following items:
       ```
@@ -133,6 +133,8 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
       - manager_auth_proxy_patch.yaml
       - manager_image_patch.yaml
       - manager_pull_policy.yaml
+      - manager_webhook_patch.yaml
+      - webhookcainjection_patch.yaml
       ```
     - Add a `vars:` configuration using the value from the temporary file created while modifying `/config/webhook/kustomization.yaml`
     - Add the `configurations:` list with the following items:
@@ -168,7 +170,7 @@ should be executed before this changes.
 
 **Changes in the `/config/certmanager` folder:**
 
-1. Edit the `/config/certmanager/certificates.yaml` file and replace all the occurencies of `cert-manager.io/v1alpha2`
+1. Edit the `/config/certmanager/certificates.yaml` file and replace all the occurrences of `cert-manager.io/v1alpha2`
 with `cert-manager.io/v1`
 
 **Changes in the `/config/default` folder:**

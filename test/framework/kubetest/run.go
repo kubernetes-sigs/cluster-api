@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	standardImage   = "us.gcr.io/k8s-artifacts-prod/conformance"
+	standardImage   = "k8s.gcr.io/conformance"
 	ciArtifactImage = "gcr.io/k8s-staging-ci-images/conformance"
 )
 

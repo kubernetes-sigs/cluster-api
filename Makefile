@@ -70,7 +70,7 @@ CLOUDINIT_SCRIPT := $(CLOUDINIT_PKG_DIR)/kubeadm-bootstrap-script.sh
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-PROD_REGISTRY ?= us.gcr.io/k8s-artifacts-prod/cluster-api
+PROD_REGISTRY ?= k8s.gcr.io/cluster-api
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api.appspot.com

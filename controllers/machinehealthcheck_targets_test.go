@@ -75,6 +75,14 @@ func TestGetTargetsFromMHC(t *testing.T) {
 	testNode4 := newTestNode("node4")
 	testMachine4 := newTestMachine("machine4", namespace, "other-cluster", testNode4.Name, mhcSelector)
 
+	// machines for skip remediation
+	testNode5 := newTestNode("node5")
+	testMachine5 := newTestMachine("machine5", namespace, clusterName, testNode5.Name, mhcSelector)
+	testMachine5.Annotations = map[string]string{"cluster.x-k8s.io/skip-remediation": ""}
+	testNode6 := newTestNode("node6")
+	testMachine6 := newTestMachine("machine6", namespace, clusterName, testNode6.Name, mhcSelector)
+	testMachine6.Annotations = map[string]string{"cluster.x-k8s.io/paused": ""}
+
 	testCases := []struct {
 		desc            string
 		toCreate        []runtime.Object
@@ -124,6 +132,17 @@ func TestGetTargetsFromMHC(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc:     "with machines having skip-remediation or paused annotation",
+			toCreate: append(baseObjects, testNode1, testMachine1, testMachine5, testMachine6),
+			expectedTargets: []healthCheckTarget{
+				{
+					Machine: testMachine1,
+					MHC:     testMHC,
+					Node:    testNode1,
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -145,7 +164,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 				t.patchHelper = patchHelper
 			}
 
-			targets, err := reconciler.getTargetsFromMHC(k8sClient, testMHC)
+			targets, err := reconciler.getTargetsFromMHC(ctx, log.Log, k8sClient, testMHC)
 			gs.Expect(err).ToNot(HaveOccurred())
 
 			gs.Expect(len(targets)).To(Equal(len(tc.expectedTargets)))

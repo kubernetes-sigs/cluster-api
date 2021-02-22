@@ -50,6 +50,9 @@ const (
 	// that was cloned for the machine. This annotation is set only during cloning a template. Older/adopted machines will not have this annotation.
 	TemplateClonedFromGroupKindAnnotation = "cluster.x-k8s.io/cloned-from-groupkind"
 
+	// MachineSkipRemediationAnnotation is the annotation used to mark the machines that should not be considered for remediation by MachineHealthCheck reconciler.
+	MachineSkipRemediationAnnotation = "cluster.x-k8s.io/skip-remediation"
+
 	// ClusterSecretType defines the type of secret created by core components
 	ClusterSecretType corev1.SecretType = "cluster.x-k8s.io/secret" //nolint:gosec
 )

@@ -69,8 +69,12 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: ## Run tests
-	go test -v ./...
+test: ## Run tests.
+	go test ./... $(TEST_ARGS)
+
+.PHONY: test-verbose
+test-verbose: ## Run tests with verbose settings.
+	TEST_ARGS="$(TEST_ARGS) -v" $(MAKE) test
 
 ## --------------------------------------
 ## Binaries

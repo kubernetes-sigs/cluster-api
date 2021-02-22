@@ -865,6 +865,38 @@ var _ = Describe("Patch Helper", func() {
 			}, timeout).Should(BeTrue())
 		})
 	})
+
+	It("Should error if the object isn't the same", func() {
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "test-",
+				Namespace:    "default",
+			},
+		}
+
+		machineSet := &clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "test-ms",
+				Namespace:    "default",
+			},
+			Spec: clusterv1.MachineSetSpec{
+				ClusterName: "test1",
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						ClusterName: "test1",
+					},
+				},
+			},
+		}
+
+		Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+		Expect(testEnv.Create(ctx, machineSet)).To(Succeed())
+
+		patcher, err := NewHelper(cluster, testEnv)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(patcher.Patch(ctx, machineSet)).ToNot(Succeed())
+	})
 })
 
 func TestNewHelperNil(t *testing.T) {

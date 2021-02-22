@@ -26,16 +26,19 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 // Helper is a utility for ensuring the proper patching of objects.
 type Helper struct {
 	client       client.Client
+	gvk          schema.GroupVersionKind
 	beforeObject client.Object
 	before       *unstructured.Unstructured
 	after        *unstructured.Unstructured
@@ -47,10 +50,15 @@ type Helper struct {
 // NewHelper returns an initialized Helper
 func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 	// Return early if the object is nil.
-	// If you're wondering why we need reflection to do this check, see https://golang.org/doc/faq#nil_error.
-	// TODO(vincepri): Remove this check and let it panic if used improperly in a future minor release.
-	if obj == nil || (reflect.ValueOf(obj).IsValid() && reflect.ValueOf(obj).IsNil()) {
-		return nil, errors.Errorf("expected non-nil object")
+	if err := checkNilObject(obj); err != nil {
+		return nil, err
+	}
+
+	// Get the GroupVersionKind of the object,
+	// used to validate against later on.
+	gvk, err := apiutil.GVKForObject(obj, crClient.Scheme())
+	if err != nil {
+		return nil, err
 	}
 
 	// Convert the object to unstructured to compare against our before copy.
@@ -64,6 +72,7 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 
 	return &Helper{
 		client:             crClient,
+		gvk:                gvk,
 		before:             unstructuredObj,
 		beforeObject:       obj.DeepCopyObject().(client.Object),
 		isConditionsSetter: canInterfaceConditions,
@@ -72,8 +81,18 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 
 // Patch will attempt to patch the given object, including its status.
 func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) error {
-	if obj == nil {
-		return errors.Errorf("expected non-nil object")
+	// Return early if the object is nil.
+	if err := checkNilObject(obj); err != nil {
+		return err
+	}
+
+	// Get the GroupVersionKind of the object that we want to patch.
+	gvk, err := apiutil.GVKForObject(obj, h.client.Scheme())
+	if err != nil {
+		return err
+	}
+	if gvk != h.gvk {
+		return errors.Errorf("unmatched GroupVersionKind, expected %q got %q", h.gvk, gvk)
 	}
 
 	// Calculate the options.
@@ -83,7 +102,6 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	// Convert the object to unstructured to compare against our before copy.
-	var err error
 	h.after, err = toUnstructured(obj)
 	if err != nil {
 		return err
@@ -278,4 +296,13 @@ func (h *Helper) calculateChanges(after client.Object) (map[string]bool, error) 
 		res[key] = true
 	}
 	return res, nil
+}
+
+func checkNilObject(obj client.Object) error {
+	// If you're wondering why we need reflection to do this check, see https://golang.org/doc/faq#nil_error.
+	// TODO(vincepri): Remove this check and let it panic if used improperly in a future minor release.
+	if obj == nil || (reflect.ValueOf(obj).IsValid() && reflect.ValueOf(obj).IsNil()) {
+		return errors.Errorf("expected non-nil object")
+	}
+	return nil
 }

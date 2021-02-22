@@ -116,11 +116,15 @@ help:  ## Display this help
 
 .PHONY: test
 test: ## Run tests.
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./... $(TEST_ARGS)
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test ./... $(TEST_ARGS)
+
+.PHONY: test-verbose
+test-verbose: ## Run tests with verbose settings.
+	TEST_ARGS="$(TEST_ARGS) -v" $(MAKE) test
 
 .PHONY: test-cover
-test-cover: ## Run tests with code coverage and code generate  reports
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -coverprofile=out/coverage.out ./... $(TEST_ARGS)
+test-cover: ## Run tests with code coverage and code generate reports.
+	TEST_ARGS="$(TEST_ARGS) -coverprofile=out/coverage.out" $(MAKE) test
 	go tool cover -func=out/coverage.out -o out/coverage.txt
 	go tool cover -html=out/coverage.out -o out/coverage.html
 

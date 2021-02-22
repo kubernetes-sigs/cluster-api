@@ -25,9 +25,9 @@ cd "${REPO_ROOT}" || exit 1
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
 echo "*** Testing Cluster API ***"
-make test
+make test-verbose
 
 echo -e "\n*** Testing Cluster API Provider Docker ***\n"
 # Docker provider
 cd test/infrastructure/docker
-make test
+make test-verbose

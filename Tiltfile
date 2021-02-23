@@ -239,7 +239,7 @@ def enable_provider(name):
 # the network each time.
 def deploy_cert_manager():
     registry = settings.get("cert_manager_registry", "quay.io/jetstack")
-    version = settings.get("cert_manager_version", "v0.16.1")
+    version = settings.get("cert_manager_version", "v1.1.0")
 
     # check if cert-mamager is already installed, otherwise pre-load images & apply the manifest
     # NB. this is required until https://github.com/jetstack/cert-manager/issues/3121 is addressed otherwise

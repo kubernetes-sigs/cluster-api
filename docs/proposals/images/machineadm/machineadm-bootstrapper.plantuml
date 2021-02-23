@@ -1,0 +1,135 @@
+@startuml
+title User creates a Cluster with MachineBootstrapConfigTemplate
+actor User
+
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #lightslategray
+participant "Cluster API Machine Controller"
+end box
+
+box #lightblue
+participant "Cluster API Machine Bootstrap Webhook"
+end box
+
+
+box #LightCyan
+participant "Cluster API Machine Bootstrap Controller"
+end box
+
+box #LightGoldenRodYellow
+participant "Cluster API Infrastructure Provider"
+end box
+
+box #LightSeaGreen
+participant "Cluster API Machine CLI"
+end box
+
+box #LightSteelBlue
+participant "IaaS API"
+end box
+
+' -- GROUPS END ---
+
+User->"API Server":kubectl apply -f cluster.yaml
+"API Server"-->>"Cluster API Machine Controller": New MachineSet
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":MachineSet Controller Reconcile
+activate "Cluster API Machine Controller"
+
+"Cluster API Machine Controller"-> "API Server": Create Machine and MachineBootstrapConfig resources
+
+deactivate "Cluster API Machine Controller"
+
+"API Server"->"Cluster API Machine Bootstrap Webhook": New MachineBootstrapConfig
+
+"Cluster API Machine Bootstrap Webhook"->"API Server": Instantiate PluginTemplate resources
+
+"Cluster API Machine Bootstrap Webhook"->"API Server": Update MachineBootstrapConfig
+
+"API Server"-->>"Cluster API Machine Bootstrap Controller": New MachineBootstrapConfig
+
+"Cluster API Machine Bootstrap Controller"-> "Cluster API Machine Bootstrap Controller": MachineBootstrapConfig Reconcile
+activate "Cluster API Machine Bootstrap Controller"
+
+opt Status.Serialized is false
+
+  "Cluster API Machine Bootstrap Controller"-> "API Server": Fetch Spec.Plugins
+
+  opt Spec.Plugins[...].Status.Ready is true
+    "Cluster API Machine Bootstrap Controller"-> "API Server": Create secret with name + "-nodeconfig" with data = serialized NodeConfig
+    "Cluster API Machine Bootstrap Controller" -> "Cluster API Machine Bootstrap Controller": Set Status.Serialized = true
+  end
+end
+
+opt Spec.InfraStorage.Ref resource ! exist
+  "Cluster API Machine Bootstrap Controller"-> "API Server": Create MachineConfigInfra resource = spec.InfraStorageRef.Kind minus Template suffix
+end
+
+"API Server"-->>"Cluster API Infrastructure Provider": New MachineConfigInfra resource
+"Cluster API Infrastructure Provider"-> "Cluster API Infrastructure Provider":MachineConfigInfra Controller Reconcile
+activate "Cluster API Infrastructure Provider"
+
+opt Status.Ready == false
+
+"Cluster API Infrastructure Provider" -> "API Server": Fetch Spec.SourceSecret
+
+"API Server" -> "Cluster API Infrastructure Provider": Secret
+
+"Cluster API Infrastructure Provider" -> "IaaS API": Put Secret.Data
+
+"IaaS API" -> "Cluster API Infrastructure Provider": Storage Key
+
+"Cluster API Infrastructure Provider" -> "Cluster API Infrastructure Provider": Set Status.MachineStoragePluginKind, Status.MachineStoragePluginLocation, Status.Ready = true
+
+end
+
+"Cluster API Infrastructure Provider" -> "API Server": Update
+
+deactivate "Cluster API Infrastructure Provider"
+
+opt Spec.InfraStorage.Ref -> Status.Ready is true
+  "Cluster API Machine Bootstrap Controller"-> "API Server": Fetch Spec.BootstrapTemplateConfigMapName
+  "Cluster API Machine Bootstrap Controller"-> "API Server": Create machine secret
+  "Cluster API Machine Bootstrap Controller"-> "Cluster API Machine Bootstrap Controller": Status.Ready = true
+end
+
+"Cluster API Machine Bootstrap Controller"-> "API Server": Update
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":InfraMachine Controller Reconcile
+activate  "Cluster API Infrastructure Provider"
+
+ "Cluster API Infrastructure Provider"-> "IaaS API": Create Machine
+
+deactivate  "Cluster API Infrastructure Provider"
+
+activate "Cluster API Machine CLI"
+
+"Cluster API Machine CLI" -> "Cluster API Machine CLI": Read Machine.yaml
+
+"Cluster API Machine CLI" -> "Cluster API Machine CLI Infra Plugin": InfraLocation
+activate "Cluster API Machine CLI Infra Plugin"
+
+"Cluster API Machine CLI Infra Plugin" -> "IaaS API": Fetch InfraLocation
+"IaaS API" -> "Cluster API Machine CLI Infra Plugin": "Machine config"
+
+"Cluster API Machine CLI Infra Plugin" ->  "Cluster API Machine CLI"
+deactivate "Cluster API Machine CLI Infra Plugin"
+
+"Cluster API Machine CLI" -> "Cluster API Machine CLI": "Configure Machine"
+"Cluster API Machine CLI" -> "Cluster API Machine CLI": "Execute Kubeadm"
+
+"Cluster API Machine CLI" -> "Cluster API Machine CLI Infra Plugin": Sentinel Location and Sentinel Data
+activate "Cluster API Machine CLI Infra Plugin"
+
+deactivate "Cluster API Machine CLI Infra Plugin"
+
+"Cluster API Machine CLI Infra Plugin" -> "IaaS API": Put Sentinel Data
+deactivate "Cluster API Machine CLI"
+
+hide footbox
+@enduml

@@ -337,3 +337,51 @@ func Test_CheckCAPIContract(t *testing.T) {
 		})
 	}
 }
+
+func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
+	type fields struct {
+		initObjs []client.Object
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "Returns error when there are multiple instances of the same provider",
+			fields: fields{
+				initObjs: []client.Object{
+					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1"}},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns2"}},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.InfrastructureProviderType), ProviderName: "bar", ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "ns2"}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Does not return error when there is only single instance of all providers",
+			fields: fields{
+				initObjs: []client.Object{
+					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1"}},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo-1", ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns2"}},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.InfrastructureProviderType), ProviderName: "bar", ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "ns2"}},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
+			err := p.CheckSingleProviderInstance()
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}

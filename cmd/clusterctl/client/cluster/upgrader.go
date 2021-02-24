@@ -355,6 +355,13 @@ func (u *providerUpgrader) getUpgradeComponents(provider UpgradeItem) (repositor
 }
 
 func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
+	// Check for multiple instances of the same provider if current contract is v1alpha3.
+	if upgradePlan.Contract == clusterv1.GroupVersion.Version {
+		if err := u.providerInventory.CheckSingleProviderInstance(); err != nil {
+			return err
+		}
+	}
+
 	for _, upgradeItem := range upgradePlan.Providers {
 		// If there is not a specified next version, skip it (we are already up-to-date).
 		if upgradeItem.NextVersion == "" {
@@ -381,6 +388,14 @@ func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
 			return err
 		}
 	}
+
+	// Delete webhook namespace since it's not needed from v1alpha4.
+	if upgradePlan.Contract == clusterv1.GroupVersion.Version {
+		if err := u.providerComponents.DeleteWebhookNamespace(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

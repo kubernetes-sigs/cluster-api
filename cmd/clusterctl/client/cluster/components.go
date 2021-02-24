@@ -21,7 +21,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -49,6 +51,10 @@ type ComponentsClient interface {
 	// it is required to explicitly opt-in for the deletion of the namespace where the provider components are hosted
 	// and for the deletion of the provider's CRDs.
 	Delete(options DeleteOptions) error
+
+	// DeleteWebhookNamespace deletes the core provider webhook namespace (eg. capi-webhook-system).
+	// This is required when upgrading to v1alpha4 where webhooks are included in the controller itself.
+	DeleteWebhookNamespace() error
 }
 
 // providerComponents implements ComponentsClient.
@@ -209,6 +215,26 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	}
 
 	return kerrors.NewAggregate(errList)
+}
+
+func (p *providerComponents) DeleteWebhookNamespace() error {
+	log := logf.Log
+	log.V(5).Info("Deleting %s namespace", repository.WebhookNamespaceName)
+
+	c, err := p.proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	coreProviderWebhookNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: repository.WebhookNamespaceName}}
+	if err := c.Delete(ctx, coreProviderWebhookNs); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to delete namespace %s", repository.WebhookNamespaceName)
+	}
+
+	return nil
 }
 
 // newComponentsClient returns a providerComponents.

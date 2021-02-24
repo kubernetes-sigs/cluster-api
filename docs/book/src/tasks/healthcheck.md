@@ -16,15 +16,16 @@ at the bottom of this page for full details of MachineHealthCheck limitations.
 
 ## What is a MachineHealthCheck?
 
-A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machines within a Cluster should be considered unhealthy.
+A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machines within a Cluster should be considered unhealthy. 
+A MachineHealthCheck is defined on a management cluster and scoped to a particular workload cluster.
 
-When defining a MachineHealthCheck, users specify a timeout for each of the conditions that they define to check on the Machine's Node,
+When defining a MachineHealthCheck, users specify a timeout for each of the conditions that they define to check on the Machine's Node;
 if any of these conditions is met for the duration of the timeout, the Machine will be remediated.
-The action of remediating a Machine should trigger a new Machine to be created, to replace the failed one.
+By default, the action of remediating a Machine should trigger a new Machine to be created to replace the failed one, but providers are allowed to plug in more sophisticated external remediation solutions. 
 
 ## Creating a MachineHealthCheck
 
-Use the following example as a basis for creating a MachineHealthCheck:
+Use the following example as a basis for creating a MachineHealthCheck for worker nodes:
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1alpha3
@@ -53,16 +54,39 @@ spec:
     timeout: 300s
 ```
 
+Use this example as the basis for defining a MachineHealthCheck for control plane nodes managed via 
+the KubeadmControlPlane:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineHealthCheck
+metadata:
+  name: capi-quickstart-kcp-unhealthy-5m
+spec:
+  clusterName: capi-quickstart
+  maxUnhealthy: 100%
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/control-plane: ""
+  unhealthyConditions:
+    - type: Ready
+      status: Unknown
+      timeout: 300s
+    - type: Ready
+      status: "False"
+      timeout: 300s
+```
+
 <aside class="note warning">
 
 <h1> Important </h1>
 
 If you are defining more than one `MachineHealthCheck` for the same Cluster, make sure that the selectors **do not overlap**
-n order to prevent conflicts or unexpected behaviors when trying to remediate the same set of machines.
+in order to prevent conflicts or unexpected behaviors when trying to remediate the same set of machines.
 
 </aside>
 
-## Remediation short-circuiting
+## Remediation Short-Circuiting
 
 To ensure that MachineHealthChecks only remediate Machines when the cluster is healthy,
 short-circuiting is implemented to prevent further remediation via the `maxUnhealthy` field within the MachineHealthCheck spec.
@@ -80,7 +104,7 @@ This means the short circuiting mechanism is **disabled by default** and Machine
 
 </aside>
 
-#### With an absolute value
+#### With an Absolute Value
 
 If `maxUnhealthy` is set to `2`:
 - If 2 or fewer nodes are unhealthy, remediation will be performed
@@ -88,7 +112,7 @@ If `maxUnhealthy` is set to `2`:
 
 These values are independent of how many Machines are being checked by the MachineHealthCheck.
 
-#### With percentages
+#### With Percentages
 
 If `maxUnhealthy` is set to `40%` and there are 25 Machines being checked:
 - If 10 or fewer nodes are unhealthy, remediation will be performed
@@ -107,7 +131,7 @@ There are scenarios where remediation for a machine may be undesirable (eg. duri
 Implicit skipping when the resource is paused (using `cluster.x-k8s.io/paused` annotation):
 - When a cluster is paused, none of the machines in that cluster are considered for remediation.
 - When a machine is paused, only that machine is not considered for remediation.
-- A cluster or a machine is usually paused automatically by cluster api when it detects a migration.
+- A cluster or a machine is usually paused automatically by Cluster API when it detects a migration.
 
 Explicit skipping using `cluster.x-k8s.io/skip-remediation` annotation:
 - Users can also skip any machine for remediation by setting the `cluster.x-k8s.io/skip-remediation` for that machine.
@@ -116,10 +140,10 @@ Explicit skipping using `cluster.x-k8s.io/skip-remediation` annotation:
 
 Before deploying a MachineHealthCheck, please familiarise yourself with the following limitations and caveats:
 
-- Only Machines owned by a MachineSet will be remediated by a MachineHealthCheck
-- Control Plane Machines are currently not supported and will **not** be remediated if they are unhealthy
+- Only Machines owned by a MachineSet or a KubeadmControlPlane can be remediated by a MachineHealthCheck (since a MachineDeployment uses a MachineSet, then this includes Machines that are part of a MachineDeployment)
+- Machines managed by a KubeadmControlPlane are remediated according to [the delete-and-recreate guidelines described in the KubeadmControlPlane proposal](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate)
 - If the Node for a Machine is removed from the cluster, a MachineHealthCheck will consider this Machine unhealthy and remediate it immediately
-- If no Node joins the cluster for a Node after the `NodeStartupTimeout`, the Machine will be remediated
+- If no Node joins the cluster for a Machine after the `NodeStartupTimeout`, the Machine will be remediated
 - If a Machine fails for any reason (if the FailureReason is set), the Machine will be remediated immediately
 
 <!-- links -->

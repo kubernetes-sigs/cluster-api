@@ -55,7 +55,8 @@ const (
 )
 
 var (
-	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
+	minVerKubeletSystemdDriver = semver.MustParse("1.21.0")
+	ErrControlPlaneMinNodes    = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
 )
 
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster
@@ -178,9 +179,11 @@ func (w *Workload) UpdateKubeletConfigMap(ctx context.Context, version semver.Ve
 		return err
 	}
 
-	// In order to avoid using two cgroup managers on the same machine, cgroupfs and systemd cgroup, starting from
-	// 1.21 image builder is going to configure containerd for using systemd cgroup, and the Kubelet configuration should be changed accordingly.
-	if version.GE(semver.MustParse("1.21.0")) {
+	// In order to avoid using two cgroup managers on the same machine,
+	// cgroupfs and systemd cgroup, starting from
+	// 1.21 image builder is going to configure containerd for using systemd cgroup,
+	// and the Kubelet configuration should be changed accordingly.
+	if version.GE(minVerKubeletSystemdDriver) {
 		data, ok := cm.Data[kubeletConfigKey]
 		if !ok {
 			return errors.Errorf("unable to find %q key in %s", kubeletConfigKey, cm.Name)
@@ -194,7 +197,7 @@ func (w *Workload) UpdateKubeletConfigMap(ctx context.Context, version semver.Ve
 			return errors.Wrapf(err, "unable to extract %q from Kubelet ConfigMap's %q", cgroupDriverKey, cm.Name)
 		}
 
-		// if the value is not already explicitly set by the user, change according to kubeadm/image builder new requirements.
+		// If the value is not already explicitly set by the user, change according to kubeadm/image builder new requirements.
 		if cgroupDriver == "" {
 			cgroupDriver = "systemd"
 

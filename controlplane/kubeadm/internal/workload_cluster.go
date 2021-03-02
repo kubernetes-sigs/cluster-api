@@ -179,10 +179,13 @@ func (w *Workload) UpdateKubeletConfigMap(ctx context.Context, version semver.Ve
 		return err
 	}
 
-	// In order to avoid using two cgroup managers on the same machine,
-	// cgroupfs and systemd cgroup, starting from
-	// 1.21 image builder is going to configure containerd for using systemd cgroup,
-	// and the Kubelet configuration should be changed accordingly.
+	// In order to avoid using two cgroup drivers on the same machine,
+	// (cgroupfs and systemd cgroup drivers), starting from
+	// 1.21 image builder is going to configure containerd for using the
+	// systemd driver, and the Kubelet configuration must
+	// NOTE: It is considered safe to update the kubelet-config-1.21 ConfigMap
+	// because only new nodes using v1.21 images will pick up the change during
+	// kubeadm join.
 	if version.GE(minVerKubeletSystemdDriver) {
 		data, ok := cm.Data[kubeletConfigKey]
 		if !ok {

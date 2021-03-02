@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -155,7 +156,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -191,7 +192,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -230,7 +231,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -283,7 +284,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -314,7 +315,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -346,7 +347,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -378,7 +379,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -412,7 +413,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -446,7 +447,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -482,7 +483,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -518,7 +519,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{
-					EtcdMembersResult: controlPlane.Machines.Names(),
+					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
 		}
@@ -530,6 +531,16 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 		g.Expect(testEnv.Cleanup(ctx, m1, m2, m3, m4, m5, m6, m7)).To(Succeed())
 	})
 	g.Expect(testEnv.Cleanup(ctx, ns)).To(Succeed())
+}
+
+func nodes(machines internal.FilterableMachineCollection) []string {
+	nodes := make([]string, 0, machines.Len())
+	for _, m := range machines {
+		if m.Status.NodeRef != nil {
+			nodes = append(nodes, m.Status.NodeRef.Name)
+		}
+	}
+	return nodes
 }
 
 type machineOption func(*clusterv1.Machine)
@@ -580,7 +591,7 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 	patchHelper, err := patch.NewHelper(m, testEnv.GetClient())
 	g.Expect(err).ToNot(HaveOccurred())
 
-	for _, opt := range append(options, withNodeRef(m.Name)) {
+	for _, opt := range append(options, withNodeRef(fmt.Sprintf("node-%s", m.Name))) {
 		opt(m)
 	}
 
@@ -604,7 +615,7 @@ func getDeletingMachine(namespace, name string, options ...machineOption) *clust
 		},
 	}
 
-	for _, opt := range append(options, withNodeRef(m.Name)) {
+	for _, opt := range append(options, withNodeRef(fmt.Sprintf("node-%s", m.Name))) {
 		opt(m)
 	}
 	return m

@@ -30,7 +30,21 @@ import (
 )
 
 func TestUpdateKubernetesVersion(t *testing.T) {
-	kconf := &corev1.ConfigMap{
+	kconfv1beta1 := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubeadmconfig",
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			clusterConfigurationKey: `
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: ClusterConfiguration
+kubernetesVersion: v1.16.1
+`,
+		},
+	}
+
+	kconfv1beta2 := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kubeadmconfig",
 			Namespace: metav1.NamespaceSystem,
@@ -44,10 +58,10 @@ kubernetesVersion: v1.16.1
 		},
 	}
 
-	kubeadmConfigNoKey := kconf.DeepCopy()
+	kubeadmConfigNoKey := kconfv1beta2.DeepCopy()
 	delete(kubeadmConfigNoKey.Data, clusterConfigurationKey)
 
-	kubeadmConfigBadData := kconf.DeepCopy()
+	kubeadmConfigBadData := kconfv1beta2.DeepCopy()
 	kubeadmConfigBadData.Data[clusterConfigurationKey] = `something`
 
 	tests := []struct {
@@ -57,9 +71,15 @@ kubernetesVersion: v1.16.1
 		expectErr bool
 	}{
 		{
-			name:      "updates the config map",
+			name:      "updates the config map and changes the kubeadm API version",
 			version:   "v1.17.2",
-			config:    kconf,
+			config:    kconfv1beta1,
+			expectErr: false,
+		},
+		{
+			name:      "updates the config map and preserves the kubeadm API version",
+			version:   "v1.17.2",
+			config:    kconfv1beta2,
 			expectErr: false,
 		},
 		{
@@ -92,6 +112,7 @@ kubernetesVersion: v1.16.1
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(conf.Data[clusterConfigurationKey]).To(ContainSubstring("kubernetesVersion: v1.17.2"))
+			g.Expect(conf.Data[clusterConfigurationKey]).To(ContainSubstring("apiVersion: kubeadm.k8s.io/v1beta2"))
 		})
 	}
 }

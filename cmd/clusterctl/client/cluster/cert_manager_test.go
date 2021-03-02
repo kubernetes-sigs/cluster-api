@@ -261,14 +261,14 @@ func Test_shouldUpgrade(t *testing.T) {
 						Object: map[string]interface{}{
 							"metadata": map[string]interface{}{
 								"annotations": map[string]interface{}{
-									certmanagerVersionAnnotation: "v0.11.0",
+									certmanagerVersionAnnotation: "v0.16.1",
 								},
 							},
 						},
 					},
 				},
 			},
-			wantVersion: "v0.11.0",
+			wantVersion: "v0.16.1",
 			want:        true,
 			wantErr:     false,
 		},
@@ -300,7 +300,7 @@ func Test_shouldUpgrade(t *testing.T) {
 							"kind": "Endpoints",
 							"metadata": map[string]interface{}{
 								"annotations": map[string]interface{}{
-									certmanagerVersionAnnotation: "v0.11.0",
+									certmanagerVersionAnnotation: "foo",
 								},
 							},
 						},
@@ -536,13 +536,13 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "cert-manager",
 						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabelName: "cert-manager"},
-						Annotations: map[string]string{certmanagerVersionAnnotation: "v0.16.0", certmanagerHashAnnotation: "some-hash"},
+						Annotations: map[string]string{certmanagerVersionAnnotation: "v0.16.1", certmanagerHashAnnotation: "some-hash"},
 					},
 				},
 			},
 			expectErr: false,
 			expectedPlan: CertManagerUpgradePlan{
-				From:          "v0.16.0",
+				From:          "v0.16.1",
 				To:            embeddedCertManagerManifestVersion,
 				ShouldUpgrade: true,
 			},
@@ -564,7 +564,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			},
 			expectErr: false,
 			expectedPlan: CertManagerUpgradePlan{
-				From:          "v0.16.1 (some-other-hash)",
+				From:          "v1.1.0 (some-other-hash)",
 				To:            embeddedCertManagerManifestVersion,
 				ShouldUpgrade: true,
 			},

@@ -46,8 +46,8 @@ func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
 		WithFile("v1.0", "components.yaml", []byte("content"))
 
 	certManagerPlan := CertManagerUpgradePlan{
-		From:          "v0.16.0",
-		To:            "v0.16.1",
+		From:          "v0.16.1",
+		To:            "v1.1.0",
 		ShouldUpgrade: true,
 	}
 	// create a fake cluster, with a cert manager client that has an upgrade

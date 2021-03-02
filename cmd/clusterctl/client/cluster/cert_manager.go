@@ -52,14 +52,14 @@ const (
 	// NOTE: // If the cert-manager.yaml asset is modified, this line **MUST** be updated
 	// accordingly else future upgrades of the cert-manager component will not
 	// be possible, as there'll be no record of the version installed.
-	embeddedCertManagerManifestVersion = "v0.16.1"
+	embeddedCertManagerManifestVersion = "v1.1.0"
 
 	// NOTE: The hash is used to ensure that when the cert-manager.yaml file is updated,
 	// the version number marker here is _also_ updated.
 	// You can either generate the SHA256 hash of the file, or alternatively
 	// run `go test` against this package. THe Test_VersionMarkerUpToDate will output
 	// the expected hash if it does not match the hash here.
-	embeddedCertManagerManifestHash = "af8c08a8eb65d102ba98889a89f4ad1d3db5d302edb5b8f8f3e69bb992faa211"
+	embeddedCertManagerManifestHash = "fc399b0d31aae0c3673b98330e1ef9250bec059c1f15deb79fc0dabfe8911d4b"
 )
 
 // CertManagerUpgradePlan defines the upgrade plan if cert-manager needs to be
@@ -265,10 +265,9 @@ func shouldUpgrade(objs []unstructured.Unstructured) (string, bool, error) {
 			continue
 		}
 
-		// if no version then upgrade (v0.11.0)
+		// if there is no version annotation, this means the obj is cert-manager v0.11.0 (installed with older version of clusterctl)
 		objVersion, ok := obj.GetAnnotations()[certmanagerVersionAnnotation]
 		if !ok {
-			// if there is no version annotation, this means the obj is cert-manager v0.11.0 (installed with older version of clusterctl)
 			currentVersion = "v0.11.0"
 			needUpgrade = true
 			break

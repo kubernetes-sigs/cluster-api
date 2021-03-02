@@ -46,9 +46,9 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "any",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
-			want:    "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+			want:    "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			wantErr: false,
 		},
 		{
@@ -58,7 +58,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "foo-repository.io/cert-manager-cainjector:foo-tag",
 			wantErr: false,
@@ -70,9 +70,9 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-webhook:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-webhook:v1.1.0",
 			},
-			want:    "quay.io/jetstack/cert-manager-webhook:v0.11.0",
+			want:    "quay.io/jetstack/cert-manager-webhook:v1.1.0",
 			wantErr: false,
 		},
 		{
@@ -82,7 +82,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "foo-repository.io/cert-manager-cainjector:foo-tag",
 			wantErr: false,
@@ -96,7 +96,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "foo-repository.io/cert-manager-cainjector:foo-tag",
 			wantErr: false,
@@ -110,7 +110,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "foo-repository.io/cert-manager-cainjector:bar-tag",
 			wantErr: false,
@@ -124,7 +124,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-webhook:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-webhook:v1.1.0",
 			},
 			want:    "bar-repository.io/cert-manager-webhook:bar-tag",
 			wantErr: false,
@@ -136,7 +136,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "foo-repository.io/cert-manager-cainjector:foo-tag",
 			wantErr: false,
@@ -150,7 +150,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "bar-repository.io/cert-manager-cainjector:bar-tag",
 			wantErr: false,
@@ -164,7 +164,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "foo-repository.io/cert-manager-cainjector:bar-tag",
 			wantErr: false,
@@ -179,7 +179,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "foo-repository.io/cert-manager-cainjector:foo-tag",
 			wantErr: false,
@@ -194,7 +194,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-cainjector:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-cainjector:v1.1.0",
 			},
 			want:    "foo-repository.io/cert-manager-cainjector:bar-tag",
 			wantErr: false,
@@ -209,7 +209,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			args: args{
 				component: "cert-manager",
-				image:     "quay.io/jetstack/cert-manager-webhook:v0.11.0",
+				image:     "quay.io/jetstack/cert-manager-webhook:v1.1.0",
 			},
 			want:    "bar-repository.io/cert-manager-webhook:baz-tag",
 			wantErr: false,

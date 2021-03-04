@@ -211,3 +211,25 @@ with `cert-manager.io/v1`
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
   ```
+
+## Required changes to have individual service accounts for controllers.
+
+1. Create a new service account such as:
+  ```yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: manager
+  namespace: system
+  ```
+2. Change the `subject` of the managers `ClusterRoleBinding` to match:
+  ```yaml
+  subjects:
+  - kind: ServiceAccount
+    name: manager
+    namespace: system
+  ```
+3. Add the correct `serviceAccountName` to the manager deployment:
+  ```yaml
+  serviceAccountName: manager
+  ```

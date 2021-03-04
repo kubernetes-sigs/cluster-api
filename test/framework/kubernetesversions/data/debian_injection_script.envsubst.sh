@@ -81,7 +81,7 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
       DEBIAN_FRONTEND=noninteractive apt-get install -y "$${CI_PACKAGE}=$${PACKAGE_VERSION}"
     done
   else
-    CI_URL="gs://kubernetes-release-dev/ci/$${KUBERNETES_VERSION}-bazel/bin/linux/amd64"
+    CI_URL="gs://kubernetes-release-dev/ci/$${KUBERNETES_VERSION}/bin/linux/amd64"
     for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
       echo "* downloading binary: $${CI_URL}/$${CI_PACKAGE}"
       $${GSUTIL} cp "$${CI_URL}/$${CI_PACKAGE}" "$${CI_DIR}/$${CI_PACKAGE}"

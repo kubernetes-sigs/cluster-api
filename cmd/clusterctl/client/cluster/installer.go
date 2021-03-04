@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -242,6 +243,10 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 	releaseSeries := latestMetadata.GetReleaseSeriesForVersion(currentVersion)
 	if releaseSeries == nil {
 		return "", errors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", provider.Version, provider.InstanceName())
+	}
+
+	if releaseSeries.Contract != clusterv1.GroupVersion.Version {
+		return "", errors.Errorf("current version of clusterctl could install only %s providers, detected %s for provider %s", clusterv1.GroupVersion.Version, releaseSeries.Contract, provider.ManifestLabel())
 	}
 
 	providerInstanceContracts[provider.InstanceName()] = releaseSeries.Contract

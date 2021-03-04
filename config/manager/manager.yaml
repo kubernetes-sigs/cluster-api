@@ -38,6 +38,7 @@ spec:
             path: /healthz
             port: healthz
       terminationGracePeriodSeconds: 10
+      serviceAccountName: manager
       tolerations:
         - effect: NoSchedule
           key: node-role.kubernetes.io/master

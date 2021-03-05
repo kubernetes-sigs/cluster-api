@@ -48,6 +48,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	// Set the v1alpha3 boolean status field if the v1alpha4 condition was true
 	if conditions.IsTrue(src, v1alpha4.ControlPlaneInitializedCondition) {
 		dst.Status.ControlPlaneInitialized = true
 	}

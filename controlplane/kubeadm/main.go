@@ -132,7 +132,9 @@ func main() {
 		}()
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	restConfig := ctrl.GetConfigOrDie()
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("kubeadm-control-plane-manager")
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsBindAddr,
 		LeaderElection:     enableLeaderElection,

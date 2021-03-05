@@ -68,3 +68,12 @@ aliases:
   cluster-api-clusterctl-reviewers:
   - fabriziopandini
   - wfernandes
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for exp/operator
+  # -----------------------------------------------------------
+
+  cluster-api-operator-reviewers:
+  - alexander-demichev
+  - MarcelMue
+  - JoelSpeed

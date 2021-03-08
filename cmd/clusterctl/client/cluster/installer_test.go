@@ -36,42 +36,61 @@ func Test_providerInstaller_Validate(t *testing.T) {
 
 	repositoryMap := map[string]repository.Repository{
 		"cluster-api": test.NewFakeRepository().
-			WithVersions("v1.0.0", "v1.0.1").
+			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
+			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				},
+			}).
 			WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 1, Minor: 0, Contract: "v1alpha3"},
+					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 				},
 			}).
 			WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 1, Minor: 0, Contract: "v1alpha3"},
-					{Major: 2, Minor: 0, Contract: "v1alpha4"},
+					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+					{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 				},
 			}),
 		"infrastructure-infra1": test.NewFakeRepository().
-			WithVersions("v1.0.0", "v1.0.1").
+			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
+			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				},
+			}).
 			WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 1, Minor: 0, Contract: "v1alpha3"},
+					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 				},
 			}).
 			WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 1, Minor: 0, Contract: "v1alpha3"},
-					{Major: 2, Minor: 0, Contract: "v1alpha4"},
+					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+					{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 				},
 			}),
 		"infrastructure-infra2": test.NewFakeRepository().
-			WithVersions("v1.0.0", "v1.0.1").
+			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
+			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				},
+			}).
 			WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 1, Minor: 0, Contract: "v1alpha3"},
+					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 				},
 			}).
 			WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 1, Minor: 0, Contract: "v1alpha3"},
-					{Major: 2, Minor: 0, Contract: "v1alpha4"},
+					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+					{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 				},
 			}),
 	}
@@ -86,10 +105,10 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "install core + infra1 on an empty cluster",
+			name: "install core/current contract + infra1/current contract on an empty cluster",
 			fields: fields{
 				proxy: test.NewFakeProxy(), //empty cluster
-				installQueue: []repository.Components{ // install core + infra1, v1alpha3 contract
+				installQueue: []repository.Components{
 					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
 				},
@@ -97,82 +116,126 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "install infra2 on a cluster already initialized with core + infra1",
+			name: "install infra2/current contract on a cluster already initialized with core/current contract + infra1/current contract",
 			fields: fields{
-				proxy: test.NewFakeProxy(). // cluster with core + infra1, v1alpha3 contract
-								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
-				installQueue: []repository.Components{ // install infra2, v1alpha3 contract
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
+					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
+				installQueue: []repository.Components{
 					newFakeComponents("infra2", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra2-system", ""),
 				},
 			},
 			wantErr: false,
 		},
 		{
-			name: "install another instance of infra1 on a cluster already initialized with core + infra1, no overlaps",
+			name: "install another instance of infra1/current contract on a cluster already initialized with core/current contract + infra1/current contract, no overlaps",
 			fields: fields{
-				proxy: test.NewFakeProxy(). // cluster with core + infra1, v1alpha3 contract
-								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns1", "ns1"),
-				installQueue: []repository.Components{ // install infra2, v1alpha3 contract
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
+					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns1", "ns1"),
+				installQueue: []repository.Components{
 					newFakeComponents("infra2", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns2", "ns2"),
 				},
 			},
 			wantErr: false,
 		},
 		{
-			name: "install another instance of infra1 on a cluster already initialized with core + infra1, same namespace of the existing infra1",
+			name: "install another instance of infra1/current contract on a cluster already initialized with core/current contract + infra1/current contract, same namespace of the existing infra1",
 			fields: fields{
-				proxy: test.NewFakeProxy(). // cluster with core + infra1, v1alpha3 contract
-								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "n1", ""),
-				installQueue: []repository.Components{ // install infra1, v1alpha3 contract
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
+					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "n1", ""),
+				installQueue: []repository.Components{
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "n1", ""),
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "install another instance of infra1 on a cluster already initialized with core + infra1, watching overlap with the existing infra1",
+			name: "install another instance of infra1/current contract on a cluster already initialized with core/current contract + infra1/current contract, watching overlap with the existing infra1",
 			fields: fields{
-				proxy: test.NewFakeProxy(). // cluster with core + infra1, v1alpha3 contract
-								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
-				installQueue: []repository.Components{ // install infra1, v1alpha3 contract
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
+					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
+				installQueue: []repository.Components{
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra2-system", ""),
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "install another instance of infra1 on a cluster already initialized with core + infra1, not part of the existing management group",
+			name: "install another instance of infra1/current contract on a cluster already initialized with core/current contract + infra1/current contract, not part of the existing management group",
 			fields: fields{
-				proxy: test.NewFakeProxy(). // cluster with core + infra1, v1alpha3 contract
-								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1").
-								WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns1", "ns1"),
-				installQueue: []repository.Components{ // install infra1, v1alpha3 contract
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1").
+					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns1", "ns1"),
+				installQueue: []repository.Components{
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns2", "ns2"),
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "install an instance of infra1 on a cluster already initialized with two core, but it is part of two management group",
+			name: "install an instance of infra1/current contract on a cluster already initialized with two core/current contract, but it is part of two management group",
 			fields: fields{
 				proxy: test.NewFakeProxy(). // cluster with two core (two management groups)
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1").
 								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns2", "ns2"),
-				installQueue: []repository.Components{ // install infra1, v1alpha3 contract
+				installQueue: []repository.Components{
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "install core@v1alpha3 + infra1@v1alpha4 on an empty cluster",
+			name: "install core/previous contract + infra1/previous contract on an empty cluster (not supported)",
 			fields: fields{
 				proxy: test.NewFakeProxy(), //empty cluster
-				installQueue: []repository.Components{ // install core + infra1, v1alpha3 contract
+				installQueue: []repository.Components{
+					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v0.9.0", "cluster-api-system", ""),
+					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v0.9.0", "infra1-system", ""),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "install core/previous contract + infra1/current contract on an empty cluster (not supported)",
+			fields: fields{
+				proxy: test.NewFakeProxy(), //empty cluster
+				installQueue: []repository.Components{
+					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v0.9.0", "cluster-api-system", ""),
+					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "install infra1/previous contract (not supported) on a cluster already initialized with core/current contract",
+			fields: fields{
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1"),
+				installQueue: []repository.Components{
+					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v0.9.0", "infra1-system", ""),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "install core/next contract + infra1/next contract on an empty cluster (not supported)",
+			fields: fields{
+				proxy: test.NewFakeProxy(), //empty cluster
+				installQueue: []repository.Components{
+					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v2.0.0", "cluster-api-system", ""),
+					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra1-system", ""),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "install core/current contract + infra1/next contract on an empty cluster (not supported)",
+			fields: fields{
+				proxy: test.NewFakeProxy(), //empty cluster
+				installQueue: []repository.Components{
 					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra1-system", ""),
 				},
@@ -180,11 +243,11 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "install infra1@v1alpha4 on a cluster already initialized with core@v1alpha3 +",
+			name: "install infra1/next contract (not supported) on a cluster already initialized with core/current contract",
 			fields: fields{
-				proxy: test.NewFakeProxy(). // cluster with one core, v1alpha3 contract
-								WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1"),
-				installQueue: []repository.Components{ // install infra1, v1alpha4 contract
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "ns1", "ns1"),
+				installQueue: []repository.Components{
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra1-system", ""),
 				},
 			},

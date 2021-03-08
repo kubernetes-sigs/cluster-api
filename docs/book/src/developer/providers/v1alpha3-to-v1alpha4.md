@@ -2,11 +2,11 @@
 
 ## Minimum Go version
 
-- The Go version used by Cluster API is now Go 1.15+
+- The Go version used by Cluster API is now Go 1.16+
 
 ## Controller Runtime version
 
-- The Controller Runtime version is now v0.8.+
+- The Controller Runtime version is now v0.9.+
 
 ## Kind version
 
@@ -33,7 +33,7 @@
 
 This function was originally used to generate a delegating client when creating a new manager.
 
-Controller Runtime v0.7.x now uses a `ClientBuilder` in its Options struct and it uses
+Controller Runtime v0.9.x now uses a `ClientBuilder` in its Options struct and it uses
 the delegating client by default under the hood, so this can be now removed.
 
 ## Use to Controller Runtime's new fake client builder
@@ -60,7 +60,7 @@ Specific changes related to this topic will be detailed in this document.
 The conversion-gen code from the `1.20.x` release onward generates incorrect conversion functions for types having arrays of pointers to custom objects. Change the existing types to contain objects instead of pointer references.
 
 ## Optional flag for specifying webhook certificates dir
-Add optional flag `--webhook-cert-dir={string-value}` which allows user to specify directory where webhooks will get tls certificates. 
+Add optional flag `--webhook-cert-dir={string-value}` which allows user to specify directory where webhooks will get tls certificates.
 If flag has not provided, default value from `controller-runtime` should be used.
 
 ## Required kustomize changes to have a single manager watching all namespaces and answer to webhook calls
@@ -210,4 +210,26 @@ with `cert-manager.io/v1`
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
+  ```
+
+## Required changes to have individual service accounts for controllers.
+
+1. Create a new service account such as:
+  ```yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: manager
+  namespace: system
+  ```
+2. Change the `subject` of the managers `ClusterRoleBinding` to match:
+  ```yaml
+  subjects:
+  - kind: ServiceAccount
+    name: manager
+    namespace: system
+  ```
+3. Add the correct `serviceAccountName` to the manager deployment:
+  ```yaml
+  serviceAccountName: manager
   ```

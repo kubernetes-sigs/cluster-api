@@ -29,7 +29,7 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: v0.3.0
+  - name: v0.4.0
   # Use manifest from source files
     value: ../../../config/default
     replacements:
@@ -41,7 +41,7 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: v0.3.0
+  - name: v0.4.0
   # Use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
@@ -53,7 +53,7 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: v0.3.0
+  - name: v0.4.0
   # Use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     replacements:
@@ -65,7 +65,7 @@ providers:
 - name: docker
   type: InfrastructureProvider
   versions:
-  - name: v0.3.0
+  - name: v0.4.0
   # Use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:

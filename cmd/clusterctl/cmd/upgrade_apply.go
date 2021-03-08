@@ -47,8 +47,8 @@ var upgradeApplyCmd = &cobra.Command{
 
 	Example: Examples(`
 		# Upgrades all the providers in the capi-system/cluster-api management group to the latest version available which is compliant
-		# to the v1alpha3 API Version of Cluster API (contract).
-		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha3
+		# to the v1alpha4 API Version of Cluster API (contract).
+		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha4
 
 		# Upgrades only the capa-system/aws provider instance in the capi-system/cluster-api management group to the v0.5.0 version.
 		clusterctl upgrade apply --management-group capi-system/cluster-api  --infrastructure capa-system/aws:v0.5.0`),
@@ -66,7 +66,7 @@ func init() {
 	upgradeApplyCmd.Flags().StringVar(&ua.managementGroup, "management-group", "",
 		"The management group that should be upgraded (e.g. capi-system/cluster-api)")
 	upgradeApplyCmd.Flags().StringVar(&ua.contract, "contract", "",
-		"The API Version of Cluster API (contract, e.g. v1alpha3) the management group should upgrade to")
+		"The API Version of Cluster API (contract, e.g. v1alpha4) the management group should upgrade to")
 
 	upgradeApplyCmd.Flags().StringVar(&ua.coreProvider, "core", "",
 		"Core provider instance version (e.g. capi-system/cluster-api:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")

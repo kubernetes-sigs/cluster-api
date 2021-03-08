@@ -76,7 +76,7 @@ func ConvertReferenceAPIContract(ctx context.Context, c client.Client, restConfi
 	// If there is no label, return early without changing the reference.
 	supportedVersions, ok := metadata.Labels[contract]
 	if !ok || supportedVersions == "" {
-		return errors.Errorf("cannot find any versions matching contract %q for CRD %v", contract, metadata.Name)
+		return errors.Errorf("cannot find any versions matching contract %q for CRD %v as contract version label(s) are either missing or empty", contract, metadata.Name)
 	}
 
 	// Pick the latest version in the slice and validate it.

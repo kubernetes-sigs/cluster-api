@@ -299,10 +299,11 @@ func (r *MachineHealthCheckReconciler) PatchHealthyTargets(ctx context.Context, 
 			// Get remediation request object
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
 			if err != nil {
-				if apierrors.IsNotFound(errors.Cause(err)) {
-					continue
+				if !apierrors.IsNotFound(errors.Cause(err)) {
+					wrappedErr := errors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName)
+					errList = append(errList, wrappedErr)
 				}
-				logger.Error(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName)
+				continue
 			}
 			// Check that obj has no DeletionTimestamp to avoid hot loop
 			if obj.GetDeletionTimestamp() == nil {

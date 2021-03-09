@@ -127,6 +127,13 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	invalidVersion2 := valid.DeepCopy()
 	invalidVersion2.Spec.Version = "1.16.6"
 
+	invalidIgnitionConfiguration := valid.DeepCopy()
+	invalidIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
+
+	validIgnitionConfiguration := valid.DeepCopy()
+	validIgnitionConfiguration.Spec.KubeadmConfigSpec.Format = bootstrapv1.Ignition
+	validIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -181,6 +188,16 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name:      "should return error when maxSurge is not 1",
 			expectErr: true,
 			kcp:       invalidMaxSurge,
+		},
+		{
+			name:      "should return error when Ignition configuration is invalid",
+			expectErr: true,
+			kcp:       invalidIgnitionConfiguration,
+		},
+		{
+			name:      "should succeed when Ignition configuration is valid",
+			expectErr: false,
+			kcp:       validIgnitionConfiguration,
 		},
 	}
 
@@ -541,6 +558,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	disableNTPServers := before.DeepCopy()
 	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = pointer.BoolPtr(false)
 
+	invalidIgnitionConfiguration := before.DeepCopy()
+	invalidIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
+
+	validIgnitionConfigurationBefore := before.DeepCopy()
+	validIgnitionConfigurationBefore.Spec.KubeadmConfigSpec.Format = bootstrapv1.Ignition
+	validIgnitionConfigurationBefore.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{
+		ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{},
+	}
+
+	validIgnitionConfigurationAfter := validIgnitionConfigurationBefore.DeepCopy()
+	validIgnitionConfigurationAfter.Spec.KubeadmConfigSpec.Ignition.ContainerLinuxConfig.AdditionalConfig = "foo: bar"
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -828,6 +857,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       disableNTPServers,
+		},
+		{
+			name:      "should return error when Ignition configuration is invalid",
+			expectErr: true,
+			before:    invalidIgnitionConfiguration,
+			kcp:       invalidIgnitionConfiguration,
+		},
+		{
+			name:      "should succeed when Ignition configuration is modified",
+			expectErr: false,
+			before:    validIgnitionConfigurationBefore,
+			kcp:       validIgnitionConfigurationAfter,
 		},
 	}
 

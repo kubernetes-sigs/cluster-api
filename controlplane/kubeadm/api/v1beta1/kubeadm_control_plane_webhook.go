@@ -92,6 +92,7 @@ func (in *KubeadmControlPlane) ValidateCreate() error {
 	spec := in.Spec
 	allErrs := validateKubeadmControlPlaneSpec(spec, in.Namespace, field.NewPath("spec"))
 	allErrs = append(allErrs, validateEtcd(&spec, nil)...)
+	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate()...)
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
 	}
@@ -113,6 +114,7 @@ const (
 	controllerManager    = "controllerManager"
 	scheduler            = "scheduler"
 	ntp                  = "ntp"
+	ignition             = "ignition"
 )
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
@@ -138,6 +140,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, "verbosity"},
 		{spec, kubeadmConfigSpec, users},
 		{spec, kubeadmConfigSpec, ntp, "*"},
+		{spec, kubeadmConfigSpec, ignition, "*"},
 		{spec, "machineTemplate", "metadata", "*"},
 		{spec, "machineTemplate", "infrastructureRef", "apiVersion"},
 		{spec, "machineTemplate", "infrastructureRef", "name"},
@@ -192,6 +195,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, in.validateVersion(prev.Spec.Version)...)
 	allErrs = append(allErrs, validateEtcd(&in.Spec, &prev.Spec)...)
 	allErrs = append(allErrs, in.validateCoreDNSVersion(prev)...)
+	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate()...)
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)

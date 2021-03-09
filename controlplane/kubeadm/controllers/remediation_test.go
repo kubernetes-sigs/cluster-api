@@ -19,13 +19,15 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
+
+	"sigs.k8s.io/cluster-api/util/collections"
 
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	utilpointer "k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -82,6 +84,13 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
 				Replicas: utilpointer.Int32Ptr(1),
+				RolloutStrategy: &controlplanev1.RolloutStrategy{
+					RollingUpdate: &controlplanev1.RollingUpdate{
+						MaxSurge: &intstr.IntOrString{
+							IntVal: 1,
+						},
+					},
+				},
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m),
@@ -100,7 +109,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas:        utilpointer.Int32Ptr(3),
+				RolloutStrategy: &controlplanev1.RolloutStrategy{},
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m),

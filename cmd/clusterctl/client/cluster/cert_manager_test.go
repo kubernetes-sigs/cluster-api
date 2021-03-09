@@ -123,6 +123,39 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:      "every Deployments should have a toleration for the node-role.kubernetes.io/master:NoSchedule taint ",
+			expectErr: false,
+			assert: func(t *testing.T, objs []unstructured.Unstructured) {
+				masterNoScheduleToleration := corev1.Toleration{
+					Key:    "node-role.kubernetes.io/master",
+					Effect: corev1.TaintEffectNoSchedule,
+				}
+				for i := range objs {
+					o := objs[i]
+					gvk := o.GroupVersionKind()
+					// As of Kubernetes 1.16, only apps/v1.Deployment are
+					// served, and CAPI >= v1alpha3 only supports >= 1.16.
+					if gvk.Group == "apps" && gvk.Kind == "Deployment" && gvk.Version == "v1" {
+						d := &appsv1.Deployment{}
+						err := scheme.Scheme.Convert(&o, d, nil)
+						if err != nil {
+							t.Errorf("did not expect err, got %s", err)
+						}
+						found := false
+						for _, t := range d.Spec.Template.Spec.Tolerations {
+							if t.MatchToleration(&masterNoScheduleToleration) {
+								found = true
+								break
+							}
+						}
+						if !found {
+							t.Errorf("Expected to find Deployment %s with Toleration %#v", d.Name, masterNoScheduleToleration)
+						}
+					}
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

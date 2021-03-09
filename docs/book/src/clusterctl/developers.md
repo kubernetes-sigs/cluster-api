@@ -4,7 +4,7 @@ This document describes how to use `clusterctl` during the development workflow.
 
 ## Prerequisites
 
-* A Cluster API development setup (go, git, kind v0.7 or newer, Docker v19.03 or newer etc.)
+* A Cluster API development setup (go, git, kind v0.9 or newer, Docker v19.03 or newer etc.)
 * A local clone of the Cluster API GitHub repository
 * A local clone of the GitHub repositories for the providers you want to install
 

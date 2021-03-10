@@ -28,6 +28,7 @@ import (
 
 	operatorv1alpha4 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers"
+	"sigs.k8s.io/cluster-api/version"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -76,7 +77,7 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("starting manager")
+	setupLog.Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

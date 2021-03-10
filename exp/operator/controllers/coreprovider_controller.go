@@ -37,7 +37,7 @@ type CoreProviderReconciler struct {
 // +kubebuilder:rbac:groups=operator.cluster.x-k8s.io,resources=coreproviders,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=operator.cluster.x-k8s.io,resources=coreproviders/status,verbs=get;update;patch
 
-func (r *CoreProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *CoreProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("coreprovider", req.NamespacedName)
 

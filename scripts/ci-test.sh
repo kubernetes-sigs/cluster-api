@@ -31,3 +31,8 @@ echo -e "\n*** Testing Cluster API Provider Docker ***\n"
 # Docker provider
 cd test/infrastructure/docker
 make test-junit
+
+echo -e "\n*** Testing Cluster API Operator ***\n"
+# Operator
+cd exp/operator
+make test-verbose

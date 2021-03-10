@@ -26,3 +26,7 @@ cd "${REPO_ROOT}" && make managers clusterctl e2e-framework
 echo "*** Building Cluster API Provider Docker ***"
 # Docker provider
 cd "${REPO_ROOT}/test/infrastructure/docker" && make manager
+
+echo "*** Building Cluster API Operator ***"
+# Docker provider
+cd "${REPO_ROOT}/exp/operator" && make operator

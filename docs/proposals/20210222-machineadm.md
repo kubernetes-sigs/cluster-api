@@ -501,7 +501,7 @@ passphrase, encoding the KMS encrypted value in a URI understood by the machinea
 @ represents the encrypted passphrase to be handed to kms::Decrypt.
 
 In terms of why we provide support for both external data and in-band data with encryption is that some infrastructure
-APIs have limited userdata storage: For example, AWS and Azure are both limited to 64-bytes for userdata. When users
+APIs have limited userdata storage: For example, AWS and Azure are both limited to 64 kilobytes for userdata. When users
 want to configure things such as system certificates, these are generally incompressible and may exceed the capacity of
 that infrastructure. In these scenarios, external data stores are required to allow high levels of customization.
 

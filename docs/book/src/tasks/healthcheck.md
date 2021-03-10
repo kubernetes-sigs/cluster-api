@@ -89,7 +89,9 @@ in order to prevent conflicts or unexpected behaviors when trying to remediate t
 ## Remediation Short-Circuiting
 
 To ensure that MachineHealthChecks only remediate Machines when the cluster is healthy,
-short-circuiting is implemented to prevent further remediation via the `maxUnhealthy` field within the MachineHealthCheck spec.
+short-circuiting is implemented to prevent further remediation via the `maxUnhealthy` and `unhealthyRange` fields within the MachineHealthCheck spec.
+
+### Max Unhealthy
 
 If the user defines a value for the `maxUnhealthy` field (either an absolute number or a percentage of the total Machines checked by this MachineHealthCheck),
 before remediating any Machines, the MachineHealthCheck will compare the value of `maxUnhealthy` with the number of Machines it has determined to be unhealthy.
@@ -123,6 +125,30 @@ If `maxUnhealthy` is set to `40%` and there are 6 Machines being checked:
 - If 3 or more nodes are unhealthy, remediation will not be performed
 
 Note, when the percentage is not a whole number, the allowed number is rounded down.
+
+### Unhealthy Range
+
+If the user defines a value for the `unhealthyRange` field (bracketed values that specify a start and an end value), before remediating any Machines,
+the MachineHealthCheck will check if the number of Machines it has determined to be unhealthy is within the range specified by `unhealthyRange`.
+If it is is not within the range set by `unhealthyRange`, remediation will **not** be performed.
+
+<aside class="note warning">
+
+<h1> Important </h1>
+
+If both `maxUnhealthy` and `unhealthyRange` are specified, `unhealthyRange` takes precedence.
+
+</aside>
+
+#### With a range of values
+
+If `unhealthyRange` is set to `[3-5]` and there are 10 Machines being checked:
+- If 2 or fewer nodes are unhealthy, remediation will not be performed.
+- If 5 or more nodes are unhealthy, remediation will not be performed.
+- In all other cases, remediation will be performed.
+
+Note, the above example had 10 machines as sample set. But, this would work the same way for any other number.
+This is useful for dynamically scaling clusters where the number of machines keep changing frequently.
 
 ## Skipping Remediation
 

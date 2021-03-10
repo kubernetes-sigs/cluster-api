@@ -322,6 +322,10 @@ spec:
                   type: object
                 minItems: 1
                 type: array
+              unhealthyRange:
+                description: 'Any further remediation is only allowed if the number of machines selected by "selector" as not healthy is within the range of "UnhealthyRange". Takes precedence over MaxUnhealthy. Eg. "[3-5]" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy machines (and) (b) there are at most 5 unhealthy machines'
+                pattern: ^\[[0-9]+-[0-9]+\]$
+                type: string
             required:
             - clusterName
             - selector

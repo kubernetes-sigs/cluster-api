@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 The Kubernetes Authors.
+# Copyright 2021 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,18 +21,10 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}" || exit 1
 
-# shellcheck source=./hack/ensure-go.sh
-source "${REPO_ROOT}/hack/ensure-go.sh"
+echo "*** Verifying Cluster API ***"
+make verify
 
-echo "*** Testing Cluster API ***"
-make test-verbose
-
-echo -e "\n*** Testing Cluster API Provider Docker ***\n"
-# Docker provider
-cd test/infrastructure/docker
-make test-verbose
-
-echo -e "\n*** Testing Cluster API Operator ***\n"
+echo -e "\n*** Verifying Cluster API Operator ***\n"
 # Operator
 cd exp/operator
-make test-verbose
+make verify

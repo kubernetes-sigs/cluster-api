@@ -23,3 +23,8 @@ cd "${REPO_ROOT}" || exit 1
 
 echo "*** Verifying Cluster API ***"
 make verify
+
+echo -e "\n*** Verifying Cluster API Operator ***\n"
+# Operator
+cd exp/operator
+make verify

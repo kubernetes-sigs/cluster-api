@@ -16,6 +16,16 @@
 
 - Find and replace the `kube-rbac-proxy` version (usually the image is `gcr.io/kubebuilder/kube-rbac-proxy`) and update it to `v0.8.0`.
 
+## Klog version
+
+- The klog package used has been upgraded to v2.5.x. It is recommended that
+  all providers also switch to using v2.
+
+  - Change `import k8s.io/klog` to `import k8s.io/klog/v2`
+  - Change `import k8s.io/klog/klogr` to `import k8s.io/klog/v2/klogr`
+  - Update `go.mod` to `k8s.io/klog/v2 v2.5.0`
+  - Run `go mod tidy` to ensure all dependencies are updated.
+
 ## The controllers.DeleteNodeAnnotation constant has been removed
 
 - This annotation `cluster.k8s.io/delete-machine` was originally deprecated a while ago when we moved our types under the `x-k8s.io` domain.

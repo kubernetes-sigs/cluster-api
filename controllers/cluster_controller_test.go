@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -240,7 +241,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		}, timeout).ShouldNot(BeEmpty())
 	})
 
-	It("Should successfully set Status.ControlPlaneInitialized on the cluster object if controlplane is ready", func() {
+	It("Should successfully set ControlPlaneInitialized on the cluster object if controlplane is ready", func() {
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test6-",
@@ -321,7 +322,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			if err := testEnv.Get(ctx, key, cluster); err != nil {
 				return false
 			}
-			return cluster.Status.ControlPlaneInitialized
+			return conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		}, timeout).Should(BeTrue())
 	})
 })
@@ -687,5 +688,5 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	res, err := r.reconcileControlPlaneInitialized(ctx, c)
 	g.Expect(res.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(c.Status.ControlPlaneInitialized).To(BeFalse())
+	g.Expect(conditions.Has(c, clusterv1.ControlPlaneInitializedCondition)).To(BeFalse())
 }

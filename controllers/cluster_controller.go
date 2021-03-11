@@ -465,27 +465,34 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Skip checking if the control plane is initialized when using a Control Plane Provider
+	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
+	// reconcileControlPlane instead).
 	if cluster.Spec.ControlPlaneRef != nil {
+		log.V(4).Info("Skipping reconcileControlPlaneInitialized because cluster has a controlPlaneRef")
 		return ctrl.Result{}, nil
 	}
 
-	if cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		log.V(4).Info("Skipping reconcileControlPlaneInitialized because control plane already initialized")
 		return ctrl.Result{}, nil
 	}
+
+	log.V(4).Info("Checking for control plane initialization")
 
 	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
 	if err != nil {
-		log.Error(err, "Error getting machines in cluster")
+		log.Error(err, "unable to determine ControlPlaneInitialized")
 		return ctrl.Result{}, err
 	}
 
 	for _, m := range machines {
 		if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
-			cluster.Status.ControlPlaneInitialized = true
+			conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 			return ctrl.Result{}, nil
 		}
 	}
+
+	conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityInfo, "Waiting for the first control plane machine to have its status.nodeRef set")
 
 	return ctrl.Result{}, nil
 }
@@ -509,7 +516,7 @@ func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl
 		return nil
 	}
 
-	if cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return nil
 	}
 

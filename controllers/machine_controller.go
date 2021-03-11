@@ -251,7 +251,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		if err := r.watchClusterNodes(ctx, cluster); err != nil {
 			log.Error(err, "error watching nodes on target cluster")
 			return ctrl.Result{}, err

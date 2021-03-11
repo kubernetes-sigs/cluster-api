@@ -667,6 +667,50 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	g.Expect(actual).To(Equal(expected))
 }
 
+func TestDescendantsLength(t *testing.T) {
+	g := NewWithT(t)
+
+	d := clusterDescendants{
+		machineDeployments: clusterv1.MachineDeploymentList{
+			Items: []clusterv1.MachineDeployment{
+				newMachineDeploymentBuilder().named("md1").build(),
+			},
+		},
+		machineSets: clusterv1.MachineSetList{
+			Items: []clusterv1.MachineSet{
+				newMachineSetBuilder().named("ms1").build(),
+				newMachineSetBuilder().named("ms2").build(),
+			},
+		},
+		controlPlaneMachines: clusterv1.MachineList{
+			Items: []clusterv1.Machine{
+				newMachineBuilder().named("m1").build(),
+				newMachineBuilder().named("m2").build(),
+				newMachineBuilder().named("m3").build(),
+			},
+		},
+		workerMachines: clusterv1.MachineList{
+			Items: []clusterv1.Machine{
+				newMachineBuilder().named("m3").build(),
+				newMachineBuilder().named("m4").build(),
+				newMachineBuilder().named("m5").build(),
+				newMachineBuilder().named("m6").build(),
+			},
+		},
+		machinePools: expv1.MachinePoolList{
+			Items: []expv1.MachinePool{
+				newMachinePoolBuilder().named("mp1").build(),
+				newMachinePoolBuilder().named("mp2").build(),
+				newMachinePoolBuilder().named("mp3").build(),
+				newMachinePoolBuilder().named("mp4").build(),
+				newMachinePoolBuilder().named("mp5").build(),
+			},
+		},
+	}
+
+	g.Expect(d.length()).To(Equal(15))
+}
+
 func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	g := NewWithT(t)
 

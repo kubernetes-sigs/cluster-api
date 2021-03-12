@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -469,7 +470,8 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo", "bar").
-		WithObjs(configMap)
+		WithObjs(configMap).
+		WithObjs(test.FakeCAPISetupObjects()...)
 
 	client := newFakeClient(config1).
 		WithCluster(cluster1).

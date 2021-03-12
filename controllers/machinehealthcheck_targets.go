@@ -37,18 +37,6 @@ import (
 const (
 	// Event types
 
-	// EventSkippedControlPlane is emitted in case an unhealthy node (or a machine
-	// associated with the node) has the `control-plane` role
-	// Deprecated: no longer in use
-	EventSkippedControlPlane string = "SkippedControlPlane"
-	// EventMachineDeletionFailed is emitted in case remediation of a machine
-	// is required but deletion of its Machine object failed
-	// Deprecated: no longer in use
-	EventMachineDeletionFailed string = "MachineDeletionFailed"
-	// EventMachineDeleted is emitted when machine was successfully remediated
-	// by deleting its Machine object
-	// Deprecated: no longer in use
-	EventMachineDeleted string = "MachineDeleted"
 	// EventMachineMarkedUnhealthy is emitted when machine was successfully marked as unhealthy
 	EventMachineMarkedUnhealthy string = "MachineMarkedUnhealthy"
 	// EventDetectedUnhealthy is emitted in case a node associated with a

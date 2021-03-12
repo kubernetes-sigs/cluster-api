@@ -25,13 +25,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-func TestNewCertificatesForJoiningControlPlane_Stacked(t *testing.T) {
-	g := NewWithT(t)
-
-	certs := secret.NewCertificatesForJoiningControlPlane()
-	g.Expect(certs.GetByPurpose(secret.EtcdCA).KeyFile).NotTo(BeEmpty())
-}
-
 func TesNewControlPlaneJoinCerts_Stacked(t *testing.T) {
 	g := NewWithT(t)
 

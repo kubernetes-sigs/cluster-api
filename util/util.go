@@ -39,19 +39,14 @@ import (
 	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/container"
-	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -139,18 +134,6 @@ func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *cluste
 		return nil, err
 	}
 	return &machines, nil
-}
-
-// SemverToOCIImageTag is a helper function that replaces all
-// non-allowed symbols in tag strings with underscores.
-// Image tag can only contain lowercase and uppercase letters, digits,
-// underscores, periods and dashes.
-// Current usage is for CI images where all of symbols except '+' are valid,
-// but function is for generic usage where input can't be always pre-validated.
-// Taken from k8s.io/cmd/kubeadm/app/util
-// Deprecated: Please use the functions in util/container
-func SemverToOCIImageTag(version string) string {
-	return container.SemverToOCIImageTag(version)
 }
 
 // GetControlPlaneMachines returns a slice containing control plane machines.
@@ -403,17 +386,6 @@ func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRefe
 	return -1
 }
 
-// PointsTo returns true if any of the owner references point to the given target
-// Deprecated: Use IsOwnedByObject to cover differences in API version or backup/restore that changed UIDs.
-func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
-	for _, ref := range refs {
-		if ref.UID == target.UID {
-			return true
-		}
-	}
-	return false
-}
-
 // IsOwnedByObject returns true if any of the owner references point to the given target.
 func IsOwnedByObject(obj metav1.Object, target client.Object) bool {
 	for _, ref := range obj.GetOwnerReferences() {
@@ -506,16 +478,6 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 	return false
 }
 
-var (
-	// IsPaused returns true if the Cluster is paused or the object has the `paused` annotation.
-	// Deprecated: use util/annotations/IsPaused instead
-	IsPaused = annotations.IsPaused
-
-	// HasPausedAnnotation returns true if the object has the `paused` annotation.
-	// Deprecated: use util/annotations/HasPausedAnnotation instead
-	HasPausedAnnotation = annotations.HasPausedAnnotation
-)
-
 // GetCRDWithContract retrieves a list of CustomResourceDefinitions from using controller-runtime Client,
 // filtering with the `contract` label passed in.
 // Returns the first CRD in the list that matches the GroupVersionKind, otherwise returns an error.
@@ -589,20 +551,6 @@ func (o MachinesByCreationTimestamp) Less(i, j int) bool {
 		return o[i].Name < o[j].Name
 	}
 	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
-}
-
-// WatchOnClusterPaused adds a conditional watch to the controlled given as input
-// that sends watch notifications on any create or delete, and only updates
-// that toggle Cluster.Spec.Cluster.
-// Deprecated: Instead add the Watch directly and use predicates.ClusterUnpaused or
-// predicates.ClusterUnpausedAndInfrastructureReady depending on your use case.
-func WatchOnClusterPaused(c controller.Controller, fn handler.MapFunc) error {
-	log := klogr.New().WithName("WatchOnClusterPaused")
-	return c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(fn),
-		predicates.ClusterUnpaused(log),
-	)
 }
 
 // ClusterToObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in

@@ -45,24 +45,24 @@ type CreateRepositoryInput struct {
 	FileTransformations []RepositoryFileTransformation
 }
 
-// RegisterClusterResourceSetConfigMapTransformation registers a FileTransformations that injects a CNI file into
+// RegisterClusterResourceSetConfigMapTransformation registers a FileTransformations that injects a manifests file into
 // a ConfigMap that defines a ClusterResourceSet resource.
 //
 // NOTE: this transformation is specifically designed for replacing "data: ${envSubstVar}".
-func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformation(cniManifestPath, envSubstVar string) {
-	By(fmt.Sprintf("Reading the CNI manifest %s", cniManifestPath))
-	cniData, err := ioutil.ReadFile(cniManifestPath)
-	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test CNI file")
-	Expect(cniData).ToNot(BeEmpty(), "CNI file should not be empty")
+func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformation(manifestPath, envSubstVar string) {
+	By(fmt.Sprintf("Reading the ClusterResourceSet manifest %s", manifestPath))
+	manifestData, err := ioutil.ReadFile(manifestPath)
+	Expect(err).ToNot(HaveOccurred(), "Failed to read the ClusterResourceSet manifest file")
+	Expect(manifestData).ToNot(BeEmpty(), "ClusterResourceSet manifest file should not be empty")
 
 	i.FileTransformations = append(i.FileTransformations, func(template []byte) ([]byte, error) {
 		old := fmt.Sprintf("data: ${%s}", envSubstVar)
 		new := "data:\n"
 		new += "  resources: |\n"
-		for _, l := range strings.Split(string(cniData), "\n") {
+		for _, l := range strings.Split(string(manifestData), "\n") {
 			new += strings.Repeat(" ", 4) + l + "\n"
 		}
-		return bytes.Replace(template, []byte(old), []byte(new), -1), nil
+		return bytes.ReplaceAll(template, []byte(old), []byte(new)), nil
 	})
 }
 

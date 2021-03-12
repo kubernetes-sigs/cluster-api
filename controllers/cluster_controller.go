@@ -337,7 +337,8 @@ func (c *clusterDescendants) length() int {
 	return len(c.machineDeployments.Items) +
 		len(c.machineSets.Items) +
 		len(c.controlPlaneMachines.Items) +
-		len(c.workerMachines.Items)
+		len(c.workerMachines.Items) +
+		len(c.machinePools.Items)
 }
 
 func (c *clusterDescendants) descendantNames() string {

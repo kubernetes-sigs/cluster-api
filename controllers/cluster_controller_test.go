@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -556,11 +558,39 @@ func (b *machineBuilder) controlPlane() *machineBuilder {
 	return b
 }
 
+type machinePoolBuilder struct {
+	mp expv1.MachinePool
+}
+
 func (b *machineBuilder) build() clusterv1.Machine {
 	return b.m
 }
 
+func newMachinePoolBuilder() *machinePoolBuilder {
+	return &machinePoolBuilder{}
+}
+
+func (b *machinePoolBuilder) named(name string) *machinePoolBuilder {
+	b.mp.Name = name
+	return b
+}
+
+func (b *machinePoolBuilder) ownedBy(c *clusterv1.Cluster) *machinePoolBuilder {
+	b.mp.OwnerReferences = append(b.mp.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       c.Name,
+	})
+	return b
+}
+
+func (b *machinePoolBuilder) build() expv1.MachinePool {
+	return b.mp
+}
+
 func TestFilterOwnedDescendants(t *testing.T) {
+
+	_ = feature.MutableGates.Set("MachinePool=true")
 	g := NewWithT(t)
 
 	c := clusterv1.Cluster{
@@ -589,6 +619,11 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	m4NotOwnedByCluster := newMachineBuilder().named("m4").build()
 	m5OwnedByCluster := newMachineBuilder().named("m5").ownedBy(&c).build()
 	m6ControlPlaneOwnedByCluster := newMachineBuilder().named("m6").ownedBy(&c).controlPlane().build()
+
+	mp1NotOwnedByCluster := newMachinePoolBuilder().named("mp1").build()
+	mp2OwnedByCluster := newMachinePoolBuilder().named("mp2").ownedBy(&c).build()
+	mp3NotOwnedByCluster := newMachinePoolBuilder().named("mp3").build()
+	mp4OwnedByCluster := newMachinePoolBuilder().named("mp4").ownedBy(&c).build()
 
 	d := clusterDescendants{
 		machineDeployments: clusterv1.MachineDeploymentList{
@@ -621,12 +656,22 @@ func TestFilterOwnedDescendants(t *testing.T) {
 				m5OwnedByCluster,
 			},
 		},
+		machinePools: expv1.MachinePoolList{
+			Items: []expv1.MachinePool{
+				mp1NotOwnedByCluster,
+				mp2OwnedByCluster,
+				mp3NotOwnedByCluster,
+				mp4OwnedByCluster,
+			},
+		},
 	}
 
 	actual, err := d.filterOwnedDescendants(&c)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	expected := []runtime.Object{
+		&mp2OwnedByCluster,
+		&mp4OwnedByCluster,
 		&md2OwnedByCluster,
 		&md4OwnedByCluster,
 		&ms2OwnedByCluster,
@@ -638,6 +683,50 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	}
 
 	g.Expect(actual).To(Equal(expected))
+}
+
+func TestDescendantsLength(t *testing.T) {
+	g := NewWithT(t)
+
+	d := clusterDescendants{
+		machineDeployments: clusterv1.MachineDeploymentList{
+			Items: []clusterv1.MachineDeployment{
+				newMachineDeploymentBuilder().named("md1").build(),
+			},
+		},
+		machineSets: clusterv1.MachineSetList{
+			Items: []clusterv1.MachineSet{
+				newMachineSetBuilder().named("ms1").build(),
+				newMachineSetBuilder().named("ms2").build(),
+			},
+		},
+		controlPlaneMachines: clusterv1.MachineList{
+			Items: []clusterv1.Machine{
+				newMachineBuilder().named("m1").build(),
+				newMachineBuilder().named("m2").build(),
+				newMachineBuilder().named("m3").build(),
+			},
+		},
+		workerMachines: clusterv1.MachineList{
+			Items: []clusterv1.Machine{
+				newMachineBuilder().named("m3").build(),
+				newMachineBuilder().named("m4").build(),
+				newMachineBuilder().named("m5").build(),
+				newMachineBuilder().named("m6").build(),
+			},
+		},
+		machinePools: expv1.MachinePoolList{
+			Items: []expv1.MachinePool{
+				newMachinePoolBuilder().named("mp1").build(),
+				newMachinePoolBuilder().named("mp2").build(),
+				newMachinePoolBuilder().named("mp3").build(),
+				newMachinePoolBuilder().named("mp4").build(),
+				newMachinePoolBuilder().named("mp5").build(),
+			},
+		},
+	}
+
+	g.Expect(d.length()).To(Equal(15))
 }
 
 func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {

@@ -8,7 +8,7 @@ require (
 	github.com/coredns/corefile-migration v1.0.11
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/drone/envsubst v1.0.3-0.20200709223903-efdb65b94e5a
+	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
 	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/fatih/color v1.7.0
 	github.com/go-logr/logr v0.4.0

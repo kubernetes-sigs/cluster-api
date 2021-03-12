@@ -122,7 +122,7 @@ func TestSimpleProcessor_Process(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "does not escape \\ used for windows named pipes",
+			name: "does not escape slashes used for windows named pipes",
 			args: args{
 				yaml: []byte(`\\ foo ${ BAR }, ${BAR }, ${ BAR}`),
 				configVariablesClient: test.NewFakeVariableClient().

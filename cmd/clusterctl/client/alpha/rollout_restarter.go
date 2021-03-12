@@ -32,7 +32,7 @@ import (
 // ObjectRestarter will issue a restart on the specified cluster-api resource.
 func (r *rollout) ObjectRestarter(proxy cluster.Proxy, tuple util.ResourceTuple, namespace string) error {
 	switch tuple.Resource {
-	case "machinedeployment":
+	case MachineDeployment:
 		deployment, err := getMachineDeployment(proxy, tuple.Name, namespace)
 		if err != nil || deployment == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", tuple.Resource, tuple.Name)

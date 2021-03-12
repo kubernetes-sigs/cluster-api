@@ -44,7 +44,7 @@ type args struct {
 func genericTestCases() []rolloutTest {
 	return []rolloutTest{
 		{
-			name: "return an error is machinedeployment not found",
+			name: "return an error if machinedeployment is not found",
 			fields: fields{
 				client: fakeClientForRollout(),
 			},

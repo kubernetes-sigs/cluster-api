@@ -36,6 +36,10 @@ type RolloutOptions struct {
 	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
 	// from the current configuration.
 	Namespace string
+
+	// Revision number to rollback to when issuing the undo command.
+	// Revision number of a specific revision when issuing the history command.
+	ToRevision int64
 }
 
 func (c *clusterctlClient) RolloutRestart(options RolloutOptions) error {
@@ -83,6 +87,23 @@ func (c *clusterctlClient) RolloutResume(options RolloutOptions) error {
 	}
 	for _, t := range tuples {
 		if err := c.alphaClient.Rollout().ObjectResumer(clusterClient.Proxy(), t, options.Namespace); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *clusterctlClient) RolloutUndo(options RolloutOptions) error {
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	if err != nil {
+		return err
+	}
+	tuples, err := getResourceTuples(clusterClient, options)
+	if err != nil {
+		return err
+	}
+	for _, t := range tuples {
+		if err := c.alphaClient.Rollout().ObjectRollbacker(clusterClient.Proxy(), t, options.Namespace, options.ToRevision); err != nil {
 			return err
 		}
 	}

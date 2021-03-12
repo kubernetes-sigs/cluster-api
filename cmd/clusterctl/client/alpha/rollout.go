@@ -21,15 +21,16 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 )
 
-const machineDeployment = "machinedeployment"
+const MachineDeployment = "machinedeployment"
 
-var validResourceTypes = []string{machineDeployment}
+var validResourceTypes = []string{MachineDeployment}
 
 // Rollout defines the behavior of a rollout implementation.
 type Rollout interface {
 	ObjectRestarter(cluster.Proxy, util.ResourceTuple, string) error
 	ObjectPauser(cluster.Proxy, util.ResourceTuple, string) error
 	ObjectResumer(cluster.Proxy, util.ResourceTuple, string) error
+	ObjectRollbacker(cluster.Proxy, util.ResourceTuple, string, int64) error
 }
 
 var _ Rollout = &rollout{}

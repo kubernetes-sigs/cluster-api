@@ -3,7 +3,7 @@
 ## Minimum Go version
 
 - The Go version used by Cluster API is now Go 1.16+
-  - In case cloudbuild is used to push images, please upgrade to `gcr.io/k8s-testimages/gcb-docker-gcloud:v20210331-c732583` 
+  - In case cloudbuild is used to push images, please upgrade to `gcr.io/k8s-testimages/gcb-docker-gcloud:v20210331-c732583`
     in the cloudbuild YAML files.  
 
 ## Controller Runtime version
@@ -251,4 +251,21 @@ with `cert-manager.io/v1`
 `MachineDeployment.Spec.Strategy.RollingUpdate.MaxSurge`, `MachineDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable` and `MachineHealthCheck.Spec.MaxUnhealthy` would have previously taken a String value with an integer character in it e.g "3" as a valid input and process it as a percentage value.
 Only String values like "3%" or Int values e.g 3 are valid input values now. A string not matching the percentage format will fail, e.g "3".
 
+## Required change to support externally managed infrastructure.
 
+- A new annotation `cluster.x-k8s.io/managed-by` has been introduced that allows cluster infrastructure to be managed
+externally.
+- When this annotation is added to an `InfraCluster` resource, the controller for these resources should not reconcile
+the resource.
+- The `ResourceIsNotExternallyManaged` predicate is a useful helper to check for the annotation and the filter the resource easily:
+  ```go
+  c, err := ctrl.NewControllerManagedBy(mgr).
+		For(&providerv1.InfraCluster{}).
+		Watches(...).
+		WithOptions(options).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(ctrl.LoggerFrom(ctx))).
+		Build(r)
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+  ```

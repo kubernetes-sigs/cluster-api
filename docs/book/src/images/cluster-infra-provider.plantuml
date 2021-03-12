@@ -4,6 +4,10 @@ start
 
 :New/Updated/Deleted resource;
 
+if (Is Externally Managed?) then (yes)
+    stop
+  else (no)
+  endif
 if (Deleted?) then (yes)
     if (Has cluster owner?) then (yes)
         :Reconcile deletion;

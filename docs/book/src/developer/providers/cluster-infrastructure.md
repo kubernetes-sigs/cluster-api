@@ -45,6 +45,8 @@ The following diagram shows the typical logic for a cluster infrastructure provi
 
 ### Normal resource
 
+1. If the resource is externally managed, exit the reconciliation
+    1. The `ResourceIsNotExternallyManaged` predicate can be used to prevent reconciling externally managed resources
 1. If the resource does not have a `Cluster` owner, exit the reconciliation
     1. The Cluster API `Cluster` reconciler populates this based on the value in the `Cluster`'s `spec.infrastructureRef`
        field.

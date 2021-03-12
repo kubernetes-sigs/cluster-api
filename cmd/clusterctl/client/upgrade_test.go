@@ -21,13 +21,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
@@ -342,7 +342,8 @@ func fakeClientForUpgrade() *fakeClient {
 		WithRepository(repository1).
 		WithRepository(repository2).
 		WithProviderInventory(core.Name(), core.Type(), "v1.0.0", "cluster-api-system", "watchingNS").
-		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system", "watchingNS")
+		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system", "watchingNS").
+		WithObjs(test.FakeCAPISetupObjects()...)
 
 	client := newFakeClient(config1).
 		WithRepository(repository1).

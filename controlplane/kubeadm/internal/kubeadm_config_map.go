@@ -31,6 +31,7 @@ import (
 const (
 	clusterStatusKey         = "ClusterStatus"
 	clusterConfigurationKey  = "ClusterConfiguration"
+	apiVersionKey            = "apiVersion"
 	statusAPIEndpointsKey    = "apiEndpoints"
 	configVersionKey         = "kubernetesVersion"
 	dnsKey                   = "dns"
@@ -90,6 +91,23 @@ func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 	if err := unstructured.SetNestedField(configuration.UnstructuredContent(), version, configVersionKey); err != nil {
 		return errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap's %q", configVersionKey, clusterConfigurationKey)
 	}
+
+	// Fix the ClusterConfiguration according to the target Kubernetes version
+	// IMPORTANT: This is a stop-gap explicitly designed for back-porting on the v1alpha3 branch.
+	// This allows to unblock removal of the v1beta1 API in kubeadm by making Cluster API to use the v1beta2 kubeadm API
+	// under the assumption that the serialized version of the two APIs is equal as discussed; see
+	// "Insulate users from kubeadm API version changes" CAEP for more details.
+	// NOTE: This solution will stop to work when kubeadm will drop then v1beta2 kubeadm API, but this gives
+	// enough time (9/12 months from the deprecation date, not yet announced) for the users to migrate to
+	// the v1alpha4 release of Cluster API, where a proper conversion mechanism is going to be supported.
+	gv, err := kubeadmv1.KubeVersionToKubeadmAPIGroupVersion(version)
+	if err != nil {
+		return err
+	}
+	if err := unstructured.SetNestedField(configuration.UnstructuredContent(), gv.String(), apiVersionKey); err != nil {
+		return errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap's %q", apiVersionKey, clusterConfigurationKey)
+	}
+
 	updated, err := yaml.Marshal(configuration)
 	if err != nil {
 		return errors.Wrapf(err, "unable to encode kubeadm ConfigMap's %q to YAML", clusterConfigurationKey)

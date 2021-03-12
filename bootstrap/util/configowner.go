@@ -81,6 +81,20 @@ func (co ConfigOwner) IsMachinePool() bool {
 	return co.GetKind() == "MachinePool"
 }
 
+// Returns the Kuberentes version for the config owner object
+func (co ConfigOwner) KubernetesVersion() string {
+	fields := []string{"spec", "version"}
+	if co.IsMachinePool() {
+		fields = []string{"spec", "template", "spec", "version"}
+	}
+
+	version, _, err := unstructured.NestedString(co.Object, fields...)
+	if err != nil {
+		return ""
+	}
+	return version
+}
+
 // GetConfigOwner returns the Unstructured object owning the current resource.
 func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
 	allowedGKs := []schema.GroupKind{

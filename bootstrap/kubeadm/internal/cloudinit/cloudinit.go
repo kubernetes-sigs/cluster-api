@@ -91,15 +91,15 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	}
 
 	if _, err := tm.Parse(diskSetupTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse users template")
+		return nil, errors.Wrap(err, "failed to parse disk setup template")
 	}
 
 	if _, err := tm.Parse(fsSetupTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse users template")
+		return nil, errors.Wrap(err, "failed to parse fs setup template")
 	}
 
 	if _, err := tm.Parse(mountsTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse users template")
+		return nil, errors.Wrap(err, "failed to parse mounts template")
 	}
 
 	t, err := tm.Parse(tpl)

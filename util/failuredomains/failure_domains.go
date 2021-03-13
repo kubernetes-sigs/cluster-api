@@ -17,7 +17,7 @@ limitations under the License.
 package failuredomains
 
 import (
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 	"sort"
 
 	"k8s.io/utils/pointer"

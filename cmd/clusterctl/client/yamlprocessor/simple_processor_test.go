@@ -122,6 +122,16 @@ func TestSimpleProcessor_Process(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "does not escape slashes used for windows named pipes",
+			args: args{
+				yaml: []byte(`\\ foo ${ BAR }, ${BAR }, ${ BAR}`),
+				configVariablesClient: test.NewFakeVariableClient().
+					WithVar("BAR", "bar"),
+			},
+			want:    []byte(`\\ foo bar, bar, bar`),
+			wantErr: false,
+		},
+		{
 			name: "replaces variables when variable value contains regex metacharacters",
 			args: args{
 				yaml: []byte("foo ${BAR}"),

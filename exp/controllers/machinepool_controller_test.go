@@ -579,7 +579,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete123",
 			Namespace:         "default",
-			Finalizers:        []string{expv1.MachinePoolFinalizer},
+			Finalizers:        []string{expv1.MachinePoolFinalizer, "test"},
 			DeletionTimestamp: &dt,
 		},
 		Spec: expv1.MachinePoolSpec{
@@ -606,7 +606,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 
 	var actual expv1.MachinePool
 	g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
-	g.Expect(actual.ObjectMeta.Finalizers).To(BeEmpty())
+	g.Expect(actual.ObjectMeta.Finalizers).To(Equal([]string{"test"}))
 }
 
 func TestMachinePoolConditions(t *testing.T) {

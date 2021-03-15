@@ -161,7 +161,7 @@ managers: ## Build all managers
 
 .PHONY: clusterctl
 clusterctl: ## Build clusterctl binary
-	go build -ldflags "$(LDFLAGS)" -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -567,8 +567,8 @@ clean: ## Remove all generated files
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
-	rm -rf bin
-	rm -rf hack/tools/bin
+	rm -rf $(BIN_DIR)
+	rm -rf $(TOOLS_BIN_DIR)
 
 .PHONY: clean-release
 clean-release: ## Remove the release folder
@@ -607,7 +607,7 @@ verify:
 
 .PHONY: verify-modules
 verify-modules: modules
-	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi

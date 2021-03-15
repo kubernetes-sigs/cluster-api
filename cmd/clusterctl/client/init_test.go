@@ -240,7 +240,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Init (with an empty cluster) with default provider versions",
+			name: "Init (with an empty cluster) with default provider versions/current contract",
 			field: field{
 				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: false,
@@ -282,7 +282,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Init (with an empty cluster) opting out from automatic install of providers",
+			name: "Init (with an empty cluster) opting out from automatic install of providers/current contract",
 			field: field{
 				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: false,
@@ -312,7 +312,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Init (with an empty cluster) with custom provider versions",
+			name: "Init (with an empty cluster) with custom provider versions/current contract",
 			field: field{
 				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: false,
@@ -354,7 +354,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Init (with an empty cluster) with target namespace",
+			name: "Init (with an empty cluster) with target namespace/current contract",
 			field: field{
 				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: false,
@@ -395,7 +395,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Init (with a NOT empty cluster) adds a provider",
+			name: "Init (with a NOT empty cluster) adds a provider/current contract",
 			field: field{
 				client: fakeInitializedCluster(), // clusterctl client for an management cluster with capi installed (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: true,
@@ -501,6 +501,68 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				watchingNamespace:      "",
 			},
 			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Init (with an empty cluster) with custom provider versions/previous contract, not supported",
+			field: field{
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
+				hasCRD: false,
+			},
+			args: args{
+				coreProvider:           fmt.Sprintf("%s:v0.9.0", config.ClusterAPIProviderName),
+				bootstrapProvider:      []string{fmt.Sprintf("%s:v0.9.0", config.KubeadmBootstrapProviderName)},
+				controlPlaneProvider:   []string{fmt.Sprintf("%s:v0.9.0", config.KubeadmControlPlaneProviderName)},
+				infrastructureProvider: []string{"infra:v0.9.0"},
+				targetNameSpace:        "",
+				watchingNamespace:      "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Init (with a NOT empty cluster) adds a provider/previous contract, not supported",
+			field: field{
+				client: fakeInitializedCluster(), // clusterctl client for an management cluster with capi installed (with repository setup for capi, bootstrap, control plane and infra provider)
+				hasCRD: true,
+			},
+			args: args{
+				coreProvider:           "", // with a NOT empty cluster, a core provider should NOT be added automatically
+				bootstrapProvider:      []string{fmt.Sprintf("%s:v0.9.0", config.KubeadmBootstrapProviderName)},
+				infrastructureProvider: []string{"infra:v0.9.0"},
+				targetNameSpace:        "",
+				watchingNamespace:      "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Init (with an empty cluster) with custom provider versions/next contract, not supported",
+			field: field{
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
+				hasCRD: false,
+			},
+			args: args{
+				coreProvider:           fmt.Sprintf("%s:v2.0.0", config.ClusterAPIProviderName),
+				bootstrapProvider:      []string{fmt.Sprintf("%s:v3.0.0", config.KubeadmBootstrapProviderName)},
+				controlPlaneProvider:   []string{fmt.Sprintf("%s:v3.0.0", config.KubeadmControlPlaneProviderName)},
+				infrastructureProvider: []string{"infra:v4.0.0"},
+				targetNameSpace:        "",
+				watchingNamespace:      "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Init (with a NOT empty cluster) adds a provider/next contract, not supported",
+			field: field{
+				client: fakeInitializedCluster(), // clusterctl client for an management cluster with capi installed (with repository setup for capi, bootstrap, control plane and infra provider)
+				hasCRD: true,
+			},
+			args: args{
+				coreProvider:           "", // with a NOT empty cluster, a core provider should NOT be added automatically
+				bootstrapProvider:      []string{fmt.Sprintf("%s:v3.0.0", config.KubeadmBootstrapProviderName)},
+				infrastructureProvider: []string{"infra:v4.0.0"},
+				targetNameSpace:        "",
+				watchingNamespace:      "",
+			},
 			wantErr: true,
 		},
 	}
@@ -612,61 +674,133 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 	repository1 := newFakeRepository(capiProviderConfig, config).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.0").
+		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
+		WithMetadata("v0.9.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+			},
+		}).
 		WithFile("v1.0.0", "components.yaml", componentsYAML("ns1")).
 		WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 1, Minor: 0, Contract: "v1alpha3"},
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 			},
 		}).
 		WithFile("v1.1.0", "components.yaml", componentsYAML("ns1")).
 		WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 1, Minor: 1, Contract: "v1alpha3"},
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 1, Minor: 1, Contract: test.CurrentCAPIContract},
+			},
+		}).
+		WithFile("v2.0.0", "components.yaml", componentsYAML("ns1")).
+		WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 1, Minor: 1, Contract: test.CurrentCAPIContract},
+				{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 			},
 		})
 	repository2 := newFakeRepository(bootstrapProviderConfig, config).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
+		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
+		WithMetadata("v0.9.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+			},
+		}).
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
 		WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 0, Contract: "v1alpha3"},
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 			},
 		}).
 		WithFile("v2.1.0", "components.yaml", componentsYAML("ns2")).
 		WithMetadata("v2.1.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 1, Contract: "v1alpha3"},
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 2, Minor: 1, Contract: test.CurrentCAPIContract},
+			},
+		}).
+		WithFile("v3.0.0", "components.yaml", componentsYAML("ns2")).
+		WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 2, Minor: 1, Contract: test.CurrentCAPIContract},
+				{Major: 3, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 			},
 		})
 	repository3 := newFakeRepository(controlPlaneProviderConfig, config).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
+		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
+		WithMetadata("v0.9.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+			},
+		}).
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns3")).
 		WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 0, Contract: "v1alpha3"},
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 			},
 		}).
 		WithFile("v2.1.0", "components.yaml", componentsYAML("ns3")).
 		WithMetadata("v2.1.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 1, Contract: "v1alpha3"},
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 2, Minor: 1, Contract: test.CurrentCAPIContract},
+			},
+		}).
+		WithFile("v3.0.0", "components.yaml", componentsYAML("ns2")).
+		WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 2, Minor: 1, Contract: test.CurrentCAPIContract},
+				{Major: 3, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 			},
 		})
 	repository4 := newFakeRepository(infraProviderConfig, config).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v3.0.0").
+		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
+		WithMetadata("v0.9.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+			},
+		}).
 		WithFile("v3.0.0", "components.yaml", infraComponentsYAML("ns4")).
 		WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 3, Minor: 0, Contract: "v1alpha3"},
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
 			},
 		}).
 		WithFile("v3.1.0", "components.yaml", infraComponentsYAML("ns4")).
 		WithMetadata("v3.1.0", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 3, Minor: 1, Contract: "v1alpha3"},
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 3, Minor: 1, Contract: test.CurrentCAPIContract},
+			},
+		}).
+		WithFile("v4.0.0", "components.yaml", componentsYAML("ns2")).
+		WithMetadata("v4.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+				{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 3, Minor: 1, Contract: test.CurrentCAPIContract},
+				{Major: 4, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 			},
 		}).
 		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns4", "test"))
@@ -681,7 +815,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 				WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
 				WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 2, Minor: 0, Contract: "v1alpha3"},
+						{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 					},
 				}))
 	}

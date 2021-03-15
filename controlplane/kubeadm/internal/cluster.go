@@ -21,12 +21,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +42,7 @@ const (
 type ManagementCluster interface {
 	ctrlclient.Reader
 
-	GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...collections.Func) (collections.Machines, error)
+	GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error)
 	GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error)
 }
 
@@ -73,17 +73,8 @@ func (m *Management) List(ctx context.Context, list client.ObjectList, opts ...c
 
 // GetMachinesForCluster returns a list of machines that can be filtered or not.
 // If no filter is supplied then all machines associated with the target cluster are returned.
-func (m *Management) GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...collections.Func) (collections.Machines, error) {
-	selector := map[string]string{
-		clusterv1.ClusterLabelName: cluster.Name,
-	}
-	ml := &clusterv1.MachineList{}
-	if err := m.Client.List(ctx, ml, client.InNamespace(cluster.Namespace), client.MatchingLabels(selector)); err != nil {
-		return nil, errors.Wrap(err, "failed to list machines")
-	}
-
-	machines := collections.FromMachineList(ml)
-	return machines.Filter(filters...), nil
+func (m *Management) GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {
+	return collections.GetFilteredMachinesForCluster(ctx, m.Client, cluster, filters...)
 }
 
 // GetWorkloadCluster builds a cluster object.

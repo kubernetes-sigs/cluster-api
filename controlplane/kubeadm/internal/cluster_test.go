@@ -51,16 +51,18 @@ func TestGetMachinesForCluster(t *testing.T) {
 	m := Management{Client: &fakeClient{
 		list: machineListForTestGetMachinesForCluster(),
 	}}
-	clusterKey := client.ObjectKey{
-		Namespace: "my-namespace",
-		Name:      "my-cluster",
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "my-namespace",
+			Name:      "my-cluster",
+		},
 	}
-	machines, err := m.GetMachinesForCluster(ctx, clusterKey)
+	machines, err := m.GetMachinesForCluster(ctx, cluster)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(3))
 
 	// Test the ControlPlaneMachines works
-	machines, err = m.GetMachinesForCluster(ctx, clusterKey, collections.ControlPlaneMachines("my-cluster"))
+	machines, err = m.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines("my-cluster"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 
@@ -68,7 +70,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	nameFilter := func(cluster *clusterv1.Machine) bool {
 		return cluster.Name == "first-machine"
 	}
-	machines, err = m.GetMachinesForCluster(ctx, clusterKey, collections.ControlPlaneMachines("my-cluster"), nameFilter)
+	machines, err = m.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 }

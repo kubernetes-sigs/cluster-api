@@ -39,7 +39,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// This is necessary for CRDs including scale subresources.
 	kcp.Status.Selector = selector.String()
 
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), collections.OwnedMachines(kcp))
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, cluster, collections.OwnedMachines(kcp))
 	if err != nil {
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}

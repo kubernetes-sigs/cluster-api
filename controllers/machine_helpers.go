@@ -17,38 +17,9 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
-
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// getActiveMachinesInCluster returns all of the active Machine objects
-// that belong to the cluster with given namespace/name
-func getActiveMachinesInCluster(ctx context.Context, c client.Client, namespace, name string) ([]*clusterv1.Machine, error) {
-	if name == "" {
-		return nil, nil
-	}
-
-	machineList := &clusterv1.MachineList{}
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
-
-	if err := c.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
-		return nil, errors.Wrap(err, "failed to list machines")
-	}
-
-	machines := []*clusterv1.Machine{}
-	for i := range machineList.Items {
-		m := &machineList.Items[i]
-		if m.DeletionTimestamp.IsZero() {
-			machines = append(machines, m)
-		}
-	}
-	return machines, nil
-}
 
 // hasMatchingLabels verifies that the Label Selector matches the given Labels
 func hasMatchingLabels(matchSelector metav1.LabelSelector, matchLabels map[string]string) bool {

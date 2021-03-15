@@ -16,6 +16,12 @@ limitations under the License.
 
 package alpha
 
+import "context"
+
+var (
+	ctx = context.TODO()
+)
+
 // Client is the alpha client.
 type Client interface {
 	Rollout() Rollout

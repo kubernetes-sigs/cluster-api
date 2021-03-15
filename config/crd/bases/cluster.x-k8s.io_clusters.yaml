@@ -367,9 +367,6 @@ spec:
                   - type
                   type: object
                 type: array
-              controlPlaneInitialized:
-                description: ControlPlaneInitialized defines if the control plane has been initialized.
-                type: boolean
               controlPlaneReady:
                 description: ControlPlaneReady defines if the control plane is ready.
                 type: boolean

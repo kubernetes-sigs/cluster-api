@@ -24,6 +24,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -37,14 +38,18 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 			Namespace: "foo",
 		},
 		Spec: KubeadmControlPlaneSpec{
-			InfrastructureTemplate: corev1.ObjectReference{},
 			Version:                "1.18.3",
+			InfrastructureTemplate: corev1.ObjectReference{},
+			RolloutStrategy:        &RolloutStrategy{},
 		},
 	}
 	kcp.Default()
 
 	g.Expect(kcp.Spec.InfrastructureTemplate.Namespace).To(Equal(kcp.Namespace))
 	g.Expect(kcp.Spec.Version).To(Equal("v1.18.3"))
+	g.Expect(kcp.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
+	g.Expect(kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
+
 }
 
 func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
@@ -60,8 +65,20 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			},
 			Replicas: pointer.Int32Ptr(1),
 			Version:  "v1.19.0",
+			RolloutStrategy: &RolloutStrategy{
+				Type: RollingUpdateStrategyType,
+				RollingUpdate: &RollingUpdate{
+					MaxSurge: &intstr.IntOrString{
+						IntVal: 1,
+					},
+				},
+			},
 		},
 	}
+
+	invalidMaxSurge := valid.DeepCopy()
+	invalidMaxSurge.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(3)
+
 	invalidNamespace := valid.DeepCopy()
 	invalidNamespace.Spec.InfrastructureTemplate.Namespace = "bar"
 
@@ -141,6 +158,11 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name:      "should return error when given an invalid semantic version",
 			expectErr: true,
 			kcp:       invalidVersion1,
+		},
+		{
+			name:      "should return error when maxSurge is not 1",
+			expectErr: true,
+			kcp:       invalidMaxSurge,
 		},
 	}
 

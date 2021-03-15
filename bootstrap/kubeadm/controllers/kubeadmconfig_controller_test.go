@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"testing"
 	"time"
 
@@ -41,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -423,7 +423,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	// TODO: extract this kind of code into a setup function that puts the state of objects into an initialized controlplane (implies secrets exist)
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
@@ -462,7 +462,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
 
@@ -498,7 +498,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	var useCases = []struct {
@@ -587,7 +587,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	var useCases = []struct {
@@ -666,7 +666,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -735,7 +735,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -887,7 +887,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -1305,7 +1305,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 	// Setup work for an initialized cluster
 	clusterName := "my-cluster"
 	cluster := newCluster(clusterName)
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Status.InfrastructureReady = true
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 		Host: "example.com",
@@ -1433,7 +1433,6 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 
 	cluster := newCluster("my-cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = false
 	m := newControlPlaneMachine(cluster, "control-plane-machine")
 	configName := "my-config"
 	c := newControlPlaneInitKubeadmConfig(m, configName)
@@ -1734,6 +1733,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 					APIVersion: bootstrapv1.GroupVersion.String(),
 				},
 			},
+			Version: pointer.StringPtr("v1.19.1"),
 		},
 	}
 	if cluster != nil {
@@ -1775,6 +1775,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool 
 							APIVersion: bootstrapv1.GroupVersion.String(),
 						},
 					},
+					Version: pointer.StringPtr("v1.19.1"),
 				},
 			},
 		},

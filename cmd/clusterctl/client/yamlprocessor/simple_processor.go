@@ -22,8 +22,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/drone/envsubst"
-	"github.com/drone/envsubst/parse"
+	"github.com/drone/envsubst/v2"
+	"github.com/drone/envsubst/v2/parse"
 )
 
 // SimpleProcessor is a yaml processor that uses envsubst to substitute values

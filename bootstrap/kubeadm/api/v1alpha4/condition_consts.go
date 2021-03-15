@@ -35,16 +35,6 @@ const (
 	// the KubeadmConfig controller ensure this pre-condition is satisfied.
 	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
 
-	// WaitingForControlPlaneAvailableReason (Severity=Info) document a bootstrap secret generation process
-	// waiting for the control plane machine to be available.
-	//
-	// NOTE: Having the control plane machine available is a pre-condition for joining additional control planes
-	// or workers nodes.
-	// DEPRECATED: This has been deprecated in v1alpha3 and will be removed in a future version.
-	// Switch to WaitingForControlPlaneAvailableReason constant from the `sigs.k8s.io/cluster-api/api/v1alpha3`
-	// package.
-	WaitingForControlPlaneAvailableReason = clusterv1.WaitingForControlPlaneAvailableReason
-
 	// DataSecretGenerationFailedReason (Severity=Warning) documents a KubeadmConfig controller detecting
 	// an error while generating a data secret; those kind of errors are usually due to misconfigurations
 	// and user intervention is required to get them fixed.

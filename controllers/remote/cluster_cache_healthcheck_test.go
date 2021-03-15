@@ -28,9 +28,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -85,7 +86,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
-			testCluster.Status.ControlPlaneInitialized = true
+			conditions.MarkTrue(testCluster, clusterv1.ControlPlaneInitializedCondition)
 			testCluster.Status.InfrastructureReady = true
 			Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
 

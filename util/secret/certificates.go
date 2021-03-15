@@ -112,14 +112,6 @@ func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration)
 	return certificates
 }
 
-// NewCertificatesForJoiningControlPlane gets any certs that exist and writes them to disk
-//
-// Deprecated: this method is deprecated in favor of NewControlPlaneJoinCerts that
-// provides full support for the external etcd scenario.
-func NewCertificatesForJoiningControlPlane() Certificates {
-	return NewControlPlaneJoinCerts(nil)
-}
-
 // NewControlPlaneJoinCerts gets any certs that exist and writes them to disk
 func NewControlPlaneJoinCerts(config *v1beta1.ClusterConfiguration) Certificates {
 	certificatesDir := DefaultCertificatesDir

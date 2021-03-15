@@ -8,7 +8,7 @@ require (
 	github.com/coredns/corefile-migration v1.0.11
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/drone/envsubst v1.0.3-0.20200709223903-efdb65b94e5a
+	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
 	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/fatih/color v1.7.0
 	github.com/go-logr/logr v0.4.0
@@ -27,17 +27,17 @@ require (
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/grpc v1.27.1
-	k8s.io/api v0.21.0-beta.0
-	k8s.io/apiextensions-apiserver v0.21.0-beta.0
-	k8s.io/apimachinery v0.21.0-beta.0
-	k8s.io/apiserver v0.21.0-beta.0
-	k8s.io/client-go v0.21.0-beta.0
-	k8s.io/cluster-bootstrap v0.21.0-beta.0
-	k8s.io/component-base v0.21.0-beta.0
-	k8s.io/klog v1.0.0
-	k8s.io/kubectl v0.21.0-beta.0
+	k8s.io/api v0.21.0-beta.1
+	k8s.io/apiextensions-apiserver v0.21.0-beta.1
+	k8s.io/apimachinery v0.21.0-beta.1
+	k8s.io/apiserver v0.21.0-beta.1
+	k8s.io/client-go v0.21.0-beta.1
+	k8s.io/cluster-bootstrap v0.21.0-beta.1
+	k8s.io/component-base v0.21.0-beta.1
+	k8s.io/klog/v2 v2.5.0
+	k8s.io/kubectl v0.21.0-beta.1
 	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
-	sigs.k8s.io/controller-runtime v0.8.2-0.20210302195120-85527dfb5348
+	sigs.k8s.io/controller-runtime v0.8.2-0.20210314174504-df2c43d8896d
 	sigs.k8s.io/kind v0.9.0
 	sigs.k8s.io/yaml v1.2.0
 )

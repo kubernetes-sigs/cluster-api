@@ -242,7 +242,8 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	if !cluster.Status.ControlPlaneInitialized {
+	// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
+	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return r.handleClusterNotInitialized(ctx, scope)
 	}
 
@@ -373,7 +374,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 			},
 		}
 	}
-	initdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.InitConfiguration)
+	initdata, err := kubeadmv1beta1.ConfigurationToYAMLForVersion(scope.Config.Spec.InitConfiguration, scope.ConfigOwner.KubernetesVersion())
 	if err != nil {
 		scope.Error(err, "Failed to marshal init configuration")
 		return ctrl.Result{}, err
@@ -391,7 +392,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// injects into config.ClusterConfiguration values from top level object
 	r.reconcileTopLevelObjectSettings(ctx, scope.Cluster, machine, scope.Config)
 
-	clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.ClusterConfiguration)
+	clusterdata, err := kubeadmv1beta1.ConfigurationToYAMLForVersion(scope.Config.Spec.ClusterConfiguration, scope.ConfigOwner.KubernetesVersion())
 	if err != nil {
 		scope.Error(err, "Failed to marshal cluster configuration")
 		return ctrl.Result{}, err
@@ -473,7 +474,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return res, nil
 	}
 
-	joinData, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.JoinConfiguration)
+	joinData, err := kubeadmv1beta1.ConfigurationToYAMLForVersion(scope.Config.Spec.JoinConfiguration, scope.ConfigOwner.KubernetesVersion())
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -554,7 +555,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return res, nil
 	}
 
-	joinData, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.JoinConfiguration)
+	joinData, err := kubeadmv1beta1.ConfigurationToYAMLForVersion(scope.Config.Spec.JoinConfiguration, scope.ConfigOwner.KubernetesVersion())
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err

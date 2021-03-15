@@ -56,7 +56,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					},
 				},
 				tuple: util.ResourceTuple{
-					Resource: "machinedeployment",
+					Resource: MachineDeployment,
 					Name:     "md-1",
 				},
 				namespace: "default",
@@ -83,7 +83,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					},
 				},
 				tuple: util.ResourceTuple{
-					Resource: "machinedeployment",
+					Resource: MachineDeployment,
 					Name:     "md-1",
 				},
 				namespace: "default",

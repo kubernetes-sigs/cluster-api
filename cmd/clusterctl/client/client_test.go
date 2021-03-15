@@ -135,6 +135,10 @@ func (f fakeClient) RolloutResume(options RolloutOptions) error {
 	return f.internalClient.RolloutResume(options)
 }
 
+func (f fakeClient) RolloutUndo(options RolloutOptions) error {
+	return f.internalClient.RolloutUndo(options)
+}
+
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(configClient config.Client) *fakeClient {

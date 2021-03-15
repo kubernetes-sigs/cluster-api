@@ -55,6 +55,20 @@ const (
 // Conditions and condition Reasons for the Cluster object
 
 const (
+	// ControlPlaneInitializedCondition reports if the cluster's control plane has been initialized such that the
+	// cluster's apiserver is reachable and at least one control plane Machine has a node reference. Once this
+	// condition is marked true, its value is never changed. See the ControlPlaneReady condition for an indication of
+	// the current readiness of the cluster's control plane.
+	ControlPlaneInitializedCondition ConditionType = "ControlPlaneInitialized"
+
+	// MissingNodeRefReason (Severity=Info) documents a cluster waiting for at least one control plane Machine to have
+	// its node reference populated.
+	MissingNodeRefReason = "MissingNodeRef"
+
+	// WaitingForControlPlaneProviderInitializedReason (Severity=Info) documents a cluster waiting for the control plane
+	// provider to report successful control plane initialization.
+	WaitingForControlPlaneProviderInitializedReason = "WaitingForControlPlaneProviderInitialized"
+
 	// ControlPlaneReady reports the ready condition from the control plane object defined for this cluster.
 	// This condition is mirrored from the Ready condition in the control plane ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that

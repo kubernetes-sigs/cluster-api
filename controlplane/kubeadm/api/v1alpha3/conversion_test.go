@@ -19,9 +19,13 @@ package v1alpha3
 import (
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -32,5 +36,29 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for KubeadmControlPLane", utilconversion.FuzzTestFunc(scheme, &v1alpha4.KubeadmControlPlane{}, &KubeadmControlPlane{}))
+	t.Run("for KubeadmControlPLane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme: scheme,
+		Hub:    &v1alpha4.KubeadmControlPlane{},
+		Spoke:  &KubeadmControlPlane{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{
+			func(codecs runtimeserializer.CodecFactory) []interface{} {
+				return []interface{}{
+					// This custom function is needed when ConvertTo/ConvertFrom functions
+					// uses the json package to unmarshal the bootstrap token string.
+					//
+					// The Kubeadm v1beta1.BootstrapTokenString type ships with a custom
+					// json string representation, in particular it supplies a customized
+					// UnmarshalJSON function that can return an error if the string
+					// isn't in the correct form.
+					//
+					// This function effectively disables any fuzzing for the token by setting
+					// the values for ID and Secret to working alphanumeric values.
+					func(in *kubeadmv1.BootstrapTokenString, c fuzz.Continue) {
+						in.ID = "abcdef"
+						in.Secret = "abcdef0123456789"
+					},
+				}
+			},
+		},
+	}))
 }

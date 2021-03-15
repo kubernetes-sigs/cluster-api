@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -212,21 +213,41 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)
 	m.Status.CurrentHealthy = int32(len(healthy))
 
+	var unhealthyLimitKey, unhealthyLimitValue interface{}
+
 	// check MHC current health against MaxUnhealthy
-	if !isAllowedRemediation(m) {
+	remediationAllowed, remediationCount, err := isAllowedRemediation(m)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error checking if remediation is allowed")
+	}
+
+	if !remediationAllowed {
+		var message string
+
+		if m.Spec.UnhealthyRange == nil {
+			unhealthyLimitKey = "max unhealthy"
+			unhealthyLimitValue = m.Spec.MaxUnhealthy
+			message = fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: %v, unhealthy: %v, maxUnhealthy: %v)",
+				totalTargets,
+				len(unhealthy),
+				m.Spec.MaxUnhealthy)
+		} else {
+			unhealthyLimitKey = "unhealthy range"
+			unhealthyLimitValue = *m.Spec.UnhealthyRange
+			message = fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: %v, unhealthy: %v, unhealthyRange: %v)",
+				totalTargets,
+				len(unhealthy),
+				*m.Spec.UnhealthyRange)
+		}
+
 		logger.V(3).Info(
 			"Short-circuiting remediation",
 			"total target", totalTargets,
-			"max unhealthy", m.Spec.MaxUnhealthy,
+			unhealthyLimitKey, unhealthyLimitValue,
 			"unhealthy targets", len(unhealthy),
 		)
-		message := fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: %v, unhealthy: %v, maxUnhealthy: %v)",
-			totalTargets,
-			len(unhealthy),
-			m.Spec.MaxUnhealthy,
-		)
 
-		// Remediation not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy
+		// Remediation not allowed, the number of not started or unhealthy machines either exceeds maxUnhealthy (or) not within unhealthyRange
 		m.Status.RemediationsAllowed = 0
 		conditions.Set(m, &clusterv1.Condition{
 			Type:     clusterv1.RemediationAllowedCondition,
@@ -258,17 +279,12 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	logger.V(3).Info(
 		"Remediations are allowed",
 		"total target", totalTargets,
-		"max unhealthy", m.Spec.MaxUnhealthy,
+		unhealthyLimitKey, unhealthyLimitValue,
 		"unhealthy targets", len(unhealthy),
 	)
 
-	maxUnhealthy, err := getMaxUnhealthy(m)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "Failed to get value for maxUnhealthy")
-	}
-
-	// Remediation is allowed so maxUnhealthy - unhealthyMachineCount >= 0
-	m.Status.RemediationsAllowed = int32(maxUnhealthy - unhealthyMachineCount(m))
+	// Remediation is allowed so unhealthyMachineCount is within unhealthyRange (or) maxUnhealthy - unhealthyMachineCount >= 0
+	m.Status.RemediationsAllowed = remediationCount
 	conditions.MarkTrue(m, clusterv1.RemediationAllowedCondition)
 
 	errList := r.PatchUnhealthyTargets(ctx, logger, unhealthy, cluster, m)
@@ -299,10 +315,11 @@ func (r *MachineHealthCheckReconciler) PatchHealthyTargets(ctx context.Context, 
 			// Get remediation request object
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
 			if err != nil {
-				if apierrors.IsNotFound(errors.Cause(err)) {
-					continue
+				if !apierrors.IsNotFound(errors.Cause(err)) {
+					wrappedErr := errors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName)
+					errList = append(errList, wrappedErr)
 				}
-				logger.Error(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName)
+				continue
 			}
 			// Check that obj has no DeletionTimestamp to avoid hot loop
 			if obj.GetDeletionTimestamp() == nil {
@@ -518,21 +535,56 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 }
 
 // isAllowedRemediation checks the value of the MaxUnhealthy field to determine
-// whether remediation should be allowed or not
-func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) bool {
-	// TODO(JoelSpeed): return an error from isAllowedRemediation when maxUnhealthy
-	// is nil, we expect it to be defaulted always.
-	if mhc.Spec.MaxUnhealthy == nil {
-		return true
+// returns whether remediation should be allowed or not, the remediation count, and error if any
+func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error) {
+	var remediationAllowed bool
+	var remediationCount int32
+	if mhc.Spec.UnhealthyRange != nil {
+		min, max, err := getUnhealthyRange(mhc)
+		if err != nil {
+			return false, 0, err
+		}
+		unhealthyMachineCount := unhealthyMachineCount(mhc)
+		remediationAllowed = unhealthyMachineCount >= min && unhealthyMachineCount <= max
+		remediationCount = int32(max - unhealthyMachineCount)
+		return remediationAllowed, remediationCount, nil
 	}
 
 	maxUnhealthy, err := getMaxUnhealthy(mhc)
 	if err != nil {
-		return false
+		return false, 0, err
 	}
 
 	// Remediation is not allowed if unhealthy is above maxUnhealthy
-	return unhealthyMachineCount(mhc) <= maxUnhealthy
+	unhealthyMachineCount := unhealthyMachineCount(mhc)
+	remediationAllowed = unhealthyMachineCount <= maxUnhealthy
+	remediationCount = int32(maxUnhealthy - unhealthyMachineCount)
+	return remediationAllowed, remediationCount, nil
+}
+
+// getUnhealthyRange parses an integer range and returns the min and max values
+// Eg. [2-5] will return (2,5,nil)
+func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
+	// remove '[' and ']'
+	unhealthyRange := (*(mhc.Spec.UnhealthyRange))[1 : len(*mhc.Spec.UnhealthyRange)-1]
+
+	parts := strings.Split(unhealthyRange, "-")
+
+	min, err := strconv.ParseUint(parts[0], 10, 32)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	max, err := strconv.ParseUint(parts[1], 10, 32)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if max < min {
+		return 0, 0, errors.Errorf("max value %d cannot be less than min value %d for unhealthyRange", max, min)
+	}
+
+	return int(min), int(max), nil
 }
 
 func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {

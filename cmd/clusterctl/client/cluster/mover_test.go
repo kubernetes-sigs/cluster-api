@@ -27,6 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -643,8 +644,10 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady:     false,
-							ControlPlaneInitialized: true,
+							InfrastructureReady: false,
+							Conditions: clusterv1.Conditions{
+								*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+							},
 						},
 					},
 				},
@@ -665,8 +668,31 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady:     true,
-							ControlPlaneInitialized: false,
+							InfrastructureReady: true,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Blocks with a cluster with ControlPlaneInitialized=False",
+			fields: fields{
+				objs: []client.Object{
+					&clusterv1.Cluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Cluster",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns1",
+							Name:      "cluster1",
+						},
+						Status: clusterv1.ClusterStatus{
+							InfrastructureReady: true,
+							Conditions: clusterv1.Conditions{
+								*conditions.FalseCondition(clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityInfo, ""),
+							},
 						},
 					},
 				},
@@ -690,9 +716,11 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							ControlPlaneRef: &corev1.ObjectReference{},
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady:     true,
-							ControlPlaneInitialized: true,
-							ControlPlaneReady:       false,
+							InfrastructureReady: true,
+							Conditions: clusterv1.Conditions{
+								*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+							},
+							ControlPlaneReady: false,
 						},
 					},
 				},
@@ -714,8 +742,10 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							UID:       "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady:     true,
-							ControlPlaneInitialized: true,
+							InfrastructureReady: true,
+							Conditions: clusterv1.Conditions{
+								*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+							},
 						},
 					},
 					&clusterv1.Machine{
@@ -758,8 +788,10 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							UID:       "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady:     true,
-							ControlPlaneInitialized: true,
+							InfrastructureReady: true,
+							Conditions: clusterv1.Conditions{
+								*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+							},
 						},
 					},
 					&clusterv1.Machine{

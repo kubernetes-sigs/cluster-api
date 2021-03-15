@@ -19,10 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/collections"
 	"sync"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/cluster-api/util/collections"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,9 +33,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
@@ -1287,6 +1289,14 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 			},
 			Replicas: pointer.Int32Ptr(int32(3)),
 			Version:  "v1.16.6",
+			RolloutStrategy: &controlplanev1.RolloutStrategy{
+				Type: "RollingUpdate",
+				RollingUpdate: &controlplanev1.RollingUpdate{
+					MaxSurge: &intstr.IntOrString{
+						IntVal: 1,
+					},
+				},
+			},
 		},
 	}
 

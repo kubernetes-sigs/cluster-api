@@ -1114,7 +1114,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete123",
 			Namespace:         "default",
-			Finalizers:        []string{clusterv1.MachineFinalizer},
+			Finalizers:        []string{clusterv1.MachineFinalizer, "test"},
 			DeletionTimestamp: &dt,
 		},
 		Spec: clusterv1.MachineSpec{
@@ -1136,7 +1136,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 
 	var actual clusterv1.Machine
 	g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
-	g.Expect(actual.ObjectMeta.Finalizers).To(BeEmpty())
+	g.Expect(actual.ObjectMeta.Finalizers).To(Equal([]string{"test"}))
 }
 
 func Test_clusterToActiveMachines(t *testing.T) {

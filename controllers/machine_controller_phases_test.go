@@ -517,6 +517,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		// Set Deletion Timestamp.
 		machine.SetDeletionTimestamp(&deletionTimestamp)
+		machine.Finalizers = append(machine.Finalizers, "test")
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))

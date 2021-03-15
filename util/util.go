@@ -40,8 +40,6 @@ import (
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/util/container"
-	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -52,9 +50,6 @@ import (
 const (
 	// CharSet defines the alphanumeric set for random string generation
 	CharSet = "0123456789abcdefghijklmnopqrstuvwxyz"
-	// MachineListFormatDeprecationMessage notifies the user that the old
-	// MachineList format is no longer supported
-	MachineListFormatDeprecationMessage = "Your MachineList items must include Kind and APIVersion"
 )
 
 var (
@@ -93,68 +88,6 @@ func Ordinalize(n int) string {
 		return fmt.Sprintf("%d%s", n, m[an])
 	}
 	return fmt.Sprintf("%d%s", n, m[an%10])
-}
-
-// ParseMajorMinorPatch returns a semver.Version from the string provided
-// by looking only at major.minor.patch and stripping everything else out.
-// Deprecated: Please use the function in util/version
-func ParseMajorMinorPatch(v string) (semver.Version, error) {
-	return version.ParseMajorMinorPatchTolerant(v)
-}
-
-// ModifyImageRepository takes an imageName (e.g., repository/image:tag), and returns an image name with updated repository
-// Deprecated: Please use the functions in util/container
-func ModifyImageRepository(imageName, repositoryName string) (string, error) {
-	return container.ModifyImageRepository(imageName, repositoryName)
-}
-
-// ModifyImageTag takes an imageName (e.g., repository/image:tag), and returns an image name with updated tag
-// Deprecated: Please use the functions in util/container
-func ModifyImageTag(imageName, tagName string) (string, error) {
-	return container.ModifyImageTag(imageName, tagName)
-}
-
-// ImageTagIsValid ensures that a given image tag is compliant with the OCI spec
-// Deprecated: Please use the functions in util/container
-func ImageTagIsValid(tagName string) bool {
-	return container.ImageTagIsValid(tagName)
-}
-
-// GetMachinesForCluster returns a list of machines associated with the cluster.
-func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (*clusterv1.MachineList, error) {
-	var machines clusterv1.MachineList
-	if err := c.List(
-		ctx,
-		&machines,
-		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels{
-			clusterv1.ClusterLabelName: cluster.Name,
-		},
-	); err != nil {
-		return nil, err
-	}
-	return &machines, nil
-}
-
-// GetControlPlaneMachines returns a slice containing control plane machines.
-func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Machine) {
-	for _, machine := range machines {
-		if IsControlPlaneMachine(machine) {
-			res = append(res, machine)
-		}
-	}
-	return
-}
-
-// GetControlPlaneMachinesFromList returns a slice containing control plane machines.
-func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []*clusterv1.Machine) {
-	for i := 0; i < len(machineList.Items); i++ {
-		machine := machineList.Items[i]
-		if IsControlPlaneMachine(&machine) {
-			res = append(res, &machine)
-		}
-	}
-	return
 }
 
 // IsExternalManagedControlPlane returns a bool indicating whether the control plane referenced

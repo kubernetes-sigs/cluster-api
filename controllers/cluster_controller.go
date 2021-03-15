@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/cluster-api/util/collections"
+
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -400,11 +402,13 @@ func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *cluste
 	}
 
 	// Split machines into control plane and worker machines so we make sure we delete control plane machines last
-	controlPlaneMachines, workerMachines := splitMachineList(&machines)
-	descendants.workerMachines = *workerMachines
+	machineCollection := collections.FromMachineList(&machines)
+	controlPlaneMachines := machineCollection.Filter(collections.ControlPlaneMachines(cluster.Name))
+	workerMachines := machineCollection.Difference(controlPlaneMachines)
+	descendants.workerMachines = collections.ToMachineList(workerMachines)
 	// Only count control plane machines as descendants if there is no control plane provider.
 	if cluster.Spec.ControlPlaneRef == nil {
-		descendants.controlPlaneMachines = *controlPlaneMachines
+		descendants.controlPlaneMachines = collections.ToMachineList(controlPlaneMachines)
 
 	}
 
@@ -448,21 +452,6 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 	return ownedDescendants, nil
 }
 
-// splitMachineList separates the machines running the control plane from other worker nodes.
-func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clusterv1.MachineList) {
-	nodes := &clusterv1.MachineList{}
-	controlplanes := &clusterv1.MachineList{}
-	for i := range list.Items {
-		machine := &list.Items[i]
-		if util.IsControlPlaneMachine(machine) {
-			controlplanes.Items = append(controlplanes.Items, *machine)
-		} else {
-			nodes.Items = append(nodes.Items, *machine)
-		}
-	}
-	return controlplanes, nodes
-}
-
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -480,7 +469,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 
 	log.V(4).Info("Checking for control plane initialization")
 
-	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
+	machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, cluster, collections.ActiveMachines)
 	if err != nil {
 		log.Error(err, "unable to determine ControlPlaneInitialized")
 		return ctrl.Result{}, err

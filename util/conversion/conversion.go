@@ -139,10 +139,10 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer
 type FuzzTestFuncInput struct {
 	Scheme *runtime.Scheme
 
-	Hub conversion.Hub
+	Hub              conversion.Hub
 	HubAfterMutation func(conversion.Hub)
 
-	Spoke conversion.Convertible
+	Spoke              conversion.Convertible
 	SpokeAfterMutation func(convertible conversion.Convertible)
 
 	FuzzerFuncs []fuzzer.FuzzerFuncs

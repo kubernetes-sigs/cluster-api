@@ -93,8 +93,8 @@ func InFailureDomains(failureDomains ...*string) Func {
 	}
 }
 
-// OwnedMachines returns a filter to find all owned control plane machines.
-// Usage: managementCluster.GetMachinesForCluster(ctx, cluster, machinefilters.OwnedMachines(controlPlane))
+// OwnedMachines returns a filter to find all machines owned by specified owner.
+// Usage: GetFilteredMachinesForCluster(ctx, client, cluster, OwnedMachines(controlPlane))
 func OwnedMachines(owner client.Object) func(machine *clusterv1.Machine) bool {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
@@ -105,7 +105,7 @@ func OwnedMachines(owner client.Object) func(machine *clusterv1.Machine) bool {
 }
 
 // ControlPlaneMachines returns a filter to find all control plane machines for a cluster, regardless of ownership.
-// Usage: managementCluster.GetMachinesForCluster(ctx, cluster, machinefilters.ControlPlaneMachines(cluster.Name))
+// Usage: GetFilteredMachinesForCluster(ctx, client, cluster, ControlPlaneMachines(cluster.Name))
 func ControlPlaneMachines(clusterName string) func(machine *clusterv1.Machine) bool {
 	selector := ControlPlaneSelectorForCluster(clusterName)
 	return func(machine *clusterv1.Machine) bool {
@@ -117,12 +117,21 @@ func ControlPlaneMachines(clusterName string) func(machine *clusterv1.Machine) b
 }
 
 // AdoptableControlPlaneMachines returns a filter to find all un-controlled control plane machines.
-// Usage: managementCluster.GetMachinesForCluster(ctx, cluster, AdoptableControlPlaneMachines(cluster.Name, controlPlane))
+// Usage: GetFilteredMachinesForCluster(ctx, client, cluster, AdoptableControlPlaneMachines(cluster.Name, controlPlane))
 func AdoptableControlPlaneMachines(clusterName string) func(machine *clusterv1.Machine) bool {
 	return And(
 		ControlPlaneMachines(clusterName),
 		Not(HasControllerRef),
 	)
+}
+
+// ActiveMachines returns a filter to find all active machines.
+// Usage: GetFilteredMachinesForCluster(ctx, client, cluster, ActiveMachines)
+func ActiveMachines(machine *clusterv1.Machine) bool {
+	if machine == nil {
+		return false
+	}
+	return machine.DeletionTimestamp.IsZero()
 }
 
 // HasDeletionTimestamp returns a filter to find all machines that have a deletion timestamp.

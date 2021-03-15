@@ -270,7 +270,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return result, err
 	}
 
-	controlPlaneMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, util.ObjectKey(cluster), collections.ControlPlaneMachines(cluster.Name))
+	controlPlaneMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines(cluster.Name))
 	if err != nil {
 		log.Error(err, "failed to retrieve control plane machines for cluster")
 		return ctrl.Result{}, err
@@ -390,7 +390,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	log.Info("Reconcile KubeadmControlPlane deletion")
 
 	// Gets all machines, not just control plane machines.
-	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
+	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

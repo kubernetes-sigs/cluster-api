@@ -59,6 +59,15 @@ func FromMachineList(machineList *clusterv1.MachineList) Machines {
 	return ss
 }
 
+// ToMachineList creates a MachineList from the given Machines.
+func ToMachineList(machines Machines) clusterv1.MachineList {
+	ml := clusterv1.MachineList{}
+	for _, m := range machines {
+		ml.Items = append(ml.Items, *m)
+	}
+	return ml
+}
+
 // Insert adds items to the set.
 func (s Machines) Insert(machines ...*clusterv1.Machine) {
 	for i := range machines {

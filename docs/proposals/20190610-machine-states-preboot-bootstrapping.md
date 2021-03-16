@@ -360,9 +360,9 @@ MachinePhaseFailed = MachinePhaseType("failed")
 #### Expectations
 - User intervention.
 
-![Figure 1](./images/machine-states-preboot/Figure1.png)
-
 ---
+![Figure 1](../book/src/images/bootstrap-controller.png)
+
 ### Sequence diagram: User creates a machine with Kubeadm bootstrapper.
 In this scenario, we go through each step from “kubectl apply” to seeing the Node in “Running” state. The user has chosen to create a Machine with the following: no custom user data, Machine.Bootstrap is a Kubeadm bootstrap provider, and Machine.InfrastructureRef is an AWS infrastructure provider.
 

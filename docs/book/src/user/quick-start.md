@@ -108,7 +108,7 @@ Download the latest release; for example, to download version v0.3.0 on linux, t
 ```
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"0.3.x"}} -o clusterctl
 ```
-Make the kubectl binary executable.
+Make the clusterctl binary executable.
 ```
 chmod +x ./clusterctl
 ```
@@ -129,7 +129,7 @@ Download the latest release; for example, to download version v0.3.0 on macOS, t
 ```
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"0.3.x"}} -o clusterctl
 ```
-Make the kubectl binary executable.
+Make the clusterctl binary executable.
 ```
 chmod +x ./clusterctl
 ```

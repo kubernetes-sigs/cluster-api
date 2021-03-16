@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -42,16 +43,20 @@ import (
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
 	kubeProxyKey              = "kube-proxy"
 	kubeadmConfigKey          = "kubeadm-config"
+	kubeletConfigKey          = "kubelet"
+	cgroupDriverKey           = "cgroupDriver"
 	labelNodeRoleControlPlane = "node-role.kubernetes.io/master"
 )
 
 var (
-	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
+	minVerKubeletSystemdDriver = semver.MustParse("1.21.0")
+	ErrControlPlaneMinNodes    = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
 )
 
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster
@@ -172,6 +177,42 @@ func (w *Workload) UpdateKubeletConfigMap(ctx context.Context, version semver.Ve
 	}
 	if err != nil {
 		return err
+	}
+
+	// In order to avoid using two cgroup drivers on the same machine,
+	// (cgroupfs and systemd cgroup drivers), starting from
+	// 1.21 image builder is going to configure containerd for using the
+	// systemd driver, and the Kubelet configuration must be updated accordingly
+	// NOTE: It is considered safe to update the kubelet-config-1.21 ConfigMap
+	// because only new nodes using v1.21 images will pick up the change during
+	// kubeadm join.
+	if version.GE(minVerKubeletSystemdDriver) {
+		data, ok := cm.Data[kubeletConfigKey]
+		if !ok {
+			return errors.Errorf("unable to find %q key in %s", kubeletConfigKey, cm.Name)
+		}
+		kubeletConfig, err := yamlToUnstructured([]byte(data))
+		if err != nil {
+			return errors.Wrapf(err, "unable to decode kubelet ConfigMap's %q content to Unstructured object", kubeletConfigKey)
+		}
+		cgroupDriver, _, err := unstructured.NestedString(kubeletConfig.UnstructuredContent(), cgroupDriverKey)
+		if err != nil {
+			return errors.Wrapf(err, "unable to extract %q from Kubelet ConfigMap's %q", cgroupDriverKey, cm.Name)
+		}
+
+		// If the value is not already explicitly set by the user, change according to kubeadm/image builder new requirements.
+		if cgroupDriver == "" {
+			cgroupDriver = "systemd"
+
+			if err := unstructured.SetNestedField(kubeletConfig.UnstructuredContent(), cgroupDriver, cgroupDriverKey); err != nil {
+				return errors.Wrapf(err, "unable to update %q on Kubelet ConfigMap's %q", cgroupDriverKey, cm.Name)
+			}
+			updated, err := yaml.Marshal(kubeletConfig)
+			if err != nil {
+				return errors.Wrapf(err, "unable to encode Kubelet ConfigMap's %q to YAML", cm.Name)
+			}
+			cm.Data[kubeletConfigKey] = string(updated)
+		}
 	}
 
 	// Update the name to the new name

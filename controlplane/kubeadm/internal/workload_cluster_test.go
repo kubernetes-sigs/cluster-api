@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -280,33 +281,74 @@ kind: ClusterStatus
 }
 
 func TestUpdateKubeletConfigMap(t *testing.T) {
-	kubeletConfig := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "kubelet-config-1.1",
-			Namespace:       metav1.NamespaceSystem,
-			ResourceVersion: "some-resource-version",
-		},
-	}
-
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
-		name      string
-		version   semver.Version
-		objs      []runtime.Object
-		expectErr bool
+		name               string
+		version            semver.Version
+		objs               []runtime.Object
+		expectErr          bool
+		expectCgroupDriver string
 	}{
 		{
-			name:      "create new config map",
-			version:   semver.Version{Major: 1, Minor: 2},
-			objs:      []runtime.Object{kubeletConfig},
-			expectErr: false,
+			name:    "create new config map",
+			version: semver.Version{Major: 1, Minor: 20},
+			objs: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "kubelet-config-1.19",
+					Namespace:       metav1.NamespaceSystem,
+					ResourceVersion: "some-resource-version",
+				},
+				Data: map[string]string{
+					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
+						"kind: KubeletConfiguration\n",
+				},
+			}},
+			expectErr:          false,
+			expectCgroupDriver: "",
 		},
 		{
-			name:      "returns error if cannot find previous config map",
-			version:   semver.Version{Major: 1, Minor: 2},
-			expectErr: true,
+			name:    "KubeletConfig 1.21 gets the cgroupDriver set if empty",
+			version: semver.Version{Major: 1, Minor: 21},
+			objs: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "kubelet-config-1.20",
+					Namespace:       metav1.NamespaceSystem,
+					ResourceVersion: "some-resource-version",
+				},
+				Data: map[string]string{
+					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
+						"kind: KubeletConfiguration\n",
+				},
+			}},
+			expectErr:          false,
+			expectCgroupDriver: "systemd",
+		},
+		{
+			name:    "KubeletConfig 1.21 preserves cgroupDriver if already set",
+			version: semver.Version{Major: 1, Minor: 21},
+			objs: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "kubelet-config-1.20",
+					Namespace:       metav1.NamespaceSystem,
+					ResourceVersion: "some-resource-version",
+				},
+				Data: map[string]string{
+					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
+						"kind: KubeletConfiguration\n" +
+						"cgroupDriver: foo\n",
+				},
+			}},
+			expectErr:          false,
+			expectCgroupDriver: "foo",
+		},
+		{
+			name:               "returns error if cannot find previous config map",
+			version:            semver.Version{Major: 1, Minor: 21},
+			objs:               nil,
+			expectErr:          true,
+			expectCgroupDriver: "",
 		},
 	}
 
@@ -327,10 +369,11 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				ctrlclient.ObjectKey{Name: "kubelet-config-1.2", Namespace: metav1.NamespaceSystem},
+				ctrlclient.ObjectKey{Name: fmt.Sprintf("kubelet-config-%d.%d", tt.version.Major, tt.version.Minor), Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.ResourceVersion).ToNot(Equal(kubeletConfig.ResourceVersion))
+			g.Expect(actualConfig.ResourceVersion).ToNot(Equal("some-resource-version"))
+			g.Expect(actualConfig.Data[kubeletConfigKey]).To(ContainSubstring(tt.expectCgroupDriver))
 		})
 	}
 }

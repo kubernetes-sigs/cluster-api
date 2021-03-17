@@ -1813,6 +1813,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 					APIVersion: bootstrapv1.GroupVersion.String(),
 				},
 			},
+			Version: pointer.StringPtr("v1.19.1"),
 		},
 	}
 	if cluster != nil {
@@ -1854,6 +1855,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool 
 							APIVersion: bootstrapv1.GroupVersion.String(),
 						},
 					},
+					Version: pointer.StringPtr("v1.19.1"),
 				},
 			},
 		},

@@ -27,6 +27,7 @@ import (
 
 const clusterLabelKey = "io.x-k8s.kind.cluster"
 const nodeRoleLabelKey = "io.x-k8s.kind.role"
+const networkAnnotation = "capd.cluster.x-k8s.io/network"
 
 // clusterLabel returns the label applied to all the containers in a cluster
 func clusterLabel(name string) string {
@@ -131,4 +132,11 @@ func list(visit func(string, *types.Node), filters ...string) error {
 		visit(cluster, types.NewNode(names[0], image, "undetermined"))
 	}
 	return nil
+}
+
+func selectTargetNetwork(clusterAnnotations map[string]string) string {
+	if val, ok := clusterAnnotations[networkAnnotation]; ok {
+		return val
+	}
+	return "kind"
 }

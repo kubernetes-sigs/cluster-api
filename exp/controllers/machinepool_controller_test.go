@@ -709,6 +709,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		name                string
 		bootstrapReady      bool
 		infrastructureReady bool
+		expectError         bool
 		beforeFunc          func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList)
 		conditionAssertFunc func(t *testing.T, getter conditions.Getter)
 	}{
@@ -813,6 +814,25 @@ func TestMachinePoolConditions(t *testing.T) {
 				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},
+		{
+			name:           "incorrect infrastructure reference",
+			bootstrapReady: true,
+			expectError:    true,
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					Kind:       "InfrastructureConfig",
+					Name:       "does-not-exist",
+				}
+			},
+			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				g := NewWithT(t)
+
+				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
+			},
+		},
 	}
 
 	for _, tt := range testcases {
@@ -845,7 +865,9 @@ func TestMachinePoolConditions(t *testing.T) {
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})
-			g.Expect(err).NotTo(HaveOccurred())
+			if !tt.expectError {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
 
 			m := &expv1.MachinePool{}
 			machinePoolKey := client.ObjectKeyFromObject(machinePool)

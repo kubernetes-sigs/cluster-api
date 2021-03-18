@@ -40,7 +40,7 @@ The next step will trigger a rolling update of the control plane using the new v
 
 #### How to upgrade the Kubernetes control plane version
 
-To upgrade the Kubernetes control plane version make a modification to the `KubeadmControlPlane` resource's `Spec.Version` field. This will trigger a rolling upgrade of the control plane and, depending on the provider, also upgrade the underlying machine image. 
+To upgrade the Kubernetes control plane version make a modification to the `KubeadmControlPlane` resource's `Spec.Version` field. This will trigger a rolling upgrade of the control plane and, depending on the provider, also upgrade the underlying machine image.
 
 Some infrastructure providers, such as [AWS](https://github.com/kubernetes-sigs/cluster-api-provider-aws), require
 that if a specific machine image is specified, it has to match the Kubernetes version specified in the

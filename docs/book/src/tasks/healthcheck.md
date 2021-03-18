@@ -16,12 +16,12 @@ at the bottom of this page for full details of MachineHealthCheck limitations.
 
 ## What is a MachineHealthCheck?
 
-A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machines within a Cluster should be considered unhealthy. 
+A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machines within a Cluster should be considered unhealthy.
 A MachineHealthCheck is defined on a management cluster and scoped to a particular workload cluster.
 
-When defining a MachineHealthCheck, users specify a timeout for each of the conditions that they define to check on the Machine's Node;
-if any of these conditions is met for the duration of the timeout, the Machine will be remediated.
-By default, the action of remediating a Machine should trigger a new Machine to be created to replace the failed one, but providers are allowed to plug in more sophisticated external remediation solutions. 
+When defining a MachineHealthCheck, users specify a timeout for each of the conditions that they define to check on the Machine's Node.
+If any of these conditions are met for the duration of the timeout, the Machine will be remediated.
+By default, the action of remediating a Machine should trigger a new Machine to be created to replace the failed one, but providers are allowed to plug in more sophisticated external remediation solutions.
 
 ## Creating a MachineHealthCheck
 
@@ -54,7 +54,7 @@ spec:
     timeout: 300s
 ```
 
-Use this example as the basis for defining a MachineHealthCheck for control plane nodes managed via 
+Use this example as the basis for defining a MachineHealthCheck for control plane nodes managed via
 the KubeadmControlPlane:
 
 ```yaml
@@ -130,7 +130,7 @@ Note, when the percentage is not a whole number, the allowed number is rounded d
 
 If the user defines a value for the `unhealthyRange` field (bracketed values that specify a start and an end value), before remediating any Machines,
 the MachineHealthCheck will check if the number of Machines it has determined to be unhealthy is within the range specified by `unhealthyRange`.
-If it is is not within the range set by `unhealthyRange`, remediation will **not** be performed.
+If it is not within the range set by `unhealthyRange`, remediation will **not** be performed.
 
 <aside class="note warning">
 

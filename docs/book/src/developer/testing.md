@@ -1,6 +1,6 @@
 # Testing Cluster API
 
-This document presents testing guideline and conventions for Cluster API.
+This document presents testing guidelines and conventions for Cluster API.
 
 IMPORTANT: improving and maintaining this document is a collaborative effort, so we are encouraging constructive
 feedback and suggestions.
@@ -8,21 +8,21 @@ feedback and suggestions.
 ## Unit tests
 
 Unit tests focus on individual pieces of logic - a single func - and don't require any additional services to execute. They should
-be fast and great for getting the first signal on the current implementation, but unit test have the risk that
-to allow integration bugs to slip through.
+be fast and great for getting the first signal on the current implementation, but unit tests have the risk of
+allowing integration bugs to slip through.
 
-Historically, in Cluster API unit test were developed using [go test], [gomega] and the [fakeclient]; see the quick reference below.
+Historically, in Cluster API unit tests were developed using [go test], [gomega] and the [fakeclient]; see the quick reference below.
 
-However, considered some changes introduced in the v0.3.x releases (e.g. ObservedGeneration, Conditions), there is a common
-agreement among Cluster API maintainers that usage [fakeclient] should be progressively deprecated in favor of usage
-of [envtest]; see the quick reference below.
+However, considering some changes introduced in the v0.3.x releases (e.g. ObservedGeneration, Conditions), there is a common
+agreement among Cluster API maintainers that using [fakeclient] should be progressively deprecated in favor of using
+[envtest]. See the quick reference below.
 
 ## Integration tests
 
 Integration tests are focused on testing the behavior of an entire controller or the interactions between two or
 more Cluster API controllers.
 
-In older versions of Cluster API, integration test were based on a real cluster and meant to be run in CI only; however,
+In older versions of Cluster API, integration tests were based on a real cluster and meant to be run in CI only; however,
 now we are considering a different approach based on [envtest] and with one or more controllers configured to run against
 the test cluster.
 
@@ -44,7 +44,7 @@ Using the `test` target through `make` will run all of the unit and integration 
 The end-to-end tests are meant to verify the proper functioning of a Cluster API management cluster
 in an environment that resemble a real production environment.
 
-Following guidelines should be followed when developing E2E tests:
+The following guidelines should be followed when developing E2E tests:
 
 - Use the [Cluster API test framework].
 - Define test spec reflecting real user workflow, e.g. [Cluster API quick start].
@@ -75,11 +75,11 @@ Additionally, `test-e2e` target supports the following env variables:
 ### `envtest`
 
 [envtest] is a testing environment that is provided by the [controller-runtime] project. This environment spins up a
-local instance of etcd and the kube-apiserver. This allows test to be executed in an environment very similar to a
+local instance of etcd and the kube-apiserver. This allows tests to be executed in an environment very similar to a
 real environment.
 
 Additionally, in Cluster API there is a set of utilities under [test/helpers] that helps developers in setting up
-a [envtest] ready for Cluster API testing, and most specifically:
+a [envtest] ready for Cluster API testing, and more specifically:
 
 - With the required CRDs already pre-configured.
 - With all the Cluster API webhook pre-configured, so there are enforced guarantees about the semantic accuracy
@@ -117,8 +117,8 @@ func TestMain(m *testing.M) {
 }
 ```
 
-Most notably, [envtest] provides not only a real API server to user during test, but it offers the opportunity
-to configure one or more controllers to run against the test cluster; by using this feature it is possible to use
+Most notably, [envtest] provides not only a real API server to use during testing, but it offers the opportunity
+to configure one or more controllers to run against the test cluster. By using this feature it is possible to use
 [envtest] for developing Cluster API integration tests.
 
 ```golang
@@ -139,7 +139,7 @@ func TestMain(m *testing.M) {
 ```
 
 Please note that, because [envtest] uses a real kube-apiserver that is shared across many tests, the developer
-should take care of ensuring each test run in isolation from the others, by:
+should take care in ensuring each test runs in isolation from the others, by:
 
 - Creating objects in separated namespaces.
 - Avoiding object name conflict.
@@ -223,14 +223,14 @@ func TestAFunc(t *testing.T) {
 fast and simple to use because it does not require to spin-up an instance of etcd and kube-apiserver, the [fakeclient]
 comes with a set of limitations that could hamper the validity of a test, most notably:
 
-- it does not handle properly a set of field which are common in the Kubernetes API objects (and Cluster API objects as well)
+- it does not properly handle a set of fields which are common in the Kubernetes API objects (and Cluster API objects as well)
   like e.g. `creationTimestamp`, `resourceVersion`, `generation`, `uid`
-- API calls does not execute defaulting or validation webhooks, so there are no enforced guarantee about the semantic accuracy
+- API calls doe not execute defaulting or validation webhooks, so there are no enforced guarantees about the semantic accuracy
   of the test objects.
 
 Historically, [fakeclient] is widely used in Cluster API, however, given the growing relevance of the above limitations
 with regard to some changes introduced in the v0.3.x releases (e.g. ObservedGeneration, Conditions), there is a common
-agreement among Cluster API maintainers that usage [fakeclient] should be progressively deprecated in favor of usage
+agreement among Cluster API maintainers that using [fakeclient] should be progressively deprecated in favor of use
 of [envtest].
 
 ### `ginkgo`
@@ -243,7 +243,7 @@ most used golang IDE somehow limiting, mostly because:
 - it makes it more difficult to only run a subset of tests, since you can't just run or debug individual tests using an IDE,
   but you now need to run the tests using `make` or the `ginkgo` command line and override the focus to select individual tests
 
-In Cluster API you MUST use ginkgo only for E2E tests, where it is required to leverage on the support for running specs
+In Cluster API you MUST use ginkgo only for E2E tests, where it is required to leverage the support for running specs
 in parallel; in any case, developers MUST NOT use the table driven extension DSL (`DescribeTable`, `Entry` commands)
 which is considered unintuitive.
 

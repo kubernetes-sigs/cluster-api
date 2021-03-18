@@ -28,6 +28,7 @@ Commit your changes so far:
 ```bash
 git commit -m "Generate scaffolding."
 ```
+
 ### Generate provider resources for Clusters and Machines
 
 Here you will be asked if you want to generate resources and controllers.
@@ -44,7 +45,6 @@ y
 Create Controller under pkg/controller [y/n]?
 y
 ```
-
 
 ### Add Status subresource
 
@@ -80,9 +80,10 @@ make manifests
 [kbstatus]: https://book.kubebuilder.io/reference/generating-crd.html?highlight=status#status
 
 ### Apply further customizations
+
 The cluster API CRDs should be further customized:
 
-- [Apply the contract version label to support conversions](https://cluster-api.sigs.k8s.io/developer/providers/v1alpha2-to-v1alpha3.html#apply-the-contract-version-label-clusterx-k8sioversion-version1_version2_version3-to-your-crds) 
+- [Apply the contract version label to support conversions](https://cluster-api.sigs.k8s.io/developer/providers/v1alpha2-to-v1alpha3.html#apply-the-contract-version-label-clusterx-k8sioversion-version1_version2_version3-to-your-crds)
 - [Upgrade to CRD v1](https://cluster-api.sigs.k8s.io/developer/providers/v1alpha2-to-v1alpha3.html#upgrade-to-crd-v1)
 - [Set “matchPolicy=Equivalent” kubebuilder marker for webhooks](https://cluster-api.sigs.k8s.io/developer/providers/v1alpha2-to-v1alpha3.html#add-matchpolicyequivalent-kubebuilder-marker-in-webhooks)
 - [Refactor the kustomize config folder to support multi-tenancy](https://cluster-api.sigs.k8s.io/developer/providers/v1alpha2-to-v1alpha3.html#refactor-kustomize-config-folder-to-support-multi-tenancy-when-using-webhooks)

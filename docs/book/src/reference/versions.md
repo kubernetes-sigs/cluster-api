@@ -15,7 +15,7 @@ All Infrastructure Providers are maintained by independent teams. Other Bootstra
 
 ## Supported Kubernetes Versions
 
-The project aims to keep the current minor release compatible with the actively supported Kubernetes minor releases, i.e., the current release (N), N-1, and N-2. To find out the exact range of Kubernetes versions supported by each  component, please see the [tables](#release-components) below.
+The project aims to keep the current minor release compatible with the actively supported Kubernetes minor releases, i.e., the current release (N), N-1, and N-2. To find out the exact range of Kubernetes versions supported by each component, please see the [tables](#release-components) below.
 
 See the [following section](#kubernetes-version-support-as-a-function-of-cluster-topology) to understand how cluster topology affects version support.
 

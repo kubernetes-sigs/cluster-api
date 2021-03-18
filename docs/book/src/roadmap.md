@@ -2,7 +2,6 @@
 
 This roadmap is a constant work in progress, subject to frequent revision. Dates are approximations.
 
-
 ## v0.4 (v1alpha4) ~ Q1 2021
 
 |Area|Description|Issue/Proposal|

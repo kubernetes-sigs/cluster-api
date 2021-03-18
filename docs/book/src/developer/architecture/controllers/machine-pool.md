@@ -16,13 +16,13 @@ The MachinePool controller's main responsibilities are:
 * Finding Kubernetes nodes matching the expected providerIDs in the workload cluster.
 
 After the machine pool controller sets the OwnerReferences on the associated objects, it waits for the bootstrap
-and infrastructure objects referenced by the machine to have the `Status.Ready` field set to `true`. When 
+and infrastructure objects referenced by the machine to have the `Status.Ready` field set to `true`. When
 the infrastructure object is ready, the machine pool controller will attempt to read its `Spec.ProviderIDList` and
 copy it into `MachinePool.Spec.ProviderIDList`.
 
 The machine pool controller uses the kubeconfig for the new workload cluster to watch new nodes coming up.
 When a node appears with a `Node.Spec.ProviderID` in `MachinePool.Spec.ProviderIDList`, the machine pool controller
-increments the number of ready replicas. When all replicas are ready and the infrastructure ref is also  
+increments the number of ready replicas. When all replicas are ready and the infrastructure ref is also
 `Ready`, the machine pool controller marks the machine pool as `Running`.
 
 ## Contracts
@@ -97,7 +97,7 @@ Example:
 kind: MyMachinePool
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 spec:
-    providerIDList: 
+    providerIDList:
       - cloud:////my-cloud-provider-id-0
       - cloud:////my-cloud-provider-id-1
 status:

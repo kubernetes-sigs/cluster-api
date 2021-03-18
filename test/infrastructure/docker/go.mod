@@ -10,6 +10,7 @@ require (
 	k8s.io/api v0.21.0-beta.1
 	k8s.io/apimachinery v0.21.0-beta.1
 	k8s.io/client-go v0.21.0-beta.1
+	k8s.io/component-base v0.21.0-beta.1
 	k8s.io/klog/v2 v2.5.0
 	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
 	sigs.k8s.io/cluster-api v0.3.3

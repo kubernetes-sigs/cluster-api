@@ -21,7 +21,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -33,13 +33,14 @@ func fakePollImmediateWaiter(interval, timeout time.Duration, condition wait.Con
 	return nil
 }
 
-func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
+func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 	type fields struct {
 		alreadyHasCRD bool
 	}
 	tests := []struct {
 		name    string
 		fields  fields
+		want    bool
 		wantErr bool
 	}{
 		{
@@ -47,6 +48,7 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 			fields: fields{
 				alreadyHasCRD: false,
 			},
+			want:    false,
 			wantErr: false,
 		},
 		{
@@ -54,6 +56,7 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 			fields: fields{
 				alreadyHasCRD: true,
 			},
+			want:    true,
 			wantErr: false,
 		},
 	}
@@ -61,13 +64,15 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			p := newInventoryClient(test.NewFakeProxy(), fakePollImmediateWaiter)
+			proxy := test.NewFakeProxy()
+			p := newInventoryClient(proxy, fakePollImmediateWaiter)
 			if tt.fields.alreadyHasCRD {
 				//forcing creation of metadata before test
 				g.Expect(p.EnsureCustomResourceDefinitions()).To(Succeed())
 			}
 
-			err := p.EnsureCustomResourceDefinitions()
+			res, err := checkInventoryCRDs(proxy)
+			g.Expect(res).To(Equal(tt.want))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -191,6 +196,142 @@ func Test_inventoryClient_Create(t *testing.T) {
 			}
 
 			g.Expect(got.Items).To(ConsistOf(tt.wantProviders))
+		})
+	}
+}
+
+func Test_CheckCAPIContract(t *testing.T) {
+	type args struct {
+		options []CheckCAPIContractOption
+	}
+	type fields struct {
+		proxy Proxy
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Fails if Cluster API is not installed",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(),
+			},
+			args:    args{},
+			wantErr: true,
+		},
+		{
+			name: "Pass if Cluster API is not installed, but this is explicitly tolerated",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPINotInstalled{}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Pass when Cluster API with current contract is installed",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+							{
+								Name: test.PreviousCAPIContractNotSupported,
+							},
+							{
+								Name:    test.CurrentCAPIContract,
+								Storage: true,
+							},
+						},
+					},
+				}),
+			},
+			args:    args{},
+			wantErr: false,
+		},
+		{
+			name: "Fails when Cluster API with previous contract is installed",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+							{
+								Name:    test.PreviousCAPIContractNotSupported,
+								Storage: true,
+							},
+							{
+								Name: test.CurrentCAPIContract,
+							},
+						},
+					},
+				}),
+			},
+			args:    args{},
+			wantErr: true,
+		},
+		{
+			name: "Pass when Cluster API with previous contract is installed, but this is explicitly tolerated",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+							{
+								Name:    test.PreviousCAPIContractNotSupported,
+								Storage: true,
+							},
+							{
+								Name: test.CurrentCAPIContract,
+							},
+						},
+					},
+				}),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Fails when Cluster API with next contract is installed",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+							{
+								Name: test.CurrentCAPIContract,
+							},
+							{
+								Name:    test.NextCAPIContractNotSupported,
+								Storage: true,
+							},
+						},
+					},
+				}),
+			},
+			args:    args{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			p := &inventoryClient{
+				proxy: tt.fields.proxy,
+			}
+			err := p.CheckCAPIContract(tt.args.options...)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
 }

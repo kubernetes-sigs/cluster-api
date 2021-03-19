@@ -16,8 +16,10 @@ limitations under the License.
 
 package test
 
-import clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha2"
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+import (
+	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+)
 
 // PreviousCAPIContractNotSupported define the previous Cluster API contract, not supported by this release of clusterctl.
 var PreviousCAPIContractNotSupported = clusterv1old.GroupVersion.Version

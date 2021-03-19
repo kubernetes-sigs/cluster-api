@@ -17,14 +17,15 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -38,6 +39,41 @@ const (
 	waitInventoryCRDInterval = 250 * time.Millisecond
 	waitInventoryCRDTimeout  = 1 * time.Minute
 )
+
+// CheckCAPIContractOption is some configuration that modifies options for CheckCAPIContract.
+type CheckCAPIContractOption interface {
+	// Apply applies this configuration to the given CheckCAPIContractOptions.
+	Apply(*CheckCAPIContractOptions)
+}
+
+// CheckCAPIContractOptions contains options for CheckCAPIContract.
+type CheckCAPIContractOptions struct {
+	// AllowCAPINotInstalled instructs CheckCAPIContract to tolerate management clusters without Cluster API installed yet.
+	AllowCAPINotInstalled bool
+
+	// AllowCAPIContract instructs CheckCAPIContract to tolerate management clusters with Cluster API with the given contract.
+	AllowCAPIContract string
+}
+
+// AllowCAPINotInstalled instructs CheckCAPIContract to tolerate management clusters without Cluster API installed yet.
+// NOTE: This allows clusterctl init to run on empty management clusters.
+type AllowCAPINotInstalled struct{}
+
+// Apply applies this configuration to the given CheckCAPIContractOptions.
+func (t AllowCAPINotInstalled) Apply(in *CheckCAPIContractOptions) {
+	in.AllowCAPINotInstalled = true
+}
+
+// AllowCAPIContract instructs CheckCAPIContract to tolerate management clusters with Cluster API with the given contract.
+// NOTE: This allows clusterctl upgrade to work on management clusters with old contract.
+type AllowCAPIContract struct {
+	Contract string
+}
+
+// Apply applies this configuration to the given CheckCAPIContractOptions.
+func (t AllowCAPIContract) Apply(in *CheckCAPIContractOptions) {
+	in.AllowCAPIContract = t.Contract
+}
 
 // InventoryClient exposes methods to interface with a cluster's provider inventory.
 type InventoryClient interface {
@@ -69,6 +105,10 @@ type InventoryClient interface {
 
 	// GetManagementGroups returns the list of management groups defined in the management cluster.
 	GetManagementGroups() (ManagementGroupList, error)
+
+	// CheckCAPIContract checks the Cluster API version installed in the management cluster, and fails if this version
+	// does not match the current one supported by clusterctl.
+	CheckCAPIContract(...CheckCAPIContractOption) error
 }
 
 // inventoryClient implements InventoryClient.
@@ -188,14 +228,20 @@ func checkInventoryCRDs(proxy Proxy) (bool, error) {
 		return false, err
 	}
 
-	l := &clusterctlv1.ProviderList{}
-	if err = c.List(ctx, l); err == nil {
-		return true, nil
-	}
-	if !apimeta.IsNoMatchError(err) {
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	if err := c.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("providers.%s", clusterctlv1.GroupVersion.Group)}, crd); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.Wrap(err, "failed to check if the clusterctl inventory CRD exists")
 	}
-	return false, nil
+
+	for _, version := range crd.Spec.Versions {
+		if version.Name == clusterctlv1.GroupVersion.Version {
+			return true, nil
+		}
+	}
+	return true, errors.Errorf("clusterctl inventory CRD does not defines the %s version", clusterctlv1.GroupVersion.Version)
 }
 
 func (p *inventoryClient) createObj(o unstructured.Unstructured) error {
@@ -342,4 +388,34 @@ func (p *inventoryClient) GetDefaultProviderNamespace(provider string, providerT
 
 	// There is no provider or more than one namespace for this provider; in both cases, a default provider namespace cannot be decided.
 	return "", nil
+}
+
+func (p *inventoryClient) CheckCAPIContract(options ...CheckCAPIContractOption) error {
+	opt := &CheckCAPIContractOptions{}
+	for _, o := range options {
+		o.Apply(opt)
+	}
+
+	c, err := p.proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	if err := c.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("clusters.%s", clusterv1.GroupVersion.Group)}, crd); err != nil {
+		if opt.AllowCAPINotInstalled && apierrors.IsNotFound(err) {
+			return nil
+		}
+		return errors.Wrap(err, "failed to check Cluster API version")
+	}
+
+	for _, version := range crd.Spec.Versions {
+		if version.Storage {
+			if version.Name == clusterv1.GroupVersion.Version || version.Name == opt.AllowCAPIContract {
+				return nil
+			}
+			return errors.Errorf("this version of clusterctl could be used only with %q management clusters, %q detected", clusterv1.GroupVersion.Version, version.Name)
+		}
+	}
+	return errors.Errorf("failed to check Cluster API version")
 }

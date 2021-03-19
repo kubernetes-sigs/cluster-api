@@ -27,14 +27,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-var metadataYaml = []byte("apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\n" +
-	"kind: Metadata\n" +
-	"releaseSeries:\n" +
-	" - major: 1\n" +
-	"   minor: 2\n" +
-	"   contract: v1alpha3\n" +
-	"")
-
 func Test_metadataClient_Get(t *testing.T) {
 	type fields struct {
 		provider   config.Provider
@@ -55,18 +47,22 @@ func Test_metadataClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "metadata.yaml", metadataYaml),
+					WithMetadata("v1.0.0", &clusterctlv1.Metadata{
+						ReleaseSeries: []clusterctlv1.ReleaseSeries{
+							{Major: 1, Minor: 2, Contract: test.CurrentCAPIContract},
+						},
+					}),
 			},
 			want: &clusterctlv1.Metadata{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "clusterctl.cluster.x-k8s.io/v1alpha3",
+					APIVersion: clusterctlv1.GroupVersion.String(),
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{
 						Major:    1,
 						Minor:    2,
-						Contract: "v1alpha3",
+						Contract: test.CurrentCAPIContract,
 					},
 				},
 			},
@@ -113,7 +109,11 @@ func Test_metadataClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v2.0.0").
-					WithFile("v2.0.0", "metadata.yaml", metadataYaml), // metadata file exists for version 2.0.0, while we are checking metadata for v1.0.0
+					WithMetadata("v2.0.0", &clusterctlv1.Metadata{ // metadata file exists for version 2.0.0, while we are checking metadata for v1.0.0
+						ReleaseSeries: []clusterctlv1.ReleaseSeries{
+							{Major: 1, Minor: 2, Contract: test.CurrentCAPIContract},
+						},
+					}),
 			},
 			want:    nil,
 			wantErr: true,

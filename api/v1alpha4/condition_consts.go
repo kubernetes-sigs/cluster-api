@@ -35,6 +35,9 @@ const (
 
 	// DeletedReason (Severity=Info) documents an condition not in Status=True because the underlying object was deleted.
 	DeletedReason = "Deleted"
+
+	// IncorrectExternalRefReason (Severity=Error) documents a CAPI object with an incorrect external object reference.
+	IncorrectExternalRefReason = "IncorrectExternalRef"
 )
 
 const (

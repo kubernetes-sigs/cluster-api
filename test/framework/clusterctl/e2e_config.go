@@ -20,10 +20,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -137,7 +139,7 @@ type ComponentSourceType string
 
 const (
 	// URLSource is component YAML available directly via a URL.
-	// The URL may begin with file://, http://, or https://.
+	// The URL may begin with http://, https:// or file://(can be omitted, relative paths supported).
 	URLSource ComponentSourceType = "url"
 
 	// KustomizeSource is a valid kustomization root that can be used to produce
@@ -277,7 +279,7 @@ func (c *E2EConfig) Defaults() {
 	}
 }
 
-// AbsPaths makes relative paths absolute using the give base path.
+// AbsPaths makes relative paths absolute using the given base path.
 func (c *E2EConfig) AbsPaths(basePath string) {
 	for i := range c.Providers {
 		provider := &c.Providers[i]
@@ -287,7 +289,21 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 				if !filepath.IsAbs(version.Value) {
 					version.Value = filepath.Join(basePath, version.Value)
 				}
+			} else if version.Type == URLSource && version.Value != "" {
+				// Skip error, will be checked later when loading contents from URL
+				u, _ := url.Parse(version.Value)
+
+				if u != nil {
+					switch u.Scheme {
+					case "", fileURIScheme:
+						fp := strings.TrimPrefix(version.Value, fmt.Sprintf("%s://", fileURIScheme))
+						if !filepath.IsAbs(fp) {
+							version.Value = filepath.Join(basePath, fp)
+						}
+					}
+				}
 			}
+
 			for j := range version.Files {
 				file := &version.Files[j]
 				if file.SourcePath != "" {

@@ -84,7 +84,7 @@ to create the management cluster using the above file.
 ### Install clusterctl
 The clusterctl CLI tool handles the lifecycle of a Cluster API management cluster.
 
-{{#tabs name:"install-clusterctl" tabs:"linux,macOS"}}
+{{#tabs name:"install-clusterctl" tabs:"linux,macOS,homebrew"}}
 {{#tab linux}}
 
 #### Install clusterctl binary with curl on linux
@@ -125,6 +125,22 @@ Test to ensure the version you installed is up-to-date:
 ```
 clusterctl version
 ```
+{{#/tab }}
+{{#tab homebrew}}
+
+##### Install clusterctl with homebrew on macOS and linux
+
+Install the latest release using homebrew:
+
+```bash
+brew install clusterctl
+```
+
+Test to ensure the version you installed is up-to-date:
+```
+clusterctl version
+```
+
 {{#/tab }}
 {{#/tabs }}
 
@@ -378,13 +394,13 @@ See the [AWS provider prerequisites] document for more details.
 
 <h1>Warning</h1>
 
-Make sure you choose a VM size which is available in the desired location for your subscription. To see available SKUs, use `az vm list-skus -l <your_location> -r virtualMachines -o table` 
+Make sure you choose a VM size which is available in the desired location for your subscription. To see available SKUs, use `az vm list-skus -l <your_location> -r virtualMachines -o table`
 
 </aside>
 
 ```bash
 # Name of the Azure datacenter location. Change this value to your desired location.
-export AZURE_LOCATION="centralus" 
+export AZURE_LOCATION="centralus"
 
 # Select VM types.
 export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"

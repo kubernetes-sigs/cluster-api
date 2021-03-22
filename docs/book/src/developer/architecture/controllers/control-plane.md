@@ -48,7 +48,7 @@ The `ImplementationControlPlane` *must* rely on the existence of
 
 * `replicas` - is an integer representing the number of desired
   replicas. In the KubeadmControlPlane, this represents the desired
-  number of desired control plane machines.
+  number of control plane machines.
 
 * `scale` subresource with the following signature:
 

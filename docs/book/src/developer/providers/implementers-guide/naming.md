@@ -11,7 +11,6 @@ more than one [_variant_][variant-naming]. So for example,
 `cluster-api-provider-aws` may include both an implementation based on EC2 as
 well as one based on their hosted EKS solution.
 
-
 ## A note on Acronyms
 
 Because these names end up being so long, developers of Cluster API frequently refer to providers by acronyms.
@@ -24,7 +23,7 @@ cluster-api-provider-gcp is [CAPG], pronounced "Cap Gee," [and so on][letterc].
 [CAPG]: https://cluster-api.sigs.k8s.io/reference/glossary.html#capg
 [letterc]: https://cluster-api.sigs.k8s.io/reference/glossary.html#c
 
-# Resource Naming
+## Resource Naming
 
 For the purposes of this guide we will create a provider for a
 service named **mailgun**. Therefore the name of the repository will be
@@ -48,6 +47,7 @@ For example, our cluster object will be:
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: MailgunCluster
 ```
+
 [repo-naming]: https://github.com/kubernetes-sigs/cluster-api/issues/383
 [variant-naming]: https://github.com/kubernetes-sigs/cluster-api/issues/480
 

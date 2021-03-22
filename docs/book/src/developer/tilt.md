@@ -27,7 +27,6 @@ We provide a make target to generate the envsubst binary if desired.
 See the [provider contract](./../clusterctl/provider-contract.md) for
 more details about how clusterctl uses variables.
 
-
 ```
 make envsubst
 ```
@@ -57,10 +56,10 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
 #### tilt-settings.json fields
 
 **allowed_contexts** (Array, default=[]): A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on
-*[allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
+[allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
 
 **default_registry** (String, default=""): The image registry to use if you need to push images. See the [Tilt
-*documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
+documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
 
 **provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have a
 `tilt-provider.json` file describing how to build the provider.
@@ -105,7 +104,7 @@ An Azure Service Principal is needed for populating the controller manifests. Th
   3. Save your Tenant ID, Client ID, Client Secret
 
   ```bash
-  AZURE_TENANT_ID=$( az account show --query tenantId --output tsv)
+  AZURE_TENANT_ID=$(az account show --query tenantId --output tsv)
   AZURE_CLIENT_SECRET=$(az ad sp create-for-rbac --name http://$AZURE_SERVICE_PRINCIPAL_NAME --query password --output tsv)
   AZURE_CLIENT_ID=$(az ad sp show --id http://$AZURE_SERVICE_PRINCIPAL_NAME --query appId --output tsv)
   ```
@@ -194,8 +193,8 @@ Start](https://cluster-api.sigs.k8s.io/user/quick-start.html#usage) for more inf
 
 The following providers are currently defined in the Tiltfile:
 
-- **core**: cluster-api itself (Cluster/Machine/MachineDeployment/MachineSet/KubeadmConfig/KubeadmControlPlane)
-- **docker**: Docker provider (DockerCluster/DockerMachine)
+* **core**: cluster-api itself (Cluster/Machine/MachineDeployment/MachineSet/KubeadmConfig/KubeadmControlPlane)
+* **docker**: Docker provider (DockerCluster/DockerMachine)
 
 ### tilt-provider.json
 

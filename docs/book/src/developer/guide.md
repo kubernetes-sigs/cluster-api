@@ -14,6 +14,7 @@ Other providers may have additional steps you need to follow to get up and runni
 [capi-manager]: https://github.com/kubernetes-sigs/cluster-api/blob/master/main.go
 [capa-manager]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/main.go
 [Docker]: https://github.com/kubernetes-sigs/cluster-api/tree/master/test/infrastructure/docker
+[CAPD]: https://github.com/kubernetes-sigs/cluster-api/blob/master/test/infrastructure/docker/README.md
 
 ## Prerequisites
 
@@ -32,14 +33,12 @@ The easiest way to do this is with [kind] v0.9 or newer, as explained in the qui
 Make sure your cluster is set as the default for `kubectl`.
 If it's not, you will need to modify subsequent `kubectl` commands below.
 
-[clusterctl]: https://github.com/kubernetes-sigs/cluster-api/tree/master/cmd/clusterctl
-[pivot]: https://cluster-api.sigs.k8s.io/reference/glossary.html#pivot
 [mcluster]: https://cluster-api.sigs.k8s.io/reference/glossary.html#management-cluster
 [kind]: https://github.com/kubernetes-sigs/kind
 
 ### A container registry
 
-If you're using [kind], you'll need a way to push your images to a registry to they can be pulled.
+If you're using [kind], you'll need a way to push your images to a registry so they can be pulled.
 You can instead [side-load] all images, but the registry workflow is lower-friction.
 
 Most users test with [GCR], but you could also use something like [Docker Hub][hub].
@@ -85,9 +84,9 @@ You'll need to deploy [cert-manager] components on your [management cluster][mcl
 kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml
 ```
 
-Ensure the cert-manager webhook service is ready before creating the Cluster API components. 
+Ensure the cert-manager webhook service is ready before creating the Cluster API components.
 
-This can be done by running: 
+This can be done by running:
 
 ```bash
 kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io

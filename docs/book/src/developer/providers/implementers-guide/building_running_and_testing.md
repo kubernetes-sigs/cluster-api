@@ -30,7 +30,7 @@ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/<ver
 
 Before you can deploy the infrastructure controller, you'll need to deploy Cluster API itself.
 
-You can use a precompilaed manifest from the release page, or clone [`cluster-api`][capi] and apply its manifests using `kustomize`.
+You can use a precompiled manifest from the release page, or clone [`cluster-api`][capi] and apply its manifests using `kustomize`.
 
 ``` shell
 cd cluster-api
@@ -48,7 +48,6 @@ Conditions:
   ContainersReady   True
   PodScheduled      True
 ```
-
 
 [capi]: https://github.com/kubernetes-sigs/cluster-api
 
@@ -86,8 +85,7 @@ k8s_yaml('capm.yaml')
 docker_build('<your docker username or repository url>/cluster-api-controller-mailgun-amd64', '.')
 ```
 
-You can then use Tilt to watch the logs coming off your container
-
+You can then use Tilt to watch the logs coming off your container.
 
 ## Your first Cluster
 

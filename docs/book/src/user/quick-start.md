@@ -11,7 +11,7 @@ In this tutorial we'll cover the basics of how to use Cluster API to create one 
 
 ### Install and/or configure a kubernetes cluster
 
-Cluster API requires an existing Kubernetes cluster accessible via kubectl; during the installation process the
+Cluster API requires an existing Kubernetes cluster accessible via kubectl. During the installation process the
 Kubernetes cluster will be transformed into a [management cluster] by installing the Cluster API [provider components], so it
 is recommended to keep it separated from any application workload.
 
@@ -22,64 +22,64 @@ Choose one of the options below:
 
 1. **Existing Management Cluster**
 
-For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place. The Kubernetes cluster must be at least v1.19.1.
+   For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place. The Kubernetes cluster must be at least v1.19.1.
 
-```bash
-export KUBECONFIG=<...>
-```
+   ```bash
+   export KUBECONFIG=<...>
+   ```
 
 2. **Kind**
 
-<aside class="note warning">
+   <aside class="note warning">
 
-<h1>Warning</h1>
+   <h1>Warning</h1>
 
-[kind] is not designed for production use.
+   [kind] is not designed for production use.
 
-**Minimum [kind] supported version**: v0.9.0
+   **Minimum [kind] supported version**: v0.9.0
 
-</aside>
+   </aside>
 
-[kind] can be used for creating a local Kubernetes cluster for development environments or for
-the creation of a temporary [bootstrap cluster] used to provision a target [management cluster] on the selected infrastructure provider.
+   [kind] can be used for creating a local Kubernetes cluster for development environments or for
+   the creation of a temporary [bootstrap cluster] used to provision a target [management cluster] on the selected infrastructure provider.
 
-The installation procedure depends on the version of kind; if you are planning to use the docker infrastructure provider,
-please follow the additional instructions in the dedicated tab:
+   The installation procedure depends on the version of kind; if you are planning to use the docker infrastructure provider,
+   please follow the additional instructions in the dedicated tab:
 
-{{#tabs name:"install-kind" tabs:"v0.9.x,Docker"}}
-{{#tab v0.9.x}}
+   {{#tabs name:"install-kind" tabs:"v0.9.x,Docker"}}
+   {{#tab v0.9.x}}
 
-Create the kind cluster:
-```bash
-kind create cluster
-```
-Test to ensure the local kind cluster is ready:
-```
-kubectl cluster-info
-```
+   Create the kind cluster:
+   ```bash
+   kind create cluster
+   ```
+   Test to ensure the local kind cluster is ready:
+   ```
+   kubectl cluster-info
+   ```
 
-{{#/tab }}
-{{#tab Docker}}
+   {{#/tab }}
+   {{#tab Docker}}
 
-Run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
+   Run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
 
-```bash
-cat > kind-cluster-with-extramounts.yaml <<EOF
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  extraMounts:
-    - hostPath: /var/run/docker.sock
-      containerPath: /var/run/docker.sock
-EOF
-```
+   ```bash
+   cat > kind-cluster-with-extramounts.yaml <<EOF
+   kind: Cluster
+   apiVersion: kind.x-k8s.io/v1alpha4
+   nodes:
+   - role: control-plane
+     extraMounts:
+       - hostPath: /var/run/docker.sock
+         containerPath: /var/run/docker.sock
+   EOF
+   ```
 
-Then follow the instruction for your kind version using  `kind create cluster --config kind-cluster-with-extramounts.yaml`
-to create the management cluster using the above file.
+   Then follow the instruction for your kind version using  `kind create cluster --config kind-cluster-with-extramounts.yaml`
+   to create the management cluster using the above file.
 
-{{#/tab }}
-{{#/tabs }}
+   {{#/tab }}
+   {{#/tabs }}
 
 ### Install clusterctl
 The clusterctl CLI tool handles the lifecycle of a Cluster API management cluster.
@@ -128,7 +128,6 @@ clusterctl version
 {{#/tab }}
 {{#/tabs }}
 
-
 ### Initialize the management cluster
 
 Now that we've got clusterctl installed and all the prerequisites in place, let's transform the Kubernetes cluster
@@ -139,7 +138,6 @@ automatically adds to the list the `cluster-api` core provider, and if unspecifi
 and `kubeadm` control-plane providers.
 
 #### Initialization for common providers
-
 
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
@@ -211,7 +209,6 @@ export DO_B64ENCODED_CREDENTIALS="$(echo -n "${DIGITALOCEAN_ACCESS_TOKEN}" | bas
 clusterctl init --infrastructure digitalocean
 ```
 
-
 {{#/tab }}
 {{#tab Docker}}
 
@@ -224,7 +221,8 @@ The Docker provider is not designed for production use and is intended for devel
 </aside>
 
 The docker provider does not require additional prerequisites.
-You can run
+You can run:
+
 ```
 clusterctl init --infrastructure docker
 ```
@@ -291,7 +289,6 @@ clusterctl init --infrastructure packet
 
 {{#/tabs }}
 
-
 The output of `clusterctl init` is similar to this:
 
 ```shell
@@ -314,7 +311,7 @@ You can now create your first workload cluster by running the following:
 
 <h1>Alternatives to environment variables</h1>
 
-Throughout this quickstart guide, we've given instructions on setting parameters using environment variables. For most
+Throughout this quickstart guide we've given instructions on setting parameters using environment variables. For most
 environment variables in the rest of the guide, you can also set them in ~/.cluster-api/clusterctl.yaml
 
 See [`clusterctl init`](../clusterctl/commands/init.md) for more details.
@@ -378,13 +375,13 @@ See the [AWS provider prerequisites] document for more details.
 
 <h1>Warning</h1>
 
-Make sure you choose a VM size which is available in the desired location for your subscription. To see available SKUs, use `az vm list-skus -l <your_location> -r virtualMachines -o table` 
+Make sure you choose a VM size which is available in the desired location for your subscription. To see available SKUs, use `az vm list-skus -l <your_location> -r virtualMachines -o table`
 
 </aside>
 
 ```bash
 # Name of the Azure datacenter location. Change this value to your desired location.
-export AZURE_LOCATION="centralus" 
+export AZURE_LOCATION="centralus"
 
 # Select VM types.
 export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"

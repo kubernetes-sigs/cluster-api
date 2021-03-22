@@ -6,6 +6,6 @@ Its main responsibilities are:
 * Adopting unowned Machines that aren't assigned to a MachineSet
 * Adopting unmanaged Machines that aren't assigned a Cluster
 * Booting a group of N machines
-  * Monitor the status of those booted machines
+  * Monitoring the status of those booted machines
 
 ![](../../../images/cluster-admission-machineset-controller.png)

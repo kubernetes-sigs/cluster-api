@@ -1,6 +1,7 @@
 # clusterctl Configuration File
 
-The `clusterctl` config file is located at `$HOME/.cluster-api/clusterctl.yaml` and it can be used to:
+The `clusterctl` config file is located at `$HOME/.cluster-api/clusterctl.yaml`.
+It can be used to:
 
 - Customize the list of providers and provider repositories.
 - Provide configuration values to be used for variable substitution when installing providers or creating clusters.
@@ -34,7 +35,7 @@ See [provider contract](provider-contract.md) for instructions about how to set 
 
 ## Variables
 
-When installing a provider `clusterctl` reads a YAML file that is published in the provider repository; while executing
+When installing a provider `clusterctl` reads a YAML file that is published in the provider repository. While executing
 this operation, `clusterctl` can substitute certain variables with the ones provided by the user.
 
 The same mechanism also applies when `clusterctl` reads the cluster templates YAML published in the repository, e.g.
@@ -48,7 +49,8 @@ variables in the `clusterctl` config file:
 AWS_B64ENCODED_CREDENTIALS: XXXXXXXX
 ```
 
-In case a variable is defined both in the config file and as an OS environment variable, the latter takes precedence.
+In case a variable is defined both in the config file and as an OS environment variable,
+the environment variable takes precedence.
 
 ## Overrides Layer
 
@@ -57,11 +59,14 @@ cluster templates and metadata. By default, it reads the files from
 `$HOME/.cluster-api/overrides`.
 
 The directory structure under the `overrides` directory should follow the
-template
+template:
+
 ```
 <providerType-providerName>/<version>/<fileName>
 ```
+
 For example,
+
 ```
 ├── bootstrap-kubeadm
 │   └── v0.3.0
@@ -78,8 +83,8 @@ For example,
             └── infrastructure-components.yaml
 ```
 
-For developers who want to generate the overrides layer, see [Run the
-local-overrides hack!](developers.md#run-the-local-overrides-hack).
+For developers who want to generate the overrides layer, see
+[Build artifacts locally](developers.md#build-artifacts-locally).
 
 Once these overrides are specified, `clusterctl` will use them instead of
 getting the values from the default or specified providers.
@@ -87,13 +92,15 @@ getting the values from the default or specified providers.
 One example usage of the overrides layer is that it allows you to deploy
 clusters with custom templates that may not be available from the official
 provider repositories.
-For example, you can now do
+For example, you can now do:
+
 ```bash
 clusterctl config cluster mycluster --flavor dev --infrastructure aws:v0.5.0 -v5
 ```
 
 The `-v5` provides verbose logging which will confirm the usage of the
 override file.
+
 ```bash
 Using Override="cluster-template-dev.yaml" Provider="infrastructure-aws" Version="v0.5.0"
 ```
@@ -101,13 +108,13 @@ Using Override="cluster-template-dev.yaml" Provider="infrastructure-aws" Version
 Another example, if you would like to deploy a custom version of CAPA, you can
 make changes to `infrastructure-components.yaml` in the overrides folder and
 run,
+
 ```bash
 clusterctl init --infrastructure aws:v0.5.0 -v5
 ...
 Using Override="infrastructure-components.yaml" Provider="infrastructure-aws" Version="v0.5.0"
 ...
 ```
-
 
 If you prefer to have the overrides directory at a different location (e.g.
 `/Users/foobar/workspace/dev-releases`) you can specify the overrides
@@ -177,9 +184,8 @@ The value string is a possibly signed sequence of decimal numbers, each with opt
 
 If no value is specified or the format is invalid, the default value of 10 minutes will be used.
 
-
 ## Debugging/Logging
 
 To have more verbose logs you can use the `-v` flag when running the `clusterctl` and set the level of the logging verbose with a positive integer number, ie. `-v 3`.
 
-If you do not want to use the flag every time you issue a command you can set the environment variable `CLUSTERCTL_LOG_LEVEL` or set the variable in the `clusterctl` config file which is located by default at `$HOME/.cluster-api/clusterctl.yaml`.
+If you do not want to use the flag every time you issue a command you can set the environment variable `CLUSTERCTL_LOG_LEVEL` or set the variable in the `clusterctl` config file located by default at `$HOME/.cluster-api/clusterctl.yaml`.

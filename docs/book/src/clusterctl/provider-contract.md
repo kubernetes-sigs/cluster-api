@@ -12,7 +12,6 @@ The provider repository MUST contain the following files:
 * The metadata YAML
 * The components YAML
 
-
 Additionally, the provider repository SHOULD contain the following files:
 
 * Workload cluster templates
@@ -22,7 +21,7 @@ Additionally, the provider repository SHOULD contain the following files:
 <h1> Pre-defined list of providers </h1>
 
 The `clusterctl` command ships with a pre-defined list of provider repositories that allows a simpler "out-of-the-box" user experience.
-As a provider implementer, if you are interested to be added to this list, please create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api).
+As a provider implementer, if you are interested in being added to this list, please create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api).
 
 </aside>
 
@@ -36,9 +35,9 @@ It is possible to customize the list of providers for `clusterctl` by changing t
 
 #### Creating a provider repository on GitHub
 
-You can use GitHub release to package your provider artifacts for other people to use.
+You can use a GitHub release to package your provider artifacts for other people to use.
 
-A github release can be used as a provider repository if:
+A GitHub release can be used as a provider repository if:
 
 * The release tag is a valid semantic version number
 * The components YAML, the metadata YAML and eventually the workload cluster templates are include into the release assets.
@@ -81,7 +80,7 @@ releaseSeries:
 
 <aside class="note">
 
-<h1> Note on user experience </h1>
+<h1> Note on user experience</h1>
 
 For clusterctl versions pre-v1alpha4, if provider implementers only update the clusterctl's built-in metadata and don't provide a `metadata.yaml` in a new release, users are forced to update `clusterctl`
 to the latest released version in order to properly install the provider.
@@ -103,7 +102,7 @@ The following rules apply:
 #### Naming conventions
 
 It is strongly recommended that:
-* Core provider release a file called `core-components.yaml`
+* Core providers release a file called `core-components.yaml`
 * Infrastructure providers release a file called `infrastructure-components.yaml`
 * Bootstrap providers release a file called ` bootstrap-components.yaml`
 * Control plane providers release a file called `control-plane-components.yaml`
@@ -112,17 +111,17 @@ It is strongly recommended that:
 
 The objects contained in a component YAML file can be divided in two sets:
 
-- Instance specific objects, like the Deployment for the controller, the ServiceAccount used for running the controller
+* Instance specific objects, like the Deployment for the controller, the ServiceAccount used for running the controller
   and the related RBAC rules.
-- The objects that are shared among all the provider instances, like e.g. CRDs, ValidatingWebhookConfiguration or the
+* The objects that are shared among all the provider instances, like e.g. CRDs, ValidatingWebhookConfiguration or the
   Deployment implementing the web-hook servers and related Service and Certificates.
 
 As per the Cluster API contract, all the shared objects are expected to be deployed in a namespace named `capi-webhook-system`
 (if applicable).
 
 clusterctl implements a different lifecycle for shared resources e.g.
-- ensuring that the version of the shared objects for each provider matches the latest version installed in the cluster.
-- ensuring that deleting an instance of a provider does not destroy shared resources unless explicitly requested by the user.  
+* Ensuring that the version of the shared objects for each provider matches the latest version installed in the cluster.
+* Ensuring that deleting an instance of a provider does not destroy shared resources unless explicitly requested by the user.
 
 #### Target namespace
 
@@ -166,7 +165,7 @@ recommended to prefix the variable name with the provider name e.g. `${AWS_CREDE
 as: `${ VAR }`, `${ VAR}`,`${VAR }`. However, these formats will be deprecated
 in the near future. e.g. v1alpha4.
 
-Formats such as `${VAR$FOO}` is not supported.
+Formats such as `${VAR$FOO}` are not supported.
 </aside>
 
 `clusterctl` uses the library [drone/envsubst][drone-envsubst] to perform
@@ -174,7 +173,7 @@ variable substitution.
 
 ```bash
 # If `VAR` is not set or empty, the default value is used. This is true for
-all the following formats.
+# all the following formats.
 ${VAR:=default}
 ${VAR=default}
 ${VAR:-default}
@@ -251,7 +250,7 @@ Templates writers should use the common variables to ensure consistency across p
 |`--controlplane-machine-count`| `${CONTROL_PLANE_MACHINE_COUNT}` | The number of control plane machines to be added to the workload cluster |
 |`--worker-machine-count`| `${WORKER_MACHINE_COUNT}` | The number of worker machines to be added to the workload cluster |
 
-Additionally, value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will
+Additionally, the value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will
 be applied to every occurrence of the `${ CLUSTER_NAME }` variable.
 
 ## OwnerReferences chain
@@ -260,17 +259,17 @@ Each provider is responsible to ensure that all the providers resources (like e.
 for the `vsphere` provider) MUST have a `Metadata.OwnerReferences` entry that links directly or indirectly to a `Cluster` object.
 
 Please note that all the provider specific resources that are referenced by the Cluster API core objects will get the `OwnerReference`
-sets by the Cluster API core controllers, e.g.:
+set by the Cluster API core controllers, e.g.:
 
-- The Cluster controller ensures that all the objects referenced in `Cluster.Spec.InfrastructureRef` get an `OwnerReference`
+* The Cluster controller ensures that all the objects referenced in `Cluster.Spec.InfrastructureRef` get an `OwnerReference`
   that links directly to the corresponding `Cluster`.
-- The Machine controller ensures that all the objects referenced in `Machine.Spec.InfrastructureRef` get an `OwnerReference`
-  that links to the corresponding `Machine`, and the `Machine` is linked to the `Cluster` through its own `OwnerReference` chain.  
+* The Machine controller ensures that all the objects referenced in `Machine.Spec.InfrastructureRef` get an `OwnerReference`
+  that links to the corresponding `Machine`, and the `Machine` is linked to the `Cluster` through its own `OwnerReference` chain.
 
 That means that, practically speaking, provider implementers are responsible for ensuring that the `OwnerReference`s
 are set only for objects that are not directly referenced by Cluster API core objects, e.g.:
 
-- All the `VSphereVM` instances should get an `OwnerReference` that links to the corresponding `VSphereMachine`, and the `VSphereMachine`
+* All the `VSphereVM` instances should get an `OwnerReference` that links to the corresponding `VSphereMachine`, and the `VSphereMachine`
   is linked to the `Cluster` through its own `OwnerReference` chain.
 
 ## Additional notes
@@ -281,8 +280,8 @@ Provider authors should be aware of the following transformations that `clusterc
 
 * Variable substitution;
 * Enforcement of target namespace:
-    * The name of the namespace object is set;
-    * The namespace field of all the objects is set (with exception of cluster wide objects like e.g. ClusterRoles);
+  * The name of the namespace object is set;
+  * The namespace field of all the objects is set (with exception of cluster wide objects like e.g. ClusterRoles);
 * Enforcement of watching namespace;
 * All components are labeled;
 
@@ -292,7 +291,7 @@ Provider authors should be aware of the following transformations that `clusterc
 
 * Variable substitution;
 * Enforcement of target namespace:
-    * The namespace field of all the objects is set;
+  * The namespace field of all the objects are set;
 
 ### Links to external objects
 
@@ -336,7 +335,6 @@ the exact move sequence to be executed by the user.
 
 Additionally, provider authors should be aware that `clusterctl move` assumes all the provider's Controllers respect the
 `Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification.
-
 
 <!--LINKS-->
 [drone-envsubst]: https://github.com/drone/envsubst

@@ -18,6 +18,7 @@ package cloudinit
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"text/template"
 
@@ -115,12 +116,13 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+var (
+	//go:embed kubeadm-bootstrap-script.sh
+	kubeadmBootstrapScript string
+)
+
 func generateBootstrapScript(input interface{}) (*bootstrapv1.File, error) {
-	scriptBytes, err := bootstrapKubeadmInternalCloudinitKubeadmBootstrapScriptShBytes()
-	if err != nil {
-		return nil, errors.Wrap(err, "couldn't read bootstrap script")
-	}
-	joinScript, err := generate("JoinScript", string(scriptBytes), input)
+	joinScript, err := generate("JoinScript", kubeadmBootstrapScript, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to bootstrap script for machine joins")
 	}

@@ -7,7 +7,7 @@ require (
 	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/golangci/golangci-lint v1.27.0
-	github.com/joelanford/go-apidiff v0.0.0-20191206194835-106bcff5f060
+	github.com/joelanford/go-apidiff v0.1.0
 	github.com/onsi/ginkgo v1.14.1
 	github.com/raviqqe/liche v0.0.0-20200229003944-f57a5d1c5be4
 	github.com/sergi/go-diff v1.1.0 // indirect

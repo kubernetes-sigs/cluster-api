@@ -53,7 +53,7 @@ const (
 )
 
 var (
-	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano()))
+	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
 	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 )

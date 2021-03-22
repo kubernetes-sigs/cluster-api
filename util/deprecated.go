@@ -18,6 +18,7 @@ package util
 
 import (
 	"context"
+
 	"github.com/blang/semver"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -26,15 +27,15 @@ import (
 
 // ParseMajorMinorPatch returns a semver.Version from the string provided
 // by looking only at major.minor.patch and stripping everything else out.
-// Deprecated: Please use the function in util/version
-// Deprecated in v1alpha4
+//
+// Deprecated: Please use the function in util/version.
 func ParseMajorMinorPatch(v string) (semver.Version, error) {
 	return version.ParseMajorMinorPatchTolerant(v)
 }
 
 // GetMachinesForCluster returns a list of machines associated with the cluster.
+//
 // Deprecated: Please use util/collection GetFilteredMachinesForCluster(ctx, client, cluster)
-// Deprecated in v1alpha4
 func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (*clusterv1.MachineList, error) {
 	var machines clusterv1.MachineList
 	if err := c.List(
@@ -51,8 +52,8 @@ func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *cluste
 }
 
 // GetControlPlaneMachines returns a slice containing control plane machines.
+//
 // Deprecated: Please use util/collection FromMachines(machine).Filter(collections.ControlPlaneMachines(cluster.Name))
-// Deprecated in v1alpha4
 func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Machine) {
 	for _, machine := range machines {
 		if IsControlPlaneMachine(machine) {
@@ -63,8 +64,8 @@ func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Ma
 }
 
 // GetControlPlaneMachinesFromList returns a slice containing control plane machines.
+//
 // Deprecated: Please use util/collection FromMachineList(machineList).Filter(collections.ControlPlaneMachines(cluster.Name))
-// Deprecated in v1alpha4
 func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []*clusterv1.Machine) {
 	for i := 0; i < len(machineList.Items); i++ {
 		machine := machineList.Items[i]

@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v33/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -331,7 +331,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 		return nil, errors.Errorf("failed to get file %q from %q release", fileName, *release.TagName)
 	}
 
-	reader, redirect, err := client.Repositories.DownloadReleaseAsset(context.TODO(), g.owner, g.repository, *assetID)
+	reader, redirect, err := client.Repositories.DownloadReleaseAsset(context.TODO(), g.owner, g.repository, *assetID, http.DefaultClient)
 	if err != nil {
 		return nil, g.handleGithubErr(err, "failed to download file %q from %q release", *release.TagName, fileName)
 	}

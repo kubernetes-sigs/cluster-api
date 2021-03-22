@@ -222,8 +222,7 @@ type Bootstrap struct {
 	// Data contains the bootstrap data, such as cloud-init details scripts.
 	// If nil, the Machine should remain in the Pending state.
 	//
-	// Deprecated: This field has been deprecated in v1alpha3 and
-	// will be removed in a future version. Switch to DataSecretName.
+	// Deprecated: Switch to DataSecretName.
 	//
 	// +optional
 	Data *string `json:"data,omitempty"`

@@ -77,7 +77,7 @@ func ConfigurationToYAMLForVersion(obj runtime.Object, k8sVersion string) (strin
 	}
 
 	if gv != GroupVersion {
-		yaml = strings.Replace(yaml, GroupVersion.String(), gv.String(), -1)
+		yaml = strings.ReplaceAll(yaml, GroupVersion.String(), gv.String())
 	}
 
 	return yaml, nil

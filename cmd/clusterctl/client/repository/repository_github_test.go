@@ -23,7 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v33/github"
 	"k8s.io/utils/pointer"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -471,7 +471,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			args: args{
 				release: &github.RepositoryRelease{
 					TagName: &tagName,
-					Assets: []github.ReleaseAsset{
+					Assets: []*github.ReleaseAsset{
 						{
 							ID:   &id1,
 							Name: &file,
@@ -488,7 +488,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			args: args{
 				release: &github.RepositoryRelease{
 					TagName: &tagName,
-					Assets: []github.ReleaseAsset{
+					Assets: []*github.ReleaseAsset{
 						{
 							ID:   &id1,
 							Name: &file,
@@ -504,7 +504,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			args: args{
 				release: &github.RepositoryRelease{
 					TagName: &tagName,
-					Assets: []github.ReleaseAsset{
+					Assets: []*github.ReleaseAsset{
 						{
 							ID:   &id2, //id does not match any file (this should not happen)
 							Name: &file,

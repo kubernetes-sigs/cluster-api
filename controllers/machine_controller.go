@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"time"
 
 	"github.com/pkg/errors"
@@ -124,21 +125,6 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Controller: controller,
 	}
 	return nil
-}
-
-func (r *MachineReconciler) clusterToActiveMachines(a client.Object) []reconcile.Request {
-	requests := []reconcile.Request{}
-	machines, err := getActiveMachinesInCluster(context.TODO(), r.Client, a.GetNamespace(), a.GetName())
-	if err != nil {
-		return requests
-	}
-	for _, m := range machines {
-		r := reconcile.Request{
-			NamespacedName: util.ObjectKey(m),
-		}
-		requests = append(requests, r)
-	}
-	return requests
 }
 
 func (r *MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -471,8 +457,8 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 		}
 	}
 
-	// Get all of the machines that belong to this cluster.
-	machines, err := getActiveMachinesInCluster(ctx, r.Client, machine.Namespace, machine.Labels[clusterv1.ClusterLabelName])
+	// Get all of the active machines that belong to this cluster.
+	machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, cluster, collections.ActiveMachines)
 	if err != nil {
 		return err
 	}
@@ -480,15 +466,14 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 	// Whether or not it is okay to delete the NodeRef depends on the
 	// number of remaining control plane members and whether or not this
 	// machine is one of them.
-	switch numControlPlaneMachines := len(util.GetControlPlaneMachines(machines)); {
-	case numControlPlaneMachines == 0:
+	numControlPlaneMachines := len(machines.Filter(collections.ControlPlaneMachines(cluster.Name)))
+	if numControlPlaneMachines == 0 {
 		// Do not delete the NodeRef if there are no remaining members of
 		// the control plane.
 		return errNoControlPlaneNodes
-	default:
-		// Otherwise it is okay to delete the NodeRef.
-		return nil
 	}
+	// Otherwise it is okay to delete the NodeRef.
+	return nil
 }
 
 func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {

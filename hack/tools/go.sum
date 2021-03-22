@@ -311,8 +311,8 @@ github.com/jingyugao/rowserrcheck v0.0.0-20191204022205-72ab7603b68a/go.mod h1:x
 github.com/jirfag/go-printf-func-name v0.0.0-20191110105641-45db9963cdd3 h1:jNYPNLe3d8smommaoQlK7LOA5ESyUJJ+Wf79ZtA7Vp4=
 github.com/jirfag/go-printf-func-name v0.0.0-20191110105641-45db9963cdd3/go.mod h1:HEWGJkRDzjJY2sqdDwxccsGicWEf9BQOZsq2tV+xzM0=
 github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5/go.mod h1:1FEQNm3xlJgrMD+FBdI9+xvCksHtbpVBBw5dYhBSsks=
-github.com/joelanford/go-apidiff v0.0.0-20191206194835-106bcff5f060 h1:ZboxBXJqPBDg2vEhSGtQgZ+hYUXxa7U0zFDPmvSgvL8=
-github.com/joelanford/go-apidiff v0.0.0-20191206194835-106bcff5f060/go.mod h1:wgVWgVCwYYkjcYpJtBnWYkyUYZfVovO3Y5pX49mJsqs=
+github.com/joelanford/go-apidiff v0.1.0 h1:bt/247wfLDKFnCC5jYdapR3WY2laJMPB9apfc1U9Idw=
+github.com/joelanford/go-apidiff v0.1.0/go.mod h1:wgVWgVCwYYkjcYpJtBnWYkyUYZfVovO3Y5pX49mJsqs=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/json-iterator/go v1.1.7/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=

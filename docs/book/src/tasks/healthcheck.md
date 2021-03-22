@@ -8,7 +8,7 @@ Before attempting to configure a MachineHealthCheck, you should have a working [
 
 <h1> Important </h1>
 
-Please note that MachineHealthChecks currently **only** support Machines that are owned by a MachineSet.
+Please note that MachineHealthChecks currently **only** support Machines that are owned by a MachineSet or a KubeadmControlPlane.
 Please review the [Limitations and Caveats of a MachineHealthCheck](#limitations-and-caveats-of-a-machinehealthcheck)
 at the bottom of this page for full details of MachineHealthCheck limitations.
 

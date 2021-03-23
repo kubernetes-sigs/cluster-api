@@ -64,7 +64,7 @@ type ClusterProxy interface {
 	GetRESTConfig() *rest.Config
 
 	// Apply to apply YAML to the Kubernetes cluster, `kubectl apply`.
-	Apply(context.Context, []byte) error
+	Apply(ctx context.Context, resources []byte, args ...string) error
 
 	// GetWorkloadCluster returns a proxy to a workload cluster defined in the Kubernetes cluster.
 	GetWorkloadCluster(ctx context.Context, namespace, name string) ClusterProxy
@@ -179,20 +179,12 @@ func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
 	return cs
 }
 
-// Apply wraps `kubectl apply` and prints the output so we can see what gets applied to the cluster.
-func (p *clusterProxy) Apply(ctx context.Context, resources []byte) error {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for Apply")
-	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
-
-	return exec.KubectlApply(ctx, p.kubeconfigPath, resources)
-}
-
 // Apply wraps `kubectl apply ...` and prints the output so we can see what gets applied to the cluster.
-func (p *clusterProxy) ApplyWithArgs(ctx context.Context, resources []byte, args ...string) error {
+func (p *clusterProxy) Apply(ctx context.Context, resources []byte, args ...string) error {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Apply")
 	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
 
-	return exec.KubectlApplyWithArgs(ctx, p.kubeconfigPath, resources, args...)
+	return exec.KubectlApply(ctx, p.kubeconfigPath, resources, args...)
 }
 
 func (p *clusterProxy) GetRESTConfig() *rest.Config {

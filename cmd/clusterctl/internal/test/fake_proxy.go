@@ -79,7 +79,7 @@ func (f *FakeProxy) NewClient() (client.Client, error) {
 	return f.cs, nil
 }
 
-// ListResources returns all the resources known by the FakeProxy
+// ListResources returns all the resources known by the FakeProxy.
 func (f *FakeProxy) ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
 	var ret []unstructured.Unstructured //nolint
 	for _, o := range f.objs {

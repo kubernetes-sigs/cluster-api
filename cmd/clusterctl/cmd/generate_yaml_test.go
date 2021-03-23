@@ -113,7 +113,6 @@ v3: default3
 			g.Expect(string(output)).To(Equal(tt.expectedOutput))
 		})
 	}
-
 }
 
 // createTempFile creates a temporary yaml file inside a temp dir. It returns

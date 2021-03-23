@@ -21,7 +21,7 @@ spec:
   - name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API
+        description: KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -32,10 +32,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate
+            description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
             properties:
               template:
-                description: KubeadmConfigTemplateResource defines the Template structure
+                description: KubeadmConfigTemplateResource defines the Template structure.
                 properties:
                   spec:
                     description: KubeadmConfigSpec defines the desired state of KubeadmConfig. Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
@@ -388,7 +388,7 @@ spec:
                           bootstrapTokens:
                             description: BootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create. This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
                             items:
-                              description: BootstrapToken describes one bootstrap token, stored as a Secret in the cluster
+                              description: BootstrapToken describes one bootstrap token, stored as a Secret in the cluster.
                               properties:
                                 description:
                                   description: Description sets a human-friendly message why this token exists and what it's used for, so other administrators can know its purpose.
@@ -674,7 +674,7 @@ spec:
   - name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API
+        description: KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -685,10 +685,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate
+            description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
             properties:
               template:
-                description: KubeadmConfigTemplateResource defines the Template structure
+                description: KubeadmConfigTemplateResource defines the Template structure.
                 properties:
                   spec:
                     description: KubeadmConfigSpec defines the desired state of KubeadmConfig. Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
@@ -1041,7 +1041,7 @@ spec:
                           bootstrapTokens:
                             description: BootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create. This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
                             items:
-                              description: BootstrapToken describes one bootstrap token, stored as a Secret in the cluster
+                              description: BootstrapToken describes one bootstrap token, stored as a Secret in the cluster.
                               properties:
                                 description:
                                   description: Description sets a human-friendly message why this token exists and what it's used for, so other administrators can know its purpose.

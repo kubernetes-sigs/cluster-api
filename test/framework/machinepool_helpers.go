@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// GetMachinePoolsByClusterInput is the input for GetMachinePoolsByCluster
+// GetMachinePoolsByClusterInput is the input for GetMachinePoolsByCluster.
 type GetMachinePoolsByClusterInput struct {
 	Lister      Lister
 	ClusterName string
@@ -235,7 +235,7 @@ type GetMachinesPoolInstancesInput struct {
 	MachinePool clusterv1exp.MachinePool
 }
 
-// GetMachinePoolInstanceVersions returns the
+// GetMachinePoolInstanceVersions returns the.
 func GetMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolInstancesInput) []string {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for GetMachinePoolInstanceVersions")
 	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling GetMachinePoolInstanceVersions")

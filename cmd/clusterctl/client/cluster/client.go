@@ -149,7 +149,7 @@ func (c *clusterClient) WorkloadCluster() WorkloadCluster {
 	return newWorkloadCluster(c.proxy)
 }
 
-// Option is a configuration option supplied to New
+// Option is a configuration option supplied to New.
 type Option func(*clusterClient)
 
 // InjectProxy allows to override the default proxy used by clusterctl.

@@ -349,7 +349,7 @@ func (cm *certManagerClient) getWaitTimeout() time.Duration {
 	return timeoutDuration
 }
 
-// getManifestObjs gets the cert-manager manifest, convert to unstructured objects, and fix images
+// getManifestObjs gets the cert-manager manifest, convert to unstructured objects, and fix images.
 func (cm *certManagerClient) getManifestObjs() ([]unstructured.Unstructured, error) {
 	objs, err := utilyaml.ToUnstructured(certManagerManifest)
 

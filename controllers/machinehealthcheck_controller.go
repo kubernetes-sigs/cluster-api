@@ -52,10 +52,10 @@ import (
 )
 
 const (
-	// Event types
+	// Event types.
 
 	// EventRemediationRestricted is emitted in case when machine remediation
-	// is restricted by remediation circuit shorting logic
+	// is restricted by remediation circuit shorting logic.
 	EventRemediationRestricted string = "RemediationRestricted"
 )
 
@@ -64,7 +64,7 @@ const (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinehealthchecks;machinehealthchecks/status,verbs=get;list;watch;update;patch
 
-// MachineHealthCheckReconciler reconciles a MachineHealthCheck object
+// MachineHealthCheckReconciler reconciles a MachineHealthCheck object.
 type MachineHealthCheckReconciler struct {
 	Client           client.Client
 	Tracker          *remote.ClusterCacheTracker
@@ -311,7 +311,6 @@ func (r *MachineHealthCheckReconciler) PatchHealthyTargets(ctx context.Context, 
 	errList := []error{}
 	for _, t := range healthy {
 		if m.Spec.RemediationTemplate != nil {
-
 			// Get remediation request object
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
 			if err != nil {
@@ -338,7 +337,7 @@ func (r *MachineHealthCheckReconciler) PatchHealthyTargets(ctx context.Context, 
 	return errList
 }
 
-// PatchUnhealthyTargets patches machines with MachineOwnerRemediatedCondition for remediation
+// PatchUnhealthyTargets patches machines with MachineOwnerRemediatedCondition for remediation.
 func (r *MachineHealthCheckReconciler) PatchUnhealthyTargets(ctx context.Context, logger logr.Logger, unhealthy []healthCheckTarget, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) []error {
 	// mark for remediation
 	errList := []error{}
@@ -423,7 +422,7 @@ func (r *MachineHealthCheckReconciler) PatchUnhealthyTargets(ctx context.Context
 }
 
 // clusterToMachineHealthCheck maps events from Cluster objects to
-// MachineHealthCheck objects that belong to the Cluster
+// MachineHealthCheck objects that belong to the Cluster.
 func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o client.Object) []reconcile.Request {
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
@@ -450,7 +449,7 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o client.Obje
 }
 
 // machineToMachineHealthCheck maps events from Machine objects to
-// MachineHealthCheck objects that monitor the given machine
+// MachineHealthCheck objects that monitor the given machine.
 func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o client.Object) []reconcile.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
@@ -535,7 +534,7 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 }
 
 // isAllowedRemediation checks the value of the MaxUnhealthy field to determine
-// returns whether remediation should be allowed or not, the remediation count, and error if any
+// returns whether remediation should be allowed or not, the remediation count, and error if any.
 func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error) {
 	var remediationAllowed bool
 	var remediationCount int32
@@ -563,7 +562,7 @@ func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error
 }
 
 // getUnhealthyRange parses an integer range and returns the min and max values
-// Eg. [2-5] will return (2,5,nil)
+// Eg. [2-5] will return (2,5,nil).
 func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 	// remove '[' and ']'
 	unhealthyRange := (*(mhc.Spec.UnhealthyRange))[1 : len(*mhc.Spec.UnhealthyRange)-1]
@@ -599,7 +598,7 @@ func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {
 }
 
 // unhealthyMachineCount calculates the number of presently unhealthy or missing machines
-// ie the delta between the expected number of machines and the current number deemed healthy
+// ie the delta between the expected number of machines and the current number deemed healthy.
 func unhealthyMachineCount(mhc *clusterv1.MachineHealthCheck) int {
 	return int(mhc.Status.ExpectedMachines - mhc.Status.CurrentHealthy)
 }

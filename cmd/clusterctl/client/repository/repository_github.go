@@ -40,7 +40,7 @@ const (
 )
 
 var (
-	// Caches used to limit the number of GitHub API calls
+	// Caches used to limit the number of GitHub API calls.
 
 	cacheVersions = map[string][]string{}
 	cacheReleases = map[string]*github.RepositoryRelease{}
@@ -74,12 +74,12 @@ func injectGithubClient(c *github.Client) githubRepositoryOption {
 	}
 }
 
-// DefaultVersion returns defaultVersion field of gitHubRepository struct
+// DefaultVersion returns defaultVersion field of gitHubRepository struct.
 func (g *gitHubRepository) DefaultVersion() string {
 	return g.defaultVersion
 }
 
-// GetVersion returns the list of versions that are available in a provider repository
+// GetVersion returns the list of versions that are available in a provider repository.
 func (g *gitHubRepository) GetVersions() ([]string, error) {
 	versions, err := g.getVersions()
 	if err != nil {
@@ -88,17 +88,17 @@ func (g *gitHubRepository) GetVersions() ([]string, error) {
 	return versions, nil
 }
 
-// RootPath returns rootPath field of gitHubRepository struct
+// RootPath returns rootPath field of gitHubRepository struct.
 func (g *gitHubRepository) RootPath() string {
 	return g.rootPath
 }
 
-// ComponentsPath returns componentsPath field of gitHubRepository struct
+// ComponentsPath returns componentsPath field of gitHubRepository struct.
 func (g *gitHubRepository) ComponentsPath() string {
 	return g.componentsPath
 }
 
-// GetFile returns a file for a given provider version
+// GetFile returns a file for a given provider version.
 func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
 	release, err := g.getReleaseByTag(version)
 	if err != nil {
@@ -114,7 +114,7 @@ func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
 	return files, nil
 }
 
-// newGitHubRepository returns a gitHubRepository implementation
+// newGitHubRepository returns a gitHubRepository implementation.
 func newGitHubRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient, opts ...githubRepositoryOption) (*gitHubRepository, error) {
 	if configVariablesClient == nil {
 		return nil, errors.New("invalid arguments: configVariablesClient can't be nil")
@@ -180,7 +180,7 @@ func newGitHubRepository(providerConfig config.Provider, configVariablesClient c
 	return repo, nil
 }
 
-// getComponentsPath returns the file name
+// getComponentsPath returns the file name.
 func getComponentsPath(path string, rootPath string) string {
 	// filePath = "/filename"
 	filePath := strings.TrimPrefix(path, rootPath)
@@ -189,7 +189,7 @@ func getComponentsPath(path string, rootPath string) string {
 	return componentsPath
 }
 
-// getClient returns a github API client
+// getClient returns a github API client.
 func (g *gitHubRepository) getClient() *github.Client {
 	if g.injectClient != nil {
 		return g.injectClient
@@ -197,7 +197,7 @@ func (g *gitHubRepository) getClient() *github.Client {
 	return github.NewClient(g.authenticatingHTTPClient)
 }
 
-// setClientToken sets authenticatingHTTPClient field of gitHubRepository struct
+// setClientToken sets authenticatingHTTPClient field of gitHubRepository struct.
 func (g *gitHubRepository) setClientToken(token string) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
@@ -205,7 +205,7 @@ func (g *gitHubRepository) setClientToken(token string) {
 	g.authenticatingHTTPClient = oauth2.NewClient(context.TODO(), ts)
 }
 
-// getVersions returns all the release versions for a github repository
+// getVersions returns all the release versions for a github repository.
 func (g *gitHubRepository) getVersions() ([]string, error) {
 	cacheID := fmt.Sprintf("%s/%s", g.owner, g.repository)
 	if versions, ok := cacheVersions[cacheID]; ok {
@@ -354,7 +354,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 	return content, nil
 }
 
-// handleGithubErr wraps error messages
+// handleGithubErr wraps error messages.
 func (g *gitHubRepository) handleGithubErr(err error, message string, args ...interface{}) error {
 	if _, ok := err.(*github.RateLimitError); ok {
 		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API tokens a assign it to the GITHUB_TOKEN environment variable")

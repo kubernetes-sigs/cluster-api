@@ -471,7 +471,6 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 		Reason:   controlplanev1.InfrastructureTemplateCloningFailedReason,
 		Message:  "failed to retrieve GenericMachineTemplate external object \"test\"/\"something_invalid\": genericmachinetemplates.generic.io \"something_invalid\" not found",
 	}))
-
 }
 
 func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {

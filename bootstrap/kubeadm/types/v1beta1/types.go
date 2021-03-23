@@ -51,7 +51,7 @@ type InitConfiguration struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ClusterConfiguration contains cluster-wide configuration for a kubeadm cluster
+// ClusterConfiguration contains cluster-wide configuration for a kubeadm cluster.
 type ClusterConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -126,7 +126,7 @@ type ClusterConfiguration struct {
 	ClusterName string `json:"clusterName,omitempty"`
 }
 
-// ControlPlaneComponent holds settings common to control plane component of the cluster
+// ControlPlaneComponent holds settings common to control plane component of the cluster.
 type ControlPlaneComponent struct {
 	// ExtraArgs is an extra set of flags to pass to the control plane component.
 	// TODO: This is temporary and ideally we would like to switch all components to
@@ -137,7 +137,7 @@ type ControlPlaneComponent struct {
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
 }
 
-// APIServer holds settings necessary for API server deployments in the cluster
+// APIServer holds settings necessary for API server deployments in the cluster.
 type APIServer struct {
 	ControlPlaneComponent `json:",inline"`
 
@@ -148,18 +148,18 @@ type APIServer struct {
 	TimeoutForControlPlane *metav1.Duration `json:"timeoutForControlPlane,omitempty"`
 }
 
-// DNSAddOnType defines string identifying DNS add-on types
+// DNSAddOnType defines string identifying DNS add-on types.
 type DNSAddOnType string
 
 const (
-	// CoreDNS add-on type
+	// CoreDNS add-on type.
 	CoreDNS DNSAddOnType = "CoreDNS"
 
-	// KubeDNS add-on type
+	// KubeDNS add-on type.
 	KubeDNS DNSAddOnType = "kube-dns"
 )
 
-// DNS defines the DNS addon that should be used in the cluster
+// DNS defines the DNS addon that should be used in the cluster.
 type DNS struct {
 	// Type defines the DNS add-on to be used
 	// +optional
@@ -170,7 +170,7 @@ type DNS struct {
 }
 
 // ImageMeta allows to customize the image used for components that are not
-// originated from the Kubernetes/Kubernetes release process
+// originated from the Kubernetes/Kubernetes release process.
 type ImageMeta struct {
 	// ImageRepository sets the container registry to pull images from.
 	// if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
@@ -205,7 +205,7 @@ type APIEndpoint struct {
 	BindPort int32 `json:"bindPort"`
 }
 
-// NodeRegistrationOptions holds fields that relate to registering a new control-plane or node to the cluster, either via "kubeadm init" or "kubeadm join"
+// NodeRegistrationOptions holds fields that relate to registering a new control-plane or node to the cluster, either via "kubeadm init" or "kubeadm join".
 type NodeRegistrationOptions struct {
 
 	// Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
@@ -231,7 +231,7 @@ type NodeRegistrationOptions struct {
 	KubeletExtraArgs map[string]string `json:"kubeletExtraArgs,omitempty"`
 }
 
-// Networking contains elements describing cluster's networking configuration
+// Networking contains elements describing cluster's networking configuration.
 type Networking struct {
 	// ServiceSubnet is the subnet used by k8s services.
 	// Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
@@ -248,7 +248,7 @@ type Networking struct {
 	DNSDomain string `json:"dnsDomain,omitempty"`
 }
 
-// BootstrapToken describes one bootstrap token, stored as a Secret in the cluster
+// BootstrapToken describes one bootstrap token, stored as a Secret in the cluster.
 type BootstrapToken struct {
 	// Token is used for establishing bidirectional trust between nodes and control-planes.
 	// Used for joining nodes in the cluster.
@@ -282,7 +282,7 @@ type Etcd struct {
 	External *ExternalEtcd `json:"external,omitempty"`
 }
 
-// LocalEtcd describes that kubeadm should run an etcd cluster locally
+// LocalEtcd describes that kubeadm should run an etcd cluster locally.
 type LocalEtcd struct {
 	// ImageMeta allows to customize the container used for etcd
 	ImageMeta `json:",inline"`
@@ -357,7 +357,7 @@ type JoinControlPlane struct {
 	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
 }
 
-// Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
+// Discovery specifies the options for the kubelet to use during the TLS Bootstrap process.
 type Discovery struct {
 	// BootstrapToken is used to set the options for bootstrap token based discovery
 	// BootstrapToken and File are mutually exclusive
@@ -378,7 +378,7 @@ type Discovery struct {
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
-// BootstrapTokenDiscovery is used to set the options for bootstrap token based discovery
+// BootstrapTokenDiscovery is used to set the options for bootstrap token based discovery.
 type BootstrapTokenDiscovery struct {
 	// Token is a token used to validate cluster information
 	// fetched from the control-plane.
@@ -403,7 +403,7 @@ type BootstrapTokenDiscovery struct {
 	UnsafeSkipCAVerification bool `json:"unsafeSkipCAVerification"`
 }
 
-// FileDiscovery is used to specify a file or URL to a kubeconfig file from which to load cluster information
+// FileDiscovery is used to specify a file or URL to a kubeconfig file from which to load cluster information.
 type FileDiscovery struct {
 	// KubeConfigPath is used to specify the actual file path or URL to the kubeconfig file from which to load cluster information
 	KubeConfigPath string `json:"kubeConfigPath"`

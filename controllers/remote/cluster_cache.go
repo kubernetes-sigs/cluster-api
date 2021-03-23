@@ -257,7 +257,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 	return nil
 }
 
-// healthCheckInput provides the input for the healthCheckCluster method
+// healthCheckInput provides the input for the healthCheckCluster method.
 type healthCheckInput struct {
 	cluster            client.ObjectKey
 	cfg                *rest.Config
@@ -267,7 +267,7 @@ type healthCheckInput struct {
 	path               string
 }
 
-// setDefaults sets default values if optional parameters are not set
+// setDefaults sets default values if optional parameters are not set.
 func (h *healthCheckInput) setDefaults() {
 	if h.interval == 0 {
 		h.interval = healthCheckPollInterval

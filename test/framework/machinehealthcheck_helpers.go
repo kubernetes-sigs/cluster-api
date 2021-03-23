@@ -160,7 +160,7 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 	}
 }
 
-// hasMatchingUnhealthyConditions returns true if any node condition matches with machine health check unhealthy conditions
+// hasMatchingUnhealthyConditions returns true if any node condition matches with machine health check unhealthy conditions.
 func hasMatchingUnhealthyConditions(machineHealthCheck *clusterv1.MachineHealthCheck, nodeConditions []corev1.NodeCondition) bool {
 	for _, unhealthyCondition := range machineHealthCheck.Spec.UnhealthyConditions {
 		for _, nodeCondition := range nodeConditions {

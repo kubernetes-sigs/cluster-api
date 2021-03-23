@@ -106,7 +106,7 @@ type clusterctlClient struct {
 }
 
 // RepositoryClientFactoryInput represents the inputs required by the
-// RepositoryClientFactory
+// RepositoryClientFactory.
 type RepositoryClientFactoryInput struct {
 	Provider  Provider
 	Processor Processor
@@ -114,7 +114,7 @@ type RepositoryClientFactoryInput struct {
 type RepositoryClientFactory func(RepositoryClientFactoryInput) (repository.Client, error)
 
 // ClusterClientFactoryInput reporesents the inputs required by the
-// ClusterClientFactory
+// ClusterClientFactory.
 type ClusterClientFactoryInput struct {
 	Kubeconfig Kubeconfig
 	Processor  Processor
@@ -124,7 +124,7 @@ type ClusterClientFactory func(ClusterClientFactoryInput) (cluster.Client, error
 // Ensure clusterctlClient implements Client.
 var _ Client = &clusterctlClient{}
 
-// Option is a configuration option supplied to New
+// Option is a configuration option supplied to New.
 type Option func(*clusterctlClient)
 
 // InjectConfig allows to override the default configuration client used by clusterctl.

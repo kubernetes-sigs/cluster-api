@@ -350,7 +350,7 @@ func (r *MachineDeploymentReconciler) scale(ctx context.Context, deployment *clu
 	return nil
 }
 
-// syncDeploymentStatus checks if the status is up-to-date and sync it if necessary
+// syncDeploymentStatus checks if the status is up-to-date and sync it if necessary.
 func (r *MachineDeploymentReconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, d *clusterv1.MachineDeployment) error {
 	d.Status = calculateStatus(allMSs, newMS, d)
 	return nil
@@ -511,7 +511,7 @@ func (r *MachineDeploymentReconciler) updateMachineDeployment(ctx context.Contex
 	return updateMachineDeployment(ctx, r.Client, d, modify)
 }
 
-// We have this as standalone variant to be able to use it from the tests
+// We have this as standalone variant to be able to use it from the tests.
 func updateMachineDeployment(ctx context.Context, c client.Client, d *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		if err := c.Get(ctx, util.ObjectKey(d), d); err != nil {

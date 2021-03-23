@@ -70,7 +70,7 @@ func (p *imageMetaClient) AlterImage(component, imageString string) (string, err
 	return meta.ApplyToImage(image), nil
 }
 
-// getImageMeta returns the image meta that applies to the selected component/image
+// getImageMeta returns the image meta that applies to the selected component/image.
 func (p *imageMetaClient) getImageMeta(component, imageName string) (*imageMeta, error) {
 	// if the image meta for the component is already known, return it
 	if im, ok := p.imageMetaCache[imageMetaCacheKey(component, imageName)]; ok {

@@ -70,7 +70,7 @@ func AddAnnotations(o metav1.Object, desired map[string]string) bool {
 	return hasChanged
 }
 
-// hasAnnotation returns true if the object has the specified annotation
+// hasAnnotation returns true if the object has the specified annotation.
 func hasAnnotation(o metav1.Object, annotation string) bool {
 	annotations := o.GetAnnotations()
 	if annotations == nil {

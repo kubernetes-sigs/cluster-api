@@ -54,7 +54,7 @@ type InitInput struct {
 	InfrastructureProviders []string
 }
 
-// Init calls clusterctl init with the list of providers defined in the local repository
+// Init calls clusterctl init with the list of providers defined in the local repository.
 func Init(ctx context.Context, input InitInput) {
 	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s",
 		input.CoreProvider,

@@ -21,6 +21,6 @@ import (
 )
 
 var (
-	// GroupVersion is group version used to register these objects
+	// GroupVersion is group version used to register these objects.
 	GroupVersion = schema.GroupVersion{Group: "kubeadm.k8s.io", Version: "v1beta2"}
 )

@@ -70,7 +70,6 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 	})
 
 	It("Should create a workload cluster", func() {
-
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

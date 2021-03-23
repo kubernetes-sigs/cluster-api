@@ -46,7 +46,7 @@ func (mg *ManagementGroup) GetProviderByInstanceName(instanceName string) *clust
 	return nil
 }
 
-// ManagementGroupList defines a list of management groups
+// ManagementGroupList defines a list of management groups.
 type ManagementGroupList []ManagementGroup
 
 // FindManagementGroupByProviderInstanceName return the management group that hosts a given provider.

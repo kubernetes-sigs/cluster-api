@@ -152,7 +152,6 @@ func TestClusterReconcilePhases(t *testing.T) {
 				}
 			})
 		}
-
 	})
 
 	t.Run("reconcile kubeconfig", func(t *testing.T) {

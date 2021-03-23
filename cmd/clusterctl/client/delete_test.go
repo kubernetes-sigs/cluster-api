@@ -186,7 +186,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 	}
 }
 
-// clusterctl client for a management cluster with capi and bootstrap provider
+// clusterctl client for a management cluster with capi and bootstrap provider.
 func fakeClusterForDelete() *fakeClient {
 	config1 := newFakeConfig().
 		WithVar("var", "value").

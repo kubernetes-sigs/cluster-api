@@ -161,6 +161,5 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				gt.Expect(result.references[n].Namespace).To(Equal(test.expected.references[n].Namespace), "Expected NodeRef's namespace to be %v, got %v", result.references[n].Namespace, test.expected.references[n].Namespace)
 			}
 		})
-
 	}
 }

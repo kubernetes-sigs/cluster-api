@@ -57,7 +57,7 @@ func GatherJUnitReports(srcDir string, destDir string) error {
 }
 
 // ResolveArtifactsDirectory attempts to resolve a directory to store test
-// outputs, using either that provided by Prow, or defaulting to _artifacts
+// outputs, using either that provided by Prow, or defaulting to _artifacts.
 func ResolveArtifactsDirectory(input string) string {
 	if input != "" {
 		return input

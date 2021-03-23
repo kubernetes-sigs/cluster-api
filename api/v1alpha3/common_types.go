@@ -23,7 +23,7 @@ import (
 
 const (
 	// ClusterLabelName is the label set on machines linked to a cluster and
-	// external objects(bootstrap and infrastructure providers)
+	// external objects(bootstrap and infrastructure providers).
 	ClusterLabelName = "cluster.x-k8s.io/cluster-name"
 
 	// ProviderLabelName is the label set on components in the provider manifest.
@@ -46,7 +46,7 @@ const (
 	// that was cloned for the machine. This annotation is set only during cloning a template. Older/adopted machines will not have this annotation.
 	TemplateClonedFromGroupKindAnnotation = "cluster.x-k8s.io/cloned-from-groupkind"
 
-	// ClusterSecretType defines the type of secret created by core components
+	// ClusterSecretType defines the type of secret created by core components.
 	ClusterSecretType corev1.SecretType = "cluster.x-k8s.io/secret" //nolint:gosec
 )
 

@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-// ResourceCreate returns a predicate that returns true for a create event
+// ResourceCreate returns a predicate that returns true for a create event.
 func ResourceCreate(logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		CreateFunc:  func(e event.CreateEvent) bool { return true },
@@ -34,7 +34,7 @@ func ResourceCreate(logger logr.Logger) predicate.Funcs {
 	}
 }
 
-// AddonsSecretCreate returns a predicate that returns true for a Secret create event if in addons Secret type
+// AddonsSecretCreate returns a predicate that returns true for a Secret create event if in addons Secret type.
 func AddonsSecretCreate(logger logr.Logger) predicate.Funcs {
 	log := logger.WithValues("predicate", "SecretCreateOrUpdate")
 

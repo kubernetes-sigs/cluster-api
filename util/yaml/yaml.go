@@ -146,7 +146,6 @@ func Parse(input ParseInput) (*ParseOutput, error) {
 		default:
 			output.UnstructuredObjects = append(output.UnstructuredObjects, u)
 		}
-
 	}
 
 	return output, nil
@@ -172,7 +171,6 @@ func (d *yamlDecoder) Decode(defaults *schema.GroupVersionKind, into runtime.Obj
 
 		return d.decoder.Decode(doc, defaults, into)
 	}
-
 }
 
 func (d *yamlDecoder) Close() error {
@@ -187,7 +185,7 @@ func NewYAMLDecoder(r io.ReadCloser) streaming.Decoder {
 	}
 }
 
-// ToUnstructured takes a YAML and converts it to a list of Unstructured objects
+// ToUnstructured takes a YAML and converts it to a list of Unstructured objects.
 func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 	var ret []unstructured.Unstructured
 
@@ -228,7 +226,7 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 }
 
 // JoinYaml takes a list of YAML files and join them ensuring
-// each YAML that the yaml separator goes on a new line by adding \n where necessary
+// each YAML that the yaml separator goes on a new line by adding \n where necessary.
 func JoinYaml(yamls ...[]byte) []byte {
 	var yamlSeparator = []byte("---")
 
@@ -239,7 +237,6 @@ func JoinYaml(yamls ...[]byte) []byte {
 			y = append(cr, y...)
 		}
 		if !bytes.HasSuffix(y, cr) {
-
 			y = append(y, cr...)
 		}
 		b = append(b, y)
@@ -252,7 +249,7 @@ func JoinYaml(yamls ...[]byte) []byte {
 	return r
 }
 
-// FromUnstructured takes a list of Unstructured objects and converts it into a YAML
+// FromUnstructured takes a list of Unstructured objects and converts it into a YAML.
 func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
 	var ret [][]byte //nolint
 	for _, o := range objs {

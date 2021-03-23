@@ -610,7 +610,6 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 }
 
 func TestMachinePoolConditions(t *testing.T) {
-
 	testCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
 	}
@@ -878,7 +877,7 @@ func TestMachinePoolConditions(t *testing.T) {
 	}
 }
 
-// adds a condition list to an external object
+// adds a condition list to an external object.
 func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
 	existingConditions := clusterv1.Conditions{}
 	if cs := conditions.UnstructuredGetter(u).GetConditions(); len(cs) != 0 {

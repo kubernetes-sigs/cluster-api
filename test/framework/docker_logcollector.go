@@ -116,7 +116,7 @@ func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClu
 
 // fileOnHost is a helper to create a file at path
 // even if the parent directory doesn't exist
-// in which case it will be created with ModePerm
+// in which case it will be created with ModePerm.
 func fileOnHost(path string) (*os.File, error) {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func fileOnHost(path string) (*os.File, error) {
 	return os.Create(path)
 }
 
-// execOnContainer is an helper that runs a command on a CAPD node/container
+// execOnContainer is an helper that runs a command on a CAPD node/container.
 func execOnContainer(containerName string, fileOnHost *os.File, command string, args ...string) error {
 	dockerArgs := []string{
 		"exec",

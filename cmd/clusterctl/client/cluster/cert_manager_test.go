@@ -40,7 +40,7 @@ import (
 )
 
 const (
-	// Those values are dummy for test only
+	// Those values are dummy for test only.
 	expectedHash    = "dummy-hash"
 	expectedVersion = "v1.1.0"
 )
@@ -156,7 +156,6 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 								found = true
 							}
 						}
-
 					}
 				}
 				if !found {
@@ -221,7 +220,6 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 			tt.assert(t, objs)
 		})
 	}
-
 }
 
 func Test_GetTimeout(t *testing.T) {
@@ -264,7 +262,6 @@ func Test_GetTimeout(t *testing.T) {
 			g.Expect(tm).To(Equal(tt.want))
 		})
 	}
-
 }
 
 func Test_shouldUpgrade(t *testing.T) {
@@ -580,7 +577,6 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 }
 
 func Test_certManagerClient_PlanUpgrade(t *testing.T) {
-
 	tests := []struct {
 		name         string
 		objs         []client.Object
@@ -726,7 +722,6 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			g.Expect(actualPlan).To(Equal(tt.expectedPlan))
 		})
 	}
-
 }
 
 func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {

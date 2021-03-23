@@ -128,7 +128,6 @@ func runUpgradePlan() error {
 			fmt.Println("You are already up to date!")
 		}
 		fmt.Println("")
-
 	}
 
 	return nil

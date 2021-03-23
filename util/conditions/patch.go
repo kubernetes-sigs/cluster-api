@@ -24,7 +24,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
-// Patch defines a list of operations to change a list of conditions into another
+// Patch defines a list of operations to change a list of conditions into another.
 type Patch []PatchOperation
 
 // PatchOperation define an operation that changes a single condition.

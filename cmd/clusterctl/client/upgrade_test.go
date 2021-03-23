@@ -87,7 +87,6 @@ func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
 			g.Expect(actualPlan).To(Equal(certManagerPlan))
 		})
 	}
-
 }
 
 func Test_clusterctlClient_PlanUpgrade(t *testing.T) {

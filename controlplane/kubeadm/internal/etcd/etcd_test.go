@@ -61,7 +61,6 @@ func TestEtcdMembers_WithErrors(t *testing.T) {
 
 	err = client.RemoveMember(ctx, 1234)
 	g.Expect(err).To(HaveOccurred())
-
 }
 
 func TestEtcdMembers_WithSuccess(t *testing.T) {

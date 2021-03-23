@@ -36,7 +36,7 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: MachinePool is the Schema for the machinepools API
+        description: MachinePool is the Schema for the machinepools API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -47,7 +47,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachinePoolSpec defines the desired state of MachinePool
+            description: MachinePoolSpec defines the desired state of MachinePool.
             properties:
               clusterName:
                 description: ClusterName is the name of the Cluster this object belongs to.
@@ -240,7 +240,7 @@ spec:
             - template
             type: object
           status:
-            description: MachinePoolStatus defines the observed state of MachinePool
+            description: MachinePoolStatus defines the observed state of MachinePool.
             properties:
               availableReplicas:
                 description: The number of available replicas (ready for at least minReadySeconds) for this MachinePool.
@@ -359,7 +359,7 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: MachinePool is the Schema for the machinepools API
+        description: MachinePool is the Schema for the machinepools API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -370,7 +370,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachinePoolSpec defines the desired state of MachinePool
+            description: MachinePoolSpec defines the desired state of MachinePool.
             properties:
               clusterName:
                 description: ClusterName is the name of the Cluster this object belongs to.
@@ -498,7 +498,7 @@ spec:
             - template
             type: object
           status:
-            description: MachinePoolStatus defines the observed state of MachinePool
+            description: MachinePoolStatus defines the observed state of MachinePool.
             properties:
               availableReplicas:
                 description: The number of available replicas (ready for at least minReadySeconds) for this MachinePool.

@@ -134,7 +134,7 @@ func runDescribeCluster(name string) error {
 	return nil
 }
 
-// printObjectTree prints the cluster status to stdout
+// printObjectTree prints the cluster status to stdout.
 func printObjectTree(tree *tree.ObjectTree) {
 	// Creates the output table
 	tbl := uitable.New()

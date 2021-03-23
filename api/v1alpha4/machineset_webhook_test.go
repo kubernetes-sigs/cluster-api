@@ -103,7 +103,6 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestMachineSetClusterNameImmutable(t *testing.T) {

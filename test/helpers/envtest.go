@@ -194,7 +194,6 @@ const (
 // Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
 func appendWebhookConfiguration(mutatingWebhooks []client.Object, validatingWebhooks []client.Object, configyamlFile []byte, tag string) ([]client.Object, []client.Object, error) {
-
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
 		klog.Fatalf("failed to parse yaml")
@@ -229,7 +228,6 @@ func initializeWebhookInEnvironment() {
 	root := path.Join(path.Dir(filename), "..", "..")
 	configyamlFile, err := ioutil.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml"))
 	if err != nil {
-
 		klog.Fatalf("Failed to read core webhook configuration file: %v ", err)
 	}
 	if err != nil {

@@ -46,7 +46,7 @@ func DefaultClusterAPIUserAgent(sourceName string) string {
 		adjustCommit(version.Get().GitCommit))
 }
 
-// adjustSourceName returns the name of the source calling the client
+// adjustSourceName returns the name of the source calling the client.
 func adjustSourceName(c string) string {
 	if len(c) == 0 {
 		return unknowString

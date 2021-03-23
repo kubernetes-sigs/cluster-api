@@ -98,9 +98,7 @@ func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input Disc
 			Cluster:            input.Cluster,
 			ClusterResourceSet: crs,
 		}, intervals...)
-
 	}
-
 }
 
 // WaitForClusterResourceSetToApplyResourcesInput is the input for WaitForClusterResourceSetToApplyResources.
@@ -151,5 +149,4 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 		}
 		return true
 	}, intervals...).Should(BeTrue())
-
 }

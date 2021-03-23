@@ -211,7 +211,7 @@ func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
 	return errors.Wrapf(err, "failed to remove member: %v", id)
 }
 
-// UpdateMemberPeerList updates the list of peer URLs
+// UpdateMemberPeerList updates the list of peer URLs.
 func (c *Client) UpdateMemberPeerURLs(ctx context.Context, id uint64, peerURLs []string) ([]*Member, error) {
 	response, err := c.EtcdClient.MemberUpdate(ctx, id, peerURLs)
 	if err != nil {

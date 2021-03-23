@@ -46,7 +46,7 @@ func NewControlPlaneInitMutex(log logr.Logger, client client.Client) *ControlPla
 	}
 }
 
-// Lock allows a control plane node to be the first and only node to run kubeadm init
+// Lock allows a control plane node to be the first and only node to run kubeadm init.
 func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)
@@ -97,7 +97,7 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	}
 }
 
-// Unlock releases the lock
+// Unlock releases the lock.
 func (c *ControlPlaneInitMutex) Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)

@@ -73,7 +73,7 @@ func setRestartedAtAnnotation(proxy cluster.Proxy, name, namespace string) error
 	return patchMachineDeployemt(proxy, name, namespace, patch)
 }
 
-// patchMachineDeployemt applies a patch to a machinedeployment
+// patchMachineDeployemt applies a patch to a machinedeployment.
 func patchMachineDeployemt(proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
 	cFrom, err := proxy.NewClient()
 	if err != nil {

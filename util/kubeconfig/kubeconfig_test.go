@@ -183,7 +183,6 @@ func TestNew(t *testing.T) {
 		g.Expect(actualConfig.Contexts[tc.expectedConfig.CurrentContext]).NotTo(BeNil())
 		g.Expect(actualConfig.CurrentContext).To(Equal(tc.expectedConfig.CurrentContext))
 		g.Expect(actualConfig.Contexts).To(Equal(tc.expectedConfig.Contexts))
-
 	}
 }
 

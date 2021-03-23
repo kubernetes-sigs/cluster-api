@@ -415,7 +415,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			// Machines are adopted but since they are not originally created by KCP, infra template annotation will be missing.
 			g.Expect(machine.GetAnnotations()).NotTo(HaveKey(clusterv1.TemplateClonedFromGroupKindAnnotation))
 			g.Expect(machine.GetAnnotations()).NotTo(HaveKey(clusterv1.TemplateClonedFromNameAnnotation))
-
 		}
 	})
 	t.Run("adopts v1alpha2 cluster secrets", func(t *testing.T) {
@@ -507,7 +506,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			// Machines are adopted but since they are not originally created by KCP, infra template annotation will be missing.
 			g.Expect(machine.GetAnnotations()).NotTo(HaveKey(clusterv1.TemplateClonedFromGroupKindAnnotation))
 			g.Expect(machine.GetAnnotations()).NotTo(HaveKey(clusterv1.TemplateClonedFromNameAnnotation))
-
 		}
 
 		secrets := &corev1.SecretList{}
@@ -517,7 +515,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			g.Expect(secret.OwnerReferences).To(HaveLen(1))
 			g.Expect(secret.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 		}
-
 	})
 
 	t.Run("Deleted KubeadmControlPlanes don't adopt machines", func(t *testing.T) {
@@ -1212,7 +1209,6 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
 	})
-
 }
 
 // test utils
@@ -1238,7 +1234,7 @@ type fakeClientI interface {
 }
 
 // controller-runtime's fake client doesn't set a CreationTimestamp
-// this sets one that increments by a minute for each object created
+// this sets one that increments by a minute for each object created.
 func (c *fakeClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	if f, ok := obj.(fakeClientI); ok {
 		c.mux.Lock()
@@ -1390,7 +1386,7 @@ func setMachineHealthy(m *clusterv1.Machine) {
 	conditions.MarkTrue(m, controlplanev1.MachineEtcdMemberHealthyCondition)
 }
 
-// newCluster return a CAPI cluster object
+// newCluster return a CAPI cluster object.
 func newCluster(namespacedName *types.NamespacedName) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{

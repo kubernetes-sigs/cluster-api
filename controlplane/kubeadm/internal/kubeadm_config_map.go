@@ -49,7 +49,7 @@ type kubeadmConfig struct {
 	ConfigMap *corev1.ConfigMap
 }
 
-// RemoveAPIEndpoint removes an APIEndpoint fromt he kubeadm config cluster status config map
+// RemoveAPIEndpoint removes an APIEndpoint fromt he kubeadm config cluster status config map.
 func (k *kubeadmConfig) RemoveAPIEndpoint(endpoint string) error {
 	data, ok := k.ConfigMap.Data[clusterStatusKey]
 	if !ok {
@@ -75,7 +75,7 @@ func (k *kubeadmConfig) RemoveAPIEndpoint(endpoint string) error {
 	return nil
 }
 
-// UpdateKubernetesVersion changes the kubernetes version found in the kubeadm config map
+// UpdateKubernetesVersion changes the kubernetes version found in the kubeadm config map.
 func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 	if k.ConfigMap == nil {
 		return errors.New("unable to operate on a nil config map")
@@ -116,7 +116,7 @@ func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 	return nil
 }
 
-// UpdateImageRepository changes the image repository found in the kubeadm config map
+// UpdateImageRepository changes the image repository found in the kubeadm config map.
 func (k *kubeadmConfig) UpdateImageRepository(imageRepository string) error {
 	if imageRepository == "" {
 		return nil
@@ -140,7 +140,7 @@ func (k *kubeadmConfig) UpdateImageRepository(imageRepository string) error {
 	return nil
 }
 
-// UpdateEtcdMeta sets the local etcd's configuration's image repository and image tag
+// UpdateEtcdMeta sets the local etcd's configuration's image repository and image tag.
 func (k *kubeadmConfig) UpdateEtcdMeta(imageRepository, imageTag string) (bool, error) {
 	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
 	if !ok {
@@ -193,7 +193,7 @@ func (k *kubeadmConfig) UpdateEtcdMeta(imageRepository, imageTag string) (bool, 
 }
 
 // UpdateCoreDNSImageInfo changes the dns.ImageTag and dns.ImageRepository
-// found in the kubeadm config map
+// found in the kubeadm config map.
 func (k *kubeadmConfig) UpdateCoreDNSImageInfo(repository, tag string) error {
 	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
 	if !ok {

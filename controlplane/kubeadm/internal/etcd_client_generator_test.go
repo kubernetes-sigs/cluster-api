@@ -97,7 +97,6 @@ func TestForNodes(t *testing.T) {
 		} else {
 			g.Expect(*client).Should(Equal(tt.expectedClient))
 		}
-
 	}
 }
 
@@ -195,5 +194,4 @@ func TestForLeader(t *testing.T) {
 			g.Expect(*client).Should(Equal(tt.expectedClient))
 		}
 	}
-
 }

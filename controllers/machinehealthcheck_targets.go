@@ -35,12 +35,12 @@ import (
 )
 
 const (
-	// Event types
+	// Event types.
 
-	// EventMachineMarkedUnhealthy is emitted when machine was successfully marked as unhealthy
+	// EventMachineMarkedUnhealthy is emitted when machine was successfully marked as unhealthy.
 	EventMachineMarkedUnhealthy string = "MachineMarkedUnhealthy"
 	// EventDetectedUnhealthy is emitted in case a node associated with a
-	// machine was detected unhealthy
+	// machine was detected unhealthy.
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
 )
 
@@ -64,7 +64,7 @@ func (t *healthCheckTarget) string() string {
 	)
 }
 
-// Get the node name if the target has a node
+// Get the node name if the target has a node.
 func (t *healthCheckTarget) nodeName() string {
 	if t.Node != nil {
 		return t.Node.GetName()
@@ -224,7 +224,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, lo
 }
 
 // getMachinesFromMHC fetches Machines matched by the MachineHealthCheck's
-// label selector
+// label selector.
 func (r *MachineHealthCheckReconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
 	selector, err := metav1.LabelSelectorAsSelector(metav1.CloneSelectorAndAddLabel(
 		&mhc.Spec.Selector, clusterv1.ClusterLabelName, mhc.Spec.ClusterName,
@@ -265,7 +265,7 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(ctx context.Context, c
 }
 
 // healthCheckTargets health checks a slice of targets
-// and gives a data to measure the average health
+// and gives a data to measure the average health.
 func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, timeoutForMachineToHaveNode time.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
 	var nextCheckTimes []time.Duration
 	var unhealthy []healthCheckTarget
@@ -303,7 +303,7 @@ func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckT
 	return healthy, unhealthy, nextCheckTimes
 }
 
-// getNodeCondition returns node condition by type
+// getNodeCondition returns node condition by type.
 func getNodeCondition(node *corev1.Node, conditionType corev1.NodeConditionType) *corev1.NodeCondition {
 	for _, cond := range node.Status.Conditions {
 		if cond.Type == conditionType {

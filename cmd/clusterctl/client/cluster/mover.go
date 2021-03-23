@@ -115,7 +115,6 @@ func newObjectMover(fromProxy Proxy, fromProviderInventory InventoryClient) *obj
 
 // checkProvisioningCompleted checks if Cluster API has already completed the provisioning of the infrastructure for the objects involved in the move operation.
 func (o *objectMover) checkProvisioningCompleted(graph *objectGraph) error {
-
 	if o.dryRun {
 		return nil
 	}
@@ -207,7 +206,7 @@ func getMachineObj(proxy Proxy, machine *node, machineObj *clusterv1.Machine) er
 	return nil
 }
 
-// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster
+// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	log := logf.Log
 
@@ -258,7 +257,7 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	return nil
 }
 
-// moveSequence defines a list of group of moveGroups
+// moveSequence defines a list of group of moveGroups.
 type moveSequence struct {
 	groups   []moveGroup
 	nodesMap map[*node]empty
@@ -385,7 +384,6 @@ func patchCluster(proxy Proxy, cluster *node, patch client.Patch) error {
 
 // ensureNamespaces ensures all the expected target namespaces are in place before creating objects.
 func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error {
-
 	if o.dryRun {
 		return nil
 	}
@@ -393,7 +391,6 @@ func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error 
 	ensureNamespaceBackoff := newWriteBackoff()
 	namespaces := sets.NewString()
 	for _, node := range graph.getMoveNodes() {
-
 		// ignore global/cluster-wide objects
 		if node.isGlobal {
 			continue
@@ -558,7 +555,6 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 			ownerRefs = append(ownerRefs, ownerRef)
 		}
 		obj.SetOwnerReferences(ownerRefs)
-
 	}
 
 	// Creates the targetObj into the target management cluster.

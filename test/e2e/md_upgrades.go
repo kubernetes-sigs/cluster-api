@@ -70,7 +70,6 @@ func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() Machi
 	})
 
 	It("Should successfully upgrade Machines upon changes in relevant MachineDeployment fields", func() {
-
 		By("Creating a workload cluster")
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,

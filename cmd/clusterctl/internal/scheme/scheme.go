@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	// Scheme contains a set of API resources used by clusterctl
+	// Scheme contains a set of API resources used by clusterctl.
 	Scheme = runtime.NewScheme()
 )
 

@@ -50,7 +50,7 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 	}
 }
 
-// Get returns the components from a repository
+// Get returns the components from a repository.
 func (f *componentsClient) Get(options ComponentsOptions) (Components, error) {
 	log := logf.Log
 

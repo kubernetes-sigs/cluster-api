@@ -53,7 +53,7 @@ import (
 )
 
 const (
-	// MachineControllerName defines the controller used when creating clients
+	// MachineControllerName defines the controller used when creating clients.
 	MachineControllerName = "machine-controller"
 )
 
@@ -72,7 +72,7 @@ var (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
-// MachineReconciler reconciles a Machine object
+// MachineReconciler reconciles a Machine object.
 type MachineReconciler struct {
 	Client           client.Client
 	Tracker          *remote.ClusterCacheTracker
@@ -394,7 +394,6 @@ func (r *MachineReconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 	}
 
 	return true
-
 }
 
 func (r *MachineReconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
@@ -693,7 +692,7 @@ type writer struct {
 	logFunc func(args ...interface{})
 }
 
-// Write passes string(p) into writer's logFunc and always returns len(p)
+// Write passes string(p) into writer's logFunc and always returns len(p).
 func (w writer) Write(p []byte) (n int, err error) {
 	w.logFunc(string(p))
 	return len(p), nil

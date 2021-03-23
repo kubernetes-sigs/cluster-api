@@ -2391,7 +2391,6 @@ func createMachinesWithNodes(
 	c *clusterv1.Cluster,
 	opts ...machineWithNodesOption,
 ) ([]*corev1.Node, []*clusterv1.Machine, func()) {
-
 	o := &machinesWithNodes{}
 	for _, op := range opts {
 		op(o)

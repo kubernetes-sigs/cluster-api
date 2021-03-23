@@ -713,10 +713,8 @@ v3: default3`,
 
 			expectedVars := printer.Variables()
 			g.Expect(expectedVars).To(ConsistOf(tt.expectedVars))
-
 		})
 	}
-
 }
 
 // errReader returns a non-EOF error on the first read.

@@ -202,16 +202,22 @@ e2e-framework: ## Builds the CAPI e2e framework
 ## Linting
 ## --------------------------------------
 
-.PHONY: lint lint-full
+.PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v
-	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v
-	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v
+	$(MAKE) -j8 lint-all
 
-lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
-	$(GOLANGCI_LINT) run -v --fast=false
-	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v --fast=false
-	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v --fast=false
+.PHONY: lint-all lint-core lint-e2e lint-capd
+lint-all: lint-core lint-e2e lint-capd
+lint-core:
+	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+lint-e2e:
+	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+lint-capd:
+	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+
+.PHONY: lint-fix
+lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter.
+	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(shell git rev-parse origin/master) --print-compatible

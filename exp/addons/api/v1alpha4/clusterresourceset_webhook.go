@@ -40,7 +40,7 @@ func (m *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &ClusterResourceSet{}
 var _ webhook.Validator = &ClusterResourceSet{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (m *ClusterResourceSet) Default() {
 	// ClusterResourceSet Strategy defaults to ApplyOnce.
 	if m.Spec.Strategy == "" {
@@ -48,12 +48,12 @@ func (m *ClusterResourceSet) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (m *ClusterResourceSet) ValidateCreate() error {
 	return m.validate(nil)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (m *ClusterResourceSet) ValidateUpdate(old runtime.Object) error {
 	oldCRS, ok := old.(*ClusterResourceSet)
 	if !ok {
@@ -62,7 +62,7 @@ func (m *ClusterResourceSet) ValidateUpdate(old runtime.Object) error {
 	return m.validate(oldCRS)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (m *ClusterResourceSet) ValidateDelete() error {
 	return nil
 }

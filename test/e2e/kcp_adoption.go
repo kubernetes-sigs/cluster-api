@@ -49,7 +49,13 @@ type KCPAdoptionSpecInput struct {
 	SkipCleanup           bool
 }
 
-// KCPAdoptionSpec implements a test that verifies KCP to properly adopt existing control plane Machines
+type ClusterProxy interface {
+	framework.ClusterProxy
+
+	ApplyWithArgs(context.Context, []byte, ...string) error
+}
+
+// KCPAdoptionSpec implements a test that verifies KCP to properly adopt existing control plane Machines.
 func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInput) {
 	var (
 		specName      = "kcp-adoption"
@@ -77,7 +83,6 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 	})
 
 	It("Should adopt up-to-date control plane Machines without modification", func() {
-
 		By("Creating a workload cluster")
 
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))

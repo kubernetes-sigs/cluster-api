@@ -63,7 +63,7 @@ const (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
-// ClusterReconciler reconciles a Cluster object
+// ClusterReconciler reconciles a Cluster object.
 type ClusterReconciler struct {
 	Client           client.Client
 	WatchFilterValue string
@@ -323,7 +323,7 @@ type clusterDescendants struct {
 	machinePools         expv1.MachinePoolList
 }
 
-// length returns the number of descendants
+// length returns the number of descendants.
 func (c *clusterDescendants) length() int {
 	return len(c.machineDeployments.Items) +
 		len(c.machineSets.Items) +
@@ -409,7 +409,6 @@ func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *cluste
 	// Only count control plane machines as descendants if there is no control plane provider.
 	if cluster.Spec.ControlPlaneRef == nil {
 		descendants.controlPlaneMachines = collections.ToMachineList(controlPlaneMachines)
-
 	}
 
 	return descendants, nil
@@ -488,7 +487,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 }
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
-// for Cluster to update its status.controlPlaneInitialized field
+// for Cluster to update its status.controlPlaneInitialized field.
 func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {

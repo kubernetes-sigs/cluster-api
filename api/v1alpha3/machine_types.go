@@ -29,13 +29,13 @@ const (
 	// MachineControlPlaneLabelName is the label set on machines or related objects that are part of a control plane.
 	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 
-	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
+	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set.
 	ExcludeNodeDrainingAnnotation = "machine.cluster.x-k8s.io/exclude-node-draining"
 
-	// MachineSetLabelName is the label set on machines if they're controlled by MachineSet
+	// MachineSetLabelName is the label set on machines if they're controlled by MachineSet.
 	MachineSetLabelName = "cluster.x-k8s.io/set-name"
 
-	// MachineDeploymentLabelName is the label set on machines if they're controlled by MachineDeployment
+	// MachineDeploymentLabelName is the label set on machines if they're controlled by MachineDeployment.
 	MachineDeploymentLabelName = "cluster.x-k8s.io/deployment-name"
 
 	// PreDrainDeleteHookAnnotationPrefix annotation specifies the prefix we
@@ -53,7 +53,7 @@ const (
 
 // ANCHOR: MachineSpec
 
-// MachineSpec defines the desired state of Machine
+// MachineSpec defines the desired state of Machine.
 type MachineSpec struct {
 	// ClusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
@@ -101,7 +101,7 @@ type MachineSpec struct {
 
 // ANCHOR: MachineStatus
 
-// MachineStatus defines the observed state of Machine
+// MachineStatus defines the observed state of Machine.
 type MachineStatus struct {
 	// NodeRef will point to the corresponding Node if it exists.
 	// +optional
@@ -243,7 +243,7 @@ type Bootstrap struct {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version",description="Kubernetes version associated with this Machine"
 // +kubebuilder:printcolumn:name="NodeName",type="string",JSONPath=".status.nodeRef.name",description="Node name associated with this machine",priority=1
 
-// Machine is the Schema for the machines API
+// Machine is the Schema for the machines API.
 type Machine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -262,7 +262,7 @@ func (m *Machine) SetConditions(conditions Conditions) {
 
 // +kubebuilder:object:root=true
 
-// MachineList contains a list of Machine
+// MachineList contains a list of Machine.
 type MachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

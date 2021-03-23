@@ -44,17 +44,17 @@ func (c *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 var _ webhook.Validator = &KubeadmConfig{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (c *KubeadmConfig) ValidateCreate() error {
 	return c.Spec.validate(c.Name)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (c *KubeadmConfig) ValidateUpdate(old runtime.Object) error {
 	return c.Spec.validate(c.Name)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (c *KubeadmConfig) ValidateDelete() error {
 	return nil
 }

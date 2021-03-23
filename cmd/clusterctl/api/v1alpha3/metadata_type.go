@@ -23,7 +23,7 @@ import (
 
 // +kubebuilder:object:root=true
 
-// Metadata for a provider repository
+// Metadata for a provider repository.
 type Metadata struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

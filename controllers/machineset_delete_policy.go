@@ -39,7 +39,7 @@ const (
 	secondsPerTenDays float64 = 864000
 )
 
-// maps the creation timestamp onto the 0-100 priority range
+// maps the creation timestamp onto the 0-100 priority range.
 func oldestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete

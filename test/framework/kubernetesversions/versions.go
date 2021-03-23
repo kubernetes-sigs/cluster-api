@@ -31,7 +31,7 @@ const (
 	tagPrefix        = "v"
 )
 
-// LatestCIRelease fetches the latest main branch Kubernetes version
+// LatestCIRelease fetches the latest main branch Kubernetes version.
 func LatestCIRelease() (string, error) {
 	resp, err := http.Get(ciVersionURL)
 	if err != nil {
@@ -46,7 +46,7 @@ func LatestCIRelease() (string, error) {
 	return strings.TrimSpace(string(b)), nil
 }
 
-// LatestPatchRelease returns the latest patch release matching
+// LatestPatchRelease returns the latest patch release matching.
 func LatestPatchRelease(searchVersion string) (string, error) {
 	searchSemVer, err := semver.Make(strings.TrimPrefix(searchVersion, tagPrefix))
 	if err != nil {

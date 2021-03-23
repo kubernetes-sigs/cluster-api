@@ -84,7 +84,7 @@ func rollbackMachineDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeployme
 	return patchHelper.Patch(context.TODO(), d)
 }
 
-// findMachineDeploymentRevision finds the specific revision in the machine sets
+// findMachineDeploymentRevision finds the specific revision in the machine sets.
 func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 	var (
 		latestMachineSet   *clusterv1.MachineSet
@@ -120,7 +120,6 @@ func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.Machine
 		return nil, errors.Errorf("no rollout history found")
 	}
 	return previousMachineSet, nil
-
 }
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.

@@ -33,7 +33,7 @@ import (
 
 const defaultTimeout = 10 * time.Second
 
-// Dialer creates connections using Kubernetes API Server port-forwarding
+// Dialer creates connections using Kubernetes API Server port-forwarding.
 type Dialer struct {
 	proxy          Proxy
 	clientset      *kubernetes.Clientset
@@ -42,7 +42,7 @@ type Dialer struct {
 	timeout        time.Duration
 }
 
-// NewDialer creates a new dialer for a given API server scope
+// NewDialer creates a new dialer for a given API server scope.
 func NewDialer(p Proxy, options ...func(*Dialer) error) (*Dialer, error) {
 	if p.Port == 0 {
 		return nil, errors.New("port required")
@@ -77,7 +77,7 @@ func NewDialer(p Proxy, options ...func(*Dialer) error) (*Dialer, error) {
 	return dialer, nil
 }
 
-// DialContextWithAddr is a GO grpc compliant dialer construct
+// DialContextWithAddr is a GO grpc compliant dialer construct.
 func (d *Dialer) DialContextWithAddr(ctx context.Context, addr string) (net.Conn, error) {
 	return d.DialContext(ctx, scheme, addr)
 }
@@ -145,7 +145,7 @@ func (d *Dialer) DialContext(_ context.Context, network string, addr string) (ne
 	return NewConn(connection, dataStream), nil
 }
 
-// DialTimeout sets the timeout
+// DialTimeout sets the timeout.
 func DialTimeout(duration time.Duration) func(*Dialer) error {
 	return func(d *Dialer) error {
 		return d.setTimeout(duration)

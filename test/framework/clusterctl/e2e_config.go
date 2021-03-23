@@ -231,7 +231,7 @@ type ComponentConfig struct {
 	Waiters []ComponentWaiter `json:"waiters,omitempty"`
 }
 
-// Files contains information about files to be copied into the local repository
+// Files contains information about files to be copied into the local repository.
 type Files struct {
 	// SourcePath path of the file.
 	SourcePath string `json:"sourcePath"`

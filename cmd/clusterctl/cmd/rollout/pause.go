@@ -44,9 +44,8 @@ var (
 `)
 )
 
-// NewCmdRolloutPause returns a Command instance for 'rollout pause' sub command
+// NewCmdRolloutPause returns a Command instance for 'rollout pause' sub command.
 func NewCmdRolloutPause(cfgFile string) *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:                   "pause RESOURCE",
 		DisableFlagsInUseLine: true,

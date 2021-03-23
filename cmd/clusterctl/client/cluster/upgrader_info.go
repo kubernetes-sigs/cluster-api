@@ -26,7 +26,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
-// upgradeInfo holds all the information required for taking upgrade decisions for a provider
+// upgradeInfo holds all the information required for taking upgrade decisions for a provider.
 type upgradeInfo struct {
 	// metadata holds the information about releaseSeries and the link between release series and the API Version of Cluster API (contract).
 	// e.g. release series 0.5.x for the AWS provider --> v1alpha3
@@ -191,7 +191,7 @@ func (i *upgradeInfo) getLatestNextVersion(contract string) *version.Version {
 	return latestNextVersion
 }
 
-// versionTag converts a version to a RepositoryTag
+// versionTag converts a version to a RepositoryTag.
 func versionTag(version *version.Version) string {
 	if version == nil {
 		return ""

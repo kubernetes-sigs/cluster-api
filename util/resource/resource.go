@@ -45,7 +45,7 @@ var defaultCreatePriorities = []string{
 	"Endpoints",
 }
 
-// SortForCreate sorts objects by creation priority
+// SortForCreate sorts objects by creation priority.
 func SortForCreate(resources []unstructured.Unstructured) []unstructured.Unstructured {
 	var ret []unstructured.Unstructured
 

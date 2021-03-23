@@ -256,7 +256,6 @@ func (o *objectGraph) getDiscoveryTypes() error {
 				typeMeta:  typeMeta,
 				forceMove: forceMove,
 			}
-
 		}
 	}
 
@@ -270,7 +269,7 @@ func (o *objectGraph) getDiscoveryTypes() error {
 }
 
 // getKindAPIString returns a concatenated string of the API name and the plural of the kind
-// Ex: KIND=Foo API NAME=foo.bar.domain.tld => foos.foo.bar.domain.tld
+// Ex: KIND=Foo API NAME=foo.bar.domain.tld => foos.foo.bar.domain.tld.
 func getKindAPIString(typeMeta metav1.TypeMeta) string {
 	api := strings.Split(typeMeta.APIVersion, "/")[0]
 	return fmt.Sprintf("%ss.%s", strings.ToLower(typeMeta.Kind), api)
@@ -480,7 +479,7 @@ func (o *objectGraph) setCRSTenant(node, tenant *node) {
 	}
 }
 
-// checkVirtualNode logs if nodes are still virtual
+// checkVirtualNode logs if nodes are still virtual.
 func (o *objectGraph) checkVirtualNode() {
 	log := logf.Log
 	for _, node := range o.uidToNode {

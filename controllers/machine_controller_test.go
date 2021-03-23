@@ -1626,7 +1626,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	}
 }
 
-// adds a condition list to an external object
+// adds a condition list to an external object.
 func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
 	existingConditions := clusterv1.Conditions{}
 	if cs := conditions.UnstructuredGetter(u).GetConditions(); len(cs) != 0 {
@@ -1636,7 +1636,7 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 	conditions.UnstructuredSetter(u).SetConditions(existingConditions)
 }
 
-// asserts the conditions set on the Getter object
+// asserts the conditions set on the Getter object.
 func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
 	for _, condition := range conditions {
 		assertCondition(t, from, condition)

@@ -21,7 +21,7 @@ set -o pipefail
 set -x
 
 GOPATH_BIN="$(go env GOPATH)/bin/"
-MINIMUM_KIND_VERSION=v0.7.0
+MINIMUM_KIND_VERSION=v0.9.0
 
 # Ensure the kind tool exists and is a viable version, or installs it
 verify_kind_version() {

@@ -34,7 +34,7 @@ const ControlPlanePort = 6443
 
 type Manager struct{}
 
-func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
+func (m *Manager) CreateControlPlaneNode(name, image, network, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
 	// gets a random host port for the API server
 	if port == 0 {
 		p, err := getPort()
@@ -51,7 +51,7 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddres
 		ContainerPort: KubeadmContainerPort,
 	})
 	node, err := createNode(
-		name, image, clusterLabel, constants.ControlPlaneNodeRoleValue, mounts, portMappingsWithAPIServer,
+		name, image, network, clusterLabel, constants.ControlPlaneNodeRoleValue, mounts, portMappingsWithAPIServer,
 		// publish selected port for the API server
 		append([]string{"--expose", fmt.Sprintf("%d", port)}, labelsAsArgs(labels)...)...,
 	)
@@ -62,11 +62,11 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddres
 	return node, nil
 }
 
-func (m *Manager) CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
-	return createNode(name, image, clusterLabel, constants.WorkerNodeRoleValue, mounts, portMappings, labelsAsArgs(labels)...)
+func (m *Manager) CreateWorkerNode(name, image, network, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
+	return createNode(name, image, network, clusterLabel, constants.WorkerNodeRoleValue, mounts, portMappings, labelsAsArgs(labels)...)
 }
 
-func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error) {
+func (m *Manager) CreateExternalLoadBalancerNode(name, image, network, clusterLabel, listenAddress string, port int32) (*types.Node, error) {
 	// gets a random host port for control-plane load balancer
 	// gets a random host port for the API server
 	if port == 0 {
@@ -83,7 +83,7 @@ func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, list
 		HostPort:      port,
 		ContainerPort: ControlPlanePort,
 	}}
-	node, err := createNode(name, image, clusterLabel, constants.ExternalLoadBalancerNodeRoleValue,
+	node, err := createNode(name, image, network, clusterLabel, constants.ExternalLoadBalancerNodeRoleValue,
 		nil, portMappings,
 		// publish selected port for the control plane
 		"--expose", fmt.Sprintf("%d", port),
@@ -95,7 +95,7 @@ func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, list
 	return node, nil
 }
 
-func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, extraArgs ...string) (*types.Node, error) {
+func createNode(name, image, network, clusterLabel, role string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, extraArgs ...string) (*types.Node, error) {
 	runArgs := []string{
 		"--detach", // run the container detached
 		"--tty",    // allocate a tty for entrypoint logs
@@ -118,6 +118,7 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 		// some k8s things want to read /lib/modules
 		"--volume", "/lib/modules:/lib/modules:ro",
 		"--hostname", name, // make hostname match container name
+		"--network", network,
 		"--name", name, // ... and set the container name
 		// label the node with the cluster ID
 		"--label", clusterLabel,
@@ -126,7 +127,7 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 	}
 
 	// pass proxy environment variables to be used by node's docker daemon
-	proxyDetails, err := getProxyDetails()
+	proxyDetails, err := getProxyDetails(network)
 	if err != nil || proxyDetails == nil {
 		return nil, errors.Wrap(err, "proxy setup error")
 	}
@@ -186,11 +187,9 @@ type proxyDetails struct {
 }
 
 const (
-	// Docker default bridge network is named "bridge" (https://docs.docker.com/network/bridge/#use-the-default-bridge-network)
-	defaultNetwork = "bridge"
-	httpProxy      = "HTTP_PROXY"
-	httpsProxy     = "HTTPS_PROXY"
-	noProxy        = "NO_PROXY"
+	httpProxy  = "HTTP_PROXY"
+	httpsProxy = "HTTPS_PROXY"
+	noProxy    = "NO_PROXY"
 )
 
 // networkInspect displays detailed information on one or more networks
@@ -214,7 +213,7 @@ func getSubnets(networkName string) ([]string, error) {
 
 // getProxyDetails returns a struct with the host environment proxy settings
 // that should be passed to the nodes
-func getProxyDetails() (*proxyDetails, error) {
+func getProxyDetails(network string) (*proxyDetails, error) {
 	var val string
 	details := proxyDetails{Envs: make(map[string]string)}
 	proxyEnvs := []string{httpProxy, httpsProxy, noProxy}
@@ -238,7 +237,7 @@ func getProxyDetails() (*proxyDetails, error) {
 
 	// Specifically add the docker network subnets to NO_PROXY if we are using proxies
 	if proxySupport {
-		subnets, err := getSubnets(defaultNetwork)
+		subnets, err := getSubnets(network)
 		if err != nil {
 			return nil, err
 		}

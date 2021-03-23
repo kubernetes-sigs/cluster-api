@@ -14,6 +14,8 @@ metadata:
   name: '${CLUSTER_NAME}'
   labels:
     cni: "${CLUSTER_NAME}-crs-0"
+  annotations:
+    capd.cluster.x-k8s.io/network: "bridge"
 spec:
   clusterNetwork:
     services:

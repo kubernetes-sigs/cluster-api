@@ -28,7 +28,7 @@ import (
 )
 
 type lbCreator interface {
-	CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error)
+	CreateExternalLoadBalancerNode(name, image, network, clusterLabel, listenAddress string, port int32) (*types.Node, error)
 }
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
@@ -36,12 +36,13 @@ type LoadBalancer struct {
 	log       logr.Logger
 	name      string
 	container *types.Node
+	network   string
 
 	lbCreator lbCreator
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
-func NewLoadBalancer(name string, logger logr.Logger) (*LoadBalancer, error) {
+func NewLoadBalancer(name string, clusterAnnotations map[string]string, logger logr.Logger) (*LoadBalancer, error) {
 	if name == "" {
 		return nil, errors.New("name is required when creating a docker.LoadBalancer")
 	}
@@ -60,6 +61,7 @@ func NewLoadBalancer(name string, logger logr.Logger) (*LoadBalancer, error) {
 	return &LoadBalancer{
 		name:      name,
 		container: container,
+		network:   selectTargetNetwork(clusterAnnotations),
 		log:       logger,
 		lbCreator: &Manager{},
 	}, nil
@@ -79,6 +81,7 @@ func (s *LoadBalancer) Create() error {
 		s.container, err = s.lbCreator.CreateExternalLoadBalancerNode(
 			s.containerName(),
 			loadbalancer.Image,
+			s.network,
 			clusterLabel(s.name),
 			"0.0.0.0",
 			0,

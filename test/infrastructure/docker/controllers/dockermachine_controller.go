@@ -138,7 +138,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Create a helper for managing the docker container hosting the machine.
-	externalMachine, err := docker.NewMachine(cluster.Name, machine.Name, dockerMachine.Spec.CustomImage, nil, log)
+	externalMachine, err := docker.NewMachine(cluster.Name, cluster.Annotations, machine.Name, dockerMachine.Spec.CustomImage, nil, log)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine")
 	}
@@ -147,7 +147,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// NB. the machine controller has to manage the cluster load balancer because the current implementation of the
 	// docker load balancer does not support auto-discovery of control plane nodes, so CAPD should take care of
 	// updating the cluster load balancer configuration when control plane machines are added/removed
-	externalLoadBalancer, err := docker.NewLoadBalancer(cluster.Name, log)
+	externalLoadBalancer, err := docker.NewLoadBalancer(cluster.Name, cluster.Annotations, log)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}

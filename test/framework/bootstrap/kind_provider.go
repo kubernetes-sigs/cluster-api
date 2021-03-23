@@ -87,6 +87,7 @@ func (k *kindClusterProvider) Create(ctx context.Context) {
 func (k *kindClusterProvider) createKindCluster() {
 	kindCreateOptions := []kind.CreateOption{
 		kind.CreateWithKubeconfigPath(k.kubeconfigPath),
+		kind.CreateWithNodeImage("kindest/node:v1.18.2"),
 	}
 	if k.withDockerSock {
 		kindCreateOptions = append(kindCreateOptions, kind.CreateWithV1Alpha4Config(withDockerSockConfig()))

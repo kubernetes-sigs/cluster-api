@@ -44,8 +44,8 @@ const (
 )
 
 type nodeCreator interface {
-	CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
-	CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
+	CreateControlPlaneNode(name, image, network, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
+	CreateWorkerNode(name, image, network, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
 }
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
@@ -56,12 +56,13 @@ type Machine struct {
 	image     string
 	labels    map[string]string
 	container *types.Node
+	network   string
 
 	nodeCreator nodeCreator
 }
 
 // NewMachine returns a new Machine service for the given Cluster/DockerCluster pair.
-func NewMachine(cluster, machine, image string, labels map[string]string, logger logr.Logger) (*Machine, error) {
+func NewMachine(cluster string, clusterAnnotations map[string]string, machine, image string, labels map[string]string, logger logr.Logger) (*Machine, error) {
 	if cluster == "" {
 		return nil, errors.New("cluster is required when creating a docker.Machine")
 	}
@@ -91,6 +92,7 @@ func NewMachine(cluster, machine, image string, labels map[string]string, logger
 		image:       image,
 		container:   container,
 		labels:      labels,
+		network:     selectTargetNetwork(clusterAnnotations),
 		log:         logger,
 		nodeCreator: &Manager{},
 	}, nil
@@ -196,6 +198,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 			m.container, err = m.nodeCreator.CreateControlPlaneNode(
 				m.ContainerName(),
 				machineImage,
+				m.network,
 				clusterLabel(m.cluster),
 				"127.0.0.1",
 				0,
@@ -211,6 +214,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 			m.container, err = m.nodeCreator.CreateWorkerNode(
 				m.ContainerName(),
 				machineImage,
+				m.network,
 				clusterLabel(m.cluster),
 				kindMounts(mounts),
 				nil,

@@ -21,9 +21,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"time"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -126,6 +127,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	tlsConfig := &tls.Config{
 		RootCAs:      caPool,
 		Certificates: []tls.Certificate{clientCert},
+		MinVersion:   tls.VersionTLS12,
 	}
 	tlsConfig.InsecureSkipVerify = true
 	return &Workload{

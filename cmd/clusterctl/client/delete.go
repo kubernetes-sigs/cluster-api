@@ -66,6 +66,12 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 		return err
 	}
 
+	// Ensure this command only runs against management clusters with the current Cluster API contract.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(); err != nil {
+		return err
+	}
+
+	// Ensure the custom resource definitions required by clusterctl are in place.
 	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
 		return err
 	}

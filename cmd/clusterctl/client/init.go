@@ -71,13 +71,18 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	log := logf.Log
 
 	// gets access to the management cluster
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return nil, err
 	}
 
 	// ensure the custom resource definitions required by clusterctl are in place
-	if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+		return nil, err
+	}
+
+	// Ensure this command only runs against v1alpha4 management clusters
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPINotInstalled{}); err != nil {
 		return nil, err
 	}
 
@@ -85,11 +90,11 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	// if not we consider this the first time init is executed, and thus we enforce the installation of a core provider,
 	// a bootstrap provider and a control-plane provider (if not already explicitly requested by the user)
 	log.Info("Fetching providers")
-	firstRun := c.addDefaultProviders(cluster, &options)
+	firstRun := c.addDefaultProviders(clusterClient, &options)
 
 	// create an installer service, add the requested providers to the install queue and then perform validation
 	// of the target state of the management cluster before starting the installation.
-	installer, err := c.setupInstaller(cluster, options)
+	installer, err := c.setupInstaller(clusterClient, options)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +110,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	}
 
 	// Before installing the providers, ensure the cert-manager Webhook is in place.
-	if err := cluster.CertManager().EnsureInstalled(); err != nil {
+	if err := clusterClient.CertManager().EnsureInstalled(); err != nil {
 		return nil, err
 	}
 
@@ -136,28 +141,33 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 // Init returns the list of images required for init.
 func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	// gets access to the management cluster
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
+		return nil, err
+	}
+
+	// Ensure this command only runs against empty management clusters or v1alpha4 management clusters.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPINotInstalled{}); err != nil {
 		return nil, err
 	}
 
 	// checks if the cluster already contains a Core provider.
 	// if not we consider this the first time init is executed, and thus we enforce the installation of a core provider,
 	// a bootstrap provider and a control-plane provider (if not already explicitly requested by the user)
-	c.addDefaultProviders(cluster, &options)
+	c.addDefaultProviders(clusterClient, &options)
 
 	// skip variable parsing when listing images
 	options.skipVariables = true
 
 	// create an installer service, add the requested providers to the install queue and then perform validation
 	// of the target state of the management cluster before starting the installation.
-	installer, err := c.setupInstaller(cluster, options)
+	installer, err := c.setupInstaller(clusterClient, options)
 	if err != nil {
 		return nil, err
 	}
 
 	// Gets the list of container images required for the cert-manager (if not already installed).
-	images, err := cluster.CertManager().Images()
+	images, err := clusterClient.CertManager().Images()
 	if err != nil {
 		return nil, err
 	}

@@ -17,7 +17,7 @@ limitations under the License.
 package test
 
 import (
-	apiextensionslv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,7 +29,7 @@ import (
 	fakecontrolplane "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/controlplane"
 	fakeexternal "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/external"
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
-	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -50,8 +50,8 @@ func init() {
 	_ = clusterctlv1.AddToScheme(FakeScheme)
 	_ = clusterv1.AddToScheme(FakeScheme)
 	_ = expv1.AddToScheme(FakeScheme)
-	_ = addonsv1alpha3.AddToScheme(FakeScheme)
-	_ = apiextensionslv1.AddToScheme(FakeScheme)
+	_ = addonsv1.AddToScheme(FakeScheme)
+	_ = apiextensionsv1.AddToScheme(FakeScheme)
 
 	_ = fakebootstrap.AddToScheme(FakeScheme)
 	_ = fakecontrolplane.AddToScheme(FakeScheme)
@@ -165,4 +165,33 @@ func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1
 	})
 
 	return f
+}
+
+// WithFakeCAPISetup adds required objects in order to make kubeadm pass checks
+// ensuring that management cluster has a proper release of Cluster API installed.
+// NOTE: When using the fake client it is not required to install CRDs, given that type information are
+// derived from the schema. However, CheckCAPIContract looks for CRDs to be installed, so this
+// helper provide a way to get around to this difference between fake client and a real API server.
+func (f *FakeProxy) WithFakeCAPISetup() *FakeProxy {
+	f.objs = append(f.objs, FakeCAPISetupObjects()...)
+
+	return f
+}
+
+// FakeCAPISetupObjects return required objects in order to make kubeadm pass checks
+// ensuring that management cluster has a proper release of Cluster API installed.
+func FakeCAPISetupObjects() []runtime.Object {
+	return []runtime.Object{
+		&apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    clusterv1.GroupVersion.Version, // Current Cluster API contract
+						Storage: true,
+					},
+				},
+			},
+		},
+	}
 }

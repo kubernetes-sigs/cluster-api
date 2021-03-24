@@ -233,3 +233,7 @@ func Convert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(
 func Convert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus(in *ClusterStatus, out *v1alpha4.ClusterStatus, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus(in, out, s)
 }
+
+func Convert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(in *ObjectMeta, out *v1alpha4.ObjectMeta, s apiconversion.Scope) error {
+	return autoConvert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(in, out, s)
+}

@@ -120,7 +120,7 @@ provided via the [E2E config file], and thus easily swappable when changing the 
 
 <h1>Tips</h1>
 
-If you need control over object creation but you want to preserve portability, you can create many template
+If you need control over object creation but want to preserve portability, you can create many templates
 files each one creating only a small set of objects (instead of using a single template creating a full cluster).
 
 </aside>
@@ -142,6 +142,10 @@ each clusterctl operation creates a detailed log.
 
 After using clusterctl operations, you can rely on the `Get` and on the `Wait` methods
 defined in the [Cluster API test framework] to check if the operation completed successfully.
+
+### Naming the test spec
+
+You can categorize the test with a custom label that can be used to filter a category of E2E tests to be run. Currently, the cluster-api codebase has [these labels](./testing.html#running-specific-tests) which are used to run a focused subset of tests.
 
 ## Tear down
 

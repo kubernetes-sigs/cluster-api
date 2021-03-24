@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing MachineDeployment upgrades [Periodic-K8SVersion]", func() {
+var _ = Describe("When testing MachineDeployment upgrades", func() {
 
 	MachineDeploymentUpgradesSpec(context.TODO(), func() MachineDeploymentUpgradesSpecInput {
 		return MachineDeploymentUpgradesSpecInput{

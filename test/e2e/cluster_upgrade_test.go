@@ -1,7 +1,7 @@
 // +build e2e
 
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,9 +24,10 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing MachinePools", func() {
-	MachinePoolSpec(context.TODO(), func() MachinePoolInput {
-		return MachinePoolInput{
+var _ = Describe("When upgrading a workload cluster and testing K8S conformance [Conformance] [K8s-Upgrade]", func() {
+
+	ClusterUpgradeConformanceSpec(context.TODO(), func() ClusterUpgradeConformanceSpecInput {
+		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,
@@ -34,4 +35,5 @@ var _ = Describe("When testing MachinePools", func() {
 			SkipCleanup:           skipCleanup,
 		}
 	})
+
 })

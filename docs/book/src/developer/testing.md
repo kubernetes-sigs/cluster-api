@@ -63,12 +63,25 @@ After running `make docker-build-e2e` at least once, this can be used for a fast
 Additionally, `test-e2e` target supports the following env variables:
 
 - `GINKGO_FOCUS` to set ginkgo focus (default empty - all tests)
+- `GINKGO_SKIP` to set ginkgo skip (default empty - to allow running all tests)
 - `GINKGO_NODES` to set the number of ginkgo parallel nodes (default to 1)
 - `E2E_CONF_FILE` to set the e2e test config file (default to ${REPO_ROOT}/test/e2e/config/docker.yaml)
 - `ARTIFACTS` to set the folder where test artifact will be stored (default to ${REPO_ROOT}/_artifacts)
 - `SKIP_RESOURCE_CLEANUP` to skip resource cleanup at the end of the test (useful for problem investigation) (default to false)
 - `USE_EXISTING_CLUSTER` to use an existing management cluster instead of creating a new one for each test run (default to false)
-- `GINKGO_NOCOLOR` to turn off the ginko colored output (default to false)
+- `GINKGO_NOCOLOR` to turn off the ginkgo colored output (default to false)
+
+### Running specific tests
+
+To run a subset of tests, a combination of either one or both of `GINKGO_FOCUS` and `GINKGO_SKIP` env variables can be set.
+Each of these can be set to one of the following values:
+- `[PR-Blocking]` => Sanity tests run before each PR merge
+- `[K8s-Upgrade]` => Tests which verify k8s component version upgrades on workload clusters
+- `[Conformance]` => Tests which run the k8s conformance suite on workload clusters
+
+For example:
+` GINKGO_FOCUS="\\[PR-Blocking\\]" make test-e2e ` can be used to run the sanity E2E tests
+` GINKGO_SKIP="\\[K8s-Upgrade\\]" make test-e2e ` can be used to skip the upgrade E2E tests
 
 ## Quick reference
 

@@ -251,7 +251,7 @@ type addToInstallerOptions struct {
 	skipVariables     bool
 }
 
-// addToInstaller adds the components to the install queue and checks that the actual provider type match the target group
+// addToInstaller adds the components to the install queue and checks that the actual provider type match the target group.
 func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, providerType clusterctlv1.ProviderType, providers ...string) error {
 	for _, provider := range providers {
 		// It is possible to opt-out from automatic installation of bootstrap/control-plane providers using '-' as a provider name (NoopProvider).

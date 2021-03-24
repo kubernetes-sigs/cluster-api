@@ -67,7 +67,6 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 	})
 
 	It("Should successfully trigger machine deployment remediation", func() {
-
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -100,7 +99,6 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 	})
 
 	It("Should successfully trigger KCP remediation", func() {
-
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

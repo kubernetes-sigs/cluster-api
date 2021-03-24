@@ -72,7 +72,7 @@ func hasCombinedTypeArgs(args []string) (bool, error) {
 }
 
 // splitResourceTypeName handles type/name resource formats and returns a resource tuple
-// (empty or not), whether it successfully found one, and an error
+// (empty or not), whether it successfully found one, and an error.
 func splitResourceTypeName(s string) (ResourceTuple, bool, error) {
 	if !strings.Contains(s, "/") {
 		return ResourceTuple{}, false, nil

@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// Proxy defines the API server port-forwarded proxy
+// Proxy defines the API server port-forwarded proxy.
 type Proxy struct {
 
 	// Kind is the kind of Kubernetes resource

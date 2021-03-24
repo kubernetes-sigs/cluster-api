@@ -48,7 +48,7 @@ func (in *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &KubeadmControlPlane{}
 var _ webhook.Validator = &KubeadmControlPlane{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (in *KubeadmControlPlane) Default() {
 	if in.Spec.Replicas == nil {
 		replicas := int32(1)
@@ -83,7 +83,7 @@ func (in *KubeadmControlPlane) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (in *KubeadmControlPlane) ValidateCreate() error {
 	allErrs := in.validateCommon()
 	allErrs = append(allErrs, in.validateEtcd(nil)...)
@@ -110,7 +110,7 @@ const (
 	scheduler            = "scheduler"
 )
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	// add a * to indicate everything beneath is ok.
 	// For example, {"spec", "*"} will allow any path under "spec" to change, such as spec.infrastructureTemplate.name
@@ -220,7 +220,7 @@ func pathsMatch(allowed, path []string) bool {
 	return i >= len(allowed)-1
 }
 
-// paths builds a slice of paths that are being modified
+// paths builds a slice of paths that are being modified.
 func paths(path []string, diff map[string]interface{}) [][]string {
 	allPaths := [][]string{}
 	for key, m := range diff {
@@ -291,7 +291,6 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 	}
 
 	if in.Spec.RolloutStrategy != nil {
-
 		if in.Spec.RolloutStrategy.Type != RollingUpdateStrategyType {
 			allErrs = append(
 				allErrs,
@@ -504,7 +503,7 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 	return allErrs
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (in *KubeadmControlPlane) ValidateDelete() error {
 	return nil
 }

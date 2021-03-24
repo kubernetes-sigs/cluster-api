@@ -80,7 +80,7 @@ func (o *overrides) Path() string {
 }
 
 // getLocalOverride return local override file from the config folder, if it exists.
-// This is required for development purposes, but it can be used also in production as a workaround for problems on the official repositories
+// This is required for development purposes, but it can be used also in production as a workaround for problems on the official repositories.
 func getLocalOverride(info *newOverrideInput) ([]byte, error) {
 	overridePath := newOverride(info).Path()
 	// it the local override exists, use it

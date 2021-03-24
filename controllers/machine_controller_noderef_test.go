@@ -120,7 +120,6 @@ func TestGetNodeReference(t *testing.T) {
 			gt.Expect(node.Name).To(Equal(test.expected.Name), "Expected NodeRef's name to be %v, got %v", node.Name, test.expected.Name)
 			gt.Expect(node.Namespace).To(Equal(test.expected.Namespace), "Expected NodeRef's namespace to be %v, got %v", node.Namespace, test.expected.Namespace)
 		})
-
 	}
 }
 

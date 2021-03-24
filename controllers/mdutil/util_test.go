@@ -45,7 +45,7 @@ func newDControllerRef(d *clusterv1.MachineDeployment) *metav1.OwnerReference {
 	}
 }
 
-// generateMS creates a machine set, with the input deployment's template as its template
+// generateMS creates a machine set, with the input deployment's template as its template.
 func generateMS(deployment clusterv1.MachineDeployment) clusterv1.MachineSet {
 	template := deployment.Spec.Template.DeepCopy()
 	return clusterv1.MachineSet{
@@ -67,7 +67,7 @@ func randomUID() types.UID {
 	return types.UID(strconv.FormatInt(rand.Int63(), 10)) //nolint:gosec
 }
 
-// generateDeployment creates a deployment, with the input image as its template
+// generateDeployment creates a deployment, with the input image as its template.
 func generateDeployment(image string) clusterv1.MachineDeployment {
 	machineLabels := map[string]string{"name": image}
 	return clusterv1.MachineDeployment{
@@ -704,7 +704,7 @@ func TestMaxUnavailable(t *testing.T) {
 	}
 }
 
-//Set of simple tests for annotation related util functions
+//Set of simple tests for annotation related util functions.
 func TestAnnotationUtils(t *testing.T) {
 	//Setup
 	tDeployment := generateDeployment("nginx")
@@ -718,7 +718,6 @@ func TestAnnotationUtils(t *testing.T) {
 
 		//Try to set the increment revision from 1 through 20
 		for i := 0; i < 20; i++ {
-
 			nextRevision := fmt.Sprintf("%d", i+1)
 			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true, logger)
 			//Now the MachineSets Revision Annotation should be i+1

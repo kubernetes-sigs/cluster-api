@@ -145,7 +145,7 @@ const (
 	ExternalRemediationRequestCreationFailed = "ExternalRemediationRequestCreationFailed"
 )
 
-// Conditions and condition Reasons for the Machine's Node object
+// Conditions and condition Reasons for the Machine's Node object.
 const (
 	// MachineNodeHealthyCondition provides info about the operational state of the Kubernetes node hosted on the machine by summarizing  node conditions.
 	// If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure, and NodeNetworkUnavailable) are in a healthy state, it will be set to True.
@@ -155,11 +155,11 @@ const (
 	WaitingForNodeRefReason = "WaitingForNodeRef"
 
 	// NodeProvisioningReason (Severity=Info) documents machine in the process of provisioning a node.
-	// NB. provisioning --> NodeRef == ""
+	// NB. provisioning --> NodeRef == "".
 	NodeProvisioningReason = "NodeProvisioning"
 
 	// NodeNotFoundReason (Severity=Error) documents a machine's node has previously been observed but is now gone.
-	// NB. provisioned --> NodeRef != ""
+	// NB. provisioned --> NodeRef != "".
 	NodeNotFoundReason = "NodeNotFound"
 
 	// NodeConditionsFailedReason (Severity=Warning) documents a node is not in a healthy state due to the failed state of at least 1 Kubelet condition.

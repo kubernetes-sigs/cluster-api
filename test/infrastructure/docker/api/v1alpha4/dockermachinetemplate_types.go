@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DockerMachineTemplateSpec defines the desired state of DockerMachineTemplate
+// DockerMachineTemplateSpec defines the desired state of DockerMachineTemplate.
 type DockerMachineTemplateSpec struct {
 	Template DockerMachineTemplateResource `json:"template"`
 }
@@ -29,7 +29,7 @@ type DockerMachineTemplateSpec struct {
 // +kubebuilder:resource:path=dockermachinetemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 
-// DockerMachineTemplate is the Schema for the dockermachinetemplates API
+// DockerMachineTemplate is the Schema for the dockermachinetemplates API.
 type DockerMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -39,7 +39,7 @@ type DockerMachineTemplate struct {
 
 // +kubebuilder:object:root=true
 
-// DockerMachineTemplateList contains a list of DockerMachineTemplate
+// DockerMachineTemplateList contains a list of DockerMachineTemplate.
 type DockerMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -50,7 +50,7 @@ func init() {
 	SchemeBuilder.Register(&DockerMachineTemplate{}, &DockerMachineTemplateList{})
 }
 
-// DockerMachineTemplateResource describes the data needed to create a DockerMachine from a template
+// DockerMachineTemplateResource describes the data needed to create a DockerMachine from a template.
 type DockerMachineTemplateResource struct {
 	// Spec is the specification of the desired behavior of the machine.
 	Spec DockerMachineSpec `json:"spec"`

@@ -60,7 +60,7 @@ func NewLoadBalancer(name string) (*LoadBalancer, error) {
 	}, nil
 }
 
-// ContainerName is the name of the docker container with the load balancer
+// ContainerName is the name of the docker container with the load balancer.
 func (s *LoadBalancer) containerName() string {
 	return fmt.Sprintf("%s-lb", s.name)
 }
@@ -131,7 +131,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 	return errors.WithStack(s.container.Kill(ctx, "SIGHUP"))
 }
 
-// IP returns the load balancer IP address
+// IP returns the load balancer IP address.
 func (s *LoadBalancer) IP(ctx context.Context) (string, error) {
 	lbip4, _, err := s.container.IP(ctx)
 	if err != nil {

@@ -98,7 +98,7 @@ The [template](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/p
 When you submit a change to the Cluster API repository as set of validation jobs is automatically executed by
 prow and the results report is added to a comment at the end of your PR.
 
-Some jobs run linters or unit test, and in case of failures, you can repeat the same operation locally using `make test lint-full [etc..]`
+Some jobs run linters or unit test, and in case of failures, you can repeat the same operation locally using `make test lint [etc..]`
 in order to investigate and potential issues. Prow logs usually provide hints about the make target you should use
 (there might be more than one command that needs to be run).
 

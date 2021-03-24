@@ -84,7 +84,7 @@ type ClusterLogCollector interface {
 	CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error
 }
 
-// Option is a configuration option supplied to NewClusterProxy
+// Option is a configuration option supplied to NewClusterProxy.
 type Option func(*clusterProxy)
 
 // WithMachineLogCollector allows to define the machine log collector to be used with this Cluster.

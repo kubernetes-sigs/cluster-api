@@ -542,7 +542,7 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 	}
 }
 
-// resetCaches is called repeatedly throughout tests to help avoid cross-test pollution
+// resetCaches is called repeatedly throughout tests to help avoid cross-test pollution.
 func resetCaches() {
 	cacheVersions = map[string][]string{}
 	cacheReleases = map[string]*github.RepositoryRelease{}

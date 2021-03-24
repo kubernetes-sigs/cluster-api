@@ -50,7 +50,7 @@ type TemplateClientInput struct {
 var _ TemplateClient = &templateClient{}
 
 // newTemplateClient returns a templateClient. It uses the SimpleYamlProcessor
-// by default
+// by default.
 func newTemplateClient(input TemplateClientInput) *templateClient {
 	return &templateClient{
 		provider:              input.provider,
@@ -63,7 +63,7 @@ func newTemplateClient(input TemplateClientInput) *templateClient {
 
 // Get return the template for the flavor specified.
 // In case the template does not exists, an error is returned.
-// Get assumes the following naming convention for templates: cluster-template[-<flavor_name>].yaml
+// Get assumes the following naming convention for templates: cluster-template[-<flavor_name>].yaml.
 func (c *templateClient) Get(flavor, targetNamespace string, listVariablesOnly bool) (Template, error) {
 	log := logf.Log
 

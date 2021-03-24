@@ -44,7 +44,6 @@ func TestVersionChecker_newVersionChecker(t *testing.T) {
 }
 
 func TestVersionChecker(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		cliVersion     func() version.Info

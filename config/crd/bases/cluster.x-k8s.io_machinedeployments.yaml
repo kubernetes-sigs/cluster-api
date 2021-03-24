@@ -44,7 +44,7 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: MachineDeployment is the Schema for the machinedeployments API
+        description: MachineDeployment is the Schema for the machinedeployments API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -55,7 +55,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineDeploymentSpec defines the desired state of MachineDeployment
+            description: MachineDeploymentSpec defines the desired state of MachineDeployment.
             properties:
               clusterName:
                 description: ClusterName is the name of the Cluster this object belongs to.
@@ -280,7 +280,7 @@ spec:
             - template
             type: object
           status:
-            description: MachineDeploymentStatus defines the observed state of MachineDeployment
+            description: MachineDeploymentStatus defines the observed state of MachineDeployment.
             properties:
               availableReplicas:
                 description: Total number of available machines (ready for at least minReadySeconds) targeted by this deployment.
@@ -346,7 +346,7 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: MachineDeployment is the Schema for the machinedeployments API
+        description: MachineDeployment is the Schema for the machinedeployments API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -357,7 +357,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineDeploymentSpec defines the desired state of MachineDeployment
+            description: MachineDeploymentSpec defines the desired state of MachineDeployment.
             properties:
               clusterName:
                 description: ClusterName is the name of the Cluster this object belongs to.
@@ -548,7 +548,7 @@ spec:
             - template
             type: object
           status:
-            description: MachineDeploymentStatus defines the observed state of MachineDeployment
+            description: MachineDeploymentStatus defines the observed state of MachineDeployment.
             properties:
               availableReplicas:
                 description: Total number of available machines (ready for at least minReadySeconds) targeted by this deployment.

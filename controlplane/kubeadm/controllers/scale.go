@@ -184,7 +184,6 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(_ context.Context, contr
 
 loopmachines:
 	for _, machine := range controlPlane.Machines {
-
 		for _, excluded := range excludeFor {
 			// If this machine should be excluded from the individual
 			// health check, continue the out loop.

@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/httpstream"
 )
 
-// Conn is a Kubernetes API server proxied type of net/conn
+// Conn is a Kubernetes API server proxied type of net/conn.
 type Conn struct {
 	connection    httpstream.Connection
 	stream        httpstream.Stream
@@ -32,32 +32,32 @@ type Conn struct {
 	writeDeadline time.Time
 }
 
-// Read from the connection
+// Read from the connection.
 func (c Conn) Read(b []byte) (n int, err error) {
 	return c.stream.Read(b)
 }
 
-// Close the underlying proxied connection
+// Close the underlying proxied connection.
 func (c Conn) Close() error {
 	return kerrors.NewAggregate([]error{c.stream.Close(), c.connection.Close()})
 }
 
-// Write to the connection
+// Write to the connection.
 func (c Conn) Write(b []byte) (n int, err error) {
 	return c.stream.Write(b)
 }
 
-// Return a fake address representing the proxied connection
+// Return a fake address representing the proxied connection.
 func (c Conn) LocalAddr() net.Addr {
 	return NewAddrFromConn(c)
 }
 
-// Return a fake address representing the proxied connection
+// Return a fake address representing the proxied connection.
 func (c Conn) RemoteAddr() net.Addr {
 	return NewAddrFromConn(c)
 }
 
-// SetDeadline sets the read and write deadlines to the specified interval
+// SetDeadline sets the read and write deadlines to the specified interval.
 func (c Conn) SetDeadline(t time.Time) error {
 	// TODO: Handle deadlines
 	c.readDeadline = t
@@ -65,20 +65,20 @@ func (c Conn) SetDeadline(t time.Time) error {
 	return nil
 }
 
-// SetWriteDeadline sets the read and write deadlines to the specified interval
+// SetWriteDeadline sets the read and write deadlines to the specified interval.
 func (c Conn) SetWriteDeadline(t time.Time) error {
 	c.writeDeadline = t
 	return nil
 }
 
-// SetReadDeadline sets the read and write deadlines to the specified interval
+// SetReadDeadline sets the read and write deadlines to the specified interval.
 func (c Conn) SetReadDeadline(t time.Time) error {
 	c.readDeadline = t
 	return nil
 }
 
 // NewConn creates a new net/conn interface based on an underlying Kubernetes
-// API server proxy connection
+// API server proxy connection.
 func NewConn(connection httpstream.Connection, stream httpstream.Stream) Conn {
 	return Conn{
 		connection: connection,

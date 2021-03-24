@@ -22,7 +22,7 @@ import (
 
 const (
 	// ClusterLabelName is the label set on machines linked to a cluster and
-	// external objects(bootstrap and infrastructure providers)
+	// external objects(bootstrap and infrastructure providers).
 	ClusterLabelName = "cluster.x-k8s.io/cluster-name"
 
 	// ProviderLabelName is the label set on components in the provider manifest.
@@ -73,10 +73,10 @@ const (
 	// MachineSkipRemediationAnnotation is the annotation used to mark the machines that should not be considered for remediation by MachineHealthCheck reconciler.
 	MachineSkipRemediationAnnotation = "cluster.x-k8s.io/skip-remediation"
 
-	// ClusterSecretType defines the type of secret created by core components
+	// ClusterSecretType defines the type of secret created by core components.
 	ClusterSecretType corev1.SecretType = "cluster.x-k8s.io/secret" //nolint:gosec
 
-	// InterruptibleLabel is the label used to mark the nodes that run on interruptible instances
+	// InterruptibleLabel is the label used to mark the nodes that run on interruptible instances.
 	InterruptibleLabel = "cluster.x-k8s.io/interruptible"
 )
 

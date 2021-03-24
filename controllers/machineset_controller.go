@@ -65,7 +65,7 @@ var (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets;machinesets/status,verbs=get;list;watch;create;update;patch;delete
 
-// MachineSetReconciler reconciles a MachineSet object
+// MachineSetReconciler reconciles a MachineSet object.
 type MachineSetReconciler struct {
 	Client           client.Client
 	Tracker          *remote.ClusterCacheTracker
@@ -295,7 +295,6 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 	if machineSet.Spec.MinReadySeconds > 0 &&
 		machineSet.Status.ReadyReplicas == replicas &&
 		machineSet.Status.AvailableReplicas != replicas {
-
 		return ctrl.Result{RequeueAfter: time.Duration(machineSet.Spec.MinReadySeconds) * time.Second}, nil
 	}
 
@@ -597,7 +596,7 @@ func (r *MachineSetReconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 }
 
 // updateStatus updates the Status field for the MachineSet
-// It checks for the current state of the replicas and updates the Status of the MachineSet
+// It checks for the current state of the replicas and updates the Status of the MachineSet.
 func (r *MachineSetReconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	newStatus := ms.Status.DeepCopy()

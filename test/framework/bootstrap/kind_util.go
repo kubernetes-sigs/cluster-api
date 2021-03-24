@@ -108,7 +108,7 @@ func LoadImagesToKindCluster(ctx context.Context, input LoadImagesToKindClusterI
 	return nil
 }
 
-// LoadImage will put a local image onto the kind node
+// LoadImage will put a local image onto the kind node.
 func loadImage(ctx context.Context, cluster, image string) error {
 	// Save the image into a tar
 	dir, err := ioutil.TempDir("", "image-tar")
@@ -141,7 +141,7 @@ func loadImage(ctx context.Context, cluster, image string) error {
 }
 
 // copied from kind https://github.com/kubernetes-sigs/kind/blob/v0.7.0/pkg/cmd/kind/load/docker-image/docker-image.go#L168
-// save saves image to dest, as in `docker save`
+// save saves image to dest, as in `docker save`.
 func save(ctx context.Context, image, dest string) error {
 	sout, serr, err := exec.NewCommand(
 		exec.WithCommand("docker"),
@@ -151,7 +151,7 @@ func save(ctx context.Context, image, dest string) error {
 }
 
 // copied from kind https://github.com/kubernetes-sigs/kind/blob/v0.7.0/pkg/cmd/kind/load/docker-image/docker-image.go#L158
-// loads an image tarball onto a node
+// loads an image tarball onto a node.
 func load(imageTarName string, node kindnodes.Node) error {
 	f, err := os.Open(imageTarName)
 	if err != nil {

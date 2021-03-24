@@ -49,7 +49,6 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 	g.Expect(kcp.Spec.Version).To(Equal("v1.18.3"))
 	g.Expect(kcp.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
 	g.Expect(kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
-
 }
 
 func TestKubeadmControlPlaneValidateCreate(t *testing.T) {

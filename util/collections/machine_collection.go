@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-// Machines is a set of Machines
+// Machines is a set of Machines.
 type Machines map[string]*clusterv1.Machine
 
 // New creates an empty Machines.
@@ -50,7 +50,7 @@ func FromMachines(machines ...*clusterv1.Machine) Machines {
 	return ss
 }
 
-// FromMachineList creates a Machines from the given MachineList
+// FromMachineList creates a Machines from the given MachineList.
 func FromMachineList(machineList *clusterv1.MachineList) Machines {
 	ss := make(Machines, len(machineList.Items))
 	for i := range machineList.Items {
@@ -78,7 +78,7 @@ func (s Machines) Insert(machines ...*clusterv1.Machine) {
 	}
 }
 
-// Difference returns a copy without machines that are in the given collection
+// Difference returns a copy without machines that are in the given collection.
 func (s Machines) Difference(machines Machines) Machines {
 	return s.Filter(func(m *clusterv1.Machine) bool {
 		_, found := machines[m.Name]
@@ -86,7 +86,7 @@ func (s Machines) Difference(machines Machines) Machines {
 	})
 }
 
-// SortedByCreationTimestamp returns the machines sorted by creation timestamp
+// SortedByCreationTimestamp returns the machines sorted by creation timestamp.
 func (s Machines) SortedByCreationTimestamp() []*clusterv1.Machine {
 	res := make(util.MachinesByCreationTimestamp, 0, len(s))
 	for _, value := range s {
@@ -122,17 +122,17 @@ func newFilteredMachineCollection(filter Func, machines ...*clusterv1.Machine) M
 	return ss
 }
 
-// Filter returns a Machines containing only the Machines that match all of the given MachineFilters
+// Filter returns a Machines containing only the Machines that match all of the given MachineFilters.
 func (s Machines) Filter(filters ...Func) Machines {
 	return newFilteredMachineCollection(And(filters...), s.UnsortedList()...)
 }
 
-// AnyFilter returns a Machines containing only the Machines that match any of the given MachineFilters
+// AnyFilter returns a Machines containing only the Machines that match any of the given MachineFilters.
 func (s Machines) AnyFilter(filters ...Func) Machines {
 	return newFilteredMachineCollection(Or(filters...), s.UnsortedList()...)
 }
 
-// Oldest returns the Machine with the oldest CreationTimestamp
+// Oldest returns the Machine with the oldest CreationTimestamp.
 func (s Machines) Oldest() *clusterv1.Machine {
 	if len(s) == 0 {
 		return nil
@@ -140,7 +140,7 @@ func (s Machines) Oldest() *clusterv1.Machine {
 	return s.SortedByCreationTimestamp()[0]
 }
 
-// Newest returns the Machine with the most recent CreationTimestamp
+// Newest returns the Machine with the most recent CreationTimestamp.
 func (s Machines) Newest() *clusterv1.Machine {
 	if len(s) == 0 {
 		return nil
@@ -148,7 +148,7 @@ func (s Machines) Newest() *clusterv1.Machine {
 	return s.SortedByCreationTimestamp()[len(s)-1]
 }
 
-// DeepCopy returns a deep copy
+// DeepCopy returns a deep copy.
 func (s Machines) DeepCopy() Machines {
 	result := make(Machines, len(s))
 	for _, m := range s {

@@ -62,7 +62,7 @@ func (c *clusterctlClient) GetProviderComponents(provider string, providerType c
 }
 
 // ReaderSourceOptions define the options to be used when reading a template
-// from an arbitrary reader
+// from an arbitrary reader.
 type ReaderSourceOptions struct {
 	Reader io.Reader
 }
@@ -363,7 +363,6 @@ func (c *clusterctlClient) getTemplateFromURL(cluster cluster.Client, source URL
 
 // templateOptionsToVariables injects some of the templateOptions to the configClient so they can be consumed as a variables from the template.
 func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplateOptions) error {
-
 	// the TargetNamespace, if valid, can be used in templates using the ${ NAMESPACE } variable.
 	if err := validateDNS1123Label(options.TargetNamespace); err != nil {
 		return errors.Wrapf(err, "invalid target-namespace")

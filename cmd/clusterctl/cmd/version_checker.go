@@ -163,7 +163,6 @@ func (v *versionChecker) getLatestRelease() (*ReleaseInfo, error) {
 	}
 
 	return &vs.LatestRelease, nil
-
 }
 
 func writeStateFile(path string, vs *VersionState) error {
@@ -178,7 +177,6 @@ func writeStateFile(path string, vs *VersionState) error {
 		return err
 	}
 	return nil
-
 }
 
 func readStateFile(filepath string) (*VersionState, error) {

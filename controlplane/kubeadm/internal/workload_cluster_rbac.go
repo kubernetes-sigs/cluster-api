@@ -31,10 +31,10 @@ import (
 )
 
 const (
-	// NodeBootstrapTokenAuthGroup specifies which group a Node Bootstrap Token should be authenticated in
+	// NodeBootstrapTokenAuthGroup specifies which group a Node Bootstrap Token should be authenticated in.
 	NodeBootstrapTokenAuthGroup = "system:bootstrappers:kubeadm:default-node-token"
 
-	// GetNodesClusterRoleName defines the name of the ClusterRole and ClusterRoleBinding to get nodes
+	// GetNodesClusterRoleName defines the name of the ClusterRole and ClusterRoleBinding to get nodes.
 	GetNodesClusterRoleName = "kubeadm:get-nodes"
 
 	// NodesGroup defines the well-known group for all nodes.
@@ -65,7 +65,7 @@ func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error 
 	return nil
 }
 
-// AllowBootstrapTokensToGetNodes creates RBAC rules to allow Node Bootstrap Tokens to list nodes
+// AllowBootstrapTokensToGetNodes creates RBAC rules to allow Node Bootstrap Tokens to list nodes.
 func (w *Workload) AllowBootstrapTokensToGetNodes(ctx context.Context) error {
 	if err := w.EnsureResource(ctx, &rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -137,7 +137,6 @@ func (w *Workload) ReconcileKubeletRBACBinding(ctx context.Context, version semv
 			Name:     roleName,
 		},
 	})
-
 }
 
 // ReconcileKubeletRBACRole will create a Role for the new kubelet version during upgrades.

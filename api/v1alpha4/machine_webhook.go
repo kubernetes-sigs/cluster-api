@@ -40,7 +40,7 @@ func (m *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &Machine{}
 var _ webhook.Defaulter = &Machine{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (m *Machine) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
@@ -61,12 +61,12 @@ func (m *Machine) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (m *Machine) ValidateCreate() error {
 	return m.validate(nil)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (m *Machine) ValidateUpdate(old runtime.Object) error {
 	oldM, ok := old.(*Machine)
 	if !ok {
@@ -75,7 +75,7 @@ func (m *Machine) ValidateUpdate(old runtime.Object) error {
 	return m.validate(oldM)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (m *Machine) ValidateDelete() error {
 	return nil
 }

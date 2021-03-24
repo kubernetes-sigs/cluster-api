@@ -28,7 +28,7 @@ import (
 // It is important to notice that clusterctl applies a set of processing steps to the “raw” cluster template YAML read
 // from the provider repositories:
 // 1. Checks for all the variables in the cluster template YAML file and replace with corresponding config values
-// 2. Ensure all the cluster objects are deployed in the target namespace
+// 2. Ensure all the cluster objects are deployed in the target namespace.
 type Template interface {
 	// Variables required by the template.
 	// This value is derived by the template YAML.

@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	// DefaultTokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid
+	// DefaultTokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
 	DefaultTokenTTL = 15 * time.Minute
 )
 

@@ -18,12 +18,12 @@ package docker
 
 import "fmt"
 
-// ContainerNotRunningError is returned when trying to patch a container that is not running
+// ContainerNotRunningError is returned when trying to patch a container that is not running.
 type ContainerNotRunningError struct {
 	Name string
 }
 
-// Error returns the error string
+// Error returns the error string.
 func (cse ContainerNotRunningError) Error() string {
 	return fmt.Sprintf("container with name %q is not running", cse.Name)
 }

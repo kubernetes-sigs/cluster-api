@@ -35,12 +35,12 @@ func (m *DockerMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error 
 
 var _ webhook.Validator = &DockerMachineTemplate{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (m *DockerMachineTemplate) ValidateCreate() error {
 	return nil
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (m *DockerMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	oldCRS := old.(*DockerMachineTemplate)
 	if !reflect.DeepEqual(m.Spec, oldCRS.Spec) {
@@ -49,7 +49,7 @@ func (m *DockerMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (m *DockerMachineTemplate) ValidateDelete() error {
 	return nil
 }

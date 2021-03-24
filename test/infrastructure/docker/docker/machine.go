@@ -124,7 +124,7 @@ func ListMachinesByCluster(cluster string, labels map[string]string) ([]*Machine
 	return machines, nil
 }
 
-// IsControlPlane returns true if the container for this machine is a control plane node
+// IsControlPlane returns true if the container for this machine is a control plane node.
 func (m *Machine) IsControlPlane() bool {
 	if !m.Exists() {
 		return false
@@ -148,17 +148,17 @@ func (m *Machine) Exists() bool {
 	return m.container != nil
 }
 
-// Name returns the name of the machine
+// Name returns the name of the machine.
 func (m *Machine) Name() string {
 	return m.machine
 }
 
-// ContainerName return the name of the container for this machine
+// ContainerName return the name of the container for this machine.
 func (m *Machine) ContainerName() string {
 	return machineContainerName(m.cluster, m.machine)
 }
 
-// ProviderID return the provider identifier for this machine
+// ProviderID return the provider identifier for this machine.
 func (m *Machine) ProviderID() string {
 	return fmt.Sprintf("docker:////%s", m.ContainerName())
 }
@@ -279,7 +279,7 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 	return nil
 }
 
-// ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`
+// ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`.
 func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -339,7 +339,7 @@ func (m *Machine) CheckForBootstrapSuccess(ctx context.Context) error {
 	return nil
 }
 
-// SetNodeProviderID sets the docker provider ID for the kubernetes node
+// SetNodeProviderID sets the docker provider ID for the kubernetes node.
 func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -412,7 +412,7 @@ func (m *Machine) Delete(ctx context.Context) error {
 	return nil
 }
 
-// machineImage is the image of the container node with the machine
+// machineImage is the image of the container node with the machine.
 func (m *Machine) machineImage(version *string) string {
 	if version == nil {
 		defaultImage := fmt.Sprintf("%s:%s", defaultImageName, defaultImageTag)

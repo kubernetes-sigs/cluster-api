@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TestNewFakeClient is a fake test to document fakeClient usage
+// TestNewFakeClient is a fake test to document fakeClient usage.
 func TestNewFakeClient(t *testing.T) {
 	// create a fake config with a provider named P1 and a variable named var
 	repository1Config := config.NewProvider("p1", "url", clusterctlv1.CoreProviderType)
@@ -142,7 +142,6 @@ func (f fakeClient) RolloutUndo(options RolloutOptions) error {
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(configClient config.Client) *fakeClient {
-
 	fake := &fakeClient{
 		clusters:     map[cluster.Kubeconfig]cluster.Client{},
 		repositories: map[string]repository.Client{},
@@ -219,7 +218,7 @@ func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *
 }
 
 // newFakeCertManagerClient creates a new CertManagerClient
-// allows the caller to define which images are needed for the manager to run
+// allows the caller to define which images are needed for the manager to run.
 func newFakeCertManagerClient(imagesReturnImages []string, imagesReturnError error) *fakeCertManagerClient {
 	return &fakeCertManagerClient{
 		images:      imagesReturnImages,
@@ -466,7 +465,7 @@ func (f *fakeRepositoryClient) WithFile(version, path string, content []byte) *f
 	return f
 }
 
-// fakeTemplateClient provides a super simple TemplateClient (e.g. without support for local overrides)
+// fakeTemplateClient provides a super simple TemplateClient (e.g. without support for local overrides).
 type fakeTemplateClient struct {
 	version               string
 	fakeRepository        *test.FakeRepository
@@ -494,7 +493,7 @@ func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOn
 	})
 }
 
-// fakeMetadataClient provides a super simple MetadataClient (e.g. without support for local overrides/embedded metadata)
+// fakeMetadataClient provides a super simple MetadataClient (e.g. without support for local overrides/embedded metadata).
 type fakeMetadataClient struct {
 	version        string
 	fakeRepository *test.FakeRepository
@@ -515,7 +514,7 @@ func (f *fakeMetadataClient) Get() (*clusterctlv1.Metadata, error) {
 	return obj, nil
 }
 
-// fakeComponentClient provides a super simple ComponentClient (e.g. without support for local overrides)
+// fakeComponentClient provides a super simple ComponentClient (e.g. without support for local overrides).
 type fakeComponentClient struct {
 	provider       config.Provider
 	fakeRepository *test.FakeRepository

@@ -45,9 +45,8 @@ var (
 		clusterctl alpha rollout undo machinedeployment/my-md-0 --to-revision=3`)
 )
 
-// NewCmdRolloutUndo returns a Command instance for 'rollout undo' sub command
+// NewCmdRolloutUndo returns a Command instance for 'rollout undo' sub command.
 func NewCmdRolloutUndo(cfgFile string) *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:                   "undo RESOURCE",
 		DisableFlagsInUseLine: true,

@@ -33,7 +33,7 @@ const (
 	DefaultNodeImage = "kindest/node:v1.19.1"
 )
 
-// KindClusterOption is a NewKindClusterProvider option
+// KindClusterOption is a NewKindClusterProvider option.
 type KindClusterOption interface {
 	apply(*kindClusterProvider)
 }
@@ -44,7 +44,7 @@ func (adapter kindClusterOptionAdapter) apply(kindClusterProvider *kindClusterPr
 	adapter(kindClusterProvider)
 }
 
-// WithNodeImage implements a New Option that instruct the kindClusterProvider to use a specific node image / Kubernetes version
+// WithNodeImage implements a New Option that instruct the kindClusterProvider to use a specific node image / Kubernetes version.
 func WithNodeImage(image string) KindClusterOption {
 	return kindClusterOptionAdapter(func(k *kindClusterProvider) {
 		k.nodeImage = image
@@ -96,7 +96,7 @@ func (k *kindClusterProvider) Create(ctx context.Context) {
 
 // createKindCluster calls the kind library taking care of passing options for:
 // - use a dedicated kubeconfig file (test should not alter the user environment)
-// - if required, mount /var/run/docker.sock
+// - if required, mount /var/run/docker.sock.
 func (k *kindClusterProvider) createKindCluster() {
 	kindCreateOptions := []kind.CreateOption{
 		kind.CreateWithKubeconfigPath(k.kubeconfigPath),

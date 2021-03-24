@@ -61,7 +61,7 @@ type GetAllClustersByNamespaceInput struct {
 	Namespace string
 }
 
-// GetAllClustersByNamespace returns the list of Cluster object in a namespace
+// GetAllClustersByNamespace returns the list of Cluster object in a namespace.
 func GetAllClustersByNamespace(ctx context.Context, input GetAllClustersByNamespaceInput) []*clusterv1.Cluster {
 	clusterList := &clusterv1.ClusterList{}
 	Expect(input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
@@ -80,7 +80,7 @@ type GetClusterByNameInput struct {
 	Namespace string
 }
 
-// GetClusterByName returns a Cluster object given his name
+// GetClusterByName returns a Cluster object given his name.
 func GetClusterByName(ctx context.Context, input GetClusterByNameInput) *clusterv1.Cluster {
 	cluster := &clusterv1.Cluster{}
 	key := client.ObjectKey{

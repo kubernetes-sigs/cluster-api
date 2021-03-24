@@ -171,7 +171,6 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			g.Expect(m).To(Equal(bm))
 		}
 	})
-
 }
 
 func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.T) {

@@ -205,7 +205,6 @@ func TestGetWorkloadCluster(t *testing.T) {
 			g.Expect(workloadCluster).ToNot(BeNil())
 		})
 	}
-
 }
 
 func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {

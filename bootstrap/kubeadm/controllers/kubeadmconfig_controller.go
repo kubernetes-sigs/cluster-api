@@ -54,11 +54,11 @@ import (
 )
 
 const (
-	// KubeadmConfigControllerName defines the controller used when creating clients
+	// KubeadmConfigControllerName defines the controller used when creating clients.
 	KubeadmConfigControllerName = "kubeadmconfig-controller"
 )
 
-// InitLocker is a lock that is used around kubeadm init
+// InitLocker is a lock that is used around kubeadm init.
 type InitLocker interface {
 	Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool
 	Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool
@@ -69,7 +69,7 @@ type InitLocker interface {
 // +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;update;patch;delete
 
-// KubeadmConfigReconciler reconciles a KubeadmConfig object
+// KubeadmConfigReconciler reconciles a KubeadmConfig object.
 type KubeadmConfigReconciler struct {
 	Client          client.Client
 	KubeadmInitLock InitLocker

@@ -24,7 +24,7 @@ import (
 // Clusterctl v2 handles the following configurations:
 // 1. The configuration of the providers (name, type and URL of the provider repository)
 // 2. Variables used when installing providers/creating clusters. Variables can be read from the environment or from the config file
-// 3. The configuration about image overrides
+// 3. The configuration about image overrides.
 type Client interface {
 	// Providers provide access to provider configurations.
 	Providers() ProvidersClient
@@ -56,7 +56,7 @@ func (c *configClient) ImageMeta() ImageMetaClient {
 	return newImageMetaClient(c.reader)
 }
 
-// Option is a configuration option supplied to New
+// Option is a configuration option supplied to New.
 type Option func(*configClient)
 
 // InjectReader allows to override the default configuration reader used by clusterctl.

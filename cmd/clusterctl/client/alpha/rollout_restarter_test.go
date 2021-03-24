@@ -115,7 +115,6 @@ func Test_ObjectRestarter(t *testing.T) {
 				} else {
 					g.Expect(md.Spec.Template.Annotations).ToNot(HaveKey("cluster.x-k8s.io/restartedAt"))
 				}
-
 			}
 		})
 	}

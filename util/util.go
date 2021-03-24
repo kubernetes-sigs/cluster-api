@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	// CharSet defines the alphanumeric set for random string generation
+	// CharSet defines the alphanumeric set for random string generation.
 	CharSet = "0123456789abcdefghijklmnopqrstuvwxyz"
 )
 
@@ -68,7 +68,7 @@ func RandomString(n int) string {
 }
 
 // Ordinalize takes an int and returns the ordinalized version of it.
-// Eg. 1 --> 1st, 103 --> 103rd
+// Eg. 1 --> 1st, 103 --> 103rd.
 func Ordinalize(n int) string {
 	m := map[int]string{
 		0: "th",
@@ -301,7 +301,7 @@ func ReplaceOwnerRef(ownerReferences []metav1.OwnerReference, source metav1.Obje
 	return ownerReferences
 }
 
-// RemoveOwnerRef returns the slice of owner references after removing the supplied owner ref
+// RemoveOwnerRef returns the slice of owner references after removing the supplied owner ref.
 func RemoveOwnerRef(ownerReferences []metav1.OwnerReference, inputRef metav1.OwnerReference) []metav1.OwnerReference {
 	if index := indexOwnerRef(ownerReferences, inputRef); index != -1 {
 		return append(ownerReferences[:index], ownerReferences[index+1:]...)
@@ -518,7 +518,6 @@ func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.
 			})
 		}
 		return results
-
 	}, nil
 }
 

@@ -35,7 +35,7 @@ func ParseMajorMinorPatch(v string) (semver.Version, error) {
 
 // GetMachinesForCluster returns a list of machines associated with the cluster.
 //
-// Deprecated: Please use util/collection GetFilteredMachinesForCluster(ctx, client, cluster)
+// Deprecated: Please use util/collection GetFilteredMachinesForCluster(ctx, client, cluster).
 func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (*clusterv1.MachineList, error) {
 	var machines clusterv1.MachineList
 	if err := c.List(
@@ -53,7 +53,7 @@ func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *cluste
 
 // GetControlPlaneMachines returns a slice containing control plane machines.
 //
-// Deprecated: Please use util/collection FromMachines(machine).Filter(collections.ControlPlaneMachines(cluster.Name))
+// Deprecated: Please use util/collection FromMachines(machine).Filter(collections.ControlPlaneMachines(cluster.Name)).
 func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Machine) {
 	for _, machine := range machines {
 		if IsControlPlaneMachine(machine) {
@@ -65,7 +65,7 @@ func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Ma
 
 // GetControlPlaneMachinesFromList returns a slice containing control plane machines.
 //
-// Deprecated: Please use util/collection FromMachineList(machineList).Filter(collections.ControlPlaneMachines(cluster.Name))
+// Deprecated: Please use util/collection FromMachineList(machineList).Filter(collections.ControlPlaneMachines(cluster.Name)).
 func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []*clusterv1.Machine) {
 	for i := 0; i < len(machineList.Items); i++ {
 		machine := machineList.Items[i]

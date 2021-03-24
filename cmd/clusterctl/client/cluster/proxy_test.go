@@ -277,5 +277,4 @@ users:
     client-certificate-data: c3R1ZmYK
     client-key-data: c3R1ZmYK
 `, namespace, currentContext)
-
 }

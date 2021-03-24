@@ -64,7 +64,7 @@ func setupScheme() *runtime.Scheme {
 	return scheme
 }
 
-// MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists
+// MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists.
 func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	g := NewWithT(t)
 
@@ -221,7 +221,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	assertHasFalseCondition(g, myclient, request, bootstrapv1.DataSecretAvailableCondition, clusterv1.ConditionSeverityInfo, bootstrapv1.WaitingForClusterInfrastructureReason)
 }
 
-// Return early If the owning machine does not have an associated cluster
+// Return early If the owning machine does not have an associated cluster.
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *testing.T) {
 	g := NewWithT(t)
 
@@ -248,7 +248,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *t
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
-// This does not expect an error, hoping the machine gets updated with a cluster
+// This does not expect an error, hoping the machine gets updated with a cluster.
 func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociatedCluster(t *testing.T) {
 	g := NewWithT(t)
 
@@ -275,7 +275,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociat
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
-// This does not expect an error, hoping that the associated cluster will be created
+// This does not expect an error, hoping that the associated cluster will be created.
 func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFound(t *testing.T) {
 	g := NewWithT(t)
 
@@ -417,7 +417,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
-// If a control plane has no JoinConfiguration, then we will create a default and no error will occur
+// If a control plane has no JoinConfiguration, then we will create a default and no error will occur.
 func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidConfiguration(t *testing.T) {
 	g := NewWithT(t)
 	// TODO: extract this kind of code into a setup function that puts the state of objects into an initialized controlplane (implies secrets exist)
@@ -578,7 +578,6 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(len(l.Items)).To(Equal(1))
 		})
-
 	}
 }
 
@@ -654,7 +653,6 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(len(l.Items)).To(Equal(1))
 		})
-
 	}
 }
 
@@ -821,7 +819,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 			},
 		},
 	} {
-
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", DefaultTokenTTL))
@@ -864,7 +861,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 			},
 		},
 	} {
-
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(result.Requeue).To(BeFalse())
@@ -946,7 +942,6 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 			},
 		},
 	} {
-
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", DefaultTokenTTL))
@@ -1427,7 +1422,7 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	}
 }
 
-// Reconcile should not fail if the Etcd CA Secret already exists
+// Reconcile should not fail if the Etcd CA Secret already exists.
 func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t *testing.T) {
 	g := NewWithT(t)
 
@@ -1458,7 +1453,7 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
-// Exactly one control plane machine initializes if there are multiple control plane machines defined
+// Exactly one control plane machine initializes if there are multiple control plane machines defined.
 func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitializes(t *testing.T) {
 	g := NewWithT(t)
 
@@ -1507,7 +1502,7 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 }
 
-// Patch should be applied if there is an error in reconcile
+// Patch should be applied if there is an error in reconcile.
 func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) {
 	g := NewWithT(t)
 
@@ -1701,7 +1696,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 
 // test utils
 
-// newCluster return a CAPI cluster object
+// newCluster return a CAPI cluster object.
 func newCluster(name string) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
@@ -1715,7 +1710,7 @@ func newCluster(name string) *clusterv1.Cluster {
 	}
 }
 
-// newMachine return a CAPI machine object; if cluster is not nil, the machine is linked to the cluster as well
+// newMachine return a CAPI machine object; if cluster is not nil, the machine is linked to the cluster as well.
 func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -1755,7 +1750,7 @@ func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.
 	return m
 }
 
-// newMachinePool return a CAPI machine pool object; if cluster is not nil, the machine pool is linked to the cluster as well
+// newMachinePool return a CAPI machine pool object; if cluster is not nil, the machine pool is linked to the cluster as well.
 func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool {
 	machine := &expv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
@@ -1793,7 +1788,7 @@ func newWorkerMachinePool(cluster *clusterv1.Cluster) *expv1.MachinePool {
 	return newMachinePool(cluster, "worker-machinepool")
 }
 
-// newKubeadmConfig return a CABPK KubeadmConfig object; if machine is not nil, the KubeadmConfig is linked to the machine as well
+// newKubeadmConfig return a CABPK KubeadmConfig object; if machine is not nil, the KubeadmConfig is linked to the machine as well.
 func newKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.KubeadmConfig {
 	config := &bootstrapv1.KubeadmConfig{
 		TypeMeta: metav1.TypeMeta{
@@ -1844,7 +1839,7 @@ func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *
 }
 
 // newMachinePoolKubeadmConfig return a CABPK KubeadmConfig object; if machine pool is not nil,
-// the KubeadmConfig is linked to the machine pool as well
+// the KubeadmConfig is linked to the machine pool as well.
 func newMachinePoolKubeadmConfig(machinePool *expv1.MachinePool, name string) *bootstrapv1.KubeadmConfig {
 	config := &bootstrapv1.KubeadmConfig{
 		TypeMeta: metav1.TypeMeta{

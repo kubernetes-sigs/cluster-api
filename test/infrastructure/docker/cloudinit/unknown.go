@@ -31,7 +31,7 @@ func newUnknown(module string) action {
 	return &unknown{module: module}
 }
 
-// Unmarshal will unmarshal unknown actions and slurp the value
+// Unmarshal will unmarshal unknown actions and slurp the value.
 func (u *unknown) Unmarshal(data []byte) error {
 	// try unmarshalling to a slice of strings
 	var s1 []string

@@ -36,7 +36,7 @@ var (
 	// 10 minutes should allow the instance to start and the node to join the
 	// cluster on most providers.
 	defaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}
-	// Minimum time allowed for a node to start up
+	// Minimum time allowed for a node to start up.
 	minNodeStartupTimeout = metav1.Duration{Duration: 30 * time.Second}
 )
 
@@ -61,7 +61,7 @@ func (m *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &MachineHealthCheck{}
 var _ webhook.Validator = &MachineHealthCheck{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (m *MachineHealthCheck) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
@@ -78,12 +78,12 @@ func (m *MachineHealthCheck) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineHealthCheck) ValidateCreate() error {
 	return m.validate(nil)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineHealthCheck) ValidateUpdate(old runtime.Object) error {
 	mhc, ok := old.(*MachineHealthCheck)
 	if !ok {
@@ -92,7 +92,7 @@ func (m *MachineHealthCheck) ValidateUpdate(old runtime.Object) error {
 	return m.validate(mhc)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineHealthCheck) ValidateDelete() error {
 	return nil
 }

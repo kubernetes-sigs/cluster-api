@@ -43,7 +43,7 @@ type ClusterUpgradeConformanceSpecInput struct {
 }
 
 // ClusterUpgradeConformanceSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
-// Upgrading a cluster refers to upgrading the control-plane and worker nodes (managed by MD and machine pools)
+// Upgrading a cluster refers to upgrading the control-plane and worker nodes (managed by MD and machine pools).
 func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() ClusterUpgradeConformanceSpecInput) {
 	const (
 		kubetestConfigurationVariable = "KUBETEST_CONFIGURATION"
@@ -80,7 +80,6 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 	})
 
 	It("Should create and upgrade a workload cluster and run kubetest", func() {
-
 		By("Creating a workload cluster")
 
 		var workerMachineCount int64 = 3

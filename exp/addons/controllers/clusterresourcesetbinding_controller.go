@@ -35,7 +35,7 @@ import (
 
 // +kubebuilder:rbac:groups=addons.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 
-// ClusterResourceSetBindingReconciler reconciles a ClusterResourceSetBinding object
+// ClusterResourceSetBindingReconciler reconciles a ClusterResourceSetBinding object.
 type ClusterResourceSetBindingReconciler struct {
 	Client           client.Client
 	WatchFilterValue string
@@ -88,7 +88,7 @@ func (r *ClusterResourceSetBindingReconciler) Reconcile(ctx context.Context, req
 	return ctrl.Result{}, nil
 }
 
-// clusterToClusterResourceSetBinding is mapper function that maps clusters to ClusterResourceSetBinding
+// clusterToClusterResourceSetBinding is mapper function that maps clusters to ClusterResourceSetBinding.
 func (r *ClusterResourceSetBindingReconciler) clusterToClusterResourceSetBinding(o client.Object) []ctrl.Request {
 	return []reconcile.Request{
 		{

@@ -572,7 +572,6 @@ func (b *machinePoolBuilder) build() expv1.MachinePool {
 }
 
 func TestFilterOwnedDescendants(t *testing.T) {
-
 	_ = feature.MutableGates.Set("MachinePool=true")
 	g := NewWithT(t)
 

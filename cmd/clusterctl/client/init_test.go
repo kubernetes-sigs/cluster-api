@@ -584,7 +584,7 @@ var (
 	infraProviderConfig        = config.NewProvider("infra", "url", clusterctlv1.InfrastructureProviderType)
 )
 
-// setup a cluster client and the fake configuration for testing
+// setup a cluster client and the fake configuration for testing.
 func setupCluster(providers []Provider, certManagerClient cluster.CertManagerClient) (*fakeConfigClient, *fakeClient) {
 	// create a config variables client which does not have the value for
 	// SOME_VARIABLE as expected in the infra components YAML
@@ -603,7 +603,7 @@ func setupCluster(providers []Provider, certManagerClient cluster.CertManagerCli
 	return cfg, fc
 }
 
-// clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider)
+// clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider).
 func fakeEmptyCluster() *fakeClient {
 	// create a config variables client which contains the value for the
 	// variable required
@@ -811,7 +811,7 @@ func templateYAML(ns string, clusterName string) []byte {
 }
 
 // infraComponentsYAML defines a namespace and deployment with container
-// images and a variable
+// images and a variable.
 func infraComponentsYAML(namespace string) []byte {
 	var infraComponentsYAML string = `---
 apiVersion: v1

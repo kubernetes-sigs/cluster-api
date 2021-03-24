@@ -248,7 +248,7 @@ func versionToConformanceImage(kubernetesVersion string) string {
 	return standardImage + ":" + k8sVersion
 }
 
-// buildArgs converts a string map to the format --key=value
+// buildArgs converts a string map to the format --key=value.
 func buildArgs(kv map[string]string, flagMarker string) []string {
 	args := make([]string, len(kv))
 	i := 0

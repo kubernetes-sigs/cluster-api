@@ -111,7 +111,7 @@ func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision str
 	return updated
 }
 
-// MaxRevision finds the highest revision in the machine sets
+// MaxRevision finds the highest revision in the machine sets.
 func MaxRevision(allMSs []*clusterv1.MachineSet, logger logr.Logger) int64 {
 	max := int64(0)
 	for _, ms := range allMSs {
@@ -281,7 +281,7 @@ func FindOneActiveOrLatest(newMS *clusterv1.MachineSet, oldMSs []*clusterv1.Mach
 	}
 }
 
-// SetReplicasAnnotations sets the desiredReplicas and maxReplicas into the annotations
+// SetReplicasAnnotations sets the desiredReplicas and maxReplicas into the annotations.
 func SetReplicasAnnotations(ms *clusterv1.MachineSet, desiredReplicas, maxReplicas int32) bool {
 	updated := false
 	if ms.Annotations == nil {
@@ -300,7 +300,7 @@ func SetReplicasAnnotations(ms *clusterv1.MachineSet, desiredReplicas, maxReplic
 	return updated
 }
 
-// AnnotationsNeedUpdate return true if ReplicasAnnotations need to be updated
+// AnnotationsNeedUpdate return true if ReplicasAnnotations need to be updated.
 func ReplicasAnnotationsNeedUpdate(ms *clusterv1.MachineSet, desiredReplicas, maxReplicas int32) bool {
 	if ms.Annotations == nil {
 		return true
@@ -477,7 +477,7 @@ func GetActualReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) in
 // This is used to guarantee that the total number of machines will not exceed md.Spec.Replicas + maxSurge.
 // Use max(spec.Replicas,status.Replicas) to cover the cases that:
 // 1. Scale up, where spec.Replicas increased but no machine created yet, so spec.Replicas > status.Replicas
-// 2. Scale down, where spec.Replicas decreased but machine not deleted yet, so spec.Replicas < status.Replicas
+// 2. Scale down, where spec.Replicas decreased but machine not deleted yet, so spec.Replicas < status.Replicas.
 func TotalMachineSetsReplicaSum(machineSets []*clusterv1.MachineSet) int32 {
 	totalReplicas := int32(0)
 	for _, ms := range machineSets {
@@ -527,7 +527,7 @@ func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clus
 // NewMSNewReplicas calculates the number of replicas a deployment's new MS should have.
 // When one of the following is true, we're rolling out the deployment; otherwise, we're scaling it.
 // 1) The new MS is saturated: newMS's replicas == deployment's replicas
-// 2) Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas
+// 2) Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas.
 func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (int32, error) {
 	switch deployment.Spec.Strategy.Type {
 	case clusterv1.RollingUpdateMachineDeploymentStrategyType:
@@ -579,7 +579,7 @@ func IsSaturated(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineS
 // 2 desired, max unavailable 25%, surge 1% - should scale new(+1), then old(-1), then new(+1), then old(-1)
 // 1 desired, max unavailable 25%, surge 1% - should scale new(+1), then old(-1)
 // 2 desired, max unavailable 0%, surge 1% - should scale new(+1), then old(-1), then new(+1), then old(-1)
-// 1 desired, max unavailable 0%, surge 1% - should scale new(+1), then old(-1)
+// 1 desired, max unavailable 0%, surge 1% - should scale new(+1), then old(-1).
 func ResolveFenceposts(maxSurge, maxUnavailable *intstrutil.IntOrString, desired int32) (int32, int32, error) {
 	surge, err := intstrutil.GetValueFromIntOrPercent(maxSurge, int(desired), true)
 	if err != nil {

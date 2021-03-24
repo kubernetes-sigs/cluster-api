@@ -23,7 +23,6 @@ import (
 )
 
 func TestResourceTypeAndNameArgs(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		args    []string

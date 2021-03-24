@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	// KubeadmControlPlaneControllerName defines the controller used when creating clients
+	// KubeadmControlPlaneControllerName defines the controller used when creating clients.
 	KubeadmControlPlaneControllerName = "kubeadm-controlplane-controller"
 )
 
@@ -53,7 +53,7 @@ type Management struct {
 	Tracker *remote.ClusterCacheTracker
 }
 
-// RemoteClusterConnectionError represents a failure to connect to a remote cluster
+// RemoteClusterConnectionError represents a failure to connect to a remote cluster.
 type RemoteClusterConnectionError struct {
 	Name string
 	Err  error
@@ -62,12 +62,12 @@ type RemoteClusterConnectionError struct {
 func (e *RemoteClusterConnectionError) Error() string { return e.Name + ": " + e.Err.Error() }
 func (e *RemoteClusterConnectionError) Unwrap() error { return e.Err }
 
-// Get implements ctrlclient.Reader
+// Get implements ctrlclient.Reader.
 func (m *Management) Get(ctx context.Context, key ctrlclient.ObjectKey, obj client.Object) error {
 	return m.Client.Get(ctx, key, obj)
 }
 
-// List implements ctrlclient.Reader
+// List implements ctrlclient.Reader.
 func (m *Management) List(ctx context.Context, list client.ObjectList, opts ...ctrlclient.ListOption) error {
 	return m.Client.List(ctx, list, opts...)
 }

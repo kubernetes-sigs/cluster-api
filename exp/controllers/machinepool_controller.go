@@ -52,11 +52,11 @@ import (
 // +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;create;update;patch;delete
 
 const (
-	// MachinePoolControllerName defines the controller used when creating clients
+	// MachinePoolControllerName defines the controller used when creating clients.
 	MachinePoolControllerName = "machinepool-controller"
 )
 
-// MachinePoolReconciler reconciles a MachinePool object
+// MachinePoolReconciler reconciles a MachinePool object.
 type MachinePoolReconciler struct {
 	Client           client.Client
 	WatchFilterValue string

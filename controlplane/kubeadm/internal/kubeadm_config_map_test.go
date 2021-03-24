@@ -170,7 +170,6 @@ kind: ClusterStatus`,
 }
 
 func TestUpdateEtcdMeta(t *testing.T) {
-
 	tests := []struct {
 		name                      string
 		clusterConfigurationValue string
@@ -299,7 +298,6 @@ etcd:
 					g.Expect(kconfig.ConfigMap.Data[clusterConfigurationKey]).To(ContainSubstring(test.imageTag))
 				}
 			}
-
 		})
 	}
 }
@@ -399,7 +397,6 @@ scheduler: {}`,
 }
 
 func TestUpdateImageRepository(t *testing.T) {
-
 	tests := []struct {
 		name            string
 		data            map[string]string
@@ -470,7 +467,6 @@ imageRepository: "cool"
 }
 
 func TestApiServer(t *testing.T) {
-
 	tests := []struct {
 		name         string
 		data         map[string]string
@@ -654,13 +650,11 @@ kind: ClusterConfiguration
 				g.Expect(err.Error()).To(ContainSubstring(test.expectErr.Error()))
 				g.Expect(changed).Should(Equal(false))
 			}
-
 		})
 	}
 }
 
 func TestControllerManager(t *testing.T) {
-
 	tests := []struct {
 		name                 string
 		data                 map[string]string
@@ -818,13 +812,11 @@ kind: ClusterConfiguration
 				g.Expect(err.Error()).To(ContainSubstring(test.expectErr.Error()))
 				g.Expect(changed).Should(Equal(false))
 			}
-
 		})
 	}
 }
 
 func TestScheduler(t *testing.T) {
-
 	tests := []struct {
 		name         string
 		data         map[string]string
@@ -982,7 +974,6 @@ kind: ClusterConfiguration
 				g.Expect(err.Error()).To(ContainSubstring(test.expectErr.Error()))
 				g.Expect(changed).Should(Equal(false))
 			}
-
 		})
 	}
 }

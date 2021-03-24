@@ -70,7 +70,6 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 			}
 		}
 		return false
-
 	}, intervals...).Should(BeTrue(), func() string { return DescribeFailedDeployment(input, deployment) })
 }
 
@@ -201,7 +200,6 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 //       old: --metrics-addr=127.0.0.1:8080
 func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPath string, deploymentName string, pods *corev1.PodList) {
 	for _, pod := range pods.Items {
-
 		metricsDir := path.Join(metricsPath, deploymentName, pod.Name)
 		metricsFile := path.Join(metricsDir, "metrics.txt")
 		Expect(os.MkdirAll(metricsDir, 0750)).To(Succeed())

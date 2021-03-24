@@ -27,10 +27,10 @@ import (
 )
 
 const (
-	// Core providers
+	// Core providers.
 	ClusterAPIProviderName = "cluster-api"
 
-	// Infra providers
+	// Infra providers.
 	AWSProviderName       = "aws"
 	AzureProviderName     = "azure"
 	DockerProviderName    = "docker"
@@ -42,17 +42,17 @@ const (
 	SideroProviderName    = "sidero"
 	VSphereProviderName   = "vsphere"
 
-	// Bootstrap providers
+	// Bootstrap providers.
 	KubeadmBootstrapProviderName = "kubeadm"
 	TalosBootstrapProviderName   = "talos"
 	AWSEKSBootstrapProviderName  = "aws-eks"
 
-	// ControlPlane providers
+	// ControlPlane providers.
 	KubeadmControlPlaneProviderName = "kubeadm"
 	TalosControlPlaneProviderName   = "talos"
 	AWSEKSControlPlaneProviderName  = "aws-eks"
 
-	// Other
+	// Other.
 	ProvidersConfigKey = "providers"
 )
 
@@ -186,7 +186,7 @@ func (p *providersClient) defaults() []Provider {
 	return defaults
 }
 
-// configProvider mirrors config.Provider interface and allows serialization of the corresponding info
+// configProvider mirrors config.Provider interface and allows serialization of the corresponding info.
 type configProvider struct {
 	Name string                    `json:"name,omitempty"`
 	URL  string                    `json:"url,omitempty"`

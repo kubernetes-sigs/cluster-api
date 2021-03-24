@@ -27,7 +27,7 @@ import (
 type Format string
 
 const (
-	// CloudConfig make the bootstrap data to be of cloud-config format
+	// CloudConfig make the bootstrap data to be of cloud-config format.
 	CloudConfig Format = "cloud-config"
 )
 
@@ -97,7 +97,7 @@ type KubeadmConfigSpec struct {
 	UseExperimentalRetryJoin bool `json:"useExperimentalRetryJoin,omitempty"`
 }
 
-// KubeadmConfigStatus defines the observed state of KubeadmConfig
+// KubeadmConfigStatus defines the observed state of KubeadmConfig.
 type KubeadmConfigStatus struct {
 	// Ready indicates the BootstrapData field is ready to be consumed
 	Ready bool `json:"ready,omitempty"`
@@ -128,7 +128,7 @@ type KubeadmConfigStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
-// KubeadmConfig is the Schema for the kubeadmconfigs API
+// KubeadmConfig is the Schema for the kubeadmconfigs API.
 type KubeadmConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -147,7 +147,7 @@ func (c *KubeadmConfig) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// KubeadmConfigList contains a list of KubeadmConfig
+// KubeadmConfigList contains a list of KubeadmConfig.
 type KubeadmConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -263,7 +263,7 @@ type User struct {
 	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
 }
 
-// NTP defines input for generated ntp in cloud-init
+// NTP defines input for generated ntp in cloud-init.
 type NTP struct {
 	// Servers specifies which NTP servers to use
 	// +optional

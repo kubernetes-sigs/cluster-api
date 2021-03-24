@@ -36,7 +36,7 @@ require (
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubectl v0.21.0-beta.1
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
-	sigs.k8s.io/controller-runtime v0.9.0-alpha.0
+	sigs.k8s.io/controller-runtime v0.9.0-alpha.1
 	sigs.k8s.io/kind v0.9.0
 	sigs.k8s.io/yaml v1.2.0
 )

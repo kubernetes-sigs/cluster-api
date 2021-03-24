@@ -16,7 +16,9 @@ limitations under the License.
 
 package client
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 //GetKubeconfigOptions carries all the options supported by GetKubeconfig
 type GetKubeconfigOptions struct {
@@ -35,6 +37,11 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 	// gets access to the management cluster
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
+		return "", err
+	}
+
+	// Ensure this command only runs against management clusters with the current Cluster API contract.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(); err != nil {
 		return "", err
 	}
 

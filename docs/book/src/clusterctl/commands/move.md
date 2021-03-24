@@ -9,7 +9,7 @@ MachineDeployments, etc. from one management cluster to another management clust
 
 Before running `clusterctl move`, the user should take care of preparing the target management cluster, including also installing
 all the required provider using `clusterctl init`.
- 
+
 The version of the providers installed in the target management cluster should be at least the same version of the
 corresponding provider in the source cluster.
 
@@ -29,10 +29,10 @@ to move the Cluster API objects defined in another namespace, you can use the `-
 <h1> Pause Reconciliation </h1>
 
 Before moving a `Cluster`, clusterctl sets the `Cluster.Spec.Paused` field to `true` stopping
-the controllers to reconcile the workload cluster _in the source management cluster_.
+the controllers from reconciling the workload cluster _in the source management cluster_.
 
 The `Cluster` object created in the target management cluster instead will be actively reconciled as soon as the move
-process completes. 
+process completes.
 
 </aside>
 
@@ -58,7 +58,7 @@ This can now be achieved with the following procedure:
 3. Use `clusterctl config cluster ... | kubectl apply -f -` to provision a target management cluster
 4. Wait for the target management cluster to be up and running
 5. Get the kubeconfig for the new target management cluster
-6. Use `clusterctl init` with the new cluster's kubeconfig to install the provider components 
+6. Use `clusterctl init` with the new cluster's kubeconfig to install the provider components
 7. Use `clusterctl move` to move the Cluster API resources from the bootstrap cluster to the target management cluster
 8. Delete the bootstrap cluster
 

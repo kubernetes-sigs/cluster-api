@@ -138,6 +138,7 @@ If you encounter an error when compiling like:
 ```
 
 You may need to bump `client-go`. At time of writing, that means `1.15`, which looks like: `k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible`.
+
 ## The fun part
 
 _More Documentation: [The Kubebuilder Book][book] has some excellent documentation on many things, including [how to write good controllers!][implement]_
@@ -146,7 +147,7 @@ _More Documentation: [The Kubebuilder Book][book] has some excellent documentati
 [implement]: https://book.kubebuilder.io/cronjob-tutorial/controller-implementation.html
 
 Now that we have our objects, it's time to do something with them!
-This is where your provider really comes into it's own.
+This is where your provider really comes into its own.
 In our case, let's try sending some mail:
 
 ```go
@@ -169,7 +170,7 @@ This is an important thing about controllers: they need to be [*idempotent*][ide
 
 So in our case, we'll store the result of sending a message, and then check to see if we've sent one before.
 
-```
+```go
 if mgCluster.Status.MessageID != nil {
     // We already sent a message, so skip reconciliation
     return ctrl.Result{}, nil
@@ -203,7 +204,7 @@ return ctrl.Result{}, nil
 
 #### A note about the status
 
-Usually, the `Status` field should only be fields that can be _computed from existing state_.
+Usually, the `Status` field should only be values that can be _computed from existing state_.
 Things like whether a machine is running can be retrieved from an API, and cluster status can be queried by a healthcheck.
 The message ID is ephemeral, so it should properly go in the `Spec` part of the object.
 Anything that can't be recreated, either with some sort of deterministic generation method or by querying/observing actual state, needs to be in Spec.
@@ -211,7 +212,6 @@ This is to support proper disaster recovery of resources.
 If you have a backup of your cluster and you want to restore it, Kubernetes doesn't let you restore both spec & status together.
 
 We use the MessageID as a `Status` here to illustrate how one might issue status updates in a real application.
-
 
 ## Update `main.go` with your new fields
 
@@ -265,4 +265,3 @@ if err = (&controllers.MailgunClusterReconciler{
 ```
 
 If you have some other state, you'll want to initialize it here!
-

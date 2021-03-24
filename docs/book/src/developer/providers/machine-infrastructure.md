@@ -67,7 +67,7 @@ The following diagram shows the typical logic for a machine infrastructure provi
        (optional)
 1. Set `spec.providerID` to the provider-specific identifier for the provider's machine instance
 1. Set `status.ready` to `true`
-1. Set `status.addresses` to the provider-specific set of instance addresses (optional) 
+1. Set `status.addresses` to the provider-specific set of instance addresses (optional)
 1. Set `spec.failureDomain` to the provider-specific failure domain the instance is running in (optional)
 1. Patch the resource to persist changes
 

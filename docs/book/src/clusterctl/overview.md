@@ -3,7 +3,7 @@
 The `clusterctl` CLI tool handles the lifecycle of a Cluster API [management cluster].
 
 The `clusterctl` command line interface is specifically designed for providing a simple "day 1 experience" and a
-quick start with Cluster API; it automates fetching the YAML files defining [provider components] and installing them.
+quick start with Cluster API. It automates fetching the YAML files defining [provider components] and installing them.
 
 Additionally it encodes a set of best practices in managing providers, that helps the user in avoiding
 mis-configurations or in managing day 2 operations such as upgrades.

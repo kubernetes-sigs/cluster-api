@@ -99,8 +99,6 @@ type ApplyOption func(*applyOptions)
 
 // WithOwnedConditions allows to define condition types owned by the controller.
 // In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
-//
-// DEPRECATED: Use WithForceOverwrite.
 func WithOwnedConditions(t ...clusterv1.ConditionType) ApplyOption {
 	return func(c *applyOptions) {
 		c.ownedConditions = t

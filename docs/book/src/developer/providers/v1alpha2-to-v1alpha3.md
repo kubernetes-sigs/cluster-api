@@ -19,25 +19,25 @@
 - The field is now required on all Cluster dependant objects.
 - The `cluster.x-k8s.io/cluster-name` label is created automatically by each respective controller.
 
-## Context is now required for `external.CloneTemplate` function.
+## Context is now required for `external.CloneTemplate` function
 
 - Pass a context as the first argument to calls to `external.CloneTemplate`.
 
-## Context is now required for `external.Get` function.
+## Context is now required for `external.Get` function
 
 - Pass a context as the first argument to calls to `external.Get`.
 
 ## Cluster and Machine `Status.Phase` field values now start with an uppercase letter
 
 - To be consistent with Pod phases in k/k.
-- More details in https://github.com/kubernetes-sigs/cluster-api/pull/1532/files.
+- More details in [https://github.com/kubernetes-sigs/cluster-api/pull/1532/files](https://github.com/kubernetes-sigs/cluster-api/pull/1532/files).
 
 ## `MachineClusterLabelName` is renamed to `ClusterLabelName`
 
-- The variable name is renamed as this label isn't applied only to machines anymore.
-- This label is also applied to external objects(bootstrap provider, infrastructure provider)
+- The variable name is renamed as this label isn't applied to only machines anymore.
+- This label is also applied to external objects (bootstrap provider, infrastructure provider)
 
-## Cluster and Machine controllers now set `cluster.x-k8s.io/cluster-name` to external objects.
+## Cluster and Machine controllers now set `cluster.x-k8s.io/cluster-name` to external objects
 
 - In addition to the OwnerReference back to the Cluster, a label is now added as well to any external objects, for example objects such as KubeadmConfig (bootstrap provider), AWSCluster (infrastructure provider), AWSMachine (infrastructure provider), etc.
 
@@ -51,7 +51,7 @@
 
 ## Changes to `sigs.k8s.io/cluster-api/controllers/remote`
 
--  The `ClusterClient` interface has been removed.
+- The `ClusterClient` interface has been removed.
 - `remote.NewClusterClient` now returns a `sigs.k8s.io/controller-runtime/pkg/client` Client. It also requires `client.ObjectKey` instead of a cluster reference. The signature changed:
   - From: `func NewClusterClient(c client.Client, cluster *clusterv1.Cluster) (ClusterClient, error)`
   - To: `func NewClusterClient(c client.Client, cluster client.ObjectKey, scheme runtime.Scheme) (client.Client, error)`
@@ -78,17 +78,17 @@
 
 ## Machine `Status.Phase` field set to `Provisioned` if a NodeRef is set but infrastructure is not ready
 
- - The machine Status.Phase is set back to `Provisioned` if the infrastructure is not ready. This is only applicable if the infrastructure node status does not have any errors set.
+- The machine Status.Phase is set back to `Provisioned` if the infrastructure is not ready. This is only applicable if the infrastructure node status does not have any errors set.
 
-## Cluster `Status.Phase` transition to `Provisioned` additionally needs at least one APIEndpoint to be available.
+## Cluster `Status.Phase` transition to `Provisioned` additionally needs at least one APIEndpoint to be available
 
 - Previously, the sole requirement to transition a Cluster's `Status.Phase` to `Provisioned` was a `true` value of `Status.InfrastructureReady`. Now, there are two requirements: a `true` value of `Status.InfrastructureReady` and at least one entry in `Status.APIEndpoints`.
-- See https://github.com/kubernetes-sigs/cluster-api/pull/1721/files.
+- See [https://github.com/kubernetes-sigs/cluster-api/pull/1721/files](https://github.com/kubernetes-sigs/cluster-api/pull/1721/files).
 
 ## `Status.ErrorReason` and `Status.ErrorMessage` fields, populated to signal a fatal error has occurred, have been renamed in Cluster, Machine and MachineSet
 
--  `Status.ErrorReason` has been renamed to `Status.FailureReason`
--  `Status.ErrorMessage` has been renamed to `Status.FailureMessage`
+- `Status.ErrorReason` has been renamed to `Status.FailureReason`
+- `Status.ErrorMessage` has been renamed to `Status.FailureMessage`
 
 ## The `external.ErrorsFrom` function has been renamed to `external.FailuresFrom`
 
@@ -98,21 +98,21 @@
 
 - As a follow up to the changes mentioned above - for the `external.FailuresFrom` function to retain its functionality, external objects
 (e.g., AWSCluster, AWSMachine, etc.) will need to rename the fields as well.
--  `Status.ErrorReason` should be renamed to `Status.FailureReason`
--  `Status.ErrorMessage` should be renamed to `Status.FailureMessage`
+- `Status.ErrorReason` should be renamed to `Status.FailureReason`
+- `Status.ErrorMessage` should be renamed to `Status.FailureMessage`
 
 ## The field `Cluster.Status.APIEndpoints` is removed in favor of `Cluster.Spec.ControlPlaneEndpoint`
 
 - The slice in Cluster.Status has been removed and replaced by a single APIEndpoint field under Spec.
 - Infrastructure providers MUST expose a ControlPlaneEndpoint field in their cluster infrastructure resource at `Spec.ControlPlaneEndpoint`. They may optionally remove the `Status.APIEndpoints` field (Cluster API no longer uses it).
 
-## Data generated from a bootstrap provider is now stored in a secret.
+## Data generated from a bootstrap provider is now stored in a secret
 
 - The Cluster API Machine Controller no longer reconciles the bootstrap provider `status.bootstrapData` field, but instead looks at `status.dataSecretName`.
 - The `Machine.Spec.Bootstrap.Data` field is deprecated and will be removed in a future version.
 - Bootstrap providers must create a Secret in the bootstrap resource's namespace and store the name in the bootstrap resource's `status.dataSecretName` field.
-    - The secret created by the bootstrap provider is of type `cluster.x-k8s.io/secret`.
-    - On reconciliation, we suggest to migrate from the deprecated field to a secret reference.
+  - The secret created by the bootstrap provider is of type `cluster.x-k8s.io/secret`.
+  - On reconciliation, we suggest to migrate from the deprecated field to a secret reference.
 - Infrastructure providers must look for the bootstrap data secret name in `Machine.Spec.Bootstrap.DataSecretName` and fallback to `Machine.Spec.Bootstrap.Data`.
 
 ## The `cloudinit` module under the Kubeadm bootstrap provider has been made private
@@ -135,7 +135,7 @@ outside of the existing module.
   - `status.infrastuctureReady` to understand the state of the configuration consumer so the
     bootstrap provider can take appropriate action (e.g. renew bootstrap token).
 
-## Support the `cluster.x-k8s.io/paused` annotation and `Cluster.Spec.Paused` field.
+## Support the `cluster.x-k8s.io/paused` annotation and `Cluster.Spec.Paused` field
 
 - A new annotation `cluster.x-k8s.io/paused` provides the ability to pause reconciliation on specific objects.
 - A new field `Cluster.Spec.Paused` provides the ability to pause reconciliation on a Cluster and all associated objects.
@@ -188,7 +188,7 @@ outside of the existing module.
     }
     ```
 
-## [OPTIONAL] Support failure domains.
+## [OPTIONAL] Support failure domains
 
 An infrastructure provider may or may not implement the failure domains feature. Failure domains gives Cluster API
 just enough information to spread machines out reducing the risk of a target cluster failing due to a domain outage.
@@ -205,7 +205,7 @@ defined on the provider-defined infrastructure resource.
 
 Please see the cluster and machine infrastructure provider specifications for more detail.
 
-## Refactor kustomize `config/` folder to support multi-tenancy when using webhooks.
+## Refactor kustomize `config/` folder to support multi-tenancy when using webhooks
 
 > Pre-Requisites: Upgrade to CRD v1.
 
@@ -389,7 +389,7 @@ After all the changes above are performed, `kustomize build` MUST target `config
 
 In addition, often the `Makefile` contains a sed-replacement for `manager_image_patch.yaml`, this file has been moved from `config/default` to `config/manager`. Using your favorite editor, search for `manager_image_patch` in your repository and change the paths accordingly.
 
-# Apply the contract version label `cluster.x-k8s.io/<version>: version1_version2_version3` to your CRDs
+## Apply the contract version label `cluster.x-k8s.io/<version>: version1_version2_version3` to your CRDs
 
 - Providers MUST set `cluster.x-k8s.io/<version>` labels on all Custom Resource Definitions related to Cluster API starting with v1alpha3.
 - The label is a map from an API Version of Cluster API (contract) to your Custom Resource Definition versions.
@@ -408,7 +408,7 @@ commonLabels:
   cluster.x-k8s.io/v1beta1: v1alphaX_v1beta1
 ```
 
-# Upgrade to CRD v1
+## Upgrade to CRD v1
 
 - Providers should upgrade their CRDs to v1
 - Minimum Kubernetes version supporting CRDv1 is `v1.16`
@@ -484,8 +484,8 @@ spec:
   ...
 ```
 
+## Add `matchPolicy=Equivalent` kubebuilder marker in webhooks
 
-# Add `matchPolicy=Equivalent` kubebuilder marker in webhooks
 - All providers should set "matchPolicy=Equivalent" kubebuilder marker for webhooks on all Custom Resource Definitions related to Cluster API starting with v1alpha3.
 - Specifying `Equivalent` ensures that webhooks continue to intercept the resources they expect when upgrades enable new versions of the resource in the API server.
 - E.g., `matchPolicy` is added to `AWSMachine` (/api/v1alpha3/awsmachine_webhook.go)
@@ -494,7 +494,7 @@ spec:
    ```
 - Support for `matchPolicy` marker has been added in [kubernetes-sigs/controller-tools](https://github.com/kubernetes-sigs/controller-tools/commit/d6efdcdd90e2a95ae7aea0dbec3252b705a9314d). Providers needs to update controller-tools dependency to make use of it, usually in `hack/tools/go.mod`.
 
-# [OPTIONAL] Implement `--feature-gates` flag in main.go
+## [OPTIONAL] Implement `--feature-gates` flag in main.go
 
 - Cluster API now ships with a new experimental package that lives under `exp/` containing both API types and controllers.
 - Controller and types should always live behind a gate defined under the `feature/` package.

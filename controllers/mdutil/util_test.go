@@ -64,7 +64,7 @@ func generateMS(deployment clusterv1.MachineDeployment) clusterv1.MachineSet {
 }
 
 func randomUID() types.UID {
-	return types.UID(strconv.FormatInt(rand.Int63(), 10))
+	return types.UID(strconv.FormatInt(rand.Int63(), 10)) //nolint:gosec
 }
 
 // generateDeployment creates a deployment, with the input image as its template

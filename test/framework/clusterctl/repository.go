@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,6 +34,12 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+)
+
+const (
+	fileURIScheme  = "file"
+	httpURIScheme  = "http"
+	httpsURIScheme = "https"
 )
 
 // Provides helpers for managing a clusterctl local repository to be used for running e2e tests in isolation.
@@ -135,14 +142,9 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 
 	switch source.Type {
 	case URLSource:
-		resp, err := http.Get(source.Value)
+		buf, err := getComponentSourceFromURL(source)
 		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		buf, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to get component source YAML from URL")
 		}
 		data = buf
 	case KustomizeSource:
@@ -167,4 +169,37 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 	}
 
 	return data, nil
+}
+
+// getComponentSourceFromURL fetches contents of component source YAML file from provided URL source.
+func getComponentSourceFromURL(source ProviderVersionSource) ([]byte, error) {
+	var buf []byte
+
+	u, err := url.Parse(source.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	// url.Parse always lower cases scheme
+	switch u.Scheme {
+	case "", fileURIScheme:
+		buf, err = ioutil.ReadFile(u.Path)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read file")
+		}
+	case httpURIScheme, httpsURIScheme:
+		resp, err := http.Get(source.Value)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		buf, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.Errorf("unknown scheme for component source %q: allowed values are file, http, https", u.Scheme)
+	}
+
+	return buf, nil
 }

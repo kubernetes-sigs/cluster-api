@@ -2,8 +2,7 @@
 
 The `clusterctl completion` command outputs shell completion code for the
 specified shell (bash or zsh). The shell code must be evaluated to provide
-interactive completion of clusterctl commands. This can be done by sourcing it
-from the `~/.bash_profile`.
+interactive completion of clusterctl commands.
 
 ## Bash
 
@@ -15,9 +14,10 @@ This requires the bash-completion framework.
 
 </aside>
 
-To install it on macOS use Homebrew:
+To install `bash-completion` on macOS, use Homebrew:
+
 ```
-$ brew install bash-completion
+brew install bash-completion
 ```
 
 Once installed, bash_completion must be evaluated. This can be done by adding

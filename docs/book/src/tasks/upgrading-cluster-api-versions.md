@@ -88,7 +88,7 @@ You must be running at least Cluster API 0.3.7 for adoption to be successful.
 If your cluster has existing machines labeled with `cluster.x-k8s.io/control-plane`, you may opt in to management of those machines by
 creating a new KubeadmControlPlane object and updating the associated Cluster object's `controlPlaneRef` like so:
 
-```
+```yaml
 ---
 apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Cluster

@@ -59,10 +59,9 @@ Cluster API Provider vSphere
 ### CAPZ
 Cluster API Provider Azure
 
-
 ### Cluster
 
-A full Kubernetes deployment. See Management Cluster and Workload Cluster
+A full Kubernetes deployment. See Management Cluster and Workload Cluster.
 
 ### Cluster API
 
@@ -72,7 +71,7 @@ The Cluster API sub-project of the SIG-cluster-lifecycle. It is also used to ref
 
 ### Control plane
 
-The set of Kubernetes services that form the basis of a cluster. See also https://kubernetes.io/docs/concepts/#kubernetes-control-plane There are two variants:
+The set of Kubernetes services that form the basis of a cluster. See also [https://kubernetes.io/docs/concepts/#kubernetes-control-plane](https://kubernetes.io/docs/concepts/#kubernetes-control-plane) There are two variants:
 
 * __Self-provisioned__: A Kubernetes control plane consisting of pods or machines wholly managed by a single Cluster API deployment.
 * __External__: A control plane offered and controlled by some system other than Cluster API (e.g., GKE, AKS, EKS, IKS).
@@ -150,7 +149,7 @@ one of them corresponding to an infrastructure tenant.
 Please note that up until v1alpha3 this concept had a different meaning, referring to the capability to run multiple
 instances of the same provider, each one with its own credentials; starting from v1alpha4 we are disambiguating the two concepts.
 
-see [Multi-tenancy](../developer/architecture/controllers/multi-tenancy.md) and [Support multiple instances](../developer/architecture/controllers/support-multiple-instances.md).
+See [Multi-tenancy](../developer/architecture/controllers/multi-tenancy.md) and [Support multiple instances](../developer/architecture/controllers/support-multiple-instances.md).
 
 # N
 ---

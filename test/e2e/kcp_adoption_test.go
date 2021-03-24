@@ -22,6 +22,8 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo"
+
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 var _ = Describe("When testing KCP adoption", func() {
@@ -30,7 +32,7 @@ var _ = Describe("When testing KCP adoption", func() {
 		return KCPAdoptionSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy.(ClusterProxy),
+			BootstrapClusterProxy: bootstrapClusterProxy.(framework.ClusterProxy),
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 		}

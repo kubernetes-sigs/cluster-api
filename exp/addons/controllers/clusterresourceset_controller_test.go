@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -307,17 +308,16 @@ metadata:
 		}, timeout).Should(BeTrue())
 
 		// When the ConfigMap resource is created, CRS should get reconciled immediately.
-		Eventually(func() bool {
+		Eventually(func() error {
 			binding := &addonsv1.ClusterResourceSetBinding{}
-
-			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
-			if err == nil {
-				if len(binding.Spec.Bindings[0].Resources) > 0 && binding.Spec.Bindings[0].Resources[0].Name == newCMName {
-					return true
-				}
+			if err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding); err != nil {
+				return err
 			}
-			return false
-		}, timeout).Should(BeTrue())
+			if len(binding.Spec.Bindings[0].Resources) > 0 && binding.Spec.Bindings[0].Resources[0].Name == newCMName {
+				return nil
+			}
+			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, binding.Spec.Bindings)
+		}, timeout).Should(Succeed())
 		Expect(testEnv.Delete(ctx, testConfigmap)).To(Succeed())
 	})
 	It("Should delete ClusterResourceSet from the bindings list when ClusterResourceSet is deleted", func() {

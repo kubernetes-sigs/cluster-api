@@ -220,28 +220,28 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 ## Generate / Manifests
 ## --------------------------------------
 
+ALL_GENERATE_MODULES = core cabpk kcp
+
 .PHONY: generate
 generate: ## Generate code
-	$(MAKE) generate-manifests
-	$(MAKE) generate-go
-	$(MAKE) generate-bindata
+	$(MAKE) generate-manifests generate-go generate-bindata
 	$(MAKE) -C test/infrastructure/docker generate
 
 .PHONY: generate-go
-generate-go: $(GOBINDATA) ## Runs Go related generate targets
-	go generate ./...
-	$(MAKE) generate-go-core
-	$(MAKE) generate-go-kubeadm-bootstrap
-	$(MAKE) generate-go-kubeadm-control-plane
+generate-go:  ## Runs Go related generate targets
+	$(MAKE) $(addprefix generate-go-,$(ALL_GENERATE_MODULES)) $(addprefix generate-go-conversions-,$(ALL_GENERATE_MODULES))
 
 .PHONY: generate-go-core
-generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN)
+generate-go-core: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/addons/api/... \
 		paths=./cmd/clusterctl/...
+
+.PHONY: generate-go-conversions-core
+generate-go-conversions-core: $(CONVERSION_GEN)
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/v1alpha3,./$(EXP_DIR)/api/v1alpha3,./$(EXP_DIR)/addons/api/v1alpha3"
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
@@ -255,12 +255,15 @@ generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN)
 		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
-.PHONY: generate-go-kubeadm-bootstrap
-generate-go-kubeadm-bootstrap: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets for the kubeadm bootstrapper
+.PHONY: generate-go-cabpk
+generate-go-cabpk: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/types/...
+
+.PHONY: generate-go-conversions-cabpk
+generate-go-conversions-cabpk: $(CONVERSION_GEN)
 	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/api"
 	$(CONVERSION_GEN) \
 		--input-dirs=./bootstrap/kubeadm/api/v1alpha3 \
@@ -269,11 +272,14 @@ generate-go-kubeadm-bootstrap: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go re
 		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
-.PHONY: generate-go-kubeadm-control-plane
-generate-go-kubeadm-control-plane: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets for the kubeadm control plane
+.PHONY: generate-go-kcp
+generate-go-kcp: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./controlplane/kubeadm/api/...
+
+.PHONY: generate-go-conversions-kcp
+generate-go-conversions-kcp: $(CONVERSION_GEN)
 	$(MAKE) clean-generated-conversions SRC_DIRS="./controlplane/kubeadm/api"
 	$(CONVERSION_GEN) \
 		--input-dirs=./controlplane/kubeadm/api/v1alpha3 \
@@ -282,26 +288,12 @@ generate-go-kubeadm-control-plane: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs G
 		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
-.PHONY: generate-bindata
-generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for embedding the clusterctl api manifest
-	# Package manifest YAML into a single file.
-	mkdir -p $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
-	$(KUSTOMIZE) build $(GOBINDATA_CLUSTERCTL_DIR)/crd > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/clusterctl-api.yaml
-	# Generate go-bindata, add boilerplate, then cleanup.
-	$(GOBINDATA) -mode=420 -modtime=1 -pkg=config -o=$(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
-	cat ./hack/boilerplate/boilerplate.generatego.txt $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go
-	cp $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go
-	# Cleanup the manifest folder.
-	$(MAKE) clean-bindata
 
 .PHONY: generate-manifests
-generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
-	$(MAKE) generate-core-manifests
-	$(MAKE) generate-kubeadm-bootstrap-manifests
-	$(MAKE) generate-kubeadm-control-plane-manifests
+generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## Generate manifests e.g. CRD, RBAC etc.
 
-.PHONY: generate-core-manifests
-generate-core-manifests: $(CONTROLLER_GEN) ## Generate manifests for the core provider e.g. CRD, RBAC etc.
+.PHONY: generate-manifests-core
+generate-manifests-core: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
@@ -319,8 +311,8 @@ generate-core-manifests: $(CONTROLLER_GEN) ## Generate manifests for the core pr
 		crd:crdVersions=v1 \
 		output:crd:dir=./cmd/clusterctl/config/crd/bases
 
-.PHONY: generate-kubeadm-bootstrap-manifests
-generate-kubeadm-bootstrap-manifests: $(CONTROLLER_GEN) ## Generate manifests for the kubeadm bootstrap provider e.g. CRD, RBAC etc.
+.PHONY: generate-manifests-cabpk
+generate-manifests-cabpk: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/controllers/... \
@@ -331,8 +323,8 @@ generate-kubeadm-bootstrap-manifests: $(CONTROLLER_GEN) ## Generate manifests fo
 		output:webhook:dir=./bootstrap/kubeadm/config/webhook \
 		webhook
 
-.PHONY: generate-kubeadm-control-plane-manifests
-generate-kubeadm-control-plane-manifests: $(CONTROLLER_GEN) ## Generate manifests for the kubeadm control plane provider e.g. CRD, RBAC etc.
+.PHONY: generate-manifests-kcp
+generate-manifests-kcp: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		paths=./controlplane/kubeadm/api/... \
 		paths=./controlplane/kubeadm/controllers/... \
@@ -342,6 +334,30 @@ generate-kubeadm-control-plane-manifests: $(CONTROLLER_GEN) ## Generate manifest
 		output:rbac:dir=./controlplane/kubeadm/config/rbac \
 		output:webhook:dir=./controlplane/kubeadm/config/webhook \
 		webhook
+
+## --------------------------------------
+## Bindata generation
+## TODO(community): Figure out a way to remove this target in favor of go embed.
+## --------------------------------------
+
+.PHONY: generate-bindata
+generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for embedding the clusterctl api manifest
+	# We're running go generate here, because the only target actually generates bindata in test/framework/kubernetesversions
+	# This directive should be removed in favor of go embed.
+	go generate ./...
+	# Package manifest YAML into a single file.
+	mkdir -p $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
+	$(KUSTOMIZE) build $(GOBINDATA_CLUSTERCTL_DIR)/crd > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/clusterctl-api.yaml
+	# Generate go-bindata, add boilerplate, then cleanup.
+	$(GOBINDATA) -mode=420 -modtime=1 -pkg=config -o=$(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
+	cat ./hack/boilerplate/boilerplate.generatego.txt $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go
+	cp $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go
+	# Cleanup the manifest folder.
+	$(MAKE) clean-bindata
+
+## --------------------------------------
+## Modules
+## --------------------------------------
 
 .PHONY: modules
 modules: ## Runs go mod to ensure modules are up to date.

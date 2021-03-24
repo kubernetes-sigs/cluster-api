@@ -1,0 +1,57 @@
+@startuml
+title User creates a Cluster with Managed External Etcd
+actor User 
+' -- GROUPS START ---
+box #lightgreen
+participant "API Server"
+end box
+box #lightblue
+participant "CAPI Cluster Controller"
+end box
+skinparam BoxPadding 30
+box #lightslategrey
+participant "CAPI Machine Controller"
+end box
+box #violet
+participant "EtcdCluster Controller"
+end box
+box #lightpink
+participant "Etcdadm Bootstrap Provider"
+end box
+' -- GROUPS END ---
+User->"API Server":kubectl apply -f cluster.yaml
+"API Server"-->>"CAPI Cluster Controller": New Cluster
+"CAPI Cluster Controller"-> "CAPI Cluster Controller":Cluster Controller Reconcile
+activate "CAPI Cluster Controller"
+alt If Cluster.Spec.ManagedExternalEtcdRef is set\nand object referenced by the etcd ref is not ready
+"CAPI Cluster Controller"-> "API Server": Pause controlplane provisioning by setting\n`cluster.x-k8s.io/paused` annotation on the\nobject referenced by Cluster.Spec.ControlPlaneRef
+"CAPI Cluster Controller"<<--"API Server": Response
+end
+"CAPI Cluster Controller"->"API Server": Patch Cluster Status
+"CAPI Cluster Controller"<<--"API Server": Response
+note right of "EtcdCluster Controller":Watches EtcdClusters,\nClusters, and owned Machines
+"API Server"-->>"EtcdCluster Controller": Cluster Updated
+"EtcdCluster Controller"-> "EtcdCluster Controller":EtcdCluster Reconcile
+activate "EtcdCluster Controller"
+alt Replicas >=1 and no Current Machines for the Etcd Cluster
+"EtcdCluster Controller"->"API Server": Create EtcdadmConfig from EtcdCluster.Spec.EtcdadmConfigSpec
+"Etcdadm Bootstrap Provider"<<--"API Server": EtcdadmConfig resource created
+activate "Etcdadm Bootstrap Provider"
+"Etcdadm Bootstrap Provider" -> "Etcdadm Bootstrap Provider": Generate cloud-init script to run etcdadm init
+"EtcdCluster Controller"->"API Server": Create Machine using refs from created EtcdadmConfig resouce and EtcdCluster.Spec.InfrastructureTemplate
+"EtcdCluster Controller"<<--"API Server": Response
+"API Server" -> "CAPI Machine Controller": First Etcd InfraMachine updated with address
+"CAPI Machine Controller" -> "CAPI Machine Controller": Set EtcdCluster Status field Initialized=true
+"API Server" -> "EtcdCluster Controller": EtcdCluster updated
+end
+alt Replicas >=1 and EtcdCluster is initialized
+"EtcdCluster Controller"->"API Server": Create EtcdadmConfig from EtcdCluster.Spec.EtcdadmConfigSpec
+"Etcdadm Bootstrap Provider"<<--"API Server": EtcdadmConfig resource created
+"Etcdadm Bootstrap Provider" -> "Etcdadm Bootstrap Provider": Generate cloud-init script to run etcdadm join
+"EtcdCluster Controller"->"API Server": Create Machine using refs from created EtcdadmConfig resouce and EtcdCluster.Spec.InfrastructureTemplate
+"EtcdCluster Controller"<<--"API Server": Response
+end
+"EtcdCluster Controller"->"API Server": Patch EtcdCluster
+"EtcdCluster Controller"<<--"API Server": Response
+"EtcdCluster Controller"->"EtcdCluster Controller": Perform etcd healthcheck and update Status.Endpoint field\nset Status.Ready=true
+@enduml

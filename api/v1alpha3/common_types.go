@@ -105,6 +105,8 @@ type ObjectMeta struct {
 	// Cannot be updated.
 	// More info: http://kubernetes.io/docs/user-guide/identifiers#names
 	// +optional
+	//
+	// Deprecated: This field has no function and is going to be removed in a next release.
 	Name string `json:"name,omitempty"`
 
 	// GenerateName is an optional prefix, used by the server, to generate a unique
@@ -123,6 +125,8 @@ type ObjectMeta struct {
 	// Applied only if Name is not specified.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency
 	// +optional
+	//
+	// Deprecated: This field has no function and is going to be removed in a next release.
 	GenerateName string `json:"generateName,omitempty"`
 
 	// Namespace defines the space within each name must be unique. An empty namespace is
@@ -134,6 +138,8 @@ type ObjectMeta struct {
 	// Cannot be updated.
 	// More info: http://kubernetes.io/docs/user-guide/namespaces
 	// +optional
+	//
+	// Deprecated: This field has no function and is going to be removed in a next release.
 	Namespace string `json:"namespace,omitempty"`
 
 	// Map of string keys and values that can be used to organize and categorize
@@ -157,5 +163,7 @@ type ObjectMeta struct {
 	// +optional
 	// +patchMergeKey=uid
 	// +patchStrategy=merge
+	//
+	// Deprecated: This field has no function and is going to be removed in a next release.
 	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid"`
 }

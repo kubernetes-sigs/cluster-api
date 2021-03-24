@@ -54,14 +54,14 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &v1alpha4.MachineSet{},
 		Spoke:       &MachineSet{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &v1alpha4.MachineDeployment{},
 		Spoke:       &MachineDeployment{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
 	t.Run("for MachineHealthCheckSpec", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -69,6 +69,23 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:    &v1alpha4.MachineHealthCheck{},
 		Spoke:  &MachineHealthCheck{},
 	}))
+}
+
+func CustomObjectMetaFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		CustomObjectMetaFuzzer,
+	}
+}
+
+func CustomObjectMetaFuzzer(in *ObjectMeta, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// These fields have been removed in v1alpha4
+	// data is going to be lost, so we're forcing zero values here.
+	in.Name = ""
+	in.GenerateName = ""
+	in.Namespace = ""
+	in.OwnerReferences = nil
 }
 
 func BootstrapFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

@@ -55,4 +55,5 @@ webhooks:
     - UPDATE
     resources:
     - kubeadmcontrolplanes
+    - kubeadmcontrolplanes/scale
   sideEffects: None

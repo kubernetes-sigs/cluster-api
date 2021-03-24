@@ -153,6 +153,59 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 	g.Expect(got).To(BeNil())
 }
 
+func TestReconcileUpdateObservedGeneration(t *testing.T) {
+	g := NewWithT(t)
+	r := &KubeadmControlPlaneReconciler{
+		Client:            testEnv,
+		recorder:          record.NewFakeRecorder(32),
+		managementCluster: &internal.Management{Client: testEnv.Client, Tracker: nil},
+	}
+
+	cluster, kcp, _ := createClusterWithControlPlane()
+	g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+	g.Expect(testEnv.Create(ctx, kcp)).To(Succeed())
+
+	// read kcp.Generation after create
+	errGettingObject := testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+	g.Expect(errGettingObject).NotTo(HaveOccurred())
+	generation := kcp.Generation
+
+	// Set cluster.status.InfrastructureReady so we actually enter in the reconcile loop
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"status\":{\"infrastructureReady\":%t}}", true)))
+	g.Expect(testEnv.Status().Patch(ctx, cluster, patch)).To(Succeed())
+
+	// call reconcile the first time, so we can check if observedGeneration is set when adding a finalizer
+	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
+
+	g.Eventually(func() int64 {
+		errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+		g.Expect(errGettingObject).NotTo(HaveOccurred())
+		return kcp.Status.ObservedGeneration
+	}, 10*time.Second).Should(Equal(generation))
+
+	// triggers a generation change by changing the spec
+	kcp.Spec.Replicas = pointer.Int32Ptr(*kcp.Spec.Replicas + 2)
+	g.Expect(testEnv.Update(ctx, kcp)).To(Succeed())
+
+	// read kcp.Generation after the update
+	errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+	g.Expect(errGettingObject).NotTo(HaveOccurred())
+	generation = kcp.Generation
+
+	// call reconcile the second time, so we can check if observedGeneration is set when calling defer patch
+	// NB. The call to reconcile fails because KCP is not properly setup (e.g. missing InfrastructureTemplate)
+	// but this is not important because what we want is KCP to be patched
+	_, _ = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+
+	g.Eventually(func() int64 {
+		errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+		g.Expect(errGettingObject).NotTo(HaveOccurred())
+		return kcp.Status.ObservedGeneration
+	}, 10*time.Second).Should(Equal(generation))
+}
+
 func TestReconcileNoClusterOwnerRef(t *testing.T) {
 	g := NewWithT(t)
 

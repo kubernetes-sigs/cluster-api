@@ -176,18 +176,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
 // and their nodes targeted by the health check, ready for health checking.
-func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
+func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
 	machines, err := r.getMachinesFromMHC(ctx, mhc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
 	}
 	if len(machines) == 0 {
 		return nil, nil
-	}
-
-	var cluster clusterv1.Cluster
-	if err := clusterClient.Get(ctx, client.ObjectKey{Namespace: mhc.Namespace, Name: mhc.Spec.ClusterName}, &cluster); err != nil {
-		return nil, errors.Wrapf(err, "error getting Cluster %s/%s for MachineHealthCheck %s", mhc.Namespace, mhc.Spec.ClusterName, mhc.Name)
 	}
 
 	targets := []healthCheckTarget{}
@@ -203,7 +198,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, lo
 			return nil, errors.Wrap(err, "unable to initialize patch helper")
 		}
 		target := healthCheckTarget{
-			Cluster:     &cluster,
+			Cluster:     cluster,
 			MHC:         mhc,
 			Machine:     &machines[k],
 			patchHelper: patchHelper,

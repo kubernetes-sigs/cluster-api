@@ -35,7 +35,7 @@ func (e *MachineError) Error() string {
 
 // Some error builders for ease of use. They set the appropriate "Reason"
 // value, and all arguments are Printf-style varargs fed into Sprintf to
-// construct the Message.
+// construct the Message
 
 func InvalidMachineConfiguration(msg string, args ...interface{}) *MachineError {
 	return &MachineError{

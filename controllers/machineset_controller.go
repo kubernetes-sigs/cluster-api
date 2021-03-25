@@ -313,13 +313,17 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
 	}
-
 	diff := len(machines) - int(*(ms.Spec.Replicas))
 	switch {
 	case diff < 0:
 		diff *= -1
 		log.Info("Too few replicas", "need", *(ms.Spec.Replicas), "creating", diff)
-
+		if ms.Annotations != nil {
+			if _, ok := ms.Annotations[clusterv1.DisableMachineCreate]; ok {
+				log.V(2).Info("Automatic creation of new machines disabled for machine set")
+				return nil
+			}
+		}
 		var (
 			machineList []*clusterv1.Machine
 			errs        []error

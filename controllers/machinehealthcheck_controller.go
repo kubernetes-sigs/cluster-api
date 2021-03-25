@@ -195,7 +195,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 
 	// fetch all targets
 	logger.V(3).Info("Finding targets")
-	targets, err := r.getTargetsFromMHC(ctx, logger, remoteClient, m)
+	targets, err := r.getTargetsFromMHC(ctx, logger, remoteClient, cluster, m)
 	if err != nil {
 		logger.Error(err, "Failed to fetch targets from MachineHealthCheck")
 		return ctrl.Result{}, err

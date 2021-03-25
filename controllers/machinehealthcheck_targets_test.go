@@ -170,7 +170,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 				t.patchHelper = patchHelper
 			}
 
-			targets, err := reconciler.getTargetsFromMHC(ctx, ctrl.LoggerFrom(ctx), k8sClient, testMHC)
+			targets, err := reconciler.getTargetsFromMHC(ctx, ctrl.LoggerFrom(ctx), k8sClient, cluster, testMHC)
 			gs.Expect(err).ToNot(HaveOccurred())
 
 			gs.Expect(len(targets)).To(Equal(len(tc.expectedTargets)))

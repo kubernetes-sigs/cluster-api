@@ -26248,6 +26248,9 @@ spec:
           name: cert-manager
           resources: {}
       serviceAccountName: cert-manager-cainjector
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26296,6 +26299,9 @@ spec:
               protocol: TCP
           resources: {}
       serviceAccountName: cert-manager
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26362,6 +26368,9 @@ spec:
             timeoutSeconds: 1
           resources: {}
       serviceAccountName: cert-manager-webhook
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration

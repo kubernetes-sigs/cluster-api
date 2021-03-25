@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	timeout              = time.Second * 10
+	timeout              = time.Second * 20
 	defaultNamespaceName = "default"
 )
 
@@ -44,12 +44,13 @@ var _ = Describe("ClusterResourceSet Reconciler", func() {
 
 	var testCluster *clusterv1.Cluster
 	var clusterName string
-
+	var labels map[string]string
 	var configmapName = "test-configmap"
 	var secretName = "test-secret"
 
 	BeforeEach(func() {
 		clusterResourceSetName = fmt.Sprintf("clusterresourceset-%s", util.RandomString(6))
+		labels = map[string]string{clusterResourceSetName: "bar"}
 
 		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
 		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: defaultNamespaceName}}
@@ -71,7 +72,6 @@ kind: ConfigMap
 apiVersion: v1`,
 			},
 		}
-		testEnv.Create(ctx, testConfigmap)
 		testSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
@@ -126,7 +126,6 @@ metadata:
 
 	It("Should reconcile a ClusterResourceSet with multiple resources when a cluster with matching label exists", func() {
 		By("Updating the cluster with labels")
-		labels := map[string]string{"foo": "bar"}
 		testCluster.SetLabels(labels)
 		Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
 
@@ -180,8 +179,6 @@ metadata:
 		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 	})
 	It("Should reconcile a cluster when its labels are changed to match a ClusterResourceSet's selector", func() {
-
-		labels := map[string]string{"foo": "bar"}
 
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -242,10 +239,9 @@ metadata:
 		}, timeout).Should(BeTrue())
 	})
 	It("Should reconcile a ClusterResourceSet when a resource is created that is part of ClusterResourceSet resources", func() {
-		labels := map[string]string{"foo2": "bar2"}
-		newCMName := "test-configmap3"
+		newCMName := fmt.Sprintf("test-configmap-%s", util.RandomString(6))
 
-		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
+		crsInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterResourceSetName,
 				Namespace: defaultNamespaceName,
@@ -258,7 +254,7 @@ metadata:
 			},
 		}
 		// Create the ClusterResourceSet.
-		Expect(testEnv.Create(ctx, clusterResourceSetInstance)).To(Succeed())
+		Expect(testEnv.Create(ctx, crsInstance)).To(Succeed())
 
 		testCluster.SetLabels(labels)
 		Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
@@ -289,14 +285,18 @@ metadata:
 			return false
 		}, timeout).Should(BeTrue())
 
-		testConfigmap := &corev1.ConfigMap{
+		newConfigmap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      newCMName,
 				Namespace: defaultNamespaceName,
 			},
 			Data: map[string]string{},
 		}
-		Expect(testEnv.Create(ctx, testConfigmap)).To(Succeed())
+		Expect(testEnv.Create(ctx, newConfigmap)).To(Succeed())
+		defer func() {
+			Expect(testEnv.Delete(ctx, newConfigmap)).To(Succeed())
+		}()
+
 		cmKey := client.ObjectKey{
 			Namespace: defaultNamespaceName,
 			Name:      newCMName,
@@ -318,11 +318,18 @@ metadata:
 			}
 			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, binding.Spec.Bindings)
 		}, timeout).Should(Succeed())
-		Expect(testEnv.Delete(ctx, testConfigmap)).To(Succeed())
+
+		By("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
+		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
+
+		Eventually(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
+			return apierrors.IsNotFound(err)
+		}, timeout).Should(BeTrue())
 	})
 	It("Should delete ClusterResourceSet from the bindings list when ClusterResourceSet is deleted", func() {
 		By("Updating the cluster with labels")
-		labels := map[string]string{"foo": "bar"}
 		testCluster.SetLabels(labels)
 		Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
 
@@ -405,7 +412,6 @@ metadata:
 	})
 	It("Should add finalizer after reconcile", func() {
 		dt := metav1.Now()
-		labels := map[string]string{"foo": "bar"}
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              clusterResourceSetName,

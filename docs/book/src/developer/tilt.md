@@ -13,7 +13,7 @@ workflow that offers easy deployments and rapid iterative builds.
 1. [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
    standalone (`kubectl kustomize` does not work because it is missing
    some features of kustomize v3)
-1. [Tilt](https://docs.tilt.dev/install.html) v0.12.0 or newer
+1. [Tilt](https://docs.tilt.dev/install.html) v0.16.0 or newer
 1. [envsubst](https://github.com/drone/envsubst) or similar to handle
    clusterctl var replacement. Note: drone/envsubst releases v1.0.2 and
    earlier do not have the binary packaged under cmd/envsubst. It is
@@ -186,8 +186,23 @@ tilt up
 
 This will open the command-line HUD as well as a web browser interface. You can monitor Tilt's status in either
 location. After a brief amount of time, you should have a running development environment, and you should now be able to
-create a cluster. Please see the [Usage section in the Quick
-Start](https://cluster-api.sigs.k8s.io/user/quick-start.html#usage) for more information on creating workload clusters.
+create a cluster. There are [example worker cluster
+configs](https://github.com/kubernetes-sigs/cluster-api/tree/master/test/infrastructure/docker/examples) available.
+These can be customized for your specific needs.
+
+<aside class="note">
+
+<h1>Use of clusterctl</h1>
+
+When the worker cluster has been created using tilt, `clusterctl` should not be used for management
+operations; this is because tilt doesn't initialize providers on the management cluster like clusterctl init does, so
+some of the clusterctl commands like clusterctl config won't work.
+
+This limitation is an acceptable trade-off while executing fast dev-test iterations on controllers logic. If instead
+you are interested in testing clusterctl workflows, you should refer to the
+[clusterctl developer instructions](https://cluster-api.sigs.k8s.io/clusterctl/developers.html).
+
+</aside>
 
 ## Available providers
 

@@ -1,0 +1,121 @@
+@startuml foolb-reconciliation
+skinparam ConditionEndStyle hline
+start
+:FooLoadBalancer controller;
+:enqueue fooLoadBalancer;
+:fetch loadBalancer;
+:fetch cluster;
+
+if (cluster is paused?) then
+    stop
+endif
+
+if (TODO: lb gate not ok?) then
+    stop
+endif
+
+:set existingFooLB = nil;
+
+if (Spec.Endpoint) then (is empty)
+    partition ProviderManagedDNS{
+        if (Foo load balancer) then (does not already exist)
+            :create Foo load balancer based on requested attributes;
+            :set existingFooLB = createdLB;
+        else (already exists)
+            :set existingFooLB = foundLB;
+        endif
+    }
+elseif (Spec.Endpoint) then (does not match generated defaults)
+    partition ExternallyManagedDNS{
+        if (Foo load balancer) then (does not already exist)
+            :create Foo load balancer based on requested attributes;
+            :set existingFooLB = createdLB;
+            #Red:set <something> = created Foo LB endpoint;
+        else (already exists)
+            :set existingFooLB = foundLB;
+            #Red:set <something> = existing Foo LB endpoint;
+        endif
+    }
+endif
+
+if (existingFooLB) then (is nil)
+    :existingFooLB = lookupExistingFooLB();
+endif
+
+:set LBExists condition = True;
+
+if (existingFooLB) then (matches desired config)
+    :set LBMatchesConfig condition to True;
+else (does not match desired config)
+    :set LBMatchesConfig condition to False;
+    :attempt to reconcile configuration, set LBMatchesConfig=True if successful;
+endif
+
+if (Spec.Endpoint) then (is resolvable)
+    :set DNSResolvable condition to True;
+else (is not resolvable)
+    :set DNSResolvable condition to False;
+endif
+
+:set Status.TargetKind = loadBalancer.Status.TargetKind;
+:set Status.TargetSelector = loadBalancer.Status.TargetSelector;
+:set members based on loadBalancer.Spec.TargetKind and loadBalancer.Spec.Selector;
+:set Status.Targets based on members;
+:set Status.ActiveTargets = [];
+
+while (len(members) > 0)
+    :set member = members.pop();
+    if (member annotations) then (missing loadbalancer.cluster.x-k8s.io/name)
+        :set member.Annotations['loadbalancer.cluster.x-k8s.io/name'] = loadBalancer.Name;
+    endif
+
+    if (member.Finalizers) then (missing FooLBFinalizer)
+        :append FooLBFinalizer to finalizers;
+    endif
+
+    if (member) then (missing deletion hook)
+        #Red:add deletion hook;
+    endif
+
+    if (member annotations) then (has loadbalancer.cluster.x-k8s.io/disabled)
+        :disable member in Foo load balancer;
+        :set member.Annotations['loadbalancer.Cluster.x-k8s.io/status'] = 'disabled';
+    endif
+
+    if (member) then (is deleting)
+        if (member) then (active in Foo LB configuration)
+            :disable member in Foo load balancer;
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'draining';
+            :mark for requeue;
+        elseif (member) then (disabled in Foo LB configuration, not fully drained)
+            :mark for requeue;
+        elseif (member) then (disabled in Foo LB configuration, fully drained)
+            :delete member from Foo load balancer;
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'removed';
+            :remove FooLBFinalizer from finalizers;
+            #Red: remove deletion hook;
+        elseif (member) then (missing from Foo LB configuration)
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'removed';
+            :remove FooLBFinalizer from finalizers;
+            #Red: remove deletion hook;
+        endif
+    else (is not deleting)
+        if (member) then (active in Foo LB configuration)
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'active';
+            :append member to Status.ActiveTargets;
+        elseif (member) then (disabled in Foo LB configuration)
+            :enable member in Foo load balancer;
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'active';
+            :append member to Status.ActiveTargets;
+        else (missing from Foo LB configuration)
+            :add member to Foo load balancer;
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'active';
+            :append member to Status.ActiveTargets;
+        endif
+    endif
+endwhile
+
+:reconcileNonExistingMembers;
+
+stop
+@enduml

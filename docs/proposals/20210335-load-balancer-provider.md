@@ -228,6 +228,10 @@ Reconciliation:
 - Add spec.Endpoint, if not defined it will be populated by the load balancer provider (if defined)
 - Add optional LoadBalancerRef (if needed, based on the provider)
 
+#### New Watches:
+
+- LoadBalancer
+
 ##### Example: KubeadmControlPlane
 
 ```yaml
@@ -323,7 +327,7 @@ status:
 #### Annotations
 
 - Used by providers to signal the state of the resource in the LB
-  - loadbalancer.cluster.x-k8s.io/member: `<name of lb>`
+  - loadbalancer.cluster.x-k8s.io/name: `<name of lb>`
   - loadbalancer.cluster.x-k8s.io/status: `<status>`
     - Statuses:
       - 'active' (configured and active in configuration)
@@ -342,6 +346,13 @@ TODO
 - If Spec.Selector is not defined:
   - Spec.Selector.MatchLabels = `{'cluster.x-k8s.io/cluster-name': Spec.ClusterName, 'loadbalancer.cluster.x-k8s.io/name': Metadata.Name }`
 
+#### Watches:
+
+- Cluster
+- LoadBalancer
+- ??? Kind referenced by LB selector
+- LoadBalancer provider types
+
 #### Reconciliation
 
 ![Load Balancer Reconciliation Flow](images/load-balancer/lb-reconciliation.png)
@@ -351,48 +362,493 @@ TODO
 ###### Scenario: provider managed endpoint
 
 
-
-
-
 TODO: gate provider load balancer reconciliation when user defined endpoint hasn't yet been pushed down to LB Provider
 
+### Example Load Balancer Provider (FooLoadBalancer)
+In this example, we are provisioning a Kubernetes cluster on AWS to be backed by a fully hypothetical Foo Load Balancer.
+
+```yaml
+---
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: Cluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: KubeadmControlPlane
+    name: my-cluster
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSCluster
+    name: my-cluster
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: KubeadmControlPlane
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  infrastructureTemplate:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSMachineTemplate
+    name: my-cluster
+  loadBalancerRef:
+    apiGroup: cluster.x-k8s.io
+    kind: LoadBalancer
+    name: my-cluster-control-plane-lb
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSCluster
+metadata:
+  name: my-cluster
+spec:
+  region: eu-west-1
+  sshKeyName: default
+---
+apiVersion: cluster.x-k8s.io
+kind: LoadBalancer
+metadata:
+  name: my-cluster-control-plane-lb
+  namespace: default
+spec:
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: FooLoadBalancer
+    name: my-cluster-control-plane-foo
+  targetKind:
+    apiGroup: cluster.x-k8s.io
+    kind: Machine
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: my-cluster
+      loadbalancer.cluster.x-k8s.io/name: my-cluster-control-plane-lb
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: FooLoadBalancer
+metadata:
+  name: my-cluster-control-plane-foo
+  namespace: default
+spec:
+  endpoint:
+    host:
+    port:
+status:
+  targetKind: <string representing group/kind name for selector>
+  targetSelector: <string representing the label selector for the referenced LB>
+  targets: (List of members matching label selector)
+  activeTargets: (List of active members)
+```
+
+#### Conditions
+
+- DNSResolvable
+- LBExists
+- LBMatchesConfig
+- TODO: condition to indicate ready to unblock things like ControlPlane initialization
+- TODO: condition to indicate fully healthy or degraded
+
+#### Watches:
+
+- own resource
+- Kind referenced by LB selector (to identify changes to "disabled" annotation)
+- LoadBalancer resources associated with own resource
+
+#### Reconciliation
+
+![FooLoadBalancer Reconciliation Flow](images/load-balancer/foolb-reconciliation.png)
 
 
+- If Spec.Endpoint is not defined:
+    - Create new LB using provider defaults for endpoint, populate Spec.Endpoint
+- Lookup related LoadBalancer resource:
+    - For any matching resources:
+        - resource is not deleting:
+            - `loadbalancer.cluster.x-k8s.io/disabled` not present:
+                - resource not present in load balancer:
+                    - add resource to load balancer config
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'adding'
+                    - requeue resource appropriately
+                - resource present in load balancer, but not active:
+                    - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                    - requeue resource appropriately
+                - resource present and active in load balancer:
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'active'
+            - `loadbalancer.cluster.x-k8s.io/disabled` is present:
+                - resource active in load balancer:
+                    - start removal/disabling of resource from lb
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'disabling'
+                    - requeue resource appropriately
+                - resource is being removed/disabled from lb:
+                    - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                    - requeue resource appropriately
+                - resource is removed/disabled from the load balancer:
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'disabled'
+        - resource is deleting:
+            - resource active in load balancer:
+                - start removal of resource from lb:
+                - set `loadbalancer.cluster.x-k8s.io/status` to 'removing'
+                - requeue resource appropriately
+            - resource is being removed from lb:
+                - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                - requeue resource appropriately
+            - resource is removed from load balancer:
+                - set `loadbalancer.cluster.x-k8s.io/status` to 'removed'
+
+- Ensure there are no resources configured in the load balancer that do not match the selector
+	
+
+LB provider registers pre-drain or pre-term hook on machines that are LoadBalancerMembers
+CP provider issues machine delete
+LB provider processes hook, quiesces, removes its hook annotation
+Machine is deleted
 
 
+### Example Provider (AWSELBClassic)
+In this example, we are provisioning a Kubernetes cluster on AWS to be backed by an Classic Elastic Load Balancer, which is represents the current behaviour of Cluster API Provider AWS.
+
+```yaml
+---
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: Cluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: KubeadmControlPlane
+    name: my-cluster
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSCluster
+    name: my-cluster
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: KubeadmControlPlane
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  infrastructureTemplate:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSMachineTemplate
+    name: my-cluster
+  loadBalancerRef:
+    apiGroup: cluster.x-k8s.io
+    kind: LoadBalancer
+    name: my-cluster-control-plane-lb
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSCluster
+metadata:
+  name: my-cluster
+spec:
+  region: eu-west-1
+  sshKeyName: default
+---
+apiVersion: cluster.x-k8s.io
+kind: LoadBalancer
+metadata:
+  name: my-cluster-control-plane-lb
+  namespace: default
+spec:
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSELBClassicLoadBalancer
+    name: my-cluster-control-plane-nlb
+  targetKind:
+    apiGroup: cluster.x-k8s.io
+    kind: Machine
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: my-cluster
+      loadbalancer.cluster.x-k8s.io/name: my-cluster-control-plane-lb
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSELBClassicLoadBalancer
+metadata:
+  name: my-cluster-control-plane-nlb
+  namespace: default
+spec:
+  endpoint:
+    host:
+    port:
+  scheme: internet-facing
+  ipAddressType: dualstack
+status:
+  targetKind: <string representing group/kind name for selector>
+  targetSelector: <string representing the label selector for the referenced LB>
+  targets: (List of members matching label selector)
+  activeTargets: (List of active members)
+```
+
+#### Conditions
+
+- DNSResolvable
+- LBExists
+- LBMatchesConfig
+- TODO: condition to indicate ready to unblock things like ControlPlane initialization
+- TODO: condition to indicate fully healthy or degraded
+
+#### Watches:
+
+- own resource
+- Kind referenced by LB selector (to identify changes to "disabled" annotation)
+- LoadBalancer resources associated with own resource
+
+#### Reconciliation
+
+![AWSELBClassicLoadBalancer Reconciliation Flow](images/load-balancer/elbclassic-reconciliation.png)
 
 
+TODO: Load AWSCluster and retrieve SG and subnet information
+- If Spec.Endpoint is not defined:
+    - Create new LB using provider defaults for endpoint, populate Spec.Endpoint
+- Lookup related LoadBalancer resource:
+    - For any matching resources:
+        - resource is not deleting:
+            - `loadbalancer.cluster.x-k8s.io/disabled` not present:
+                - resource not present in load balancer:
+                    - add resource to load balancer config
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'adding'
+                    - requeue resource appropriately
+                - resource present in load balancer, but not active:
+                    - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                    - requeue resource appropriately
+                - resource present and active in load balancer:
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'active'
+            - `loadbalancer.cluster.x-k8s.io/disabled` is present:
+                - resource active in load balancer:
+                    - start removal/disabling of resource from lb
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'disabling'
+                    - requeue resource appropriately
+                - resource is being removed/disabled from lb:
+                    - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                    - requeue resource appropriately
+                - resource is removed/disabled from the load balancer:
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'disabled'
+        - resource is deleting:
+            - resource active in load balancer:
+                - start removal of resource from lb:
+                - set `loadbalancer.cluster.x-k8s.io/status` to 'removing'
+                - requeue resource appropriately
+            - resource is being removed from lb:
+                - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                - requeue resource appropriately
+            - resource is removed from load balancer:
+                - set `loadbalancer.cluster.x-k8s.io/status` to 'removed'
 
+- Ensure there are no resources configured in the load balancer that do not match the selector
+	
 
+LB provider registers pre-drain or pre-term hook on machines that are LoadBalancerMembers
+CP provider issues machine delete
+LB provider processes hook, quiesces, removes its hook annotation
+Machine is deleted
 
+### Heterogeneous VMware Cloud cluster backed by AWS NLB
+In this example, we are backing a VMC on AWS cluster using a network load balancer. We explicitly reference the subnets, security groups and credentials required for the load balancer. Note that Cluster API Provider AWS may provide other mechanisms to reconcile security groups and subnets in its v1alpha4 and this is a potential example.
 
+```yaml
+---
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: Cluster
+metadata:
+ name: my-cluster
+ namespace: default
+spec:
+ clusterNetwork:
+   pods:
+     cidrBlocks:
+     - 192.168.0.0/16
+ controlPlaneRef:
+   apiGroup: controlplane.cluster.x-k8s.io
+   kind: KubeadmControlPlane
+   name: my-cluster
+ infrastructureRef:
+   apiGroup: infrastructure.cluster.x-k8s.io
+   kind: VSphereCluster
+   name: my-cluster
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: KubeadmControlPlane
+metadata:
+ name: my-cluster
+ namespace: default
+spec:
+ infrastructureTemplate:
+   apiGroup: infrastructure.cluster.x-k8s.io
+   kind: VSphereMachineTemplate
+   name: my-cluster
+ loadBalancerRef:
+   apiGroup: cluster.x-k8s.io
+   kind: LoadBalancer
+   name: my-cluster-control-plane-lb
+---
+apiVersion: cluster.x-k8s.io
+kind: LoadBalancer
+metadata:
+ name: my-cluster-control-plane-lb
+ namespace: default
+spec:
+ infrastructureRef:
+   apiGroup: infrastructure.cluster.x-k8s.io
+   kind: AWSNetworkLoadBalancer
+   name: my-cluster-control-plane-nlb
+ targetKind:
+   apiGroup: cluster.x-k8s.io
+   kind: Machine
+ selector:
+   matchExpressions:
+   matchLabels:
+     cluster.x-k8s.io/cluster-name: my-cluster
+     loadbalancer.cluster.x-k8s.io/name: my-cluster-control-plane-lb
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSNetworkLoadBalancer
+metadata:
+ name: my-cluster-control-plane-nlb
+ namespace: default
+spec:
+ endpoint:
+   host:
+   port:
+ credentialRef:
+   kind: AWSClusterControllerPrincipal
+   name: default
+ subnets:
+ - sn-fdsfsdfe
+ - sn-fdsjkfdj
+ securityGroups:
+ - sg-fdjsfjsd
+ - sg-fdsfjdsj
+ scheme: internet-facing
+ additionalTags: []
+ ipAddressType: dualstack
+status:
+   targetKind: <string representing group/kind name for selector>
+   targetSelector: <string representing the label selector for the referenced LB>
+   targets: (List of members matching label selector)
+   activeTargets: (List of active members)
+```
+#### TODO
 
+- define conditions
 
+#### Watches:
 
+- own resource
+- Kind referenced by LB selector (to identify changes to "disabled" annotation)
+- (???) LoadBalancer resources associated with own resource
 
+#### Reconciliation
+TODO: Attempt to load InfraCluster and switch to alternate behaviour when != AWSCluster.
+- If Spec.Endpoint is not defined:
+    - Create new LB using provider defaults for endpoint, populate Spec.Endpoint
+- Lookup related LoadBalancer resource:
+    - For any matching resources:
+        - resource is not deleting:
+            - `loadbalancer.cluster.x-k8s.io/disabled` not present:
+                - resource not present in load balancer:
+                    - add resource to load balancer config
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'adding'
+                    - requeue resource appropriately
+                - resource present in load balancer, but not active:
+                    - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                    - requeue resource appropriately
+                - resource present and active in load balancer:
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'active'
+            - `loadbalancer.cluster.x-k8s.io/disabled` is present:
+                - resource active in load balancer:
+                    - start removal/disabling of resource from lb
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'disabling'
+                    - requeue resource appropriately
+                - resource is being removed/disabled from lb:
+                    - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                    - requeue resource appropriately
+                - resource is removed/disabled from the load balancer:
+                    - set `loadbalancer.cluster.x-k8s.io/status` to 'disabled'
+        - resource is deleting:
+            - resource active in load balancer:
+                - start removal of resource from lb:
+                - set `loadbalancer.cluster.x-k8s.io/status` to 'removing'
+                - requeue resource appropriately
+            - resource is being removed from lb:
+                - update `loadbalancer.cluster.x-k8s.io/status` appropriately for resource
+                - requeue resource appropriately
+            - resource is removed from load balancer:
+                - set `loadbalancer.cluster.x-k8s.io/status` to 'removed'
 
+- Ensure there are no resources configured in the load balancer that do not match the selector
+	
 
+LB provider registers pre-drain or pre-term hook on machines that are LoadBalancerMembers
+CP provider issues machine delete
+LB provider processes hook, quiesces, removes its hook annotation
+Machine is deleted
 
+#### Pushing and Pulling data changes
 
+This proposal makes explicit the following requirements and order of precedence:
 
+Generic Cluster API resources take precedence on infra resources
+If fields subject to contract are set on CAPI resources, the provider is responsible of copying them back to infra resources before starting to reconcile
+If fields subject to contract aren’t set on CAPI resources, CAPI controllers will take care of pulling the values from the infrastructure resources
 
+##### Operation of predeletion hooks
+###### Diagrams TODO
 
+####### Example of homogenous infrastructure - AWS backed by ELB
 
-- What are some important details that didn't come across above.
-- What are the caveats to the implementation?
-- Go in to as much detail as necessary here.
-- Talk about core concepts and how they releate.
+####### Example of adoption via an infrastructure provider
+
+####### Example of an heterogeneous infrastructure, i.e. VMC on AWS backed by NLB
+
+#### TODO: Changes needed to clusterctl and existing infrastructure providers
+Notes:
+- in order to determine UX changes it is required to define packaging/installation sequence for the Load Balancer/InfraLoadBalancer (bundled with CAPI/infra providers, stand alone, both)
+- we should define also how credential for the InfraLoadBalancer should be provided
+- we should brainstorm both on the clusterctl workflow and on the github workflow (without clusterctl)
+- the “quick start” workflow should be as simple as possible  
 
 ### Security Model
 
-Document the intended security model for the proposal, including implications
-on the Kubernetes RBAC model. Questions you may want to answer include:
+Roles
+For the purposes of this security model, 3 common roles have been identified:
+Infrastructure provider: The infrastructure provider (infra) is responsible for the overall environment that the cluster(s) are operating in or the PaaS provider in a company.
+Management cluster operator: The cluster operator (ops) is responsible for administration of the Cluster API management cluster. They manage policies, network access, application permissions.
+Workload cluster operator: The workload cluster operator (dev) is responsible for management of the cluster relevant to their particular applications .
 
-* Does this proposal implement security controls or require the need to do so?
-  * If so, consider describing the different roles and permissions with tables.
-* Are their adequate security warnings where appropriate (see https://adam.shostack.org/ReederEtAl_NEATatMicrosoft.pdf for guidance).
-* Are regex expressions going to be used, and are their appropriate defenses against DOS.
-* Is any sensitive data being stored in a secret, and only exists for as long as necessary?
+#### Write Permissions
+
+| | Cluster | Load Balancer | AWSELBLoadBalancer | AWS IAM API | Relevant AWS APIs |
+|---|---|---|---|---|---|
+| Load Balancer Provider | No | No | Yes | No | Yes |
+| Load Balancer Controller | No | Yes | Yes | No | No |
+| Cluster Controller | Yes | Yes | No | No | No |
+| Management Cluster Operators | Yes | Yes | Yes | Yes | No |
+| Workload Cluster Operator | Yes | Yes | Yes | No | No |
+
+TODO: Credential management changes for infra providers
+
+#### Credential Management
+
+Infra load balancers need a specific credential workflow:
+Look at the infra load balancer resource for spec.CredentialRef:
+If it’s set: use it for load balancing provisioning
+If it’s not set: the infra load balancer provider tries to read credentials from the infrastructure cluster owning it:
+If the infra cluster is from the same type, use its credentialRef
+If the infra cluster is not from the same type, fallback to the credentials of infrastructure load balancer controller
 
 ### Risks and Mitigations
 
@@ -403,7 +859,76 @@ on the Kubernetes RBAC model. Questions you may want to answer include:
 
 ## Alternatives
 
-The `Alternatives` section is used to highlight and record other possible approaches to delivering the value proposed by a proposal.
+### Using Services API
+
+Kubernetes already provides a load balancer construct of Service Type=Loadbalancer. The service API allows pointing at arbitrary IPs, which could in fact be the machines of a workload cluster’s control plane.
+
+While we believe this approach has longer term benefits, there are a few reasons that it does not fit the short term requirements:
+
+- Existing Service Type=LoadBalancer implementations do not support credential multi-tenancy
+
+- Existing Service Type=LoadBalancer implementations do not support co-deployment with other implementations
+
+- ??? (I know there were other reasons, but blanking on them at the moment, need to finish out this list)
+
+
+#### MachineService
+
+The MachineService and MachineServiceController are responsible for creating services and endpoints for Machines in a similar way the Endpoint Controller creates endpoints for pod based services.
+
+1.  The MachineServiceController creates a new v1.Service for each MachineService copying over all metadata. Note that endpoint lifecycle here is shared with Kubernetes controller manager’s endpoint controller.
+2. The MachineServiceController watches and reconciles matching Machines into v1.Endpoints
+3. Any existing load balancer implementation that supports services watches the v1.Service and corresponding Endpoints and creates an implementation specific load balancer without being aware that these are machines and not pods.
+NOTE: This implies that the load balancer controller must create the load balancer in a network with access to the machines. Some implementations may need to be enhanced to support this.
+4. The Cluster API APIEndpoint struct is modified to include an additional serviceRef field that, so that the v1.Service can be used as a control plane load balancer.
+
+```yaml
+kind: MachineService
+apiVersion: cluster.x-k8s.io/v1alpha4
+metadata
+  name: control-plane-lb
+spec:
+  [ all current service fields ]
+  selector:
+    cluster.x-k8s.io/cluster-name: MyApp
+    cluster.x-k8s.io/control-plane: control-plane
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 6443
+```
+
+```yaml
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:  # copied from machine service
+  labels: # copied from machine service
+  ownerReferences:
+kind: MachineService
+apiVersion: cluster.x-k8s.io/v1alpha4
+name: control-plane-lb
+spec:
+  # selectors are not copied across as they would apply to pods only, 
+  # endpoints are created for matching machines by the MachineService controller
+  ports:
+    - protocol: TCP
+      Port: 443
+      targetPort: 6443
+```
+
+```yaml
+kind: Cluster
+apiVersion: cluster.x-k8s.io/v1alpha4
+spec:
+	controlPlaneEndpoint:
+        # existing host/port combination remains
+	  host:
+        port:
+# new serviceRef points to a service (most likely created by MachineService,                   	 but it could be a normal service for pod based control planes, control plane providers must wait until either host/port is populated or the service referenced has a status.loadbalancer.ingress.host populated
+        serviceRef:
+name: control-plane-lb
+```
 
 ## Upgrade Strategy
 
@@ -412,6 +937,14 @@ If applicable, how will the component be upgraded? Make sure this is in the test
 Consider the following in developing an upgrade strategy for this enhancement:
 - What changes (in invocations, configurations, API use, etc.) is an existing cluster required to make on upgrade in order to keep previous behavior?
 - What changes (in invocations, configurations, API use, etc.) is an existing cluster required to make on upgrade in order to make use of the enhancement?
+
+### For infrastructure providers taht provide LB constructs
+
+Describe adoption here
+
+### For infrastructuure providers that do not provide LB constructs
+
+Describe fallback to existing behavior here
 
 ## Additional Details
 
@@ -452,22 +985,9 @@ In general, we try to use the same stages (alpha, beta, GA), regardless how the 
 [maturity-levels]: https://git.k8s.io/community/contributors/devel/sig-architecture/api_changes.md#alpha-beta-and-stable-versions
 [deprecation-policy]: https://kubernetes.io/docs/reference/using-api/deprecation-policy/
 
-### Version Skew Strategy [optional]
-
-If applicable, how will the component handle version skew with other components? What are the guarantees? Make sure
-this is in the test plan.
-
-Consider the following in developing a version skew strategy for this enhancement:
-- Does this enhancement involve coordinating behavior in the control plane and in the kubelet? How does an n-2 kubelet without this feature available behave when this feature is used?
-- Will any other components on the node change? For example, changes to CSI, CRI or CNI may require updating that component before the kubelet.
-
 ## Implementation History
 
-- [ ] MM/DD/YYYY: Proposed idea in an issue or [community meeting]
-- [ ] MM/DD/YYYY: Compile a Google Doc following the CAEP template (link here)
-- [ ] MM/DD/YYYY: First round of feedback from community
-- [ ] MM/DD/YYYY: Present proposal at a [community meeting]
-- [ ] MM/DD/YYYY: Open proposal PR
+- [ x ] 13/08/2019: Proposed idea in an issue (https://github.com/kubernetes-sigs/cluster-api/issues/1250)
+- [ x ] 26/10/2020: Compile a Google Doc following the CAEP template (https://docs.google.com/document/d/1wJrtd3hgVrUnZsdHDXQLXmZE3cbXVB5KChqmNusBGpE/edit#heading=h.u3b85t6efycf)
+- [ x ] 29/03/2021: Open proposal PR
 
-<!-- Links -->
-[community meeting]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY

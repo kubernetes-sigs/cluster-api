@@ -1,0 +1,109 @@
+@startuml elbclassic-reconciliation
+skinparam ConditionEndStyle hline
+start
+:AWSELBClassic controller;
+:enqueue awsELBClassicLoadBalancer;
+:fetch loadBalancer;
+:fetch cluster;
+
+if (cluster is paused?) then
+    stop
+endif
+
+if (TODO: lb gate not ok?) then
+    stop
+endif
+
+:set expectedELBClassic = nil;
+
+if (Spec.Endpoint) then (is empty)
+    partition ProviderManagedDNS{
+        if (ELB with lookup tags) then (exists)
+            :set expectedELBClassic = foundELB;
+        else (does not exist)
+            :create ELB Classic based on requested attributes;
+            :set expectedELBClassic = createdELB;
+        endif
+    }
+elseif (Spec.Endpoint) then (does not match generated defaults)
+    partition ExternallyManagedDNS{
+        if (ELB with lookup tags) then (exists)
+            :set expectedELBClassic = foundELB;
+            #Red:set <something> = existing ELB endpoint;
+        else (does not exist)
+            :create ELB Classic based on requested attributes;
+            :set expectedELBClassic = createdELB;
+            #Red:set <something> = new ELB endpoint;
+        endif
+    }
+endif
+
+if (expectedELBClassic) then (is nil)
+    :lookupExistingELB;
+    :set expectedELBClassic = existingELB;
+endif
+
+:set LBExists condition = True;
+
+if (expectedELBClassic) then (matches desired config)
+    :set LBMatchesConfig condition to True;
+else (does not match desired config)
+    :set LBMatchesConfig condition to False;
+endif
+
+if (Spec.Endpoint) then (is resolvable)
+    :set DNSResolvable condition to True;
+else (is not resolvable)
+    :set DNSResolvable condition to False;
+endif
+
+:set Status.TargetKind = loadBalancer.Status.TargetKind;
+:set Status.TargetSelector = loadBalancer.Status.TargetSelector;
+:set members based on loadBalancer.Spec.TargetKind and loadBalancer.Spec.Selector;
+:set Status.Targets based on members;
+:set Status.ActiveTargets = [];
+
+while (len(members) > 0)
+    :set member = members.pop();
+    if (member annotations) then (missing loadbalancer.cluster.x-k8s.io/name)
+        :set member.Annotations['loadbalancer.cluster.x-k8s.io/name'] = loadBalancer.Name;
+    endif
+
+    if (member.Finalizers) then (missing AWSELBClassicFinalizer)
+        :append AWSELBClassicFinalizer to finalizers;
+    endif
+
+    if (member) then (missing deletion hook)
+        #Red:add deletion hook;
+    endif
+
+    if (member annotations) then (has loadbalancer.cluster.x-k8s.io/disabled)
+        :deregister instance with ELBClassic configuration;
+        :set member.Annotations['loadbalancer.Cluster.x-k8s.io/status'] = 'disabled';
+    endif
+
+    if (member) then (is deleting)
+        if (member) then (configured in ELBClassic configuration)
+            :deregister instance with ELBClassic configuration;
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'removed';
+            :remove AWSELBClassicFinalizer from finalizers;
+            #Red:remove deletion hook;
+        else (missing from ELBClassic configuration)
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'removed';
+            :remove AWSELBClassicFinalizer from finalizers;
+            #Red:remove deletion hook;
+        endif
+    else (is not deleting)
+        if (member) then (configured in ELBClassic configuration)
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'active';
+            :append member to Status.ActiveTargets;
+        else (missing from ELBClassic configuration)
+            :register instance with ELBClassic configuration;
+            :set member.Annotations['loadbalancer.cluster.x-k8s.io/status'] = 'active';
+            :append member to Status.ActiveTargets;
+        endif
+    endif
+endwhile
+
+stop
+@enduml

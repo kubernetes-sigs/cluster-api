@@ -1,0 +1,57 @@
+@startuml lb-reconciliation
+skinparam ConditionEndStyle hline
+start
+:LB controller;
+:enqueue loadBalancer;
+:fetch loadBalancer;
+:fetch cluster;
+
+if (cluster is paused?) then
+    stop
+endif
+
+if (TODO: cluster lb gate not ok?) then
+    stop
+endif
+
+
+if (TODO: parent lb gate not ok?) then
+    stop
+endif
+
+if (loadbalancer.Spec.InfrastructureRef) then (is defined)
+    :fetch infraLoadBalancer;
+
+    if (infraLoadBalancer.Spec.Endpoint) then (is defined)
+        if (loadBalancer.Spec.Endpoint) then (is defined)
+            if (loadBalancer.Spec.Endpoint and infraLoadBalancer.Spec.Endpoint) then (do not match)
+                :mistmatch error;
+                end
+            endif
+        else (is empty)
+            partition ProviderManagedEndpoint{
+                :set loadBalancer.Spec.Endpoint = infraLoadBalancer.Spec.Endpoint;
+            }
+        endif
+    else (is empty)
+        if (loadBalancer.Spec.Endpoint) then (is defined)
+            partition ExternallyManagedEndpoint{
+                :set infraLoadBalancer.Spec.Endpoint = loadBalancer.Spec.Endpoint;
+            }
+        endif
+        
+        :wait for infraLoadBalancer;
+        stop
+    endif
+
+    :set loadBalancer.Status based on infraLoadBalancer.Status;
+else (is not defined)
+    partition ManuallyManagedLB {
+        #Red: TODO: set appropriate status;
+    }
+endif
+
+#Red: TODO: reconcile status wrt members;
+
+stop
+@enduml

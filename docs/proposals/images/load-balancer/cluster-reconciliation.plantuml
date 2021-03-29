@@ -1,0 +1,68 @@
+@startuml cluster-reconciliation
+skinparam ConditionEndStyle hline
+start
+:Cluster controller;
+:enqueue cluster;
+:fetch cluster;
+
+floating note left: This does not represent full Cluster reconciliation, only the parts that relate to this proposal
+
+#Red:TODO: Add gating;
+
+if (cluster.Spec.ControlPlane.ProviderRef) then (is empty)
+    if (cluster.Spec.ControlPlane.Endpoint) then (is defined)
+        partition ExternallyManagedEndpointAndControlPlane {
+            :fetch kubeconfigSecret;
+            if (kubeconfigSecret) then (is present)
+                :set ControlPlaneInitializedCondition = True;
+            else (is missing)
+                :set ControlPlaneInitializedCondition = False;
+                stop
+            endif
+
+            if (control plane) then (is available)
+                :set ControlPlaneReadyCondition = True;
+                :set cluster.Status.ControlPlaneReady = True;
+                stop
+            else (is not available)
+                :set ControlPlaneReadyCondition = False;
+                :set cluster.Status.ControlPlaneReady = False;
+                stop
+            endif
+        }
+    else (is empty)
+        :invalid error;
+        end
+    endif
+else (is defined)
+    :fetch controlPlane;
+
+    if (cluster.Spec.ControlPlane.Endpoint) then (is defined)
+        if (controlPlane.Spec.Endpoint) then (is empty)
+            partition ExternallyManagedEndpoint {
+                :set controlPlane.Spec.Endpoint = cluster.Spec.ControlPlane.Endpoint;
+                :wait for controlPlane;
+                stop
+            }
+        else (is defined)
+            if (controlPlane.Spec.Endpoint and cluster.Spec.ControlPlane.Endpoint) then (do not match)
+                :mistmatch error;
+                end
+            endif
+        endif
+    else (is empty)
+        partition ProviderManagedEndpoint {
+            if (controlPlane.Spec.Endpoint) then (is empty)
+                :wait for controlPlane;
+                stop
+            else (is defined)
+                :set cluster.Spec.Endpoint = controlPlane.Spec.Endpoint;            
+            endif
+        }
+    endif
+endif
+
+:set cluster.Status from controlPlane.Status;
+
+stop
+@enduml

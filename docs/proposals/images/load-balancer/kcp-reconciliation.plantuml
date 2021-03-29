@@ -1,0 +1,72 @@
+@startuml kcp-reconciliation
+skinparam ConditionEndStyle hline
+start
+:KubeadmControlPlane controller;
+:enqueue kubeadmControlPlane;
+:fetch kubeadmControlPlane;
+:fetch cluster;
+
+floating note left: This does not represent full KubeadmControlPlane reconciliation, only the parts that relate to this proposal
+
+if (cluster is paused?) then
+    stop
+endif
+
+if (TODO: cluster lb/controlplane gate not ok?) then
+    stop
+endif
+
+if (kubeadmControlPlane.Spec.LoadBalancerRef) then (is defined)
+    :fetch loadBalancer;
+
+    if (loadBalancer.Spec.Endpoint) then (is defined)
+        if (kubeadmControlPlane.Spec.Endpoint) then (is defined)
+            if (kubeadmControlPlane.Spec.Endpoint and loadBalancer.Spec.Endpoint) then (do not match)
+                :mistmatch error;
+                end
+            endif
+        else (is empty)
+            partition ProviderManagedEndpoint{
+                :set kubeadmControlPlane.Spec.Endpoint = loadBalancer.Spec.Endpoint;
+            }
+        endif
+    else (is empty)
+        if (kubeadmControlPlane.Spec.Endpoint) then (is defined)
+            partition ExternallyManagedEndpoint{
+                :set loadBalancer.Spec.Endpoint = kubeadmControlPlane.Spec.Endpoint;
+            }
+        endif
+        
+        :wait for loadBalancer to be ready;
+        stop
+    endif
+
+    :set kubeadmControlPlane.Status from loadBalancer.Status;
+else (is empty)
+    partition FallbackBehavior {
+        if (cluster.InfrastructureRef) then (is defined)
+            :fetch infraCluster;
+            
+            if (infraCluster.Spec.ControlPlaneEndpoint) then (is defined)
+                if (kubeadmControlPlane.Spec.Endpoint) then (is defined)
+                    if (kubeadmControlPlane.Spec.Endpoint and infraCluster.Spec.ControlPlaneEndpoint) then (do not match)
+                        :mistmatch error;
+                        end
+                    endif
+                else (is empty)
+                    :set kubeadmControlPlane.Spec.Endpoint = infraCluster.Spec.ControlPlaneEndpoint;
+                endif
+            else (is empty)
+                if (kubeadmControlPlane.Spec.Endpoint) then (is defined)
+                    :set infraCluster.Spec.ControlPlaneEndpoint = kubeadmControlPlane.Spec.Endpoint;
+                endif
+                :wait for infraCluster to be ready;
+                stop
+            endif
+        endif
+
+        :set kubeadmControlPlane.Status based on infraCluster.Status;
+    }
+endif
+stop
+@enduml

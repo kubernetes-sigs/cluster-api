@@ -31,6 +31,21 @@ const (
 	// tool uses this label for implementing provider's lifecycle operations.
 	ProviderLabelName = "cluster.x-k8s.io/provider"
 
+	// ClusterNameAnnotation is the annotation set on nodes identifying the name of the cluster the node belongs to.
+	ClusterNameAnnotation = "cluster.x-k8s.io/cluster-name"
+
+	// ClusterNamespaceAnnotation is the annotation set on nodes identifying the namespace of the cluster the node belongs to.
+	ClusterNamespaceAnnotation = "cluster.x-k8s.io/cluster-namespace"
+
+	// MachineAnnotation is the annotation set on nodes identifying the machine the node belongs to.
+	MachineAnnotation = "cluster.x-k8s.io/machine"
+
+	// OwnerKindAnnotation is the annotation set on nodes identifying the owner kind.
+	OwnerKindAnnotation = "cluster.x-k8s.io/owner-kind"
+
+	// OwnerNameAnnotation is the annotation set on nodes identifying the owner name.
+	OwnerNameAnnotation = "cluster.x-k8s.io/owner-name"
+
 	// PausedAnnotation is an annotation that can be applied to any Cluster API
 	// object to prevent a controller from processing a resource.
 	//

@@ -1,0 +1,218 @@
+@startuml cluster-creation-wo-loadbalancer-sequence
+title Sequence Diagram without Load Balancer
+actor User
+legend
+my-cluster.yaml:
+---
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: Cluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: KubeadmControlPlane
+    name: my-cluster
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSCluster
+    name: my-cluster
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSCluster
+metadata:
+  name: my-cluster
+spec:
+  region: eu-west-1
+  sshKeyName: default
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: KubeadmControlPlane
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  infrastructureTemplate:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSMachineTemplate
+    name: my-cluster
+  loadBalancerRef:
+    apiGroup: cluster.x-k8s.io
+    kind: LoadBalancer
+    name: my-cluster
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSMachineTemplate
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  template:
+    spec:
+      instanceType: m4.large
+      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+      sshKeyName: default
+end legend
+participant APIServer as k8s
+
+box "Core Cluster API" #LightBlue
+participant CoreControllerManager as CAPI
+participant ClusterController as CC
+participant MachineController as MC
+end box
+
+box "KubeadmControlPlane" #LightGoldenRodYellow
+participant KCPControllerManager as KCP
+participant KubeadmControlPlaneController as KCPC
+end box
+
+box "Cluster API Provider AWS" #LightGreen
+participant AWSControllerManager as CAPA
+participant AWSClusterController as ACC
+participant AWSMachineController as AMC
+end box
+
+User -> k8s : kubectl create -f my-cluster.yaml
+activate k8s
+return ok
+
+k8s -> CAPI : Resources created Cluster=my-cluster, LoadBalancer=my-cluster
+activate CAPI
+CAPI -> CC : Reconcile Cluster my-cluster
+activate CC
+CC -> k8s : Fetch AWSCluster my-cluster
+activate k8s
+return AWSCluster my-cluster
+return AWSCluster not ready
+deactivate
+
+k8s -> KCP : Resources created KubeadmControlPlane=my-cluster
+activate KCP
+KCP -> KCPC: Reconcile KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch Cluster my-cluster
+activate k8s
+return Cluster my-cluster
+return waiting for Cluster.Status.InfrastructureReady to be true
+deactivate
+
+k8s -> CAPA : Resources created AWSCluster=my-cluster
+activate CAPA
+CAPA -> ACC : Reconcile AWSCluster my-cluster
+activate ACC
+ACC -> k8s : Fetch Cluster my-cluster
+activate k8s
+return AWSCluster my-cluster
+ACC -> ACC : create infrastructure
+ACC -> k8s : Set my-cluster.Spec.ControlPlaneEndpoint
+activate k8s
+return ok
+ACC -> k8s : Set AWSCluster my-cluster.Status.Ready = True
+activate k8s
+return ok
+return ok, fully reconciled
+deactivate
+
+k8s -> CAPI : Resources changed AWSCluster=my-cluster
+activate CAPI
+CAPI -> CC : Reconcile Cluster my-cluster
+activate CC
+CC -> k8s : Fetch AWSCluster my-cluster
+activate k8s
+return AWSCluster my-cluster
+CC -> k8s : Set Cluster.Status.InfrastructureReady = True
+activate k8s
+return ok
+CC -> k8s : Fetch KubeadmControlPlane my-cluster
+activate k8s
+return KubeadmControlPlane my-cluster
+return partially reconciled, waiting for KubeadmControlPlane.Status.Ready to be True
+deactivate
+
+k8s -> KCP : Resources changed Cluster=my-cluster
+activate KCP
+KCP -> KCPC: Reconcile KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch Cluster my-cluster
+activate k8s
+return Cluster my-cluster
+KCPC -> k8s : Fetch AWSCluster my-cluster
+activate k8s
+return AWSCluster my-cluster
+KCPC -> k8s : Set Spec.Endpoint = AWSCluster.Spec.ControlPlaneEndpoint
+activate k8s
+return ok
+KCPC -> k8s : Create AWSMachine cp-1
+activate k8s
+return ok
+KCPC -> k8s : Create Machine cp-1
+activate k8s
+return ok
+return partially reconciled, waiting on Machine cp-1 to be ready
+deactivate
+
+k8s -> CAPA : Resources created AWSMachine cp-1
+activate CAPA
+CAPA -> AMC : Reconcile AWSMachine cp-1
+activate AMC
+AMC -> AMC : create infrastructure
+AMC -> AMC : reconcile LB membership for cp-1
+AMC -> k8s : Set AWSMachine.Status.Ready to True
+activate k8s
+return ok
+return ok, fully reconciled
+deactivate
+
+k8s -> CAPI : Resources created Machine cp-1
+activate CAPI
+CAPI -> MC : Reconcile Machine cp-1
+activate MC
+MC -> k8s : Fetch AWSMachine cp-1
+activate k8s
+return ok
+MC -> k8s : Set Machine.Status.Ready to True
+activate k8s
+return ok
+return ok, fully reconciled
+deactivate
+
+k8s -> KCP : Resources changed Machine=cp-1
+activate KCP
+KCP -> KCPC: Reconcile KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch LoadBalancer my-cluster
+activate k8s
+return LoadBalancer my-cluster
+KCPC -> k8s : Fetch Machines matching selector
+activate k8s
+return Machine cp-1
+KCPC -> KCPC : Check health of cp-1
+return requeue, waiting on Control Plane for Machine cp-1 to be healthy
+... requeue delay ...
+KCP -> KCPC: Requeue KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch LoadBalancer my-cluster
+activate k8s
+return LoadBalancer my-cluster
+KCPC -> k8s : Fetch Machines matching selector
+activate k8s
+return Machine cp-1
+KCPC -> KCPC : Check health of cp-1
+return ok, fully reconciled
+deactivate
+
+k8s -> CAPI : Resources changed KubeadmControlPlane=my-cluster
+activate CAPI
+CAPI -> CC : Reconcile Cluster my-cluster
+activate CC
+CC -> k8s : Fetch KubeadmControlPlane my-cluster
+activate k8s
+return AWSCluster my-cluster
+CC -> k8s : Set Cluster.Status.ControlPlaneReady = True
+activate k8s
+return ok
+return ok, fully reconciled
+deactivate
+
+@enduml

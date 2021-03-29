@@ -148,6 +148,12 @@ This proposal MUST be compatible with the [Cluster API Provider AWS v1alpha4 API
 
 ### Implementation Details/Notes/Constraints
 
+#### High level Sequence Diagrams
+
+![With Load Balancer Provider](images/load-balancer/cluster-creation-w-loadbalancer-sequence.png)
+
+![Without Load Balancer Provider](images/load-balancer/cluster-creation-wo-loadbalancer-sequence.png)]
+
 ### Changes to types
 
 #### Changes to Cluster type:

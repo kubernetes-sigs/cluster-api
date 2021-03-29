@@ -1,0 +1,370 @@
+@startuml cluster-creation-w-loadbalancer-sequence
+title Sequence Diagram with Load Balancer
+actor User
+legend
+my-cluster.yaml:
+---
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: Cluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: KubeadmControlPlane
+    name: my-cluster
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSCluster
+    name: my-cluster
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSCluster
+metadata:
+  name: my-cluster
+spec:
+  region: eu-west-1
+  sshKeyName: default
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: KubeadmControlPlane
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  infrastructureTemplate:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSMachineTemplate
+    name: my-cluster
+  loadBalancerRef:
+    apiGroup: cluster.x-k8s.io
+    kind: LoadBalancer
+    name: my-cluster
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSMachineTemplate
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  template:
+    spec:
+      instanceType: m4.large
+      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+      sshKeyName: default
+---      
+apiVersion: cluster.x-k8s.io
+kind: LoadBalancer
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: FooLoadBalancer
+    name: my-cluster
+  targetKind:
+    apiGroup: cluster.x-k8s.io
+    kind: Machine
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: FooLoadBalancer
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+end legend
+participant APIServer as k8s
+
+box "Core Cluster API" #LightBlue
+participant CoreControllerManager as CAPI
+participant ClusterController as CC
+participant MachineController as MC
+participant LoadBalancerController as LBC
+end box
+
+box "KubeadmControlPlane" #LightGoldenRodYellow
+participant KCPControllerManager as KCP
+participant KubeadmControlPlaneController as KCPC
+end box
+
+box "Foo" #LightGrey
+participant FooControllerManager as FOO
+participant FooLoadBalancerController as FLBC
+end box
+
+box "Cluster API Provider AWS" #LightGreen
+participant AWSControllerManager as CAPA
+participant AWSClusterController as ACC
+participant AWSMachineController as AMC
+end box
+
+User -> k8s : kubectl create -f my-cluster.yaml
+activate k8s
+return ok
+
+k8s -> CAPI : Resources created Cluster=my-cluster, LoadBalancer=my-cluster
+activate CAPI
+CAPI -> CC : Reconcile Cluster my-cluster
+activate CC
+CC -> k8s : Fetch AWSCluster my-cluster
+activate k8s
+return AWSCluster my-cluster
+return waiting for AWSCluster.Status.Ready to be true
+
+CAPI -> LBC : Reconcile LoadBalancer my-cluster
+activate LBC
+LBC -> k8s : Fetch Cluster my-cluster
+activate k8s
+return Cluster my-cluster
+return waiting for Cluster.Status.InfrastructureReady to be true
+deactivate
+
+k8s -> KCP : Resources created KubeadmControlPlane=my-cluster
+activate KCP
+KCP -> KCPC: Reconcile KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch Cluster my-cluster
+activate k8s
+return Cluster my-cluster
+return waiting for Cluster.Status.InfrastructureReady to be true
+deactivate
+
+k8s -> FOO : Resources created FooLoadBalancer=my-cluster
+activate FOO
+FOO -> FLBC : Reconcile FooLoadBalancer my-cluster
+activate FLBC
+FLBC -> k8s : Fetch LoadBalancer my-cluster
+activate k8s
+return LoadBalancer my-cluster
+return waiting for TODO to be TODO
+deactivate
+
+k8s -> CAPA : Resources created AWSCluster=my-cluster
+activate CAPA
+CAPA -> ACC : Reconcile AWSCluster my-cluster
+activate ACC
+ACC -> k8s : Fetch Cluster my-cluster
+activate k8s
+return AWSCluster my-cluster
+ACC -> ACC : create infrastructure
+ACC -> k8s : Set AWSCluster my-cluster.Status.Ready = True
+activate k8s
+return ok
+return ok, fully reconciled
+deactivate
+
+k8s -> CAPI : Resources changed AWSCluster=my-cluster
+activate CAPI
+CAPI -> CC : Reconcile Cluster my-cluster
+activate CC
+CC -> k8s : Fetch AWSCluster my-cluster
+activate k8s
+return AWSCluster my-cluster
+CC -> k8s : Set Cluster.Status.InfrastructureReady = True
+activate k8s
+return ok
+return partially reconciled, waiting for KubeadmControlPlane.Status.Ready to be true
+deactivate
+
+k8s -> CAPI : Resources changed Cluster=my-cluster
+activate CAPI
+CAPI -> LBC : Reconcile LoadBalancer my-cluster
+activate LBC
+LBC -> k8s : Fetch Cluster my-cluster
+activate k8s
+return Cluster my-cluster
+LBC -> k8s : Fetch KubeadmControlPlane my-cluster
+activate k8s
+return KubeadmControlPlane my-cluster
+return waiting for TODO from KubeadmControlPlane to be TODO
+deactivate
+
+k8s -> KCP : Resources changed Cluster=my-cluster
+activate KCP
+KCP -> KCPC: Reconcile KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch Cluster my-cluster
+activate k8s
+return Cluster my-cluster
+KCPC -> k8s : Set TODO = TODO
+activate k8s
+return ok
+return partially reconciled, waiting for LoadBalancer to be TODO
+deactivate
+
+k8s -> CAPI : Resources changed KubeadmControlPlane=my-cluster
+activate CAPI
+CAPI -> LBC : Reconcile LoadBalancer my-cluster
+activate LBC
+LBC -> k8s : Fetch KubeadmControlPlane my-cluster
+activate k8s
+return KubeadmControlPlane my-cluster
+LBC -> k8s : Set TODO = TODO
+activate k8s
+return ok
+return partially reconciled, waiting for FooLoadBalancer
+deactivate
+
+k8s -> FOO : Resources changed LoadBalancer=my-cluster
+activate FOO
+FOO -> FLBC : Reconcile FooLoadBalancer my-cluster
+activate FLBC
+FLBC -> k8s : Fetch LoadBalancer my-cluster
+activate k8s
+return LoadBalancer my-cluster
+FLBC -> FLBC : create infrastructure
+FLBC -> k8s : Set TODO = TODO
+activate k8s
+return ok
+return ok, fully reconciled (no members yet)
+deactivate
+
+k8s -> CAPI : Resources changed FooLoadBalancer=my-cluster
+activate CAPI
+CAPI -> LBC : Reconcile LoadBalancer my-cluster
+activate LBC
+LBC -> k8s : Fetch FooLoadBalancer my-cluster
+activate k8s
+return FooLoadBalancer my-cluster
+LBC -> k8s : Set TODO = TODO
+activate k8s
+return ok
+return ok, fully reconciled (no members yet)
+deactivate
+
+k8s -> KCP : Resources changed LoadBalancer=my-cluster
+activate KCP
+KCP -> KCPC: Reconcile KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch LoadBalancer my-cluster
+activate k8s
+return LoadBalancer my-cluster
+KCPC -> k8s : Create AWSMachine cp-1
+activate k8s
+return ok
+KCPC -> k8s : Create Machine cp-1
+activate k8s
+return ok
+return partially reconciled, waiting on LoadBalancer to contain Machine cp-1
+deactivate
+
+k8s -> CAPA : Resources created AWSMachine cp-1
+activate CAPA
+CAPA -> AMC : Reconcile AWSMachine cp-1
+activate AMC
+AMC -> AMC : create infrastructure
+AMC -> k8s : Set AWSMachine.Status.Ready to True
+activate k8s
+return ok
+return ok, fully reconciled
+deactivate
+
+k8s -> CAPI : Resources created Machine cp-1
+activate CAPI
+CAPI -> MC : Reconcile Machine cp-1
+activate MC
+MC -> k8s : Fetch AWSMachine cp-1
+activate k8s
+return ok
+MC -> k8s : Set Machine.Status.Ready to True
+activate k8s
+return ok
+return ok, fully reconciled
+deactivate
+
+k8s -> FOO : Resources changed Machine=cp-1
+activate FOO
+FOO -> FLBC : Reconcile FooLoadBalancer my-cluster
+activate FLBC
+FLBC -> k8s : Fetch Machines matching targetKind/targetSelector
+activate k8s
+return Machine cp-1
+FLBC -> FLBC : reconcile lb membership
+FLBC -> k8s : Set TODO = TODO
+activate k8s
+return ok
+return ok, fully reconciled (1 member active, not healthy)
+deactivate
+
+k8s -> CAPI : Resources changed FooLoadBalancer=my-cluster
+activate CAPI
+CAPI -> LBC : Reconcile LoadBalancer my-cluster
+activate LBC
+LBC -> k8s : Fetch FooLoadBalancer my-cluster
+activate k8s
+return FooLoadBalancer my-cluster
+LBC -> k8s : Set TODO = TODO
+activate k8s
+return ok
+return ok, fully reconciled (1 member active, not healthy)
+deactivate
+
+k8s -> KCP : Resources changed LoadBalancer=my-cluster
+activate KCP
+KCP -> KCPC: Reconcile KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch LoadBalancer my-cluster
+activate k8s
+return LoadBalancer my-cluster
+KCPC -> k8s : Fetch Machines matching selector
+activate k8s
+return Machine cp-1
+KCPC -> KCPC : Check health of cp-1
+return requeue, waiting on Control Plane for Machine cp-1 to be healthy
+... requeue delay ...
+KCP -> KCPC: Requeue KubeadmControlPlane my-cluster
+activate KCPC
+KCPC -> k8s : Fetch LoadBalancer my-cluster
+activate k8s
+return LoadBalancer my-cluster
+KCPC -> k8s : Fetch Machines matching selector
+activate k8s
+return Machine cp-1
+KCPC -> KCPC : Check health of cp-1
+return ok, fully reconciled
+deactivate
+
+k8s -> FOO : Resources changed KubeadmControlPlane my-cluster
+activate FOO
+FOO -> FLBC : Reconcile FooLoadBalancer my-cluster
+activate FLBC
+FLBC -> k8s : Fetch Machines matching targetKind/targetSelector
+activate k8s
+return Machine cp-1
+FLBC -> FLBC : reconcile lb membership
+FLBC -> k8s : Set TODO = TODO
+activate k8s
+return ok
+return ok, fully reconciled (1 member active, 1 healthy)
+deactivate
+
+k8s -> CAPI : Resources changed FooLoadBalancer=my-cluster
+activate CAPI
+CAPI -> LBC : Reconcile LoadBalancer my-cluster
+activate LBC
+LBC -> k8s : Fetch FooLoadBalancer my-cluster
+activate k8s
+return FooLoadBalancer my-cluster
+LBC -> k8s : Set TODO = TODO
+activate k8s
+return ok
+return ok, fully reconciled (1 member active, 1 healthy)
+deactivate
+
+k8s -> CAPI : Resources changed KubeadmControlPlane=my-cluster
+activate CAPI
+CAPI -> CC : Reconcile Cluster my-cluster
+activate CC
+CC -> k8s : Fetch KubeadmControlPlane my-cluster
+activate k8s
+return KubeadmControlPlane my-cluster
+CC -> k8s : Set Cluster.Status.ControlPlaneInitialized = True
+CC -> k8s : Set Cluster.Status.ControlPlaneReady = True
+activate k8s
+return ok
+return ok, fully reconciled
+deactivate
+
+@enduml

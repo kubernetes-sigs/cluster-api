@@ -47,7 +47,7 @@ endif
 # Binaries.
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
 CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
-GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
+GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/gotestsum)
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
@@ -78,6 +78,8 @@ help:  ## Display this help
 ## Testing
 ## --------------------------------------
 
+ARTIFACTS ?= $(ROOT)/_artifacts
+
 .PHONY: test
 test: ## Run tests.
 	go test ./... $(TEST_ARGS)
@@ -85,6 +87,12 @@ test: ## Run tests.
 .PHONY: test-verbose
 test-verbose: ## Run tests with verbose settings.
 	TEST_ARGS="$(TEST_ARGS) -v" $(MAKE) test
+
+.PHONY: test-junit
+test-junit: $(GOTESTSUM) ## Run tests with verbose setting and generate a junit report.
+	(go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_docker.exitcode) | tee $(ARTIFACTS)/junit.infra_docker.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_docker.xml --raw-command cat $(ARTIFACTS)/junit.infra_docker.stdout
+	exit $$(cat $(ARTIFACTS)/junit.infra_docker.exitcode)
 
 ## --------------------------------------
 ## Binaries

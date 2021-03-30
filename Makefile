@@ -64,6 +64,7 @@ endif
 # Need to use abspath so we can invoke these from subdirectories
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
+GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/gotestsum)
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
@@ -118,6 +119,8 @@ help:  ## Display this help
 ## Testing
 ## --------------------------------------
 
+ARTIFACTS ?= ${ROOT_DIR}/_artifacts
+
 .PHONY: test
 test: ## Run tests.
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test ./... $(TEST_ARGS)
@@ -125,6 +128,12 @@ test: ## Run tests.
 .PHONY: test-verbose
 test-verbose: ## Run tests with verbose settings.
 	TEST_ARGS="$(TEST_ARGS) -v" $(MAKE) test
+
+.PHONY: test-junit
+test-junit: $(GOTESTSUM) ## Run tests with verbose setting and generate a junit report.
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; set +o errexit; (go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
+	exit $$(cat $(ARTIFACTS)/junit.exitcode)
 
 .PHONY: test-cover
 test-cover: ## Run tests with code coverage and code generate reports.
@@ -172,6 +181,9 @@ $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+
+$(GOTESTSUM): $(TOOLS_DIR)/go.mod # Build gotestsum from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/gotestsum gotest.tools/gotestsum
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen

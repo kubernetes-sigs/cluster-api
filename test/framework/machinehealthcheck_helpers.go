@@ -139,7 +139,9 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 				ClusterName:        input.Cluster.Name,
 				MachineHealthCheck: mhc,
 			})
-			Expect(machines).NotTo(BeEmpty())
+			if len(machines) == 0 {
+				return false
+			}
 
 			for _, machine := range machines {
 				if machine.Status.NodeRef == nil {

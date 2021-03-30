@@ -34,9 +34,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
+	infrav1old "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/controllers"
-	infrav1exp "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4"
+	infraexpv1old "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4"
 	expcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -62,8 +64,10 @@ func init() {
 	klog.InitFlags(nil)
 
 	_ = scheme.AddToScheme(myscheme)
+	_ = infrav1old.AddToScheme(myscheme)
 	_ = infrav1.AddToScheme(myscheme)
-	_ = infrav1exp.AddToScheme(myscheme)
+	_ = infraexpv1old.AddToScheme(myscheme)
+	_ = infraexpv1.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = expv1.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme

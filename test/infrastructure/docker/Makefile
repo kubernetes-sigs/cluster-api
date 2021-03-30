@@ -34,7 +34,7 @@ export DOCKER_CLI_EXPERIMENTAL := enabled
 
 # Directories.
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-TOOLS_DIR := hack/tools
+TOOLS_DIR := $(ROOT)/hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
 EXP_DIR := exp

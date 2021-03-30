@@ -100,14 +100,17 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return ctrl.Result{}, errors.Wrap(err, "failed to upgrade kubelet config map")
 	}
 
-	status, err := workloadCluster.ClusterStatus(ctx)
-	if err != nil {
-		return ctrl.Result{}, err
+	switch kcp.Spec.RolloutStrategy.Type {
+	case controlplanev1.RollingUpdateStrategyType:
+		// RolloutStrategy is currently defaulted and validated to be RollingUpdate
+		// We can ignore MaxUnavailable because we are enforcing health checks before we get here.
+		maxNodes := *kcp.Spec.Replicas + int32(kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntValue())
+		if int32(controlPlane.Machines.Len()) < maxNodes {
+			// scaleUp ensures that we don't continue scaling up while waiting for Machines to have NodeRefs
+			return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
+		}
+		return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, machinesRequireUpgrade)
+	default:
+		return ctrl.Result{}, errors.New("rolloutStrategy type is not set to rollingupdatestrategytype, unable to determine the strategy for rolling out machines")
 	}
-
-	if status.Nodes <= *kcp.Spec.Replicas {
-		// scaleUp ensures that we don't continue scaling up while waiting for Machines to have NodeRefs
-		return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
-	}
-	return r.scaleDownControlPlane(ctx, cluster, kcp, controlPlane, machinesRequireUpgrade)
 }

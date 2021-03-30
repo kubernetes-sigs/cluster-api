@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
@@ -1345,6 +1346,14 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 			},
 			Replicas: pointer.Int32Ptr(int32(3)),
 			Version:  "v1.16.6",
+			RolloutStrategy: &controlplanev1.RolloutStrategy{
+				Type: "RollingUpdate",
+				RollingUpdate: &controlplanev1.RollingUpdate{
+					MaxSurge: &intstr.IntOrString{
+						IntVal: 1,
+					},
+				},
+			},
 		},
 	}
 

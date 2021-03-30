@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
@@ -50,8 +50,8 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 		return nil, err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract (default) or the previous one.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPIContract{Contract: clusterv1old.GroupVersion.Version}); err != nil {
+	// Ensure this command only runs against management clusters with the current Cluster API contract (default).
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +86,7 @@ type ApplyUpgradeOptions struct {
 	// ManagementGroup that should be upgraded (e.g. capi-system/cluster-api).
 	ManagementGroup string
 
-	// Contract defines the API Version of Cluster API (contract e.g. v1alpha3) the management group should upgrade to.
+	// Contract defines the API Version of Cluster API (contract e.g. v1alpha4) the management group should upgrade to.
 	// When upgrading by contract, the latest versions available will be used for all the providers; if you want
 	// a more granular control on upgrade, use CoreProvider, BootstrapProviders, ControlPlaneProviders, InfrastructureProviders.
 	Contract string
@@ -105,14 +105,18 @@ type ApplyUpgradeOptions struct {
 }
 
 func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
+	if options.Contract != "" && options.Contract != clusterv1.GroupVersion.Version {
+		return errors.Errorf("current version of clusterctl could only upgrade to %s contract, requested %s", clusterv1.GroupVersion.Version, options.Contract)
+	}
+
 	// Get the client for interacting with the management cluster.
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract (default) or the previous one.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPIContract{Contract: clusterv1old.GroupVersion.Version}); err != nil {
+	// Ensure this command only runs against management clusters with the current Cluster API contract (default).
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(); err != nil {
 		return err
 	}
 

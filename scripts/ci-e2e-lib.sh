@@ -47,28 +47,28 @@ k8s::prepareKindestImages() {
     k8s::resolveVersion "KUBERNETES_VERSION" "$KUBERNETES_VERSION"
     export KUBERNETES_VERSION=$resolveVersion
 
-    kind::prepareKindestImage $resolveVersion
+    kind::prepareKindestImage "$resolveVersion"
   fi
 
   if [ -n "${KUBERNETES_VERSION_UPGRADE_TO:-}" ]; then
     k8s::resolveVersion "KUBERNETES_VERSION_UPGRADE_TO" "$KUBERNETES_VERSION_UPGRADE_TO"
     export KUBERNETES_VERSION_UPGRADE_TO=$resolveVersion
 
-    kind::prepareKindestImage $resolveVersion
+    kind::prepareKindestImage "$resolveVersion"
   fi
 
   if [ -n "${KUBERNETES_VERSION_UPGRADE_FROM:-}" ]; then
     k8s::resolveVersion "KUBERNETES_VERSION_UPGRADE_FROM" "$KUBERNETES_VERSION_UPGRADE_FROM"
     export KUBERNETES_VERSION_UPGRADE_FROM=$resolveVersion
 
-    kind::prepareKindestImage $resolveVersion
+    kind::prepareKindestImage "$resolveVersion"
   fi
 
   if [ -n "${BUILD_NODE_IMAGE_TAG:-}" ]; then
     k8s::resolveVersion "BUILD_NODE_IMAGE_TAG" "$BUILD_NODE_IMAGE_TAG"
     export BUILD_NODE_IMAGE_TAG=$resolveVersion
 
-    kind::prepareKindestImage $resolveVersion
+    kind::prepareKindestImage "$resolveVersion"
   fi
 }
 
@@ -105,7 +105,7 @@ kind::prepareKindestImage() {
   # if pre-pull failed, falling back to local build
   if [[ "$retVal" != 0 ]]; then
     echo "+ image for Kuberentes $version is not available in docker hub, trying local build"
-    kind::buildNodeImage $version
+    kind::buildNodeImage "$version"
   fi
 }
 
@@ -116,7 +116,7 @@ kind::buildNodeImage() {
 
   # move to the Kubernetes repository.
   echo "KUBE_ROOT $GOPATH/src/k8s.io/kubernetes"
-  cd $GOPATH/src/k8s.io/kubernetes
+  cd "$GOPATH/src/k8s.io/kubernetes" || exit
 
   # checkouts the Kubernetes branch for the given version.
   k8s::checkoutBranch "$version"
@@ -130,7 +130,7 @@ kind::buildNodeImage() {
   kind build node-image --type docker --image "kindest/node:$version"
 
   # move back to Cluster API
-  cd $REPO_ROOT
+  cd "$REPO_ROOT" || exit
 }
 
 # k8s::checkoutBranch checkouts the Kubernetes branch for the given version.
@@ -146,7 +146,7 @@ k8s::checkoutBranch() {
     # should be already been tagged.
     echo "+ checkout tag $version"
     git fetch --all --tags
-    git checkout tags/$version -b $version-branch
+    git checkout "tags/$version" -b "$version-branch"
   else
     # otherwise we are requiring a Kubernetes version that should be built from HEAD
     # of one of the existing branches
@@ -159,11 +159,11 @@ k8s::checkoutBranch() {
     minor=$(echo "${version#v}" | awk '{split($0,a,"."); print a[2]}')
 
     local releaseBranch
-    releaseBranch="$(git branch -r | grep release-$major.$minor$ || true)"
+    releaseBranch="$(git branch -r | grep "release-$major.$minor$" || true)"
     if [[ "$releaseBranch" != "" ]]; then
       # if there is already a release branch for the required Kubernetes branch, use it
       echo "+ checkout $releaseBranch branch"
-      git checkout $releaseBranch -b release-$major.$minor
+      git checkout "$releaseBranch" -b "release-$major.$minor"
     else
       # otherwise, we should build from master, which is the branch for the next release
       echo "+ checkout master branch"

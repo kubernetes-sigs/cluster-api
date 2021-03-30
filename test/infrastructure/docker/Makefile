@@ -45,9 +45,13 @@ ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api
 endif
 
 # Binaries.
-CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
-CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
+CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
+GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
+KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
+
+$(KUSTOMIZE): # Build kustomize from tools folder.
+	$(MAKE) -C $(ROOT) kustomize
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -220,8 +224,8 @@ manifest-modification: # Set the manifest images to the staging/production bucke
 	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
 
 .PHONY: release-manifests
-release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
-	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+release-manifests: $(RELEASE_DIR) $(KUSTOMIZE)## Builds the manifests to publish with a release
+	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.

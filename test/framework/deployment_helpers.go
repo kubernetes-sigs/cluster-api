@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -219,7 +218,7 @@ func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPa
 			metricsFile = path.Join(metricsDir, "metrics-error.txt")
 		}
 
-		if err := ioutil.WriteFile(metricsFile, data, 0600); err != nil {
+		if err := os.WriteFile(metricsFile, data, 0600); err != nil {
 			// Failing to dump metrics should not cause the test to fail
 			log.Logf("Error writing metrics for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}

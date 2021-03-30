@@ -18,7 +18,6 @@ package client
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -438,12 +437,12 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
 
 	// Template on a file
-	tmpDir, err := ioutil.TempDir("", "cc")
+	tmpDir, err := os.MkdirTemp("", "cc")
 	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(tmpDir)
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	g.Expect(ioutil.WriteFile(path, rawTemplate, 0600)).To(Succeed())
+	g.Expect(os.WriteFile(path, rawTemplate, 0600)).To(Succeed())
 
 	// Template on a repository & in a ConfigMap
 	configMap := &corev1.ConfigMap{
@@ -620,12 +619,12 @@ func Test_clusterctlClient_ProcessYAML(t *testing.T) {
 	template := `v1: ${VAR1:=default1}
 v2: ${VAR2=default2}
 v3: ${VAR3:-default3}`
-	dir, err := ioutil.TempDir("", "clusterctl")
+	dir, err := os.MkdirTemp("", "clusterctl")
 	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(dir)
 
 	templateFile := filepath.Join(dir, "template.yaml")
-	g.Expect(ioutil.WriteFile(templateFile, []byte(template), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(templateFile, []byte(template), 0600)).To(Succeed())
 
 	inputReader := strings.NewReader(template)
 

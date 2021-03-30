@@ -3,6 +3,9 @@
     command = "make -C docs/book build"
     publish = "docs/book/book"
 
+[build.environment]
+    GO_VERSION = "1.16"
+
 # Standard Netlify redirects
 [[redirects]]
     from = "https://master--kubernetes-sigs-cluster-api.netlify.com/*"

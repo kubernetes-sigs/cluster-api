@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -281,7 +280,7 @@ func TestVersionChecker_WriteStateFile(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	// ensure that the state file has been created
 	g.Expect(tmpVersionFile).Should(BeARegularFile())
-	fb, err := ioutil.ReadFile(tmpVersionFile)
+	fb, err := os.ReadFile(tmpVersionFile)
 	g.Expect(err).ToNot(HaveOccurred())
 	var actualVersionState VersionState
 	g.Expect(yaml.Unmarshal(fb, &actualVersionState)).To(Succeed())
@@ -375,7 +374,7 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 }
 
 func generateTempVersionFilePath(g *WithT) (string, func()) {
-	dir, err := ioutil.TempDir("", "clusterctl")
+	dir, err := os.MkdirTemp("", "clusterctl")
 	g.Expect(err).NotTo(HaveOccurred())
 	// don't create the state file, just have a path to the file
 	tmpVersionFile := filepath.Join(dir, "clusterctl", "state.yaml")

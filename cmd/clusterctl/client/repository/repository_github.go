@@ -19,7 +19,7 @@ package repository
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -345,7 +345,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 	defer reader.Close()
 
 	// Read contents from the reader (redirect or not), and return.
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read downloaded file %q from %q release", *release.TagName, fileName)
 	}

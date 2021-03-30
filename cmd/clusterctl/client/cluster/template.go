@@ -19,7 +19,6 @@ package cluster
 import (
 	"context"
 	"encoding/base64"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -152,7 +151,7 @@ func (t *templateClient) getLocalFileContent(rURL *url.URL) ([]byte, error) {
 	if f.IsDir() {
 		return nil, errors.Errorf("invalid path: file %q is actually a directory", rURL.Path)
 	}
-	content, err := ioutil.ReadFile(rURL.Path)
+	content, err := os.ReadFile(rURL.Path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read file %q", rURL.Path)
 	}

@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -58,7 +58,7 @@ type CreateRepositoryInput struct {
 // NOTE: this transformation is specifically designed for replacing "data: ${envSubstVar}".
 func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformation(manifestPath, envSubstVar string) {
 	By(fmt.Sprintf("Reading the ClusterResourceSet manifest %s", manifestPath))
-	manifestData, err := ioutil.ReadFile(manifestPath)
+	manifestData, err := os.ReadFile(manifestPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the ClusterResourceSet manifest file")
 	Expect(manifestData).ToNot(BeEmpty(), "ClusterResourceSet manifest file should not be empty")
 
@@ -91,12 +91,12 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			Expect(os.MkdirAll(sourcePath, 0755)).To(Succeed(), "Failed to create the clusterctl local repository folder for %q / %q", providerLabel, version.Name)
 
 			filePath := filepath.Join(sourcePath, "components.yaml")
-			Expect(ioutil.WriteFile(filePath, manifest, 0600)).To(Succeed(), "Failed to write manifest in the clusterctl local repository for %q / %q", providerLabel, version.Name)
+			Expect(os.WriteFile(filePath, manifest, 0600)).To(Succeed(), "Failed to write manifest in the clusterctl local repository for %q / %q", providerLabel, version.Name)
 
 			destinationPath := filepath.Join(input.RepositoryFolder, providerLabel, version.Name, "components.yaml")
 			allFiles := append(provider.Files, version.Files...)
 			for _, file := range allFiles {
-				data, err := ioutil.ReadFile(file.SourcePath)
+				data, err := os.ReadFile(file.SourcePath)
 				Expect(err).ToNot(HaveOccurred(), "Failed to read file %q / %q", provider.Name, file.SourcePath)
 
 				// Applies FileTransformations if defined
@@ -106,7 +106,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 				}
 
 				destinationFile := filepath.Join(filepath.Dir(destinationPath), file.TargetName)
-				Expect(ioutil.WriteFile(destinationFile, data, 0600)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
+				Expect(os.WriteFile(destinationFile, data, 0600)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
 			}
 		}
 		providers = append(providers, providerConfig{
@@ -183,7 +183,7 @@ func getComponentSourceFromURL(source ProviderVersionSource) ([]byte, error) {
 	// url.Parse always lower cases scheme
 	switch u.Scheme {
 	case "", fileURIScheme:
-		buf, err = ioutil.ReadFile(u.Path)
+		buf, err = os.ReadFile(u.Path)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read file")
 		}
@@ -193,7 +193,7 @@ func getComponentSourceFromURL(source ProviderVersionSource) ([]byte, error) {
 			return nil, err
 		}
 		defer resp.Body.Close()
-		buf, err = ioutil.ReadAll(resp.Body)
+		buf, err = io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, err
 		}

@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -63,11 +62,11 @@ func TestProxyGetConfig(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
-				dir, err := ioutil.TempDir("", "clusterctl")
+				dir, err := os.MkdirTemp("", "clusterctl")
 				g.Expect(err).NotTo(HaveOccurred())
 				defer os.RemoveAll(dir)
 				configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
-				g.Expect(ioutil.WriteFile(configFile, []byte(tt.kubeconfigContents), 0600)).To(Succeed())
+				g.Expect(os.WriteFile(configFile, []byte(tt.kubeconfigContents), 0600)).To(Succeed())
 
 				proxy := newProxy(Kubeconfig{Path: configFile, Context: tt.context})
 				conf, err := proxy.GetConfig()
@@ -90,11 +89,11 @@ func TestProxyGetConfig(t *testing.T) {
 
 	t.Run("configure timeout", func(t *testing.T) {
 		g := NewWithT(t)
-		dir, err := ioutil.TempDir("", "clusterctl")
+		dir, err := os.MkdirTemp("", "clusterctl")
 		g.Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(dir)
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
-		g.Expect(ioutil.WriteFile(configFile, []byte(kubeconfig("management", "default")), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfig("management", "default")), 0600)).To(Succeed())
 
 		proxy := newProxy(Kubeconfig{Path: configFile, Context: "management"}, InjectProxyTimeout(23*time.Second))
 		conf, err := proxy.GetConfig()
@@ -117,11 +116,11 @@ func TestKUBECONFIGEnvVar(t *testing.T) {
 		)
 
 		g := NewWithT(t)
-		dir, err := ioutil.TempDir("", "clusterctl")
+		dir, err := os.MkdirTemp("", "clusterctl")
 		g.Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(dir)
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
-		g.Expect(ioutil.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
 
 		proxy := newProxy(
 			// dont't give an explicit path but rather define the file in the
@@ -145,11 +144,11 @@ func TestKUBECONFIGEnvVar(t *testing.T) {
 			expectedHost       = "https://kind-server:38790"
 		)
 		g := NewWithT(t)
-		dir, err := ioutil.TempDir("", "clusterctl")
+		dir, err := os.MkdirTemp("", "clusterctl")
 		g.Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(dir)
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
-		g.Expect(ioutil.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
 
 		proxy := newProxy(
 			// dont't give an explicit path but rather define the file in the
@@ -222,11 +221,11 @@ func TestProxyCurrentNamespace(t *testing.T) {
 			if len(tt.kubeconfigPath) != 0 {
 				configFile = tt.kubeconfigPath
 			} else {
-				dir, err := ioutil.TempDir("", "clusterctl")
+				dir, err := os.MkdirTemp("", "clusterctl")
 				g.Expect(err).NotTo(HaveOccurred())
 				defer os.RemoveAll(dir)
 				configFile = filepath.Join(dir, ".test-kubeconfig.yaml")
-				g.Expect(ioutil.WriteFile(configFile, []byte(tt.kubeconfigContents), 0600)).To(Succeed())
+				g.Expect(os.WriteFile(configFile, []byte(tt.kubeconfigContents), 0600)).To(Succeed())
 			}
 
 			proxy := newProxy(Kubeconfig{Path: configFile, Context: tt.kubeconfigContext})

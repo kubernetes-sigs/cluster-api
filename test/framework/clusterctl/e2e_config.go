@@ -19,7 +19,6 @@ package clusterctl
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -49,7 +48,7 @@ type LoadE2EConfigInput struct {
 
 // LoadE2EConfig loads the configuration for the e2e test environment.
 func LoadE2EConfig(ctx context.Context, input LoadE2EConfigInput) *E2EConfig {
-	configData, err := ioutil.ReadFile(input.ConfigPath)
+	configData, err := os.ReadFile(input.ConfigPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test config file")
 	Expect(configData).ToNot(BeEmpty(), "The e2e test config file should not be empty")
 

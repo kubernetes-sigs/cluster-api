@@ -18,7 +18,6 @@ package bootstrap
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 
 	. "github.com/onsi/gomega"
@@ -86,7 +85,7 @@ func (k *kindClusterProvider) Create(ctx context.Context) {
 
 	// Sets the kubeconfig path to a temp file.
 	// NB. the ClusterProvider is responsible for the cleanup of this file
-	f, err := ioutil.TempFile("", "e2e-kind")
+	f, err := os.CreateTemp("", "e2e-kind")
 	Expect(err).ToNot(HaveOccurred(), "Failed to create kubeconfig file for the kind cluster %q", k.name)
 	k.kubeconfigPath = f.Name()
 

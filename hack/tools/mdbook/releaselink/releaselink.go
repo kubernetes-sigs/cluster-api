@@ -20,7 +20,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -70,7 +70,7 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 		}
 		defer resp.Body.Close()
 
-		out, err := ioutil.ReadAll(resp.Body)
+		out, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return "", err
 		}

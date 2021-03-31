@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
@@ -223,7 +224,9 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 			return ps.Run(ctx) == nil, nil
 		})
 		if err != nil {
-			return errors.WithStack(err)
+			log.Info("Failed running command", "command", "crictl ps")
+			logInspectContainer(ctx, log, m.ContainerName())
+			return errors.Wrap(errors.WithStack(err), "failed to run crictl ps")
 		}
 		return nil
 	}
@@ -309,6 +312,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 		err := cmd.Run(ctx)
 		if err != nil {
 			log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
+			logInspectContainer(ctx, log, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
 		}
 	}
@@ -429,4 +433,13 @@ func (m *Machine) machineImage(version *string) string {
 	versionString = container.SemverToOCIImageTag(versionString)
 
 	return fmt.Sprintf("%s:%s", defaultImageName, versionString)
+}
+
+func logInspectContainer(ctx context.Context, log logr.Logger, name string) {
+	cmd := exec.CommandContext(ctx, "docker", "inspect", name)
+	output, err := exec.CombinedOutputLines(cmd)
+	if err != nil {
+		log.Error(err, "Failed inspecting the worker machine container", "output", output)
+	}
+	log.Info("Inspected the worker machine container", "output", output)
 }

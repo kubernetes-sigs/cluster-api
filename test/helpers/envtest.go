@@ -19,8 +19,8 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
@@ -226,7 +226,7 @@ func initializeWebhookInEnvironment() {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
 	root := path.Join(path.Dir(filename), "..", "..")
-	configyamlFile, err := ioutil.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml"))
+	configyamlFile, err := os.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml"))
 	if err != nil {
 		klog.Fatalf("Failed to read core webhook configuration file: %v ", err)
 	}
@@ -239,7 +239,7 @@ func initializeWebhookInEnvironment() {
 		klog.Fatalf("Failed to append core controller webhook config: %v", err)
 	}
 
-	bootstrapyamlFile, err := ioutil.ReadFile(filepath.Join(root, "bootstrap", "kubeadm", "config", "webhook", "manifests.yaml"))
+	bootstrapyamlFile, err := os.ReadFile(filepath.Join(root, "bootstrap", "kubeadm", "config", "webhook", "manifests.yaml"))
 	if err != nil {
 		klog.Fatalf("Failed to get bootstrap yaml file: %v", err)
 	}
@@ -248,7 +248,7 @@ func initializeWebhookInEnvironment() {
 	if err != nil {
 		klog.Fatalf("Failed to append bootstrap controller webhook config: %v", err)
 	}
-	controlplaneyamlFile, err := ioutil.ReadFile(filepath.Join(root, "controlplane", "kubeadm", "config", "webhook", "manifests.yaml"))
+	controlplaneyamlFile, err := os.ReadFile(filepath.Join(root, "controlplane", "kubeadm", "config", "webhook", "manifests.yaml"))
 	if err != nil {
 		klog.Fatalf(" Failed to get controlplane yaml file err: %v", err)
 	}

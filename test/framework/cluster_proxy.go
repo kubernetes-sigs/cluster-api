@@ -19,7 +19,6 @@ package framework
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -129,7 +128,7 @@ func NewClusterProxy(name string, kubeconfigPath string, scheme *runtime.Scheme,
 // newFromAPIConfig returns a clusterProxy given a api.Config and the scheme defining the types hosted in the cluster.
 func newFromAPIConfig(name string, config *api.Config, scheme *runtime.Scheme) ClusterProxy {
 	// NB. the ClusterProvider is responsible for the cleanup of this file
-	f, err := ioutil.TempFile("", "e2e-kubeconfig")
+	f, err := os.CreateTemp("", "e2e-kubeconfig")
 	Expect(err).ToNot(HaveOccurred(), "Failed to create kubeconfig file for the kind cluster %q")
 	kubeconfigPath := f.Name()
 

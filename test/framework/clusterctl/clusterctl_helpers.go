@@ -18,7 +18,6 @@ package clusterctl
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -173,7 +172,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		log.Logf("Installing a CNI plugin to the workload cluster")
 		workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, result.Cluster.Namespace, result.Cluster.Name)
 
-		cniYaml, err := ioutil.ReadFile(input.CNIManifestPath)
+		cniYaml, err := os.ReadFile(input.CNIManifestPath)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Expect(workloadCluster.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())

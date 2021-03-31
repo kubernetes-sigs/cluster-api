@@ -19,7 +19,6 @@ package framework
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	osExec "os/exec"
 	"path/filepath"
@@ -58,7 +57,7 @@ func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClu
 	}
 	copyDirFn := func(containerDir, dirName string) func() error {
 		return func() error {
-			f, err := ioutil.TempFile("", containerName)
+			f, err := os.CreateTemp("", containerName)
 			if err != nil {
 				return err
 			}

@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -250,7 +249,7 @@ func kindMounts(mounts []infrav1.Mount) []v1alpha4.Mount {
 
 func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error {
 	// Save the image into a tar
-	dir, err := ioutil.TempDir("", "image-tar")
+	dir, err := os.MkdirTemp("", "image-tar")
 	if err != nil {
 		return errors.Wrap(err, "failed to create tempdir")
 	}

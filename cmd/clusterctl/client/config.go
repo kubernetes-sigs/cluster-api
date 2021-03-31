@@ -18,7 +18,6 @@ package client
 
 import (
 	"io"
-	"io/ioutil"
 	"strconv"
 
 	"k8s.io/utils/pointer"
@@ -82,7 +81,7 @@ func (c *clusterctlClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter,
 	if options.ReaderSource != nil {
 		// NOTE: Beware of potentially reading in large files all at once
 		// since this is inefficient and increases memory utilziation.
-		content, err := ioutil.ReadAll(options.ReaderSource.Reader)
+		content, err := io.ReadAll(options.ReaderSource.Reader)
 		if err != nil {
 			return nil, err
 		}

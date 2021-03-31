@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -102,7 +101,7 @@ func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
 	if f.IsDir() {
 		return nil, errors.Errorf("invalid path: file %q is actually a directory %q", fileName, absolutePath)
 	}
-	content, err := ioutil.ReadFile(absolutePath)
+	content, err := os.ReadFile(absolutePath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
 	}
@@ -113,7 +112,7 @@ func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
 func (r *localRepository) GetVersions() ([]string, error) {
 	// get all the sub-directories under {basepath}/{provider-id}/
 	releasesPath := filepath.Join(r.basepath, r.providerLabel)
-	files, err := ioutil.ReadDir(releasesPath)
+	files, err := os.ReadDir(releasesPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list release directories")
 	}

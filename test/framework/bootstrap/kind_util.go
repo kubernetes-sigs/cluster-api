@@ -18,7 +18,6 @@ package bootstrap
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -111,7 +110,7 @@ func LoadImagesToKindCluster(ctx context.Context, input LoadImagesToKindClusterI
 // LoadImage will put a local image onto the kind node.
 func loadImage(ctx context.Context, cluster, image string) error {
 	// Save the image into a tar
-	dir, err := ioutil.TempDir("", "image-tar")
+	dir, err := os.MkdirTemp("", "image-tar")
 	if err != nil {
 		return errors.Wrap(err, "failed to create tempdir")
 	}

@@ -18,7 +18,6 @@ package kubetest
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -220,7 +219,7 @@ func countClusterNodes(ctx context.Context, proxy framework.ClusterProxy) (int, 
 }
 
 func isSELinuxEnforcing() bool {
-	dat, err := ioutil.ReadFile("/sys/fs/selinux/enforce")
+	dat, err := os.ReadFile("/sys/fs/selinux/enforce")
 	if err != nil {
 		return false
 	}

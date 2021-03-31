@@ -19,7 +19,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -173,14 +172,14 @@ func writeStateFile(path string, vs *VersionState) error {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(path, vsb, 0600); err != nil {
+	if err := os.WriteFile(path, vsb, 0600); err != nil {
 		return err
 	}
 	return nil
 }
 
 func readStateFile(filepath string) (*VersionState, error) {
-	b, err := ioutil.ReadFile(filepath)
+	b, err := os.ReadFile(filepath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// if the file doesn't exist yet, don't error

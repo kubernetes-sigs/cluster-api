@@ -38,29 +38,19 @@ export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
 # Builds CAPI (and CAPD) images.
 capi:buildDockerImages
 
-# Checks all the e2e test variables representing a Kubernetes version,
-# and resolves kubernetes version labels (e.g. latest) to the corresponding version numbers.
+# Prepare kindest/node images for all the required Kubernetes version; this implies
+# 1. Kubernetes version labels (e.g. latest) to the corresponding version numbers.
+# 2. Pre-pulling the corresponding kindest/node image if available; if not, building the image locally.
 # Following variables are currently checked (if defined):
 # - KUBERNETES_VERSION
 # - KUBERNETES_VERSION_UPGRADE_TO
 # - KUBERNETES_VERSION_UPGRADE_FROM
-# - BUILD_NODE_IMAGE_TAG
-k8s::resolveAllVersions
-
-# If it is required to build a kindest/node image, build it ensuring the generated binary gets
-# the expected version.
-if [ -n "${BUILD_NODE_IMAGE_TAG:-}" ]; then
-  kind::buildNodeImage "$BUILD_NODE_IMAGE_TAG"
-fi
+k8s::prepareKindestImages
 
 # pre-pull all the images that will be used in the e2e, thus making the actual test run
 # less sensible to the network speed. This includes:
 # - cert-manager images
-# - kindest/node:KUBERNETES_VERSION (if defined)
-# - kindest/node:KUBERNETES_VERSION_UPGRADE_TO (if defined)
-# - kindest/node:KUBERNETES_VERSION_UPGRADE_FROM (if defined)
-# - kindest/node:BUILD_NODE_IMAGE_TAG (if defined)
-kind:prepullImages
+kind:prepullAdditionalImages
 
 # Configure e2e tests
 export GINKGO_NODES=3

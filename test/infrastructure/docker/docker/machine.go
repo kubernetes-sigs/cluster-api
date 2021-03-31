@@ -28,14 +28,15 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/cloudinit"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
-	"sigs.k8s.io/cluster-api/util/container"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/exec"
+
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/cloudinit"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
+	"sigs.k8s.io/cluster-api/util/container"
 )
 
 const (
@@ -223,7 +224,9 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 			return ps.Run(ctx) == nil, nil
 		})
 		if err != nil {
-			return errors.WithStack(err)
+			log.Info("Failed running command", "command", "crictl ps")
+			logContainerDebugInfo(ctx, m.ContainerName())
+			return errors.Wrap(errors.WithStack(err), "failed to run crictl ps")
 		}
 		return nil
 	}
@@ -309,6 +312,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 		err := cmd.Run(ctx)
 		if err != nil {
 			log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
+			logContainerDebugInfo(ctx, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
 		}
 	}
@@ -429,4 +433,22 @@ func (m *Machine) machineImage(version *string) string {
 	versionString = container.SemverToOCIImageTag(versionString)
 
 	return fmt.Sprintf("%s:%s", defaultImageName, versionString)
+}
+
+func logContainerDebugInfo(ctx context.Context, name string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	cmd := exec.CommandContext(ctx, "docker", "inspect", name)
+	output, err := exec.CombinedOutputLines(cmd)
+	if err != nil {
+		log.Error(err, "Failed inspecting the machine container", "output", output)
+	}
+	log.Info("Inspected the machine container", "output", output)
+
+	cmd = exec.CommandContext(ctx, "docker", "logs", name)
+	output, err = exec.CombinedOutputLines(cmd)
+	if err != nil {
+		log.Error(err, "Failed to get logs from the machine container", "output", output)
+	}
+	log.Info("Got logs from the machine container", "output", output)
 }

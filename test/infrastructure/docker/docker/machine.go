@@ -225,7 +225,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 		})
 		if err != nil {
 			log.Info("Failed running command", "command", "crictl ps")
-			logInspectContainer(ctx, log, m.ContainerName())
+			logContainerDebugInfo(ctx, log, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run crictl ps")
 		}
 		return nil
@@ -312,7 +312,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 		err := cmd.Run(ctx)
 		if err != nil {
 			log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
-			logInspectContainer(ctx, log, m.ContainerName())
+			logContainerDebugInfo(ctx, log, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
 		}
 	}
@@ -435,11 +435,18 @@ func (m *Machine) machineImage(version *string) string {
 	return fmt.Sprintf("%s:%s", defaultImageName, versionString)
 }
 
-func logInspectContainer(ctx context.Context, log logr.Logger, name string) {
+func logContainerDebugInfo(ctx context.Context, log logr.Logger, name string) {
 	cmd := exec.CommandContext(ctx, "docker", "inspect", name)
 	output, err := exec.CombinedOutputLines(cmd)
 	if err != nil {
 		log.Error(err, "Failed inspecting the worker machine container", "output", output)
 	}
 	log.Info("Inspected the worker machine container", "output", output)
+
+	cmd = exec.CommandContext(ctx, "docker", "logs", name)
+	output, err = exec.CombinedOutputLines(cmd)
+	if err != nil {
+		log.Error(err, "Failed to get logs from the worker machine container", "output", output)
+	}
+	log.Info("Got logs from the worker machine container", "output", output)
 }

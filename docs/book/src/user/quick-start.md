@@ -84,7 +84,7 @@ Choose one of the options below:
 ### Install clusterctl
 The clusterctl CLI tool handles the lifecycle of a Cluster API management cluster.
 
-{{#tabs name:"install-clusterctl" tabs:"linux,macOS"}}
+{{#tabs name:"install-clusterctl" tabs:"linux,macOS,homebrew"}}
 {{#tab linux}}
 
 #### Install clusterctl binary with curl on linux
@@ -125,6 +125,22 @@ Test to ensure the version you installed is up-to-date:
 ```
 clusterctl version
 ```
+{{#/tab }}
+{{#tab homebrew}}
+
+##### Install clusterctl with homebrew on macOS and linux
+
+Install the latest release using homebrew:
+
+```bash
+brew install clusterctl
+```
+
+Test to ensure the version you installed is up-to-date:
+```
+clusterctl version
+```
+
 {{#/tab }}
 {{#/tabs }}
 

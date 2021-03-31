@@ -23,6 +23,7 @@ import (
 	_ "github.com/drone/envsubst/v2/cmd/envsubst"
 	_ "github.com/go-bindata/go-bindata"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "gotest.tools/gotestsum"
 	_ "github.com/joelanford/go-apidiff"
 	_ "github.com/onsi/ginkgo/ginkgo"
 	_ "k8s.io/code-generator/cmd/conversion-gen"

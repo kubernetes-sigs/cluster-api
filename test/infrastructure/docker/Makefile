@@ -102,11 +102,14 @@ test-junit: $(GOTESTSUM) ## Run tests with verbose setting and generate a junit 
 manager: ## Build manager binary
 	go build -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api/test/infrastructure/docker
 
-$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+$(CONTROLLER_GEN):
+	$(MAKE) -C $(ROOT) controller-gen
 
-$(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+$(CONVERSION_GEN):
+	$(MAKE) -C $(ROOT) conversion-gen
+
+$(GOTESTSUM):
+	$(MAKE) -C $(ROOT) gotestsum
 
 ## --------------------------------------
 ## Generate / Manifests

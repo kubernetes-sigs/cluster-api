@@ -12,7 +12,9 @@ require (
 	github.com/onsi/gomega v1.11.0
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5
+	google.golang.org/grpc v1.36.0 // indirect
 	k8s.io/api v0.21.0-beta.1
 	k8s.io/apimachinery v0.21.0-beta.1
 	k8s.io/client-go v0.21.0-beta.1

@@ -17,12 +17,15 @@ limitations under the License.
 package docker
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	dockerTypes "github.com/docker/docker/api/types"
+	dockerFilters "github.com/docker/docker/api/types/filters"
+	dockerClient "github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 const clusterLabelKey = "io.x-k8s.kind.cluster"
@@ -102,34 +105,38 @@ func List(filters ...string) ([]*types.Node, error) {
 }
 
 func list(visit func(string, *types.Node), filters ...string) error {
-	args := []string{
-		"ps",
-		"-q",         // quiet output for parsing
-		"-a",         // show stopped nodes
-		"--no-trunc", // don't truncate
-		// filter for nodes with the cluster label
-		"--filter", "label=" + clusterLabelKey,
-		// format to include friendly name and the cluster name
-		"--format", fmt.Sprintf(`{{.Names}}\t{{.Label "%s"}}\t{{.Image}}\t{{.Status}}`, clusterLabelKey),
-	}
-	for _, filter := range filters {
-		args = append(args, "--filter", filter)
-	}
-	cmd := exec.Command("docker", args...)
-	lines, err := exec.CombinedOutputLines(cmd)
+	ctx := context.Background()
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
-		return errors.Wrapf(err, "failed to list nodes. Output: %s", lines)
+		return errors.Wrap(err, "failed to connect to docker daemon")
 	}
-	for _, line := range lines {
-		parts := strings.Split(line, "\t")
-		if len(parts) != 4 {
-			return errors.Errorf("invalid output when listing nodes: %s", line)
+
+	options := dockerTypes.ContainerListOptions{
+		All:     true,
+		Limit:   -1,
+		Filters: dockerFilters.NewArgs(dockerFilters.Arg("label", clusterLabelKey)),
+	}
+
+	for _, f := range filters {
+		label := strings.Split(f, "=")
+		if len(label) == 2 {
+			options.Filters.Add(label[0], label[1])
+		} else if len(label) == 3 {
+			options.Filters.Add(label[0], fmt.Sprintf("%s=%s", label[1], label[2]))
 		}
-		names := strings.Split(parts[0], ",")
-		cluster := parts[1]
-		image := parts[2]
-		status := parts[3]
-		visit(cluster, types.NewNode(names[0], image, "undetermined").WithStatus(status))
+	}
+
+	containers, err := cli.ContainerList(ctx, options)
+	if err != nil {
+		return errors.Wrap(err, "failed to list nodes")
+	}
+
+	for _, container := range containers {
+		names := container.Names
+		cluster := clusterLabelKey
+		image := container.Image
+		status := container.Status
+		visit(cluster, types.NewNode(strings.Trim(names[0], "/"), image, "undetermined").WithStatus(status))
 	}
 	return nil
 }

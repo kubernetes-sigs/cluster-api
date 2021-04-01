@@ -40,8 +40,8 @@ import (
 )
 
 const (
-	defaultImageName = "kindest/node"
-	defaultImageTag  = "v1.19.1"
+	defaultImageName = "sbueringer/kindest-node"
+	defaultImageTag  = "v1.19.1-verbose"
 )
 
 type nodeCreator interface {

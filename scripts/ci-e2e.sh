@@ -96,5 +96,10 @@ ctr -n moby events > "${ARTIFACTS_LOCAL}/containerd-events.txt" 2>&1 &
 
 # Run e2e tests
 mkdir -p "$ARTIFACTS"
-echo "+ run tests!"
-make -C test/e2e/ run
+
+# run the tests more often, so do they don't have to be re-triggered every hour
+for i in {1..20};
+do
+  echo "+ run tests! ${i}"
+  make -C test/e2e/ run
+done

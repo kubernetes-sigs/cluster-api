@@ -6,7 +6,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/containerd/containerd v1.4.4 // indirect
 	github.com/docker/docker v20.10.5+incompatible
-	github.com/docker/go-connections v0.4.0 // indirect
+	github.com/docker/go-connections v0.4.0
 	github.com/go-logr/logr v0.4.0
 	github.com/moby/moby v20.10.5+incompatible
 	github.com/morikuni/aec v1.0.0 // indirect

@@ -24,12 +24,15 @@ import (
 	"strings"
 
 	dockerTypes "github.com/docker/docker/api/types"
+	dockerContainer "github.com/docker/docker/api/types/container"
+	dockerMount "github.com/docker/docker/api/types/mount"
+	dockerNetwork "github.com/docker/docker/api/types/network"
 	dockerClient "github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 const KubeadmContainerPort = 6443
@@ -99,61 +102,106 @@ func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, list
 }
 
 func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, extraArgs ...string) (*types.Node, error) {
-	runArgs := []string{
-		"--detach", // run the container detached
-		"--tty",    // allocate a tty for entrypoint logs
-		// running containers in a container requires privileged
-		// NOTE: we could try to replicate this with --cap-add, and use less
-		// privileges, but this flag also changes some mounts that are necessary
-		// including some ones docker would otherwise do by default.
-		// for now this is what we want. in the future we may revisit this.
-		"--privileged",
-		"--security-opt", "seccomp=unconfined", // also ignore seccomp
-		// runtime temporary storage
-		"--tmpfs", "/tmp", // various things depend on working /tmp
-		"--tmpfs", "/run", // systemd wants a writable /run
+	clusterLabelParts := strings.Split(clusterLabel, "=")
+	if len(clusterLabelParts) != 2 {
+		return nil, errors.New(fmt.Sprintf("invalid cluster label: %s", clusterLabel))
+	}
+	labels := map[string]string{
+		clusterLabelParts[0]: clusterLabelParts[1],
+		nodeRoleLabelKey:     role,
+	}
+
+	containerConfig := dockerContainer.Config{
+		Tty:      true, // allocate a tty for entrypoint logs
+		Hostname: name, // make hostname match container name
+		Labels:   labels,
+		Image:    image,
 		// runtime persistent storage
 		// this ensures that E.G. pods, logs etc. are not on the container
 		// filesystem, which is not only better for performance, but allows
 		// running kind in kind for "party tricks"
 		// (please don't depend on doing this though!)
-		"--volume", "/var",
-		// some k8s things want to read /lib/modules
-		"--volume", "/lib/modules:/lib/modules:ro",
-		"--hostname", name, // make hostname match container name
-		"--network", defaultNetwork,
-		"--name", name, // ... and set the container name
-		// label the node with the cluster ID
-		"--label", clusterLabel,
-		// label the node with the role ID
-		"--label", fmt.Sprintf("%s=%s", nodeRoleLabelKey, role),
+		Volumes: map[string]struct{}{"/var": {}},
 	}
+	hostConfig := dockerContainer.HostConfig{
+		// running containers in a container requires privileged
+		// NOTE: we could try to replicate this with --cap-add, and use less
+		// privileges, but this flag also changes some mounts that are necessary
+		// including some ones docker would otherwise do by default.
+		// for now this is what we want. in the future we may revisit this.
+		Privileged:  true,
+		SecurityOpt: []string{"seccomp=unconfined"}, // also ignore seccomp
+		// some k8s things want to read /lib/modules
+		Binds:       []string{"/lib/modules:/lib/modules:ro"},
+		NetworkMode: defaultNetwork,
+		Tmpfs: map[string]string{
+			"/tmp": "", // various things depend on working /tmp
+			"/run": "", // systemd wants a writable /run
+		},
+		PortBindings: nat.PortMap{},
+	}
+	networkConfig := dockerNetwork.NetworkingConfig{}
 
 	// pass proxy environment variables to be used by node's docker daemon
+	envVars := []string{}
 	proxyDetails, err := getProxyDetails()
 	if err != nil || proxyDetails == nil {
 		return nil, errors.Wrap(err, "proxy setup error")
 	}
 	for key, val := range proxyDetails.Envs {
-		runArgs = append(runArgs, "-e", fmt.Sprintf("%s=%s", key, val))
+		envVars = append(envVars, fmt.Sprintf("%s=%s", key, val))
+	}
+	containerConfig.Env = envVars
+
+	configureMounts(mounts, &hostConfig)
+	configurePortMappings(portMappings, &hostConfig)
+
+	// We control these, so for now just parse out the expected format
+	ports := nat.PortSet{}
+	for i := 0; i < len(extraArgs); i++ {
+		if extraArgs[i] == "--expose" {
+			i++
+			ports[nat.Port(fmt.Sprintf("%s/tcp", extraArgs[i]))] = struct{}{}
+		} else if extraArgs[i] == "--label" {
+			i++
+			label := strings.Split(extraArgs[i], "=")
+			labels[label[0]] = label[1]
+		}
 	}
 
-	// adds node specific args
-	runArgs = append(runArgs, extraArgs...)
+	// We need to make sure any PortMappings are also included in the expose list
+	for port := range hostConfig.PortBindings {
+		ports[port] = struct{}{}
+	}
+	containerConfig.ExposedPorts = ports
 
 	if usernsRemap() {
 		// We need this argument in order to make this command work
 		// in systems that have userns-remap enabled on the docker daemon
-		runArgs = append(runArgs, "--userns=host")
+		hostConfig.UsernsMode = "host"
 	}
 
-	if err := run(
-		image,
-		withRunArgs(runArgs...),
-		withMounts(mounts),
-		withPortMappings(portMappings),
-	); err != nil {
-		return nil, err
+	ctx := context.Background()
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, errors.Wrap(err, "container client error")
+	}
+
+	resp, err := cli.ContainerCreate(
+		ctx,
+		&containerConfig,
+		&hostConfig,
+		&networkConfig,
+		nil,
+		name,
+	)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "container creation error")
+	}
+
+	if err := cli.ContainerStart(ctx, resp.ID, dockerTypes.ContainerStartOptions{}); err != nil {
+		return nil, errors.Wrap(err, "container start error")
 	}
 
 	return types.NewNode(name, image, role), nil
@@ -276,130 +324,57 @@ func usernsRemap() bool {
 	return false
 }
 
-func run(image string, opts ...RunOpt) error {
-	o := &runOpts{}
-	for _, opt := range opts {
-		o = opt(o)
-	}
-	// convert mounts to container run args
-	runArgs := o.RunArgs
-	for _, mount := range o.Mounts {
-		runArgs = append(runArgs, generateMountBindings(mount)...)
-	}
-	for _, portMapping := range o.PortMappings {
-		runArgs = append(runArgs, generatePortMappings(portMapping)...)
-	}
-	// construct the actual docker run argv
-	args := []string{"run"}
-	args = append(args, runArgs...)
-	args = append(args, image)
-	args = append(args, o.ContainerArgs...)
-	cmd := exec.Command("docker", args...)
-	output, err := exec.CombinedOutputLines(cmd)
-	if err != nil {
-		// log error output if there was any
-		for _, line := range output {
-			fmt.Println(line)
-		}
-		return err
-	}
-	return nil
-}
-
-// RunOpt is an option for run.
-type RunOpt func(*runOpts) *runOpts
-
-// actual options struct.
-type runOpts struct {
-	RunArgs       []string
-	ContainerArgs []string
-	Mounts        []v1alpha4.Mount
-	PortMappings  []v1alpha4.PortMapping
-}
-
-// withRunArgs sets the args for docker run
-// as in the args portion of `docker run args... image containerArgs...`.
-func withRunArgs(args ...string) RunOpt {
-	return func(r *runOpts) *runOpts {
-		r.RunArgs = args
-		return r
+// configureMounts sets the container mounts.
+func configureMounts(mounts []v1alpha4.Mount, hostConfig *dockerContainer.HostConfig) {
+	for _, mount := range mounts {
+		hostConfig.Mounts = append(hostConfig.Mounts,
+			dockerMount.Mount{
+				Type:     dockerMount.TypeBind,
+				Source:   mount.HostPath,
+				Target:   mount.ContainerPath,
+				ReadOnly: mount.Readonly,
+				BindOptions: &dockerMount.BindOptions{
+					Propagation: capiPropagationToDockerPropagation(mount.Propagation),
+				},
+			},
+		)
 	}
 }
 
-// withMounts sets the container mounts.
-func withMounts(mounts []v1alpha4.Mount) RunOpt {
-	return func(r *runOpts) *runOpts {
-		r.Mounts = mounts
-		return r
+// capiPropagationToDockerPropagation translates the CAPI propagation type to the type to use
+// with Docker.
+func capiPropagationToDockerPropagation(prop v1alpha4.MountPropagation) dockerMount.Propagation {
+	// "private" is default
+	switch prop {
+	case v1alpha4.MountPropagationBidirectional:
+		return dockerMount.PropagationRShared
+	case v1alpha4.MountPropagationHostToContainer:
+		return dockerMount.PropagationRSlave
+	default:
+		return dockerMount.PropagationPrivate
 	}
 }
 
-// withPortMappings sets the container port mappings to the host.
-func withPortMappings(portMappings []v1alpha4.PortMapping) RunOpt {
-	return func(r *runOpts) *runOpts {
-		r.PortMappings = portMappings
-		return r
-	}
-}
-
-func generateMountBindings(mounts ...v1alpha4.Mount) []string {
-	result := make([]string, 0, len(mounts))
-	for _, m := range mounts {
-		bind := fmt.Sprintf("%s:%s", m.HostPath, m.ContainerPath)
-		var attrs []string
-		if m.Readonly {
-			attrs = append(attrs, "ro")
-		}
-		// Only request relabeling if the pod provides an SELinux context. If the pod
-		// does not provide an SELinux context relabeling will label the volume with
-		// the container's randomly allocated MCS label. This would restrict access
-		// to the volume to the container which mounts it first.
-		if m.SelinuxRelabel {
-			attrs = append(attrs, "Z")
-		}
-		switch m.Propagation {
-		case v1alpha4.MountPropagationNone:
-			// noop, private is default
-		case v1alpha4.MountPropagationBidirectional:
-			attrs = append(attrs, "rshared")
-		case v1alpha4.MountPropagationHostToContainer:
-			attrs = append(attrs, "rslave")
-		default:
-			// Falls back to "private"
-		}
-
-		if len(attrs) > 0 {
-			bind = fmt.Sprintf("%s:%s", bind, strings.Join(attrs, ","))
-		}
-		// our specific modification is the following line: make this a docker flag
-		bind = fmt.Sprintf("--volume=%s", bind)
-		result = append(result, bind)
-	}
-	return result
-}
-
-func generatePortMappings(portMappings ...v1alpha4.PortMapping) []string {
-	result := make([]string, 0, len(portMappings))
+func configurePortMappings(portMappings []v1alpha4.PortMapping, hostConfig *dockerContainer.HostConfig) {
 	for _, pm := range portMappings {
-		var hostPortBinding string
-		if pm.ListenAddress != "" {
-			hostPortBinding = net.JoinHostPort(pm.ListenAddress, fmt.Sprintf("%d", pm.HostPort))
-		} else {
-			hostPortBinding = fmt.Sprintf("%d", pm.HostPort)
+		port := nat.Port(fmt.Sprintf("%d/%s", pm.ContainerPort, capiProtocolToDockerProtocol(pm.Protocol)))
+		mapping := nat.PortBinding{
+			HostIP:   pm.ListenAddress,
+			HostPort: fmt.Sprintf("%d", pm.HostPort),
 		}
-		var protocol string
-		switch pm.Protocol {
-		case v1alpha4.PortMappingProtocolTCP:
-			protocol = "TCP"
-		case v1alpha4.PortMappingProtocolUDP:
-			protocol = "UDP"
-		case v1alpha4.PortMappingProtocolSCTP:
-			protocol = "SCTP"
-		default:
-			protocol = "TCP"
-		}
-		publish := fmt.Sprintf("--publish=%s:%d/%s", hostPortBinding, pm.ContainerPort, protocol)
-		result = append(result, publish)
+		hostConfig.PortBindings[port] = append(hostConfig.PortBindings[port], mapping)
 	}
-	return result
+}
+
+// capiProtocolToDockerProtocol translates the CAPI port protocol to the type to use
+// with Docker.
+func capiProtocolToDockerProtocol(protocol v1alpha4.PortMappingProtocol) string {
+	switch protocol {
+	case v1alpha4.PortMappingProtocolUDP:
+		return "udp"
+	case v1alpha4.PortMappingProtocolSCTP:
+		return "sctp"
+	default:
+		return "tcp"
+	}
 }

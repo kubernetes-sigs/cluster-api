@@ -3,8 +3,14 @@ module sigs.k8s.io/cluster-api/test/infrastructure/docker
 go 1.16
 
 require (
+	github.com/Microsoft/go-winio v0.4.16 // indirect
+	github.com/containerd/containerd v1.4.4 // indirect
+	github.com/docker/docker v20.10.5+incompatible
+	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/go-logr/logr v0.4.0
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/onsi/gomega v1.11.0
+	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.21.0-beta.1

@@ -21,11 +21,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	dockerClient "github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
@@ -35,7 +37,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 const (
@@ -249,6 +250,11 @@ func kindMounts(mounts []infrav1.Mount) []v1alpha4.Mount {
 
 func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error {
 	// Save the image into a tar
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	if err != nil {
+		return errors.Wrap(err, "failed to create docker client")
+	}
+
 	dir, err := os.MkdirTemp("", "image-tar")
 	if err != nil {
 		return errors.Wrap(err, "failed to create tempdir")
@@ -258,9 +264,21 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 	for i, image := range images {
 		imageTarPath := filepath.Join(dir, fmt.Sprintf("image-%d.tar", i))
 
-		err = exec.Command("docker", "save", "-o", imageTarPath, image).Run()
+		reader, err := cli.ImageSave(ctx, []string{image})
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to open image")
+		}
+		defer reader.Close()
+
+		tar, err := os.Create(imageTarPath)
+		if err != nil {
+			return errors.Wrap(err, "failed to create destination file")
+		}
+		defer tar.Close()
+
+		_, err = io.Copy(tar, reader)
+		if err != nil {
+			return errors.Wrap(err, "failed to save image")
 		}
 
 		f, err := os.Open(imageTarPath)

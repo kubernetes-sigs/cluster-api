@@ -257,13 +257,19 @@ func getProxyDetails() (*proxyDetails, error) {
 
 // usernsRemap checks if userns-remap is enabled in dockerd.
 func usernsRemap() bool {
-	cmd := exec.Command("docker", "info", "--format", "'{{json .SecurityOptions}}'")
-	lines, err := exec.CombinedOutputLines(cmd)
+	ctx := context.Background()
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return false
 	}
-	if len(lines) > 0 {
-		if strings.Contains(lines[0], "name=userns") {
+
+	info, err := cli.Info(ctx)
+	if err != nil {
+		return false
+	}
+
+	for _, secOpt := range info.SecurityOptions {
+		if strings.Contains(secOpt, "name=userns") {
 			return true
 		}
 	}

@@ -8,6 +8,7 @@ require (
 	github.com/docker/docker v20.10.5+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/go-logr/logr v0.4.0
+	github.com/moby/moby v20.10.5+incompatible
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/onsi/gomega v1.11.0
 	github.com/opencontainers/image-spec v1.0.1 // indirect

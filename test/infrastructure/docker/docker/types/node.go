@@ -20,12 +20,16 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
+	dockerTypes "github.com/docker/docker/api/types"
+	dockerClient "github.com/docker/docker/client"
+	"github.com/moby/moby/pkg/stdcopy"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 // Node can be thought of as a logical component of Kubernetes.
@@ -67,23 +71,22 @@ func (n *Node) Role() (string, error) {
 
 // IP gets the docker ipv4 and ipv6 of the node.
 func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
-	// retrieve the IP address of the node using docker inspect
-	cmd := exec.CommandContext(ctx, "docker", "inspect",
-		"-f", "{{range .NetworkSettings.Networks}}{{.IPAddress}},{{.GlobalIPv6Address}}{{end}}",
-		n.Name, // ... against the "node" container
-	)
-	lines, err := exec.CombinedOutputLines(cmd)
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to get container client")
+	}
+
+	containerInfo, err := cli.ContainerInspect(ctx, n.Name)
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to get container details")
 	}
-	if len(lines) != 1 {
-		return "", "", errors.Errorf("file should only be one line, got %d lines", len(lines))
+
+	ip := ""
+	for _, net := range containerInfo.NetworkSettings.Networks {
+		ip = net.IPAddress
+		break
 	}
-	ips := strings.Split(lines[0], ",")
-	if len(ips) != 2 {
-		return "", "", errors.Errorf("container addresses should have 2 values, got %d values", len(ips))
-	}
-	return ips[0], ips[1], nil
+	return ip, containerInfo.NetworkSettings.GlobalIPv6Address, nil
 }
 
 // IsRunning returns if the container is running.
@@ -93,18 +96,15 @@ func (n *Node) IsRunning() bool {
 
 // Delete removes the container.
 func (n *Node) Delete(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx,
-		"docker",
-		append(
-			[]string{
-				"rm",
-				"-f", // force the container to be delete now
-				"-v", // delete volumes
-			},
-			n.Name,
-		)...,
-	)
-	return cmd.Run()
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	if err != nil {
+		return errors.Wrap(err, "failed to get container client")
+	}
+
+	return cli.ContainerRemove(ctx, n.Name, dockerTypes.ContainerRemoveOptions{
+		Force:         true, // force the container to be delete now
+		RemoveVolumes: true, // delete volumes
+	})
 }
 
 // WriteFile puts a file inside a running container.
@@ -122,12 +122,12 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 
 // Kill sends the named signal to the container.
 func (n *Node) Kill(ctx context.Context, signal string) error {
-	cmd := exec.CommandContext(ctx,
-		"docker", "kill",
-		"-s", signal,
-		n.Name,
-	)
-	return errors.WithStack(cmd.Run())
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	if err != nil {
+		return errors.Wrap(err, "failed to get container client")
+	}
+
+	return cli.ContainerKill(ctx, n.Name, signal)
 }
 
 type containerCmder struct {
@@ -176,45 +176,95 @@ func (c *containerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, er
 }
 
 func (c *containerCmd) Run(ctx context.Context) error {
-	args := []string{
-		"exec",
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	execConfig := &dockerTypes.ExecConfig{
 		// run with privileges so we can remount etc..
 		// this might not make sense in the most general sense, but it is
 		// important to many kind commands
-		"--privileged",
+		Privileged:   true,
+		Cmd:          append([]string{c.command}, c.args...), // with the command specified
+		AttachStdout: true,
+		AttachStderr: true,
+		AttachStdin:  (c.stdin != nil), // interactive so we can supply input
 	}
-	if c.stdin != nil {
-		args = append(args,
-			"-i", // interactive so we can supply input
-		)
-	}
+
 	// set env
-	for _, env := range c.env {
-		args = append(args, "-e", env)
+	execConfig.Env = append(execConfig.Env, c.env...)
+
+	response, err := cli.ContainerExecCreate(ctx, c.nameOrID, *execConfig)
+	if err != nil {
+		return errors.WithStack(err)
 	}
-	// specify the container and command, after this everything will be
-	// args the the command in the container rather than to docker
-	args = append(
-		args,
-		c.nameOrID, // ... against the container
-		c.command,  // with the command specified
-	)
-	args = append(
-		args,
-		// finally, with the caller args
-		c.args...,
-	)
-	cmd := exec.CommandContext(ctx, "docker", args...)
-	if c.stdin != nil {
-		cmd.SetStdin(c.stdin)
+
+	execID := response.ID
+	if execID == "" {
+		return errors.New("exec ID empty")
 	}
+
+	fmt.Printf("++++\nAttaching to exec: %s\n%+v\n++++\n", execID, execConfig)
+	resp, err := cli.ContainerExecAttach(ctx, execID, dockerTypes.ExecStartCheck{})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer resp.Close()
+
+	var (
+		out, stderr io.Writer
+	)
+
 	if c.stderr != nil {
-		cmd.SetStderr(c.stderr)
+		stderr = c.stderr
+	} else {
+		stderr = os.Stderr
 	}
+
 	if c.stdout != nil {
-		cmd.SetStdout(c.stdout)
+		out = c.stdout
+	} else {
+		out = os.Stdout
 	}
-	return errors.WithStack(cmd.Run())
+
+	inputDone := make(chan struct{})
+	go func() {
+		if c.stdin != nil {
+			_, _ = io.Copy(resp.Conn, c.stdin)
+			_ = resp.CloseWrite()
+		}
+		close(inputDone)
+	}()
+
+	outputDone := make(chan error)
+	go func() {
+		// StdCopy demultiplexes the stream into two buffers
+		_, err = stdcopy.StdCopy(out, stderr, resp.Reader)
+		outputDone <- err
+	}()
+
+	select {
+	case err := <-outputDone:
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		break
+
+	case <-ctx.Done():
+		return errors.WithStack(ctx.Err())
+	}
+
+	inspect, err := cli.ContainerExecInspect(ctx, execID)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	status := inspect.ExitCode
+	fmt.Printf("++++ exec output done, status: %d ++++\n", status)
+	if status != 0 {
+		return errors.New(fmt.Sprintf("exited with status: %d", status))
+	}
+	return nil
 }
 
 func (c *containerCmd) SetEnv(env ...string) {

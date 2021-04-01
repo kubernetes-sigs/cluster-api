@@ -17,11 +17,14 @@ limitations under the License.
 package docker
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 
+	dockerTypes "github.com/docker/docker/api/types"
+	dockerClient "github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
@@ -193,23 +196,25 @@ const (
 	noProxy        = "NO_PROXY"
 )
 
-// networkInspect displays detailed information on one or more networks.
-func networkInspect(networkNames []string, format string) ([]string, error) {
-	cmd := exec.Command("docker", "network", "inspect",
-		"-f", format,
-		strings.Join(networkNames, " "),
-	)
-	return exec.CombinedOutputLines(cmd)
-}
-
 // getSubnets returns a slice of subnets for a specified network.
 func getSubnets(networkName string) ([]string, error) {
-	format := `{{range (index (index . "IPAM") "Config")}}{{index . "Subnet"}} {{end}}`
-	lines, err := networkInspect([]string{networkName}, format)
+	ctx := context.Background()
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
 	}
-	return strings.Split(strings.TrimSpace(lines[0]), " "), nil
+
+	networkInfo, err := cli.NetworkInspect(ctx, networkName, dockerTypes.NetworkInspectOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	subnets := []string{}
+	for _, network := range networkInfo.IPAM.Config {
+		subnets = append(subnets, network.Subnet)
+	}
+
+	return subnets, err
 }
 
 // getProxyDetails returns a struct with the host environment proxy settings

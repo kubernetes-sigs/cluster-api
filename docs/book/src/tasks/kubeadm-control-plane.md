@@ -2,6 +2,14 @@
 
 Using the Kubeadm control plane type to manage a control plane provides several ways to upgrade control plane machines.
 
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+KubeadmControlPlane is solely supporting CoreDNS as a DNS server at this time.
+
+</aside>
+
 ### Kubeconfig management
 
 KCP will generate and manage the admin Kubeconfig for clusters. The client certificate for the admin user is created

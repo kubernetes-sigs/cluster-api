@@ -26,7 +26,6 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -79,8 +78,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 	}
 	type fields struct {
 		objs       []client.Object
-		tuple      util.ResourceTuple
-		namespace  string
+		ref        corev1.ObjectReference
 		toRevision int64
 	}
 	tests := []struct {
@@ -158,11 +156,11 @@ func Test_ObjectRollbacker(t *testing.T) {
 						},
 					},
 				},
-				tuple: util.ResourceTuple{
-					Resource: MachineDeployment,
-					Name:     "test-md-0",
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "test-md-0",
+					Namespace: "default",
 				},
-				namespace:  "default",
 				toRevision: int64(1),
 			},
 			wantErr:                false,
@@ -194,11 +192,11 @@ func Test_ObjectRollbacker(t *testing.T) {
 						},
 					},
 				},
-				tuple: util.ResourceTuple{
-					Resource: MachineDeployment,
-					Name:     "test-md-0",
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "test-md-0",
+					Namespace: "default",
 				},
-				namespace:  "default",
 				toRevision: int64(0),
 			},
 			wantErr: true,
@@ -227,11 +225,11 @@ func Test_ObjectRollbacker(t *testing.T) {
 						},
 					},
 				},
-				tuple: util.ResourceTuple{
-					Resource: MachineDeployment,
-					Name:     "test-md-0",
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "test-md-0",
+					Namespace: "default",
 				},
-				namespace:  "default",
 				toRevision: int64(1),
 			},
 			wantErr: true,
@@ -242,7 +240,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			err := r.ObjectRollbacker(proxy, tt.fields.tuple, tt.fields.namespace, tt.fields.toRevision)
+			err := r.ObjectRollbacker(proxy, tt.fields.ref, tt.fields.toRevision)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

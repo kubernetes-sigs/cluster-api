@@ -20,28 +20,28 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ObjectResumer will issue a resume on the specified cluster-api resource.
-func (r *rollout) ObjectResumer(proxy cluster.Proxy, tuple util.ResourceTuple, namespace string) error {
-	switch tuple.Resource {
+func (r *rollout) ObjectResumer(proxy cluster.Proxy, ref corev1.ObjectReference) error {
+	switch ref.Kind {
 	case MachineDeployment:
-		deployment, err := getMachineDeployment(proxy, tuple.Name, namespace)
+		deployment, err := getMachineDeployment(proxy, ref.Name, ref.Namespace)
 		if err != nil || deployment == nil {
-			return errors.Wrapf(err, "failed to fetch %v/%v", tuple.Resource, tuple.Name)
+			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
 		if !deployment.Spec.Paused {
-			return errors.Errorf("MachineDeployment is not currently paused: %v/%v\n", tuple.Resource, tuple.Name)
+			return errors.Errorf("MachineDeployment is not currently paused: %v/%v\n", ref.Kind, ref.Name)
 		}
-		if err := resumeMachineDeployment(proxy, tuple.Name, namespace); err != nil {
+		if err := resumeMachineDeployment(proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
 	default:
-		return errors.Errorf("Invalid resource type %q, valid values are %v", tuple.Resource, validResourceTypes)
+		return errors.Errorf("Invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
 	}
 	return nil
 }

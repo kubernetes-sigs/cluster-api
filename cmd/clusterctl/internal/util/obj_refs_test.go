@@ -20,22 +20,23 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 )
 
-func TestResourceTypeAndNameArgs(t *testing.T) {
+func TestGetObjectReferences(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    []string
-		want    []ResourceTuple
+		want    []corev1.ObjectReference
 		wantErr bool
 	}{
 		{
 			name: "valid",
 			args: []string{"machinedeployment/foo"},
-			want: []ResourceTuple{
+			want: []corev1.ObjectReference{
 				{
-					Resource: "machinedeployment",
-					Name:     "foo",
+					Kind: "machinedeployment",
+					Name: "foo",
 				},
 			},
 			wantErr: false,
@@ -43,14 +44,14 @@ func TestResourceTypeAndNameArgs(t *testing.T) {
 		{
 			name: "valid multiple with name indirection",
 			args: []string{"machinedeployment/foo", "machinedeployment/bar"},
-			want: []ResourceTuple{
+			want: []corev1.ObjectReference{
 				{
-					Resource: "machinedeployment",
-					Name:     "foo",
+					Kind: "machinedeployment",
+					Name: "foo",
 				},
 				{
-					Resource: "machinedeployment",
-					Name:     "bar",
+					Kind: "machinedeployment",
+					Name: "bar",
 				},
 			},
 			wantErr: false,
@@ -79,7 +80,7 @@ func TestResourceTypeAndNameArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got, err := ResourceTypeAndNameArgs(tt.args...)
+			got, err := GetObjectReferences("default", tt.args...)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -87,8 +88,9 @@ func TestResourceTypeAndNameArgs(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(len(got)).To(Equal(len(tt.want)))
 			for i := range got {
-				g.Expect(got[i].Resource).To(Equal(tt.want[i].Resource))
+				g.Expect(got[i].Kind).To(Equal(tt.want[i].Kind))
 				g.Expect(got[i].Name).To(Equal(tt.want[i].Name))
+				g.Expect(got[i].Namespace).To(Equal("default"))
 			}
 		})
 	}

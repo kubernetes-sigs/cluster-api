@@ -18,9 +18,9 @@
 FROM golang:1.16.2 as builder
 WORKDIR /workspace
 
-# Run this with docker build --build_arg goproxy=$(go env GOPROXY) to override the goproxy
+# Run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
-# Run this with docker build --build_arg package=./controlplane/kubeadm or --build_arg package=./bootstrap/kubeadm
+# Run this with docker build --build-arg package=./controlplane/kubeadm or --build-arg package=./bootstrap/kubeadm
 ENV GOPROXY=$goproxy
 
 # Copy the Go Modules manifests

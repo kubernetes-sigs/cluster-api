@@ -350,7 +350,7 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) err
 		if err := retryWithExponentialBackoff(setClusterPauseBackoff, func() error {
 			return patchCluster(proxy, cluster, patch)
 		}); err != nil {
-			return err
+			return errors.Wrapf(err, "error setting Cluster.Spec.Paused=%t", value)
 		}
 	}
 	return nil
@@ -375,7 +375,7 @@ func patchCluster(proxy Proxy, cluster *node, patch client.Patch) error {
 	}
 
 	if err := cFrom.Patch(ctx, clusterObj, patch); err != nil {
-		return errors.Wrapf(err, "error pausing reconciliation for %q %s/%s",
+		return errors.Wrapf(err, "error patching %q %s/%s",
 			clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
 	}
 

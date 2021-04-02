@@ -120,7 +120,7 @@ func runUpgradePlan() error {
 			if plan.Contract == clusterv1.GroupVersion.Version {
 				fmt.Println("You can now apply the upgrade by executing the following command:")
 				fmt.Println("")
-				fmt.Printf(" clusterctl upgrade upgrade apply --management-group %s --contract %s\n", plan.CoreProvider.InstanceName(), plan.Contract)
+				fmt.Printf("clusterctl upgrade apply --management-group %s --contract %s\n", plan.CoreProvider.InstanceName(), plan.Contract)
 			} else {
 				fmt.Printf("The current version of clusterctl could not upgrade to %s contract (only %s supported).\n", plan.Contract, clusterv1.GroupVersion.Version)
 			}

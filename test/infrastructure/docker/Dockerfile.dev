@@ -23,7 +23,7 @@ FROM golang:1.16.2
 # default the go proxy
 ARG goproxy=https://proxy.golang.org
 
-# run this with docker build --build_arg goproxy=$(go env GOPROXY) to override the goproxy
+# run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
 ENV GOPROXY=$goproxy
 
 WORKDIR /tmp

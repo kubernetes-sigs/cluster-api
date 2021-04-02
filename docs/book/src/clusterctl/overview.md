@@ -17,6 +17,7 @@ mis-configurations or in managing day 2 operations such as upgrades.
 * use [`clusterctl get kubeconfig`](commands/get-kubeconfig.md) to get the kubeconfig of an existing workload cluster.
   using clusterctl's internal yaml processor.
 * use [`clusterctl move`](commands/move.md) to migrate objects defining a workload clusters (e.g. Cluster, Machines) from a management cluster to another management cluster
+* use [`clusterctl alpha rollout`](commands/alpha-rollout.md) to rollout Cluster API resources such as MachineDeployments. Note that this is currently an alpha level feature. 
 
 <!-- links -->
 [management cluster]: ../reference/glossary.md#management-cluster

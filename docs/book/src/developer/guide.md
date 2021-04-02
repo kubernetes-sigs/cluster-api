@@ -221,3 +221,15 @@ Now you can [create CAPI objects][qs]!
 To test another iteration, you'll need to follow the steps to build, push, update the manifests, and apply.
 
 [qs]: https://cluster-api.sigs.k8s.io/user/quick-start.html#usage
+
+## Videos explaining CAPI architecture and code walkthrough
+
+CAPI components and architecture
+
+* [Cluster API Deep Dive - Dec 2020 v1alpha3](https://youtu.be/npFO5Fixqcc)
+* [Cluster API Deep Dive - Sept 2020 v1alpha3](https://youtu.be/9SfuQQeeK6Q)
+* [Declarative Kubernetes Clusters with Cluster API - Oct 2020 v1alpha3](https://youtu.be/i6OWn2zRsZg)
+
+Code walkthrough
+
+* [Cluster API CAPD Deep Dive - March 2021 v1alpha4](https://youtu.be/67kEp471MPk)

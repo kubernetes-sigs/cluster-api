@@ -45,8 +45,8 @@ const (
 )
 
 type nodeCreator interface {
-	CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
-	CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
+	CreateControlPlaneNode(name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
+	CreateWorkerNode(name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
 }
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
@@ -69,15 +69,14 @@ func NewMachine(cluster, machine, image string, labels map[string]string) (*Mach
 		return nil, errors.New("machine is required when creating a docker.Machine")
 	}
 
-	filters := []string{
-		withLabel(clusterLabel(cluster)),
-		withName(machineContainerName(cluster, machine)),
-	}
+	filters := Filter{}
+	filters.AddKeyNameValue(filterLabel, clusterLabelKey, cluster)
+	filters.AddKeyValue(filterName, fmt.Sprintf("^%s$", machineContainerName(cluster, machine)))
 	for key, val := range labels {
-		filters = append(filters, withLabel(toLabel(key, val)))
+		filters.AddKeyNameValue(filterLabel, key, val)
 	}
 
-	container, err := getContainer(filters...)
+	container, err := getContainer(filters)
 	if err != nil {
 		return nil, err
 	}
@@ -97,14 +96,13 @@ func ListMachinesByCluster(cluster string, labels map[string]string) ([]*Machine
 		return nil, errors.New("cluster is required when listing machines in the cluster")
 	}
 
-	filters := []string{
-		withLabel(clusterLabel(cluster)),
-	}
+	filters := Filter{}
+	filters.AddKeyNameValue(filterLabel, clusterLabelKey, cluster)
 	for key, val := range labels {
-		filters = append(filters, withLabel(toLabel(key, val)))
+		filters.AddKeyNameValue(filterLabel, key, val)
 	}
 
-	containers, err := listContainers(filters...)
+	containers, err := listContainers(filters)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +189,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 			m.container, err = m.nodeCreator.CreateControlPlaneNode(
 				m.ContainerName(),
 				machineImage,
-				clusterLabel(m.cluster),
+				m.cluster,
 				"127.0.0.1",
 				0,
 				kindMounts(mounts),
@@ -206,7 +204,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 			m.container, err = m.nodeCreator.CreateWorkerNode(
 				m.ContainerName(),
 				machineImage,
-				clusterLabel(m.cluster),
+				m.cluster,
 				kindMounts(mounts),
 				nil,
 				m.labels,
@@ -393,10 +391,11 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 
 func (m *Machine) getKubectlNode() (*types.Node, error) {
 	// collect info about the existing controlplane nodes
-	kubectlNodes, err := listContainers(
-		withLabel(clusterLabel(m.cluster)),
-		withLabel(roleLabel(constants.ControlPlaneNodeRoleValue)),
-	)
+	filters := Filter{}
+	filters.AddKeyNameValue(filterLabel, clusterLabelKey, m.cluster)
+	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ControlPlaneNodeRoleValue)
+
+	kubectlNodes, err := listContainers(filters)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

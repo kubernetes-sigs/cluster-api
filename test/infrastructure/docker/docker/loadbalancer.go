@@ -28,7 +28,7 @@ import (
 )
 
 type lbCreator interface {
-	CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error)
+	CreateExternalLoadBalancerNode(name, image, clusterName, listenAddress string, port int32) (*types.Node, error)
 }
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
@@ -48,10 +48,11 @@ func NewLoadBalancer(name string) (*LoadBalancer, error) {
 	// look for the container that is hosting the loadbalancer for the cluster.
 	// filter based on the label and the roles regardless of whether or not it is running.
 	// if non-running container is chosen, then it will not have an IP address associated with it.
-	container, err := getContainer(
-		withLabel(clusterLabel(name)),
-		withLabel(roleLabel(constants.ExternalLoadBalancerNodeRoleValue)),
-	)
+	filters := Filter{}
+	filters.AddKeyNameValue(filterLabel, clusterLabelKey, name)
+	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ExternalLoadBalancerNodeRoleValue)
+
+	container, err := getContainer(filters)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 		s.container, err = s.lbCreator.CreateExternalLoadBalancerNode(
 			s.containerName(),
 			loadbalancer.Image,
-			clusterLabel(s.name),
+			s.name,
 			"0.0.0.0",
 			0,
 		)
@@ -99,11 +100,12 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 		return errors.New("unable to configure load balancer: load balancer container does not exists")
 	}
 
+	filters := Filter{}
+	filters.AddKeyNameValue(filterLabel, clusterLabelKey, s.name)
+	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ControlPlaneNodeRoleValue)
+
 	// collect info about the existing controlplane nodes
-	controlPlaneNodes, err := listContainers(
-		withLabel(clusterLabel(s.name)),
-		withLabel(roleLabel(constants.ControlPlaneNodeRoleValue)),
-	)
+	controlPlaneNodes, err := listContainers(filters)
 	if err != nil {
 		return errors.WithStack(err)
 	}

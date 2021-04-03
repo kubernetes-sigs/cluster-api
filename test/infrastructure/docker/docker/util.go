@@ -30,19 +30,24 @@ import (
 
 const clusterLabelKey = "io.x-k8s.kind.cluster"
 const nodeRoleLabelKey = "io.x-k8s.kind.role"
+const filterLabel = "label"
+const filterName = "name"
 
-// clusterLabel returns the label applied to all the containers in a cluster.
-func clusterLabel(name string) string {
-	return toLabel(clusterLabelKey, name)
+type Filter map[string]map[string]string
+
+// AddKeyValue adds a filter with a single name.
+func (f Filter) AddKeyValue(key, value string) {
+	if _, ok := f[key]; !ok {
+		f[key] = map[string]string{}
+	}
+
+	f[key][value] = ""
 }
 
-// roleLabel returns the label applied to all the containers with a specific role.
-func roleLabel(role string) string {
-	return toLabel(nodeRoleLabelKey, role)
-}
-
-func toLabel(key, val string) string {
-	return fmt.Sprintf("%s=%s", key, val)
+// AddKeyNameValue adds a filter with a name=value.
+func (f Filter) AddKeyNameValue(key, name, value string) {
+	f.AddKeyValue(key, name)
+	f[key][name] = value
 }
 
 func machineContainerName(cluster, machine string) string {
@@ -57,19 +62,9 @@ func machineFromContainerName(cluster, containerName string) string {
 	return strings.TrimPrefix(machine, "-")
 }
 
-// withName returns a filter on name for listContainers & getContainer.
-func withName(name string) string {
-	return fmt.Sprintf("name=^%s$", name)
-}
-
-// withLabel returns a filter on labels for listContainers & getContainer.
-func withLabel(label string) string {
-	return fmt.Sprintf("label=%s", label)
-}
-
 // listContainers returns the list of docker containers matching filters.
-func listContainers(filters ...string) ([]*types.Node, error) {
-	n, err := List(filters...)
+func listContainers(filters Filter) ([]*types.Node, error) {
+	n, err := List(filters)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list containers")
 	}
@@ -77,8 +72,8 @@ func listContainers(filters ...string) ([]*types.Node, error) {
 }
 
 // getContainer returns the docker container matching filters.
-func getContainer(filters ...string) (*types.Node, error) {
-	n, err := listContainers(filters...)
+func getContainer(filters Filter) (*types.Node, error) {
+	n, err := listContainers(filters)
 	if err != nil {
 		return nil, err
 	}
@@ -96,15 +91,15 @@ func getContainer(filters ...string) (*types.Node, error) {
 // List returns the list of container IDs for the kind "nodes", optionally
 // filtered by docker ps filters
 // https://docs.docker.com/engine/reference/commandline/ps/#filtering
-func List(filters ...string) ([]*types.Node, error) {
+func List(filters Filter) ([]*types.Node, error) {
 	res := []*types.Node{}
 	visit := func(cluster string, node *types.Node) {
 		res = append(res, node)
 	}
-	return res, list(visit, filters...)
+	return res, list(visit, filters)
 }
 
-func list(visit func(string, *types.Node), filters ...string) error {
+func list(visit func(string, *types.Node), filters Filter) error {
 	ctx := context.Background()
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
@@ -117,12 +112,13 @@ func list(visit func(string, *types.Node), filters ...string) error {
 		Filters: dockerFilters.NewArgs(dockerFilters.Arg("label", clusterLabelKey)),
 	}
 
-	for _, f := range filters {
-		label := strings.Split(f, "=")
-		if len(label) == 2 {
-			options.Filters.Add(label[0], label[1])
-		} else if len(label) == 3 {
-			options.Filters.Add(label[0], fmt.Sprintf("%s=%s", label[1], label[2]))
+	for key, values := range filters {
+		for subkey, subvalue := range values {
+			if subvalue == "" {
+				options.Filters.Add(key, subkey)
+			} else {
+				options.Filters.Add(key, fmt.Sprintf("%s=%s", subkey, subvalue))
+			}
 		}
 	}
 

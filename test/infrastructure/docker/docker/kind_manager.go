@@ -40,7 +40,7 @@ const ControlPlanePort = 6443
 
 type Manager struct{}
 
-func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
+func (m *Manager) CreateControlPlaneNode(name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
 	// gets a random host port for the API server
 	if port == 0 {
 		p, err := getPort()
@@ -56,11 +56,16 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddres
 		HostPort:      port,
 		ContainerPort: KubeadmContainerPort,
 	})
-	node, err := createNode(
-		name, image, clusterLabel, constants.ControlPlaneNodeRoleValue, mounts, portMappingsWithAPIServer,
-		// publish selected port for the API server
-		append([]string{"--expose", fmt.Sprintf("%d", port)}, labelsAsArgs(labels)...)...,
-	)
+	createOpts := &nodeCreateOpts{
+		Name:         name,
+		Image:        image,
+		ClusterName:  clusterName,
+		Role:         constants.ControlPlaneNodeRoleValue,
+		Port:         port,
+		PortMappings: portMappingsWithAPIServer,
+		Mounts:       mounts,
+	}
+	node, err := createNode(context.Background(), createOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -68,11 +73,19 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddres
 	return node, nil
 }
 
-func (m *Manager) CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
-	return createNode(name, image, clusterLabel, constants.WorkerNodeRoleValue, mounts, portMappings, labelsAsArgs(labels)...)
+func (m *Manager) CreateWorkerNode(name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
+	createOpts := &nodeCreateOpts{
+		Name:         name,
+		Image:        image,
+		ClusterName:  clusterName,
+		Role:         constants.WorkerNodeRoleValue,
+		PortMappings: portMappings,
+		Labels:       labels,
+	}
+	return createNode(context.Background(), createOpts)
 }
 
-func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error) {
+func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterName, listenAddress string, port int32) (*types.Node, error) {
 	// gets a random host port for control-plane load balancer
 	// gets a random host port for the API server
 	if port == 0 {
@@ -89,11 +102,15 @@ func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, list
 		HostPort:      port,
 		ContainerPort: ControlPlanePort,
 	}}
-	node, err := createNode(name, image, clusterLabel, constants.ExternalLoadBalancerNodeRoleValue,
-		nil, portMappings,
-		// publish selected port for the control plane
-		"--expose", fmt.Sprintf("%d", port),
-	)
+	createOpts := &nodeCreateOpts{
+		Name:         name,
+		Image:        image,
+		ClusterName:  clusterName,
+		Role:         constants.ExternalLoadBalancerNodeRoleValue,
+		Port:         port,
+		PortMappings: portMappings,
+	}
+	node, err := createNode(context.Background(), createOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -101,21 +118,32 @@ func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, list
 	return node, nil
 }
 
-func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, extraArgs ...string) (*types.Node, error) {
-	clusterLabelParts := strings.Split(clusterLabel, "=")
-	if len(clusterLabelParts) != 2 {
-		return nil, errors.New(fmt.Sprintf("invalid cluster label: %s", clusterLabel))
+type nodeCreateOpts struct {
+	Name         string
+	Image        string
+	ClusterName  string
+	Role         string
+	Port         int32
+	Mounts       []v1alpha4.Mount
+	PortMappings []v1alpha4.PortMapping
+	Labels       map[string]string
+}
+
+func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) {
+	// Collect the labels to apply to the container
+	containerLabels := map[string]string{
+		clusterLabelKey:  opts.ClusterName,
+		nodeRoleLabelKey: opts.Role,
 	}
-	labels := map[string]string{
-		clusterLabelParts[0]: clusterLabelParts[1],
-		nodeRoleLabelKey:     role,
+	for name, value := range opts.Labels {
+		containerLabels[name] = value
 	}
 
 	containerConfig := dockerContainer.Config{
-		Tty:      true, // allocate a tty for entrypoint logs
-		Hostname: name, // make hostname match container name
-		Labels:   labels,
-		Image:    image,
+		Tty:      true,      // allocate a tty for entrypoint logs
+		Hostname: opts.Name, // make hostname match container name
+		Labels:   containerLabels,
+		Image:    opts.Image,
 		// runtime persistent storage
 		// this ensures that E.G. pods, logs etc. are not on the container
 		// filesystem, which is not only better for performance, but allows
@@ -144,7 +172,7 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 
 	// pass proxy environment variables to be used by node's docker daemon
 	envVars := []string{}
-	proxyDetails, err := getProxyDetails()
+	proxyDetails, err := getProxyDetails(ctx)
 	if err != nil || proxyDetails == nil {
 		return nil, errors.Wrap(err, "proxy setup error")
 	}
@@ -153,20 +181,13 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 	}
 	containerConfig.Env = envVars
 
-	configureMounts(mounts, &hostConfig)
-	configurePortMappings(portMappings, &hostConfig)
+	configureMounts(opts.Mounts, &hostConfig)
+	configurePortMappings(opts.PortMappings, &hostConfig)
 
-	// We control these, so for now just parse out the expected format
+	// Expose the container port if supplied.
 	ports := nat.PortSet{}
-	for i := 0; i < len(extraArgs); i++ {
-		if extraArgs[i] == "--expose" {
-			i++
-			ports[nat.Port(fmt.Sprintf("%s/tcp", extraArgs[i]))] = struct{}{}
-		} else if extraArgs[i] == "--label" {
-			i++
-			label := strings.Split(extraArgs[i], "=")
-			labels[label[0]] = label[1]
-		}
+	if opts.Port > 0 {
+		ports[nat.Port(fmt.Sprintf("%d/tcp", opts.Port))] = struct{}{}
 	}
 
 	// We need to make sure any PortMappings are also included in the expose list
@@ -175,13 +196,12 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 	}
 	containerConfig.ExposedPorts = ports
 
-	if usernsRemap() {
+	if usernsRemap(ctx) {
 		// We need this argument in order to make this command work
 		// in systems that have userns-remap enabled on the docker daemon
 		hostConfig.UsernsMode = "host"
 	}
 
-	ctx := context.Background()
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, errors.Wrap(err, "container client error")
@@ -193,7 +213,7 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 		&hostConfig,
 		&networkConfig,
 		nil,
-		name,
+		opts.Name,
 	)
 
 	if err != nil {
@@ -204,19 +224,7 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 		return nil, errors.Wrap(err, "container start error")
 	}
 
-	return types.NewNode(name, image, role), nil
-}
-
-// labelsAsArgs transforms a map of labels into extraArgs.
-func labelsAsArgs(labels map[string]string) []string {
-	args := make([]string, len(labels)*2)
-	i := 0
-	for key, val := range labels {
-		args[i] = "--label"
-		args[i+1] = fmt.Sprintf("%s=%s", key, val)
-		i++
-	}
-	return args
+	return types.NewNode(opts.Name, opts.Image, opts.Role), nil
 }
 
 // helper used to get a free TCP port for the API server.
@@ -245,8 +253,7 @@ const (
 )
 
 // getSubnets returns a slice of subnets for a specified network.
-func getSubnets(networkName string) ([]string, error) {
-	ctx := context.Background()
+func getSubnets(ctx context.Context, networkName string) ([]string, error) {
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
@@ -267,7 +274,7 @@ func getSubnets(networkName string) ([]string, error) {
 
 // getProxyDetails returns a struct with the host environment proxy settings
 // that should be passed to the nodes.
-func getProxyDetails() (*proxyDetails, error) {
+func getProxyDetails(ctx context.Context) (*proxyDetails, error) {
 	var val string
 	details := proxyDetails{Envs: make(map[string]string)}
 	proxyEnvs := []string{httpProxy, httpsProxy, noProxy}
@@ -291,7 +298,7 @@ func getProxyDetails() (*proxyDetails, error) {
 
 	// Specifically add the docker network subnets to NO_PROXY if we are using proxies
 	if proxySupport {
-		subnets, err := getSubnets(defaultNetwork)
+		subnets, err := getSubnets(ctx, defaultNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -304,8 +311,7 @@ func getProxyDetails() (*proxyDetails, error) {
 }
 
 // usernsRemap checks if userns-remap is enabled in dockerd.
-func usernsRemap() bool {
-	ctx := context.Background()
+func usernsRemap(ctx context.Context) bool {
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return false

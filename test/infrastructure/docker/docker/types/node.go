@@ -205,7 +205,6 @@ func (c *containerCmd) Run(ctx context.Context) error {
 		return errors.New("exec ID empty")
 	}
 
-	fmt.Printf("++++\nAttaching to exec: %s\n%+v\n++++\n", execID, execConfig)
 	resp, err := cli.ContainerExecAttach(ctx, execID, dockerTypes.ExecStartCheck{})
 	if err != nil {
 		return errors.WithStack(err)
@@ -228,6 +227,7 @@ func (c *containerCmd) Run(ctx context.Context) error {
 		out = os.Stdout
 	}
 
+	// If there is input, send it through to its stdin
 	inputDone := make(chan struct{})
 	go func() {
 		if c.stdin != nil {
@@ -237,6 +237,7 @@ func (c *containerCmd) Run(ctx context.Context) error {
 		close(inputDone)
 	}()
 
+	// Read out any output from the call
 	outputDone := make(chan error)
 	go func() {
 		// StdCopy demultiplexes the stream into two buffers
@@ -260,7 +261,6 @@ func (c *containerCmd) Run(ctx context.Context) error {
 		return errors.WithStack(err)
 	}
 	status := inspect.ExitCode
-	fmt.Printf("++++ exec output done, status: %d ++++\n", status)
 	if status != 0 {
 		return errors.New(fmt.Sprintf("exited with status: %d", status))
 	}

@@ -22,7 +22,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -211,22 +210,6 @@ func (c *containerCmd) Run(ctx context.Context) error {
 	}
 	defer resp.Close()
 
-	var (
-		out, stderr io.Writer
-	)
-
-	if c.stderr != nil {
-		stderr = c.stderr
-	} else {
-		stderr = os.Stderr
-	}
-
-	if c.stdout != nil {
-		out = c.stdout
-	} else {
-		out = os.Stdout
-	}
-
 	// If there is input, send it through to its stdin
 	inputDone := make(chan struct{})
 	go func() {
@@ -240,9 +223,12 @@ func (c *containerCmd) Run(ctx context.Context) error {
 	// Read out any output from the call
 	outputDone := make(chan error)
 	go func() {
-		// StdCopy demultiplexes the stream into two buffers
-		_, err = stdcopy.StdCopy(out, stderr, resp.Reader)
-		outputDone <- err
+		if c.stdout != nil && c.stderr != nil {
+			// StdCopy demultiplexes the stream into two buffers
+			_, err = stdcopy.StdCopy(c.stdout, c.stderr, resp.Reader)
+			outputDone <- err
+		}
+		close(outputDone)
 	}()
 
 	select {

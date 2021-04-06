@@ -45,8 +45,8 @@ const (
 )
 
 type nodeCreator interface {
-	CreateControlPlaneNode(name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
-	CreateWorkerNode(name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
+	CreateControlPlaneNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
+	CreateWorkerNode(ctx context.Context, name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
 }
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
@@ -187,6 +187,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 		case constants.ControlPlaneNodeRoleValue:
 			log.Info("Creating control plane machine container")
 			m.container, err = m.nodeCreator.CreateControlPlaneNode(
+				ctx,
 				m.ContainerName(),
 				machineImage,
 				m.cluster,
@@ -202,6 +203,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 		case constants.WorkerNodeRoleValue:
 			log.Info("Creating worker machine container")
 			m.container, err = m.nodeCreator.CreateWorkerNode(
+				ctx,
 				m.ContainerName(),
 				machineImage,
 				m.cluster,

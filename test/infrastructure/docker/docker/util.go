@@ -100,7 +100,7 @@ func List(filters Filter) ([]*types.Node, error) {
 }
 
 func list(visit func(string, *types.Node), filters Filter) error {
-	ctx := context.Background()
+	ctx := context.TODO()
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to docker daemon")

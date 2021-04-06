@@ -40,7 +40,7 @@ const ControlPlanePort = 6443
 
 type Manager struct{}
 
-func (m *Manager) CreateControlPlaneNode(name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
+func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
 	// gets a random host port for the API server
 	if port == 0 {
 		p, err := getPort()
@@ -65,7 +65,7 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterName, listenAddress
 		PortMappings: portMappingsWithAPIServer,
 		Mounts:       mounts,
 	}
-	node, err := createNode(context.Background(), createOpts)
+	node, err := createNode(ctx, createOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterName, listenAddress
 	return node, nil
 }
 
-func (m *Manager) CreateWorkerNode(name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
+func (m *Manager) CreateWorkerNode(ctx context.Context, name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
 	createOpts := &nodeCreateOpts{
 		Name:         name,
 		Image:        image,
@@ -82,10 +82,10 @@ func (m *Manager) CreateWorkerNode(name, image, clusterName string, mounts []v1a
 		PortMappings: portMappings,
 		Labels:       labels,
 	}
-	return createNode(context.Background(), createOpts)
+	return createNode(ctx, createOpts)
 }
 
-func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterName, listenAddress string, port int32) (*types.Node, error) {
+func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32) (*types.Node, error) {
 	// gets a random host port for control-plane load balancer
 	// gets a random host port for the API server
 	if port == 0 {
@@ -110,7 +110,7 @@ func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterName, liste
 		Port:         port,
 		PortMappings: portMappings,
 	}
-	node, err := createNode(context.Background(), createOpts)
+	node, err := createNode(ctx, createOpts)
 	if err != nil {
 		return nil, err
 	}

@@ -28,7 +28,7 @@ import (
 )
 
 type lbCreator interface {
-	CreateExternalLoadBalancerNode(name, image, clusterName, listenAddress string, port int32) (*types.Node, error)
+	CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32) (*types.Node, error)
 }
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
@@ -78,6 +78,7 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 		var err error
 		log.Info("Creating load balancer container")
 		s.container, err = s.lbCreator.CreateExternalLoadBalancerNode(
+			ctx,
 			s.containerName(),
 			loadbalancer.Image,
 			s.name,

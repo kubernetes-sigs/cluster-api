@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
-	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/golangci/golangci-lint v1.32.0
 	github.com/joelanford/go-apidiff v0.1.0
 	github.com/onsi/ginkgo v1.15.0

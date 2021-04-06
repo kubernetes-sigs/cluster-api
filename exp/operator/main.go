@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
@@ -177,10 +178,33 @@ func setupChecks(mgr ctrl.Manager) {
 func setupReconcilers(mgr ctrl.Manager) {
 	if err := (&controllers.CoreProviderReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("CoreProvider"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoreProvider")
 		os.Exit(1)
 	}
+
+	if err := (&controllers.InfrastructureProviderReconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "InfrastructureProvider")
+		os.Exit(1)
+	}
+
+	if err := (&controllers.BootstrapProviderReconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "BootstrapProvider")
+		os.Exit(1)
+	}
+
+	if err := (&controllers.ControlPlaneProviderReconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ControlPlaneProvider")
+		os.Exit(1)
+	}
+}
+
+func concurrency(c int) controller.Options {
+	return controller.Options{MaxConcurrentReconciles: c}
 }

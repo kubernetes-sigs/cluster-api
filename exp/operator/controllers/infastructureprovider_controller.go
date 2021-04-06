@@ -26,24 +26,24 @@ import (
 	operatorv1alpha4 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
 )
 
-// CoreProviderReconciler reconciles a CoreProvider object.
-type CoreProviderReconciler struct {
+// InfrastructureProviderReconciler reconciles an InfrastructureProvider object.
+type InfrastructureProviderReconciler struct {
 	Client client.Client
 }
 
-// +kubebuilder:rbac:groups=operator.cluster.x-k8s.io,resources=coreproviders,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=operator.cluster.x-k8s.io,resources=coreproviders/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=operator.cluster.x-k8s.io,resources=infrastructureproviders,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=operator.cluster.x-k8s.io,resources=infrastructureproviders/status,verbs=get;update;patch
 
-func (r *CoreProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *InfrastructureProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Reconcile CoreProvider")
+	log.V(4).Info("Reconcile InfrastructureProvider")
 
 	return ctrl.Result{}, nil
 }
 
-func (r *CoreProviderReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *InfrastructureProviderReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha4.CoreProvider{}).
+		For(&operatorv1alpha4.InfrastructureProvider{}).
 		WithOptions(options).
 		Complete(r)
 }

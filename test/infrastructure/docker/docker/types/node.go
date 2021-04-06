@@ -86,11 +86,13 @@ func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
 	}
 
 	ip := ""
+	ip6 := ""
 	for _, net := range containerInfo.NetworkSettings.Networks {
 		ip = net.IPAddress
+		ip6 = net.GlobalIPv6Address
 		break
 	}
-	return ip, containerInfo.NetworkSettings.GlobalIPv6Address, nil
+	return ip, ip6, nil
 }
 
 // IsRunning returns if the container is running.

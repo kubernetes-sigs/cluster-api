@@ -19,6 +19,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -27,6 +28,7 @@ import (
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerMount "github.com/docker/docker/api/types/mount"
 	dockerNetwork "github.com/docker/docker/api/types/network"
+	dockerClient "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
@@ -195,16 +197,24 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 	}
 	containerConfig.ExposedPorts = ports
 
-	if usernsRemap(ctx) {
+	cli, err := types.GetDockerClient()
+	if err != nil {
+		return nil, errors.Wrap(err, "container client error")
+	}
+
+	if usernsRemap(ctx, cli) {
 		// We need this argument in order to make this command work
 		// in systems that have userns-remap enabled on the docker daemon
 		hostConfig.UsernsMode = "host"
 	}
 
-	cli, err := types.GetDockerClient()
+	// Make sure we have the image
+	reader, err := cli.ImagePull(ctx, opts.Image, dockerTypes.ImagePullOptions{})
 	if err != nil {
-		return nil, errors.Wrap(err, "container client error")
+		return nil, errors.Wrap(err, "image pull error")
 	}
+	_, _ = io.Copy(io.Discard, reader)
+	defer reader.Close()
 
 	resp, err := cli.ContainerCreate(
 		ctx,
@@ -310,12 +320,7 @@ func getProxyDetails(ctx context.Context) (*proxyDetails, error) {
 }
 
 // usernsRemap checks if userns-remap is enabled in dockerd.
-func usernsRemap(ctx context.Context) bool {
-	cli, err := types.GetDockerClient()
-	if err != nil {
-		return false
-	}
-
+func usernsRemap(ctx context.Context, cli *dockerClient.Client) bool {
 	info, err := cli.Info(ctx)
 	if err != nil {
 		return false

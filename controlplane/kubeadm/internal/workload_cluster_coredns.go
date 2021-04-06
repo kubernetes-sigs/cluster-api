@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"fmt"
+
 	"sigs.k8s.io/cluster-api/util/version"
 
 	"github.com/coredns/corefile-migration/migration"
@@ -27,7 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -80,7 +81,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 	// Return early if the type is anything other than empty (default), or CoreDNS.
-	if clusterConfig.DNS.Type != "" && clusterConfig.DNS.Type != kubeadmv1.CoreDNS {
+	if clusterConfig.DNS.Type != "" && clusterConfig.DNS.Type != bootstrapv1.CoreDNS {
 		return nil
 	}
 
@@ -119,7 +120,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 }
 
 // getCoreDNSInfo returns all necessary coredns based information.
-func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *kubeadmv1.ClusterConfiguration) (*coreDNSInfo, error) {
+func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv1.ClusterConfiguration) (*coreDNSInfo, error) {
 	// Get the coredns configmap and corefile.
 	key := ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
 	cm, err := w.getConfigMap(ctx, key)
@@ -208,7 +209,7 @@ func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInf
 }
 
 // UpdateCoreDNSImageInfoInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
-func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context, dns *kubeadmv1.DNS) error {
+func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context, dns *bootstrapv1.DNS) error {
 	configMapKey := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
 	kubeadmConfigMap, err := w.getConfigMap(ctx, configMapKey)
 	if err != nil {

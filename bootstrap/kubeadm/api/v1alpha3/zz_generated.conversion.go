@@ -384,9 +384,9 @@ func Convert_v1alpha4_KubeadmConfigList_To_v1alpha3_KubeadmConfigList(in *v1alph
 }
 
 func autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *KubeadmConfigSpec, out *v1alpha4.KubeadmConfigSpec, s conversion.Scope) error {
-	out.ClusterConfiguration = (*v1beta1.ClusterConfiguration)(unsafe.Pointer(in.ClusterConfiguration))
-	out.InitConfiguration = (*v1beta1.InitConfiguration)(unsafe.Pointer(in.InitConfiguration))
-	out.JoinConfiguration = (*v1beta1.JoinConfiguration)(unsafe.Pointer(in.JoinConfiguration))
+	out.ClusterConfiguration = (*v1alpha4.ClusterConfiguration)(unsafe.Pointer(in.ClusterConfiguration))
+	out.InitConfiguration = (*v1alpha4.InitConfiguration)(unsafe.Pointer(in.InitConfiguration))
+	out.JoinConfiguration = (*v1alpha4.JoinConfiguration)(unsafe.Pointer(in.JoinConfiguration))
 	out.Files = *(*[]v1alpha4.File)(unsafe.Pointer(&in.Files))
 	out.DiskSetup = (*v1alpha4.DiskSetup)(unsafe.Pointer(in.DiskSetup))
 	out.Mounts = *(*[]v1alpha4.MountPoints)(unsafe.Pointer(&in.Mounts))

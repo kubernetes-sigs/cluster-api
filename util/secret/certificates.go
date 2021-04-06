@@ -36,7 +36,6 @@ import (
 	"k8s.io/client-go/util/cert"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -62,7 +61,7 @@ var (
 type Certificates []*Certificate
 
 // NewCertificatesForInitialControlPlane returns a list of certificates configured for a control plane node.
-func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration) Certificates {
+func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfiguration) Certificates {
 	certificatesDir := DefaultCertificatesDir
 	if config != nil && config.CertificatesDir != "" {
 		certificatesDir = config.CertificatesDir
@@ -113,7 +112,7 @@ func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration)
 }
 
 // NewControlPlaneJoinCerts gets any certs that exist and writes them to disk.
-func NewControlPlaneJoinCerts(config *v1beta1.ClusterConfiguration) Certificates {
+func NewControlPlaneJoinCerts(config *bootstrapv1.ClusterConfiguration) Certificates {
 	certificatesDir := DefaultCertificatesDir
 	if config != nil && config.CertificatesDir != "" {
 		certificatesDir = config.CertificatesDir

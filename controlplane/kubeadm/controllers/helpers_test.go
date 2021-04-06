@@ -28,7 +28,6 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
@@ -296,7 +295,7 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 		},
 	}
 
-	clusterCerts := secret.NewCertificatesForInitialControlPlane(&kubeadmv1.ClusterConfiguration{})
+	clusterCerts := secret.NewCertificatesForInitialControlPlane(&bootstrapv1.ClusterConfiguration{})
 	g.Expect(clusterCerts.Generate()).To(Succeed())
 	caCert := clusterCerts.GetByPurpose(secret.ClusterCA)
 	existingCACertSecret := caCert.AsSecret(
@@ -376,7 +375,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 	}
 
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
-		JoinConfiguration: &kubeadmv1.JoinConfiguration{},
+		JoinConfiguration: &bootstrapv1.JoinConfiguration{},
 	}
 	g.Expect(r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)).To(Succeed())
 
@@ -458,7 +457,7 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 	}
 
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
-		JoinConfiguration: &kubeadmv1.JoinConfiguration{},
+		JoinConfiguration: &bootstrapv1.JoinConfiguration{},
 	}
 
 	// Try to break Infra Cloning

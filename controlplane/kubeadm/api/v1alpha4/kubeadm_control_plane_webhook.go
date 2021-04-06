@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -357,7 +357,7 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 	}
 	targetDNS := &in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
 	//return if the type is anything other than empty (default), or CoreDNS.
-	if targetDNS.Type != "" && targetDNS.Type != kubeadmv1.CoreDNS {
+	if targetDNS.Type != "" && targetDNS.Type != bootstrapv1.CoreDNS {
 		return allErrs
 	}
 

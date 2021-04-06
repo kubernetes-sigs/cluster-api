@@ -18,11 +18,11 @@ package internal
 
 import (
 	"encoding/json"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"reflect"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
@@ -98,7 +98,7 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 		return true
 	}
 
-	machineClusterConfig := &kubeadmv1.ClusterConfiguration{}
+	machineClusterConfig := &bootstrapv1.ClusterConfiguration{}
 	// ClusterConfiguration annotation is not correct, only solution is to rollout.
 	// The call to json.Unmarshal has to take a pointer to the pointer struct defined above,
 	// otherwise we won't be able to handle a nil ClusterConfiguration (that is serialized into "null").
@@ -109,11 +109,11 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 
 	// If any of the compared values are nil, treat them the same as an empty ClusterConfiguration.
 	if machineClusterConfig == nil {
-		machineClusterConfig = &kubeadmv1.ClusterConfiguration{}
+		machineClusterConfig = &bootstrapv1.ClusterConfiguration{}
 	}
 	kcpLocalClusterConfiguration := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 	if kcpLocalClusterConfiguration == nil {
-		kcpLocalClusterConfiguration = &kubeadmv1.ClusterConfiguration{}
+		kcpLocalClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
 
 	// Compare and return.
@@ -183,7 +183,7 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 
 	// Cleanup JoinConfiguration.Discovery from kcpConfig and machineConfig, because those info are relevant only for
 	// the join process and not for comparing the configuration of the machine.
-	emptyDiscovery := kubeadmv1.Discovery{}
+	emptyDiscovery := bootstrapv1.Discovery{}
 	if kcpConfig.JoinConfiguration != nil {
 		kcpConfig.JoinConfiguration.Discovery = emptyDiscovery
 	}
@@ -198,7 +198,7 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 	}
 
 	// If KCP's join NodeRegistration is empty, set machine's node registration to empty as no changes should trigger rollout.
-	emptyNodeRegistration := kubeadmv1.NodeRegistrationOptions{}
+	emptyNodeRegistration := bootstrapv1.NodeRegistrationOptions{}
 	if kcpConfig.JoinConfiguration != nil && reflect.DeepEqual(kcpConfig.JoinConfiguration.NodeRegistration, emptyNodeRegistration) {
 		machineConfig.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
 	}

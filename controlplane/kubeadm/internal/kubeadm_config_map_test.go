@@ -25,7 +25,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/yaml"
 )
 
@@ -389,7 +389,7 @@ scheduler: {}`,
 
 			g.Expect(yaml.Unmarshal([]byte(kc.ConfigMap.Data[clusterConfigurationKey]), &actualClusterConfig)).To(Succeed())
 			actualDNS := actualClusterConfig.DNS
-			g.Expect(actualDNS.Type).To(BeEquivalentTo(kubeadmv1.CoreDNS))
+			g.Expect(actualDNS.Type).To(BeEquivalentTo(bootstrapv1.CoreDNS))
 			g.Expect(actualDNS.ImageRepository).To(Equal(imageRepository))
 			g.Expect(actualDNS.ImageTag).To(Equal(imageTag))
 		})
@@ -470,7 +470,7 @@ func TestApiServer(t *testing.T) {
 	tests := []struct {
 		name         string
 		data         map[string]string
-		newAPIServer kubeadmv1.APIServer
+		newAPIServer bootstrapv1.APIServer
 		expected     string
 		expectErr    error
 		changed      bool
@@ -481,8 +481,8 @@ func TestApiServer(t *testing.T) {
 				clusterConfigurationKey: `apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 `},
-			newAPIServer: kubeadmv1.APIServer{
-				ControlPlaneComponent: kubeadmv1.ControlPlaneComponent{
+			newAPIServer: bootstrapv1.APIServer{
+				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
 					ExtraArgs: map[string]string{
 						"foo": "bar",
 					},
@@ -517,13 +517,13 @@ apiServer:
      mountPath: /bar/baz
   timeoutForControlPlane: 4m0s
 `},
-			newAPIServer: kubeadmv1.APIServer{
-				ControlPlaneComponent: kubeadmv1.ControlPlaneComponent{
+			newAPIServer: bootstrapv1.APIServer{
+				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
 					ExtraArgs: map[string]string{
 						"bar":     "baz",
 						"someKey": "someVal",
 					},
-					ExtraVolumes: []kubeadmv1.HostPathMount{
+					ExtraVolumes: []bootstrapv1.HostPathMount{
 						{
 							Name:      "mount2",
 							HostPath:  "/bar/baz",
@@ -581,10 +581,10 @@ kind: ClusterConfiguration
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 `},
-			newAPIServer: kubeadmv1.APIServer{
-				ControlPlaneComponent: kubeadmv1.ControlPlaneComponent{
+			newAPIServer: bootstrapv1.APIServer{
+				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
 					ExtraArgs: map[string]string{"foo": "bar", "bar": "baz"},
-					ExtraVolumes: []kubeadmv1.HostPathMount{{
+					ExtraVolumes: []bootstrapv1.HostPathMount{{
 						Name:      "mount1",
 						HostPath:  "/foo/bar",
 						MountPath: "/bar/baz",
@@ -623,7 +623,7 @@ kind: ClusterConfiguration
 			name: "it should return error when the config is invalid",
 			data: map[string]string{
 				clusterConfigurationKey: `apiServer: invalidJson`},
-			newAPIServer: kubeadmv1.APIServer{
+			newAPIServer: bootstrapv1.APIServer{
 				CertSANs: []string{"foo", "bar"},
 			},
 			expectErr: errors.New(""),
@@ -658,7 +658,7 @@ func TestControllerManager(t *testing.T) {
 	tests := []struct {
 		name                 string
 		data                 map[string]string
-		newControllerManager kubeadmv1.ControlPlaneComponent
+		newControllerManager bootstrapv1.ControlPlaneComponent
 		expected             string
 		expectErr            error
 		changed              bool
@@ -669,11 +669,11 @@ func TestControllerManager(t *testing.T) {
 				clusterConfigurationKey: `apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 `},
-			newControllerManager: kubeadmv1.ControlPlaneComponent{
+			newControllerManager: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{
 					"foo": "bar",
 				},
-				ExtraVolumes: []kubeadmv1.HostPathMount{{Name: "mount1", HostPath: "/foo", MountPath: "/bar"}},
+				ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1", HostPath: "/foo", MountPath: "/bar"}},
 			},
 			expected: `apiVersion: kubeadm.k8s.io/v1beta2
 controllerManager:
@@ -700,12 +700,12 @@ controllerManager:
      hostPath: /foo/bar
      mountPath: /bar/baz
 `},
-			newControllerManager: kubeadmv1.ControlPlaneComponent{
+			newControllerManager: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{
 					"bar":     "baz",
 					"someKey": "someVal",
 				},
-				ExtraVolumes: []kubeadmv1.HostPathMount{
+				ExtraVolumes: []bootstrapv1.HostPathMount{
 					{
 						Name:      "mount2",
 						HostPath:  "/bar/baz",
@@ -751,9 +751,9 @@ kind: ClusterConfiguration
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 `},
-			newControllerManager: kubeadmv1.ControlPlaneComponent{
+			newControllerManager: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{"foo": "bar", "bar": "baz"},
-				ExtraVolumes: []kubeadmv1.HostPathMount{{
+				ExtraVolumes: []bootstrapv1.HostPathMount{{
 					Name:      "mount1",
 					HostPath:  "/foo/bar",
 					MountPath: "/bar/baz",
@@ -785,7 +785,7 @@ kind: ClusterConfiguration
 			name: "it should return error when the config is invalid",
 			data: map[string]string{
 				clusterConfigurationKey: `controllerManager: invalidJson`},
-			newControllerManager: kubeadmv1.ControlPlaneComponent{
+			newControllerManager: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{"foo": "bar", "bar": "baz"},
 			},
 			expectErr: errors.New(""),
@@ -820,7 +820,7 @@ func TestScheduler(t *testing.T) {
 	tests := []struct {
 		name         string
 		data         map[string]string
-		newScheduler kubeadmv1.ControlPlaneComponent
+		newScheduler bootstrapv1.ControlPlaneComponent
 		expected     string
 		expectErr    error
 		changed      bool
@@ -831,11 +831,11 @@ func TestScheduler(t *testing.T) {
 				clusterConfigurationKey: `apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 `},
-			newScheduler: kubeadmv1.ControlPlaneComponent{
+			newScheduler: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{
 					"foo": "bar",
 				},
-				ExtraVolumes: []kubeadmv1.HostPathMount{{Name: "mount1", HostPath: "/foo", MountPath: "/bar"}},
+				ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1", HostPath: "/foo", MountPath: "/bar"}},
 			},
 			expected: `apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
@@ -862,12 +862,12 @@ scheduler:
      hostPath: /foo/bar
      mountPath: /bar/baz
 `},
-			newScheduler: kubeadmv1.ControlPlaneComponent{
+			newScheduler: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{
 					"bar":     "baz",
 					"someKey": "someVal",
 				},
-				ExtraVolumes: []kubeadmv1.HostPathMount{
+				ExtraVolumes: []bootstrapv1.HostPathMount{
 					{
 						Name:      "mount2",
 						HostPath:  "/bar/baz",
@@ -913,9 +913,9 @@ scheduler:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 `},
-			newScheduler: kubeadmv1.ControlPlaneComponent{
+			newScheduler: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{"foo": "bar", "bar": "baz"},
-				ExtraVolumes: []kubeadmv1.HostPathMount{{
+				ExtraVolumes: []bootstrapv1.HostPathMount{{
 					Name:      "mount1",
 					HostPath:  "/foo/bar",
 					MountPath: "/bar/baz",
@@ -947,7 +947,7 @@ kind: ClusterConfiguration
 			name: "it should return error when the config is invalid",
 			data: map[string]string{
 				clusterConfigurationKey: `scheduler: invalidJson`},
-			newScheduler: kubeadmv1.ControlPlaneComponent{
+			newScheduler: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{"foo": "bar", "bar": "baz"},
 			},
 			expectErr: errors.New(""),

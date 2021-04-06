@@ -20,15 +20,14 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,10 +38,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 	validKCP := &controlplanev1.KubeadmControlPlane{
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-				ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-					DNS: kubeadmv1.DNS{
+				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+					DNS: bootstrapv1.DNS{
 						Type: "",
-						ImageMeta: kubeadmv1.ImageMeta{
+						ImageMeta: bootstrapv1.ImageMeta{
 							ImageRepository: "",
 							ImageTag:        "",
 						},
@@ -56,7 +55,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 	// following pre-checks that need to happen before we retrieve the
 	// CoreDNSInfo.
 	badCM := &corev1.ConfigMap{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
@@ -66,17 +65,17 @@ func TestUpdateCoreDNS(t *testing.T) {
 	}
 	expectedImage := "k8s.gcr.io/some-folder/coredns:1.6.2"
 	depl := &appsv1.Deployment{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "apps/v1",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:   coreDNSKey,
 					Labels: map[string]string{"app": coreDNSKey},
 				},
@@ -95,7 +94,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 
 	expectedCorefile := "coredns-core-file"
 	cm := &corev1.ConfigMap{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
@@ -104,7 +103,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 		},
 	}
 	kubeadmCM := &corev1.ConfigMap{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubeadmConfigKey,
 			Namespace: metav1.NamespaceSystem,
 		},
@@ -130,15 +129,15 @@ kind: ClusterConfiguration
 		{
 			name: "returns early without error if skip core dns annotation is present",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						controlplanev1.SkipCoreDNSAnnotation: "",
 					},
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-							DNS: kubeadmv1.DNS{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
 								Type: "",
 							},
 						},
@@ -163,8 +162,8 @@ kind: ClusterConfiguration
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-							DNS: kubeadmv1.DNS{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
 								Type: "foobarDNS",
 							},
 						},
@@ -196,10 +195,10 @@ kind: ClusterConfiguration
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-							DNS: kubeadmv1.DNS{
-								Type: kubeadmv1.CoreDNS,
-								ImageMeta: kubeadmv1.ImageMeta{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								Type: bootstrapv1.CoreDNS,
+								ImageMeta: bootstrapv1.ImageMeta{
 									// image is older than what's already
 									// installed.
 									ImageRepository: "k8s.gcr.io/some-folder/coredns",
@@ -218,10 +217,10 @@ kind: ClusterConfiguration
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-							DNS: kubeadmv1.DNS{
-								Type: kubeadmv1.CoreDNS,
-								ImageMeta: kubeadmv1.ImageMeta{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								Type: bootstrapv1.CoreDNS,
+								ImageMeta: bootstrapv1.ImageMeta{
 									// provide an newer image to update to
 									ImageRepository: "k8s.gcr.io/some-folder/coredns",
 									ImageTag:        "1.7.2",
@@ -240,10 +239,10 @@ kind: ClusterConfiguration
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-							DNS: kubeadmv1.DNS{
-								Type: kubeadmv1.CoreDNS,
-								ImageMeta: kubeadmv1.ImageMeta{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								Type: bootstrapv1.CoreDNS,
+								ImageMeta: bootstrapv1.ImageMeta{
 									// provide an newer image to update to
 									ImageRepository: "k8s.gcr.io/some-folder/coredns",
 									ImageTag:        "1.7.2",
@@ -264,10 +263,10 @@ kind: ClusterConfiguration
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-							DNS: kubeadmv1.DNS{
-								Type: kubeadmv1.CoreDNS,
-								ImageMeta: kubeadmv1.ImageMeta{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								Type: bootstrapv1.CoreDNS,
+								ImageMeta: bootstrapv1.ImageMeta{
 									// provide an newer image to update to
 									ImageRepository: "k8s.gcr.io/some-repo",
 									ImageTag:        "1.7.2",
@@ -434,13 +433,13 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 	currentImageTag := "1.6.2"
 	originalCorefile := "some-coredns-core-file"
 	depl := &appsv1.Deployment{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: coreDNSKey,
 				},
 				Spec: corev1.PodSpec{
@@ -467,7 +466,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		},
 	}
 	cm := &corev1.ConfigMap{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
@@ -594,17 +593,17 @@ func TestGetCoreDNSInfo(t *testing.T) {
 	t.Run("get coredns info", func(t *testing.T) {
 		expectedImage := "k8s.gcr.io/some-folder/coredns:1.6.2"
 		depl := &appsv1.Deployment{
-			TypeMeta: v1.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind:       "Deployment",
 				APIVersion: "apps/v1",
 			},
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      coreDNSKey,
 				Namespace: metav1.NamespaceSystem,
 			},
 			Spec: appsv1.DeploymentSpec{
 				Template: corev1.PodTemplateSpec{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: coreDNSKey,
 					},
 					Spec: corev1.PodSpec{
@@ -619,7 +618,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 
 		expectedCorefile := "some-coredns-core-file"
 		cm := &corev1.ConfigMap{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      coreDNSKey,
 				Namespace: metav1.NamespaceSystem,
 			},
@@ -643,9 +642,9 @@ func TestGetCoreDNSInfo(t *testing.T) {
 		badSemverContainerDepl := depl.DeepCopy()
 		badSemverContainerDepl.Spec.Template.Spec.Containers[0].Image = "k8s.gcr.io/coredns:v1X6.2"
 
-		clusterConfig := &kubeadmv1.ClusterConfiguration{
-			DNS: kubeadmv1.DNS{
-				ImageMeta: kubeadmv1.ImageMeta{
+		clusterConfig := &bootstrapv1.ClusterConfiguration{
+			DNS: bootstrapv1.DNS{
+				ImageMeta: bootstrapv1.ImageMeta{
 					ImageRepository: "myrepo",
 					ImageTag:        "1.7.2-foobar.1",
 				},
@@ -658,7 +657,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			name          string
 			expectErr     bool
 			objs          []client.Object
-			clusterConfig *kubeadmv1.ClusterConfiguration
+			clusterConfig *bootstrapv1.ClusterConfiguration
 			toImage       string
 		}{
 			{
@@ -670,10 +669,10 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			{
 				name: "uses global config ImageRepository if DNS ImageRepository is not set",
 				objs: []client.Object{depl, cm},
-				clusterConfig: &kubeadmv1.ClusterConfiguration{
+				clusterConfig: &bootstrapv1.ClusterConfiguration{
 					ImageRepository: "globalRepo/sub-path",
-					DNS: kubeadmv1.DNS{
-						ImageMeta: kubeadmv1.ImageMeta{
+					DNS: bootstrapv1.DNS{
+						ImageMeta: bootstrapv1.ImageMeta{
 							ImageTag: "1.7.2-foobar.1",
 						},
 					},
@@ -683,10 +682,10 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			{
 				name: "uses DNS ImageRepository config if both global and DNS-level are set",
 				objs: []client.Object{depl, cm},
-				clusterConfig: &kubeadmv1.ClusterConfiguration{
+				clusterConfig: &bootstrapv1.ClusterConfiguration{
 					ImageRepository: "globalRepo",
-					DNS: kubeadmv1.DNS{
-						ImageMeta: kubeadmv1.ImageMeta{
+					DNS: bootstrapv1.DNS{
+						ImageMeta: bootstrapv1.ImageMeta{
 							ImageRepository: "dnsRepo",
 							ImageTag:        "1.7.2-foobar.1",
 						},
@@ -784,7 +783,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 
 func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 	cm := &corev1.ConfigMap{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubeadmConfigKey,
 			Namespace: metav1.NamespaceSystem,
 		},
@@ -820,9 +819,9 @@ scheduler: {}`,
 	emptyCM := cm.DeepCopy()
 	delete(emptyCM.Data, "ClusterConfiguration")
 
-	dns := &kubeadmv1.DNS{
-		Type: kubeadmv1.CoreDNS,
-		ImageMeta: kubeadmv1.ImageMeta{
+	dns := &bootstrapv1.DNS{
+		Type: bootstrapv1.CoreDNS,
+		ImageMeta: bootstrapv1.ImageMeta{
 			ImageRepository: "gcr.io/example",
 			ImageTag:        "1.0.1-somever.1",
 		},
@@ -830,7 +829,7 @@ scheduler: {}`,
 
 	tests := []struct {
 		name      string
-		dns       *kubeadmv1.DNS
+		dns       *bootstrapv1.DNS
 		objs      []client.Object
 		expectErr bool
 	}{
@@ -878,13 +877,13 @@ scheduler: {}`,
 
 func TestUpdateCoreDNSDeployment(t *testing.T) {
 	depl := &appsv1.Deployment{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: coreDNSKey,
 				},
 				Spec: corev1.PodSpec{

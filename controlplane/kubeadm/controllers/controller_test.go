@@ -23,8 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"sigs.k8s.io/cluster-api/util/collections"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -40,12 +38,12 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -836,10 +834,10 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.16.6",
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-					DNS: kubeadmv1.DNS{
-						Type: kubeadmv1.CoreDNS,
-						ImageMeta: kubeadmv1.ImageMeta{
+				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+					DNS: bootstrapv1.DNS{
+						Type: bootstrapv1.CoreDNS,
+						ImageMeta: bootstrapv1.ImageMeta{
 							ImageRepository: "k8s.gcr.io",
 							ImageTag:        "1.7.2",
 						},

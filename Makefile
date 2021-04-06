@@ -69,9 +69,8 @@ GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
 
-# Bindata.
-GOBINDATA := $(abspath $(TOOLS_BIN_DIR)/go-bindata)
-GOBINDATA_CLUSTERCTL_DIR := cmd/clusterctl/config
+# clusterctl.
+CLUSTERCTL_MANIFEST_DIR := cmd/clusterctl/config
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -188,9 +187,6 @@ $(GOTESTSUM): $(TOOLS_DIR)/go.mod # Build gotestsum from tools folder.
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
-$(GOBINDATA): $(TOOLS_DIR)/go.mod # Build go-bindata from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/go-bindata github.com/go-bindata/go-bindata/go-bindata
-
 $(RELEASE_NOTES): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
 
@@ -245,7 +241,7 @@ ALL_GENERATE_MODULES = core cabpk kcp
 
 .PHONY: generate
 generate: ## Generate code
-	$(MAKE) generate-manifests generate-go generate-bindata
+	$(MAKE) generate-manifests generate-go
 	$(MAKE) -C test/infrastructure/docker generate
 
 .PHONY: generate-go
@@ -314,7 +310,7 @@ generate-go-conversions-kcp: $(CONVERSION_GEN)
 generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## Generate manifests e.g. CRD, RBAC etc.
 
 .PHONY: generate-manifests-core
-generate-manifests-core: $(CONTROLLER_GEN)
+generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE)
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
@@ -331,6 +327,7 @@ generate-manifests-core: $(CONTROLLER_GEN)
 		paths=./cmd/clusterctl/api/... \
 		crd:crdVersions=v1 \
 		output:crd:dir=./cmd/clusterctl/config/crd/bases
+	$(KUSTOMIZE) build $(CLUSTERCTL_MANIFEST_DIR)/crd > $(CLUSTERCTL_MANIFEST_DIR)/manifest/clusterctl-api.yaml
 
 .PHONY: generate-manifests-cabpk
 generate-manifests-cabpk: $(CONTROLLER_GEN)
@@ -355,26 +352,6 @@ generate-manifests-kcp: $(CONTROLLER_GEN)
 		output:rbac:dir=./controlplane/kubeadm/config/rbac \
 		output:webhook:dir=./controlplane/kubeadm/config/webhook \
 		webhook
-
-## --------------------------------------
-## Bindata generation
-## TODO(community): Figure out a way to remove this target in favor of go embed.
-## --------------------------------------
-
-.PHONY: generate-bindata
-generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for embedding the clusterctl api manifest
-	# We're running go generate here, because the only target actually generates bindata in test/framework/kubernetesversions
-	# This directive should be removed in favor of go embed.
-	go generate ./...
-	# Package manifest YAML into a single file.
-	mkdir -p $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
-	$(KUSTOMIZE) build $(GOBINDATA_CLUSTERCTL_DIR)/crd > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/clusterctl-api.yaml
-	# Generate go-bindata, add boilerplate, then cleanup.
-	$(GOBINDATA) -mode=420 -modtime=1 -pkg=config -o=$(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
-	cat ./hack/boilerplate/boilerplate.generatego.txt $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go
-	cp $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go
-	# Cleanup the manifest folder.
-	$(MAKE) clean-bindata
 
 ## --------------------------------------
 ## Modules
@@ -617,10 +594,6 @@ clean-release-git: ## Restores the git files usually modified during a release
 .PHONY: clean-book
 clean-book: ## Remove all generated GitBook files
 	rm -rf ./docs/book/_book
-
-.PHONY: clean-bindata
-clean-bindata: ## Remove bindata generated folder
-	rm -rf $(GOBINDATA_CLUSTERCTL_DIR)/manifest
 
 .PHONY: clean-manifests ## Reset manifests in config directories back to master
 clean-manifests:

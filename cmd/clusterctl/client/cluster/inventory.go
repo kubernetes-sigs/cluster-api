@@ -34,8 +34,6 @@ import (
 )
 
 const (
-	embeddedCustomResourceDefinitionPath = "cmd/clusterctl/config/manifest/clusterctl-api.yaml"
-
 	waitInventoryCRDInterval = 250 * time.Millisecond
 	waitInventoryCRDTimeout  = 1 * time.Minute
 )
@@ -162,14 +160,8 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 
 	log.V(1).Info("Installing the clusterctl inventory CRD")
 
-	// Get the CRDs manifest from the embedded assets.
-	yaml, err := config.Asset(embeddedCustomResourceDefinitionPath)
-	if err != nil {
-		return err
-	}
-
 	// Transform the yaml in a list of objects.
-	objs, err := utilyaml.ToUnstructured(yaml)
+	objs, err := utilyaml.ToUnstructured(config.ClusterctlAPIManifest)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse yaml for clusterctl inventory CRDs")
 	}

@@ -24,6 +24,8 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -107,6 +109,9 @@ type InventoryClient interface {
 	// CheckCAPIContract checks the Cluster API version installed in the management cluster, and fails if this version
 	// does not match the current one supported by clusterctl.
 	CheckCAPIContract(...CheckCAPIContractOption) error
+
+	// CheckSingleProviderInstance ensures that only one instance of a provider is running, returns error otherwise.
+	CheckSingleProviderInstance() error
 }
 
 // inventoryClient implements InventoryClient.
@@ -406,4 +411,35 @@ func (p *inventoryClient) CheckCAPIContract(options ...CheckCAPIContractOption) 
 		}
 	}
 	return errors.Errorf("failed to check Cluster API version")
+}
+
+func (p *inventoryClient) CheckSingleProviderInstance() error {
+	providers, err := p.List()
+	if err != nil {
+		return err
+	}
+
+	providerGroups := make(map[string][]string)
+	for _, p := range providers.Items {
+		namespacedName := types.NamespacedName{Namespace: p.Namespace, Name: p.Name}.String()
+		if providers, ok := providerGroups[p.ManifestLabel()]; ok {
+			providerGroups[p.ManifestLabel()] = append(providers, namespacedName)
+		} else {
+			providerGroups[p.ManifestLabel()] = []string{namespacedName}
+		}
+	}
+
+	var errs []error
+	for provider, providerInstances := range providerGroups {
+		if len(providerInstances) > 1 {
+			errs = append(errs, errors.Errorf("multiple instance of provider type %q found: %v", provider, providerInstances))
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Wrap(kerrors.NewAggregate(errs), "detected multiple instances of the same provider, "+
+			"but clusterctl v1alpha4 does not support this use case. See https://cluster-api.sigs.k8s.io/developer/architecture/controllers/support-multiple-instances.html for more details")
+	}
+
+	return nil
 }

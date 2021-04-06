@@ -1246,3 +1246,174 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 		})
 	}
 }
+
+// TODO add tests  for success scenarios.
+func Test_providerUpgrader_ApplyPlan(t *testing.T) {
+	type fields struct {
+		reader     config.Reader
+		repository map[string]repository.Repository
+		proxy      Proxy
+	}
+
+	tests := []struct {
+		name         string
+		fields       fields
+		coreProvider clusterctlv1.Provider
+		contract     string
+		wantErr      bool
+		errorMsg     string
+	}{
+		{
+			name: "fails to upgrade to v1alpha4 when there are multiple instances of the same provider",
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
+				repository: map[string]repository.Repository{
+					"cluster-api": test.NewFakeRepository().
+						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
+						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: "v1alpha3"},
+								{Major: 2, Minor: 0, Contract: "v1alpha4"},
+							},
+						}),
+					"infrastructure-infra": test.NewFakeRepository().
+						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
+						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 2, Minor: 0, Contract: "v1alpha3"},
+								{Major: 3, Minor: 0, Contract: "v1alpha4"},
+							},
+						}),
+				},
+				// two providers with multiple instances existing in the cluster
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "default").
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system-1", "default-1").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", "default").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1", "default-1"),
+			},
+			coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+			contract:     "v1alpha4",
+			wantErr:      true,
+			errorMsg:     "detected multiple instances of the same provider",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
+
+			u := &providerUpgrader{
+				configClient: configClient,
+				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
+				},
+				providerInventory: newInventoryClient(tt.fields.proxy, nil),
+			}
+			err := u.ApplyPlan(tt.coreProvider, tt.contract)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).Should(ContainSubstring(tt.errorMsg))
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}
+
+// TODO add tests  for success scenarios.
+func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
+	type fields struct {
+		reader     config.Reader
+		repository map[string]repository.Repository
+		proxy      Proxy
+	}
+
+	tests := []struct {
+		name               string
+		fields             fields
+		coreProvider       clusterctlv1.Provider
+		providersToUpgrade []UpgradeItem
+		wantErr            bool
+		errorMsg           string
+	}{
+		{
+			name: "fails to upgrade to v1alpha4 when there are multiple instances of the same provider",
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
+				repository: map[string]repository.Repository{
+					"cluster-api": test.NewFakeRepository().
+						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
+						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: "v1alpha3"},
+								{Major: 2, Minor: 0, Contract: "v1alpha4"},
+							},
+						}),
+					"infrastructure-infra": test.NewFakeRepository().
+						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
+						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 2, Minor: 0, Contract: "v1alpha3"},
+								{Major: 3, Minor: 0, Contract: "v1alpha4"},
+							},
+						}),
+				},
+				// two providers with multiple instances existing in the cluster
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "default").
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system-1", "default-1").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", "default").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1", "default-1"),
+			},
+			coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+			providersToUpgrade: []UpgradeItem{
+				{
+					Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+					NextVersion: "v2.0.0",
+				},
+				{
+					Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					NextVersion: "v3.0.0",
+				},
+			},
+			wantErr:  true,
+			errorMsg: "detected multiple instances of the same provider",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
+
+			u := &providerUpgrader{
+				configClient: configClient,
+				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
+				},
+				providerInventory: newInventoryClient(tt.fields.proxy, nil),
+			}
+			err := u.ApplyCustomPlan(tt.coreProvider, tt.providersToUpgrade...)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).Should(ContainSubstring(tt.errorMsg))
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}

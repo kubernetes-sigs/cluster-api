@@ -46,7 +46,7 @@ var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	// flags
+	// flags.
 	metricsBindAddr             string
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration

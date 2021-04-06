@@ -20,19 +20,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// BootstrapProviderSpec defines the desired state of BootstrapProvider
+// BootstrapProviderSpec defines the desired state of BootstrapProvider.
 type BootstrapProviderSpec struct {
 	ProviderSpec `json:",inline"`
 }
 
-// BootstrapProviderStatus defines the observed state of BootstrapProvider
+// BootstrapProviderStatus defines the observed state of BootstrapProvider.
 type BootstrapProviderStatus struct {
 	ProviderStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
 
-// BootstrapProvider is the Schema for the bootstrapproviders API
+// BootstrapProvider is the Schema for the bootstrapproviders API.
 type BootstrapProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -43,7 +43,7 @@ type BootstrapProvider struct {
 
 // +kubebuilder:object:root=true
 
-// BootstrapProviderList contains a list of BootstrapProvider
+// BootstrapProviderList contains a list of BootstrapProvider.
 type BootstrapProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

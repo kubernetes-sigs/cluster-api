@@ -20,19 +20,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ControlPlaneProviderSpec defines the desired state of ControlPlaneProvider
+// ControlPlaneProviderSpec defines the desired state of ControlPlaneProvider.
 type ControlPlaneProviderSpec struct {
 	ProviderSpec `json:",inline"`
 }
 
-// ControlPlaneProviderStatus defines the observed state of ControlPlaneProvider
+// ControlPlaneProviderStatus defines the observed state of ControlPlaneProvider.
 type ControlPlaneProviderStatus struct {
 	ProviderStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
 
-// ControlPlaneProvider is the Schema for the controlplaneproviders API
+// ControlPlaneProvider is the Schema for the controlplaneproviders API.
 type ControlPlaneProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -43,7 +43,7 @@ type ControlPlaneProvider struct {
 
 // +kubebuilder:object:root=true
 
-// ControlPlaneProviderList contains a list of ControlPlaneProvider
+// ControlPlaneProviderList contains a list of ControlPlaneProvider.
 type ControlPlaneProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

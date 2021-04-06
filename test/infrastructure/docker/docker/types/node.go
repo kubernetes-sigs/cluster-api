@@ -104,7 +104,7 @@ func (n *Node) IsRunning() bool {
 func (n *Node) Delete(ctx context.Context) error {
 	cli, err := GetDockerClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to get container client")
+		return errors.WithStack(err)
 	}
 
 	return cli.ContainerRemove(ctx, n.Name, dockerTypes.ContainerRemoveOptions{
@@ -118,7 +118,7 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 	// create destination directory
 	cmd := n.Commander.Command("mkdir", "-p", filepath.Dir(dest))
 	if err := cmd.Run(ctx); err != nil {
-		return errors.Wrapf(err, "failed to create directory %s", dest)
+		return errors.WithStack(err)
 	}
 
 	command := n.Commander.Command("cp", "/dev/stdin", dest)
@@ -130,7 +130,7 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 func (n *Node) Kill(ctx context.Context, signal string) error {
 	cli, err := GetDockerClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to get container client")
+		return errors.WithStack(err)
 	}
 
 	return cli.ContainerKill(ctx, n.Name, signal)
@@ -195,7 +195,7 @@ func (c *containerCmd) Run(ctx context.Context) error {
 		Cmd:          append([]string{c.command}, c.args...), // with the command specified
 		AttachStdout: true,
 		AttachStderr: true,
-		AttachStdin:  (c.stdin != nil), // interactive so we can supply input
+		AttachStdin:  c.stdin != nil, // interactive so we can supply input
 	}
 
 	// set env

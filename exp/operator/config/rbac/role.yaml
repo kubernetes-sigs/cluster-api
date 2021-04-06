@@ -9,6 +9,46 @@ rules:
 - apiGroups:
   - operator.cluster.x-k8s.io
   resources:
+  - bootstrapproviders
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.cluster.x-k8s.io
+  resources:
+  - bootstrapproviders/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.cluster.x-k8s.io
+  resources:
+  - controlplaneproviders
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.cluster.x-k8s.io
+  resources:
+  - controlplaneproviders/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.cluster.x-k8s.io
+  resources:
   - coreproviders
   verbs:
   - create
@@ -22,6 +62,26 @@ rules:
   - operator.cluster.x-k8s.io
   resources:
   - coreproviders/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.cluster.x-k8s.io
+  resources:
+  - infrastructureproviders
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.cluster.x-k8s.io
+  resources:
+  - infrastructureproviders/status
   verbs:
   - get
   - patch

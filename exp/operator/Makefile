@@ -79,7 +79,7 @@ help:  ## Display this help
 
 .PHONY: test
 test: ## Run tests.
-	go test ./... $(TEST_ARGS)
+	source $(ROOT)/scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test ./... $(TEST_ARGS)
 
 .PHONY: test-verbose
 test-verbose: ## Run tests with verbose settings.

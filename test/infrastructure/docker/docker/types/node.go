@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
@@ -218,32 +217,31 @@ func (c *containerCmd) Run(ctx context.Context) error {
 	defer resp.Close()
 
 	// If there is input, send it through to its stdin
-	inputDone := make(chan struct{})
-	go func() {
-		if c.stdin != nil {
+	if c.stdin != nil {
+		go func() {
 			_, _ = io.Copy(resp.Conn, c.stdin)
 			_ = resp.CloseWrite()
-		}
-		close(inputDone)
-	}()
+		}()
+	}
 
 	// Read out any output from the call
 	outputDone := make(chan error)
-	go func() {
-		if c.stdout != nil && c.stderr != nil {
+	if c.stdout != nil && c.stderr != nil {
+		go func() {
 			// StdCopy demultiplexes the stream into two buffers
 			_, err = stdcopy.StdCopy(c.stdout, c.stderr, resp.Reader)
 			outputDone <- err
-		}
+			close(outputDone)
+		}()
+	} else {
 		close(outputDone)
-	}()
+	}
 
 	select {
 	case err := <-outputDone:
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		break
 
 	case <-ctx.Done():
 		return errors.WithStack(ctx.Err())
@@ -253,9 +251,9 @@ func (c *containerCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	status := inspect.ExitCode
-	if status != 0 {
-		return errors.New(fmt.Sprintf("exited with status: %d", status))
+
+	if status := inspect.ExitCode; status != 0 {
+		return errors.Errorf("exited with status: %d", status)
 	}
 	return nil
 }

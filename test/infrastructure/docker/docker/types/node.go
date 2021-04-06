@@ -31,6 +31,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// GetDockerClient returns a Docker engine API client created with expected values.
+func GetDockerClient() (*dockerClient.Client, error) {
+	return dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+}
+
 // Node can be thought of as a logical component of Kubernetes.
 // A node is either a control plane node, a worker node, or a load balancer node.
 type Node struct {
@@ -70,7 +75,7 @@ func (n *Node) Role() (string, error) {
 
 // IP gets the docker ipv4 and ipv6 of the node.
 func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := GetDockerClient()
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to get container client")
 	}
@@ -95,7 +100,7 @@ func (n *Node) IsRunning() bool {
 
 // Delete removes the container.
 func (n *Node) Delete(ctx context.Context) error {
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := GetDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to get container client")
 	}
@@ -121,7 +126,7 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 
 // Kill sends the named signal to the container.
 func (n *Node) Kill(ctx context.Context, signal string) error {
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := GetDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to get container client")
 	}
@@ -175,7 +180,7 @@ func (c *containerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, er
 }
 
 func (c *containerCmd) Run(ctx context.Context) error {
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := GetDockerClient()
 	if err != nil {
 		return errors.WithStack(err)
 	}

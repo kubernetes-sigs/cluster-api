@@ -23,7 +23,6 @@ import (
 
 	dockerTypes "github.com/docker/docker/api/types"
 	dockerFilters "github.com/docker/docker/api/types/filters"
-	dockerClient "github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 )
@@ -101,7 +100,7 @@ func List(filters Filter) ([]*types.Node, error) {
 
 func list(visit func(string, *types.Node), filters Filter) error {
 	ctx := context.TODO()
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := types.GetDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to docker daemon")
 	}

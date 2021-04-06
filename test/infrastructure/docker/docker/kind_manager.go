@@ -27,7 +27,6 @@ import (
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerMount "github.com/docker/docker/api/types/mount"
 	dockerNetwork "github.com/docker/docker/api/types/network"
-	dockerClient "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
@@ -202,7 +201,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 		hostConfig.UsernsMode = "host"
 	}
 
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := types.GetDockerClient()
 	if err != nil {
 		return nil, errors.Wrap(err, "container client error")
 	}
@@ -254,7 +253,7 @@ const (
 
 // getSubnets returns a slice of subnets for a specified network.
 func getSubnets(ctx context.Context, networkName string) ([]string, error) {
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := types.GetDockerClient()
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +311,7 @@ func getProxyDetails(ctx context.Context) (*proxyDetails, error) {
 
 // usernsRemap checks if userns-remap is enabled in dockerd.
 func usernsRemap(ctx context.Context) bool {
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := types.GetDockerClient()
 	if err != nil {
 		return false
 	}

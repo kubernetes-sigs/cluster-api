@@ -27,7 +27,6 @@ import (
 	"strings"
 	"time"
 
-	dockerClient "github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
@@ -250,7 +249,7 @@ func kindMounts(mounts []infrav1.Mount) []v1alpha4.Mount {
 
 func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error {
 	// Save the image into a tar
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
+	cli, err := types.GetDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +39,7 @@ func TestMachineDefault(t *testing.T) {
 			Version:   pointer.StringPtr("1.17.5"),
 		},
 	}
-
+	t.Run("for Machine", utildefaulting.DefaultValidateTest(m))
 	m.Default()
 
 	g.Expect(m.Labels[ClusterLabelName]).To(Equal(m.Spec.ClusterName))

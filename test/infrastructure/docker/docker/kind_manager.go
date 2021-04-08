@@ -22,6 +22,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	dockerTypes "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
@@ -212,6 +213,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 	if err != nil {
 		return nil, errors.Wrap(err, "image pull error")
 	}
+	time.Sleep(10 * time.Second)
 	reader.Close()
 
 	resp, err := cli.ContainerCreate(

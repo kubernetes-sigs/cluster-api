@@ -213,8 +213,8 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 	if err != nil {
 		return nil, errors.Wrap(err, "image pull error")
 	}
-	time.Sleep(10 * time.Second)
 	reader.Close()
+	time.Sleep(10 * time.Second)
 
 	resp, err := cli.ContainerCreate(
 		ctx,

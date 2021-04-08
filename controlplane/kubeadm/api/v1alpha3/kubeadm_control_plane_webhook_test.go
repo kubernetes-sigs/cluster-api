@@ -27,6 +27,7 @@ import (
 	"k8s.io/utils/pointer"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestKubeadmControlPlaneDefault(t *testing.T) {
@@ -41,6 +42,12 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 			Version:                "1.18.3",
 		},
 	}
+	updateDefaultingValidationKCP := kcp.DeepCopy()
+	updateDefaultingValidationKCP.Spec.Version = "v1.18.3"
+	updateDefaultingValidationKCP.Spec.InfrastructureTemplate = corev1.ObjectReference{
+		Namespace: "foo",
+	}
+	t.Run("for KubeadmControlPLane", utildefaulting.DefaultValidateTest(updateDefaultingValidationKCP))
 	kcp.Default()
 
 	g.Expect(kcp.Spec.InfrastructureTemplate.Namespace).To(Equal(kcp.Namespace))

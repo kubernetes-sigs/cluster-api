@@ -19,7 +19,6 @@ package docker
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"strings"
@@ -209,12 +208,11 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 	}
 
 	// Make sure we have the image
-	reader, err := cli.ImagePull(ctx, opts.Image, dockerTypes.ImagePullOptions{})
+	reader, err := cli.ImagePull(context.Background(), opts.Image, dockerTypes.ImagePullOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "image pull error")
 	}
-	_, _ = io.Copy(io.Discard, reader)
-	defer reader.Close()
+	reader.Close()
 
 	resp, err := cli.ContainerCreate(
 		ctx,

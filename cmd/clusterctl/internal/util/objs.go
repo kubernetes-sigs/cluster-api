@@ -19,6 +19,7 @@ package util
 import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
@@ -26,6 +27,7 @@ import (
 
 const (
 	deploymentKind          = "Deployment"
+	daemonSetKind           = "DaemonSet"
 	controllerContainerName = "manager"
 )
 
@@ -37,19 +39,32 @@ func InspectImages(objs []unstructured.Unstructured) ([]string, error) {
 
 	for i := range objs {
 		o := objs[i]
-		if o.GetKind() == deploymentKind {
+
+		var podSpec coreV1.PodSpec
+
+		switch o.GetKind() {
+		case deploymentKind:
 			d := &appsv1.Deployment{}
 			if err := scheme.Scheme.Convert(&o, d, nil); err != nil {
 				return nil, err
 			}
-
-			for _, c := range d.Spec.Template.Spec.Containers {
-				images = append(images, c.Image)
+			podSpec = d.Spec.Template.Spec
+		case daemonSetKind:
+			d := &appsv1.DaemonSet{}
+			if err := scheme.Scheme.Convert(&o, d, nil); err != nil {
+				return nil, err
 			}
+			podSpec = d.Spec.Template.Spec
+		default:
+			continue
+		}
 
-			for _, c := range d.Spec.Template.Spec.InitContainers {
-				images = append(images, c.Image)
-			}
+		for _, c := range podSpec.Containers {
+			images = append(images, c.Image)
+		}
+
+		for _, c := range podSpec.InitContainers {
+			images = append(images, c.Image)
 		}
 	}
 
@@ -102,45 +117,72 @@ func IsSharedResource(o unstructured.Unstructured) bool {
 // NB. The implemented approach is specific for the provider components YAML & for the cert-manager manifest; it is not
 // intended to cover all the possible objects used to deploy containers existing in Kubernetes.
 func FixImages(objs []unstructured.Unstructured, alterImageFunc func(image string) (string, error)) ([]unstructured.Unstructured, error) {
-	// look for resources of kind Deployment and alter the image
 	for i := range objs {
-		o := &objs[i]
-		if o.GetKind() != deploymentKind {
-			continue
-		}
-
-		// Convert Unstructured into a typed object
-		d := &appsv1.Deployment{}
-		if err := scheme.Scheme.Convert(o, d, nil); err != nil {
+		if err := fixDeploymentImages(&objs[i], alterImageFunc); err != nil {
 			return nil, err
 		}
-
-		// Alter the image
-		for j := range d.Spec.Template.Spec.Containers {
-			container := d.Spec.Template.Spec.Containers[j]
-			image, err := alterImageFunc(container.Image)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to fix image for container %s in deployment %s", container.Name, d.Name)
-			}
-			container.Image = image
-			d.Spec.Template.Spec.Containers[j] = container
-		}
-
-		for j := range d.Spec.Template.Spec.InitContainers {
-			container := d.Spec.Template.Spec.InitContainers[j]
-			image, err := alterImageFunc(container.Image)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to fix image for init container %s in deployment %s", container.Name, d.Name)
-			}
-			container.Image = image
-			d.Spec.Template.Spec.InitContainers[j] = container
-		}
-
-		// Convert typed object back to Unstructured
-		if err := scheme.Scheme.Convert(d, o, nil); err != nil {
+		if err := fixDaemonSetImages(&objs[i], alterImageFunc); err != nil {
 			return nil, err
 		}
-		objs[i] = *o
 	}
 	return objs, nil
+}
+
+func fixDeploymentImages(o *unstructured.Unstructured, alterImageFunc func(image string) (string, error)) error {
+	if o.GetKind() != deploymentKind {
+		return nil
+	}
+
+	// Convert Unstructured into a typed object
+	d := &appsv1.Deployment{}
+	if err := scheme.Scheme.Convert(o, d, nil); err != nil {
+		return err
+	}
+
+	if err := fixPodSpecImages(&d.Spec.Template.Spec, alterImageFunc); err != nil {
+		return errors.Wrapf(err, "failed to fix containers in deployment %s", d.Name)
+	}
+
+	// Convert typed object back to Unstructured
+	return scheme.Scheme.Convert(d, o, nil)
+}
+
+func fixDaemonSetImages(o *unstructured.Unstructured, alterImageFunc func(image string) (string, error)) error {
+	if o.GetKind() != daemonSetKind {
+		return nil
+	}
+
+	// Convert Unstructured into a typed object
+	d := &appsv1.DaemonSet{}
+	if err := scheme.Scheme.Convert(o, d, nil); err != nil {
+		return err
+	}
+
+	if err := fixPodSpecImages(&d.Spec.Template.Spec, alterImageFunc); err != nil {
+		return errors.Wrapf(err, "failed to fix containers in deamonSet %s", d.Name)
+	}
+	// Convert typed object back to Unstructured
+	return scheme.Scheme.Convert(d, o, nil)
+}
+
+func fixPodSpecImages(podSpec *coreV1.PodSpec, alterImageFunc func(image string) (string, error)) error {
+	if err := fixContainersImage(podSpec.Containers, alterImageFunc); err != nil {
+		return errors.Wrapf(err, "failed to fix containers")
+	}
+	if err := fixContainersImage(podSpec.InitContainers, alterImageFunc); err != nil {
+		return errors.Wrapf(err, "failed to fix init containers")
+	}
+	return nil
+}
+
+func fixContainersImage(containers []coreV1.Container, alterImageFunc func(image string) (string, error)) error {
+	for j := range containers {
+		container := &containers[j]
+		image, err := alterImageFunc(container.Image)
+		if err != nil {
+			return errors.Wrapf(err, "failed to fix image for container %s", container.Name)
+		}
+		container.Image = image
+	}
+	return nil
 }

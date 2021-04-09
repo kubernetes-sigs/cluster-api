@@ -87,7 +87,7 @@ func (m *ClusterResourceSet) validate(old *ClusterResourceSet) error {
 		)
 	}
 
-	if old != nil && old.Spec.Strategy != m.Spec.Strategy {
+	if old != nil && old.Spec.Strategy != "" && old.Spec.Strategy != m.Spec.Strategy {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec", "strategy"), m.Spec.Strategy, "field is immutable"),

@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestMachinePoolDefault(t *testing.T) {
@@ -42,7 +43,7 @@ func TestMachinePoolDefault(t *testing.T) {
 			},
 		},
 	}
-
+	t.Run("for MachinePool", utildefaulting.DefaultValidateTest(m))
 	m.Default()
 
 	g.Expect(m.Labels[clusterv1.ClusterLabelName]).To(Equal(m.Spec.ClusterName))

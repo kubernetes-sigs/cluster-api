@@ -22,12 +22,17 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestClusterResourcesetDefault(t *testing.T) {
 	g := NewWithT(t)
 	clusterResourceSet := &ClusterResourceSet{}
-
+	defaultingValidationCRS := clusterResourceSet.DeepCopy()
+	defaultingValidationCRS.Spec.ClusterSelector = metav1.LabelSelector{
+		MatchLabels: map[string]string{"foo": "bar"},
+	}
+	t.Run("for ClusterResourceSet", utildefaulting.DefaultValidateTest(defaultingValidationCRS))
 	clusterResourceSet.Default()
 
 	g.Expect(clusterResourceSet.Spec.Strategy).To(Equal(string(ClusterResourceSetStrategyApplyOnce)))

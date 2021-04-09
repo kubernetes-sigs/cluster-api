@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestClusterDefault(t *testing.T) {
@@ -37,6 +38,8 @@ func TestClusterDefault(t *testing.T) {
 			ControlPlaneRef:   &corev1.ObjectReference{},
 		},
 	}
+
+	t.Run("for Cluster", utildefaulting.DefaultValidateTest(c))
 	c.Default()
 
 	g.Expect(c.Spec.InfrastructureRef.Namespace).To(Equal(c.Namespace))

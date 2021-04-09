@@ -22,24 +22,23 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestMachineSetDefault(t *testing.T) {
 	g := NewWithT(t)
-	md := &MachineSet{
+	ms := &MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-ms",
 		},
 	}
+	t.Run("for MachineSet", utildefaulting.DefaultValidateTest(ms))
+	ms.Default()
 
-	md.Default()
-
-	g.Expect(md.Labels[ClusterLabelName]).To(Equal(md.Spec.ClusterName))
-	g.Expect(md.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
-	g.Expect(md.Spec.DeletePolicy).To(Equal(string(RandomMachineSetDeletePolicy)))
-	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
-	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
+	g.Expect(ms.Labels[ClusterLabelName]).To(Equal(ms.Spec.ClusterName))
+	g.Expect(ms.Spec.DeletePolicy).To(Equal(string(RandomMachineSetDeletePolicy)))
+	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
+	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
 }
 
 func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {

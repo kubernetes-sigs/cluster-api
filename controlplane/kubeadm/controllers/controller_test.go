@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -52,37 +51,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
-
-var _ = Describe("Kubeadm Control Plane Controller", func() {
-	BeforeEach(func() {})
-	AfterEach(func() {})
-
-	Describe("Reconcile a KubeadmControlPlane", func() {
-		It("should return error if owner cluster is missing", func() {
-
-			cluster, kcp, _ := createClusterWithControlPlane()
-			Expect(testEnv.Create(ctx, cluster)).To(Succeed())
-			Expect(testEnv.Create(ctx, kcp)).To(Succeed())
-
-			r := &KubeadmControlPlaneReconciler{
-				Client:   testEnv,
-				recorder: record.NewFakeRecorder(32),
-			}
-
-			result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
-
-			By("Calling reconcile should return error")
-			Expect(testEnv.Delete(ctx, cluster)).To(Succeed())
-
-			Eventually(func() error {
-				_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
-				return err
-			}, 10*time.Second).Should(HaveOccurred())
-		})
-	})
-})
 
 func TestClusterToKubeadmControlPlane(t *testing.T) {
 	g := NewWithT(t)
@@ -151,6 +119,30 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 
 	got := r.ClusterToKubeadmControlPlane(cluster)
 	g.Expect(got).To(BeNil())
+}
+
+func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
+	g := NewWithT(t)
+	cluster, kcp, _ := createClusterWithControlPlane()
+	g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+	g.Expect(testEnv.Create(ctx, kcp)).To(Succeed())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:   testEnv,
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
+
+	//calling reconcile should return error
+	g.Expect(testEnv.Delete(ctx, cluster)).To(Succeed())
+
+	g.Eventually(func() error {
+		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+		return err
+	}, 10*time.Second).Should(HaveOccurred())
 }
 
 func TestReconcileUpdateObservedGeneration(t *testing.T) {

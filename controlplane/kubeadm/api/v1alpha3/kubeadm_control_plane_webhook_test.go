@@ -189,6 +189,14 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				Name:      "infraTemplate",
 			},
 			Replicas: pointer.Int32Ptr(1),
+			RolloutStrategy: &RolloutStrategy{
+				Type: RollingUpdateStrategyType,
+				RollingUpdate: &RollingUpdate{
+					MaxSurge: &intstr.IntOrString{
+						IntVal: 1,
+					},
+				},
+			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				InitConfiguration: &kubeadmv1beta1.InitConfiguration{
 					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
@@ -241,6 +249,13 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			Version: "v1.16.6",
 		},
 	}
+
+	updateMaxSurgeVal := before.DeepCopy()
+	updateMaxSurgeVal.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(0)
+	updateMaxSurgeVal.Spec.Replicas = pointer.Int32Ptr(3)
+
+	wrongReplicaCountForScaleIn := before.DeepCopy()
+	wrongReplicaCountForScaleIn.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(0)
 
 	invalidUpdateKubeadmConfigInit := before.DeepCopy()
 	invalidUpdateKubeadmConfigInit.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{}
@@ -745,6 +760,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			before:    disallowedUpgrade118Prev,
 			kcp:       disallowedUpgrade119Version,
 		},
+		{
+			name:      "should not return an error when maxSurge value is updated to 0",
+			expectErr: false,
+			before:    before,
+			kcp:       updateMaxSurgeVal,
+		},
+		{
+			name:      "should return an error when maxSurge value is updated to 0, but replica count is < 3",
+			expectErr: true,
+			before:    before,
+			kcp:       wrongReplicaCountForScaleIn,
+		},
 	}
 
 	for _, tt := range tests {
@@ -756,6 +783,56 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
+	before := &KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "foo",
+		},
+		Spec: KubeadmControlPlaneSpec{
+			Version: "v1.19.0",
+			InfrastructureTemplate: corev1.ObjectReference{
+				Namespace: "foo",
+				Name:      "infraTemplate",
+			},
+		},
+	}
+
+	afterDefault := before.DeepCopy()
+	afterDefault.Default()
+
+	tests := []struct {
+		name      string
+		expectErr bool
+		before    *KubeadmControlPlane
+		kcp       *KubeadmControlPlane
+	}{
+		{
+			name:      "update should succeed after defaulting",
+			expectErr: false,
+			before:    before,
+			kcp:       afterDefault,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).To(Succeed())
+				g.Expect(tt.kcp.Spec.InfrastructureTemplate.Namespace).To(Equal(tt.before.Namespace))
+				g.Expect(tt.kcp.Spec.Version).To(Equal("v1.19.0"))
+				g.Expect(tt.kcp.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
+				g.Expect(tt.kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
+				g.Expect(tt.kcp.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
 			}
 		})
 	}

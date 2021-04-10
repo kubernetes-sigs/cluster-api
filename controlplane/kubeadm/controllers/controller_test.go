@@ -175,7 +175,7 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 		errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
 		g.Expect(errGettingObject).NotTo(HaveOccurred())
 		return kcp.Status.ObservedGeneration
-	}, 10*time.Second).Should(Equal(generation))
+	}, 60*time.Second).Should(Equal(generation))
 
 	// triggers a generation change by changing the spec
 	kcp.Spec.Replicas = pointer.Int32Ptr(*kcp.Spec.Replicas + 2)

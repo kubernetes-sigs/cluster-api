@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 )
 
 // Client is exposes the clusterctl high-level client library.
@@ -89,7 +90,7 @@ type AlphaClient interface {
 // variables.
 type YamlPrinter interface {
 	// Variables required by the template.
-	Variables() []string
+	Variables() []yamlprocessor.VariableMetadata
 
 	// Yaml returns yaml defining all the cluster template objects as a byte array.
 	Yaml() ([]byte, error)

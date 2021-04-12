@@ -32,7 +32,7 @@ import (
 type Template interface {
 	// Variables required by the template.
 	// This value is derived by the template YAML.
-	Variables() []string
+	Variables() []yaml.VariableMetadata
 
 	// TargetNamespace where the template objects will be installed.
 	TargetNamespace() string
@@ -46,7 +46,7 @@ type Template interface {
 
 // template implements Template.
 type template struct {
-	variables       []string
+	variables       []yaml.VariableMetadata
 	targetNamespace string
 	objs            []unstructured.Unstructured
 }
@@ -54,7 +54,7 @@ type template struct {
 // Ensures template implements the Template interface.
 var _ Template = &template{}
 
-func (t *template) Variables() []string {
+func (t *template) Variables() []yaml.VariableMetadata {
 	return t.variables
 }
 
@@ -84,7 +84,6 @@ func NewTemplate(input TemplateInput) (*template, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if input.ListVariablesOnly {
 		return &template{
 			variables:       variables,

@@ -171,7 +171,7 @@ func Test_templates_Get(t *testing.T) {
 					WithDefaultVersion("v1.0").
 					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
-				processor:             test.NewFakeProcessor().WithGetVariablesErr(errors.New("cannot get vars")).WithTemplateName("cluster-template.yaml"),
+				processor:             yaml.NewFakeProcessor().WithGetVariablesErr(errors.New("cannot get vars")).WithTemplateName("cluster-template.yaml"),
 			},
 			args: args{
 				targetNamespace:   "ns1",

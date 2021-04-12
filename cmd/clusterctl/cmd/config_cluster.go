@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -189,9 +190,34 @@ func runGetClusterTemplate(cmd *cobra.Command, name string) error {
 
 func templateListVariablesOutput(template client.Template) error {
 	if len(template.Variables()) > 0 {
-		fmt.Println("Variables:")
+		required := make([]string, 0)
+		notRequired := map[string]string{}
 		for _, v := range template.Variables() {
-			fmt.Printf("  - %s\n", v)
+			if v != nil {
+				if v.Required() {
+					required = append(required, v.Name())
+				} else {
+					notRequired[v.Name()] = v.DefaultValue()
+				}
+			}
+		}
+		sort.Strings(required)
+		if len(required) > 0 {
+			fmt.Println("Required Variables:")
+			for _, v := range required {
+				fmt.Printf("  - %s\n", v)
+			}
+		}
+		fmt.Println()
+		if len(notRequired) > 0 {
+			fmt.Println("Optional Variables:")
+			for k, val := range notRequired {
+				if val == "\"\"" {
+					fmt.Printf("  - %s (defaults to \"\")\n", k)
+				} else {
+					fmt.Printf("  - %s (defaults to \"%s\")\n", k, val)
+				}
+			}
 		}
 	}
 	fmt.Println()

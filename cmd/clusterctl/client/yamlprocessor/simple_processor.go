@@ -51,21 +51,75 @@ func (tp *SimpleProcessor) GetTemplateName(_, flavor string) string {
 	return name
 }
 
-// GetVariables returns a list of the variables specified in the yaml.
-func (tp *SimpleProcessor) GetVariables(rawArtifact []byte) ([]string, error) {
+// Process processes the template blob of bytes and will return the final
+// yaml with values retrieved from the values getter.
+func (tp *SimpleProcessor) GetVariables(rawArtifact []byte) ([]VariableMetadata, error) {
 	strArtifact := convertLegacyVars(string(rawArtifact))
-
-	variables, err := inspectVariables(strArtifact)
+	variables, err := getDefaultValues(strArtifact)
 	if err != nil {
 		return nil, err
 	}
-
-	varNames := make([]string, 0, len(variables))
-	for k := range variables {
-		varNames = append(varNames, k)
+	res := make([]VariableMetadata, 0)
+	for _, v := range variables {
+		if v != nil {
+			res = append(res, v)
+		}
 	}
-	sort.Strings(varNames)
-	return varNames, nil
+	sort.Sort(ByName(res))
+	return res, nil
+}
+
+func getDefaultValues(data string) (map[string]VariableMetadata, error) {
+	t, err := parse.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+	seenMap := map[string]VariableMetadata{}
+	getAllDefault(t.Root, seenMap)
+	return seenMap, nil
+}
+
+func getAllDefault(root parse.Node, seenMap map[string]VariableMetadata) {
+	st := ""
+	switch v := root.(type) {
+	case *parse.ListNode:
+		// iterate through the list node.
+		for _, ln := range v.Nodes {
+			getAllDefault(ln, seenMap)
+		}
+	case *parse.FuncNode:
+		if _, ok := seenMap[v.Param]; !ok {
+			if len(v.Args) > 0 {
+				for _, l := range v.Args {
+					st += getString(l)
+				}
+				seenMap[v.Param] = &variableMetadata{name: v.Param, required: false, defaultValue: st}
+			} else {
+				if len(v.Name) == 0 {
+					seenMap[v.Param] = &variableMetadata{name: v.Param, required: true, defaultValue: ""}
+				} else {
+					seenMap[v.Param] = &variableMetadata{name: v.Param, required: false, defaultValue: ""}
+				}
+			}
+		}
+	}
+}
+
+// from node generates default value string recursive function.
+func getString(root parse.Node) string {
+	st := ""
+	switch v := root.(type) {
+	case *parse.ListNode:
+		// iterate through the list node
+		for _, ln := range v.Nodes {
+			st += getString(ln)
+		}
+	case *parse.FuncNode:
+		st += fmt.Sprintf("${%s}", v.Param)
+	case *parse.TextNode:
+		st += v.Value
+	}
+	return st
 }
 
 // Process returns the final yaml with all the variables replaced with their

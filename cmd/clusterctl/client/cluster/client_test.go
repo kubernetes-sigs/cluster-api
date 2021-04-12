@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_newClusterClient_YamlProcessor(t *testing.T) {
@@ -40,11 +39,11 @@ func Test_newClusterClient_YamlProcessor(t *testing.T) {
 		},
 		{
 			name: "it creates a cluster client with specified yaml processor",
-			opts: []Option{InjectYamlProcessor(test.NewFakeProcessor())},
+			opts: []Option{InjectYamlProcessor(yaml.NewFakeProcessor())},
 			assert: func(g *WithT, p yaml.Processor) {
 				_, ok := (p).(*yaml.SimpleProcessor)
 				g.Expect(ok).To(BeFalse())
-				_, ok = (p).(*test.FakeProcessor)
+				_, ok = (p).(*yaml.FakeProcessor)
 				g.Expect(ok).To(BeTrue())
 			},
 		},

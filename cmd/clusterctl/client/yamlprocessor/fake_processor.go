@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package test
+package yamlprocessor
 
 type FakeProcessor struct {
 	errGetVariables error
@@ -45,7 +45,7 @@ func (fp *FakeProcessor) GetTemplateName(version, flavor string) string {
 	return fp.artifactName
 }
 
-func (fp *FakeProcessor) GetVariables(raw []byte) ([]string, error) {
+func (fp *FakeProcessor) GetVariables(raw []byte) ([]VariableMetadata, error) {
 	return nil, fp.errGetVariables
 }
 

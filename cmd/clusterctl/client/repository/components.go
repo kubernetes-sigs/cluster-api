@@ -68,7 +68,7 @@ type Components interface {
 
 	// Variables required by the provider components.
 	// This value is derived by the component YAML.
-	Variables() []string
+	Variables() []yaml.VariableMetadata
 
 	// Images required to install the provider components.
 	// This value is derived by the component YAML.
@@ -102,7 +102,7 @@ type Components interface {
 type components struct {
 	config.Provider
 	version           string
-	variables         []string
+	variables         []yaml.VariableMetadata
 	images            []string
 	targetNamespace   string
 	watchingNamespace string
@@ -117,7 +117,7 @@ func (c *components) Version() string {
 	return c.version
 }
 
-func (c *components) Variables() []string {
+func (c *components) Variables() []yaml.VariableMetadata {
 	return c.variables
 }
 

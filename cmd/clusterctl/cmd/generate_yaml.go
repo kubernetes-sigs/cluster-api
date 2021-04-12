@@ -104,7 +104,7 @@ func generateYAML(r io.Reader, w io.Writer) error {
 		if len(printer.Variables()) > 0 {
 			fmt.Fprintln(w, "Variables:")
 			for _, v := range printer.Variables() {
-				fmt.Fprintf(w, "  - %s\n", v)
+				fmt.Fprintf(w, "  - %s\n", v.Name())
 			}
 		} else {
 			fmt.Fprintln(w)

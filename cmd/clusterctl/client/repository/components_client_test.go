@@ -265,7 +265,7 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
-				processor: test.NewFakeProcessor().WithGetVariablesErr(errors.New("cannot get vars")),
+				processor: yaml.NewFakeProcessor().WithGetVariablesErr(errors.New("cannot get vars")),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -283,7 +283,7 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
 
-				processor: test.NewFakeProcessor().WithProcessErr(errors.New("cannot process")),
+				processor: yaml.NewFakeProcessor().WithProcessErr(errors.New("cannot process")),
 			},
 			args: args{
 				version:           "v1.0.0",

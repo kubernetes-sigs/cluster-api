@@ -37,7 +37,7 @@ func TestSimpleProcessor_GetVariables(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    []string
+		want    []VariableMetadata
 		wantErr bool
 	}{
 		{
@@ -45,28 +45,43 @@ func TestSimpleProcessor_GetVariables(t *testing.T) {
 			args: args{
 				data: "yaml with ${A} ${ B} ${ C} ${ D }",
 			},
-			want: []string{"A", "B", "C", "D"},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: true, defaultValue: ""},
+				&variableMetadata{name: "B", required: true, defaultValue: ""},
+				&variableMetadata{name: "C", required: true, defaultValue: ""},
+				&variableMetadata{name: "D", required: true, defaultValue: ""},
+			},
 		},
 		{
 			name: "variables used in many places are grouped",
 			args: args{
 				data: "yaml with ${A } ${A} ${A}",
 			},
-			want: []string{"A"},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: true, defaultValue: ""},
+			},
 		},
 		{
 			name: "variables in multiline texts are processed",
 			args: args{
 				data: "yaml with ${A}\n${B}\n${C}",
 			},
-			want: []string{"A", "B", "C"},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: true, defaultValue: ""},
+				&variableMetadata{name: "B", required: true, defaultValue: ""},
+				&variableMetadata{name: "C", required: true, defaultValue: ""},
+			},
 		},
 		{
 			name: "variables are sorted",
 			args: args{
 				data: "yaml with ${C}\n${B}\n${A}",
 			},
-			want: []string{"A", "B", "C"},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: true, defaultValue: ""},
+				&variableMetadata{name: "B", required: true, defaultValue: ""},
+				&variableMetadata{name: "C", required: true, defaultValue: ""},
+			},
 		},
 		{
 			name: "returns error for variables with regex metacharacters",
@@ -80,7 +95,82 @@ func TestSimpleProcessor_GetVariables(t *testing.T) {
 			args: args{
 				data: "yaml with ${C:=default}\n${B}\n${A=foobar}",
 			},
-			want: []string{"A", "B", "C"},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: false, defaultValue: "foobar"},
+				&variableMetadata{name: "B", required: true, defaultValue: ""},
+				&variableMetadata{name: "C", required: false, defaultValue: "default"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			p := NewSimpleProcessor()
+			actual, err := p.GetVariables([]byte(tt.args.data))
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(actual).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestSimpleProcessor_GetVariables_differentTypes(t *testing.T) {
+	type args struct {
+		data string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []VariableMetadata
+		wantErr bool
+	}{
+		{
+			name: "bool Type data test",
+			args: args{
+				data: "yaml with ${A=false}\n${B}\n${C=true}",
+			},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: false, defaultValue: "false"},
+				&variableMetadata{name: "B", required: true, defaultValue: ""},
+				&variableMetadata{name: "C", required: false, defaultValue: "true"},
+			},
+		},
+		{
+			name: "int Type data test",
+			args: args{
+				data: "yaml with ${A=11233333}\n${B}\n${C=8901}",
+			},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: false, defaultValue: "11233333"},
+				&variableMetadata{name: "B", required: true, defaultValue: ""},
+				&variableMetadata{name: "C", required: false, defaultValue: "8901"},
+			},
+		},
+		{
+			name: "string Type data test",
+			args: args{
+				data: "yaml with ${A=simpleString}\n${B=}\n${C=c}",
+			},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: false, defaultValue: "simpleString"},
+				&variableMetadata{name: "B", required: false, defaultValue: ""},
+				&variableMetadata{name: "C", required: false, defaultValue: "c"},
+			},
+		},
+		{
+			name: "passing empty string for required type data test",
+			args: args{
+				data: "yaml with ${A=}\n${B=}\n${C=1.2}",
+			},
+			want: []VariableMetadata{
+				&variableMetadata{name: "A", required: false, defaultValue: ""},
+				&variableMetadata{name: "B", required: false, defaultValue: ""},
+				&variableMetadata{name: "C", required: false, defaultValue: "1.2"},
+			},
 		},
 	}
 

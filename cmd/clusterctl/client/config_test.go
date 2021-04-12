@@ -710,8 +710,11 @@ v3: default3`,
 			g.Expect(string(expectedYaml)).To(Equal(tt.expectedYaml))
 
 			expectedVars := printer.Variables()
-			g.Expect(expectedVars).To(ConsistOf(tt.expectedVars))
-
+			names := []string{}
+			for _, exp := range expectedVars {
+				names = append(names, exp.Name())
+			}
+			g.Expect(names).To(ConsistOf(tt.expectedVars))
 		})
 	}
 

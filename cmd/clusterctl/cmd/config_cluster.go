@@ -90,6 +90,7 @@ var configClusterClusterCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runGetClusterTemplate(cmd, args[0])
 	},
+	Deprecated: "use `clusterctl generate cluster` instead",
 }
 
 func init() {

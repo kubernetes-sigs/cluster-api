@@ -79,6 +79,7 @@ var configProviderCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runGetComponents()
 	},
+	Deprecated: "use `clusterctl generate provider` instead",
 }
 
 func init() {

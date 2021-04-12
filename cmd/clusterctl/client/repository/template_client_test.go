@@ -200,7 +200,13 @@ func Test_templates_Get(t *testing.T) {
 			}
 			g.Expect(err).NotTo(HaveOccurred())
 
-			g.Expect(got.Variables()).To(Equal(tt.want.variables))
+			expectedVars := got.Variables()
+			names := []string{}
+			for _, exp := range expectedVars {
+				names = append(names, exp.Name())
+			}
+			g.Expect(names).To(Equal(tt.want.variables))
+
 			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			// check variable replaced in yaml

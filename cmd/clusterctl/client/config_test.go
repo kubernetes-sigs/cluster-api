@@ -603,7 +603,12 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			}
 			gs.Expect(err).NotTo(HaveOccurred())
 
-			gs.Expect(got.Variables()).To(Equal(tt.want.variables))
+			expectedVars := got.Variables()
+			names := []string{}
+			for _, exp := range expectedVars {
+				names = append(names, exp.Name())
+			}
+			gs.Expect(names).To(Equal(tt.want.variables))
 			gs.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			gotYaml, err := got.Yaml()

@@ -101,8 +101,12 @@ func Test_newTemplate(t *testing.T) {
 				return
 			}
 			g.Expect(err).NotTo(HaveOccurred())
-
-			g.Expect(got.Variables()).To(Equal(tt.want.variables))
+			expectedVars := got.Variables()
+			names := []string{}
+			for _, exp := range expectedVars {
+				names = append(names, exp.Name())
+			}
+			g.Expect(names).To(Equal(tt.want.variables))
 			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			if tt.args.listVariablesOnly {

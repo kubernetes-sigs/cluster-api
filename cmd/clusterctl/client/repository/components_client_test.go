@@ -319,7 +319,11 @@ func Test_componentsClient_Get(t *testing.T) {
 			gs.Expect(got.Version()).To(Equal(tt.want.version))
 			gs.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 			gs.Expect(got.WatchingNamespace()).To(Equal(tt.want.watchingNamespace))
-			gs.Expect(got.Variables()).To(Equal(tt.want.variables))
+			names := []string{}
+			for _, exp := range got.Variables() {
+				names = append(names, exp.Name())
+			}
+			gs.Expect(names).To(Equal(tt.want.variables))
 
 			yaml, err := got.Yaml()
 			if err != nil {

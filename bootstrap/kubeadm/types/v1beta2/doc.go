@@ -23,4 +23,4 @@ IMPORTANT: only for KubeadmConfig serialization/deserialization, and should not 
 
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4
 // +k8s:deepcopy-gen=package
-package v1beta2 // import "sigs.k8s.io/cluster-api/bootstrap/kubeadm/kubeadm/v1beta2"
+package v1beta2 // import "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"

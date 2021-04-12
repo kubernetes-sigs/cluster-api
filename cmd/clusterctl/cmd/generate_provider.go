@@ -1,0 +1,157 @@
+/*
+Copyright 2021 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package cmd
+
+import (
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+)
+
+type generateProvidersOptions struct {
+	coreProvider           string
+	bootstrapProvider      string
+	controlPlaneProvider   string
+	infrastructureProvider string
+	targetNamespace        string
+	watchingNamespace      string
+	skipVariables          bool
+	listVariables          bool
+}
+
+var gpo = &generateProvidersOptions{}
+
+var generateProviderCmd = &cobra.Command{
+	Use:   "provider",
+	Args:  cobra.NoArgs,
+	Short: "Generate templates for provider components.",
+	Long: LongDesc(`
+		Generate templates for provider components.
+
+		clusterctl fetches the provider components from the provider repository and performs variable substitution.
+		
+		Variable values are either sourced from the clusterctl config file or
+		from environment variables`),
+
+	Example: Examples(`
+		# Generates a yaml file for creating provider with variable values using
+        # components defined in the provider repository.
+		clusterctl generate provider --infrastructure aws
+
+		# Generates a yaml file for creating provider for a specific version with variable values using
+        # components defined in the provider repository.
+		clusterctl generate provider --infrastructure aws:v0.4.1
+
+		# Generates a raw yaml file for creating provider without variable values using
+        # components defined in the provider repository.
+		clusterctl generate provider --infrastructure aws --raw
+
+		# Generates a raw yaml file for creating provider for a specific version without variable values using
+        # components defined in the provider repository.
+        clusterctl generate provider --infrastructure aws:v0.4.1 --raw
+
+		# Prints list of variables used in the provider template.
+		clusterctl generate provider --list-variables
+
+		`),
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runGenerateProviderComponents()
+	},
+}
+
+func init() {
+	generateProviderCmd.Flags().StringVar(&gpo.coreProvider, "core", "",
+		"Core provider and version (e.g. cluster-api:v0.3.0)")
+	generateProviderCmd.Flags().StringVarP(&gpo.infrastructureProvider, "infrastructure", "i", "",
+		"Infrastructure provider and version (e.g. aws:v0.5.0)")
+	generateProviderCmd.Flags().StringVarP(&gpo.bootstrapProvider, "bootstrap", "b", "",
+		"Bootstrap provider and version (e.g. kubeadm:v0.3.0)")
+	generateProviderCmd.Flags().StringVarP(&gpo.controlPlaneProvider, "control-plane", "c", "",
+		"ControlPlane provider and version (e.g. kubeadm:v0.3.0)")
+	generateProviderCmd.Flags().StringVar(&gpo.targetNamespace, "target-namespace", "",
+		"The target namespace where the provider should be deployed. If unspecified, the components default namespace is used.")
+	generateProviderCmd.Flags().StringVar(&gpo.watchingNamespace, "watching-namespace", "",
+		"Namespace the provider should watch when reconciling objects. If unspecified, all namespaces are watched.")
+	generateProviderCmd.Flags().BoolVar(&gpo.skipVariables, "raw", false,
+		"Generate configuration without variable substitution.")
+	generateProviderCmd.Flags().BoolVar(&gpo.listVariables, "list-variables", false,
+		"Returns the list of variables expected by the provider template")
+
+	generateCmd.AddCommand(generateProviderCmd)
+}
+
+func runGenerateProviderComponents() error {
+	providerName, providerType, err := parseProvider()
+	if err != nil {
+		return err
+	}
+	c, err := client.New(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	options := client.ComponentsOptions{
+		TargetNamespace:   gpo.targetNamespace,
+		WatchingNamespace: gpo.watchingNamespace,
+		SkipProcess:       gpo.skipVariables,
+		ListVariablesOnly: gpo.listVariables,
+	}
+	components, err := c.GetProviderComponents(providerName, providerType, options)
+	if err != nil {
+		return err
+	}
+
+	if gpo.listVariables {
+		return printVariablesOutput(components)
+	}
+
+	return printYamlOutput(components)
+}
+
+// parseProvider parses command line flags and returns the provider name and type.
+func parseProvider() (string, clusterctlv1.ProviderType, error) {
+	providerName := gpo.coreProvider
+	providerType := clusterctlv1.CoreProviderType
+	if gpo.bootstrapProvider != "" {
+		if providerName != "" {
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure should be set")
+		}
+		providerName = gpo.bootstrapProvider
+		providerType = clusterctlv1.BootstrapProviderType
+	}
+	if gpo.controlPlaneProvider != "" {
+		if providerName != "" {
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure should be set")
+		}
+		providerName = gpo.controlPlaneProvider
+		providerType = clusterctlv1.ControlPlaneProviderType
+	}
+	if gpo.infrastructureProvider != "" {
+		if providerName != "" {
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure should be set")
+		}
+		providerName = gpo.infrastructureProvider
+		providerType = clusterctlv1.InfrastructureProviderType
+	}
+	if providerName == "" {
+		return "", "", errors.New("at least one of --core, --bootstrap, --control-plane, --infrastructure should be set")
+	}
+
+	return providerName, providerType, nil
+}

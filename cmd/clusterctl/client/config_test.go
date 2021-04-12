@@ -226,7 +226,7 @@ func Test_getComponentsByName_withEmptyVariables(t *testing.T) {
 	options := ComponentsOptions{
 		TargetNamespace:   "ns1",
 		WatchingNamespace: "",
-		SkipVariables:     true,
+		SkipProcess:       true,
 	}
 	components, err := client.GetProviderComponents(repository1Config.Name(), repository1Config.Type(), options)
 	g.Expect(err).NotTo(HaveOccurred())

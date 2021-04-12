@@ -51,7 +51,7 @@ func (c *clusterctlClient) GetProviderComponents(provider string, providerType c
 		Version:           options.Version,
 		TargetNamespace:   options.TargetNamespace,
 		WatchingNamespace: options.WatchingNamespace,
-		SkipVariables:     options.SkipVariables,
+		SkipProcess:       options.SkipProcess,
 	}
 	components, err := c.getComponentsByName(provider, providerType, inputOptions)
 	if err != nil {
@@ -158,6 +158,9 @@ type GetClusterTemplateOptions struct {
 	// YamlProcessor defines the yaml processor to use for the cluster
 	// template processing. If not defined, SimpleProcessor will be used.
 	YamlProcessor Processor
+
+	// Allows for skipping variable replacement in the component YAML.
+	SkipVariables bool
 }
 
 // numSources return the number of template sources currently set on a GetClusterTemplateOptions.
@@ -269,6 +272,7 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 	source := *options.ProviderRepositorySource
 	targetNamespace := options.TargetNamespace
 	listVariablesOnly := options.ListVariablesOnly
+	skipVariables := options.SkipVariables
 	processor := options.YamlProcessor
 
 	// If the option specifying the name of the infrastructure provider to get templates from is empty, try to detect it.
@@ -329,7 +333,7 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 		return nil, err
 	}
 
-	template, err := repo.Templates(version).Get(source.Flavor, targetNamespace, listVariablesOnly)
+	template, err := repo.Templates(version).Get(source.Flavor, targetNamespace, listVariablesOnly, skipVariables)
 	if err != nil {
 		return nil, err
 	}

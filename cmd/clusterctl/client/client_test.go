@@ -473,7 +473,7 @@ type fakeTemplateClient struct {
 	processor             yaml.Processor
 }
 
-func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOnly bool) (repository.Template, error) {
+func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOnly, skipVariables bool) (repository.Template, error) {
 	name := "cluster-template"
 	if flavor != "" {
 		name = fmt.Sprintf("%s-%s", name, flavor)
@@ -490,6 +490,7 @@ func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOn
 		Processor:             f.processor,
 		TargetNamespace:       targetNamespace,
 		ListVariablesOnly:     listVariablesOnly,
+		SkipProcess:           skipVariables,
 	})
 }
 

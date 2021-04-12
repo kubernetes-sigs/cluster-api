@@ -76,6 +76,7 @@ type TemplateInput struct {
 	Processor             yaml.Processor
 	TargetNamespace       string
 	ListVariablesOnly     bool
+	SkipProcess           bool
 }
 
 // NewTemplate returns a new objects embedding a cluster template YAML file.
@@ -92,9 +93,12 @@ func NewTemplate(input TemplateInput) (*template, error) {
 		}, nil
 	}
 
-	processedYaml, err := input.Processor.Process(input.RawArtifact, input.ConfigVariablesClient.Get)
-	if err != nil {
-		return nil, err
+	processedYaml := input.RawArtifact
+	if !input.SkipProcess {
+		processedYaml, err = input.Processor.Process(input.RawArtifact, input.ConfigVariablesClient.Get)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes).

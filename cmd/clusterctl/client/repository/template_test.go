@@ -43,6 +43,7 @@ func Test_newTemplate(t *testing.T) {
 		processor             yaml.Processor
 		targetNamespace       string
 		listVariablesOnly     bool
+		skipVariables         bool
 	}
 	type want struct {
 		variables       []string
@@ -84,6 +85,21 @@ func Test_newTemplate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Skip variable substitution",
+			args: args{
+				rawYaml:               templateMapYaml,
+				configVariablesClient: test.NewFakeVariableClient(),
+				processor:             yaml.NewSimpleProcessor(),
+				targetNamespace:       "ns1",
+				skipVariables:         true,
+			},
+			want: want{
+				variables:       []string{variableName},
+				targetNamespace: "ns1",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -95,6 +111,7 @@ func Test_newTemplate(t *testing.T) {
 				Processor:             tt.args.processor,
 				TargetNamespace:       tt.args.targetNamespace,
 				ListVariablesOnly:     tt.args.listVariablesOnly,
+				SkipProcess:           tt.args.skipVariables,
 			})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -112,7 +129,11 @@ func Test_newTemplate(t *testing.T) {
 			// check variable replaced in components
 			yaml, err := got.Yaml()
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(yaml).To(ContainSubstring((fmt.Sprintf("variable: %s", variableValue))))
+			if !tt.args.skipVariables {
+				g.Expect(string(yaml)).To(ContainSubstring(fmt.Sprintf("  variable: %s", variableValue)))
+				return
+			}
+			g.Expect(string(yaml)).To(ContainSubstring(fmt.Sprintf("  variable: ${%s}", variableName)))
 		})
 	}
 }

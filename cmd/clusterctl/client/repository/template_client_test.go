@@ -43,6 +43,7 @@ func Test_templates_Get(t *testing.T) {
 		flavor            string
 		targetNamespace   string
 		listVariablesOnly bool
+		skipVariables     bool
 	}
 	type want struct {
 		variables       []string
@@ -139,6 +140,29 @@ func Test_templates_Get(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "pass if variables does not exists but skipVariables is true",
+			fields: fields{
+				version:  "v1.0",
+				provider: p1,
+				repository: test.NewFakeRepository().
+					WithPaths("root", "").
+					WithDefaultVersion("v1.0").
+					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
+				configVariablesClient: test.NewFakeVariableClient(),
+				processor:             yaml.NewSimpleProcessor(),
+			},
+			args: args{
+				flavor:          "",
+				targetNamespace: "ns1",
+				skipVariables:   true,
+			},
+			want: want{
+				variables:       []string{variableName},
+				targetNamespace: "ns1",
+			},
+			wantErr: false,
+		},
+		{
 			name: "pass if variables does not exists but listVariablesOnly flag is set",
 			fields: fields{
 				version:  "v1.0",
@@ -193,7 +217,7 @@ func Test_templates_Get(t *testing.T) {
 					processor:             tt.fields.processor,
 				},
 			)
-			got, err := f.Get(tt.args.flavor, tt.args.targetNamespace, tt.args.listVariablesOnly)
+			got, err := f.Get(tt.args.flavor, tt.args.targetNamespace, tt.args.listVariablesOnly, tt.args.skipVariables)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -207,8 +231,12 @@ func Test_templates_Get(t *testing.T) {
 			yaml, err := got.Yaml()
 			g.Expect(err).NotTo(HaveOccurred())
 
-			if !tt.args.listVariablesOnly {
+			if !tt.args.listVariablesOnly && !tt.args.skipVariables {
 				g.Expect(yaml).To(ContainSubstring((fmt.Sprintf("variable: %s", variableValue))))
+			}
+
+			if tt.args.skipVariables {
+				g.Expect(yaml).To(ContainSubstring((fmt.Sprintf("variable: ${%s}", variableName))))
 			}
 
 			// check if target namespace is set

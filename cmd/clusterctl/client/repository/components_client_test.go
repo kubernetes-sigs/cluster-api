@@ -79,6 +79,7 @@ func Test_componentsClient_Get(t *testing.T) {
 		targetNamespace   string
 		watchingNamespace string
 		skipVariables     bool
+		listVariablesOnly bool
 	}
 	type want struct {
 		provider          config.Provider
@@ -138,6 +139,28 @@ func Test_componentsClient_Get(t *testing.T) {
 				targetNamespace:   namespaceName, // default targetNamespace detected
 				watchingNamespace: "",
 				variables:         []string{variableName}, // variable detected
+			},
+			wantErr: false,
+		},
+		{
+			name: "lists only variable when listVariablesOnly is set to true",
+			fields: fields{
+				provider: p1,
+				repository: test.NewFakeRepository().
+					WithPaths("root", "components.yaml").
+					WithDefaultVersion("v1.0.0").
+					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
+			},
+			args: args{
+				version:           "v1.0.0",
+				targetNamespace:   namespaceName,
+				watchingNamespace: "ns2",
+				listVariablesOnly: true,
+			},
+			want: want{
+				variables:         []string{variableName},
+				targetNamespace:   namespaceName,
+				watchingNamespace: "ns2",
 			},
 			wantErr: false,
 		},
@@ -301,7 +324,8 @@ func Test_componentsClient_Get(t *testing.T) {
 				Version:           tt.args.version,
 				TargetNamespace:   tt.args.targetNamespace,
 				WatchingNamespace: tt.args.watchingNamespace,
-				SkipVariables:     tt.args.skipVariables,
+				SkipProcess:       tt.args.skipVariables,
+				ListVariablesOnly: tt.args.listVariablesOnly,
 			}
 			f := newComponentsClient(tt.fields.provider, tt.fields.repository, configClient)
 			if tt.fields.processor != nil {
@@ -313,6 +337,13 @@ func Test_componentsClient_Get(t *testing.T) {
 				return
 			}
 			gs.Expect(err).NotTo(HaveOccurred())
+
+			if tt.args.listVariablesOnly {
+				gs.Expect(got.Variables()).To(Equal(tt.want.variables))
+				gs.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
+				gs.Expect(got.WatchingNamespace()).To(Equal(tt.want.watchingNamespace))
+				return
+			}
 
 			gs.Expect(got.Name()).To(Equal(tt.want.provider.Name()))
 			gs.Expect(got.Type()).To(Equal(tt.want.provider.Type()))

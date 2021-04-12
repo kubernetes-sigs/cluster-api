@@ -264,7 +264,7 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, provide
 		componentsOptions := repository.ComponentsOptions{
 			TargetNamespace:   options.targetNamespace,
 			WatchingNamespace: options.watchingNamespace,
-			SkipVariables:     options.skipVariables,
+			SkipProcess:       options.skipVariables,
 		}
 		components, err := c.getComponentsByName(provider, providerType, componentsOptions)
 		if err != nil {

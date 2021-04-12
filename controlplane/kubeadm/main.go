@@ -41,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -71,6 +72,7 @@ var (
 	syncPeriod                     time.Duration
 	webhookPort                    int
 	webhookCertDir                 string
+	healthAddr                     string
 )
 
 // InitFlags initializes the flags.
@@ -107,6 +109,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
 		"Webhook cert dir, only used when webhook-port is specified.")
+
+	fs.StringVar(&healthAddr, "health-addr", ":9440",
+		"The address the health endpoint binds to.")
 }
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -139,8 +144,9 @@ func main() {
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
 		},
-		Port:    webhookPort,
-		CertDir: webhookCertDir,
+		Port:                   webhookPort,
+		HealthProbeBindAddress: healthAddr,
+		CertDir:                webhookCertDir,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -150,6 +156,7 @@ func main() {
 	// Setup the context that's going to be used in controllers and for the manager.
 	ctx := ctrl.SetupSignalHandler()
 
+	setupChecks(mgr)
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
@@ -157,6 +164,18 @@ func main() {
 	setupLog.Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+func setupChecks(mgr ctrl.Manager) {
+	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create ready check")
+		os.Exit(1)
+	}
+
+	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create health check")
 		os.Exit(1)
 	}
 }

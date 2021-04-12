@@ -9,3 +9,4 @@
 * [`clusterctl upgrade`](upgrade.md)
 * [`clusterctl delete`](delete.md)
 * [`clusterctl completion`](completion.md)
+* [`clusterctl alpha rollout`](alpha-rollout.md)

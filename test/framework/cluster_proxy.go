@@ -19,7 +19,6 @@ package framework
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -64,7 +63,7 @@ type ClusterProxy interface {
 	GetRESTConfig() *rest.Config
 
 	// Apply to apply YAML to the Kubernetes cluster, `kubectl apply`.
-	Apply(context.Context, []byte) error
+	Apply(ctx context.Context, resources []byte, args ...string) error
 
 	// GetWorkloadCluster returns a proxy to a workload cluster defined in the Kubernetes cluster.
 	GetWorkloadCluster(ctx context.Context, namespace, name string) ClusterProxy
@@ -84,7 +83,7 @@ type ClusterLogCollector interface {
 	CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error
 }
 
-// Option is a configuration option supplied to NewClusterProxy
+// Option is a configuration option supplied to NewClusterProxy.
 type Option func(*clusterProxy)
 
 // WithMachineLogCollector allows to define the machine log collector to be used with this Cluster.
@@ -129,7 +128,7 @@ func NewClusterProxy(name string, kubeconfigPath string, scheme *runtime.Scheme,
 // newFromAPIConfig returns a clusterProxy given a api.Config and the scheme defining the types hosted in the cluster.
 func newFromAPIConfig(name string, config *api.Config, scheme *runtime.Scheme) ClusterProxy {
 	// NB. the ClusterProvider is responsible for the cleanup of this file
-	f, err := ioutil.TempFile("", "e2e-kubeconfig")
+	f, err := os.CreateTemp("", "e2e-kubeconfig")
 	Expect(err).ToNot(HaveOccurred(), "Failed to create kubeconfig file for the kind cluster %q")
 	kubeconfigPath := f.Name()
 
@@ -179,20 +178,12 @@ func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
 	return cs
 }
 
-// Apply wraps `kubectl apply` and prints the output so we can see what gets applied to the cluster.
-func (p *clusterProxy) Apply(ctx context.Context, resources []byte) error {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for Apply")
-	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
-
-	return exec.KubectlApply(ctx, p.kubeconfigPath, resources)
-}
-
 // Apply wraps `kubectl apply ...` and prints the output so we can see what gets applied to the cluster.
-func (p *clusterProxy) ApplyWithArgs(ctx context.Context, resources []byte, args ...string) error {
+func (p *clusterProxy) Apply(ctx context.Context, resources []byte, args ...string) error {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Apply")
 	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
 
-	return exec.KubectlApplyWithArgs(ctx, p.kubeconfigPath, resources, args...)
+	return exec.KubectlApply(ctx, p.kubeconfigPath, resources, args...)
 }
 
 func (p *clusterProxy) GetRESTConfig() *rest.Config {

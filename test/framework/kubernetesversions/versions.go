@@ -18,7 +18,7 @@ package kubernetesversions
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -31,14 +31,14 @@ const (
 	tagPrefix        = "v"
 )
 
-// LatestCIRelease fetches the latest main branch Kubernetes version
+// LatestCIRelease fetches the latest main branch Kubernetes version.
 func LatestCIRelease() (string, error) {
 	resp, err := http.Get(ciVersionURL)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -46,7 +46,7 @@ func LatestCIRelease() (string, error) {
 	return strings.TrimSpace(string(b)), nil
 }
 
-// LatestPatchRelease returns the latest patch release matching
+// LatestPatchRelease returns the latest patch release matching.
 func LatestPatchRelease(searchVersion string) (string, error) {
 	searchSemVer, err := semver.Make(strings.TrimPrefix(searchVersion, tagPrefix))
 	if err != nil {
@@ -57,7 +57,7 @@ func LatestPatchRelease(searchVersion string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

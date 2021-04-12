@@ -13,15 +13,15 @@ Before getting started you should be aware of the expectations that come with us
 ## Getting started
 
 To use this, you will need to create an etcd cluster and generate an apiserver-etcd-client certificate and private key. This behaviour can be tested using [`kubeadm`](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/) and [`etcdadm`](https://github.com/kubernetes-sigs/etcdadm).
- 
-### Setting up etcd with kubeadm 
 
-CA certificates are required to setup etcd cluster. If you already have a CA then the CA's `crt` and `key` must be copied to `/etc/kubernetes/pki/etcd/ca.crt` and `/etc/kubernetes/pki/etcd/ca.key`. 
+### Setting up etcd with kubeadm
+
+CA certificates are required to setup etcd cluster. If you already have a CA then the CA's `crt` and `key` must be copied to `/etc/kubernetes/pki/etcd/ca.crt` and `/etc/kubernetes/pki/etcd/ca.key`.
 
 If you do not already have a CA then run command `kubeadm init phase certs etcd-ca`. This creates two files:
 
 * `/etc/kubernetes/pki/etcd/ca.crt`
-* `/etc/kubernetes/pki/etcd/ca.key`  
+* `/etc/kubernetes/pki/etcd/ca.key`
 
 This certificate and private key are used to sign etcd server and peer certificates as well as other client certificates (like the apiserver-etcd-client certificate or the etcd-healthcheck-client certificate). More information on how to setup external etcd with kubeadm can be found [here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/#setting-up-the-cluster).
 

@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// Test suite constants for e2e config variables
+// Test suite constants for e2e config variables.
 const (
 	KubernetesVersion            = "KUBERNETES_VERSION"
 	CNIPath                      = "CNI"
@@ -92,7 +92,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	cancelWatches()
 }
 
-// HaveValidVersion succeeds if version is a valid semver version
+// HaveValidVersion succeeds if version is a valid semver version.
 func HaveValidVersion(version string) types.GomegaMatcher {
 	return &validVersionMatcher{version: version}
 }

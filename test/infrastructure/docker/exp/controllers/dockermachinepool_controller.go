@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// DockerMachinePoolReconciler reconciles a DockerMachinePool object
+// DockerMachinePoolReconciler reconciles a DockerMachinePool object.
 type DockerMachinePoolReconciler struct {
 	Client client.Client
 	Log    logr.Logger
@@ -121,7 +121,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return r.reconcileNormal(ctx, cluster, machinePool, dockerMachinePool)
 }
 
-// SetupWithManager will add watches for this controller
+// SetupWithManager will add watches for this controller.
 func (r *DockerMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	clusterToDockerMachinePools, err := util.ClusterToObjectsMapper(mgr.GetClient(), &infrav1exp.DockerMachinePoolList{}, mgr.GetScheme())
 	if err != nil {

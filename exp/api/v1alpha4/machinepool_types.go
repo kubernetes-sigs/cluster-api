@@ -30,7 +30,7 @@ const (
 
 // ANCHOR: MachinePoolSpec
 
-// MachinePoolSpec defines the desired state of MachinePool
+// MachinePoolSpec defines the desired state of MachinePool.
 type MachinePoolSpec struct {
 	// ClusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
@@ -63,7 +63,7 @@ type MachinePoolSpec struct {
 
 // ANCHOR: MachinePoolStatus
 
-// MachinePoolStatus defines the observed state of MachinePool
+// MachinePoolStatus defines the observed state of MachinePool.
 type MachinePoolStatus struct {
 	// NodeRefs will point to the corresponding Nodes if it they exist.
 	// +optional
@@ -207,7 +207,7 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachinePool"
 // +k8s:conversion-gen=false
 
-// MachinePool is the Schema for the machinepools API
+// MachinePool is the Schema for the machinepools API.
 type MachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -226,7 +226,7 @@ func (m *MachinePool) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// MachinePoolList contains a list of MachinePool
+// MachinePoolList contains a list of MachinePool.
 type MachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

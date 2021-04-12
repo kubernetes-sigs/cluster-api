@@ -52,11 +52,11 @@ status:
 
 ### Secrets
 
-If you are using the kubeadm bootstrap provider you do not have to provide Cluster API any secrets. It will generate
+If you are using the kubeadm bootstrap provider you do not have to provide any Cluster API secrets. It will generate
 all necessary CAs (certificate authorities) for you.
 
 However, if you provide a CA for the cluster then Cluster API will be able to generate a kubeconfig secret.
-This is useful if you have a custom CA for or do not want to use the bootstrap provider's generated self-signed CA.
+This is useful if you have a custom CA or do not want to use the bootstrap provider's generated self-signed CA.
 
 | Secret name | Field name | Content |
 |:---:|:---:|:---:|
@@ -69,4 +69,3 @@ formatted as described below.
 | Secret name | Field name | Content |
 |:---:|:---:|:---:|
 |`<cluster-name>-kubeconfig`|`value`|base64 encoded kubeconfig|
-

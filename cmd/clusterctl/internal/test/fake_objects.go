@@ -52,7 +52,7 @@ type FakeCluster struct {
 // - the kubeconfig secret object (if there is no a control plane object)
 // - a user defined ca secret
 // and all the objects for the defined FakeControlPlane, FakeMachinePools, FakeMachineDeployments, FakeMachineSets, FakeMachines
-// Nb. if there is no a control plane object, the first FakeMachine gets a generated sa secret
+// Nb. if there is no a control plane object, the first FakeMachine gets a generated sa secret.
 func NewFakeCluster(namespace, name string) *FakeCluster {
 	return &FakeCluster{
 		namespace: namespace,
@@ -245,7 +245,7 @@ type FakeControlPlane struct {
 // - the controlPlaneInfrastructure template object
 // - the kubeconfig secret object
 // - a generated sa secret
-// and all the objects for the defined FakeMachines
+// and all the objects for the defined FakeMachines.
 func NewFakeControlPlane(name string) *FakeControlPlane {
 	return &FakeControlPlane{
 		name: name,
@@ -258,7 +258,6 @@ func (f *FakeControlPlane) WithMachines(fakeMachine ...*FakeMachine) *FakeContro
 }
 
 func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
-
 	controlPlaneInfrastructure := &fakeinfrastructure.GenericInfrastructureMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),
@@ -369,7 +368,7 @@ type FakeMachinePool struct {
 
 // NewFakeMachinePool return a FakeMachinePool that can generate a MachinePool object, all its own ancillary objects:
 // - the machinePoolInfrastructure object
-// - the machinePoolBootstrap object
+// - the machinePoolBootstrap object.
 func NewFakeMachinePool(name string) *FakeMachinePool {
 	return &FakeMachinePool{
 		name: name,
@@ -495,7 +494,7 @@ type FakeMachineDeployment struct {
 // NewFakeMachineDeployment return a FakeMachineDeployment that can generate a MachineDeployment object, all its own ancillary objects:
 // - the machineDeploymentInfrastructure template object
 // - the machineDeploymentBootstrap template object
-// and all the objects for the defined FakeMachineSet
+// and all the objects for the defined FakeMachineSet.
 func NewFakeMachineDeployment(name string) *FakeMachineDeployment {
 	return &FakeMachineDeployment{
 		name: name,
@@ -621,7 +620,7 @@ type FakeMachineSet struct {
 // NewFakeMachineSet return a FakeMachineSet that can generate a MachineSet object, all its own ancillary objects:
 // - the machineSetInfrastructure template object (only if not controlled by a MachineDeployment)
 // - the machineSetBootstrap template object (only if not controlled by a MachineDeployment)
-// and all the objects for the defined FakeMachine
+// and all the objects for the defined FakeMachine.
 func NewFakeMachineSet(name string) *FakeMachineSet {
 	return &FakeMachineSet{
 		name: name,
@@ -672,7 +671,6 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 
 		objs = append(objs, machineSet)
 	} else {
-
 		// If this machineSet does not belong to a machineDeployment, it is owned by the cluster / ownership set by the machineSet controller -- RECONCILED
 		machineSet.SetOwnerReferences([]metav1.OwnerReference{{
 			APIVersion: cluster.APIVersion,
@@ -757,7 +755,7 @@ type FakeMachine struct {
 // NewFakeMachine return a FakeMachine that can generate a Machine object, all its own ancillary objects:
 // - the machineInfrastructure object
 // - the machineBootstrap object and the related bootstrapDataSecret
-// If there is no a control plane object in the cluster, the first FakeMachine gets a generated sa secret
+// If there is no a control plane object in the cluster, the first FakeMachine gets a generated sa secret.
 func NewFakeMachine(name string) *FakeMachine {
 	return &FakeMachine{
 		name: name,
@@ -765,7 +763,6 @@ func NewFakeMachine(name string) *FakeMachine {
 }
 
 func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, controlPlane *fakecontrolplane.GenericControlPlane) []client.Object {
-
 	machineInfrastructure := &fakeinfrastructure.GenericInfrastructureMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),
@@ -939,7 +936,7 @@ type FakeClusterResourceSet struct {
 
 // NewFakeClusterResourceSet return a FakeClusterResourceSet that can generate a ClusterResourceSet object, all its own ancillary objects:
 // - the Secret/ConfigMap defining resources
-// - the bindings that are created when a ClusterResourceSet is applied to a cluster
+// - the bindings that are created when a ClusterResourceSet is applied to a cluster.
 func NewFakeClusterResourceSet(namespace, name string) *FakeClusterResourceSet {
 	return &FakeClusterResourceSet{
 		name:      name,
@@ -1211,7 +1208,7 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 	return crd
 }
 
-// FakeCRDList returns FakeCustomResourceDefinitions for all the Types used in the test object graph
+// FakeCRDList returns FakeCustomResourceDefinitions for all the Types used in the test object graph.
 func FakeCRDList() []*apiextensionslv1.CustomResourceDefinition {
 	version := "v1alpha4"
 

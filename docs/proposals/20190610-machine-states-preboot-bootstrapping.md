@@ -155,10 +155,10 @@ status: implemented
 
 ## Glossary
 
-- **[Cluster API](../glossary.md#cluster-api)**: Unless otherwise specified, this refers to the project as a whole.
+- **[Cluster API](../book/src/reference/glossary.md#cluster-api)**: Unless otherwise specified, this refers to the project as a whole.
 - **Cluster API Manager**: The controller-runtime's Manager that runs controllers.
-- **[Machine](../glossary.md#machine)**: The Kubernetes Custom Resource Definition offered by Cluster API.
-- **[Server/Instance/Host](../glossary.md#server)**: The infrastructure that backs a Machine.
+- **[Machine](../book/src/reference/glossary.md#machine)**: The Kubernetes Custom Resource Definition offered by Cluster API.
+- **[Server/Instance/Host](../book/src/reference/glossary.md#server)**: The infrastructure that backs a Machine.
 - **Bootstrapping**: The process of turning a server into a Kubernetes node.
 
 ## Summary

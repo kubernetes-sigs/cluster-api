@@ -35,30 +35,19 @@ import (
 )
 
 const (
-	// Event types
+	// Event types.
 
-	// EventSkippedControlPlane is emitted in case an unhealthy node (or a machine
-	// associated with the node) has the `control-plane` role
-	// Deprecated: no longer in use
-	EventSkippedControlPlane string = "SkippedControlPlane"
-	// EventMachineDeletionFailed is emitted in case remediation of a machine
-	// is required but deletion of its Machine object failed
-	// Deprecated: no longer in use
-	EventMachineDeletionFailed string = "MachineDeletionFailed"
-	// EventMachineDeleted is emitted when machine was successfully remediated
-	// by deleting its Machine object
-	// Deprecated: no longer in use
-	EventMachineDeleted string = "MachineDeleted"
-	// EventMachineMarkedUnhealthy is emitted when machine was successfully marked as unhealthy
+	// EventMachineMarkedUnhealthy is emitted when machine was successfully marked as unhealthy.
 	EventMachineMarkedUnhealthy string = "MachineMarkedUnhealthy"
 	// EventDetectedUnhealthy is emitted in case a node associated with a
-	// machine was detected unhealthy
+	// machine was detected unhealthy.
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
 )
 
 // healthCheckTarget contains the information required to perform a health check
 // on the node to determine if any remediation is required.
 type healthCheckTarget struct {
+	Cluster     *clusterv1.Cluster
 	Machine     *clusterv1.Machine
 	Node        *corev1.Node
 	MHC         *clusterv1.MachineHealthCheck
@@ -75,7 +64,7 @@ func (t *healthCheckTarget) string() string {
 	)
 }
 
-// Get the node name if the target has a node
+// Get the node name if the target has a node.
 func (t *healthCheckTarget) nodeName() string {
 	if t.Node != nil {
 		return t.Node.GetName()
@@ -115,19 +104,46 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		return true, time.Duration(0)
 	}
 
+	// Don't penalize any Machine/Node if the control plane has not been initialized.
+	if !conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedCondition) {
+		logger.V(3).Info("Not evaluating target health because the control plane has not yet been initialized")
+		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.
+		return false, 0
+	}
+
+	// Don't penalize any Machine/Node if the cluster infrastructure is not ready.
+	if !conditions.IsTrue(t.Cluster, clusterv1.InfrastructureReadyCondition) {
+		logger.V(3).Info("Not evaluating target health because the cluster infrastructure is not ready")
+		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.
+		return false, 0
+	}
+
 	// the node has not been set yet
 	if t.Node == nil {
-		// status not updated yet
-		if t.Machine.Status.LastUpdated == nil {
-			return false, timeoutForMachineToHaveNode
+		controlPlaneInitializedTime := conditions.GetLastTransitionTime(t.Cluster, clusterv1.ControlPlaneInitializedCondition).Time
+		clusterInfraReadyTime := conditions.GetLastTransitionTime(t.Cluster, clusterv1.InfrastructureReadyCondition).Time
+		machineCreationTime := t.Machine.CreationTimestamp.Time
+
+		// Use the latest of the 3 times
+		comparisonTime := machineCreationTime
+		logger.V(3).Info("Determining comparison time", "machineCreationTime", machineCreationTime, "clusterInfraReadyTime", clusterInfraReadyTime, "controlPlaneInitializedTime", controlPlaneInitializedTime)
+		if controlPlaneInitializedTime.After(comparisonTime) {
+			comparisonTime = controlPlaneInitializedTime
 		}
-		if t.Machine.Status.LastUpdated.Add(timeoutForMachineToHaveNode).Before(now) {
+		if clusterInfraReadyTime.After(comparisonTime) {
+			comparisonTime = clusterInfraReadyTime
+		}
+		logger.V(3).Info("Using comparison time", "time", comparisonTime)
+
+		if comparisonTime.Add(timeoutForMachineToHaveNode).Before(now) {
 			conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.NodeStartupTimeoutReason, clusterv1.ConditionSeverityWarning, "Node failed to report startup in %s", timeoutForMachineToHaveNode.String())
 			logger.V(3).Info("Target is unhealthy: machine has no node", "duration", timeoutForMachineToHaveNode.String())
 			return true, time.Duration(0)
 		}
-		durationUnhealthy := now.Sub(t.Machine.Status.LastUpdated.Time)
+
+		durationUnhealthy := now.Sub(comparisonTime)
 		nextCheck := timeoutForMachineToHaveNode - durationUnhealthy + time.Second
+
 		return false, nextCheck
 	}
 
@@ -160,7 +176,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
 // and their nodes targeted by the health check, ready for health checking.
-func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
+func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
 	machines, err := r.getMachinesFromMHC(ctx, mhc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
@@ -182,6 +198,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, lo
 			return nil, errors.Wrap(err, "unable to initialize patch helper")
 		}
 		target := healthCheckTarget{
+			Cluster:     cluster,
 			MHC:         mhc,
 			Machine:     &machines[k],
 			patchHelper: patchHelper,
@@ -201,8 +218,8 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, lo
 	return targets, nil
 }
 
-//getMachinesFromMHC fetches Machines matched by the MachineHealthCheck's
-// label selector
+// getMachinesFromMHC fetches Machines matched by the MachineHealthCheck's
+// label selector.
 func (r *MachineHealthCheckReconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
 	selector, err := metav1.LabelSelectorAsSelector(metav1.CloneSelectorAndAddLabel(
 		&mhc.Spec.Selector, clusterv1.ClusterLabelName, mhc.Spec.ClusterName,
@@ -243,7 +260,7 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(ctx context.Context, c
 }
 
 // healthCheckTargets health checks a slice of targets
-// and gives a data to measure the average health
+// and gives a data to measure the average health.
 func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, timeoutForMachineToHaveNode time.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
 	var nextCheckTimes []time.Duration
 	var unhealthy []healthCheckTarget
@@ -281,7 +298,7 @@ func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckT
 	return healthy, unhealthy, nextCheckTimes
 }
 
-// getNodeCondition returns node condition by type
+// getNodeCondition returns node condition by type.
 func getNodeCondition(node *corev1.Node, conditionType corev1.NodeConditionType) *corev1.NodeCondition {
 	for _, cond := range node.Status.Conditions {
 		if cond.Type == conditionType {

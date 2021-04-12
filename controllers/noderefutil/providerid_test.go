@@ -130,5 +130,4 @@ func TestProviderIDEquals(t *testing.T) {
 	g.Expect(parsed2.CloudProvider()).To(Equal(aws))
 
 	g.Expect(parsed1.Equals(parsed2)).To(BeTrue())
-
 }

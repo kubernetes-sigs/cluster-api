@@ -230,7 +230,7 @@ func Test_validateProvider(t *testing.T) {
 }
 
 // check if Defaults returns valid provider repository configurations
-// this is a safeguard for catching changes leading to formally invalid default configurations
+// this is a safeguard for catching changes leading to formally invalid default configurations.
 func Test_providers_Defaults(t *testing.T) {
 	g := NewWithT(t)
 

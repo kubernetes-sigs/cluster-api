@@ -70,7 +70,6 @@ func KCPUpgradeSpec(ctx context.Context, inputGetter func() KCPUpgradeSpecInput)
 	})
 
 	It("Should successfully upgrade Kubernetes, DNS, kube-proxy, and etcd in a single control plane cluster", func() {
-
 		By("Creating a workload cluster")
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
@@ -108,9 +107,7 @@ func KCPUpgradeSpec(ctx context.Context, inputGetter func() KCPUpgradeSpecInput)
 	})
 
 	It("Should successfully upgrade Kubernetes, DNS, kube-proxy, and etcd in a HA cluster", func() {
-
 		By("Creating a workload cluster")
-
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -119,6 +116,43 @@ func KCPUpgradeSpec(ctx context.Context, inputGetter func() KCPUpgradeSpecInput)
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   clusterctl.DefaultFlavor,
+				Namespace:                namespace.Name,
+				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
+				ControlPlaneMachineCount: pointer.Int64Ptr(3),
+				WorkerMachineCount:       pointer.Int64Ptr(1),
+			},
+			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		}, clusterResources)
+
+		By("Upgrading Kubernetes, DNS, kube-proxy, and etcd versions")
+		framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{
+			ClusterProxy:                input.BootstrapClusterProxy,
+			Cluster:                     clusterResources.Cluster,
+			ControlPlane:                clusterResources.ControlPlane,
+			EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
+			DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+			KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+		})
+
+		By("PASSED!")
+	})
+
+	It("Should successfully upgrade Kubernetes, DNS, kube-proxy, and etcd in a HA cluster using scale in rollout", func() {
+		By("Creating a workload cluster")
+		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			ConfigCluster: clusterctl.ConfigClusterInput{
+				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+				ClusterctlConfigPath:     input.ClusterctlConfigPath,
+				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+				Flavor:                   "kcp-scale-in",
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),

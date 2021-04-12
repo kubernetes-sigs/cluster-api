@@ -57,7 +57,7 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 	})
 })
 
-// getKubeadmConfig returns a KubeadmConfig object from the cluster
+// getKubeadmConfig returns a KubeadmConfig object from the cluster.
 func getKubeadmConfig(c client.Client, name string) (*bootstrapv1.KubeadmConfig, error) {
 	controlplaneConfigKey := client.ObjectKey{
 		Namespace: "default",

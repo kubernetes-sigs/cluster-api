@@ -42,17 +42,17 @@ func (m *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &MachineDeployment{}
 var _ webhook.Validator = &MachineDeployment{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (m *MachineDeployment) Default() {
 	PopulateDefaultsMachineDeployment(m)
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineDeployment) ValidateCreate() error {
 	return m.validate(nil)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineDeployment) ValidateUpdate(old runtime.Object) error {
 	oldMD, ok := old.(*MachineDeployment)
 	if !ok {
@@ -61,7 +61,7 @@ func (m *MachineDeployment) ValidateUpdate(old runtime.Object) error {
 	return m.validate(oldMD)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineDeployment) ValidateDelete() error {
 	return nil
 }

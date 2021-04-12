@@ -151,7 +151,7 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 	return nil
 }
 
-// ForwardEtcdLeadership forwards etcd leadership to the first follower
+// ForwardEtcdLeadership forwards etcd leadership to the first follower.
 func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
 	if machine == nil || machine.Status.NodeRef == nil {
 		return nil

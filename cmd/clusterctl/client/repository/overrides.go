@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,13 +79,13 @@ func (o *overrides) Path() string {
 }
 
 // getLocalOverride return local override file from the config folder, if it exists.
-// This is required for development purposes, but it can be used also in production as a workaround for problems on the official repositories
+// This is required for development purposes, but it can be used also in production as a workaround for problems on the official repositories.
 func getLocalOverride(info *newOverrideInput) ([]byte, error) {
 	overridePath := newOverride(info).Path()
 	// it the local override exists, use it
 	_, err := os.Stat(overridePath)
 	if err == nil {
-		content, err := ioutil.ReadFile(overridePath)
+		content, err := os.ReadFile(overridePath)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read local override for %s", overridePath)
 		}

@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -256,7 +257,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 	return nil
 }
 
-// healthCheckInput provides the input for the healthCheckCluster method
+// healthCheckInput provides the input for the healthCheckCluster method.
 type healthCheckInput struct {
 	cluster            client.ObjectKey
 	cfg                *rest.Config
@@ -266,7 +267,7 @@ type healthCheckInput struct {
 	path               string
 }
 
-// setDefaults sets default values if optional parameters are not set
+// setDefaults sets default values if optional parameters are not set.
 func (h *healthCheckInput) setDefaults() {
 	if h.interval == 0 {
 		h.interval = healthCheckPollInterval
@@ -313,7 +314,7 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 			return false, nil
 		}
 
-		if !cluster.Status.InfrastructureReady || !cluster.Status.ControlPlaneInitialized {
+		if !cluster.Status.InfrastructureReady || !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 			// If the infrastructure or control plane aren't marked as ready, we should requeue and wait.
 			return false, nil
 		}

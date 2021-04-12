@@ -1,0 +1,24 @@
+name: golangci-lint
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches:
+      - main
+      - master
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        working-directory:
+          - ""
+          - test/framework
+          - test/infrastructure/docker
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.38
+          working-directory: ${{matrix.working-directory}}

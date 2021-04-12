@@ -29,8 +29,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -111,6 +112,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	InitFlags(pflag.CommandLine)
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 

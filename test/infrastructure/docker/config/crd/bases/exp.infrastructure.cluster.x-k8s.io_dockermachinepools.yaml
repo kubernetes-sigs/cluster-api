@@ -21,7 +21,7 @@ spec:
   - name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: DockerMachinePool is the Schema for the dockermachinepools API
+        description: DockerMachinePool is the Schema for the dockermachinepools API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -32,7 +32,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: DockerMachinePoolSpec defines the desired state of DockerMachinePool
+            description: DockerMachinePoolSpec defines the desired state of DockerMachinePool.
             properties:
               providerID:
                 description: ProviderID is the identification ID of the Machine Pool
@@ -51,7 +51,7 @@ spec:
                   extraMounts:
                     description: ExtraMounts describes additional mount points for the node container These may be used to bind a hostPath
                     items:
-                      description: Mount specifies a host volume to mount into a container. This is a simplified version of kind v1alpha4.Mount types
+                      description: Mount specifies a host volume to mount into a container. This is a simplified version of kind v1alpha4.Mount types.
                       properties:
                         containerPath:
                           description: Path of the mount within the container.
@@ -72,7 +72,7 @@ spec:
                 type: object
             type: object
           status:
-            description: DockerMachinePoolStatus defines the observed state of DockerMachinePool
+            description: DockerMachinePoolStatus defines the observed state of DockerMachinePool.
             properties:
               conditions:
                 description: Conditions defines current service state of the DockerMachinePool.
@@ -160,7 +160,7 @@ spec:
   - name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: DockerMachinePool is the Schema for the dockermachinepools API
+        description: DockerMachinePool is the Schema for the dockermachinepools API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -171,7 +171,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: DockerMachinePoolSpec defines the desired state of DockerMachinePool
+            description: DockerMachinePoolSpec defines the desired state of DockerMachinePool.
             properties:
               providerID:
                 description: ProviderID is the identification ID of the Machine Pool
@@ -190,7 +190,7 @@ spec:
                   extraMounts:
                     description: ExtraMounts describes additional mount points for the node container These may be used to bind a hostPath
                     items:
-                      description: Mount specifies a host volume to mount into a container. This is a simplified version of kind v1alpha4.Mount types
+                      description: Mount specifies a host volume to mount into a container. This is a simplified version of kind v1alpha4.Mount types.
                       properties:
                         containerPath:
                           description: Path of the mount within the container.
@@ -211,7 +211,7 @@ spec:
                 type: object
             type: object
           status:
-            description: DockerMachinePoolStatus defines the observed state of DockerMachinePool
+            description: DockerMachinePoolStatus defines the observed state of DockerMachinePool.
             properties:
               conditions:
                 description: Conditions defines current service state of the DockerMachinePool.

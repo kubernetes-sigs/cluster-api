@@ -20,8 +20,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -35,6 +36,12 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
+const (
+	fileURIScheme  = "file"
+	httpURIScheme  = "http"
+	httpsURIScheme = "https"
+)
+
 // Provides helpers for managing a clusterctl local repository to be used for running e2e tests in isolation.
 type RepositoryFileTransformation func([]byte) ([]byte, error)
 
@@ -45,24 +52,24 @@ type CreateRepositoryInput struct {
 	FileTransformations []RepositoryFileTransformation
 }
 
-// RegisterClusterResourceSetConfigMapTransformation registers a FileTransformations that injects a CNI file into
+// RegisterClusterResourceSetConfigMapTransformation registers a FileTransformations that injects a manifests file into
 // a ConfigMap that defines a ClusterResourceSet resource.
 //
 // NOTE: this transformation is specifically designed for replacing "data: ${envSubstVar}".
-func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformation(cniManifestPath, envSubstVar string) {
-	By(fmt.Sprintf("Reading the CNI manifest %s", cniManifestPath))
-	cniData, err := ioutil.ReadFile(cniManifestPath)
-	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test CNI file")
-	Expect(cniData).ToNot(BeEmpty(), "CNI file should not be empty")
+func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformation(manifestPath, envSubstVar string) {
+	By(fmt.Sprintf("Reading the ClusterResourceSet manifest %s", manifestPath))
+	manifestData, err := os.ReadFile(manifestPath)
+	Expect(err).ToNot(HaveOccurred(), "Failed to read the ClusterResourceSet manifest file")
+	Expect(manifestData).ToNot(BeEmpty(), "ClusterResourceSet manifest file should not be empty")
 
 	i.FileTransformations = append(i.FileTransformations, func(template []byte) ([]byte, error) {
 		old := fmt.Sprintf("data: ${%s}", envSubstVar)
 		new := "data:\n"
 		new += "  resources: |\n"
-		for _, l := range strings.Split(string(cniData), "\n") {
+		for _, l := range strings.Split(string(manifestData), "\n") {
 			new += strings.Repeat(" ", 4) + l + "\n"
 		}
-		return bytes.Replace(template, []byte(old), []byte(new), -1), nil
+		return bytes.ReplaceAll(template, []byte(old), []byte(new)), nil
 	})
 }
 
@@ -84,12 +91,12 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			Expect(os.MkdirAll(sourcePath, 0755)).To(Succeed(), "Failed to create the clusterctl local repository folder for %q / %q", providerLabel, version.Name)
 
 			filePath := filepath.Join(sourcePath, "components.yaml")
-			Expect(ioutil.WriteFile(filePath, manifest, 0600)).To(Succeed(), "Failed to write manifest in the clusterctl local repository for %q / %q", providerLabel, version.Name)
+			Expect(os.WriteFile(filePath, manifest, 0600)).To(Succeed(), "Failed to write manifest in the clusterctl local repository for %q / %q", providerLabel, version.Name)
 
 			destinationPath := filepath.Join(input.RepositoryFolder, providerLabel, version.Name, "components.yaml")
 			allFiles := append(provider.Files, version.Files...)
 			for _, file := range allFiles {
-				data, err := ioutil.ReadFile(file.SourcePath)
+				data, err := os.ReadFile(file.SourcePath)
 				Expect(err).ToNot(HaveOccurred(), "Failed to read file %q / %q", provider.Name, file.SourcePath)
 
 				// Applies FileTransformations if defined
@@ -99,7 +106,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 				}
 
 				destinationFile := filepath.Join(filepath.Dir(destinationPath), file.TargetName)
-				Expect(ioutil.WriteFile(destinationFile, data, 0600)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
+				Expect(os.WriteFile(destinationFile, data, 0600)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
 			}
 		}
 		providers = append(providers, providerConfig{
@@ -135,14 +142,9 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 
 	switch source.Type {
 	case URLSource:
-		resp, err := http.Get(source.Value)
+		buf, err := getComponentSourceFromURL(source)
 		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		buf, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to get component source YAML from URL")
 		}
 		data = buf
 	case KustomizeSource:
@@ -167,4 +169,37 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 	}
 
 	return data, nil
+}
+
+// getComponentSourceFromURL fetches contents of component source YAML file from provided URL source.
+func getComponentSourceFromURL(source ProviderVersionSource) ([]byte, error) {
+	var buf []byte
+
+	u, err := url.Parse(source.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	// url.Parse always lower cases scheme
+	switch u.Scheme {
+	case "", fileURIScheme:
+		buf, err = os.ReadFile(u.Path)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read file")
+		}
+	case httpURIScheme, httpsURIScheme:
+		resp, err := http.Get(source.Value)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		buf, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.Errorf("unknown scheme for component source %q: allowed values are file, http, https", u.Scheme)
+	}
+
+	return buf, nil
 }

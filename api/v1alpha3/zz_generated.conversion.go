@@ -94,11 +94,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ClusterStatus)(nil), (*v1alpha4.ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus(a.(*ClusterStatus), b.(*v1alpha4.ClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha4.ClusterStatus)(nil), (*ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_ClusterStatus_To_v1alpha3_ClusterStatus(a.(*v1alpha4.ClusterStatus), b.(*ClusterStatus), scope)
 	}); err != nil {
@@ -219,11 +214,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.MachineHealthCheckSpec)(nil), (*MachineHealthCheckSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(a.(*v1alpha4.MachineHealthCheckSpec), b.(*MachineHealthCheckSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachineHealthCheckStatus)(nil), (*v1alpha4.MachineHealthCheckStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(a.(*MachineHealthCheckStatus), b.(*v1alpha4.MachineHealthCheckStatus), scope)
 	}); err != nil {
@@ -329,11 +319,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ObjectMeta)(nil), (*v1alpha4.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(a.(*ObjectMeta), b.(*v1alpha4.ObjectMeta), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha4.ObjectMeta)(nil), (*ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_ObjectMeta_To_v1alpha3_ObjectMeta(a.(*v1alpha4.ObjectMeta), b.(*ObjectMeta), scope)
 	}); err != nil {
@@ -351,6 +336,21 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*Bootstrap)(nil), (*v1alpha4.Bootstrap)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_Bootstrap_To_v1alpha4_Bootstrap(a.(*Bootstrap), b.(*v1alpha4.Bootstrap), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ClusterStatus)(nil), (*v1alpha4.ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus(a.(*ClusterStatus), b.(*v1alpha4.ClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ObjectMeta)(nil), (*v1alpha4.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(a.(*ObjectMeta), b.(*v1alpha4.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.MachineHealthCheckSpec)(nil), (*MachineHealthCheckSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(a.(*v1alpha4.MachineHealthCheckSpec), b.(*MachineHealthCheckSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -436,7 +436,17 @@ func Convert_v1alpha4_Cluster_To_v1alpha3_Cluster(in *v1alpha4.Cluster, out *Clu
 
 func autoConvert_v1alpha3_ClusterList_To_v1alpha4_ClusterList(in *ClusterList, out *v1alpha4.ClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1alpha4.Cluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1alpha4.Cluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_Cluster_To_v1alpha4_Cluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -447,7 +457,17 @@ func Convert_v1alpha3_ClusterList_To_v1alpha4_ClusterList(in *ClusterList, out *
 
 func autoConvert_v1alpha4_ClusterList_To_v1alpha3_ClusterList(in *v1alpha4.ClusterList, out *ClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Cluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Cluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_Cluster_To_v1alpha3_Cluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -520,16 +540,11 @@ func autoConvert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus(in *ClusterSta
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Phase = in.Phase
 	out.InfrastructureReady = in.InfrastructureReady
-	out.ControlPlaneInitialized = in.ControlPlaneInitialized
+	// WARNING: in.ControlPlaneInitialized requires manual conversion: does not exist in peer-type
 	out.ControlPlaneReady = in.ControlPlaneReady
 	out.Conditions = *(*v1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
-}
-
-// Convert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus is an autogenerated conversion function.
-func Convert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus(in *ClusterStatus, out *v1alpha4.ClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus(in, out, s)
 }
 
 func autoConvert_v1alpha4_ClusterStatus_To_v1alpha3_ClusterStatus(in *v1alpha4.ClusterStatus, out *ClusterStatus, s conversion.Scope) error {
@@ -538,7 +553,6 @@ func autoConvert_v1alpha4_ClusterStatus_To_v1alpha3_ClusterStatus(in *v1alpha4.C
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Phase = in.Phase
 	out.InfrastructureReady = in.InfrastructureReady
-	out.ControlPlaneInitialized = in.ControlPlaneInitialized
 	out.ControlPlaneReady = in.ControlPlaneReady
 	out.Conditions = *(*Conditions)(unsafe.Pointer(&in.Conditions))
 	out.ObservedGeneration = in.ObservedGeneration
@@ -892,7 +906,17 @@ func Convert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(in *v1al
 
 func autoConvert_v1alpha3_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(in *MachineHealthCheckList, out *v1alpha4.MachineHealthCheckList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1alpha4.MachineHealthCheck)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1alpha4.MachineHealthCheck, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_MachineHealthCheck_To_v1alpha4_MachineHealthCheck(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -903,7 +927,17 @@ func Convert_v1alpha3_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(
 
 func autoConvert_v1alpha4_MachineHealthCheckList_To_v1alpha3_MachineHealthCheckList(in *v1alpha4.MachineHealthCheckList, out *MachineHealthCheckList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]MachineHealthCheck)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]MachineHealthCheck, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -932,14 +966,10 @@ func autoConvert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckS
 	out.Selector = in.Selector
 	out.UnhealthyConditions = *(*[]UnhealthyCondition)(unsafe.Pointer(&in.UnhealthyConditions))
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
+	// WARNING: in.UnhealthyRange requires manual conversion: does not exist in peer-type
 	out.NodeStartupTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
 	out.RemediationTemplate = (*v1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
-}
-
-// Convert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec is an autogenerated conversion function.
-func Convert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in *v1alpha4.MachineHealthCheckSpec, out *MachineHealthCheckSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in, out, s)
 }
 
 func autoConvert_v1alpha3_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in *MachineHealthCheckStatus, out *v1alpha4.MachineHealthCheckStatus, s conversion.Scope) error {
@@ -1301,27 +1331,18 @@ func Convert_v1alpha4_NetworkRanges_To_v1alpha3_NetworkRanges(in *v1alpha4.Netwo
 }
 
 func autoConvert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(in *ObjectMeta, out *v1alpha4.ObjectMeta, s conversion.Scope) error {
-	out.Name = in.Name
-	out.GenerateName = in.GenerateName
-	out.Namespace = in.Namespace
+	// WARNING: in.Name requires manual conversion: does not exist in peer-type
+	// WARNING: in.GenerateName requires manual conversion: does not exist in peer-type
+	// WARNING: in.Namespace requires manual conversion: does not exist in peer-type
 	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
 	out.Annotations = *(*map[string]string)(unsafe.Pointer(&in.Annotations))
-	out.OwnerReferences = *(*[]metav1.OwnerReference)(unsafe.Pointer(&in.OwnerReferences))
+	// WARNING: in.OwnerReferences requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-// Convert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta is an autogenerated conversion function.
-func Convert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(in *ObjectMeta, out *v1alpha4.ObjectMeta, s conversion.Scope) error {
-	return autoConvert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(in, out, s)
-}
-
 func autoConvert_v1alpha4_ObjectMeta_To_v1alpha3_ObjectMeta(in *v1alpha4.ObjectMeta, out *ObjectMeta, s conversion.Scope) error {
-	out.Name = in.Name
-	out.GenerateName = in.GenerateName
-	out.Namespace = in.Namespace
 	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
 	out.Annotations = *(*map[string]string)(unsafe.Pointer(&in.Annotations))
-	out.OwnerReferences = *(*[]metav1.OwnerReference)(unsafe.Pointer(&in.OwnerReferences))
 	return nil
 }
 

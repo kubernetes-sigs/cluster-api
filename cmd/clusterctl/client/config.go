@@ -18,7 +18,6 @@ package client
 
 import (
 	"io"
-	"io/ioutil"
 	"strconv"
 
 	"k8s.io/utils/pointer"
@@ -62,7 +61,7 @@ func (c *clusterctlClient) GetProviderComponents(provider string, providerType c
 }
 
 // ReaderSourceOptions define the options to be used when reading a template
-// from an arbitrary reader
+// from an arbitrary reader.
 type ReaderSourceOptions struct {
 	Reader io.Reader
 }
@@ -82,7 +81,7 @@ func (c *clusterctlClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter,
 	if options.ReaderSource != nil {
 		// NOTE: Beware of potentially reading in large files all at once
 		// since this is inefficient and increases memory utilziation.
-		content, err := ioutil.ReadAll(options.ReaderSource.Reader)
+		content, err := io.ReadAll(options.ReaderSource.Reader)
 		if err != nil {
 			return nil, err
 		}
@@ -229,6 +228,11 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 		return nil, err
 	}
 
+	// Ensure this command only runs against management clusters with the current Cluster API contract.
+	if err := cluster.ProviderInventory().CheckCAPIContract(); err != nil {
+		return nil, err
+	}
+
 	// If the option specifying the targetNamespace is empty, try to detect it.
 	if options.TargetNamespace == "" {
 		currentNamespace, err := cluster.Proxy().CurrentNamespace()
@@ -358,7 +362,6 @@ func (c *clusterctlClient) getTemplateFromURL(cluster cluster.Client, source URL
 
 // templateOptionsToVariables injects some of the templateOptions to the configClient so they can be consumed as a variables from the template.
 func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplateOptions) error {
-
 	// the TargetNamespace, if valid, can be used in templates using the ${ NAMESPACE } variable.
 	if err := validateDNS1123Label(options.TargetNamespace); err != nil {
 		return errors.Wrapf(err, "invalid target-namespace")

@@ -1,9 +1,9 @@
 # Overview
 
-In order to demonstrate how to develop a new Cluster API provider we will use 
+In order to demonstrate how to develop a new Cluster API provider we will use
 `kubebuilder` to create an example provider. For more information on `kubebuilder`
 and CRDs in general we highly recommend reading the [Kubebuilder Book][kubebuilder-book].
-Much of the information here was adapted directly from it. 
+Much of the information here was adapted directly from it.
 
 This is an _infrastructure_ provider - tasked with managing provider-specific resources for clusters and machines.
 There are also [bootstrap providers][bootstrap], which turn machines into Kubernetes nodes.

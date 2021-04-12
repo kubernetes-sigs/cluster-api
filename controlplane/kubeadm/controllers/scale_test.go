@@ -19,9 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/cluster-api/util/collections"
 
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -64,6 +65,10 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(machineList.Items).To(HaveLen(1))
+
+	res, err := collections.GetFilteredMachinesForCluster(ctx, fakeClient, cluster, collections.OwnedMachines(kcp))
+	g.Expect(res).To(HaveLen(1))
+	g.Expect(err).NotTo(HaveOccurred())
 
 	g.Expect(machineList.Items[0].Namespace).To(Equal(cluster.Namespace))
 	g.Expect(machineList.Items[0].Name).To(HavePrefix(kcp.Name))

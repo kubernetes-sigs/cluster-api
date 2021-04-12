@@ -18,7 +18,6 @@ package clusterctl
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -111,6 +110,7 @@ type ApplyClusterTemplateAndWaitInput struct {
 	WaitForControlPlaneIntervals []interface{}
 	WaitForMachineDeployments    []interface{}
 	WaitForMachinePools          []interface{}
+	Args                         []string // extra args to be used during `kubectl apply`
 }
 
 type ApplyClusterTemplateAndWaitResult struct {
@@ -153,7 +153,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
 	log.Logf("Applying the cluster template yaml to the cluster")
-	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
+	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)).To(Succeed())
 
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")
 	result.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
@@ -172,7 +172,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		log.Logf("Installing a CNI plugin to the workload cluster")
 		workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, result.Cluster.Namespace, result.Cluster.Name)
 
-		cniYaml, err := ioutil.ReadFile(input.CNIManifestPath)
+		cniYaml, err := os.ReadFile(input.CNIManifestPath)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Expect(workloadCluster.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())

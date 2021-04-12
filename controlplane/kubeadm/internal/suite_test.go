@@ -38,6 +38,7 @@ func TestMain(m *testing.M) {
 		}
 	}()
 	<-testEnv.Manager.Elected()
+	testEnv.WaitForWebhooks()
 
 	code := m.Run()
 

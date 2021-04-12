@@ -89,7 +89,7 @@ func (c *ClusterResourceSetBinding) GetOrCreateBinding(clusterResourceSet *Clust
 	return binding
 }
 
-// DeleteBinding removes the ClusterResourceSet from the ClusterResourceSetBinding Bindings list
+// DeleteBinding removes the ClusterResourceSet from the ClusterResourceSetBinding Bindings list.
 func (c *ClusterResourceSetBinding) DeleteBinding(clusterResourceSet *ClusterResourceSet) {
 	for i, binding := range c.Spec.Bindings {
 		if binding.ClusterResourceSetName == clusterResourceSet.Name {
@@ -114,7 +114,7 @@ type ClusterResourceSetBinding struct {
 
 // ANCHOR: ClusterResourceSetBindingSpec
 
-// ClusterResourceSetBindingSpec defines the desired state of ClusterResourceSetBinding
+// ClusterResourceSetBindingSpec defines the desired state of ClusterResourceSetBinding.
 type ClusterResourceSetBindingSpec struct {
 	// Bindings is a list of ClusterResourceSets and their resources.
 	Bindings []*ResourceSetBinding `json:"bindings,omitempty"`
@@ -124,7 +124,7 @@ type ClusterResourceSetBindingSpec struct {
 
 // +kubebuilder:object:root=true
 
-// ClusterResourceSetBindingList contains a list of ClusterResourceSetBinding
+// ClusterResourceSetBindingList contains a list of ClusterResourceSetBinding.
 type ClusterResourceSetBindingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

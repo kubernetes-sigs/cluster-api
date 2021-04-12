@@ -1,0 +1,17 @@
+name: Update Homebrew Formula On Release
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  update-homebrew-formula-on-release:
+    runs-on: macos-latest
+    steps:
+      - name: Update Homebrew formula
+        uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          token: ${{secrets.HOMEBREW_UPDATE_TOKEN}}
+          formula: clusterctl
+          tag: ${{github.ref}}
+          revision: ${{github.sha}}

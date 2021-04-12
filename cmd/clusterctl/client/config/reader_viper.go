@@ -33,11 +33,11 @@ import (
 )
 
 const (
-	// ConfigFolder defines the name of the config folder under $home
+	// ConfigFolder defines the name of the config folder under $home.
 	ConfigFolder = ".cluster-api"
-	// ConfigName defines the name of the config file under ConfigFolder
+	// ConfigName defines the name of the config file under ConfigFolder.
 	ConfigName = "clusterctl"
-	// DownloadConfigFile is the config file when fetching the config from a remote location
+	// DownloadConfigFile is the config file when fetching the config from a remote location.
 	DownloadConfigFile = "clusterctl-download.yaml"
 )
 

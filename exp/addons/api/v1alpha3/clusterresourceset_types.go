@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	// ClusterResourceSetSecretType is the only accepted type of secret in resources
+	// ClusterResourceSetSecretType is the only accepted type of secret in resources.
 	ClusterResourceSetSecretType corev1.SecretType = "addons.cluster.x-k8s.io/resource-set" //nolint:gosec
 
 	// ClusterResourceSetFinalizer is added to the ClusterResourceSet object for additional cleanup logic on deletion.
@@ -32,7 +32,7 @@ const (
 
 // ANCHOR: ClusterResourceSetSpec
 
-// ClusterResourceSetSpec defines the desired state of ClusterResourceSet
+// ClusterResourceSetSpec defines the desired state of ClusterResourceSet.
 type ClusterResourceSetSpec struct {
 	// Label selector for Clusters. The Clusters that are
 	// selected by this will be the ones affected by this ClusterResourceSet.
@@ -85,7 +85,7 @@ func (c *ClusterResourceSetSpec) SetTypedStrategy(p ClusterResourceSetStrategy) 
 
 // ANCHOR: ClusterResourceSetStatus
 
-// ClusterResourceSetStatus defines the observed state of ClusterResourceSet
+// ClusterResourceSetStatus defines the observed state of ClusterResourceSet.
 type ClusterResourceSetStatus struct {
 	// ObservedGeneration reflects the generation of the most recently observed ClusterResourceSet.
 	// +optional
@@ -110,7 +110,7 @@ func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
 // +kubebuilder:resource:path=clusterresourcesets,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 
-// ClusterResourceSet is the Schema for the clusterresourcesets API
+// ClusterResourceSet is the Schema for the clusterresourcesets API.
 type ClusterResourceSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -121,7 +121,7 @@ type ClusterResourceSet struct {
 
 // +kubebuilder:object:root=true
 
-// ClusterResourceSetList contains a list of ClusterResourceSet
+// ClusterResourceSetList contains a list of ClusterResourceSet.
 type ClusterResourceSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

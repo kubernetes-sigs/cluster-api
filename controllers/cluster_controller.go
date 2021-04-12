@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/cluster-api/util/collections"
+
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -61,7 +63,7 @@ const (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
-// ClusterReconciler reconciles a Cluster object
+// ClusterReconciler reconciles a Cluster object.
 type ClusterReconciler struct {
 	Client           client.Client
 	WatchFilterValue string
@@ -321,12 +323,13 @@ type clusterDescendants struct {
 	machinePools         expv1.MachinePoolList
 }
 
-// length returns the number of descendants
+// length returns the number of descendants.
 func (c *clusterDescendants) length() int {
 	return len(c.machineDeployments.Items) +
 		len(c.machineSets.Items) +
 		len(c.controlPlaneMachines.Items) +
-		len(c.workerMachines.Items)
+		len(c.workerMachines.Items) +
+		len(c.machinePools.Items)
 }
 
 func (c *clusterDescendants) descendantNames() string {
@@ -399,12 +402,13 @@ func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *cluste
 	}
 
 	// Split machines into control plane and worker machines so we make sure we delete control plane machines last
-	controlPlaneMachines, workerMachines := splitMachineList(&machines)
-	descendants.workerMachines = *workerMachines
+	machineCollection := collections.FromMachineList(&machines)
+	controlPlaneMachines := machineCollection.Filter(collections.ControlPlaneMachines(cluster.Name))
+	workerMachines := machineCollection.Difference(controlPlaneMachines)
+	descendants.workerMachines = collections.ToMachineList(workerMachines)
 	// Only count control plane machines as descendants if there is no control plane provider.
 	if cluster.Spec.ControlPlaneRef == nil {
-		descendants.controlPlaneMachines = *controlPlaneMachines
-
+		descendants.controlPlaneMachines = collections.ToMachineList(controlPlaneMachines)
 	}
 
 	return descendants, nil
@@ -447,51 +451,43 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 	return ownedDescendants, nil
 }
 
-// splitMachineList separates the machines running the control plane from other worker nodes.
-func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clusterv1.MachineList) {
-	nodes := &clusterv1.MachineList{}
-	controlplanes := &clusterv1.MachineList{}
-	for i := range list.Items {
-		machine := &list.Items[i]
-		if util.IsControlPlaneMachine(machine) {
-			controlplanes.Items = append(controlplanes.Items, *machine)
-		} else {
-			nodes.Items = append(nodes.Items, *machine)
-		}
-	}
-	return controlplanes, nodes
-}
-
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Skip checking if the control plane is initialized when using a Control Plane Provider
+	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
+	// reconcileControlPlane instead).
 	if cluster.Spec.ControlPlaneRef != nil {
+		log.V(4).Info("Skipping reconcileControlPlaneInitialized because cluster has a controlPlaneRef")
 		return ctrl.Result{}, nil
 	}
 
-	if cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		log.V(4).Info("Skipping reconcileControlPlaneInitialized because control plane already initialized")
 		return ctrl.Result{}, nil
 	}
 
-	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
+	log.V(4).Info("Checking for control plane initialization")
+
+	machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, cluster, collections.ActiveMachines)
 	if err != nil {
-		log.Error(err, "Error getting machines in cluster")
+		log.Error(err, "unable to determine ControlPlaneInitialized")
 		return ctrl.Result{}, err
 	}
 
 	for _, m := range machines {
 		if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
-			cluster.Status.ControlPlaneInitialized = true
+			conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 			return ctrl.Result{}, nil
 		}
 	}
+
+	conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityInfo, "Waiting for the first control plane machine to have its status.nodeRef set")
 
 	return ctrl.Result{}, nil
 }
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
-// for Cluster to update its status.controlPlaneInitialized field
+// for Cluster to update its status.controlPlaneInitialized field.
 func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
@@ -509,7 +505,7 @@ func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl
 		return nil
 	}
 
-	if cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return nil
 	}
 

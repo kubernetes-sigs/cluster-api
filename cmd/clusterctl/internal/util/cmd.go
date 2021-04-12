@@ -27,7 +27,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Cmd implements a wrapper on os/exec.cmd
+// Cmd implements a wrapper on os/exec.cmd.
 type Cmd struct {
 	command string
 	args    []string
@@ -62,7 +62,6 @@ func (c *Cmd) RunAndCapture() (lines []string, err error) {
 	scanner := bufio.NewScanner(&buff)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
-
 	}
 	return lines, err
 }

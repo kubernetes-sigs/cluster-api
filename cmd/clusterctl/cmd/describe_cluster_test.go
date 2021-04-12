@@ -286,7 +286,6 @@ func Test_TreePrefix(t *testing.T) {
 			for i := range tt.expectPrefix {
 				g.Expect(tbl.Rows[i].Cells[0].String()).To(Equal(tt.expectPrefix[i]))
 			}
-
 		})
 	}
 }

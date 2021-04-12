@@ -90,7 +90,7 @@ var (
 	}
 )
 
-// GetSupportedShells returns a list of supported shells
+// GetSupportedShells returns a list of supported shells.
 func GetSupportedShells() []string {
 	shells := []string{}
 	for s := range completionShells {

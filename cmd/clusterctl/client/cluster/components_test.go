@@ -295,3 +295,39 @@ func Test_providerComponents_Delete(t *testing.T) {
 		})
 	}
 }
+
+func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
+	t.Run("deletes capi-webhook-system namespace", func(t *testing.T) {
+		g := NewWithT(t)
+		labels := map[string]string{
+			"foo": "bar",
+		}
+		initObjs := []client.Object{
+			&corev1.Namespace{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "Namespace",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "capi-webhook-system",
+					Labels: labels,
+				},
+			},
+		}
+
+		proxy := test.NewFakeProxy().WithObjs(initObjs...)
+		proxyClient, _ := proxy.NewClient()
+		var nsList corev1.NamespaceList
+
+		// assert length before deleting
+		_ = proxyClient.List(ctx, &nsList)
+		g.Expect(len(nsList.Items)).Should(Equal(1))
+
+		c := newComponentsClient(proxy)
+		err := c.DeleteWebhookNamespace()
+		g.Expect(err).To(Not(HaveOccurred()))
+
+		// assert length after deleting
+		_ = proxyClient.List(ctx, &nsList)
+		g.Expect(len(nsList.Items)).Should(Equal(0))
+	})
+}

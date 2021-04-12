@@ -38,29 +38,19 @@ export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
 # Builds CAPI (and CAPD) images.
 capi:buildDockerImages
 
-# Checks all the e2e test variables representing a Kubernetes version,
-# and resolves kubernetes version labels (e.g. latest) to the corresponding version numbers.
+# Prepare kindest/node images for all the required Kubernetes version; this implies
+# 1. Kubernetes version labels (e.g. latest) to the corresponding version numbers.
+# 2. Pre-pulling the corresponding kindest/node image if available; if not, building the image locally.
 # Following variables are currently checked (if defined):
 # - KUBERNETES_VERSION
 # - KUBERNETES_VERSION_UPGRADE_TO
 # - KUBERNETES_VERSION_UPGRADE_FROM
-# - BUILD_NODE_IMAGE_TAG
-k8s::resolveAllVersions
-
-# If it is required to build a kindest/node image, build it ensuring the generated binary gets
-# the expected version.
-if [ -n "${BUILD_NODE_IMAGE_TAG:-}" ]; then
-  kind::buildNodeImage "$BUILD_NODE_IMAGE_TAG"
-fi
+k8s::prepareKindestImages
 
 # pre-pull all the images that will be used in the e2e, thus making the actual test run
 # less sensible to the network speed. This includes:
 # - cert-manager images
-# - kindest/node:KUBERNETES_VERSION (if defined)
-# - kindest/node:KUBERNETES_VERSION_UPGRADE_TO (if defined)
-# - kindest/node:KUBERNETES_VERSION_UPGRADE_FROM (if defined)
-# - kindest/node:BUILD_NODE_IMAGE_TAG (if defined)
-kind:prepullImages
+kind:prepullAdditionalImages
 
 # Configure e2e tests
 export GINKGO_NODES=3
@@ -70,6 +60,39 @@ export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export SKIP_RESOURCE_CLEANUP=false
 export USE_EXISTING_CLUSTER=false
+
+# Setup local output directory
+ARTIFACTS_LOCAL="${ARTIFACTS}/localhost"
+mkdir -p "${ARTIFACTS_LOCAL}"
+echo "This folder contains logs from the local host where the tests ran." > "${ARTIFACTS_LOCAL}/README.md"
+
+# Configure the containerd socket, otherwise 'ctr' would not work
+export CONTAINERD_ADDRESS=/var/run/docker/containerd/containerd.sock
+
+# ensure we retrieve additional info for debugging when we leave the script
+cleanup() {
+  # shellcheck disable=SC2046
+  kill $(pgrep -f 'docker events') || true
+  # shellcheck disable=SC2046
+  kill $(pgrep -f 'ctr -n moby events') || true
+
+  cp /var/log/docker.log "${ARTIFACTS_LOCAL}/docker.log" || true
+  docker ps -a > "${ARTIFACTS_LOCAL}/docker-ps.txt" || true
+  docker images > "${ARTIFACTS_LOCAL}/docker-images.txt" || true
+  docker info > "${ARTIFACTS_LOCAL}/docker-info.txt" || true
+  docker system df > "${ARTIFACTS_LOCAL}/docker-system-df.txt" || true
+  docker version > "${ARTIFACTS_LOCAL}/docker-version.txt" || true
+
+  ctr namespaces list > "${ARTIFACTS_LOCAL}/containerd-namespaces.txt" || true
+  ctr -n moby tasks list > "${ARTIFACTS_LOCAL}/containerd-tasks.txt" || true
+  ctr -n moby containers list > "${ARTIFACTS_LOCAL}/containerd-containers.txt" || true
+  ctr -n moby images list > "${ARTIFACTS_LOCAL}/containerd-images.txt" || true
+  ctr -n moby version > "${ARTIFACTS_LOCAL}/containerd-version.txt" || true
+}
+trap "cleanup" EXIT SIGINT
+
+docker events > "${ARTIFACTS_LOCAL}/docker-events.txt" 2>&1 &
+ctr -n moby events > "${ARTIFACTS_LOCAL}/containerd-events.txt" 2>&1 &
 
 # Run e2e tests
 mkdir -p "$ARTIFACTS"

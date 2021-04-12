@@ -19,7 +19,6 @@ package cluster
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -28,7 +27,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v33/github"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -229,12 +228,12 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 func Test_templateClient_getLocalFileContent(t *testing.T) {
 	g := NewWithT(t)
 
-	tmpDir, err := ioutil.TempDir("", "cc")
+	tmpDir, err := os.MkdirTemp("", "cc")
 	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(tmpDir)
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	g.Expect(ioutil.WriteFile(path, []byte(template), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
 
 	type args struct {
 		rURL *url.URL
@@ -283,7 +282,7 @@ func Test_templateClient_getLocalFileContent(t *testing.T) {
 func Test_templateClient_GetFromURL(t *testing.T) {
 	g := NewWithT(t)
 
-	tmpDir, err := ioutil.TempDir("", "cc")
+	tmpDir, err := os.MkdirTemp("", "cc")
 	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(tmpDir)
 
@@ -306,7 +305,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	})
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	g.Expect(ioutil.WriteFile(path, []byte(template), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
 
 	type args struct {
 		templateURL       string

@@ -21,6 +21,7 @@ import (
 
 	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,8 +35,17 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(scheme, &v1alpha4.KubeadmConfig{}, &KubeadmConfig{}, KubeadmConfigStatusFuzzFuncs))
-	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(scheme, &v1alpha4.KubeadmConfigTemplate{}, &KubeadmConfigTemplate{}))
+	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme:      scheme,
+		Hub:         &v1alpha4.KubeadmConfig{},
+		Spoke:       &KubeadmConfig{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigStatusFuzzFuncs},
+	}))
+	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme: scheme,
+		Hub:    &v1alpha4.KubeadmConfigTemplate{},
+		Spoke:  &KubeadmConfigTemplate{},
+	}))
 }
 
 func KubeadmConfigStatusFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

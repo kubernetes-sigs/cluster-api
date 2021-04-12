@@ -78,14 +78,15 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 			NodeCondition: unhealthyNodeCondition,
 			Machine:       machines[0],
 		})
-	}
 
-	fmt.Fprintln(GinkgoWriter, "Waiting for remediation")
-	WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx, WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput{
-		ClusterProxy:        input.ClusterProxy,
-		Cluster:             input.Cluster,
-		MachineHealthChecks: machineHealthChecks,
-	}, input.WaitForMachineRemediation...)
+		fmt.Fprintln(GinkgoWriter, "Waiting for remediation")
+		WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx, WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput{
+			ClusterProxy:       input.ClusterProxy,
+			Cluster:            input.Cluster,
+			MachineHealthCheck: mhc,
+			MachinesCount:      len(machines),
+		}, input.WaitForMachineRemediation...)
+	}
 }
 
 // GetMachineHealthChecksForClusterInput is the input for GetMachineHealthChecksForCluster.
@@ -118,9 +119,10 @@ func machineHealthCheckOptions(machineHealthCheck clusterv1.MachineHealthCheck) 
 
 // WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput is the input for WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition.
 type WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput struct {
-	ClusterProxy        ClusterProxy
-	Cluster             *clusterv1.Cluster
-	MachineHealthChecks []*clusterv1.MachineHealthCheck
+	ClusterProxy       ClusterProxy
+	Cluster            *clusterv1.Cluster
+	MachineHealthCheck *clusterv1.MachineHealthCheck
+	MachinesCount      int
 }
 
 // WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition patches a node condition to any one of the machines with a node ref.
@@ -128,39 +130,42 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
-	Expect(input.MachineHealthChecks).NotTo(BeEmpty(), "Invalid argument. input.MachineHealthChecks can't be empty when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
+	Expect(input.MachineHealthCheck).NotTo(BeNil(), "Invalid argument. input.MachineHealthCheck can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
+	Expect(input.MachinesCount).NotTo(BeZero(), "Invalid argument. input.MachinesCount can't be zero when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 
-	for i := range input.MachineHealthChecks {
-		mhc := input.MachineHealthChecks[i]
-		fmt.Fprintln(GinkgoWriter, "Waiting until the node with unhealthy node condition is remediated")
-		Eventually(func() bool {
-			machines := GetMachinesByMachineHealthCheck(ctx, GetMachinesByMachineHealthCheckInput{
-				Lister:             input.ClusterProxy.GetClient(),
-				ClusterName:        input.Cluster.Name,
-				MachineHealthCheck: mhc,
-			})
-			Expect(machines).NotTo(BeEmpty())
+	fmt.Fprintln(GinkgoWriter, "Waiting until the node with unhealthy node condition is remediated")
+	Eventually(func() bool {
+		machines := GetMachinesByMachineHealthCheck(ctx, GetMachinesByMachineHealthCheckInput{
+			Lister:             input.ClusterProxy.GetClient(),
+			ClusterName:        input.Cluster.Name,
+			MachineHealthCheck: input.MachineHealthCheck,
+		})
+		// Wait for all the machines to exists.
+		// NOTE: this is required given that this helper is called after a remediation
+		// and we want to make sure all the machine are back in place before testing for unhealthyCondition being fixed.
+		if len(machines) < input.MachinesCount {
+			return false
+		}
 
-			for _, machine := range machines {
-				if machine.Status.NodeRef == nil {
-					return false
-				}
-				node := &corev1.Node{}
-				// This should not be an Expect(), because it may return error during machine deletion.
-				err := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: machine.Status.NodeRef.Name, Namespace: machine.Status.NodeRef.Namespace}, node)
-				if err != nil {
-					return false
-				}
-				if hasMatchingUnhealthyConditions(mhc, node.Status.Conditions) {
-					return false
-				}
+		for _, machine := range machines {
+			if machine.Status.NodeRef == nil {
+				return false
 			}
-			return true
-		}, intervals...).Should(BeTrue())
-	}
+			node := &corev1.Node{}
+			// This should not be an Expect(), because it may return error during machine deletion.
+			err := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: machine.Status.NodeRef.Name, Namespace: machine.Status.NodeRef.Namespace}, node)
+			if err != nil {
+				return false
+			}
+			if hasMatchingUnhealthyConditions(input.MachineHealthCheck, node.Status.Conditions) {
+				return false
+			}
+		}
+		return true
+	}, intervals...).Should(BeTrue())
 }
 
-// hasMatchingUnhealthyConditions returns true if any node condition matches with machine health check unhealthy conditions
+// hasMatchingUnhealthyConditions returns true if any node condition matches with machine health check unhealthy conditions.
 func hasMatchingUnhealthyConditions(machineHealthCheck *clusterv1.MachineHealthCheck, nodeConditions []corev1.NodeCondition) bool {
 	for _, unhealthyCondition := range machineHealthCheck.Spec.UnhealthyConditions {
 		for _, nodeCondition := range nodeConditions {

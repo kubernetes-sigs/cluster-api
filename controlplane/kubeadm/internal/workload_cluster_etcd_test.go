@@ -263,7 +263,6 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 
 func TestForwardEtcdLeadership(t *testing.T) {
 	t.Run("handles errors correctly", func(t *testing.T) {
-
 		tests := []struct {
 			name                string
 			machine             *clusterv1.Machine
@@ -373,7 +372,6 @@ func TestForwardEtcdLeadership(t *testing.T) {
 		err := w.ForwardEtcdLeadership(ctx, defaultMachine(), defaultMachine())
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(fakeEtcdClient.MovedLeader).To(BeEquivalentTo(0))
-
 	})
 
 	t.Run("move etcd leader", func(t *testing.T) {
@@ -566,7 +564,6 @@ kind: ClusterStatus`,
 			}
 		})
 	}
-
 }
 
 type fakeEtcdClientGenerator struct {

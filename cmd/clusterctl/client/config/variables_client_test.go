@@ -27,7 +27,7 @@ import (
 // Ensures FakeReader implements the Reader interface.
 var _ Reader = &test.FakeReader{}
 
-// Ensures the FakeVariableClient implements VariablesClient
+// Ensures the FakeVariableClient implements VariablesClient.
 var _ VariablesClient = &test.FakeVariableClient{}
 
 func Test_variables_Get(t *testing.T) {

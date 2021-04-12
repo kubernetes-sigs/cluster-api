@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -70,7 +69,6 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 			}
 		}
 		return false
-
 	}, intervals...).Should(BeTrue(), func() string { return DescribeFailedDeployment(input, deployment) })
 }
 
@@ -201,7 +199,6 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 //       old: --metrics-addr=127.0.0.1:8080
 func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPath string, deploymentName string, pods *corev1.PodList) {
 	for _, pod := range pods.Items {
-
 		metricsDir := path.Join(metricsPath, deploymentName, pod.Name)
 		metricsFile := path.Join(metricsDir, "metrics.txt")
 		Expect(os.MkdirAll(metricsDir, 0750)).To(Succeed())
@@ -221,7 +218,7 @@ func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPa
 			metricsFile = path.Join(metricsDir, "metrics-error.txt")
 		}
 
-		if err := ioutil.WriteFile(metricsFile, data, 0600); err != nil {
+		if err := os.WriteFile(metricsFile, data, 0600); err != nil {
 			// Failing to dump metrics should not cause the test to fail
 			log.Logf("Error writing metrics for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}

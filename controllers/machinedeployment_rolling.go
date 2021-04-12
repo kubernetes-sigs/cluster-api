@@ -233,7 +233,7 @@ func (r *MachineDeploymentReconciler) cleanupUnhealthyReplicas(ctx context.Conte
 }
 
 // scaleDownOldMachineSetsForRollingUpdate scales down old machine sets when deployment strategy is "RollingUpdate".
-// Need check maxUnavailable to ensure availability
+// Need check maxUnavailable to ensure availability.
 func (r *MachineDeploymentReconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context, allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) (int32, error) {
 	log := ctrl.LoggerFrom(ctx)
 

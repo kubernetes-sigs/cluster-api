@@ -17,7 +17,7 @@ limitations under the License.
 package clusterctl
 
 import (
-	"io/ioutil"
+	"os"
 
 	. "github.com/onsi/gomega"
 
@@ -45,5 +45,5 @@ func (c *clusterctlConfig) write() {
 	data, err := yaml.Marshal(c.Values)
 	Expect(err).ToNot(HaveOccurred(), "Failed to convert to yaml the clusterctl config file")
 
-	Expect(ioutil.WriteFile(c.Path, data, 0600)).To(Succeed(), "Failed to write the clusterctl config file")
+	Expect(os.WriteFile(c.Path, data, 0600)).To(Succeed(), "Failed to write the clusterctl config file")
 }

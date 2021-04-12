@@ -40,7 +40,7 @@ import (
 )
 
 const (
-	// Those values are dummy for test only
+	// Those values are dummy for test only.
 	expectedHash    = "dummy-hash"
 	expectedVersion = "v1.1.0"
 )
@@ -156,11 +156,43 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 								found = true
 							}
 						}
-
 					}
 				}
 				if !found {
 					t.Error("Expected to find cert-manager-webhook ValidatingWebhookConfiguration/v1beta1 with sideEffects=None")
+				}
+			},
+		},
+		{
+			name:      "every Deployments should have a toleration for the node-role.kubernetes.io/master:NoSchedule taint ",
+			expectErr: false,
+			assert: func(t *testing.T, objs []unstructured.Unstructured) {
+				masterNoScheduleToleration := corev1.Toleration{
+					Key:    "node-role.kubernetes.io/master",
+					Effect: corev1.TaintEffectNoSchedule,
+				}
+				for i := range objs {
+					o := objs[i]
+					gvk := o.GroupVersionKind()
+					// As of Kubernetes 1.16, only apps/v1.Deployment are
+					// served, and CAPI >= v1alpha3 only supports >= 1.16.
+					if gvk.Group == "apps" && gvk.Kind == "Deployment" && gvk.Version == "v1" {
+						d := &appsv1.Deployment{}
+						err := scheme.Scheme.Convert(&o, d, nil)
+						if err != nil {
+							t.Errorf("did not expect err, got %s", err)
+						}
+						found := false
+						for _, t := range d.Spec.Template.Spec.Tolerations {
+							if t.MatchToleration(&masterNoScheduleToleration) {
+								found = true
+								break
+							}
+						}
+						if !found {
+							t.Errorf("Expected to find Deployment %s with Toleration %#v", d.Name, masterNoScheduleToleration)
+						}
+					}
 				}
 			},
 		},
@@ -188,7 +220,6 @@ func Test_certManagerClient_getManifestObjects(t *testing.T) {
 			tt.assert(t, objs)
 		})
 	}
-
 }
 
 func Test_GetTimeout(t *testing.T) {
@@ -231,7 +262,6 @@ func Test_GetTimeout(t *testing.T) {
 			g.Expect(tm).To(Equal(tt.want))
 		})
 	}
-
 }
 
 func Test_shouldUpgrade(t *testing.T) {
@@ -547,7 +577,6 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 }
 
 func Test_certManagerClient_PlanUpgrade(t *testing.T) {
-
 	tests := []struct {
 		name         string
 		objs         []client.Object
@@ -693,7 +722,6 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			g.Expect(actualPlan).To(Equal(tt.expectedPlan))
 		})
 	}
-
 }
 
 func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {

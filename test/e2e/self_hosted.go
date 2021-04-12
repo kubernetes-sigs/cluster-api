@@ -75,7 +75,6 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 	})
 
 	It("Should pivot the bootstrap cluster to a self-hosted cluster", func() {
-
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

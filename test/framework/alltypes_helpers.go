@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -146,7 +145,7 @@ func dumpObject(resource runtime.Object, logPath string) {
 	Expect(err).ToNot(HaveOccurred(), "Failed to open %s", resourceFilePath)
 	defer f.Close()
 
-	Expect(ioutil.WriteFile(f.Name(), resourceYAML, 0600)).To(Succeed(), "Failed to write %s", resourceFilePath)
+	Expect(os.WriteFile(f.Name(), resourceYAML, 0600)).To(Succeed(), "Failed to write %s", resourceFilePath)
 }
 
 // capiProviderOptions returns a set of ListOptions that allows to identify all the objects belonging to Cluster API providers.

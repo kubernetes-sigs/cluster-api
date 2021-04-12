@@ -23,7 +23,7 @@ import (
 )
 
 // NewClusterClient returns the same client passed as input, as output. It is assumed that the client is a
-// fake controller-runtime client
+// fake controller-runtime client.
 func NewClusterClient(_ context.Context, sourceName string, c client.Client, _ client.ObjectKey) (client.Client, error) {
 	return c, nil
 }

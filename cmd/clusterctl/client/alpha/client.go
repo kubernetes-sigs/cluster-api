@@ -16,7 +16,13 @@ limitations under the License.
 
 package alpha
 
-// Client is the alpha client
+import "context"
+
+var (
+	ctx = context.TODO()
+)
+
+// Client is the alpha client.
 type Client interface {
 	Rollout() Rollout
 }
@@ -29,7 +35,7 @@ type alphaClient struct {
 // ensure alphaClient implements Client.
 var _ Client = &alphaClient{}
 
-// Option is a configuration option supplied to New
+// Option is a configuration option supplied to New.
 type Option func(*alphaClient)
 
 // InjectRollout allows to override the rollout implementation to use.

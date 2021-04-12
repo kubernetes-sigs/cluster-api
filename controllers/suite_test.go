@@ -108,8 +108,6 @@ func TestMain(m *testing.M) {
 		}
 	}()
 	<-testEnv.Manager.Elected()
-
-	// wait for webhook port to be open prior to running tests
 	testEnv.WaitForWebhooks()
 
 	code := m.Run()

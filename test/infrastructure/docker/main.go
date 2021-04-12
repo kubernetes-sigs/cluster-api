@@ -28,8 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
@@ -47,7 +48,7 @@ var (
 	myscheme = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	//flags
+	//flags.
 	metricsBindAddr      string
 	enableLeaderElection bool
 	syncPeriod           time.Duration
@@ -92,6 +93,7 @@ func main() {
 
 	initFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.Parse()
 
 	ctrl.SetLogger(klogr.New())

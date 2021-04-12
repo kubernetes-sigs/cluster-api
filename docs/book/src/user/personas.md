@@ -26,20 +26,20 @@ There are several projects from several companies that are building out
 proposed managed Kubernetes offerings (Project Pacific’s Kubernetes Service
 from VMware, Microsoft Azure, Google Cloud, Red Hat) and they have all
 expressed a desire to use Cluster API. This looks like a good place to make
-sure Cluster API works well, and then expand to other use cases.  
+sure Cluster API works well, and then expand to other use cases.
 
 **Feature matrix**
 
 |   |   |
 |---|---|
-| Is Cluster API exposed to this user? | Yes 
-| Are control plane nodes exposed to this user? | Yes 
-| How many clusters are being managed via this user? | Many 
-| Who is the CAPI admin in this scenario? | Platform Operator 
+| Is Cluster API exposed to this user? | Yes
+| Are control plane nodes exposed to this user? | Yes
+| How many clusters are being managed via this user? | Many
+| Who is the CAPI admin in this scenario? | Platform Operator
 | Cloud / On-Prem | Both
-| Upgrade strategies desired? | Need to gather data from users 
+| Upgrade strategies desired? | Need to gather data from users
 | How does this user interact with Cluster API? | API
-| ETCD deployment | Need to gather data from users 
+| ETCD deployment | Need to gather data from users
 | Does this user have a preference for the control plane running on pods vs. vm vs. something else? | Need to gather data from users
 
 ### Service Provider: Kubernetes-as-a-Service
@@ -61,24 +61,24 @@ them, although it is desirable.
 
 |   |   |
 |---|---|
-| Is Cluster API exposed to this user? | Need to gather data from users  
+| Is Cluster API exposed to this user? | Need to gather data from users
 | Are control plane nodes exposed to this user? | No
-| How many clusters are being managed via this user? | Many 
-| Who is the CAPI admin in this scenario? | Platform itself (AKS, GKE, etc.) 
+| How many clusters are being managed via this user? | Many
+| Who is the CAPI admin in this scenario? | Platform itself (AKS, GKE, etc.)
 | Cloud / On-Prem | Cloud
-| Upgrade strategies desired? | tear down/replace (need confirmation from platforms) 
+| Upgrade strategies desired? | tear down/replace (need confirmation from platforms)
 | How does this user interact with Cluster API? | API
-| ETCD deployment | Need to gather data from users 
+| ETCD deployment | Need to gather data from users
 | Does this user have a preference for the control plane running on pods vs. vm vs. something else? | Need to gather data from users
 
-### Cluster API Developer 
+### Cluster API Developer
 
 The Cluster API developer is a developer of Cluster API who needs tools and
 services to make their development experience more productive and pleasant.
 It’s also important to take a look at the on-boarding experience for new
 developers to make sure we’re building out a project that other people can
 more easily submit patches and features to, to encourage inclusivity and
-welcome new contributors. 
+welcome new contributors.
 
 Proposed priority for project at this time: Low
 
@@ -91,14 +91,14 @@ better for ourselves.
 
 |   |   |
 |---|---|
-| Is Cluster API exposed to this user? | Yes 
-| Are control plane nodes exposed to this user? | Yes 
-| How many clusters are being managed via this user? | Many 
-| Who is the CAPI admin in this scenario? | Platform Operator 
+| Is Cluster API exposed to this user? | Yes
+| Are control plane nodes exposed to this user? | Yes
+| How many clusters are being managed via this user? | Many
+| Who is the CAPI admin in this scenario? | Platform Operator
 | Cloud / On-Prem | Both
-| Upgrade strategies desired? | Need to gather data from users 
+| Upgrade strategies desired? | Need to gather data from users
 | How does this user interact with Cluster API? | API
-| ETCD deployment | Need to gather data from users 
+| ETCD deployment | Need to gather data from users
 | Does this user have a preference for the control plane running on pods vs. vm vs. something else? | Need to gather data from users
 
 ### Raw API Consumers
@@ -106,7 +106,7 @@ better for ourselves.
 Examples of a raw API consumer is a tool like Prow, a customized enterprise
 platform built on top of Cluster API, or perhaps an advanced “give me a
 Kubernetes cluster” button exposing some customization that is built using
-Cluster API. 
+Cluster API.
 
 Proposed priority for project at this time: Low
 
@@ -114,14 +114,14 @@ Proposed priority for project at this time: Low
 
 |   |   |
 |---|---|
-| Is Cluster API exposed to this user? | Yes 
-| Are control plane nodes exposed to this user? | Yes 
-| How many clusters are being managed via this user? | Many 
-| Who is the CAPI admin in this scenario? | Platform Operator 
+| Is Cluster API exposed to this user? | Yes
+| Are control plane nodes exposed to this user? | Yes
+| How many clusters are being managed via this user? | Many
+| Who is the CAPI admin in this scenario? | Platform Operator
 | Cloud / On-Prem | Both
-| Upgrade strategies desired? | Need to gather data from users 
+| Upgrade strategies desired? | Need to gather data from users
 | How does this user interact with Cluster API? | API
-| ETCD deployment | Need to gather data from users 
+| ETCD deployment | Need to gather data from users
 | Does this user have a preference for the control plane running on pods vs. vm vs. something else? | Need to gather data from users
 
 ### Tooling: Provisioners
@@ -140,39 +140,39 @@ take on the work. If this changes, this use case would increase in priority.
 |   |   |
 |---|---|
 | Is Cluster API exposed to this user? | Need to gather data from tooling maintainers
-| Are control plane nodes exposed to this user? | Yes 
-| How many clusters are being managed via this user? | One (per execution) 
-| Who is the CAPI admin in this scenario? | Kubernetes Platform Consumer 
-| Cloud / On-Prem | Cloud 
-| Upgrade strategies desired? | Need to gather data from users 
-| How does this user interact with Cluster API? | CLI 
-| ETCD deployment | (Stacked or external) AND new 
+| Are control plane nodes exposed to this user? | Yes
+| How many clusters are being managed via this user? | One (per execution)
+| Who is the CAPI admin in this scenario? | Kubernetes Platform Consumer
+| Cloud / On-Prem | Cloud
+| Upgrade strategies desired? | Need to gather data from users
+| How does this user interact with Cluster API? | CLI
+| ETCD deployment | (Stacked or external) AND new
 | Does this user have a preference for the control plane running on pods vs. vm vs. something else? | Need to gather data from users
 
-### Service Provider: End User/Consumer 
+### Service Provider: End User/Consumer
 
 This user would be an end user or consumer who is given direct access to
 Cluster API via their service provider to manage Kubernetes clusters.
 While there are some commercial projects who plan on doing this (Project
 Pacific, others), they are doing this as a “super user” feature behind the
-backdrop of a “Managed Kubernetes” offering. 
+backdrop of a “Managed Kubernetes” offering.
 
 Proposed priority for project at this time: Low
 
 This is a use case we should keep an eye on to see how people use Cluster API
 directly, but we think the more relevant use case is people building managed
-offerings on top at this top. 
+offerings on top at this top.
 
 **Feature matrix**
 
 |   |   |
 |---|---|
-| Is Cluster API exposed to this user? | Yes 
-| Are control plane nodes exposed to this user? | Yes 
-| How many clusters are being managed via this user? | Many 
-| Who is the CAPI admin in this scenario? | Platform Operator 
+| Is Cluster API exposed to this user? | Yes
+| Are control plane nodes exposed to this user? | Yes
+| How many clusters are being managed via this user? | Many
+| Who is the CAPI admin in this scenario? | Platform Operator
 | Cloud / On-Prem | Both
-| Upgrade strategies desired? | Need to gather data from users 
+| Upgrade strategies desired? | Need to gather data from users
 | How does this user interact with Cluster API? | API
-| ETCD deployment | Need to gather data from users 
+| ETCD deployment | Need to gather data from users
 | Does this user have a preference for the control plane running on pods vs. vm vs. something else? | Need to gather data from users

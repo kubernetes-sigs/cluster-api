@@ -52,9 +52,13 @@ func HasWithPrefix(prefix string, annotations map[string]string) bool {
 
 // AddAnnotations sets the desired annotations on the object and returns true if the annotations have changed.
 func AddAnnotations(o metav1.Object, desired map[string]string) bool {
+	if len(desired) == 0 {
+		return false
+	}
 	annotations := o.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
+		o.SetAnnotations(annotations)
 	}
 	hasChanged := false
 	for k, v := range desired {
@@ -66,7 +70,7 @@ func AddAnnotations(o metav1.Object, desired map[string]string) bool {
 	return hasChanged
 }
 
-// hasAnnotation returns true if the object has the specified annotation
+// hasAnnotation returns true if the object has the specified annotation.
 func hasAnnotation(o metav1.Object, annotation string) bool {
 	annotations := o.GetAnnotations()
 	if annotations == nil {

@@ -79,6 +79,8 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-adoption.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-machine-pool.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-node-drain.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-upgrades.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-scale-in.yaml"
     - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
 
 variables:

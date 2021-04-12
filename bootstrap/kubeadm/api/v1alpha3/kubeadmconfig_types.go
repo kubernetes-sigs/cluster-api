@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 )
 
@@ -27,7 +27,7 @@ import (
 type Format string
 
 const (
-	// CloudConfig make the bootstrap data to be of cloud-config format
+	// CloudConfig make the bootstrap data to be of cloud-config format.
 	CloudConfig Format = "cloud-config"
 )
 
@@ -97,7 +97,7 @@ type KubeadmConfigSpec struct {
 	UseExperimentalRetryJoin bool `json:"useExperimentalRetryJoin,omitempty"`
 }
 
-// KubeadmConfigStatus defines the observed state of KubeadmConfig
+// KubeadmConfigStatus defines the observed state of KubeadmConfig.
 type KubeadmConfigStatus struct {
 	// Ready indicates the BootstrapData field is ready to be consumed
 	Ready bool `json:"ready,omitempty"`
@@ -105,6 +105,13 @@ type KubeadmConfigStatus struct {
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
 	// +optional
 	DataSecretName *string `json:"dataSecretName,omitempty"`
+
+	// BootstrapData will be a cloud-init script for now.
+	//
+	// Deprecated: Switch to DataSecretName.
+	//
+	// +optional
+	BootstrapData []byte `json:"bootstrapData,omitempty"`
 
 	// FailureReason will be set on non-retryable errors
 	// +optional
@@ -125,10 +132,9 @@ type KubeadmConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigs,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
-// KubeadmConfig is the Schema for the kubeadmconfigs API
+// KubeadmConfig is the Schema for the kubeadmconfigs API.
 type KubeadmConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -147,7 +153,7 @@ func (c *KubeadmConfig) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// KubeadmConfigList contains a list of KubeadmConfig
+// KubeadmConfigList contains a list of KubeadmConfig.
 type KubeadmConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -263,7 +269,7 @@ type User struct {
 	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
 }
 
-// NTP defines input for generated ntp in cloud-init
+// NTP defines input for generated ntp in cloud-init.
 type NTP struct {
 	// Servers specifies which NTP servers to use
 	// +optional

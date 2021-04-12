@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// FakeVariableClient provides a VariableClient backed by a map
+// FakeVariableClient provides a VariableClient backed by a map.
 type FakeVariableClient struct {
 	variables map[string]string
 }

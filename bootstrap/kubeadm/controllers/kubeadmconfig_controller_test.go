@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"testing"
 	"time"
 
@@ -34,13 +33,13 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	fakeremote "sigs.k8s.io/cluster-api/controllers/remote/fake"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,7 +63,7 @@ func setupScheme() *runtime.Scheme {
 	return scheme
 }
 
-// MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists
+// MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists.
 func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	g := NewWithT(t)
 
@@ -221,7 +220,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	assertHasFalseCondition(g, myclient, request, bootstrapv1.DataSecretAvailableCondition, clusterv1.ConditionSeverityInfo, bootstrapv1.WaitingForClusterInfrastructureReason)
 }
 
-// Return early If the owning machine does not have an associated cluster
+// Return early If the owning machine does not have an associated cluster.
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *testing.T) {
 	g := NewWithT(t)
 
@@ -248,7 +247,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *t
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
-// This does not expect an error, hoping the machine gets updated with a cluster
+// This does not expect an error, hoping the machine gets updated with a cluster.
 func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociatedCluster(t *testing.T) {
 	g := NewWithT(t)
 
@@ -275,7 +274,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociat
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
-// This does not expect an error, hoping that the associated cluster will be created
+// This does not expect an error, hoping that the associated cluster will be created.
 func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFound(t *testing.T) {
 	g := NewWithT(t)
 
@@ -417,13 +416,13 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
-// If a control plane has no JoinConfiguration, then we will create a default and no error will occur
+// If a control plane has no JoinConfiguration, then we will create a default and no error will occur.
 func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidConfiguration(t *testing.T) {
 	g := NewWithT(t)
 	// TODO: extract this kind of code into a setup function that puts the state of objects into an initialized controlplane (implies secrets exist)
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
@@ -462,7 +461,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
 
@@ -498,7 +497,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	var useCases = []struct {
@@ -578,7 +577,6 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(len(l.Items)).To(Equal(1))
 		})
-
 	}
 }
 
@@ -587,7 +585,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	var useCases = []struct {
@@ -654,7 +652,6 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(len(l.Items)).To(Equal(1))
 		})
-
 	}
 }
 
@@ -666,7 +663,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -735,7 +732,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -821,7 +818,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 			},
 		},
 	} {
-
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", DefaultTokenTTL))
@@ -864,7 +860,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 			},
 		},
 	} {
-
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(result.Requeue).To(BeFalse())
@@ -887,7 +882,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -946,7 +941,6 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 			},
 		},
 	} {
-
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", DefaultTokenTTL))
@@ -1032,8 +1026,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 	}
 
 	caHash := []string{"...."}
-	bootstrapToken := kubeadmv1beta1.Discovery{
-		BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+	bootstrapToken := bootstrapv1.Discovery{
+		BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
 			CACertHashes: caHash,
 		},
 	}
@@ -1056,7 +1050,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapToken,
 					},
 				},
@@ -1075,9 +1069,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-						Discovery: kubeadmv1beta1.Discovery{
-							File: &kubeadmv1beta1.FileDiscovery{},
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						Discovery: bootstrapv1.Discovery{
+							File: &bootstrapv1.FileDiscovery{},
 						},
 					},
 				},
@@ -1093,9 +1087,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-						Discovery: kubeadmv1beta1.Discovery{
-							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
 								CACertHashes:      caHash,
 								APIServerEndpoint: "bar.com:6443",
 							},
@@ -1114,9 +1108,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-						Discovery: kubeadmv1beta1.Discovery{
-							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
 								CACertHashes: caHash,
 								Token:        "abcdef.0123456789abcdef",
 							},
@@ -1135,9 +1129,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-						Discovery: kubeadmv1beta1.Discovery{
-							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
 								CACertHashes: caHash,
 							},
 						},
@@ -1183,9 +1177,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 			cluster: &clusterv1.Cluster{}, // cluster without endpoints
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-						Discovery: kubeadmv1beta1.Discovery{
-							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
 								CACertHashes: []string{"item"},
 							},
 						},
@@ -1225,10 +1219,10 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			name: "Config settings have precedence",
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 						ClusterName:       "mycluster",
 						KubernetesVersion: "myversion",
-						Networking: kubeadmv1beta1.Networking{
+						Networking: bootstrapv1.Networking{
 							PodSubnet:     "myPodSubnet",
 							ServiceSubnet: "myServiceSubnet",
 							DNSDomain:     "myDNSDomain",
@@ -1260,7 +1254,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			name: "Top level object settings are used in case config settings are missing",
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{},
+					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
 				},
 			},
 			cluster: &clusterv1.Cluster{
@@ -1305,7 +1299,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 	// Setup work for an initialized cluster
 	clusterName := "my-cluster"
 	cluster := newCluster(clusterName)
-	cluster.Status.ControlPlaneInitialized = true
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Status.InfrastructureReady = true
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 		Host: "example.com",
@@ -1330,17 +1324,17 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 
 	testcases := []struct {
 		name               string
-		discovery          *kubeadmv1beta1.BootstrapTokenDiscovery
+		discovery          *bootstrapv1.BootstrapTokenDiscovery
 		skipCAVerification bool
 	}{
 		{
 			name:               "Do not skip CA verification by default",
-			discovery:          &kubeadmv1beta1.BootstrapTokenDiscovery{},
+			discovery:          &bootstrapv1.BootstrapTokenDiscovery{},
 			skipCAVerification: false,
 		},
 		{
 			name: "Skip CA verification if requested by the user",
-			discovery: &kubeadmv1beta1.BootstrapTokenDiscovery{
+			discovery: &bootstrapv1.BootstrapTokenDiscovery{
 				UnsafeSkipCAVerification: true,
 			},
 			skipCAVerification: true,
@@ -1349,7 +1343,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			// skipCAVerification should be true since no Cert Hashes are provided, but reconcile will *always* get or create certs.
 			// TODO: Certificate get/create behavior needs to be mocked to enable this test.
 			name: "cannot test for defaulting behavior through the reconcile function",
-			discovery: &kubeadmv1beta1.BootstrapTokenDiscovery{
+			discovery: &bootstrapv1.BootstrapTokenDiscovery{
 				CACertHashes: []string{""},
 			},
 			skipCAVerification: false,
@@ -1427,13 +1421,12 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	}
 }
 
-// Reconcile should not fail if the Etcd CA Secret already exists
+// Reconcile should not fail if the Etcd CA Secret already exists.
 func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster("my-cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.ControlPlaneInitialized = false
 	m := newControlPlaneMachine(cluster, "control-plane-machine")
 	configName := "my-config"
 	c := newControlPlaneInitKubeadmConfig(m, configName)
@@ -1459,7 +1452,7 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
-// Exactly one control plane machine initializes if there are multiple control plane machines defined
+// Exactly one control plane machine initializes if there are multiple control plane machines defined.
 func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitializes(t *testing.T) {
 	g := NewWithT(t)
 
@@ -1508,7 +1501,7 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 }
 
-// Patch should be applied if there is an error in reconcile
+// Patch should be applied if there is an error in reconcile.
 func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) {
 	g := NewWithT(t)
 
@@ -1702,7 +1695,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 
 // test utils
 
-// newCluster return a CAPI cluster object
+// newCluster return a CAPI cluster object.
 func newCluster(name string) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
@@ -1716,7 +1709,7 @@ func newCluster(name string) *clusterv1.Cluster {
 	}
 }
 
-// newMachine return a CAPI machine object; if cluster is not nil, the machine is linked to the cluster as well
+// newMachine return a CAPI machine object; if cluster is not nil, the machine is linked to the cluster as well.
 func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -1734,6 +1727,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 					APIVersion: bootstrapv1.GroupVersion.String(),
 				},
 			},
+			Version: pointer.StringPtr("v1.19.1"),
 		},
 	}
 	if cluster != nil {
@@ -1755,7 +1749,7 @@ func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.
 	return m
 }
 
-// newMachinePool return a CAPI machine pool object; if cluster is not nil, the machine pool is linked to the cluster as well
+// newMachinePool return a CAPI machine pool object; if cluster is not nil, the machine pool is linked to the cluster as well.
 func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool {
 	machine := &expv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
@@ -1775,6 +1769,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool 
 							APIVersion: bootstrapv1.GroupVersion.String(),
 						},
 					},
+					Version: pointer.StringPtr("v1.19.1"),
 				},
 			},
 		},
@@ -1792,7 +1787,7 @@ func newWorkerMachinePool(cluster *clusterv1.Cluster) *expv1.MachinePool {
 	return newMachinePool(cluster, "worker-machinepool")
 }
 
-// newKubeadmConfig return a CABPK KubeadmConfig object; if machine is not nil, the KubeadmConfig is linked to the machine as well
+// newKubeadmConfig return a CABPK KubeadmConfig object; if machine is not nil, the KubeadmConfig is linked to the machine as well.
 func newKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.KubeadmConfig {
 	config := &bootstrapv1.KubeadmConfig{
 		TypeMeta: metav1.TypeMeta{
@@ -1821,7 +1816,7 @@ func newKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.Kube
 
 func newWorkerJoinKubeadmConfig(machine *clusterv1.Machine) *bootstrapv1.KubeadmConfig {
 	c := newKubeadmConfig(machine, "worker-join-cfg")
-	c.Spec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{
+	c.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{
 		ControlPlane: nil,
 	}
 	return c
@@ -1829,21 +1824,21 @@ func newWorkerJoinKubeadmConfig(machine *clusterv1.Machine) *bootstrapv1.Kubeadm
 
 func newControlPlaneJoinKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.KubeadmConfig {
 	c := newKubeadmConfig(machine, name)
-	c.Spec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{
-		ControlPlane: &kubeadmv1beta1.JoinControlPlane{},
+	c.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{
+		ControlPlane: &bootstrapv1.JoinControlPlane{},
 	}
 	return c
 }
 
 func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.KubeadmConfig {
 	c := newKubeadmConfig(machine, name)
-	c.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
-	c.Spec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{}
+	c.Spec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+	c.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
 	return c
 }
 
 // newMachinePoolKubeadmConfig return a CABPK KubeadmConfig object; if machine pool is not nil,
-// the KubeadmConfig is linked to the machine pool as well
+// the KubeadmConfig is linked to the machine pool as well.
 func newMachinePoolKubeadmConfig(machinePool *expv1.MachinePool, name string) *bootstrapv1.KubeadmConfig {
 	config := &bootstrapv1.KubeadmConfig{
 		TypeMeta: metav1.TypeMeta{
@@ -1872,7 +1867,7 @@ func newMachinePoolKubeadmConfig(machinePool *expv1.MachinePool, name string) *b
 
 func newWorkerPoolJoinKubeadmConfig(machinePool *expv1.MachinePool) *bootstrapv1.KubeadmConfig {
 	c := newMachinePoolKubeadmConfig(machinePool, "workerpool-join-cfg")
-	c.Spec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{
+	c.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{
 		ControlPlane: nil,
 	}
 	return c
@@ -1881,7 +1876,7 @@ func newWorkerPoolJoinKubeadmConfig(machinePool *expv1.MachinePool) *bootstrapv1
 func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) []client.Object {
 	out := []client.Object{}
 	if config.Spec.ClusterConfiguration == nil {
-		config.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
+		config.Spec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
 	certificates := secret.NewCertificatesForInitialControlPlane(config.Spec.ClusterConfiguration)
 	if err := certificates.Generate(); err != nil {

@@ -70,6 +70,19 @@ func TestAddAnnotations(t *testing.T) {
 			changed: false,
 		},
 		{
+			name: "should do nothing if no annotations are provided and have been nil before",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: nil,
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			input:    map[string]string{},
+			expected: nil,
+			changed:  false,
+		},
+		{
 			name: "should return true if annotations are added",
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -98,6 +111,23 @@ func TestAddAnnotations(t *testing.T) {
 					Annotations: map[string]string{
 						"foo": "bar",
 					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			input: map[string]string{
+				"foo": "buzz",
+			},
+			expected: map[string]string{
+				"foo": "buzz",
+			},
+			changed: true,
+		},
+		{
+			name: "should return true if annotations are changed and have been nil before",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: nil,
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},

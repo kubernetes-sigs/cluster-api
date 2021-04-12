@@ -41,7 +41,7 @@ func (m *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &MachinePool{}
 var _ webhook.Validator = &MachinePool{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (m *MachinePool) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
@@ -65,12 +65,12 @@ func (m *MachinePool) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachinePool) ValidateCreate() error {
 	return m.validate(nil)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachinePool) ValidateUpdate(old runtime.Object) error {
 	oldMP, ok := old.(*MachinePool)
 	if !ok {
@@ -79,7 +79,7 @@ func (m *MachinePool) ValidateUpdate(old runtime.Object) error {
 	return m.validate(oldMP)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachinePool) ValidateDelete() error {
 	return m.validate(nil)
 }

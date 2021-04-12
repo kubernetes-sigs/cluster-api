@@ -22,8 +22,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/drone/envsubst"
-	"github.com/drone/envsubst/parse"
+	"github.com/drone/envsubst/v2"
+	"github.com/drone/envsubst/v2/parse"
 )
 
 // SimpleProcessor is a yaml processor that uses envsubst to substitute values
@@ -203,7 +203,7 @@ func traverse(root parse.Node, variables map[string]bool) {
 }
 
 // legacyVariableRegEx defines the regexp used for searching variables inside a YAML.
-// It searches for variables with the format ${ VAR}, ${ VAR }, ${VAR }
+// It searches for variables with the format ${ VAR}, ${ VAR }, ${VAR }.
 var legacyVariableRegEx = regexp.MustCompile(`(\${(\s+([A-Za-z0-9_$]+)\s+)})|(\${(\s+([A-Za-z0-9_$]+))})|(\${(([A-Za-z0-9_$]+)\s+)})`)
 var whitespaceRegEx = regexp.MustCompile(`\s`)
 

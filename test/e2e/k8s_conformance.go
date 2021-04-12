@@ -76,7 +76,6 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 	})
 
 	It("Should create a workload cluster and run kubetest", func() {
-
 		By("Creating a workload cluster")
 
 		// NOTE: The number of CP nodes does not have relevance for conformance; instead, the number of workers allows

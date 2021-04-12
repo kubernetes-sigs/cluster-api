@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Cmd
+// Cmd.
 type Cmd struct {
 	Cmd   string
 	Args  []string
@@ -69,7 +69,7 @@ func newRunCmdAction() action {
 	return &runCmd{}
 }
 
-// Unmarshal the runCmd
+// Unmarshal the runCmd.
 func (a *runCmd) Unmarshal(userData []byte) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
 		return errors.Wrapf(err, "error parsing run_cmd action: %s", userData)
@@ -77,7 +77,7 @@ func (a *runCmd) Unmarshal(userData []byte) error {
 	return nil
 }
 
-// Commands returns a list of commands to run on the node
+// Commands returns a list of commands to run on the node.
 func (a *runCmd) Commands() ([]Cmd, error) {
 	cmds := make([]Cmd, 0)
 	for _, c := range a.Cmds {

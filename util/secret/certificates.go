@@ -36,7 +36,6 @@ import (
 	"k8s.io/client-go/util/cert"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -48,21 +47,21 @@ const (
 )
 
 var (
-	// ErrMissingCertificate is an error indicating a certificate is entirely missing
+	// ErrMissingCertificate is an error indicating a certificate is entirely missing.
 	ErrMissingCertificate = errors.New("missing certificate")
 
-	// ErrMissingCrt is an error indicating the crt file is missing from the certificate
+	// ErrMissingCrt is an error indicating the crt file is missing from the certificate.
 	ErrMissingCrt = errors.New("missing crt data")
 
-	// ErrMissingKey is an error indicating the key file is missing from the certificate
+	// ErrMissingKey is an error indicating the key file is missing from the certificate.
 	ErrMissingKey = errors.New("missing key data")
 )
 
 // Certificates are the certificates necessary to bootstrap a cluster.
 type Certificates []*Certificate
 
-// NewCertificatesForInitialControlPlane returns a list of certificates configured for a control plane node
-func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration) Certificates {
+// NewCertificatesForInitialControlPlane returns a list of certificates configured for a control plane node.
+func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfiguration) Certificates {
 	certificatesDir := DefaultCertificatesDir
 	if config != nil && config.CertificatesDir != "" {
 		certificatesDir = config.CertificatesDir
@@ -112,16 +111,8 @@ func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration)
 	return certificates
 }
 
-// NewCertificatesForJoiningControlPlane gets any certs that exist and writes them to disk
-//
-// Deprecated: this method is deprecated in favor of NewControlPlaneJoinCerts that
-// provides full support for the external etcd scenario.
-func NewCertificatesForJoiningControlPlane() Certificates {
-	return NewControlPlaneJoinCerts(nil)
-}
-
-// NewControlPlaneJoinCerts gets any certs that exist and writes them to disk
-func NewControlPlaneJoinCerts(config *v1beta1.ClusterConfiguration) Certificates {
+// NewControlPlaneJoinCerts gets any certs that exist and writes them to disk.
+func NewControlPlaneJoinCerts(config *bootstrapv1.ClusterConfiguration) Certificates {
 	certificatesDir := DefaultCertificatesDir
 	if config != nil && config.CertificatesDir != "" {
 		certificatesDir = config.CertificatesDir
@@ -223,7 +214,7 @@ func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clus
 	return nil
 }
 
-// EnsureAllExist ensure that there is some data present for every certificate
+// EnsureAllExist ensure that there is some data present for every certificate.
 func (c Certificates) EnsureAllExist() error {
 	for _, certificate := range c {
 		if certificate.KeyPair == nil {
@@ -457,7 +448,7 @@ func generateServiceAccountKeys() (*certs.KeyPair, error) {
 	}, nil
 }
 
-// newCertificateAuthority creates new certificate and private key for the certificate authority
+// newCertificateAuthority creates new certificate and private key for the certificate authority.
 func newCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
 	key, err := certs.NewPrivateKey()
 	if err != nil {

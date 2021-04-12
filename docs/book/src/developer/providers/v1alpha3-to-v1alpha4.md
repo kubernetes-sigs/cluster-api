@@ -3,6 +3,8 @@
 ## Minimum Go version
 
 - The Go version used by Cluster API is now Go 1.16+
+  - In case cloudbuild is used to push images, please upgrade to `gcr.io/k8s-testimages/gcb-docker-gcloud:v20210331-c732583` 
+    in the cloudbuild YAML files.  
 
 ## Controller Runtime version
 
@@ -15,6 +17,16 @@
 ## Upgrade kube-rbac-proxy to v0.8.0
 
 - Find and replace the `kube-rbac-proxy` version (usually the image is `gcr.io/kubebuilder/kube-rbac-proxy`) and update it to `v0.8.0`.
+
+## Klog version
+
+- The klog package used has been upgraded to v2.5.x. It is recommended that
+  all providers also switch to using v2.
+
+  - Change `import k8s.io/klog` to `import k8s.io/klog/v2`
+  - Change `import k8s.io/klog/klogr` to `import k8s.io/klog/v2/klogr`
+  - Update `go.mod` to `k8s.io/klog/v2 v2.5.0`
+  - Run `go mod tidy` to ensure all dependencies are updated.
 
 ## The controllers.DeleteNodeAnnotation constant has been removed
 

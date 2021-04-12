@@ -24,7 +24,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
-// MatchConditions returns a custom matcher to check equality of clusterv1.Conditions
+// MatchConditions returns a custom matcher to check equality of clusterv1.Conditions.
 func MatchConditions(expected clusterv1.Conditions) types.GomegaMatcher {
 	return &matchConditions{
 		expected: expected,
@@ -52,7 +52,7 @@ func (m matchConditions) NegatedFailureMessage(actual interface{}) (message stri
 	return fmt.Sprintf("expected\n\t%#v\nto not match\n\t%#v\n", actual, m.expected)
 }
 
-// MatchCondition returns a custom matcher to check equality of clusterv1.Condition
+// MatchCondition returns a custom matcher to check equality of clusterv1.Condition.
 func MatchCondition(expected clusterv1.Condition) types.GomegaMatcher {
 	return &matchCondition{
 		expected: expected,

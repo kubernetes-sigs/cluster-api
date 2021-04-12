@@ -24,13 +24,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	"sigs.k8s.io/yaml"
 )
 
 const (
 	clusterStatusKey         = "ClusterStatus"
 	clusterConfigurationKey  = "ClusterConfiguration"
+	apiVersionKey            = "apiVersion"
 	statusAPIEndpointsKey    = "apiEndpoints"
 	configVersionKey         = "kubernetesVersion"
 	dnsKey                   = "dns"
@@ -48,7 +50,7 @@ type kubeadmConfig struct {
 	ConfigMap *corev1.ConfigMap
 }
 
-// RemoveAPIEndpoint removes an APIEndpoint fromt he kubeadm config cluster status config map
+// RemoveAPIEndpoint removes an APIEndpoint fromt he kubeadm config cluster status config map.
 func (k *kubeadmConfig) RemoveAPIEndpoint(endpoint string) error {
 	data, ok := k.ConfigMap.Data[clusterStatusKey]
 	if !ok {
@@ -74,7 +76,7 @@ func (k *kubeadmConfig) RemoveAPIEndpoint(endpoint string) error {
 	return nil
 }
 
-// UpdateKubernetesVersion changes the kubernetes version found in the kubeadm config map
+// UpdateKubernetesVersion changes the kubernetes version found in the kubeadm config map.
 func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 	if k.ConfigMap == nil {
 		return errors.New("unable to operate on a nil config map")
@@ -90,6 +92,23 @@ func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 	if err := unstructured.SetNestedField(configuration.UnstructuredContent(), version, configVersionKey); err != nil {
 		return errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap's %q", configVersionKey, clusterConfigurationKey)
 	}
+
+	// Fix the ClusterConfiguration according to the target Kubernetes version
+	// IMPORTANT: This is a stop-gap explicitly designed for back-porting on the v1alpha3 branch.
+	// This allows to unblock removal of the v1beta1 API in kubeadm by making Cluster API to use the v1beta2 kubeadm API
+	// under the assumption that the serialized version of the two APIs is equal as discussed; see
+	// "Insulate users from kubeadm API version changes" CAEP for more details.
+	// NOTE: This solution will stop to work when kubeadm will drop then v1beta2 kubeadm API, but this gives
+	// enough time (9/12 months from the deprecation date, not yet announced) for the users to migrate to
+	// the v1alpha4 release of Cluster API, where a proper conversion mechanism is going to be supported.
+	gv, err := kubeadmtypes.KubeVersionToKubeadmAPIGroupVersion(version)
+	if err != nil {
+		return err
+	}
+	if err := unstructured.SetNestedField(configuration.UnstructuredContent(), gv.String(), apiVersionKey); err != nil {
+		return errors.Wrapf(err, "unable to update %q on kubeadm ConfigMap's %q", apiVersionKey, clusterConfigurationKey)
+	}
+
 	updated, err := yaml.Marshal(configuration)
 	if err != nil {
 		return errors.Wrapf(err, "unable to encode kubeadm ConfigMap's %q to YAML", clusterConfigurationKey)
@@ -98,7 +117,7 @@ func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 	return nil
 }
 
-// UpdateImageRepository changes the image repository found in the kubeadm config map
+// UpdateImageRepository changes the image repository found in the kubeadm config map.
 func (k *kubeadmConfig) UpdateImageRepository(imageRepository string) error {
 	if imageRepository == "" {
 		return nil
@@ -122,7 +141,7 @@ func (k *kubeadmConfig) UpdateImageRepository(imageRepository string) error {
 	return nil
 }
 
-// UpdateEtcdMeta sets the local etcd's configuration's image repository and image tag
+// UpdateEtcdMeta sets the local etcd's configuration's image repository and image tag.
 func (k *kubeadmConfig) UpdateEtcdMeta(imageRepository, imageTag string) (bool, error) {
 	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
 	if !ok {
@@ -175,7 +194,7 @@ func (k *kubeadmConfig) UpdateEtcdMeta(imageRepository, imageTag string) (bool, 
 }
 
 // UpdateCoreDNSImageInfo changes the dns.ImageTag and dns.ImageRepository
-// found in the kubeadm config map
+// found in the kubeadm config map.
 func (k *kubeadmConfig) UpdateCoreDNSImageInfo(repository, tag string) error {
 	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
 	if !ok {
@@ -186,7 +205,7 @@ func (k *kubeadmConfig) UpdateCoreDNSImageInfo(repository, tag string) error {
 		return errors.Wrapf(err, "unable to decode kubeadm ConfigMap's %q to Unstructured object", clusterConfigurationKey)
 	}
 	dnsMap := map[string]string{
-		dnsTypeKey:            string(kubeadmv1.CoreDNS),
+		dnsTypeKey:            string(bootstrapv1.CoreDNS),
 		dnsImageRepositoryKey: repository,
 		dnsImageTagKey:        tag,
 	}
@@ -202,7 +221,7 @@ func (k *kubeadmConfig) UpdateCoreDNSImageInfo(repository, tag string) error {
 }
 
 // UpdateAPIServer sets the api server configuration to values set in `apiServer` in kubeadm config map.
-func (k *kubeadmConfig) UpdateAPIServer(apiServer kubeadmv1.APIServer) (bool, error) {
+func (k *kubeadmConfig) UpdateAPIServer(apiServer bootstrapv1.APIServer) (bool, error) {
 	changed, err := k.updateClusterConfiguration(apiServer, apiServerKey)
 	if err != nil {
 		return false, errors.Wrap(err, "unable to update api server configuration in kubeadm config map")
@@ -211,7 +230,7 @@ func (k *kubeadmConfig) UpdateAPIServer(apiServer kubeadmv1.APIServer) (bool, er
 }
 
 // UpdateControllerManager sets the controller manager configuration to values set in `controllerManager` in kubeadm config map.
-func (k *kubeadmConfig) UpdateControllerManager(controllerManager kubeadmv1.ControlPlaneComponent) (bool, error) {
+func (k *kubeadmConfig) UpdateControllerManager(controllerManager bootstrapv1.ControlPlaneComponent) (bool, error) {
 	changed, err := k.updateClusterConfiguration(controllerManager, controllerManagerKey)
 	if err != nil {
 		return false, errors.Wrap(err, "unable to update controller manager configuration in kubeadm config map")
@@ -220,7 +239,7 @@ func (k *kubeadmConfig) UpdateControllerManager(controllerManager kubeadmv1.Cont
 }
 
 // UpdateScheduler sets the scheduler configuration to values set in `scheduler` in kubeadm config map.
-func (k *kubeadmConfig) UpdateScheduler(scheduler kubeadmv1.ControlPlaneComponent) (bool, error) {
+func (k *kubeadmConfig) UpdateScheduler(scheduler bootstrapv1.ControlPlaneComponent) (bool, error) {
 	changed, err := k.updateClusterConfiguration(scheduler, schedulerKey)
 	if err != nil {
 		return false, errors.Wrap(err, "unable to update scheduler configuration in kubeadm config map")

@@ -183,7 +183,6 @@ func TestNewBootstrapTokenString(t *testing.T) {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 			g.Expect(actual).To(Equal(rt.bts))
-
 		})
 	}
 }

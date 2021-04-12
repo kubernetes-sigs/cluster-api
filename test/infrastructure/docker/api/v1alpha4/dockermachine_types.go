@@ -27,7 +27,7 @@ const (
 	MachineFinalizer = "dockermachine.infrastructure.cluster.x-k8s.io"
 )
 
-// DockerMachineSpec defines the desired state of DockerMachine
+// DockerMachineSpec defines the desired state of DockerMachine.
 type DockerMachineSpec struct {
 	// ProviderID will be the container name in ProviderID format (docker:////<containername>)
 	// +optional
@@ -55,7 +55,7 @@ type DockerMachineSpec struct {
 }
 
 // Mount specifies a host volume to mount into a container.
-// This is a simplified version of kind v1alpha4.Mount types
+// This is a simplified version of kind v1alpha4.Mount types.
 type Mount struct {
 	// Path of the mount within the container.
 	ContainerPath string `json:"containerPath,omitempty"`
@@ -70,7 +70,7 @@ type Mount struct {
 	Readonly bool `json:"readOnly,omitempty"`
 }
 
-// DockerMachineStatus defines the observed state of DockerMachine
+// DockerMachineStatus defines the observed state of DockerMachine.
 type DockerMachineStatus struct {
 	// Ready denotes that the machine (docker container) is ready
 	// +optional
@@ -95,7 +95,7 @@ type DockerMachineStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
-// DockerMachine is the Schema for the dockermachines API
+// DockerMachine is the Schema for the dockermachines API.
 type DockerMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -114,7 +114,7 @@ func (c *DockerMachine) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// DockerMachineList contains a list of DockerMachine
+// DockerMachineList contains a list of DockerMachine.
 type DockerMachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

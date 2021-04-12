@@ -38,7 +38,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 
 	// Perform an uncached read of all the owned machines. This check is in place to make sure
 	// that the controller cache is not misbehaving and we end up initializing the cluster more than once.
-	ownedMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, util.ObjectKey(cluster), collections.OwnedMachines(kcp))
+	ownedMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, cluster, collections.OwnedMachines(kcp))
 	if err != nil {
 		logger.Error(err, "failed to perform an uncached read of control plane machines for cluster")
 		return ctrl.Result{}, err
@@ -184,7 +184,6 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(_ context.Context, contr
 
 loopmachines:
 	for _, machine := range controlPlane.Machines {
-
 		for _, excluded := range excludeFor {
 			// If this machine should be excluded from the individual
 			// health check, continue the out loop.

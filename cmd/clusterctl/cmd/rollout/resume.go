@@ -43,9 +43,8 @@ var (
 		clusterctl alpha rollout resume machinedeployment/my-md-0`)
 )
 
-// NewCmdRolloutResume returns a Command instance for 'rollout resume' sub command
+// NewCmdRolloutResume returns a Command instance for 'rollout resume' sub command.
 func NewCmdRolloutResume(cfgFile string) *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:                   "resume RESOURCE",
 		DisableFlagsInUseLine: true,

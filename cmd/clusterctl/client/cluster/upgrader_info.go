@@ -26,7 +26,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
-// upgradeInfo holds all the information required for taking upgrade decisions for a provider
+// upgradeInfo holds all the information required for taking upgrade decisions for a provider.
 type upgradeInfo struct {
 	// metadata holds the information about releaseSeries and the link between release series and the API Version of Cluster API (contract).
 	// e.g. release series 0.5.x for the AWS provider --> v1alpha3
@@ -44,6 +44,7 @@ type upgradeInfo struct {
 }
 
 // getUpgradeInfo returns all the info required for taking upgrade decisions for a provider.
+// NOTE: This could contain also versions for the previous or next Cluster API contract (not supported in current clusterctl release, but upgrade plan should report this options).
 func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgradeInfo, error) {
 	// Gets the list of versions available in the provider repository.
 	configRepository, err := u.configClient.Providers().Get(provider.ProviderName, provider.GetProviderType())
@@ -96,6 +97,7 @@ func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgr
 	// Filters the versions to be considered for upgrading the provider (next
 	// versions) and checks if the releaseSeries defined in metadata includes
 	// all of them.
+	// NOTE: This could contain also versions for the previous or next Cluster API contract (not supported in current clusterctl release, but upgrade plan should report this options).
 	nextVersions := []version.Version{}
 	for _, repositoryVersion := range repositoryVersions {
 		// we are ignoring the conversion error here because a first check already passed above
@@ -144,9 +146,7 @@ func newUpgradeInfo(metadata *clusterctlv1.Metadata, currentVersion *version.Ver
 	}
 }
 
-// getContractsForUpgrade return the list of API Version of Cluster API (contract) version available for a provider upgrade. e.g.
-// - If the current version of the provider support v1alpha3 contract (the latest), it returns v1alpha3
-// - If the current version of the provider support v1alpha3 contract but there is also the v1alpha4 contract available, it returns v1alpha3, v1alpha4
+// getContractsForUpgrade return the list of API Version of Cluster API (contract) version available for a provider upgrade.
 func (i *upgradeInfo) getContractsForUpgrade() []string {
 	contractsForUpgrade := sets.NewString()
 	for _, releaseSeries := range i.metadata.ReleaseSeries {
@@ -191,7 +191,7 @@ func (i *upgradeInfo) getLatestNextVersion(contract string) *version.Version {
 	return latestNextVersion
 }
 
-// versionTag converts a version to a RepositoryTag
+// versionTag converts a version to a RepositoryTag.
 func versionTag(version *version.Version) string {
 	if version == nil {
 		return ""

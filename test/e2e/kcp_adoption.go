@@ -44,7 +44,7 @@ import (
 type KCPAdoptionSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
-	BootstrapClusterProxy ClusterProxy
+	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
 }
@@ -55,7 +55,7 @@ type ClusterProxy interface {
 	ApplyWithArgs(context.Context, []byte, ...string) error
 }
 
-// KCPAdoptionSpec implements a test that verifies KCP to properly adopt existing control plane Machines
+// KCPAdoptionSpec implements a test that verifies KCP to properly adopt existing control plane Machines.
 func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInput) {
 	var (
 		specName      = "kcp-adoption"
@@ -83,7 +83,6 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 	})
 
 	It("Should adopt up-to-date control plane Machines without modification", func() {
-
 		By("Creating a workload cluster")
 
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
@@ -111,7 +110,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
 		By("Applying the cluster template yaml to the cluster with the 'initial' selector")
-		Expect(input.BootstrapClusterProxy.ApplyWithArgs(ctx, workloadClusterTemplate, "--selector", "kcp-adoption.step1")).ShouldNot(HaveOccurred())
+		Expect(input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate, "--selector", "kcp-adoption.step1")).ShouldNot(HaveOccurred())
 
 		cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 			Getter:    client,
@@ -132,7 +131,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		}, WaitForControlPlaneIntervals...)
 
 		By("Applying the cluster template yaml to the cluster with the 'kcp' selector")
-		Expect(input.BootstrapClusterProxy.ApplyWithArgs(ctx, workloadClusterTemplate, "--selector", "kcp-adoption.step2")).ShouldNot(HaveOccurred())
+		Expect(input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate, "--selector", "kcp-adoption.step2")).ShouldNot(HaveOccurred())
 
 		var controlPlane *controlplanev1.KubeadmControlPlane
 		Eventually(func() *controlplanev1.KubeadmControlPlane {

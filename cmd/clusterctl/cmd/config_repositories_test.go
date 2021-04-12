@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,19 +30,19 @@ func Test_runGetRepositories(t *testing.T) {
 	t.Run("prints output", func(t *testing.T) {
 		g := NewWithT(t)
 
-		tmpDir, err := ioutil.TempDir("", "cc")
+		tmpDir, err := os.MkdirTemp("", "cc")
 		g.Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(tmpDir)
 
 		path := filepath.Join(tmpDir, "clusterctl.yaml")
-		g.Expect(ioutil.WriteFile(path, []byte(template), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
 
 		buf := bytes.NewBufferString("")
 
 		for _, val := range RepositoriesOutputs {
 			cro.output = val
 			g.Expect(runGetRepositories(path, buf)).To(Succeed())
-			out, err := ioutil.ReadAll(buf)
+			out, err := io.ReadAll(buf)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			if val == RepositoriesOutputText {
@@ -67,12 +67,12 @@ func Test_runGetRepositories(t *testing.T) {
 	t.Run("returns error for bad template", func(t *testing.T) {
 		g := NewWithT(t)
 
-		tmpDir, err := ioutil.TempDir("", "cc")
+		tmpDir, err := os.MkdirTemp("", "cc")
 		g.Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(tmpDir)
 
 		path := filepath.Join(tmpDir, "clusterctl.yaml")
-		g.Expect(ioutil.WriteFile(path, []byte("providers: foobar"), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(path, []byte("providers: foobar"), 0600)).To(Succeed())
 
 		buf := bytes.NewBufferString("")
 		g.Expect(runGetRepositories(path, buf)).ToNot(Succeed())

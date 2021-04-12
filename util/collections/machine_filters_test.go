@@ -17,7 +17,10 @@ limitations under the License.
 package collections_test
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/collections"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 	"time"
 
@@ -27,6 +30,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+)
+
+var (
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func falseFilter(_ *clusterv1.Machine) bool {
@@ -220,6 +227,28 @@ func TestInFailureDomain(t *testing.T) {
 	})
 }
 
+func TestActiveMachinesInCluster(t *testing.T) {
+	t.Run("machine with deletion timestamp returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		m := &clusterv1.Machine{}
+		now := metav1.Now()
+		m.SetDeletionTimestamp(&now)
+		g.Expect(collections.ActiveMachines(m)).To(BeFalse())
+	})
+	t.Run("machine with nil deletion timestamp returns true", func(t *testing.T) {
+		g := NewWithT(t)
+		m := &clusterv1.Machine{}
+		g.Expect(collections.ActiveMachines(m)).To(BeTrue())
+	})
+	t.Run("machine with zero deletion timestamp returns true", func(t *testing.T) {
+		g := NewWithT(t)
+		m := &clusterv1.Machine{}
+		zero := metav1.NewTime(time.Time{})
+		m.SetDeletionTimestamp(&zero)
+		g.Expect(collections.ActiveMachines(m)).To(BeTrue())
+	})
+}
+
 func TestMatchesKubernetesVersion(t *testing.T) {
 	t.Run("nil machine returns false", func(t *testing.T) {
 		g := NewWithT(t)
@@ -257,4 +286,72 @@ func TestMatchesKubernetesVersion(t *testing.T) {
 		}
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(machine)).To(BeFalse())
 	})
+}
+
+func TestGetFilteredMachinesForCluster(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "my-namespace",
+			Name:      "my-cluster",
+		},
+	}
+
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(cluster,
+			testControlPlaneMachine("first-machine"),
+			testMachine("second-machine"),
+			testMachine("third-machine")).
+		Build()
+
+	machines, err := collections.GetFilteredMachinesForCluster(ctx, c, cluster)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(machines).To(HaveLen(3))
+
+	// Test the ControlPlaneMachines works
+	machines, err = collections.GetFilteredMachinesForCluster(ctx, c, cluster, collections.ControlPlaneMachines("my-cluster"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(machines).To(HaveLen(1))
+
+	// Test that the filters use AND logic instead of OR logic
+	nameFilter := func(cluster *clusterv1.Machine) bool {
+		return cluster.Name == "first-machine"
+	}
+	machines, err = collections.GetFilteredMachinesForCluster(ctx, c, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(machines).To(HaveLen(1))
+}
+
+func testControlPlaneMachine(name string) *clusterv1.Machine {
+	owned := true
+	ownedRef := []metav1.OwnerReference{
+		{
+			Kind:       "KubeadmControlPlane",
+			Name:       "my-control-plane",
+			Controller: &owned,
+		},
+	}
+	controlPlaneMachine := testMachine(name)
+	controlPlaneMachine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabelName] = ""
+	controlPlaneMachine.OwnerReferences = ownedRef
+
+	return controlPlaneMachine
+}
+
+func testMachine(name string) *clusterv1.Machine {
+	return &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "my-namespace",
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "my-cluster",
+			},
+		},
+	}
 }

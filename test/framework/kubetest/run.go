@@ -18,7 +18,6 @@ package kubetest
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -220,7 +219,7 @@ func countClusterNodes(ctx context.Context, proxy framework.ClusterProxy) (int, 
 }
 
 func isSELinuxEnforcing() bool {
-	dat, err := ioutil.ReadFile("/sys/fs/selinux/enforce")
+	dat, err := os.ReadFile("/sys/fs/selinux/enforce")
 	if err != nil {
 		return false
 	}
@@ -248,7 +247,7 @@ func versionToConformanceImage(kubernetesVersion string) string {
 	return standardImage + ":" + k8sVersion
 }
 
-// buildArgs converts a string map to the format --key=value
+// buildArgs converts a string map to the format --key=value.
 func buildArgs(kv map[string]string, flagMarker string) []string {
 	args := make([]string, len(kv))
 	i := 0

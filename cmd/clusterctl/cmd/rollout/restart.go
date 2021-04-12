@@ -43,9 +43,8 @@ var (
 		clusterctl alpha rollout restart machinedeployment/my-md-0`)
 )
 
-// NewCmdRolloutRestart returns a Command instance for 'rollout restart' sub command
+// NewCmdRolloutRestart returns a Command instance for 'rollout restart' sub command.
 func NewCmdRolloutRestart(cfgFile string) *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:                   "restart RESOURCE",
 		DisableFlagsInUseLine: true,

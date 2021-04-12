@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"sigs.k8s.io/cluster-api/util"
@@ -232,12 +231,16 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, mp, &mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
-		if mp.Status.InfrastructureReady && strings.Contains(err.Error(), "could not find") {
-			// Infra object went missing after the machine pool was up and running
-			log.Error(err, "MachinePool infrastructure reference has been deleted after being ready, setting failure state")
-			mp.Status.FailureReason = capierrors.MachinePoolStatusErrorPtr(capierrors.InvalidConfigurationMachinePoolError)
-			mp.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
-				mp.Spec.Template.Spec.InfrastructureRef.GroupVersionKind(), mp.Spec.Template.Spec.InfrastructureRef.Name))
+		if apierrors.IsNotFound(errors.Cause(err)) {
+			log.Error(err, "infrastructure reference could not be found")
+			if mp.Status.InfrastructureReady {
+				// Infra object went missing after the machine pool was up and running
+				log.Error(err, "infrastructure reference has been deleted after being ready, setting failure state")
+				mp.Status.FailureReason = capierrors.MachinePoolStatusErrorPtr(capierrors.InvalidConfigurationMachinePoolError)
+				mp.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
+					mp.Spec.Template.Spec.InfrastructureRef.GroupVersionKind(), mp.Spec.Template.Spec.InfrastructureRef.Name))
+			}
+			conditions.MarkFalse(mp, clusterv1.InfrastructureReadyCondition, clusterv1.IncorrectExternalRefReason, clusterv1.ConditionSeverityError, fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
 		}
 		return ctrl.Result{}, err
 	}

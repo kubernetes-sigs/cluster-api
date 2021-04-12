@@ -23,6 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestMachineDeploymentDefault(t *testing.T) {
@@ -32,7 +33,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 			Name: "test-md",
 		},
 	}
-
+	t.Run("for MachineDeployment", utildefaulting.DefaultValidateTest(md))
 	md.Default()
 
 	g.Expect(md.Labels[ClusterLabelName]).To(Equal(md.Spec.ClusterName))

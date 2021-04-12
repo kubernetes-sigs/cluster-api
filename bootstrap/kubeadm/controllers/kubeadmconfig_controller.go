@@ -35,7 +35,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
@@ -54,11 +54,11 @@ import (
 )
 
 const (
-	// KubeadmConfigControllerName defines the controller used when creating clients
+	// KubeadmConfigControllerName defines the controller used when creating clients.
 	KubeadmConfigControllerName = "kubeadmconfig-controller"
 )
 
-// InitLocker is a lock that is used around kubeadm init
+// InitLocker is a lock that is used around kubeadm init.
 type InitLocker interface {
 	Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool
 	Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool
@@ -69,7 +69,7 @@ type InitLocker interface {
 // +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;update;patch;delete
 
-// KubeadmConfigReconciler reconciles a KubeadmConfig object
+// KubeadmConfigReconciler reconciles a KubeadmConfig object.
 type KubeadmConfigReconciler struct {
 	Client          client.Client
 	KubeadmInitLock InitLocker
@@ -242,7 +242,8 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	if !cluster.Status.ControlPlaneInitialized {
+	// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
+	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return r.handleClusterNotInitialized(ctx, scope)
 	}
 
@@ -255,7 +256,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// if the JoinConfiguration is missing, create a default one
 	if config.Spec.JoinConfiguration == nil {
 		log.Info("Creating default JoinConfiguration")
-		config.Spec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{}
+		config.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 	}
 
 	// it's a control plane join
@@ -365,22 +366,24 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// kubeadm allows one of these values to be empty; CABPK replace missing values with an empty config, so the cloud init generation
 	// should not handle special cases.
 
+	kubernetesVersion := scope.ConfigOwner.KubernetesVersion()
+
 	if scope.Config.Spec.InitConfiguration == nil {
-		scope.Config.Spec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{
+		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kubeadm.k8s.io/v1beta1",
 				Kind:       "InitConfiguration",
 			},
 		}
 	}
-	initdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.InitConfiguration)
+	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(scope.Config.Spec.InitConfiguration, kubernetesVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal init configuration")
 		return ctrl.Result{}, err
 	}
 
 	if scope.Config.Spec.ClusterConfiguration == nil {
-		scope.Config.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{
+		scope.Config.Spec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kubeadm.k8s.io/v1beta1",
 				Kind:       "ClusterConfiguration",
@@ -391,7 +394,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// injects into config.ClusterConfiguration values from top level object
 	r.reconcileTopLevelObjectSettings(ctx, scope.Cluster, machine, scope.Config)
 
-	clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.ClusterConfiguration)
+	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, kubernetesVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal cluster configuration")
 		return ctrl.Result{}, err
@@ -473,7 +476,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return res, nil
 	}
 
-	joinData, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.JoinConfiguration)
+	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, scope.ConfigOwner.KubernetesVersion())
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -528,7 +531,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	}
 
 	if scope.Config.Spec.JoinConfiguration.ControlPlane == nil {
-		scope.Config.Spec.JoinConfiguration.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
+		scope.Config.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{}
 	}
 
 	certificates := secret.NewControlPlaneJoinCerts(scope.Config.Spec.ClusterConfiguration)
@@ -554,7 +557,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return res, nil
 	}
 
-	joinData, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.JoinConfiguration)
+	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, scope.ConfigOwner.KubernetesVersion())
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -734,7 +737,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 	// otherwise it is necessary to ensure token discovery is properly configured
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken == nil {
-		config.Spec.JoinConfiguration.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{}
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken = &bootstrapv1.BootstrapTokenDiscovery{}
 	}
 
 	// calculate the ca cert hashes if they are not already set

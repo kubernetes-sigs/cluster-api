@@ -1,41 +1,40 @@
 linters:
   disable-all: true
   enable:
-    - asciicheck
-    - bodyclose
-    - deadcode
-    - depguard
-    - dogsled
-    - errcheck
-    - goconst
-    - gocritic
-    - gocyclo
-    - gofmt
-    - goimports
-    - golint
-    - gomodguard
-    - goprintffuncname
-    - gosec
-    - gosimple
-    - govet
-    - ineffassign
-    - maligned
-    - misspell
-    - nakedret
-    - nolintlint
-    - prealloc
-    - rowserrcheck
-    - scopelint
-    - staticcheck
-    - structcheck
-    - stylecheck
-    - testpackage
-    - typecheck
-    - unconvert
-    - unparam
-    - varcheck
-  # Run with --fast=false for more extensive checks
-  fast: true
+  - asciicheck
+  - bodyclose
+  - deadcode
+  - depguard
+  - dogsled
+  - errcheck
+  - goconst
+  - gocritic
+  - gocyclo
+  - gofmt
+  - goimports
+  - golint
+  - goprintffuncname
+  - gosec
+  - gosimple
+  - govet
+  - ineffassign
+  - misspell
+  - nakedret
+  - nolintlint
+  - prealloc
+  - rowserrcheck
+  - scopelint
+  - staticcheck
+  - structcheck
+  - stylecheck
+  - testpackage
+  - typecheck
+  - unconvert
+  - unparam
+  - varcheck
+  - godot
+  - whitespace
+
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
@@ -43,6 +42,7 @@ issues:
   exclude:
     - Using the variable on range scope `(tc)|(rt)|(tt)|(test)|(testcase)|(testCase)` in function literal
     - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
+
 run:
   timeout: 10m
   skip-files:
@@ -50,3 +50,4 @@ run:
     - ".*conversion.*\\.go$"
   skip-dirs:
     - third_party
+  allow-parallel-runners: true

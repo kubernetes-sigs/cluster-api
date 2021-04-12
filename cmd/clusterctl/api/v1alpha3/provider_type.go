@@ -55,7 +55,7 @@ type Provider struct {
 
 // ManifestLabel returns the cluster.x-k8s.io/provider label value for an entry in the provider inventory.
 // Please note that this label uniquely identifies the provider, e.g. bootstrap-kubeadm, but not the instances of
-// the provider, e.g. namespace-1/bootstrap-kubeadm and namespace-2/bootstrap-kubeadm
+// the provider, e.g. namespace-1/bootstrap-kubeadm and namespace-2/bootstrap-kubeadm.
 func (p *Provider) ManifestLabel() string {
 	return ManifestLabel(p.ProviderName, p.GetProviderType())
 }
@@ -144,7 +144,7 @@ func (p ProviderType) Order() int {
 
 // +kubebuilder:object:root=true
 
-// ProviderList contains a list of Provider
+// ProviderList contains a list of Provider.
 type ProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

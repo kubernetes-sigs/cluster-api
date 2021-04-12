@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -126,7 +125,7 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 }
 
 func createTempDir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "cc")
+	dir, err := os.MkdirTemp("", "cc")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -139,7 +138,7 @@ func createLocalTestProviderFile(t *testing.T, tmpDir, path, msg string) string 
 	dst := filepath.Join(tmpDir, path)
 	// Create all directories in the standard layout
 	g.Expect(os.MkdirAll(filepath.Dir(dst), 0755)).To(Succeed())
-	g.Expect(ioutil.WriteFile(dst, []byte(msg), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(dst, []byte(msg), 0600)).To(Succeed())
 
 	return dst
 }

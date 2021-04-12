@@ -34,7 +34,7 @@ type fieldsToHash struct {
 }
 
 // Compute will generate a 32-bit FNV-1a Hash of the Version, InfrastructureTemplate and KubeadmConfigSpec
-// fields for the given KubeadmControlPlaneSpec
+// fields for the given KubeadmControlPlaneSpec.
 func Compute(spec *controlplanev1.KubeadmControlPlaneSpec) string {
 	// since we only care about spec.Version, spec.InfrastructureTemplate, and
 	// spec.KubeadmConfigSpec and to avoid changing the hash if additional fields

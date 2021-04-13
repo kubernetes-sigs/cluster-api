@@ -126,6 +126,39 @@ func Test_inspectImages(t *testing.T) {
 			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master", "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init"},
 			wantErr: false,
 		},
+		{
+			name: "controller with deamonSet",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"apiVersion": "apps/v1",
+							"kind":       daemonSetKind,
+							"spec": map[string]interface{}{
+								"template": map[string]interface{}{
+									"spec": map[string]interface{}{
+										"containers": []map[string]interface{}{
+											{
+												"name":  controllerContainerName,
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master",
+											},
+										},
+										"initContainers": []map[string]interface{}{
+											{
+												"name":  controllerContainerName,
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master", "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init"},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -162,6 +195,40 @@ func TestFixImages(t *testing.T) {
 						Object: map[string]interface{}{
 							"apiVersion": "apps/v1",
 							"kind":       deploymentKind,
+							"spec": map[string]interface{}{
+								"template": map[string]interface{}{
+									"spec": map[string]interface{}{
+										"containers": []map[string]interface{}{
+											{
+												"image": "container-image",
+											},
+										},
+										"initContainers": []map[string]interface{}{
+											{
+												"image": "init-container-image",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				alterImageFunc: func(image string) (string, error) {
+					return fmt.Sprintf("foo-%s", image), nil
+				},
+			},
+			want:    []string{"foo-container-image", "foo-init-container-image"},
+			wantErr: false,
+		},
+		{
+			name: "fix daemonSet containers images",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"apiVersion": "apps/v1",
+							"kind":       daemonSetKind,
 							"spec": map[string]interface{}{
 								"template": map[string]interface{}{
 									"spec": map[string]interface{}{

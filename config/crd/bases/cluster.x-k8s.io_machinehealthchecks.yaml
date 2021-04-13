@@ -319,7 +319,9 @@ spec:
                 x-kubernetes-int-or-string: true
               nodeStartupTimeout:
                 description: Machines older than this duration without a node will
-                  be considered to have failed and will be remediated.
+                  be considered to have failed and will be remediated. If not set,
+                  this value is defaulted to 10 minutes. If you wish to disable this
+                  feature, set the value explicitly to 0.
                 type: string
               remediationTemplate:
                 description: "RemediationTemplate is a reference to a remediation

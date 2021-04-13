@@ -197,9 +197,19 @@ func TestHealthCheckTargets(t *testing.T) {
 	conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 
+	// Ensure the control plane was initialized earlier to prevent it interfering with
+	// NodeStartupTimeout testing.
+	conds := clusterv1.Conditions{}
+	for _, condition := range cluster.GetConditions() {
+		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
+		conds = append(conds, condition)
+	}
+	cluster.SetConditions(conds)
+
 	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 
 	timeoutForMachineToHaveNode := 10 * time.Minute
+	disabledTimeoutForMachineToHaveNode := time.Duration(0)
 
 	// Create a test MHC
 	testMHC := &clusterv1.MachineHealthCheck{
@@ -229,15 +239,26 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	testMachine := newTestMachine("machine1", namespace, clusterName, "node1", mhcSelector)
 
-	// Target for when the node has not yet been seen by the Machine controller
-	testMachineLastUpdated400s := testMachine.DeepCopy()
-	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
-	testMachineLastUpdated400s.Status.LastUpdated = &nowMinus400s
+	// Targets for when the node has not yet been seen by the Machine controller
+	testMachineCreated1200s := testMachine.DeepCopy()
+	nowMinus1200s := metav1.NewTime(time.Now().Add(-1200 * time.Second))
+	testMachineCreated1200s.ObjectMeta.CreationTimestamp = nowMinus1200s
 
-	nodeNotYetStartedTarget := healthCheckTarget{
+	nodeNotYetStartedTarget1200s := healthCheckTarget{
 		Cluster: cluster,
 		MHC:     testMHC,
-		Machine: testMachineLastUpdated400s,
+		Machine: testMachineCreated1200s,
+		Node:    nil,
+	}
+
+	testMachineCreated400s := testMachine.DeepCopy()
+	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
+	testMachineCreated400s.ObjectMeta.CreationTimestamp = nowMinus400s
+
+	nodeNotYetStartedTarget400s := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHC,
+		Machine: testMachineCreated400s,
 		Node:    nil,
 	}
 
@@ -292,18 +313,26 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 
 	testCases := []struct {
-		desc                     string
-		targets                  []healthCheckTarget
-		expectedHealthy          []healthCheckTarget
-		expectedNeedsRemediation []healthCheckTarget
-		expectedNextCheckTimes   []time.Duration
+		desc                        string
+		targets                     []healthCheckTarget
+		timeoutForMachineToHaveNode *time.Duration
+		expectedHealthy             []healthCheckTarget
+		expectedNeedsRemediation    []healthCheckTarget
+		expectedNextCheckTimes      []time.Duration
 	}{
 		{
-			desc:                     "when the node has not yet started",
-			targets:                  []healthCheckTarget{nodeNotYetStartedTarget},
+			desc:                     "when the node has not yet started for shorter than the timeout",
+			targets:                  []healthCheckTarget{nodeNotYetStartedTarget400s},
 			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{},
-			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode},
+			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 400*time.Second},
+		},
+		{
+			desc:                     "when the node has not yet started for longer than the timeout",
+			targets:                  []healthCheckTarget{nodeNotYetStartedTarget1200s},
+			expectedHealthy:          []healthCheckTarget{},
+			expectedNeedsRemediation: []healthCheckTarget{nodeNotYetStartedTarget1200s},
+			expectedNextCheckTimes:   []time.Duration{},
 		},
 		{
 			desc:                     "when the node has gone away",
@@ -340,6 +369,14 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediation: []healthCheckTarget{nodeUnknown400},
 			expectedNextCheckTimes:   []time.Duration{200 * time.Second, 100 * time.Second},
 		},
+		{
+			desc:                        "when the node has not started for a long time but the startup timeout is disabled",
+			targets:                     []healthCheckTarget{nodeNotYetStartedTarget400s},
+			timeoutForMachineToHaveNode: &disabledTimeoutForMachineToHaveNode,
+			expectedHealthy:             []healthCheckTarget{}, // The node is not healthy as it does not have a machine
+			expectedNeedsRemediation:    []healthCheckTarget{},
+			expectedNextCheckTimes:      []time.Duration{}, // We don't have a timeout so no way to know when to re-check
+		},
 	}
 
 	for _, tc := range testCases {
@@ -351,7 +388,13 @@ func TestHealthCheckTargets(t *testing.T) {
 				recorder: record.NewFakeRecorder(5),
 			}
 
-			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), timeoutForMachineToHaveNode)
+			// Allow individual test cases to override the timeoutForMachineToHaveNode.
+			timeout := metav1.Duration{Duration: timeoutForMachineToHaveNode}
+			if tc.timeoutForMachineToHaveNode != nil {
+				timeout.Duration = *tc.timeoutForMachineToHaveNode
+			}
+
+			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), timeout)
 
 			// Round durations down to nearest second account for minute differences
 			// in timing when running tests

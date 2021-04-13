@@ -30,13 +30,15 @@ import (
 )
 
 var (
-	// Default time allowed for a node to start up. Can be made longer as part of
-	// spec if required for particular provider.
+	// DefaultNodeStartupTimeout is the time allowed for a node to start up.
+	// Can be made longer as part of spec if required for particular provider.
 	// 10 minutes should allow the instance to start and the node to join the
 	// cluster on most providers.
-	defaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}
+	DefaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}
 	// Minimum time allowed for a node to start up.
 	minNodeStartupTimeout = metav1.Duration{Duration: 30 * time.Second}
+	// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
+	disabledNodeStartupTimeout = ZeroDuration
 )
 
 // SetMinNodeStartupTimeout allows users to optionally set a custom timeout
@@ -73,7 +75,7 @@ func (m *MachineHealthCheck) Default() {
 	}
 
 	if m.Spec.NodeStartupTimeout == nil {
-		m.Spec.NodeStartupTimeout = &defaultNodeStartupTimeout
+		m.Spec.NodeStartupTimeout = &DefaultNodeStartupTimeout
 	}
 }
 
@@ -129,7 +131,9 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		)
 	}
 
-	if m.Spec.NodeStartupTimeout != nil && m.Spec.NodeStartupTimeout.Seconds() < minNodeStartupTimeout.Seconds() {
+	if m.Spec.NodeStartupTimeout != nil &&
+		m.Spec.NodeStartupTimeout.Seconds() != disabledNodeStartupTimeout.Seconds() &&
+		m.Spec.NodeStartupTimeout.Seconds() < minNodeStartupTimeout.Seconds() {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout.Seconds(), "must be at least 30s"),

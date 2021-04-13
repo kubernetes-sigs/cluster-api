@@ -38,7 +38,13 @@ spec:
   # (Optional) maxUnhealthy prevents further remediation if the cluster is already partially unhealthy
   maxUnhealthy: 40%
   # (Optional) nodeStartupTimeout determines how long a MachineHealthCheck should wait for
-  # a Node to join the cluster, before considering a Machine unhealthy
+  # a Node to join the cluster, before considering a Machine unhealthy.
+  # Defaults to 10 minutes if not specified.
+  # Set to 0 to disable the node startup timeout.
+  # Disabling this timeout will prevent a Machine from being considered unhealthy when
+  # the Node it created has not yet registered with the cluster. This can be useful when
+  # Nodes take a long time to start up or when you only want condition based checks for
+  # Machine health.
   nodeStartupTimeout: 10m
   # selector is used to determine which Machines should be health checked
   selector:

@@ -241,7 +241,10 @@ func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, interv
 		if err := input.Getter.Get(ctx, client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, d); err != nil {
 			return false, err
 		}
-		if d.Spec.Template.Spec.Containers[0].Image == "k8s.gcr.io/coredns:"+input.DNSVersion {
+
+		// NOTE: coredns image name has changed over time (k8s.gcr.io/coredns,
+		// k8s.gcr.io/coredns/coredns), so we are checking only if the version actually changed.
+		if strings.HasSuffix(d.Spec.Template.Spec.Containers[0].Image, fmt.Sprintf(":%s", input.DNSVersion)) {
 			return true, nil
 		}
 		return false, nil

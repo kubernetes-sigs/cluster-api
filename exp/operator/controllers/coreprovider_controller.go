@@ -27,7 +27,7 @@ import (
 	operatorv1alpha4 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
 )
 
-// CoreProviderReconciler reconciles a CoreProvider object
+// CoreProviderReconciler reconciles a CoreProvider object.
 type CoreProviderReconciler struct {
 	client.Client
 	Log    logr.Logger

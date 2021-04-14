@@ -20,19 +20,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// InfrastructureProviderSpec defines the desired state of InfrastructureProvider
+// InfrastructureProviderSpec defines the desired state of InfrastructureProvider.
 type InfrastructureProviderSpec struct {
 	ProviderSpec `json:",inline"`
 }
 
-// InfrastructureProviderStatus defines the observed state of InfrastructureProvider
+// InfrastructureProviderStatus defines the observed state of InfrastructureProvider.
 type InfrastructureProviderStatus struct {
 	ProviderStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
 
-// InfrastructureProvider is the Schema for the infrastructureproviders API
+// InfrastructureProvider is the Schema for the infrastructureproviders API.
 type InfrastructureProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -43,7 +43,7 @@ type InfrastructureProvider struct {
 
 // +kubebuilder:object:root=true
 
-// InfrastructureProviderList contains a list of InfrastructureProvider
+// InfrastructureProviderList contains a list of InfrastructureProvider.
 type InfrastructureProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

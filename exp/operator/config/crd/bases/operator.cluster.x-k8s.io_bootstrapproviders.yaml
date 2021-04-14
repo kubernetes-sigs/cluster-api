@@ -19,7 +19,7 @@ spec:
   - name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: BootstrapProvider is the Schema for the bootstrapproviders API
+        description: BootstrapProvider is the Schema for the bootstrapproviders API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -30,10 +30,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: BootstrapProviderSpec defines the desired state of BootstrapProvider
+            description: BootstrapProviderSpec defines the desired state of BootstrapProvider.
             type: object
           status:
-            description: BootstrapProviderStatus defines the observed state of BootstrapProvider
+            description: BootstrapProviderStatus defines the observed state of BootstrapProvider.
             type: object
         type: object
     served: true

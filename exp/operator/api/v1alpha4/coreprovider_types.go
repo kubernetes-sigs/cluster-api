@@ -20,19 +20,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CoreProviderSpec defines the desired state of CoreProvider
+// CoreProviderSpec defines the desired state of CoreProvider.
 type CoreProviderSpec struct {
 	ProviderSpec `json:",inline"`
 }
 
-// CoreProviderStatus defines the observed state of CoreProvider
+// CoreProviderStatus defines the observed state of CoreProvider.
 type CoreProviderStatus struct {
 	ProviderStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
 
-// CoreProvider is the Schema for the coreproviders API
+// CoreProvider is the Schema for the coreproviders API.
 type CoreProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -43,7 +43,7 @@ type CoreProvider struct {
 
 // +kubebuilder:object:root=true
 
-// CoreProviderList contains a list of CoreProvider
+// CoreProviderList contains a list of CoreProvider.
 type CoreProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

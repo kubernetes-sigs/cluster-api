@@ -199,6 +199,10 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, cluster *cl
 		return ctrl.Result{}, r.rolloutRolling(ctx, d, msList)
 	}
 
+	if d.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
+		return ctrl.Result{}, r.rolloutOnDelete(ctx, d, msList)
+	}
+
 	return ctrl.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
 }
 

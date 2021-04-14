@@ -31,6 +31,27 @@ repeat
       elseif (New MachineSets Replicas available) then (yes)
         #LightBlue:Scale MachineSet down;
       endif
+    elseif (OnDelete Deployment Strategy) then (yes)
+      :Select newest MachineSet;
+      if (Too Many replicas) then (yes)
+        #LightBlue:Scale machineSet down;
+      elseif (Not Enough Replicas)
+        #LightBlue:Create new replicas;
+      endif
+      repeat
+      if (Old MachineSet Has Desired Replicas) then (yes)
+        if (Old MachineSet Has Actual Replicas Deleting) then (yes)
+          :Scale down DesiredReplicas to ActualReplicas - DeletingReplicas;
+        endif
+      endif
+      repeat while (More Old MachineSets need Processing) then (yes)
+      repeat
+      if (MachineDeployment Desired Replicas < Desired Replicas of All MachineSets) then (yes)
+        if (Old MachineSet Has Desired Replicas) then (yes)
+          :Remove replica;
+        endif
+      endif
+      repeat while (MachineDeployment Desired Replicas != Desired Replicas of All MachineSets) then (yes)
     else (no)
       #Pink:Unknown strategy;
     endif

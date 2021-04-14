@@ -9,7 +9,7 @@ example, this command can be leveraged in local and CI scripts or for
 development purposes.
 
 clusterctl ships with a simple yaml processor that performs variable
-substitution that takes into account of default values.
+substitution that takes into account default values.
 Under the hood, clusterctl's yaml processor uses
 [drone/envsubst][drone-envsubst] to replace variables and uses the defaults if
 necessary.

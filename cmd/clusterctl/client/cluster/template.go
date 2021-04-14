@@ -19,13 +19,12 @@ package cluster
 import (
 	"context"
 	"encoding/base64"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v33/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
@@ -152,7 +151,7 @@ func (t *templateClient) getLocalFileContent(rURL *url.URL) ([]byte, error) {
 	if f.IsDir() {
 		return nil, errors.Errorf("invalid path: file %q is actually a directory", rURL.Path)
 	}
-	content, err := ioutil.ReadFile(rURL.Path)
+	content, err := os.ReadFile(rURL.Path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read file %q", rURL.Path)
 	}
@@ -212,7 +211,7 @@ func getGitHubClient(configVariablesClient config.VariablesClient) (*github.Clie
 	return github.NewClient(authenticatingHTTPClient), nil
 }
 
-// handleGithubErr wraps error messages
+// handleGithubErr wraps error messages.
 func handleGithubErr(err error, message string, args ...interface{}) error {
 	if _, ok := err.(*github.RateLimitError); ok {
 		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API tokens a assign it to the GITHUB_TOKEN environment variable")

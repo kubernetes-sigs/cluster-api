@@ -21,7 +21,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v33/github"
 )
 
 const baseURLPath = "/api-v3"

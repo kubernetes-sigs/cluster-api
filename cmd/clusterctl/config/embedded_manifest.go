@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package config
 
-package kubernetesversions
+import _ "embed"
 
-//go:generate sh -c "go-bindata -nometadata -pkg kubernetesversions -o zz_generated.bindata.go.tmp data && cat ../../../hack/boilerplate/boilerplate.generatego.txt zz_generated.bindata.go.tmp > zz_generated.bindata.go && rm zz_generated.bindata.go.tmp"
+//go:embed manifest/clusterctl-api.yaml
+var ClusterctlAPIManifest []byte

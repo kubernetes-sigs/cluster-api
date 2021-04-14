@@ -15,7 +15,7 @@ All Infrastructure Providers are maintained by independent teams. Other Bootstra
 
 ## Supported Kubernetes Versions
 
-The project aims to keep the current minor release compatible with the actively supported Kubernetes minor releases, i.e., the current release (N), N-1, and N-2. To find out the exact range of Kubernetes versions supported by each  component, please see the [tables](#release-components) below.
+The project aims to keep the current minor release compatible with the actively supported Kubernetes minor releases, i.e., the current release (N), N-1, and N-2. To find out the exact range of Kubernetes versions supported by each component, please see the [tables](#release-components) below.
 
 See the [following section](#kubernetes-version-support-as-a-function-of-cluster-topology) to understand how cluster topology affects version support.
 
@@ -52,6 +52,7 @@ These diagrams show the relationships between components in a Cluster API releas
 | Kubernetes v1.17 |                             | ✓                           |
 | Kubernetes v1.18 |                             | ✓                           |
 | Kubernetes v1.19 |                             | ✓                           |
+| Kubernetes v1.20 |                             | ✓                           |
 
 The Core Provider also talks to API server of every Workload Cluster. Therefore, the Workload Cluster's Kubernetes version must also be compatible.
 
@@ -61,13 +62,15 @@ The Core Provider also talks to API server of every Workload Cluster. Therefore,
 | ---------------------------------- | --------------------------- | --------------------------- |
 | Kubernetes v1.13                   |                             |                             |
 | Kubernetes v1.14 + kubeadm/v1beta1 | ✓                           |                             |
-| Kubernetes v1.15 + kubeadm/v1beta1 | ✓                           |                             |
-| Kubernetes v1.16 + kubeadm/v1beta1 | ✓                           | ✓                           |
-| Kubernetes v1.17 + kubeadm/v1beta1 |                             | ✓                           |
-| Kubernetes v1.18 + kubeadm/v1beta1 |                             | ✓                           |
-| Kubernetes v1.19 + kubeadm/v1beta1 |                             | ✓                           |
+| Kubernetes v1.15 + kubeadm/v1beta2 | ✓                           |                             |
+| Kubernetes v1.16 + kubeadm/v1beta2 | ✓                           | ✓                           |
+| Kubernetes v1.17 + kubeadm/v1beta2 |                             | ✓                           |
+| Kubernetes v1.18 + kubeadm/v1beta2 |                             | ✓                           |
+| Kubernetes v1.19 + kubeadm/v1beta2 |                             | ✓                           |
+| Kubernetes v1.20 + kubeadm/v1beta2 |                             | ✓                           |
 
-The Kubeadm Bootstrap Provider generates configuration using the v1beta1 kubeadm API.
+The Kubeadm Bootstrap Provider generates configuration using the v1beta1 or v1beta2 kubeadm API
+according to the target Kubernetes version.
 
 #### Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)
 
@@ -80,6 +83,7 @@ The Kubeadm Bootstrap Provider generates configuration using the v1beta1 kubeadm
 | Kubernetes v1.17 + etcd/v3 |                             | ✓                           |
 | Kubernetes v1.18 + etcd/v3 |                             | ✓                           |
 | Kubernetes v1.19 + etcd/v3 |                             | ✓                           |
+| Kubernetes v1.20 + etcd/v3 |                             | ✓                           |
 
 The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
 

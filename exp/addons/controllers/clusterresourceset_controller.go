@@ -58,7 +58,7 @@ var (
 // +kubebuilder:rbac:groups=addons.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=addons.cluster.x-k8s.io,resources=clusterresourcesets/status,verbs=get;update;patch
 
-// ClusterResourceSetReconciler reconciles a ClusterResourceSet object
+// ClusterResourceSetReconciler reconciles a ClusterResourceSet object.
 type ClusterResourceSetReconciler struct {
 	Client           client.Client
 	Tracker          *remote.ClusterCacheTracker
@@ -416,7 +416,7 @@ func (r *ClusterResourceSetReconciler) patchOwnerRefToResource(ctx context.Conte
 	return nil
 }
 
-// clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet
+// clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet.
 func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
@@ -454,7 +454,7 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Obje
 	return result
 }
 
-// resourceToClusterResourceSet is mapper function that maps resources to ClusterResourceSet
+// resourceToClusterResourceSet is mapper function that maps resources to ClusterResourceSet.
 func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 

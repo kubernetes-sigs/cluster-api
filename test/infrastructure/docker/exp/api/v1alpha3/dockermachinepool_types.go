@@ -24,11 +24,11 @@ import (
 )
 
 const (
-	// MachinePoolFinalizer allows ReconcileDockerMachinePool to clean up resources
+	// MachinePoolFinalizer allows ReconcileDockerMachinePool to clean up resources.
 	MachinePoolFinalizer = "dockermachinepool.infrastructure.cluster.x-k8s.io"
 )
 
-// DockerMachineTemplate defines the desired state of DockerMachine
+// DockerMachineTemplate defines the desired state of DockerMachine.
 type DockerMachineTemplate struct {
 	// CustomImage allows customizing the container image that is used for
 	// running the machine
@@ -46,7 +46,7 @@ type DockerMachineTemplate struct {
 	ExtraMounts []infrav1.Mount `json:"extraMounts,omitempty"`
 }
 
-// DockerMachinePoolSpec defines the desired state of DockerMachinePool
+// DockerMachinePoolSpec defines the desired state of DockerMachinePool.
 type DockerMachinePoolSpec struct {
 	// Template contains the details used to build a replica machine within the Machine Pool
 	// +optional
@@ -61,7 +61,7 @@ type DockerMachinePoolSpec struct {
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 }
 
-// DockerMachinePoolStatus defines the observed state of DockerMachinePool
+// DockerMachinePoolStatus defines the observed state of DockerMachinePool.
 type DockerMachinePoolStatus struct {
 	// Ready denotes that the machine pool is ready
 	// +optional
@@ -114,7 +114,7 @@ type DockerMachinePoolInstanceStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// DockerMachinePool is the Schema for the dockermachinepools API
+// DockerMachinePool is the Schema for the dockermachinepools API.
 type DockerMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -133,7 +133,7 @@ func (c *DockerMachinePool) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// DockerMachinePoolList contains a list of DockerMachinePool
+// DockerMachinePoolList contains a list of DockerMachinePool.
 type DockerMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

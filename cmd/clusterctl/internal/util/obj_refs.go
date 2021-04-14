@@ -20,33 +20,30 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
-type ResourceTuple struct {
-	Resource string
-	Name     string
-}
-
-// Accepts arguments in resource/name form (e.g. 'resource/<resource_name>').
-func ResourceTypeAndNameArgs(args ...string) ([]ResourceTuple, error) {
-	var tuples []ResourceTuple
+// GetObjectReferences accepts arguments in resource/name form (e.g. 'resource/<resource_name>') and returns a  ObjectReference for each resource/name.
+func GetObjectReferences(namespace string, args ...string) ([]corev1.ObjectReference, error) {
+	var objRefs []corev1.ObjectReference
 	if ok, err := hasCombinedTypeArgs(args); ok {
 		if err != nil {
-			return tuples, err
+			return objRefs, err
 		}
 		for _, s := range args {
-			t, ok, err := splitResourceTypeName(s)
+			ref, ok, err := convertToObjectRef(namespace, s)
 			if err != nil {
-				return tuples, err
+				return objRefs, err
 			}
 			if ok {
-				tuples = append(tuples, t)
+				objRefs = append(objRefs, ref)
 			}
 		}
 	} else {
-		return tuples, fmt.Errorf("arguments must be in resource/name format (e.g. machinedeployment/md-1)")
+		return objRefs, fmt.Errorf("arguments must be in resource/name format (e.g. machinedeployment/md-1)")
 	}
-	return tuples, nil
+	return objRefs, nil
 }
 
 func hasCombinedTypeArgs(args []string) (bool, error) {
@@ -71,19 +68,23 @@ func hasCombinedTypeArgs(args []string) (bool, error) {
 	}
 }
 
-// splitResourceTypeName handles type/name resource formats and returns a resource tuple
-// (empty or not), whether it successfully found one, and an error
-func splitResourceTypeName(s string) (ResourceTuple, bool, error) {
+// convertToObjectRef handles type/name resource formats and returns a ObjectReference
+// (empty or not), whether it successfully found one, and an error.
+func convertToObjectRef(namespace, s string) (corev1.ObjectReference, bool, error) {
 	if !strings.Contains(s, "/") {
-		return ResourceTuple{}, false, nil
+		return corev1.ObjectReference{}, false, nil
 	}
 	seg := strings.Split(s, "/")
 	if len(seg) != 2 {
-		return ResourceTuple{}, false, fmt.Errorf("arguments in resource/name form may not have more than one slash")
+		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource/name form may not have more than one slash")
 	}
 	resource, name := seg[0], seg[1]
 	if len(resource) == 0 || len(name) == 0 {
-		return ResourceTuple{}, false, fmt.Errorf("arguments in resource/name form must have a single resource and name")
+		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource/name form must have a single resource and name")
 	}
-	return ResourceTuple{Resource: resource, Name: name}, true, nil
+	return corev1.ObjectReference{
+		Kind:      resource,
+		Name:      name,
+		Namespace: namespace,
+	}, true, nil
 }

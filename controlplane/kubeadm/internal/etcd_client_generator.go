@@ -70,7 +70,7 @@ func (c *etcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNam
 	return nil, errors.Wrap(kerrors.NewAggregate(errs), "could not establish a connection to any etcd node")
 }
 
-// forLeader takes a list of nodes and returns a client to the leader node
+// forLeader takes a list of nodes and returns a client to the leader node.
 func (c *etcdClientGenerator) forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
 	var errs []error
 

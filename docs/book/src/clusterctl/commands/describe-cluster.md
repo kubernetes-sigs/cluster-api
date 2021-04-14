@@ -1,13 +1,13 @@
 # clusterctl describe cluster
 
-The `clusterctl describe cluster` command provides an "at glance" view of a Cluster API cluster designed
+The `clusterctl describe cluster` command provides an "at a glance" view of a Cluster API cluster designed
 to help the user in quickly understanding if there are problems and where.
 
 For example `clusterctl describe cluster capi-quickstart` will provide an output similar to:
 
 ![](../../images/describe-cluster.png)
 
-The "at glance" view is based on the idea that clusterctl should avoid to overload the user with information,
+The "at a glance" view is based on the idea that clusterctl should avoid overloading the user with information,
 but instead surface problems, if any.
 
 In practice, if you look at the `ControlPlane` node, you might notice that the underlying machines

@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-// All returns a predicate that returns true only if all given predicates return true
+// All returns a predicate that returns true only if all given predicates return true.
 func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -78,7 +78,7 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 	}
 }
 
-// Any returns a predicate that returns true only if any given predicate returns true
+// Any returns a predicate that returns true only if any given predicate returns true.
 func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {

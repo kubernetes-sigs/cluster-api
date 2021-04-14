@@ -71,5 +71,4 @@ func (r *ClusterCacheReconciler) Reconcile(ctx context.Context, req reconcile.Re
 	r.Tracker.deleteAccessor(req.NamespacedName)
 
 	return reconcile.Result{}, nil
-
 }

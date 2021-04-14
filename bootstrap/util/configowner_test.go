@@ -58,6 +58,7 @@ func TestGetConfigOwner(t *testing.T) {
 				Bootstrap: clusterv1.Bootstrap{
 					DataSecretName: pointer.StringPtr("my-data-secret"),
 				},
+				Version: pointer.StringPtr("v1.19.6"),
 			},
 			Status: clusterv1.MachineStatus{
 				InfrastructureReady: true,
@@ -84,6 +85,8 @@ func TestGetConfigOwner(t *testing.T) {
 		g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
 		g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
 		g.Expect(configOwner.IsControlPlaneMachine()).To(BeTrue())
+		g.Expect(configOwner.IsMachinePool()).To(BeFalse())
+		g.Expect(configOwner.KubernetesVersion()).To(Equal("v1.19.6"))
 		g.Expect(*configOwner.DataSecretName()).To(BeEquivalentTo("my-data-secret"))
 	})
 
@@ -101,6 +104,11 @@ func TestGetConfigOwner(t *testing.T) {
 			},
 			Spec: expv1.MachinePoolSpec{
 				ClusterName: "my-cluster",
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						Version: pointer.StringPtr("v1.19.6"),
+					},
+				},
 			},
 			Status: expv1.MachinePoolStatus{
 				InfrastructureReady: true,
@@ -127,6 +135,8 @@ func TestGetConfigOwner(t *testing.T) {
 		g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
 		g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
 		g.Expect(configOwner.IsControlPlaneMachine()).To(BeFalse())
+		g.Expect(configOwner.IsMachinePool()).To(BeTrue())
+		g.Expect(configOwner.KubernetesVersion()).To(Equal("v1.19.6"))
 		g.Expect(configOwner.DataSecretName()).To(BeNil())
 	})
 

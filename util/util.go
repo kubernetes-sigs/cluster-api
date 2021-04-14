@@ -39,31 +39,21 @@ import (
 	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/container"
-	"sigs.k8s.io/cluster-api/util/predicates"
-	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
-	// CharSet defines the alphanumeric set for random string generation
+	// CharSet defines the alphanumeric set for random string generation.
 	CharSet = "0123456789abcdefghijklmnopqrstuvwxyz"
-	// MachineListFormatDeprecationMessage notifies the user that the old
-	// MachineList format is no longer supported
-	MachineListFormatDeprecationMessage = "Your MachineList items must include Kind and APIVersion"
 )
 
 var (
-	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano()))
+	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
 	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 )
@@ -78,7 +68,7 @@ func RandomString(n int) string {
 }
 
 // Ordinalize takes an int and returns the ordinalized version of it.
-// Eg. 1 --> 1st, 103 --> 103rd
+// Eg. 1 --> 1st, 103 --> 103rd.
 func Ordinalize(n int) string {
 	m := map[int]string{
 		0: "th",
@@ -98,80 +88,6 @@ func Ordinalize(n int) string {
 		return fmt.Sprintf("%d%s", n, m[an])
 	}
 	return fmt.Sprintf("%d%s", n, m[an%10])
-}
-
-// ParseMajorMinorPatch returns a semver.Version from the string provided
-// by looking only at major.minor.patch and stripping everything else out.
-// Deprecated: Please use the function in util/version
-func ParseMajorMinorPatch(v string) (semver.Version, error) {
-	return version.ParseMajorMinorPatchTolerant(v)
-}
-
-// ModifyImageRepository takes an imageName (e.g., repository/image:tag), and returns an image name with updated repository
-// Deprecated: Please use the functions in util/container
-func ModifyImageRepository(imageName, repositoryName string) (string, error) {
-	return container.ModifyImageRepository(imageName, repositoryName)
-}
-
-// ModifyImageTag takes an imageName (e.g., repository/image:tag), and returns an image name with updated tag
-// Deprecated: Please use the functions in util/container
-func ModifyImageTag(imageName, tagName string) (string, error) {
-	return container.ModifyImageTag(imageName, tagName)
-}
-
-// ImageTagIsValid ensures that a given image tag is compliant with the OCI spec
-// Deprecated: Please use the functions in util/container
-func ImageTagIsValid(tagName string) bool {
-	return container.ImageTagIsValid(tagName)
-}
-
-// GetMachinesForCluster returns a list of machines associated with the cluster.
-func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (*clusterv1.MachineList, error) {
-	var machines clusterv1.MachineList
-	if err := c.List(
-		ctx,
-		&machines,
-		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels{
-			clusterv1.ClusterLabelName: cluster.Name,
-		},
-	); err != nil {
-		return nil, err
-	}
-	return &machines, nil
-}
-
-// SemverToOCIImageTag is a helper function that replaces all
-// non-allowed symbols in tag strings with underscores.
-// Image tag can only contain lowercase and uppercase letters, digits,
-// underscores, periods and dashes.
-// Current usage is for CI images where all of symbols except '+' are valid,
-// but function is for generic usage where input can't be always pre-validated.
-// Taken from k8s.io/cmd/kubeadm/app/util
-// Deprecated: Please use the functions in util/container
-func SemverToOCIImageTag(version string) string {
-	return container.SemverToOCIImageTag(version)
-}
-
-// GetControlPlaneMachines returns a slice containing control plane machines.
-func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Machine) {
-	for _, machine := range machines {
-		if IsControlPlaneMachine(machine) {
-			res = append(res, machine)
-		}
-	}
-	return
-}
-
-// GetControlPlaneMachinesFromList returns a slice containing control plane machines.
-func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []*clusterv1.Machine) {
-	for i := 0; i < len(machineList.Items); i++ {
-		machine := machineList.Items[i]
-		if IsControlPlaneMachine(&machine) {
-			res = append(res, &machine)
-		}
-	}
-	return
 }
 
 // IsExternalManagedControlPlane returns a bool indicating whether the control plane referenced
@@ -385,7 +301,7 @@ func ReplaceOwnerRef(ownerReferences []metav1.OwnerReference, source metav1.Obje
 	return ownerReferences
 }
 
-// RemoveOwnerRef returns the slice of owner references after removing the supplied owner ref
+// RemoveOwnerRef returns the slice of owner references after removing the supplied owner ref.
 func RemoveOwnerRef(ownerReferences []metav1.OwnerReference, inputRef metav1.OwnerReference) []metav1.OwnerReference {
 	if index := indexOwnerRef(ownerReferences, inputRef); index != -1 {
 		return append(ownerReferences[:index], ownerReferences[index+1:]...)
@@ -401,17 +317,6 @@ func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRefe
 		}
 	}
 	return -1
-}
-
-// PointsTo returns true if any of the owner references point to the given target
-// Deprecated: Use IsOwnedByObject to cover differences in API version or backup/restore that changed UIDs.
-func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
-	for _, ref := range refs {
-		if ref.UID == target.UID {
-			return true
-		}
-	}
-	return false
 }
 
 // IsOwnedByObject returns true if any of the owner references point to the given target.
@@ -506,16 +411,6 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 	return false
 }
 
-var (
-	// IsPaused returns true if the Cluster is paused or the object has the `paused` annotation.
-	// Deprecated: use util/annotations/IsPaused instead
-	IsPaused = annotations.IsPaused
-
-	// HasPausedAnnotation returns true if the object has the `paused` annotation.
-	// Deprecated: use util/annotations/HasPausedAnnotation instead
-	HasPausedAnnotation = annotations.HasPausedAnnotation
-)
-
 // GetCRDWithContract retrieves a list of CustomResourceDefinitions from using controller-runtime Client,
 // filtering with the `contract` label passed in.
 // Returns the first CRD in the list that matches the GroupVersionKind, otherwise returns an error.
@@ -591,20 +486,6 @@ func (o MachinesByCreationTimestamp) Less(i, j int) bool {
 	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
 }
 
-// WatchOnClusterPaused adds a conditional watch to the controlled given as input
-// that sends watch notifications on any create or delete, and only updates
-// that toggle Cluster.Spec.Cluster.
-// Deprecated: Instead add the Watch directly and use predicates.ClusterUnpaused or
-// predicates.ClusterUnpausedAndInfrastructureReady depending on your use case.
-func WatchOnClusterPaused(c controller.Controller, fn handler.MapFunc) error {
-	log := klogr.New().WithName("WatchOnClusterPaused")
-	return c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(fn),
-		predicates.ClusterUnpaused(log),
-	)
-}
-
 // ClusterToObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
 // and returns a list of requests.
 // NB: The objects are required to have `clusterv1.ClusterLabelName` applied.
@@ -637,7 +518,6 @@ func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.
 			})
 		}
 		return results
-
 	}, nil
 }
 

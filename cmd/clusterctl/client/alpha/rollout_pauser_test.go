@@ -21,18 +21,17 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Test_ObjectPauser(t *testing.T) {
 	type fields struct {
-		objs      []client.Object
-		tuple     util.ResourceTuple
-		namespace string
+		objs []client.Object
+		ref  corev1.ObjectReference
 	}
 	tests := []struct {
 		name       string
@@ -54,11 +53,11 @@ func Test_ObjectPauser(t *testing.T) {
 						},
 					},
 				},
-				tuple: util.ResourceTuple{
-					Resource: "machinedeployment",
-					Name:     "md-1",
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "md-1",
+					Namespace: "default",
 				},
-				namespace: "default",
 			},
 			wantErr:    false,
 			wantPaused: true,
@@ -80,11 +79,11 @@ func Test_ObjectPauser(t *testing.T) {
 						},
 					},
 				},
-				tuple: util.ResourceTuple{
-					Resource: "machinedeployment",
-					Name:     "md-1",
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "md-1",
+					Namespace: "default",
 				},
-				namespace: "default",
 			},
 			wantErr:    true,
 			wantPaused: false,
@@ -95,7 +94,7 @@ func Test_ObjectPauser(t *testing.T) {
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			err := r.ObjectPauser(proxy, tt.fields.tuple, tt.fields.namespace)
+			err := r.ObjectPauser(proxy, tt.fields.ref)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

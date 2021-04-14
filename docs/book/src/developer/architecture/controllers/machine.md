@@ -17,13 +17,13 @@ The Machine controller's main responsibilities are:
 * Finding Kubernetes nodes matching the expected providerID in the workload cluster.
 
 After the machine controller sets the OwnerReferences on the associated objects, it waits for the bootstrap
-and infrastructure objects referenced by the machine to have the `Status.Ready` field set to `true`. When 
+and infrastructure objects referenced by the machine to have the `Status.Ready` field set to `true`. When
 the infrastructure object is ready, the machine controller will attempt to read its `Spec.ProviderID` and
 copy it into `Machine.Spec.ProviderID`.
 
 The machine controller uses the kubeconfig for the new workload cluster to watch new nodes coming up.
 When a node appears with `Node.Spec.ProviderID` matching `Machine.Spec.ProviderID`, the machine controller
-transitions the associated machine into the `Provisioned` state. When the infrastructure ref is also  
+transitions the associated machine into the `Provisioned` state. When the infrastructure ref is also
 `Ready`, the machine controller marks the machine as `Running`.
 
 ## Contracts
@@ -111,5 +111,3 @@ The Machine controller will create a secret or use an existing secret in the fol
 | secret name | field name | content |
 |:---:|:---:|---|
 |`<cluster-name>-kubeconfig`|`value`|base64 encoded kubeconfig that is authenticated with the child cluster|
-
-

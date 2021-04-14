@@ -21,7 +21,7 @@ spec:
   - name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: DockerMachineTemplate is the Schema for the dockermachinetemplates API
+        description: DockerMachineTemplate is the Schema for the dockermachinetemplates API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -32,10 +32,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: DockerMachineTemplateSpec defines the desired state of DockerMachineTemplate
+            description: DockerMachineTemplateSpec defines the desired state of DockerMachineTemplate.
             properties:
               template:
-                description: DockerMachineTemplateResource describes the data needed to create a DockerMachine from a template
+                description: DockerMachineTemplateResource describes the data needed to create a DockerMachine from a template.
                 properties:
                   spec:
                     description: Spec is the specification of the desired behavior of the machine.
@@ -49,7 +49,7 @@ spec:
                       extraMounts:
                         description: ExtraMounts describes additional mount points for the node container These may be used to bind a hostPath
                         items:
-                          description: Mount specifies a host volume to mount into a container. This is a simplified version of kind v1alpha4.Mount types
+                          description: Mount specifies a host volume to mount into a container. This is a simplified version of kind v1alpha4.Mount types.
                           properties:
                             containerPath:
                               description: Path of the mount within the container.
@@ -83,7 +83,7 @@ spec:
   - name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: DockerMachineTemplate is the Schema for the dockermachinetemplates API
+        description: DockerMachineTemplate is the Schema for the dockermachinetemplates API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -94,10 +94,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: DockerMachineTemplateSpec defines the desired state of DockerMachineTemplate
+            description: DockerMachineTemplateSpec defines the desired state of DockerMachineTemplate.
             properties:
               template:
-                description: DockerMachineTemplateResource describes the data needed to create a DockerMachine from a template
+                description: DockerMachineTemplateResource describes the data needed to create a DockerMachine from a template.
                 properties:
                   spec:
                     description: Spec is the specification of the desired behavior of the machine.
@@ -111,7 +111,7 @@ spec:
                       extraMounts:
                         description: ExtraMounts describes additional mount points for the node container These may be used to bind a hostPath
                         items:
-                          description: Mount specifies a host volume to mount into a container. This is a simplified version of kind v1alpha4.Mount types
+                          description: Mount specifies a host volume to mount into a container. This is a simplified version of kind v1alpha4.Mount types.
                           properties:
                             containerPath:
                               description: Path of the mount within the container.

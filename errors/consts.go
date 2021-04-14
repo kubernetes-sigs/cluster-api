@@ -17,7 +17,7 @@ limitations under the License.
 package errors
 
 // Constants aren't automatically generated for unversioned packages.
-// Instead share the same constant for all versioned packages
+// Instead share the same constant for all versioned packages.
 type MachineStatusError string
 
 const (
@@ -25,7 +25,7 @@ const (
 	// is not supported by this cluster. This is not a transient error, but
 	// indicates a state that must be fixed before progress can be made.
 	//
-	// Example: the ProviderSpec specifies an instance type that doesn't exist,
+	// Example: the ProviderSpec specifies an instance type that doesn't exist,.
 	InvalidConfigurationMachineError MachineStatusError = "InvalidConfiguration"
 
 	// This indicates that the MachineSpec has been updated in a way that
@@ -55,7 +55,7 @@ const (
 	// Machine represents. This may indicate a transient problem that will be
 	// fixed automatically with time, such as a service outage,
 	//
-	// Example: error updating load balancers
+	// Example: error updating load balancers.
 	UpdateMachineError MachineStatusError = "UpdateError"
 
 	// An error was encountered while trying to delete the Node that this
@@ -72,7 +72,7 @@ const (
 	//
 	// Example use case: A controller that deletes Machines which do
 	// not result in a Node joining the cluster within a given timeout
-	// and that are managed by a MachineSet
+	// and that are managed by a MachineSet.
 	JoinClusterTimeoutMachineError = "JoinClusterTimeoutError"
 )
 

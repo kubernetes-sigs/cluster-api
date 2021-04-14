@@ -159,7 +159,7 @@ Non-Goals listed in this document are intended to scope bound the current v1alph
 3. In service of user story 5, the kubeadm control plane provider must also manage etcd membership via kubeadm as part of scaling down (`kubeadm` takes care of adding the new etcd member when joining).
 4. The control plane provider should provide indicators of health to meet user story 6 and 10. This should include at least the state of etcd and information about which replicas are currently healthy or not. For the default implementation, health attributes based on artifacts kubeadm installs on the cluster may also be of interest to cluster operators.
 5. The control plane provider must be able to upgrade a control plane’s version of Kubernetes as well as updating the underlying machine image on where applicable (e.g. virtual machine based infrastructure).
-6. To address user story 11, the control plane provider must provide Rolling Update strategy similar to MachineDeployment. With `MaxUnavailable` and `MaxSurge` fields user is able to delete old machine first during upgrade. Control plane provider should default the `RolloutStrategy`, `MaxUnavailable` and `MaxSurge` fields such a way that scaling up is the default behavior during upgrade.
+6. To address user story 11, the control plane provider must provide Rolling Update strategy similar to MachineDeployment. With `MaxSurge` field user is able to delete old machine first during upgrade. Control plane provider should default the `RolloutStrategy` and `MaxSurge` fields such a way that scaling up is the default behavior during upgrade.
 
 ### Implementation Details/Notes/Constraints
 
@@ -229,25 +229,13 @@ And the following defaulting:
 ```go
     // RollingUpdate is used to control the desired behavior of rolling update.
     type RollingUpdate struct {
-      // The maximum number of control planes that can be unavailable during the rollout.
-      // Value can be an absolute number 0 or 1.
-      // This needs to be 1 if MaxSurge is 0.
-      // Defaults to 0.
-      // Example: when this is set to 1 and MaxSurge is 0, the control planes can be scaled
-      // down one-by-one when the rolling update starts.
-      // Control plane scale down is disabled when desired number of control planes is 1.
-      // Scale down is possible only if desired number of control planes is 3 or more.   
-      // +optional
-      MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
-  
-      // The maximum number of control planes that can be scheduled above the
-      // desired number of control planes.
-      // Value can be an absolute number 1 or 0.
-      // This needs to be 1 if MaxUnavailable is 0.
-      // Defaults to 1.
-      // Example: when this is set to 1 and MaxUnavailable is 0, the control plane can be scaled
-      // up immediately when the rolling update starts.
-      // +optional
+	  // The maximum number of control planes that can be scheduled above or under the
+	  // desired number of control planes.
+	  // Value can be an absolute number 1 or 0.
+	  // Defaults to 1.
+	  // Example: when this is set to 1, the control plane can be scaled
+	  // up immediately when the rolling update starts.
+	  // +optional
       MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
     }
 ```
@@ -448,25 +436,22 @@ KubeadmControlPlane rollout is triggered by:
 
 ##### Rolling update strategy
 
-Currently KubeadmControlPlane supports only one rollout strategy type the `RollingUpdateStrategyType`. Rolling upgrade strategy's behavior can be modified by using `MaxUnavailable` and `MaxSurge` fields. Both field values can be an absolute number 0 or 1 with following rules:
+Currently KubeadmControlPlane supports only one rollout strategy type the `RollingUpdateStrategyType`. Rolling upgrade strategy's behavior can be modified by using `MaxSurge` field. The field values can be an absolute number 0 or 1.
 
-- If `MaxUnavailable` is set to 0 `MaxSurge` needs to be 1 (default values)
-- If `MaxUnavailable` is set to 1 `MaxSurge` needs to be 0
-
-When `MaxUnavailable` is set to 0 and `MaxSurge` is set to 1 the rollout algorithm is as follows:  
+When `MaxSurge` is set to 1 the rollout algorithm is as follows:  
 
   - Find Machines that have an outdated spec
   - If there is a machine requiring rollout
     - Scale up control plane creating a machine with the new spec
     - Scale down control plane by removing one of the machine that needs rollout (the oldest out-of date machine in the failure domain that has the most control-plane machines on it)
 
-When `MaxUnavailable` is set to 1 and `MaxSurge` is set to 0 the rollout algorithm is as follows:
+When `MaxSurge` is set to 0 the rollout algorithm is as follows:
 
   - KubeadmControlPlane verifies that control plane replica count is >= 3
   - Find Machines that have an outdated spec and scale down the control plane by removing the oldest out-of-date machine.
   - Scale up control plane by creating a new machine with the updated spec
 
-> NOTE: Setting `MaxUnavailable` to 1 and `MaxSurge` to 0 could be use in resource constrained environment like bare-metal, OpenStack or vSphere resource pools, etc when there is no capacity to Scale up the control plane.
+> NOTE: Setting `MaxSurge` to 0 could be use in resource constrained environment like bare-metal, OpenStack or vSphere resource pools, etc when there is no capacity to Scale up the control plane.
 
 ###### Constraints and Assumptions
 

@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// DockerClusterReconciler reconciles a DockerCluster object
+// DockerClusterReconciler reconciles a DockerCluster object.
 type DockerClusterReconciler struct {
 	client.Client
 	Log logr.Logger
@@ -46,7 +46,7 @@ type DockerClusterReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockerclusters/status,verbs=get;update;patch
 
 // Reconcile reads that state of the cluster for a DockerCluster object and makes changes based on the state read
-// and what is in the DockerCluster.Spec
+// and what is in the DockerCluster.Spec.
 func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -184,7 +184,7 @@ func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerClu
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager will add watches for this controller
+// SetupWithManager will add watches for this controller.
 func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerCluster{}).

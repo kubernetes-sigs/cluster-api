@@ -36,8 +36,11 @@ var (
 		# Mark the machinedeployment as paused
 		clusterctl alpha rollout pause machinedeployment/my-md-0
 
-		# Resume an already paused deployment
-		clusterctl alpha rollout resume machinedeployment/my-md-0`)
+		# Resume an already paused machinedeployment
+		clusterctl alpha rollout resume machinedeployment/my-md-0
+
+		# Rollback a machinedeployment
+		clusterctl alpha rollout undo machinedeployment/my-md-0 --to-revision=3`)
 
 	rolloutCmd = &cobra.Command{
 		Use:     "rollout SUBCOMMAND",
@@ -52,4 +55,5 @@ func init() {
 	rolloutCmd.AddCommand(rollout.NewCmdRolloutRestart(cfgFile))
 	rolloutCmd.AddCommand(rollout.NewCmdRolloutPause(cfgFile))
 	rolloutCmd.AddCommand(rollout.NewCmdRolloutResume(cfgFile))
+	rolloutCmd.AddCommand(rollout.NewCmdRolloutUndo(cfgFile))
 }

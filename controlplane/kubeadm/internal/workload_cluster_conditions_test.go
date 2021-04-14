@@ -17,11 +17,11 @@ limitations under the License.
 package internal
 
 import (
-	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+
 	"go.etcd.io/etcd/clientv3"
 	pb "go.etcd.io/etcd/etcdserver/etcdserverpb"
 	corev1 "k8s.io/api/core/v1"
@@ -30,10 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	fake2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -451,9 +451,9 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &v1beta1.ClusterConfiguration{
-							Etcd: v1beta1.Etcd{
-								External: &v1beta1.ExternalEtcd{},
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							Etcd: bootstrapv1.Etcd{
+								External: &bootstrapv1.ExternalEtcd{},
 							},
 						},
 					},
@@ -527,13 +527,13 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			injectClient: &fakeClient{
 				listErr: errors.New("failed to list nodes"),
 			},
-			expectedKCPCondition: conditions.UnknownCondition(controlplanev1.ControlPlaneComponentsHealthyCondition, controlplanev1.ControlPlaneComponentsInspectionFailedReason, "Failed to list nodes which are hosting control plane components"),
+			expectedKCPCondition: conditions.UnknownCondition(controlplanev1.ControlPlaneComponentsHealthyCondition, controlplanev1.ControlPlaneComponentsInspectionFailedReason, "Failed to list nodes which are hosting control plane components: failed to list nodes"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
-					*conditions.UnknownCondition(controlplanev1.MachineAPIServerPodHealthyCondition, controlplanev1.PodInspectionFailedReason, "Failed to get the node which is hosting this component"),
-					*conditions.UnknownCondition(controlplanev1.MachineControllerManagerPodHealthyCondition, controlplanev1.PodInspectionFailedReason, "Failed to get the node which is hosting this component"),
-					*conditions.UnknownCondition(controlplanev1.MachineSchedulerPodHealthyCondition, controlplanev1.PodInspectionFailedReason, "Failed to get the node which is hosting this component"),
-					*conditions.UnknownCondition(controlplanev1.MachineEtcdPodHealthyCondition, controlplanev1.PodInspectionFailedReason, "Failed to get the node which is hosting this component"),
+					*conditions.UnknownCondition(controlplanev1.MachineAPIServerPodHealthyCondition, controlplanev1.PodInspectionFailedReason, "Failed to get the node which is hosting this component: failed to list nodes"),
+					*conditions.UnknownCondition(controlplanev1.MachineControllerManagerPodHealthyCondition, controlplanev1.PodInspectionFailedReason, "Failed to get the node which is hosting this component: failed to list nodes"),
+					*conditions.UnknownCondition(controlplanev1.MachineSchedulerPodHealthyCondition, controlplanev1.PodInspectionFailedReason, "Failed to get the node which is hosting this component: failed to list nodes"),
+					*conditions.UnknownCondition(controlplanev1.MachineEtcdPodHealthyCondition, controlplanev1.PodInspectionFailedReason, "Failed to get the node which is hosting this component: failed to list nodes"),
 				},
 			},
 		},
@@ -692,9 +692,9 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &v1beta1.ClusterConfiguration{
-							Etcd: v1beta1.Etcd{
-								External: &v1beta1.ExternalEtcd{},
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							Etcd: bootstrapv1.Etcd{
+								External: &bootstrapv1.ExternalEtcd{},
 							},
 						},
 					},

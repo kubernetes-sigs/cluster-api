@@ -58,7 +58,7 @@ const (
 // 2. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
 // 3. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
 // 4. Set the watching namespace for the provider controller
-// 5. Adds labels to all the components in order to allow easy identification of the provider objects
+// 5. Adds labels to all the components in order to allow easy identification of the provider objects.
 type Components interface {
 	// configuration of the provider the provider components belongs to.
 	config.Provider
@@ -98,7 +98,7 @@ type Components interface {
 	SharedObjs() []unstructured.Unstructured
 }
 
-// components implement Components
+// components implement Components.
 type components struct {
 	config.Provider
 	version           string
@@ -110,7 +110,7 @@ type components struct {
 	sharedObjs        []unstructured.Unstructured
 }
 
-// ensure components implement Components
+// ensure components implement Components.
 var _ Components = &components{}
 
 func (c *components) Version() string {
@@ -180,7 +180,7 @@ type ComponentsOptions struct {
 	SkipVariables bool
 }
 
-// ComponentsInput represents all the inputs required by NewComponents
+// ComponentsInput represents all the inputs required by NewComponents.
 type ComponentsInput struct {
 	Provider     config.Provider
 	ConfigClient config.Client
@@ -198,9 +198,8 @@ type ComponentsInput struct {
 // 3. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
 // 4. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
 // 5. Set the watching namespace for the provider controller
-// 6. Adds labels to all the components in order to allow easy identification of the provider objects
+// 6. Adds labels to all the components in order to allow easy identification of the provider objects.
 func NewComponents(input ComponentsInput) (*components, error) {
-
 	variables, err := input.Processor.GetVariables(input.RawYaml)
 	if err != nil {
 		return nil, err
@@ -360,7 +359,7 @@ func inspectTargetNamespace(objs []unstructured.Unstructured) (string, error) {
 	return namespace, nil
 }
 
-// addNamespaceIfMissing adda a Namespace object if missing (this ensure the targetNamespace will be created)
+// addNamespaceIfMissing adda a Namespace object if missing (this ensure the targetNamespace will be created).
 func addNamespaceIfMissing(objs []unstructured.Unstructured, targetNamespace string) []unstructured.Unstructured {
 	namespaceObjectFound := false
 	for _, o := range objs {
@@ -403,7 +402,7 @@ func fixTargetNamespace(objs []unstructured.Unstructured, targetNamespace string
 }
 
 // fixRBAC ensures all the ClusterRole and ClusterRoleBinding have the name prefixed with the namespace name and that
-// all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace
+// all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace.
 func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstructured.Unstructured, error) {
 	renamedClusterRoles := map[string]string{}
 	for _, o := range objs {
@@ -479,7 +478,7 @@ func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstru
 }
 
 // inspectWatchNamespace inspects the list of components objects for the default watching namespace
-// the default watching namespace is the namespace the controller is set for watching in the component yaml read from the repository, if any
+// the default watching namespace is the namespace the controller is set for watching in the component yaml read from the repository, if any.
 func inspectWatchNamespace(objs []unstructured.Unstructured) (string, error) {
 	namespace := ""
 	// look for resources of kind Deployment
@@ -534,7 +533,6 @@ func fixWatchNamespace(objs []unstructured.Unstructured, watchingNamespace strin
 		// look for a container with name "manager"
 		for j, c := range d.Spec.Template.Spec.Containers {
 			if c.Name == controllerContainerName {
-
 				// look for the --namespace command arg
 				found := false
 				for k, a := range c.Args {
@@ -574,7 +572,7 @@ func remove(slice []string, i int) []string {
 	return slice[:len(slice)-1]
 }
 
-// addCommonLabels ensures all the provider components have a consistent set of labels
+// addCommonLabels ensures all the provider components have a consistent set of labels.
 func addCommonLabels(objs []unstructured.Unstructured, provider config.Provider) []unstructured.Unstructured {
 	for _, o := range objs {
 		labels := o.GetLabels()

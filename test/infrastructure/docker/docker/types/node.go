@@ -49,7 +49,7 @@ func NewNode(name, image, role string) *Node {
 	}
 }
 
-// WithStatus sets the status of the container and returns the node
+// WithStatus sets the status of the container and returns the node.
 func (n *Node) WithStatus(status string) *Node {
 	n.status = status
 	return n
@@ -86,7 +86,7 @@ func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
 	return ips[0], ips[1], nil
 }
 
-// IsRunning returns if the container is running
+// IsRunning returns if the container is running.
 func (n *Node) IsRunning() bool {
 	return strings.HasPrefix(n.status, "Up")
 }
@@ -118,7 +118,6 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 	command := n.Commander.Command("cp", "/dev/stdin", dest)
 	command.SetStdin(strings.NewReader(content))
 	return command.Run(ctx)
-
 }
 
 // Kill sends the named signal to the container.
@@ -149,7 +148,7 @@ func (c *containerCmder) Command(command string, args ...string) *containerCmd {
 	}
 }
 
-// containerCmd implements exec.Cmd for docker containers
+// containerCmd implements exec.Cmd for docker containers.
 type containerCmd struct {
 	nameOrID string // the container name or ID
 	command  string

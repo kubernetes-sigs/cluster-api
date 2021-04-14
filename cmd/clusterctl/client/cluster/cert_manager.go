@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"crypto/sha256"
+	_ "embed"
 	"fmt"
 	"regexp"
 	"time"
@@ -31,7 +32,6 @@ import (
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
-	manifests "sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	utilresource "sigs.k8s.io/cluster-api/util/resource"
@@ -39,9 +39,6 @@ import (
 )
 
 const (
-	embeddedCertManagerManifestPath              = "cmd/clusterctl/config/assets/cert-manager.yaml"
-	embeddedCertManagerTestResourcesManifestPath = "cmd/clusterctl/config/assets/cert-manager-test-resources.yaml"
-
 	waitCertManagerInterval       = 1 * time.Second
 	waitCertManagerDefaultTimeout = 10 * time.Minute
 
@@ -50,6 +47,13 @@ const (
 
 	certmanagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
 	certmanagerHashAnnotation    = "certmanager.clusterctl.cluster.x-k8s.io/hash"
+)
+
+var (
+	//go:embed assets/cert-manager.yaml
+	certManagerManifest []byte
+	//go:embed assets/cert-manager-test-resources.yaml
+	certManagerTestManifest []byte
 )
 
 // CertManagerUpgradePlan defines the upgrade plan if cert-manager needs to be
@@ -90,27 +94,17 @@ type certManagerClient struct {
 var _ CertManagerClient = &certManagerClient{}
 
 func (cm *certManagerClient) setManifestHash() error {
-	yamlData, err := manifests.Asset(embeddedCertManagerManifestPath)
-	if err != nil {
-		return err
-	}
-	cm.embeddedCertManagerManifestHash = fmt.Sprintf("%x", sha256.Sum256(yamlData))
+	cm.embeddedCertManagerManifestHash = fmt.Sprintf("%x", sha256.Sum256(certManagerManifest))
 	return nil
 }
 
 func (cm *certManagerClient) setManifestVersion() error {
-	// Gets the cert-manager version from the image version in the raw yaml
-	yaml, err := manifests.Asset(embeddedCertManagerManifestPath)
-	if err != nil {
-		return err
-	}
-
 	r, err := regexp.Compile("(?:quay.io/jetstack/cert-manager-controller:)(.*)")
 	if err != nil {
 		return err
 	}
 
-	if match := r.FindStringSubmatch(string(yaml)); len(match) > 0 {
+	if match := r.FindStringSubmatch(string(certManagerManifest)); len(match) > 0 {
 		cm.embeddedCertManagerManifestVersion = match[1]
 		return nil
 	}
@@ -355,14 +349,9 @@ func (cm *certManagerClient) getWaitTimeout() time.Duration {
 	return timeoutDuration
 }
 
-// getManifestObjs gets the cert-manager manifest, convert to unstructured objects, and fix images
+// getManifestObjs gets the cert-manager manifest, convert to unstructured objects, and fix images.
 func (cm *certManagerClient) getManifestObjs() ([]unstructured.Unstructured, error) {
-	yaml, err := manifests.Asset(embeddedCertManagerManifestPath)
-	if err != nil {
-		return nil, err
-	}
-
-	objs, err := utilyaml.ToUnstructured(yaml)
+	objs, err := utilyaml.ToUnstructured(certManagerManifest)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse yaml for cert-manager manifest")
@@ -381,16 +370,10 @@ func (cm *certManagerClient) getManifestObjs() ([]unstructured.Unstructured, err
 // getTestResourcesManifestObjs gets the cert-manager test manifests, converted to unstructured objects.
 // These are used to ensure the cert-manager API components are all ready and the API is available for use.
 func getTestResourcesManifestObjs() ([]unstructured.Unstructured, error) {
-	yaml, err := manifests.Asset(embeddedCertManagerTestResourcesManifestPath)
-	if err != nil {
-		return nil, err
-	}
-
-	objs, err := utilyaml.ToUnstructured(yaml)
+	objs, err := utilyaml.ToUnstructured(certManagerTestManifest)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse yaml for cert-manager test resources manifest")
 	}
-
 	return objs, nil
 }
 

@@ -19,8 +19,8 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
@@ -38,8 +38,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -194,7 +194,6 @@ const (
 // Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
 func appendWebhookConfiguration(mutatingWebhooks []client.Object, validatingWebhooks []client.Object, configyamlFile []byte, tag string) ([]client.Object, []client.Object, error) {
-
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
 		klog.Fatalf("failed to parse yaml")
@@ -227,9 +226,8 @@ func initializeWebhookInEnvironment() {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
 	root := path.Join(path.Dir(filename), "..", "..")
-	configyamlFile, err := ioutil.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml"))
+	configyamlFile, err := os.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml"))
 	if err != nil {
-
 		klog.Fatalf("Failed to read core webhook configuration file: %v ", err)
 	}
 	if err != nil {
@@ -241,7 +239,7 @@ func initializeWebhookInEnvironment() {
 		klog.Fatalf("Failed to append core controller webhook config: %v", err)
 	}
 
-	bootstrapyamlFile, err := ioutil.ReadFile(filepath.Join(root, "bootstrap", "kubeadm", "config", "webhook", "manifests.yaml"))
+	bootstrapyamlFile, err := os.ReadFile(filepath.Join(root, "bootstrap", "kubeadm", "config", "webhook", "manifests.yaml"))
 	if err != nil {
 		klog.Fatalf("Failed to get bootstrap yaml file: %v", err)
 	}
@@ -250,7 +248,7 @@ func initializeWebhookInEnvironment() {
 	if err != nil {
 		klog.Fatalf("Failed to append bootstrap controller webhook config: %v", err)
 	}
-	controlplaneyamlFile, err := ioutil.ReadFile(filepath.Join(root, "controlplane", "kubeadm", "config", "webhook", "manifests.yaml"))
+	controlplaneyamlFile, err := os.ReadFile(filepath.Join(root, "controlplane", "kubeadm", "config", "webhook", "manifests.yaml"))
 	if err != nil {
 		klog.Fatalf(" Failed to get controlplane yaml file err: %v", err)
 	}
@@ -295,7 +293,7 @@ func (t *TestEnvironment) Stop() error {
 }
 
 func (t *TestEnvironment) CreateKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster) error {
-	return kubeconfig.CreateEnvTestSecret(ctx, t.Client, t.Config, cluster)
+	return t.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(t.Config, cluster)))
 }
 
 func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) error {

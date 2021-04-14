@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-// MatchMachineHealthCheckStatus returns a custom matcher to check equality of clusterv1.MachineHealthCheckStatus
+// MatchMachineHealthCheckStatus returns a custom matcher to check equality of clusterv1.MachineHealthCheckStatus.
 func MatchMachineHealthCheckStatus(expected *clusterv1.MachineHealthCheckStatus) types.GomegaMatcher {
 	return &machineHealthCheckStatusMatcher{
 		expected: expected,

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 )
@@ -36,6 +37,10 @@ type RolloutOptions struct {
 	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
 	// from the current configuration.
 	Namespace string
+
+	// Revision number to rollback to when issuing the undo command.
+	// Revision number of a specific revision when issuing the history command.
+	ToRevision int64
 }
 
 func (c *clusterctlClient) RolloutRestart(options RolloutOptions) error {
@@ -43,12 +48,12 @@ func (c *clusterctlClient) RolloutRestart(options RolloutOptions) error {
 	if err != nil {
 		return err
 	}
-	tuples, err := getResourceTuples(clusterClient, options)
+	objRefs, err := getObjectRefs(clusterClient, options)
 	if err != nil {
 		return err
 	}
-	for _, t := range tuples {
-		if err := c.alphaClient.Rollout().ObjectRestarter(clusterClient.Proxy(), t, options.Namespace); err != nil {
+	for _, ref := range objRefs {
+		if err := c.alphaClient.Rollout().ObjectRestarter(clusterClient.Proxy(), ref); err != nil {
 			return err
 		}
 	}
@@ -60,12 +65,12 @@ func (c *clusterctlClient) RolloutPause(options RolloutOptions) error {
 	if err != nil {
 		return err
 	}
-	tuples, err := getResourceTuples(clusterClient, options)
+	objRefs, err := getObjectRefs(clusterClient, options)
 	if err != nil {
 		return err
 	}
-	for _, t := range tuples {
-		if err := c.alphaClient.Rollout().ObjectPauser(clusterClient.Proxy(), t, options.Namespace); err != nil {
+	for _, ref := range objRefs {
+		if err := c.alphaClient.Rollout().ObjectPauser(clusterClient.Proxy(), ref); err != nil {
 			return err
 		}
 	}
@@ -77,37 +82,54 @@ func (c *clusterctlClient) RolloutResume(options RolloutOptions) error {
 	if err != nil {
 		return err
 	}
-	tuples, err := getResourceTuples(clusterClient, options)
+	objRefs, err := getObjectRefs(clusterClient, options)
 	if err != nil {
 		return err
 	}
-	for _, t := range tuples {
-		if err := c.alphaClient.Rollout().ObjectResumer(clusterClient.Proxy(), t, options.Namespace); err != nil {
+	for _, ref := range objRefs {
+		if err := c.alphaClient.Rollout().ObjectResumer(clusterClient.Proxy(), ref); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func getResourceTuples(clusterClient cluster.Client, options RolloutOptions) ([]util.ResourceTuple, error) {
+func (c *clusterctlClient) RolloutUndo(options RolloutOptions) error {
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	if err != nil {
+		return err
+	}
+	objRefs, err := getObjectRefs(clusterClient, options)
+	if err != nil {
+		return err
+	}
+	for _, ref := range objRefs {
+		if err := c.alphaClient.Rollout().ObjectRollbacker(clusterClient.Proxy(), ref, options.ToRevision); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getObjectRefs(clusterClient cluster.Client, options RolloutOptions) ([]corev1.ObjectReference, error) {
 	// If the option specifying the Namespace is empty, try to detect it.
 	if options.Namespace == "" {
 		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
 		if err != nil {
-			return []util.ResourceTuple{}, err
+			return []corev1.ObjectReference{}, err
 		}
 		options.Namespace = currentNamespace
 	}
 
 	if len(options.Resources) == 0 {
-		return []util.ResourceTuple{}, fmt.Errorf("required resource not specified")
+		return []corev1.ObjectReference{}, fmt.Errorf("required resource not specified")
 	}
 	normalized := normalizeResources(options.Resources)
-	tuples, err := util.ResourceTypeAndNameArgs(normalized...)
+	objRefs, err := util.GetObjectReferences(options.Namespace, normalized...)
 	if err != nil {
-		return []util.ResourceTuple{}, err
+		return []corev1.ObjectReference{}, err
 	}
-	return tuples, nil
+	return objRefs, nil
 }
 
 func normalizeResources(input []string) []string {

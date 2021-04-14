@@ -24,12 +24,19 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestMachineHealthCheckDefault(t *testing.T) {
 	g := NewWithT(t)
-	mhc := &MachineHealthCheck{}
-
+	mhc := &MachineHealthCheck{
+		Spec: MachineHealthCheckSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"foo": "bar"},
+			},
+		},
+	}
+	t.Run("for MachineHealthCheck", utildefaulting.DefaultValidateTest(mhc))
 	mhc.Default()
 
 	g.Expect(mhc.Labels[ClusterLabelName]).To(Equal(mhc.Spec.ClusterName))

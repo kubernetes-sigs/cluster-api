@@ -28,7 +28,6 @@ import (
 )
 
 func Test_WorkloadCluster_GetKubeconfig(t *testing.T) {
-
 	var (
 		validKubeConfig = `
 clusters:
@@ -96,5 +95,4 @@ users:
 			g.Expect(data).To(Equal(string(validSecret.Data[secret.KubeconfigDataName])))
 		})
 	}
-
 }

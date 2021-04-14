@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -114,7 +115,6 @@ func newObjectMover(fromProxy Proxy, fromProviderInventory InventoryClient) *obj
 
 // checkProvisioningCompleted checks if Cluster API has already completed the provisioning of the infrastructure for the objects involved in the move operation.
 func (o *objectMover) checkProvisioningCompleted(graph *objectGraph) error {
-
 	if o.dryRun {
 		return nil
 	}
@@ -137,7 +137,8 @@ func (o *objectMover) checkProvisioningCompleted(graph *objectGraph) error {
 			continue
 		}
 
-		if !clusterObj.Status.ControlPlaneInitialized {
+		// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
+		if !conditions.IsTrue(clusterObj, clusterv1.ControlPlaneInitializedCondition) {
 			errList = append(errList, errors.Errorf("cannot start the move operation while the control plane for %q %s/%s is not yet initialized", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
 			continue
 		}
@@ -205,7 +206,7 @@ func getMachineObj(proxy Proxy, machine *node, machineObj *clusterv1.Machine) er
 	return nil
 }
 
-// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster
+// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	log := logf.Log
 
@@ -256,7 +257,7 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	return nil
 }
 
-// moveSequence defines a list of group of moveGroups
+// moveSequence defines a list of group of moveGroups.
 type moveSequence struct {
 	groups   []moveGroup
 	nodesMap map[*node]empty
@@ -349,7 +350,7 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) err
 		if err := retryWithExponentialBackoff(setClusterPauseBackoff, func() error {
 			return patchCluster(proxy, cluster, patch)
 		}); err != nil {
-			return err
+			return errors.Wrapf(err, "error setting Cluster.Spec.Paused=%t", value)
 		}
 	}
 	return nil
@@ -374,7 +375,7 @@ func patchCluster(proxy Proxy, cluster *node, patch client.Patch) error {
 	}
 
 	if err := cFrom.Patch(ctx, clusterObj, patch); err != nil {
-		return errors.Wrapf(err, "error pausing reconciliation for %q %s/%s",
+		return errors.Wrapf(err, "error patching %q %s/%s",
 			clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
 	}
 
@@ -383,7 +384,6 @@ func patchCluster(proxy Proxy, cluster *node, patch client.Patch) error {
 
 // ensureNamespaces ensures all the expected target namespaces are in place before creating objects.
 func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error {
-
 	if o.dryRun {
 		return nil
 	}
@@ -391,7 +391,6 @@ func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error 
 	ensureNamespaceBackoff := newWriteBackoff()
 	namespaces := sets.NewString()
 	for _, node := range graph.getMoveNodes() {
-
 		// ignore global/cluster-wide objects
 		if node.isGlobal {
 			continue
@@ -556,7 +555,6 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 			ownerRefs = append(ownerRefs, ownerRef)
 		}
 		obj.SetOwnerReferences(ownerRefs)
-
 	}
 
 	// Creates the targetObj into the target management cluster.

@@ -579,7 +579,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete123",
 			Namespace:         "default",
-			Finalizers:        []string{expv1.MachinePoolFinalizer},
+			Finalizers:        []string{expv1.MachinePoolFinalizer, "test"},
 			DeletionTimestamp: &dt,
 		},
 		Spec: expv1.MachinePoolSpec{
@@ -606,11 +606,10 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 
 	var actual expv1.MachinePool
 	g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
-	g.Expect(actual.ObjectMeta.Finalizers).To(BeEmpty())
+	g.Expect(actual.ObjectMeta.Finalizers).To(Equal([]string{"test"}))
 }
 
 func TestMachinePoolConditions(t *testing.T) {
-
 	testCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
 	}
@@ -709,6 +708,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		name                string
 		bootstrapReady      bool
 		infrastructureReady bool
+		expectError         bool
 		beforeFunc          func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList)
 		conditionAssertFunc func(t *testing.T, getter conditions.Getter)
 	}{
@@ -813,6 +813,25 @@ func TestMachinePoolConditions(t *testing.T) {
 				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},
+		{
+			name:           "incorrect infrastructure reference",
+			bootstrapReady: true,
+			expectError:    true,
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					Kind:       "InfrastructureConfig",
+					Name:       "does-not-exist",
+				}
+			},
+			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				g := NewWithT(t)
+
+				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
+			},
+		},
 	}
 
 	for _, tt := range testcases {
@@ -845,7 +864,9 @@ func TestMachinePoolConditions(t *testing.T) {
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})
-			g.Expect(err).NotTo(HaveOccurred())
+			if !tt.expectError {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
 
 			m := &expv1.MachinePool{}
 			machinePoolKey := client.ObjectKeyFromObject(machinePool)
@@ -856,7 +877,7 @@ func TestMachinePoolConditions(t *testing.T) {
 	}
 }
 
-// adds a condition list to an external object
+// adds a condition list to an external object.
 func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
 	existingConditions := clusterv1.Conditions{}
 	if cs := conditions.UnstructuredGetter(u).GetConditions(); len(cs) != 0 {

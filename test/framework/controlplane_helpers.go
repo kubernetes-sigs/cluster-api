@@ -21,13 +21,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -301,15 +300,15 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	Expect(err).ToNot(HaveOccurred())
 
 	input.ControlPlane.Spec.Version = input.KubernetesUpgradeVersion
-	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = v1beta1.Etcd{
-		Local: &v1beta1.LocalEtcd{
-			ImageMeta: v1beta1.ImageMeta{
+	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = bootstrapv1.Etcd{
+		Local: &bootstrapv1.LocalEtcd{
+			ImageMeta: bootstrapv1.ImageMeta{
 				ImageTag: input.EtcdImageTag,
 			},
 		},
 	}
-	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = v1beta1.DNS{
-		ImageMeta: v1beta1.ImageMeta{
+	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
+		ImageMeta: bootstrapv1.ImageMeta{
 			ImageTag: input.DNSImageTag,
 		},
 	}

@@ -47,7 +47,7 @@ const (
 	// GroupItemsAnnotation contains the list of names for the objects included in a group object.
 	GroupItemsAnnotation = "tree.cluster.x-k8s.io.io/group-items"
 
-	// GroupItemsSeparator is the separator used in the GroupItemsAnnotation
+	// GroupItemsSeparator is the separator used in the GroupItemsAnnotation.
 	GroupItemsSeparator = ", "
 )
 

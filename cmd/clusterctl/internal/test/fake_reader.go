@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// FakeReader provider a reader implementation backed by a map
+// FakeReader provider a reader implementation backed by a map.
 type FakeReader struct {
 	initialized bool
 	variables   map[string]string
@@ -31,7 +31,7 @@ type FakeReader struct {
 }
 
 // configProvider is a mirror of config.Provider, re-implemented here in order to
-// avoid circular dependencies between pkg/client/config and pkg/internal/test
+// avoid circular dependencies between pkg/client/config and pkg/internal/test.
 type configProvider struct {
 	Name string                    `json:"name,omitempty"`
 	URL  string                    `json:"url,omitempty"`
@@ -39,7 +39,7 @@ type configProvider struct {
 }
 
 // imageMeta is a mirror of config.imageMeta, re-implemented here in order to
-// avoid circular dependencies between pkg/client/config and pkg/internal/test
+// avoid circular dependencies between pkg/client/config and pkg/internal/test.
 type imageMeta struct {
 	Repository string `json:"repository,omitempty"`
 	Tag        string `json:"tag,omitempty"`

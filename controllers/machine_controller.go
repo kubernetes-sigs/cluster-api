@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,7 +32,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -52,7 +53,7 @@ import (
 )
 
 const (
-	// MachineControllerName defines the controller used when creating clients
+	// MachineControllerName defines the controller used when creating clients.
 	MachineControllerName = "machine-controller"
 )
 
@@ -71,7 +72,7 @@ var (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
-// MachineReconciler reconciles a Machine object
+// MachineReconciler reconciles a Machine object.
 type MachineReconciler struct {
 	Client           client.Client
 	Tracker          *remote.ClusterCacheTracker
@@ -124,21 +125,6 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Controller: controller,
 	}
 	return nil
-}
-
-func (r *MachineReconciler) clusterToActiveMachines(a client.Object) []reconcile.Request {
-	requests := []reconcile.Request{}
-	machines, err := getActiveMachinesInCluster(context.TODO(), r.Client, a.GetNamespace(), a.GetName())
-	if err != nil {
-		return requests
-	}
-	for _, m := range machines {
-		r := reconcile.Request{
-			NamespacedName: util.ObjectKey(m),
-		}
-		requests = append(requests, r)
-	}
-	return requests
 }
 
 func (r *MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -251,7 +237,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		if err := r.watchClusterNodes(ctx, cluster); err != nil {
 			log.Error(err, "error watching nodes on target cluster")
 			return ctrl.Result{}, err
@@ -408,7 +394,6 @@ func (r *MachineReconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 	}
 
 	return true
-
 }
 
 func (r *MachineReconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
@@ -471,8 +456,8 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 		}
 	}
 
-	// Get all of the machines that belong to this cluster.
-	machines, err := getActiveMachinesInCluster(ctx, r.Client, machine.Namespace, machine.Labels[clusterv1.ClusterLabelName])
+	// Get all of the active machines that belong to this cluster.
+	machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, cluster, collections.ActiveMachines)
 	if err != nil {
 		return err
 	}
@@ -480,15 +465,14 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 	// Whether or not it is okay to delete the NodeRef depends on the
 	// number of remaining control plane members and whether or not this
 	// machine is one of them.
-	switch numControlPlaneMachines := len(util.GetControlPlaneMachines(machines)); {
-	case numControlPlaneMachines == 0:
+	numControlPlaneMachines := len(machines.Filter(collections.ControlPlaneMachines(cluster.Name)))
+	if numControlPlaneMachines == 0 {
 		// Do not delete the NodeRef if there are no remaining members of
 		// the control plane.
 		return errNoControlPlaneNodes
-	default:
-		// Otherwise it is okay to delete the NodeRef.
-		return nil
 	}
+	// Otherwise it is okay to delete the NodeRef.
+	return nil
 }
 
 func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
@@ -708,7 +692,7 @@ type writer struct {
 	logFunc func(args ...interface{})
 }
 
-// Write passes string(p) into writer's logFunc and always returns len(p)
+// Write passes string(p) into writer's logFunc and always returns len(p).
 func (w writer) Write(p []byte) (n int, err error) {
 	w.logFunc(string(p))
 	return len(p), nil

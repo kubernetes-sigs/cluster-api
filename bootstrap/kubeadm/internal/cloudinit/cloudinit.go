@@ -18,6 +18,7 @@ package cloudinit
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"text/template"
 
@@ -91,15 +92,15 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	}
 
 	if _, err := tm.Parse(diskSetupTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse users template")
+		return nil, errors.Wrap(err, "failed to parse disk setup template")
 	}
 
 	if _, err := tm.Parse(fsSetupTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse users template")
+		return nil, errors.Wrap(err, "failed to parse fs setup template")
 	}
 
 	if _, err := tm.Parse(mountsTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse users template")
+		return nil, errors.Wrap(err, "failed to parse mounts template")
 	}
 
 	t, err := tm.Parse(tpl)
@@ -115,12 +116,13 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+var (
+	//go:embed kubeadm-bootstrap-script.sh
+	kubeadmBootstrapScript string
+)
+
 func generateBootstrapScript(input interface{}) (*bootstrapv1.File, error) {
-	scriptBytes, err := bootstrapKubeadmInternalCloudinitKubeadmBootstrapScriptShBytes()
-	if err != nil {
-		return nil, errors.Wrap(err, "couldn't read bootstrap script")
-	}
-	joinScript, err := generate("JoinScript", string(scriptBytes), input)
+	joinScript, err := generate("JoinScript", kubeadmBootstrapScript, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to bootstrap script for machine joins")
 	}

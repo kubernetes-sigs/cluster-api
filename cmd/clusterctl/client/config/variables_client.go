@@ -17,7 +17,7 @@ limitations under the License.
 package config
 
 const (
-	// GitHubTokenVariable defines a variable hosting the GitHub access token
+	// GitHubTokenVariable defines a variable hosting the GitHub access token.
 	GitHubTokenVariable = "github-token"
 )
 

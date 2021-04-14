@@ -21,7 +21,7 @@ spec:
   - name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: KubeadmConfig is the Schema for the kubeadmconfigs API
+        description: KubeadmConfig is the Schema for the kubeadmconfigs API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -382,7 +382,7 @@ spec:
                   bootstrapTokens:
                     description: BootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create. This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
                     items:
-                      description: BootstrapToken describes one bootstrap token, stored as a Secret in the cluster
+                      description: BootstrapToken describes one bootstrap token, stored as a Secret in the cluster.
                       properties:
                         description:
                           description: Description sets a human-friendly message why this token exists and what it's used for, so other administrators can know its purpose.
@@ -659,10 +659,10 @@ spec:
                 type: integer
             type: object
           status:
-            description: KubeadmConfigStatus defines the observed state of KubeadmConfig
+            description: KubeadmConfigStatus defines the observed state of KubeadmConfig.
             properties:
               bootstrapData:
-                description: "BootstrapData will be a cloud-init script for now. \n Deprecated: This field has been deprecated in v1alpha3 and will be removed in a future version. Switch to DataSecretName."
+                description: "BootstrapData will be a cloud-init script for now. \n Deprecated: Switch to DataSecretName."
                 format: byte
                 type: string
               conditions:
@@ -719,7 +719,7 @@ spec:
   - name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: KubeadmConfig is the Schema for the kubeadmconfigs API
+        description: KubeadmConfig is the Schema for the kubeadmconfigs API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -1080,7 +1080,7 @@ spec:
                   bootstrapTokens:
                     description: BootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create. This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
                     items:
-                      description: BootstrapToken describes one bootstrap token, stored as a Secret in the cluster
+                      description: BootstrapToken describes one bootstrap token, stored as a Secret in the cluster.
                       properties:
                         description:
                           description: Description sets a human-friendly message why this token exists and what it's used for, so other administrators can know its purpose.
@@ -1357,7 +1357,7 @@ spec:
                 type: integer
             type: object
           status:
-            description: KubeadmConfigStatus defines the observed state of KubeadmConfig
+            description: KubeadmConfigStatus defines the observed state of KubeadmConfig.
             properties:
               conditions:
                 description: Conditions defines current service state of the KubeadmConfig.

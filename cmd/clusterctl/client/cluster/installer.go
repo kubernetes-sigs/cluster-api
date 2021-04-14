@@ -50,7 +50,7 @@ type ProviderInstaller interface {
 	Images() []string
 }
 
-// providerInstaller implements ProviderInstaller
+// providerInstaller implements ProviderInstaller.
 type providerInstaller struct {
 	configClient            config.Client
 	repositoryClientFactory RepositoryClientFactory

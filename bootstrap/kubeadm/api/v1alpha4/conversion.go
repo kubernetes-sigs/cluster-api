@@ -20,3 +20,8 @@ func (*KubeadmConfig) Hub()             {}
 func (*KubeadmConfigList) Hub()         {}
 func (*KubeadmConfigTemplate) Hub()     {}
 func (*KubeadmConfigTemplateList) Hub() {}
+
+func (*ClusterConfiguration) Hub() {}
+func (*ClusterStatus) Hub()        {}
+func (*InitConfiguration) Hub()    {}
+func (*JoinConfiguration) Hub()    {}

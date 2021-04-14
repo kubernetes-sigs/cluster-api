@@ -28,12 +28,12 @@ import (
 const clusterLabelKey = "io.x-k8s.kind.cluster"
 const nodeRoleLabelKey = "io.x-k8s.kind.role"
 
-// clusterLabel returns the label applied to all the containers in a cluster
+// clusterLabel returns the label applied to all the containers in a cluster.
 func clusterLabel(name string) string {
 	return toLabel(clusterLabelKey, name)
 }
 
-// roleLabel returns the label applied to all the containers with a specific role
+// roleLabel returns the label applied to all the containers with a specific role.
 func roleLabel(role string) string {
 	return toLabel(nodeRoleLabelKey, role)
 }
@@ -54,17 +54,17 @@ func machineFromContainerName(cluster, containerName string) string {
 	return strings.TrimPrefix(machine, "-")
 }
 
-// withName returns a filter on name for listContainers & getContainer
+// withName returns a filter on name for listContainers & getContainer.
 func withName(name string) string {
 	return fmt.Sprintf("name=^%s$", name)
 }
 
-// withLabel returns a filter on labels for listContainers & getContainer
+// withLabel returns a filter on labels for listContainers & getContainer.
 func withLabel(label string) string {
 	return fmt.Sprintf("label=%s", label)
 }
 
-// listContainers returns the list of docker containers matching filters
+// listContainers returns the list of docker containers matching filters.
 func listContainers(filters ...string) ([]*types.Node, error) {
 	n, err := List(filters...)
 	if err != nil {
@@ -73,7 +73,7 @@ func listContainers(filters ...string) ([]*types.Node, error) {
 	return n, nil
 }
 
-// getContainer returns the docker container matching filters
+// getContainer returns the docker container matching filters.
 func getContainer(filters ...string) (*types.Node, error) {
 	n, err := listContainers(filters...)
 	if err != nil {

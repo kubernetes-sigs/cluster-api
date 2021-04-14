@@ -17,7 +17,6 @@ limitations under the License.
 package yaml
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -304,7 +303,7 @@ func TestParseMachineYaml(t *testing.T) {
 }
 
 func createTempFile(contents string) (filename string, reterr error) {
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	if err != nil {
 		return "", err
 	}

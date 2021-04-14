@@ -156,7 +156,7 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 	return types.NewNode(name, image, role), nil
 }
 
-// labelsAsArgs transforms a map of labels into extraArgs
+// labelsAsArgs transforms a map of labels into extraArgs.
 func labelsAsArgs(labels map[string]string) []string {
 	args := make([]string, len(labels)*2)
 	i := 0
@@ -168,7 +168,7 @@ func labelsAsArgs(labels map[string]string) []string {
 	return args
 }
 
-// helper used to get a free TCP port for the API server
+// helper used to get a free TCP port for the API server.
 func getPort() (int32, error) {
 	listener, err := net.Listen("tcp", ":0") //nolint:gosec
 	if err != nil {
@@ -181,7 +181,7 @@ func getPort() (int32, error) {
 	return int32(port), nil
 }
 
-// proxyDetails contains proxy settings discovered on the host
+// proxyDetails contains proxy settings discovered on the host.
 type proxyDetails struct {
 	Envs map[string]string
 }
@@ -193,7 +193,7 @@ const (
 	noProxy        = "NO_PROXY"
 )
 
-// networkInspect displays detailed information on one or more networks
+// networkInspect displays detailed information on one or more networks.
 func networkInspect(networkNames []string, format string) ([]string, error) {
 	cmd := exec.Command("docker", "network", "inspect",
 		"-f", format,
@@ -202,7 +202,7 @@ func networkInspect(networkNames []string, format string) ([]string, error) {
 	return exec.CombinedOutputLines(cmd)
 }
 
-// getSubnets returns a slice of subnets for a specified network
+// getSubnets returns a slice of subnets for a specified network.
 func getSubnets(networkName string) ([]string, error) {
 	format := `{{range (index (index . "IPAM") "Config")}}{{index . "Subnet"}} {{end}}`
 	lines, err := networkInspect([]string{networkName}, format)
@@ -213,7 +213,7 @@ func getSubnets(networkName string) ([]string, error) {
 }
 
 // getProxyDetails returns a struct with the host environment proxy settings
-// that should be passed to the nodes
+// that should be passed to the nodes.
 func getProxyDetails() (*proxyDetails, error) {
 	var val string
 	details := proxyDetails{Envs: make(map[string]string)}
@@ -250,7 +250,7 @@ func getProxyDetails() (*proxyDetails, error) {
 	return &details, nil
 }
 
-// usernsRemap checks if userns-remap is enabled in dockerd
+// usernsRemap checks if userns-remap is enabled in dockerd.
 func usernsRemap() bool {
 	cmd := exec.Command("docker", "info", "--format", "'{{json .SecurityOptions}}'")
 	lines, err := exec.CombinedOutputLines(cmd)
@@ -295,10 +295,10 @@ func run(image string, opts ...RunOpt) error {
 	return nil
 }
 
-// RunOpt is an option for run
+// RunOpt is an option for run.
 type RunOpt func(*runOpts) *runOpts
 
-// actual options struct
+// actual options struct.
 type runOpts struct {
 	RunArgs       []string
 	ContainerArgs []string
@@ -307,7 +307,7 @@ type runOpts struct {
 }
 
 // withRunArgs sets the args for docker run
-// as in the args portion of `docker run args... image containerArgs...`
+// as in the args portion of `docker run args... image containerArgs...`.
 func withRunArgs(args ...string) RunOpt {
 	return func(r *runOpts) *runOpts {
 		r.RunArgs = args
@@ -315,7 +315,7 @@ func withRunArgs(args ...string) RunOpt {
 	}
 }
 
-// withMounts sets the container mounts
+// withMounts sets the container mounts.
 func withMounts(mounts []v1alpha4.Mount) RunOpt {
 	return func(r *runOpts) *runOpts {
 		r.Mounts = mounts
@@ -323,7 +323,7 @@ func withMounts(mounts []v1alpha4.Mount) RunOpt {
 	}
 }
 
-// withPortMappings sets the container port mappings to the host
+// withPortMappings sets the container port mappings to the host.
 func withPortMappings(portMappings []v1alpha4.PortMapping) RunOpt {
 	return func(r *runOpts) *runOpts {
 		r.PortMappings = portMappings

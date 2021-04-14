@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.16.0 as builder
+FROM golang:1.16.2 as builder
 
-# Run this with docker build --build_arg goproxy=$(go env GOPROXY) to override the goproxy
+# Run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
 
@@ -48,20 +48,23 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
 
-FROM golang:1.16.0
-
-# install a couple of dependencies
+# Gets additional CAPD dependencies
 WORKDIR /tmp
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.19.2/bin/linux/amd64/kubectl && \
     chmod +x ./kubectl && \
-    mv ./kubectl /usr/local/bin/kubectl
+    mv ./kubectl /usr/bin/kubectl
 
 RUN curl -LO https://download.docker.com/linux/static/stable/x86_64/docker-19.03.1.tgz && \
     tar zxvf docker-19.03.1.tgz --strip 1 -C /usr/bin docker/docker && \
     rm docker-19.03.1.tgz
 
+# NOTE: CAPD can't use non-root because docker requires access to the docker socket
+FROM gcr.io/distroless/static:latest
+
 WORKDIR /
 COPY --from=builder /workspace/manager .
+COPY --from=builder /usr/bin/kubectl /usr/bin/kubectl
+COPY --from=builder /usr/bin/docker /usr/bin/docker
 
 ENTRYPOINT ["/manager"]

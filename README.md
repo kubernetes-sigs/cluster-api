@@ -35,7 +35,7 @@ Cluster API can be extended to support any infrastructure provider (AWS, Azure, 
 
 Cluster API is developed in the open, and is constantly being improved by our users, contributors, and maintainers. It is because of you that we are able to automate cluster lifecycle management for the community. Join us!
 
-If you have questions or what to get the latest project news, you can connect with us in the following ways:
+If you have questions or want to get the latest project news, you can connect with us in the following ways:
 
 - Chat with us on the Kubernetes [Slack](http://slack.k8s.io/) in the [#cluster-api][#cluster-api slack] channel
 - Subscribe to the [SIG Cluster Lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) Google Group for access to documents and calendars

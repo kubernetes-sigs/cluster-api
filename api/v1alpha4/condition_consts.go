@@ -35,6 +35,9 @@ const (
 
 	// DeletedReason (Severity=Info) documents an condition not in Status=True because the underlying object was deleted.
 	DeletedReason = "Deleted"
+
+	// IncorrectExternalRefReason (Severity=Error) documents a CAPI object with an incorrect external object reference.
+	IncorrectExternalRefReason = "IncorrectExternalRef"
 )
 
 const (
@@ -55,6 +58,20 @@ const (
 // Conditions and condition Reasons for the Cluster object
 
 const (
+	// ControlPlaneInitializedCondition reports if the cluster's control plane has been initialized such that the
+	// cluster's apiserver is reachable and at least one control plane Machine has a node reference. Once this
+	// condition is marked true, its value is never changed. See the ControlPlaneReady condition for an indication of
+	// the current readiness of the cluster's control plane.
+	ControlPlaneInitializedCondition ConditionType = "ControlPlaneInitialized"
+
+	// MissingNodeRefReason (Severity=Info) documents a cluster waiting for at least one control plane Machine to have
+	// its node reference populated.
+	MissingNodeRefReason = "MissingNodeRef"
+
+	// WaitingForControlPlaneProviderInitializedReason (Severity=Info) documents a cluster waiting for the control plane
+	// provider to report successful control plane initialization.
+	WaitingForControlPlaneProviderInitializedReason = "WaitingForControlPlaneProviderInitialized"
+
 	// ControlPlaneReady reports the ready condition from the control plane object defined for this cluster.
 	// This condition is mirrored from the Ready condition in the control plane ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
@@ -152,7 +169,7 @@ const (
 	ExternalRemediationRequestCreationFailed = "ExternalRemediationRequestCreationFailed"
 )
 
-// Conditions and condition Reasons for the Machine's Node object
+// Conditions and condition Reasons for the Machine's Node object.
 const (
 	// MachineNodeHealthyCondition provides info about the operational state of the Kubernetes node hosted on the machine by summarizing  node conditions.
 	// If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure, and NodeNetworkUnavailable) are in a healthy state, it will be set to True.
@@ -162,11 +179,11 @@ const (
 	WaitingForNodeRefReason = "WaitingForNodeRef"
 
 	// NodeProvisioningReason (Severity=Info) documents machine in the process of provisioning a node.
-	// NB. provisioning --> NodeRef == ""
+	// NB. provisioning --> NodeRef == "".
 	NodeProvisioningReason = "NodeProvisioning"
 
 	// NodeNotFoundReason (Severity=Error) documents a machine's node has previously been observed but is now gone.
-	// NB. provisioned --> NodeRef != ""
+	// NB. provisioned --> NodeRef != "".
 	NodeNotFoundReason = "NodeNotFound"
 
 	// NodeConditionsFailedReason (Severity=Warning) documents a node is not in a healthy state due to the failed state of at least 1 Kubelet condition.

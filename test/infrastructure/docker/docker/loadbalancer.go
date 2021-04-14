@@ -45,6 +45,9 @@ func NewLoadBalancer(name string) (*LoadBalancer, error) {
 		return nil, errors.New("name is required when creating a docker.LoadBalancer")
 	}
 
+	// look for the container that is hosting the loadbalancer for the cluster.
+	// filter based on the label and the roles regardless of whether or not it is running.
+	// if non-running container is chosen, then it will not have an IP address associated with it.
 	container, err := getContainer(
 		withLabel(clusterLabel(name)),
 		withLabel(roleLabel(constants.ExternalLoadBalancerNodeRoleValue)),
@@ -60,7 +63,7 @@ func NewLoadBalancer(name string) (*LoadBalancer, error) {
 	}, nil
 }
 
-// ContainerName is the name of the docker container with the load balancer
+// ContainerName is the name of the docker container with the load balancer.
 func (s *LoadBalancer) containerName() string {
 	return fmt.Sprintf("%s-lb", s.name)
 }
@@ -131,11 +134,15 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 	return errors.WithStack(s.container.Kill(ctx, "SIGHUP"))
 }
 
-// IP returns the load balancer IP address
+// IP returns the load balancer IP address.
 func (s *LoadBalancer) IP(ctx context.Context) (string, error) {
 	lbip4, _, err := s.container.IP(ctx)
 	if err != nil {
 		return "", errors.WithStack(err)
+	}
+	if lbip4 == "" {
+		// if there is a load balancer container with the same name exists but is stopped, it may not have IP address associated with it.
+		return "", errors.Errorf("load balancer IP cannot be empty: container %s does not have an associated IP address", s.containerName())
 	}
 	return lbip4, nil
 }

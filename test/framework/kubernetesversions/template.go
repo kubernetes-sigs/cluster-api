@@ -17,8 +17,8 @@ limitations under the License.
 package kubernetesversions
 
 import (
+	_ "embed"
 	"errors"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -31,6 +31,14 @@ import (
 )
 
 const yamlSeparator = "\n---\n"
+
+var (
+	//go:embed data/kustomization.yaml
+	kustomizationYamlBytes []byte
+
+	//go:embed data/debian_injection_script.envsubst.sh
+	debianInjectionScriptBytes string
+)
 
 type GenerateCIArtifactsInjectedTemplateForDebianInput struct {
 	// ArtifactsDirectory is where conformance suite output will go. Defaults to _artifacts
@@ -79,12 +87,7 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 
 	kustomizedTemplate := path.Join(templateDir, "cluster-template-conformance-ci-artifacts.yaml")
 
-	kustomization, err := dataKustomizationYamlBytes()
-	if err != nil {
-		return "", err
-	}
-
-	if err := ioutil.WriteFile(path.Join(overlayDir, "kustomization.yaml"), kustomization, 0o600); err != nil {
+	if err := os.WriteFile(path.Join(overlayDir, "kustomization.yaml"), kustomizationYamlBytes, 0o600); err != nil {
 		return "", err
 	}
 
@@ -93,13 +96,13 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 		return "", err
 	}
 
-	if err := ioutil.WriteFile(path.Join(overlayDir, "kustomizeversions.yaml"), kustomizeVersions, 0o600); err != nil {
+	if err := os.WriteFile(path.Join(overlayDir, "kustomizeversions.yaml"), kustomizeVersions, 0o600); err != nil {
 		return "", err
 	}
-	if err := ioutil.WriteFile(path.Join(overlayDir, "ci-artifacts-source-template.yaml"), input.SourceTemplate, 0o600); err != nil {
+	if err := os.WriteFile(path.Join(overlayDir, "ci-artifacts-source-template.yaml"), input.SourceTemplate, 0o600); err != nil {
 		return "", err
 	}
-	if err := ioutil.WriteFile(path.Join(overlayDir, "platform-kustomization.yaml"), input.PlatformKustomization, 0o600); err != nil {
+	if err := os.WriteFile(path.Join(overlayDir, "platform-kustomization.yaml"), input.PlatformKustomization, 0o600); err != nil {
 		return "", err
 	}
 	cmd := exec.Command("kustomize", "build", overlayDir)
@@ -107,21 +110,15 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 	if err != nil {
 		return "", err
 	}
-	if err := ioutil.WriteFile(kustomizedTemplate, data, 0o600); err != nil {
+	if err := os.WriteFile(kustomizedTemplate, data, 0o600); err != nil {
 		return "", err
 	}
 	return kustomizedTemplate, nil
 }
 
 func generateKustomizeVersionsYaml(kcpName, kubeadmTemplateName, kubeadmConfigName string) ([]byte, error) {
-	kcp, err := generateKubeadmControlPlane(kcpName)
-	if err != nil {
-		return nil, err
-	}
-	kubeadm, err := generateKubeadmConfigTemplate(kubeadmTemplateName)
-	if err != nil {
-		return nil, err
-	}
+	kcp := generateKubeadmControlPlane(kcpName)
+	kubeadm := generateKubeadmConfigTemplate(kubeadmTemplateName)
 	kcpYaml, err := yaml.Marshal(kcp)
 	if err != nil {
 		return nil, err
@@ -135,11 +132,7 @@ func generateKustomizeVersionsYaml(kcpName, kubeadmTemplateName, kubeadmConfigNa
 		return []byte(fileStr), nil
 	}
 
-	kubeadmConfig, err := generateKubeadmConfig(kubeadmConfigName)
-	if err != nil {
-		return nil, err
-	}
-
+	kubeadmConfig := generateKubeadmConfig(kubeadmConfigName)
 	kubeadmConfigYaml, err := yaml.Marshal(kubeadmConfig)
 	if err != nil {
 		return nil, err
@@ -149,11 +142,8 @@ func generateKustomizeVersionsYaml(kcpName, kubeadmTemplateName, kubeadmConfigNa
 	return []byte(fileStr), nil
 }
 
-func generateKubeadmConfigTemplate(name string) (*cabpkv1.KubeadmConfigTemplate, error) {
-	kubeadmSpec, err := generateKubeadmConfigSpec()
-	if err != nil {
-		return nil, err
-	}
+func generateKubeadmConfigTemplate(name string) *cabpkv1.KubeadmConfigTemplate {
+	kubeadmSpec := generateKubeadmConfigSpec()
 	return &cabpkv1.KubeadmConfigTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmConfigTemplate",
@@ -167,14 +157,11 @@ func generateKubeadmConfigTemplate(name string) (*cabpkv1.KubeadmConfigTemplate,
 				Spec: *kubeadmSpec,
 			},
 		},
-	}, nil
+	}
 }
 
-func generateKubeadmConfig(name string) (*cabpkv1.KubeadmConfig, error) {
-	kubeadmSpec, err := generateKubeadmConfigSpec()
-	if err != nil {
-		return nil, err
-	}
+func generateKubeadmConfig(name string) *cabpkv1.KubeadmConfig {
+	kubeadmSpec := generateKubeadmConfigSpec()
 	return &cabpkv1.KubeadmConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmConfig",
@@ -184,14 +171,11 @@ func generateKubeadmConfig(name string) (*cabpkv1.KubeadmConfig, error) {
 			Name: name,
 		},
 		Spec: *kubeadmSpec,
-	}, nil
+	}
 }
 
-func generateKubeadmControlPlane(name string) (*kcpv1.KubeadmControlPlane, error) {
-	kubeadmSpec, err := generateKubeadmConfigSpec()
-	if err != nil {
-		return nil, err
-	}
+func generateKubeadmControlPlane(name string) *kcpv1.KubeadmControlPlane {
+	kubeadmSpec := generateKubeadmConfigSpec()
 	return &kcpv1.KubeadmControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmControlPlane",
@@ -204,23 +188,19 @@ func generateKubeadmControlPlane(name string) (*kcpv1.KubeadmControlPlane, error
 			KubeadmConfigSpec: *kubeadmSpec,
 			Version:           "${KUBERNETES_VERSION}",
 		},
-	}, nil
+	}
 }
 
-func generateKubeadmConfigSpec() (*cabpkv1.KubeadmConfigSpec, error) {
-	data, err := dataDebian_injection_scriptEnvsubstShBytes()
-	if err != nil {
-		return nil, err
-	}
+func generateKubeadmConfigSpec() *cabpkv1.KubeadmConfigSpec {
 	return &cabpkv1.KubeadmConfigSpec{
 		Files: []cabpkv1.File{
 			{
 				Path:        "/usr/local/bin/ci-artifacts.sh",
-				Content:     string(data),
+				Content:     debianInjectionScriptBytes,
 				Owner:       "root:root",
 				Permissions: "0750",
 			},
 		},
 		PreKubeadmCommands: []string{"/usr/local/bin/ci-artifacts.sh"},
-	}, nil
+	}
 }

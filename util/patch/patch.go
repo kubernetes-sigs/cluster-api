@@ -47,7 +47,7 @@ type Helper struct {
 	isConditionsSetter bool
 }
 
-// NewHelper returns an initialized Helper
+// NewHelper returns an initialized Helper.
 func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 	// Return early if the object is nil.
 	if err := checkNilObject(obj); err != nil {
@@ -230,7 +230,7 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj client.Object, f
 		}
 
 		// Create the condition patch before merging conditions.
-		conditionsPatch := client.MergeFromWithOptions(latest.DeepCopyObject(), client.MergeFromWithOptimisticLock{})
+		conditionsPatch := client.MergeFromWithOptions(latest.DeepCopyObject().(conditions.Setter), client.MergeFromWithOptimisticLock{})
 
 		// Set the condition patch previously created on the new object.
 		if err := diff.Apply(latest, conditions.WithForceOverwrite(forceOverwrite), conditions.WithOwnedConditions(ownedConditions...)); err != nil {

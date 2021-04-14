@@ -66,12 +66,12 @@ func (m *MachineSet) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineSet) ValidateCreate() error {
 	return m.validate(nil)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineSet) ValidateUpdate(old runtime.Object) error {
 	oldMS, ok := old.(*MachineSet)
 	if !ok {
@@ -80,7 +80,7 @@ func (m *MachineSet) ValidateUpdate(old runtime.Object) error {
 	return m.validate(oldMS)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (m *MachineSet) ValidateDelete() error {
 	return nil
 }

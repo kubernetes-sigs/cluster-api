@@ -8,7 +8,7 @@ Before attempting to configure a MachineHealthCheck, you should have a working [
 
 <h1> Important </h1>
 
-Please note that MachineHealthChecks currently **only** support Machines that are owned by a MachineSet.
+Please note that MachineHealthChecks currently **only** support Machines that are owned by a MachineSet or a KubeadmControlPlane.
 Please review the [Limitations and Caveats of a MachineHealthCheck](#limitations-and-caveats-of-a-machinehealthcheck)
 at the bottom of this page for full details of MachineHealthCheck limitations.
 
@@ -16,12 +16,12 @@ at the bottom of this page for full details of MachineHealthCheck limitations.
 
 ## What is a MachineHealthCheck?
 
-A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machines within a Cluster should be considered unhealthy. 
+A MachineHealthCheck is a resource within the Cluster API which allows users to define conditions under which Machines within a Cluster should be considered unhealthy.
 A MachineHealthCheck is defined on a management cluster and scoped to a particular workload cluster.
 
-When defining a MachineHealthCheck, users specify a timeout for each of the conditions that they define to check on the Machine's Node;
-if any of these conditions is met for the duration of the timeout, the Machine will be remediated.
-By default, the action of remediating a Machine should trigger a new Machine to be created to replace the failed one, but providers are allowed to plug in more sophisticated external remediation solutions. 
+When defining a MachineHealthCheck, users specify a timeout for each of the conditions that they define to check on the Machine's Node.
+If any of these conditions are met for the duration of the timeout, the Machine will be remediated.
+By default, the action of remediating a Machine should trigger a new Machine to be created to replace the failed one, but providers are allowed to plug in more sophisticated external remediation solutions.
 
 ## Creating a MachineHealthCheck
 
@@ -54,7 +54,7 @@ spec:
     timeout: 300s
 ```
 
-Use this example as the basis for defining a MachineHealthCheck for control plane nodes managed via 
+Use this example as the basis for defining a MachineHealthCheck for control plane nodes managed via
 the KubeadmControlPlane:
 
 ```yaml
@@ -89,7 +89,9 @@ in order to prevent conflicts or unexpected behaviors when trying to remediate t
 ## Remediation Short-Circuiting
 
 To ensure that MachineHealthChecks only remediate Machines when the cluster is healthy,
-short-circuiting is implemented to prevent further remediation via the `maxUnhealthy` field within the MachineHealthCheck spec.
+short-circuiting is implemented to prevent further remediation via the `maxUnhealthy` and `unhealthyRange` fields within the MachineHealthCheck spec.
+
+### Max Unhealthy
 
 If the user defines a value for the `maxUnhealthy` field (either an absolute number or a percentage of the total Machines checked by this MachineHealthCheck),
 before remediating any Machines, the MachineHealthCheck will compare the value of `maxUnhealthy` with the number of Machines it has determined to be unhealthy.
@@ -123,6 +125,30 @@ If `maxUnhealthy` is set to `40%` and there are 6 Machines being checked:
 - If 3 or more nodes are unhealthy, remediation will not be performed
 
 Note, when the percentage is not a whole number, the allowed number is rounded down.
+
+### Unhealthy Range
+
+If the user defines a value for the `unhealthyRange` field (bracketed values that specify a start and an end value), before remediating any Machines,
+the MachineHealthCheck will check if the number of Machines it has determined to be unhealthy is within the range specified by `unhealthyRange`.
+If it is not within the range set by `unhealthyRange`, remediation will **not** be performed.
+
+<aside class="note warning">
+
+<h1> Important </h1>
+
+If both `maxUnhealthy` and `unhealthyRange` are specified, `unhealthyRange` takes precedence.
+
+</aside>
+
+#### With a range of values
+
+If `unhealthyRange` is set to `[3-5]` and there are 10 Machines being checked:
+- If 2 or fewer nodes are unhealthy, remediation will not be performed.
+- If 5 or more nodes are unhealthy, remediation will not be performed.
+- In all other cases, remediation will be performed.
+
+Note, the above example had 10 machines as sample set. But, this would work the same way for any other number.
+This is useful for dynamically scaling clusters where the number of machines keep changing frequently.
 
 ## Skipping Remediation
 

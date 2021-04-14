@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -187,7 +186,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 	}
 }
 
-// clusterctl client for a management cluster with capi and bootstrap provider
+// clusterctl client for a management cluster with capi and bootstrap provider.
 func fakeClusterForDelete() *fakeClient {
 	config1 := newFakeConfig().
 		WithVar("var", "value").
@@ -206,6 +205,7 @@ func fakeClusterForDelete() *fakeClient {
 	cluster1.fakeProxy.WithProviderInventory(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type(), "v1.0.0", "capbpk-system", "")
 	cluster1.fakeProxy.WithProviderInventory(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type(), "v1.0.0", namespace, "")
 	cluster1.fakeProxy.WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v1.0.0", namespace, "")
+	cluster1.fakeProxy.WithFakeCAPISetup()
 
 	client := newFakeClient(config1).
 		// fake repository for capi, bootstrap, controlplane and infra provider (matching provider's config)

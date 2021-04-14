@@ -46,17 +46,17 @@ func (c *Cluster) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Cluster) ValidateCreate() error {
 	return c.validate()
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Cluster) ValidateUpdate(old runtime.Object) error {
 	return c.validate()
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (c *Cluster) ValidateDelete() error {
 	return nil
 }
@@ -72,7 +72,6 @@ func (c *Cluster) validate() error {
 				"must match metadata.namespace",
 			),
 		)
-
 	}
 
 	if c.Spec.ControlPlaneRef != nil && c.Spec.ControlPlaneRef.Namespace != c.Namespace {
@@ -84,7 +83,6 @@ func (c *Cluster) validate() error {
 				"must match metadata.namespace",
 			),
 		)
-
 	}
 
 	if len(allErrs) == 0 {

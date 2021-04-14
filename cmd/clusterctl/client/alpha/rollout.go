@@ -17,19 +17,20 @@ limitations under the License.
 package alpha
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 )
 
-const machineDeployment = "machinedeployment"
+const MachineDeployment = "machinedeployment"
 
-var validResourceTypes = []string{machineDeployment}
+var validResourceTypes = []string{MachineDeployment}
 
 // Rollout defines the behavior of a rollout implementation.
 type Rollout interface {
-	ObjectRestarter(cluster.Proxy, util.ResourceTuple, string) error
-	ObjectPauser(cluster.Proxy, util.ResourceTuple, string) error
-	ObjectResumer(cluster.Proxy, util.ResourceTuple, string) error
+	ObjectRestarter(cluster.Proxy, corev1.ObjectReference) error
+	ObjectPauser(cluster.Proxy, corev1.ObjectReference) error
+	ObjectResumer(cluster.Proxy, corev1.ObjectReference) error
+	ObjectRollbacker(cluster.Proxy, corev1.ObjectReference, int64) error
 }
 
 var _ Rollout = &rollout{}

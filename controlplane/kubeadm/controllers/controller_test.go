@@ -19,12 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/collections"
 	"sync"
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,18 +30,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -52,37 +51,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
-
-var _ = Describe("Kubeadm Control Plane Controller", func() {
-	BeforeEach(func() {})
-	AfterEach(func() {})
-
-	Describe("Reconcile a KubeadmControlPlane", func() {
-		It("should return error if owner cluster is missing", func() {
-
-			cluster, kcp, _ := createClusterWithControlPlane()
-			Expect(testEnv.Create(ctx, cluster)).To(Succeed())
-			Expect(testEnv.Create(ctx, kcp)).To(Succeed())
-
-			r := &KubeadmControlPlaneReconciler{
-				Client:   testEnv,
-				recorder: record.NewFakeRecorder(32),
-			}
-
-			result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
-
-			By("Calling reconcile should return error")
-			Expect(testEnv.Delete(ctx, cluster)).To(Succeed())
-
-			Eventually(func() error {
-				_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
-				return err
-			}, 10*time.Second).Should(HaveOccurred())
-		})
-	})
-})
 
 func TestClusterToKubeadmControlPlane(t *testing.T) {
 	g := NewWithT(t)
@@ -151,6 +119,83 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 
 	got := r.ClusterToKubeadmControlPlane(cluster)
 	g.Expect(got).To(BeNil())
+}
+
+func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
+	g := NewWithT(t)
+	cluster, kcp, _ := createClusterWithControlPlane()
+	g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+	g.Expect(testEnv.Create(ctx, kcp)).To(Succeed())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:   testEnv,
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
+
+	//calling reconcile should return error
+	g.Expect(testEnv.Delete(ctx, cluster)).To(Succeed())
+
+	g.Eventually(func() error {
+		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+		return err
+	}, 10*time.Second).Should(HaveOccurred())
+}
+
+func TestReconcileUpdateObservedGeneration(t *testing.T) {
+	g := NewWithT(t)
+	r := &KubeadmControlPlaneReconciler{
+		Client:            testEnv,
+		recorder:          record.NewFakeRecorder(32),
+		managementCluster: &internal.Management{Client: testEnv.Client, Tracker: nil},
+	}
+
+	cluster, kcp, _ := createClusterWithControlPlane()
+	g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+	g.Expect(testEnv.Create(ctx, kcp)).To(Succeed())
+
+	// read kcp.Generation after create
+	errGettingObject := testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+	g.Expect(errGettingObject).NotTo(HaveOccurred())
+	generation := kcp.Generation
+
+	// Set cluster.status.InfrastructureReady so we actually enter in the reconcile loop
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"status\":{\"infrastructureReady\":%t}}", true)))
+	g.Expect(testEnv.Status().Patch(ctx, cluster, patch)).To(Succeed())
+
+	// call reconcile the first time, so we can check if observedGeneration is set when adding a finalizer
+	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
+
+	g.Eventually(func() int64 {
+		errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+		g.Expect(errGettingObject).NotTo(HaveOccurred())
+		return kcp.Status.ObservedGeneration
+	}, 10*time.Second).Should(Equal(generation))
+
+	// triggers a generation change by changing the spec
+	kcp.Spec.Replicas = pointer.Int32Ptr(*kcp.Spec.Replicas + 2)
+	g.Expect(testEnv.Update(ctx, kcp)).To(Succeed())
+
+	// read kcp.Generation after the update
+	errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+	g.Expect(errGettingObject).NotTo(HaveOccurred())
+	generation = kcp.Generation
+
+	// call reconcile the second time, so we can check if observedGeneration is set when calling defer patch
+	// NB. The call to reconcile fails because KCP is not properly setup (e.g. missing InfrastructureTemplate)
+	// but this is not important because what we want is KCP to be patched
+	_, _ = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+
+	g.Eventually(func() int64 {
+		errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+		g.Expect(errGettingObject).NotTo(HaveOccurred())
+		return kcp.Status.ObservedGeneration
+	}, 10*time.Second).Should(Equal(generation))
 }
 
 func TestReconcileNoClusterOwnerRef(t *testing.T) {
@@ -413,7 +458,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			// Machines are adopted but since they are not originally created by KCP, infra template annotation will be missing.
 			g.Expect(machine.GetAnnotations()).NotTo(HaveKey(clusterv1.TemplateClonedFromGroupKindAnnotation))
 			g.Expect(machine.GetAnnotations()).NotTo(HaveKey(clusterv1.TemplateClonedFromNameAnnotation))
-
 		}
 	})
 	t.Run("adopts v1alpha2 cluster secrets", func(t *testing.T) {
@@ -505,7 +549,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			// Machines are adopted but since they are not originally created by KCP, infra template annotation will be missing.
 			g.Expect(machine.GetAnnotations()).NotTo(HaveKey(clusterv1.TemplateClonedFromGroupKindAnnotation))
 			g.Expect(machine.GetAnnotations()).NotTo(HaveKey(clusterv1.TemplateClonedFromNameAnnotation))
-
 		}
 
 		secrets := &corev1.SecretList{}
@@ -515,7 +558,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			g.Expect(secret.OwnerReferences).To(HaveLen(1))
 			g.Expect(secret.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 		}
-
 	})
 
 	t.Run("Deleted KubeadmControlPlanes don't adopt machines", func(t *testing.T) {
@@ -837,10 +879,10 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.16.6",
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
-					DNS: kubeadmv1.DNS{
-						Type: kubeadmv1.CoreDNS,
-						ImageMeta: kubeadmv1.ImageMeta{
+				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+					DNS: bootstrapv1.DNS{
+						Type: bootstrapv1.CoreDNS,
+						ImageMeta: bootstrapv1.ImageMeta{
 							ImageRepository: "k8s.gcr.io",
 							ImageTag:        "1.7.2",
 						},
@@ -1210,7 +1252,6 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
 	})
-
 }
 
 // test utils
@@ -1236,7 +1277,7 @@ type fakeClientI interface {
 }
 
 // controller-runtime's fake client doesn't set a CreationTimestamp
-// this sets one that increments by a minute for each object created
+// this sets one that increments by a minute for each object created.
 func (c *fakeClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	if f, ok := obj.(fakeClientI); ok {
 		c.mux.Lock()
@@ -1287,6 +1328,14 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 			},
 			Replicas: pointer.Int32Ptr(int32(3)),
 			Version:  "v1.16.6",
+			RolloutStrategy: &controlplanev1.RolloutStrategy{
+				Type: "RollingUpdate",
+				RollingUpdate: &controlplanev1.RollingUpdate{
+					MaxSurge: &intstr.IntOrString{
+						IntVal: 1,
+					},
+				},
+			},
 		},
 	}
 
@@ -1380,7 +1429,7 @@ func setMachineHealthy(m *clusterv1.Machine) {
 	conditions.MarkTrue(m, controlplanev1.MachineEtcdMemberHealthyCondition)
 }
 
-// newCluster return a CAPI cluster object
+// newCluster return a CAPI cluster object.
 func newCluster(namespacedName *types.NamespacedName) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{

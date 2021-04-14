@@ -13,7 +13,7 @@ workflow that offers easy deployments and rapid iterative builds.
 1. [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
    standalone (`kubectl kustomize` does not work because it is missing
    some features of kustomize v3)
-1. [Tilt](https://docs.tilt.dev/install.html) v0.12.0 or newer
+1. [Tilt](https://docs.tilt.dev/install.html) v0.16.0 or newer
 1. [envsubst](https://github.com/drone/envsubst) or similar to handle
    clusterctl var replacement. Note: drone/envsubst releases v1.0.2 and
    earlier do not have the binary packaged under cmd/envsubst. It is
@@ -26,7 +26,6 @@ workflow that offers easy deployments and rapid iterative builds.
 We provide a make target to generate the envsubst binary if desired.
 See the [provider contract](./../clusterctl/provider-contract.md) for
 more details about how clusterctl uses variables.
-
 
 ```
 make envsubst
@@ -57,10 +56,10 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
 #### tilt-settings.json fields
 
 **allowed_contexts** (Array, default=[]): A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on
-*[allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
+[allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
 
 **default_registry** (String, default=""): The image registry to use if you need to push images. See the [Tilt
-*documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
+documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
 
 **provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have a
 `tilt-provider.json` file describing how to build the provider.
@@ -105,7 +104,7 @@ An Azure Service Principal is needed for populating the controller manifests. Th
   3. Save your Tenant ID, Client ID, Client Secret
 
   ```bash
-  AZURE_TENANT_ID=$( az account show --query tenantId --output tsv)
+  AZURE_TENANT_ID=$(az account show --query tenantId --output tsv)
   AZURE_CLIENT_SECRET=$(az ad sp create-for-rbac --name http://$AZURE_SERVICE_PRINCIPAL_NAME --query password --output tsv)
   AZURE_CLIENT_ID=$(az ad sp show --id http://$AZURE_SERVICE_PRINCIPAL_NAME --query appId --output tsv)
   ```
@@ -187,15 +186,30 @@ tilt up
 
 This will open the command-line HUD as well as a web browser interface. You can monitor Tilt's status in either
 location. After a brief amount of time, you should have a running development environment, and you should now be able to
-create a cluster. Please see the [Usage section in the Quick
-Start](https://cluster-api.sigs.k8s.io/user/quick-start.html#usage) for more information on creating workload clusters.
+create a cluster. There are [example worker cluster
+configs](https://github.com/kubernetes-sigs/cluster-api/tree/master/test/infrastructure/docker/examples) available.
+These can be customized for your specific needs.
+
+<aside class="note">
+
+<h1>Use of clusterctl</h1>
+
+When the worker cluster has been created using tilt, `clusterctl` should not be used for management
+operations; this is because tilt doesn't initialize providers on the management cluster like clusterctl init does, so
+some of the clusterctl commands like clusterctl config won't work.
+
+This limitation is an acceptable trade-off while executing fast dev-test iterations on controllers logic. If instead
+you are interested in testing clusterctl workflows, you should refer to the
+[clusterctl developer instructions](https://cluster-api.sigs.k8s.io/clusterctl/developers.html).
+
+</aside>
 
 ## Available providers
 
 The following providers are currently defined in the Tiltfile:
 
-- **core**: cluster-api itself (Cluster/Machine/MachineDeployment/MachineSet/KubeadmConfig/KubeadmControlPlane)
-- **docker**: Docker provider (DockerCluster/DockerMachine)
+* **core**: cluster-api itself (Cluster/Machine/MachineDeployment/MachineSet/KubeadmConfig/KubeadmControlPlane)
+* **docker**: Docker provider (DockerCluster/DockerMachine)
 
 ### tilt-provider.json
 

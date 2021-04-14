@@ -19,9 +19,11 @@ package internal
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 
 	"github.com/blang/semver"
@@ -31,8 +33,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -89,7 +91,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				Spec: v1alpha4.KubeadmControlPlaneSpec{
 					Version: "v1.16.3",
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							ImageRepository: "foo.bar.example/baz/qux",
 						},
 					},
@@ -104,7 +106,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				Spec: v1alpha4.KubeadmControlPlaneSpec{
 					Version: "v1.16.3",
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							ImageRepository: "",
 						},
 					},
@@ -118,7 +120,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				Spec: v1alpha4.KubeadmControlPlaneSpec{
 					Version: "v1.16.3",
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							ImageRepository: "%%%",
 						},
 					},
@@ -277,33 +279,74 @@ kind: ClusterStatus
 }
 
 func TestUpdateKubeletConfigMap(t *testing.T) {
-	kubeletConfig := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "kubelet-config-1.1",
-			Namespace:       metav1.NamespaceSystem,
-			ResourceVersion: "some-resource-version",
-		},
-	}
-
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
-		name      string
-		version   semver.Version
-		objs      []client.Object
-		expectErr bool
+		name               string
+		version            semver.Version
+		objs               []client.Object
+		expectErr          bool
+		expectCgroupDriver string
 	}{
 		{
-			name:      "create new config map",
-			version:   semver.Version{Major: 1, Minor: 2},
-			objs:      []client.Object{kubeletConfig},
-			expectErr: false,
+			name:    "create new config map",
+			version: semver.Version{Major: 1, Minor: 20},
+			objs: []client.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "kubelet-config-1.19",
+					Namespace:       metav1.NamespaceSystem,
+					ResourceVersion: "some-resource-version",
+				},
+				Data: map[string]string{
+					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
+						"kind: KubeletConfiguration\n",
+				},
+			}},
+			expectErr:          false,
+			expectCgroupDriver: "",
 		},
 		{
-			name:      "returns error if cannot find previous config map",
-			version:   semver.Version{Major: 1, Minor: 2},
-			expectErr: true,
+			name:    "KubeletConfig 1.21 gets the cgroupDriver set if empty",
+			version: semver.Version{Major: 1, Minor: 21},
+			objs: []client.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "kubelet-config-1.20",
+					Namespace:       metav1.NamespaceSystem,
+					ResourceVersion: "some-resource-version",
+				},
+				Data: map[string]string{
+					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
+						"kind: KubeletConfiguration\n",
+				},
+			}},
+			expectErr:          false,
+			expectCgroupDriver: "systemd",
+		},
+		{
+			name:    "KubeletConfig 1.21 preserves cgroupDriver if already set",
+			version: semver.Version{Major: 1, Minor: 21},
+			objs: []client.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "kubelet-config-1.20",
+					Namespace:       metav1.NamespaceSystem,
+					ResourceVersion: "some-resource-version",
+				},
+				Data: map[string]string{
+					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
+						"kind: KubeletConfiguration\n" +
+						"cgroupDriver: foo\n",
+				},
+			}},
+			expectErr:          false,
+			expectCgroupDriver: "foo",
+		},
+		{
+			name:               "returns error if cannot find previous config map",
+			version:            semver.Version{Major: 1, Minor: 21},
+			objs:               nil,
+			expectErr:          true,
+			expectCgroupDriver: "",
 		},
 	}
 
@@ -323,10 +366,11 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				client.ObjectKey{Name: "kubelet-config-1.2", Namespace: metav1.NamespaceSystem},
+				client.ObjectKey{Name: fmt.Sprintf("kubelet-config-%d.%d", tt.version.Major, tt.version.Minor), Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.ResourceVersion).ToNot(Equal(kubeletConfig.ResourceVersion))
+			g.Expect(actualConfig.ResourceVersion).ToNot(Equal("some-resource-version"))
+			g.Expect(actualConfig.Data[kubeletConfigKey]).To(ContainSubstring(tt.expectCgroupDriver))
 		})
 	}
 }
@@ -523,7 +567,7 @@ kind: ClusterConfiguration
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name              string
-		apiServer         kubeadmv1beta1.APIServer
+		apiServer         bootstrapv1.APIServer
 		objs              []client.Object
 		expectErr         bool
 		expectedChanged   bool
@@ -531,7 +575,7 @@ kind: ClusterConfiguration
 	}{
 		{
 			name:            "updates the config map",
-			apiServer:       kubeadmv1beta1.APIServer{CertSANs: []string{"foo", "bar"}},
+			apiServer:       bootstrapv1.APIServer{CertSANs: []string{"foo", "bar"}},
 			objs:            []client.Object{kubeadmConfig},
 			expectErr:       false,
 			expectedChanged: true,
@@ -551,14 +595,14 @@ kind: ClusterConfiguration
 		{
 			name:              "returns error if config has bad data",
 			objs:              []client.Object{kubeadmConfigBadData},
-			apiServer:         kubeadmv1beta1.APIServer{CertSANs: []string{"foo", "bar"}},
+			apiServer:         bootstrapv1.APIServer{CertSANs: []string{"foo", "bar"}},
 			expectErr:         true,
 			expectedAPIServer: validAPIServerConfig,
 		},
 		{
 			name:              "returns error if config doesn't have cluster config key",
 			objs:              []client.Object{kubeadmConfigNoKey},
-			apiServer:         kubeadmv1beta1.APIServer{CertSANs: []string{"foo", "bar"}},
+			apiServer:         bootstrapv1.APIServer{CertSANs: []string{"foo", "bar"}},
 			expectErr:         true,
 			expectedAPIServer: validAPIServerConfig,
 		},
@@ -566,10 +610,10 @@ kind: ClusterConfiguration
 			name:            "should not update config map if no changes are detected",
 			objs:            []client.Object{kubeadmConfig},
 			expectedChanged: false,
-			apiServer: kubeadmv1beta1.APIServer{
-				ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
+			apiServer: bootstrapv1.APIServer{
+				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
 					ExtraArgs:    map[string]string{"foo": "bar"},
-					ExtraVolumes: []kubeadmv1beta1.HostPathMount{{Name: "mount1", HostPath: "/foo/bar", MountPath: "/bar/baz"}},
+					ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1", HostPath: "/foo/bar", MountPath: "/bar/baz"}},
 				},
 				CertSANs:               []string{"foo"},
 				TimeoutForControlPlane: &metav1.Duration{Duration: 3 * time.Minute},
@@ -599,7 +643,7 @@ kind: ClusterConfiguration
 				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.expectedAPIServer))
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.expectedAPIServer), cmp.Diff(actualConfig.Data[clusterConfigurationKey], tt.expectedAPIServer))
 
 			// check resource version to see if client.update was called or not
 			if !tt.expectedChanged {
@@ -643,7 +687,7 @@ kind: ClusterConfiguration
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                      string
-		controllerManager         kubeadmv1beta1.ControlPlaneComponent
+		controllerManager         bootstrapv1.ControlPlaneComponent
 		objs                      []client.Object
 		expectErr                 bool
 		expectedChanged           bool
@@ -651,7 +695,7 @@ kind: ClusterConfiguration
 	}{
 		{
 			name:              "updates the config map",
-			controllerManager: kubeadmv1beta1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
+			controllerManager: bootstrapv1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
 			objs:              []client.Object{kubeadmConfig},
 			expectErr:         false,
 			expectedChanged:   true,
@@ -670,14 +714,14 @@ kind: ClusterConfiguration
 		{
 			name:                      "returns error if config has bad data",
 			objs:                      []client.Object{kubeadmConfigBadData},
-			controllerManager:         kubeadmv1beta1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
+			controllerManager:         bootstrapv1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
 			expectErr:                 true,
 			expectedControllerManager: validControllerManagerConfig,
 		},
 		{
 			name:                      "returns error if config doesn't have cluster config key",
 			objs:                      []client.Object{kubeadmConfigNoKey},
-			controllerManager:         kubeadmv1beta1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
+			controllerManager:         bootstrapv1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
 			expectErr:                 true,
 			expectedControllerManager: validControllerManagerConfig,
 		},
@@ -685,9 +729,9 @@ kind: ClusterConfiguration
 			name:            "should not update config map if no changes are detected",
 			objs:            []client.Object{kubeadmConfig},
 			expectedChanged: false,
-			controllerManager: kubeadmv1beta1.ControlPlaneComponent{
+			controllerManager: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs:    map[string]string{"foo": "bar"},
-				ExtraVolumes: []kubeadmv1beta1.HostPathMount{{Name: "mount1", HostPath: "/foo/bar", MountPath: "/bar/baz"}},
+				ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1", HostPath: "/foo/bar", MountPath: "/bar/baz"}},
 			},
 			expectedControllerManager: validControllerManagerConfig,
 		},
@@ -713,7 +757,7 @@ kind: ClusterConfiguration
 				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.expectedControllerManager))
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.expectedControllerManager), cmp.Diff(actualConfig.Data[clusterConfigurationKey], tt.expectedControllerManager))
 
 			// check resource version to see if client.update was called or not
 			if !tt.expectedChanged {
@@ -757,7 +801,7 @@ scheduler:
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name              string
-		scheduler         kubeadmv1beta1.ControlPlaneComponent
+		scheduler         bootstrapv1.ControlPlaneComponent
 		objs              []client.Object
 		expectErr         bool
 		expectedChanged   bool
@@ -765,7 +809,7 @@ scheduler:
 	}{
 		{
 			name:            "updates the config map",
-			scheduler:       kubeadmv1beta1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
+			scheduler:       bootstrapv1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
 			objs:            []client.Object{kubeadmConfig},
 			expectErr:       false,
 			expectedChanged: true,
@@ -784,14 +828,14 @@ scheduler:
 		{
 			name:              "returns error if config has bad data",
 			objs:              []client.Object{kubeadmConfigBadData},
-			scheduler:         kubeadmv1beta1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
+			scheduler:         bootstrapv1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
 			expectErr:         true,
 			expectedScheduler: validSchedulerConfig,
 		},
 		{
 			name:              "returns error if config doesn't have cluster config key",
 			objs:              []client.Object{kubeadmConfigNoKey},
-			scheduler:         kubeadmv1beta1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
+			scheduler:         bootstrapv1.ControlPlaneComponent{ExtraArgs: map[string]string{"foo": "bar"}},
 			expectErr:         true,
 			expectedScheduler: validSchedulerConfig,
 		},
@@ -799,9 +843,9 @@ scheduler:
 			name:            "should not update config map if no changes are detected",
 			objs:            []client.Object{kubeadmConfig},
 			expectedChanged: false,
-			scheduler: kubeadmv1beta1.ControlPlaneComponent{
+			scheduler: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs:    map[string]string{"foo": "bar"},
-				ExtraVolumes: []kubeadmv1beta1.HostPathMount{{Name: "mount1", HostPath: "/foo/bar", MountPath: "/bar/baz"}},
+				ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1", HostPath: "/foo/bar", MountPath: "/bar/baz"}},
 			},
 			expectedScheduler: validSchedulerConfig,
 		},

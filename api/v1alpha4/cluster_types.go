@@ -34,7 +34,7 @@ const (
 
 // ANCHOR: ClusterSpec
 
-// ClusterSpec defines the desired state of Cluster
+// ClusterSpec defines the desired state of Cluster.
 type ClusterSpec struct {
 	// Paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional
@@ -103,7 +103,7 @@ func (n *NetworkRanges) String() string {
 
 // ANCHOR: ClusterStatus
 
-// ClusterStatus defines the observed state of Cluster
+// ClusterStatus defines the observed state of Cluster.
 type ClusterStatus struct {
 	// FailureDomains is a slice of failure domain objects synced from the infrastructure provider.
 	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
@@ -127,10 +127,6 @@ type ClusterStatus struct {
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
-
-	// ControlPlaneInitialized defines if the control plane has been initialized.
-	// +optional
-	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
 
 	// ControlPlaneReady defines if the control plane is ready.
 	// +optional
@@ -202,7 +198,7 @@ func (v APIEndpoint) String() string {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed"
 
-// Cluster is the Schema for the clusters API
+// Cluster is the Schema for the clusters API.
 type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -221,7 +217,7 @@ func (c *Cluster) SetConditions(conditions Conditions) {
 
 // +kubebuilder:object:root=true
 
-// ClusterList contains a list of Cluster
+// ClusterList contains a list of Cluster.
 type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -247,7 +243,7 @@ func (in FailureDomains) FilterControlPlane() FailureDomains {
 	return res
 }
 
-// GetIDs returns a slice containing the ids for failure domains
+// GetIDs returns a slice containing the ids for failure domains.
 func (in FailureDomains) GetIDs() []*string {
 	ids := make([]*string, 0, len(in))
 	for id := range in {

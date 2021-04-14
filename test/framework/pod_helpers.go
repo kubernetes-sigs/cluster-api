@@ -27,10 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// podListCondition is a type that operates a condition on a Pod
+// podListCondition is a type that operates a condition on a Pod.
 type podListCondition func(p *corev1.PodList) error
 
-// WaitForPodListConditionInput is the input args for WaitForPodListCondition
+// WaitForPodListConditionInput is the input args for WaitForPodListCondition.
 type WaitForPodListConditionInput struct {
 	Lister      Lister
 	ListOptions *client.ListOptions
@@ -57,7 +57,7 @@ func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionI
 }
 
 // EtcdImageTagCondition returns a podListCondition that ensures the pod image
-// contains the specified image tag
+// contains the specified image tag.
 func EtcdImageTagCondition(expectedTag string, expectedCount int) podListCondition {
 	return func(pl *corev1.PodList) error {
 		countWithCorrectTag := 0
@@ -83,7 +83,7 @@ func EtcdImageTagCondition(expectedTag string, expectedCount int) podListConditi
 }
 
 // PhasePodCondition is a podListCondition ensuring that pods are in the expected
-// pod phase
+// pod phase.
 func PhasePodCondition(expectedPhase corev1.PodPhase) podListCondition {
 	return func(pl *corev1.PodList) error {
 		for _, pod := range pl.Items {

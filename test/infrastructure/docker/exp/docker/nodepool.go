@@ -51,7 +51,7 @@ type NodePool struct {
 	machines          []*docker.Machine
 }
 
-// NewNodePool creates a new node pool instances
+// NewNodePool creates a new node pool instances.
 func NewNodePool(kClient client.Client, cluster *clusterv1.Cluster, mp *clusterv1exp.MachinePool, dmp *infrav1exp.DockerMachinePool) (*NodePool, error) {
 	np := &NodePool{
 		client:            kClient,
@@ -145,7 +145,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 	return result, nil
 }
 
-// Delete will delete all of the machines in the node pool
+// Delete will delete all of the machines in the node pool.
 func (np *NodePool) Delete(ctx context.Context) error {
 	for _, machine := range np.machines {
 		externalMachine, err := docker.NewMachine(np.cluster.Name, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
@@ -165,7 +165,7 @@ func (np *NodePool) isMachineMatchingInfrastructureSpec(machine *docker.Machine)
 	return machine.ImageVersion() == container.SemverToOCIImageTag(*np.machinePool.Spec.Template.Spec.Version)
 }
 
-// machinesMatchingInfrastructureSpec returns all of the docker.Machines which match the machine pool / docker machine pool spec
+// machinesMatchingInfrastructureSpec returns all of the docker.Machines which match the machine pool / docker machine pool spec.
 func (np *NodePool) machinesMatchingInfrastructureSpec() []*docker.Machine {
 	var matchingMachines []*docker.Machine
 	for _, machine := range np.machines {
@@ -177,7 +177,7 @@ func (np *NodePool) machinesMatchingInfrastructureSpec() []*docker.Machine {
 	return matchingMachines
 }
 
-// addMachine will add a new machine to the node pool and update the docker machine pool status
+// addMachine will add a new machine to the node pool and update the docker machine pool status.
 func (np *NodePool) addMachine(ctx context.Context) error {
 	instanceName := fmt.Sprintf("worker-%s", util.RandomString(6))
 	externalMachine, err := docker.NewMachine(np.cluster.Name, instanceName, np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
@@ -192,7 +192,7 @@ func (np *NodePool) addMachine(ctx context.Context) error {
 }
 
 // refresh asks docker to list all the machines matching the node pool label and updates the cached list of node pool
-// machines
+// machines.
 func (np *NodePool) refresh() error {
 	machines, err := docker.ListMachinesByCluster(np.cluster.Name, np.labelFilters)
 	if err != nil {
@@ -210,7 +210,7 @@ func (np *NodePool) refresh() error {
 	return nil
 }
 
-// reconcileMachine will build and provision a docker machine and update the docker machine pool status for that instance
+// reconcileMachine will build and provision a docker machine and update the docker machine pool status for that instance.
 func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -318,7 +318,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 	return ctrl.Result{}, nil
 }
 
-// getBootstrapData fetches the bootstrap data for the machine pool
+// getBootstrapData fetches the bootstrap data for the machine pool.
 func getBootstrapData(ctx context.Context, kClient client.Client, machinePool *clusterv1exp.MachinePool) (string, error) {
 	if machinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		return "", errors.New("error retrieving bootstrap data: linked MachinePool's bootstrap.dataSecretName is nil")

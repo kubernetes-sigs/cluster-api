@@ -51,8 +51,8 @@ func (tp *SimpleProcessor) GetTemplateName(_, flavor string) string {
 	return name
 }
 
-// Process processes the template blob of bytes and will return the final
-// yaml with values retrieved from the values getter.
+// GetVariables processes data given and returns new data type with name,
+// required property and default value
 func (tp *SimpleProcessor) GetVariables(rawArtifact []byte) ([]VariableMetadata, error) {
 	strArtifact := convertLegacyVars(string(rawArtifact))
 	variables, err := getDefaultValues(strArtifact)

@@ -2,10 +2,10 @@
 
 aliases:
   sig-cluster-lifecycle-leads:
-  - neolit123
-  - justinsb
-  - timothysc
   - fabriziopandini
+  - justinsb
+  - neolit123
+  - timothysc
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for Cluster API
@@ -14,22 +14,23 @@ aliases:
   # active folks who can be contacted to perform admin-related
   # tasks on the repo, or otherwise approve any PRS.
   cluster-api-admins:
-  - justinsb
   - detiber
+  - justinsb
   - vincepri
 
   # non-admin folks who have write-access and can approve any PRs in the repo
   cluster-api-maintainers:
-  - justinsb
-  - detiber
-  - vincepri
   - CecileRobertMichon
+  - fabriziopandini
+  - detiber
+  - justinsb
+  - vincepri
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
   - CecileRobertMichon
-  - vincepri
   - JoelSpeed
+  - vincepri
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for docs/book
@@ -37,8 +38,8 @@ aliases:
 
   # folks who can review and LGTM any PRs under docs/book
   cluster-api-book-reviewers:
-  - randomvariable
   - moshloop
+  - randomvariable
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test/infrastructure/docker

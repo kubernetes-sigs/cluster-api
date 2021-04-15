@@ -65,7 +65,6 @@ func TestUpdateCoreDNS(t *testing.T) {
 			"BadCoreFileKey": "",
 		},
 	}
-	expectedImage := "k8s.gcr.io/some-folder/coredns:1.6.2"
 	depl := &appsv1.Deployment{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Deployment",
@@ -83,11 +82,17 @@ func TestUpdateCoreDNS(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  coreDNSKey,
-						Image: expectedImage,
+						Image: "k8s.gcr.io/some-folder/coredns:1.6.2",
 					}},
 				},
 			},
 		},
+	}
+
+	deplWithImage := func(image string) *appsv1.Deployment {
+		d := depl.DeepCopy()
+		d.Spec.Template.Spec.Containers[0].Image = image
+		return d
 	}
 
 	expectedCorefile := "coredns-core-file"
@@ -123,6 +128,7 @@ kind: ClusterConfiguration
 		objs          []runtime.Object
 		expectErr     bool
 		expectUpdates bool
+		expectImage   string
 	}{
 		{
 			name: "returns early without error if skip core dns annotation is present",
@@ -280,6 +286,131 @@ kind: ClusterConfiguration
 			objs:          []runtime.Object{depl, cm, kubeadmCM},
 			expectErr:     false,
 			expectUpdates: true,
+			expectImage:   "k8s.gcr.io/some-repo/coredns:1.7.2",
+		},
+		{
+			name: "updates everything successfully to v1.8.0 with a custom repo should not change the image name",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
+							DNS: kubeadmv1.DNS{
+								Type: kubeadmv1.CoreDNS,
+								ImageMeta: kubeadmv1.ImageMeta{
+									// provide an newer image to update to
+									ImageRepository: "k8s.gcr.io/some-repo",
+									ImageTag:        "1.8.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			migrator: &fakeMigrator{
+				migratedCorefile: "updated-core-file",
+			},
+			objs:          []runtime.Object{deplWithImage("k8s.gcr.io/some-repo/coredns:1.7.0"), cm, kubeadmCM},
+			expectErr:     false,
+			expectUpdates: true,
+			expectImage:   "k8s.gcr.io/some-repo/coredns:1.8.0",
+		},
+		{
+			name: "kubeadm defaults, upgrade from Kubernetes v1.18.x to v1.19.y (from k8s.gcr.io/coredns:1.6.7 to k8s.gcr.io/coredns:1.7.0)",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
+							DNS: kubeadmv1.DNS{
+								Type: kubeadmv1.CoreDNS,
+								ImageMeta: kubeadmv1.ImageMeta{
+									ImageRepository: "k8s.gcr.io",
+									ImageTag:        "1.7.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			migrator: &fakeMigrator{
+				migratedCorefile: "updated-core-file",
+			},
+			objs:          []runtime.Object{deplWithImage("k8s.gcr.io/coredns:1.6.7"), cm, kubeadmCM},
+			expectErr:     false,
+			expectUpdates: true,
+			expectImage:   "k8s.gcr.io/coredns:1.7.0",
+		},
+		{
+			name: "kubeadm defaults, upgrade from Kubernetes v1.19.x to v1.20.y (stay on k8s.gcr.io/coredns:1.7.0)",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
+							DNS: kubeadmv1.DNS{
+								Type: kubeadmv1.CoreDNS,
+								ImageMeta: kubeadmv1.ImageMeta{
+									ImageRepository: "k8s.gcr.io",
+									ImageTag:        "1.7.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			migrator: &fakeMigrator{
+				migratedCorefile: "updated-core-file",
+			},
+			objs:          []runtime.Object{deplWithImage("k8s.gcr.io/coredns:1.7.0"), cm, kubeadmCM},
+			expectErr:     false,
+			expectUpdates: false,
+		},
+		{
+			name: "kubeadm defaults, upgrade from Kubernetes v1.20.x to v1.21.y (from k8s.gcr.io/coredns:1.7.0 to k8s.gcr.io/coredns/coredns:v1.8.0)",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
+							DNS: kubeadmv1.DNS{
+								Type: kubeadmv1.CoreDNS,
+								ImageMeta: kubeadmv1.ImageMeta{
+									ImageRepository: "k8s.gcr.io",
+									ImageTag:        "v1.8.0", // NOTE: ImageTags requires the v prefix
+								},
+							},
+						},
+					},
+				},
+			},
+			migrator: &fakeMigrator{
+				migratedCorefile: "updated-core-file",
+			},
+			objs:          []runtime.Object{deplWithImage("k8s.gcr.io/coredns:1.7.0"), cm, kubeadmCM},
+			expectErr:     false,
+			expectUpdates: true,
+			expectImage:   "k8s.gcr.io/coredns/coredns:v1.8.0", // NOTE: ImageName has coredns/coredns
+		},
+		{
+			name: "kubeadm defaults, upgrade from Kubernetes v1.21.x to v1.22.y (stay on k8s.gcr.io/coredns/coredns:v1.8.0)",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						ClusterConfiguration: &kubeadmv1.ClusterConfiguration{
+							DNS: kubeadmv1.DNS{
+								Type: kubeadmv1.CoreDNS,
+								ImageMeta: kubeadmv1.ImageMeta{
+									ImageRepository: "k8s.gcr.io",
+									ImageTag:        "v1.8.0", // NOTE: ImageTags requires the v prefix
+								},
+							},
+						},
+					},
+				},
+			},
+			migrator: &fakeMigrator{
+				migratedCorefile: "updated-core-file",
+			},
+			objs:          []runtime.Object{deplWithImage("k8s.gcr.io/coredns/coredns:v1.8.0"), cm, kubeadmCM},
+			expectErr:     false,
+			expectUpdates: false,
 		},
 	}
 
@@ -303,8 +434,8 @@ kind: ClusterConfiguration
 				// assert kubeadmConfigMap
 				var expectedKubeadmConfigMap corev1.ConfigMap
 				g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
-				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("1.7.2")))
-				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring("k8s.gcr.io/some-repo")))
+				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring(tt.kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)))
+				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring(tt.kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageRepository)))
 
 				// assert CoreDNS corefile
 				var expectedConfigMap corev1.ConfigMap
@@ -315,10 +446,10 @@ kind: ClusterConfiguration
 
 				// assert CoreDNS deployment
 				var actualDeployment appsv1.Deployment
-				g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
-				// ensure the image is updated and the volumes point to the corefile
-				g.Expect(actualDeployment.Spec.Template.Spec.Containers[0].Image).To(Equal("k8s.gcr.io/some-repo/coredns:1.7.2"))
-
+				g.Eventually(func() string {
+					g.Expect(fakeClient.Get(context.TODO(), ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+					return actualDeployment.Spec.Template.Spec.Containers[0].Image
+				}, "5s").Should(Equal(tt.expectImage))
 			}
 		})
 	}

@@ -19,6 +19,9 @@ package internal
 import (
 	"context"
 	"fmt"
+	"strings"
+
+	"github.com/blang/semver"
 
 	"github.com/coredns/corefile-migration/migration"
 	"github.com/pkg/errors"
@@ -39,6 +42,10 @@ const (
 	corefileBackupKey = "Corefile-backup"
 	coreDNSKey        = "coredns"
 	coreDNSVolumeKey  = "config-volume"
+
+	kubernetesImageRepository = "k8s.gcr.io"
+	oldCoreDNSImageName       = "coredns"
+	coreDNSImageName          = "coredns/coredns"
 )
 
 type coreDNSMigrator interface {
@@ -155,12 +162,12 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *kubeadmv1.
 	}
 
 	// Handle imageRepository.
-	toImageRepository := fmt.Sprintf("%s/%s", parsedImage.Repository, parsedImage.Name)
+	toImageRepository := parsedImage.Repository
 	if clusterConfig.ImageRepository != "" {
-		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.ImageRepository, coreDNSKey)
+		toImageRepository = strings.TrimSuffix(clusterConfig.ImageRepository, "/")
 	}
 	if clusterConfig.DNS.ImageRepository != "" {
-		toImageRepository = fmt.Sprintf("%s/%s", clusterConfig.DNS.ImageRepository, coreDNSKey)
+		toImageRepository = strings.TrimSuffix(clusterConfig.DNS.ImageRepository, "/")
 	}
 
 	// Handle imageTag.
@@ -180,15 +187,21 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *kubeadmv1.
 		return nil, err
 	}
 
+	// Handle the renaming of the upstream image from "k8s.gcr.io/coredns" to "k8s.gcr.io/coredns/coredns"
+	toImageName := parsedImage.Name
+	if toImageRepository == kubernetesImageRepository && toImageName == oldCoreDNSImageName && targetMajorMinorPatch.GTE(semver.MustParse("1.8.0")) {
+		toImageName = coreDNSImageName
+	}
+
 	return &coreDNSInfo{
 		Corefile:               corefile,
 		Deployment:             deployment,
-		CurrentMajorMinorPatch: currentMajorMinorPatch,
-		TargetMajorMinorPatch:  targetMajorMinorPatch,
+		CurrentMajorMinorPatch: currentMajorMinorPatch.String(),
+		TargetMajorMinorPatch:  targetMajorMinorPatch.String(),
 		FromImageTag:           parsedImage.Tag,
 		ToImageTag:             toImageTag,
 		FromImage:              container.Image,
-		ToImage:                fmt.Sprintf("%s:%s", toImageRepository, toImageTag),
+		ToImage:                fmt.Sprintf("%s/%s:%s", toImageRepository, toImageName, toImageTag),
 	}, nil
 }
 
@@ -297,12 +310,12 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 	}
 }
 
-func extractImageVersion(tag string) (string, error) {
+func extractImageVersion(tag string) (semver.Version, error) {
 	ver, err := util.ParseMajorMinorPatch(tag)
 	if err != nil {
-		return "", err
+		return semver.Version{}, err
 	}
-	return fmt.Sprintf("%d.%d.%d", ver.Major, ver.Minor, ver.Patch), nil
+	return ver, nil
 }
 
 // validateCoreDNSImageTag returns error if the versions don't meet requirements.

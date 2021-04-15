@@ -40,7 +40,7 @@ available at the moment.
 
 `clusterctl upgrade plan` does not display pre-release versions by default. For
 example, if a provider has releases `v0.7.0-alpha.0` and `v0.6.6` available, the latest
-release availble for upgrade will be `v0.6.6`.
+release available for upgrade will be `v0.6.6`.
 
 </aside>
 

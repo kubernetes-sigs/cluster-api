@@ -210,7 +210,7 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 
 // ANCHOR: Bootstrap
 
-// Bootstrap capsulates fields to configure the Machine’s bootstrapping mechanism.
+// Bootstrap encapsulates fields to configure the Machine’s bootstrapping mechanism.
 type Bootstrap struct {
 	// ConfigRef is a reference to a bootstrap provider-specific resource
 	// that holds configuration details. The reference is optional to

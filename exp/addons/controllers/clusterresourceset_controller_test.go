@@ -304,20 +304,17 @@ metadata:
 			},
 			Data: map[string]string{},
 		}
+
+		// Let's wait until the initial reconciliations are *all* done, so we can test
+		// if the ConfigMap creation triggers a reconciliation. Otherwise a previous change
+		// of another resource triggers the reconciliation and we cannot verify if we react
+		// correctly to the ConfigMap creation
+		time.Sleep(5 * time.Second)
+
 		g.Expect(testEnv.Create(ctx, newConfigmap)).To(Succeed())
 		defer func() {
 			g.Expect(testEnv.Delete(ctx, newConfigmap)).To(Succeed())
 		}()
-
-		cmKey := client.ObjectKey{
-			Namespace: defaultNamespaceName,
-			Name:      newCMName,
-		}
-		g.Eventually(func() bool {
-			m := &corev1.ConfigMap{}
-			err := testEnv.Get(ctx, cmKey, m)
-			return err == nil
-		}, timeout).Should(BeTrue())
 
 		// When the ConfigMap resource is created, CRS should get reconciled immediately.
 		g.Eventually(func() error {

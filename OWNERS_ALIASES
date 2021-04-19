@@ -28,9 +28,8 @@ aliases:
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
-  - CecileRobertMichon
   - JoelSpeed
-  - vincepri
+  - sbueringer
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for docs/book

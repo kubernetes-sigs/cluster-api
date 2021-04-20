@@ -12,7 +12,7 @@ updated info about which API version they are supporting.
 
 ## Infrastructure
 - [Alibaba Cloud](https://github.com/oam-oss/cluster-api-provider-alicloud)
-- [AWS](https://github.com/kubernetes-sigs/cluster-api-provider-aws)
+- [AWS](https://cluster-api-aws.sigs.k8s.io/)
 - [Azure](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
 - [Azure Stack HCI](https://github.com/microsoft/cluster-api-provider-azurestackhci)
 - [Baidu Cloud](https://github.com/baidu/cluster-api-provider-baiducloud)

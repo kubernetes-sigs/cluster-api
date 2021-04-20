@@ -21,18 +21,20 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/user"
 	"path"
 	"runtime"
 	"strconv"
 	"strings"
 
+	"github.com/onsi/ginkgo"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/yaml"
 )
 
@@ -123,14 +125,6 @@ func Run(ctx context.Context, input RunInput) error {
 		return err
 	}
 
-	var testRepoListVolumeArgs []string
-	if input.KubeTestRepoListPath != "" {
-		testRepoListVolumeArgs, err = buildKubeTestRepoListArgs(kubetestConfigDir, input.KubeTestRepoListPath)
-		if err != nil {
-			return err
-		}
-	}
-
 	e2eVars := map[string]string{
 		"kubeconfig":           "/tmp/kubeconfig",
 		"provider":             "skeleton",
@@ -145,27 +139,55 @@ func Run(ctx context.Context, input RunInput) error {
 	if input.ConformanceImage == "" {
 		input.ConformanceImage = versionToConformanceImage(input.KubernetesVersion)
 	}
-	kubeConfigVolumeMount := volumeArg(tmpKubeConfigPath, "/tmp/kubeconfig")
-	outputVolumeMount := volumeArg(reportDir, "/output")
+	volumeMounts := map[string]string{
+		tmpKubeConfigPath: "/tmp/kubeconfig",
+		reportDir:         "/output",
+	}
 	user, err := user.Current()
 	if err != nil {
 		return errors.Wrap(err, "unable to determine current user")
 	}
-	userArg := user.Uid + ":" + user.Gid
-	entrypointArg := "--entrypoint=/usr/local/bin/ginkgo"
-	networkArg := "--network=kind"
-	e2eCmd := exec.Command("docker", "run", "--user", userArg, entrypointArg, kubeConfigVolumeMount, outputVolumeMount, "-t", networkArg)
-	if len(testRepoListVolumeArgs) > 0 {
-		e2eCmd.Args = append(e2eCmd.Args, testRepoListVolumeArgs...)
+	env := map[string]string{}
+
+	if input.KubeTestRepoListPath != "" {
+		tmpKubeTestRepoListPath := path.Join(kubetestConfigDir, "repo_list.yaml")
+		if err := copyFile(input.KubeTestRepoListPath, tmpKubeTestRepoListPath); err != nil {
+			return err
+		}
+		dest := "/tmp/repo_list.yaml"
+		env["KUBE_TEST_REPO_LIST"] = dest
+		volumeMounts[tmpKubeTestRepoListPath] = dest
 	}
-	e2eCmd.Args = append(e2eCmd.Args, input.ConformanceImage)
-	e2eCmd.Args = append(e2eCmd.Args, ginkgoArgs...)
-	e2eCmd.Args = append(e2eCmd.Args, "/usr/local/bin/e2e.test")
-	e2eCmd.Args = append(e2eCmd.Args, "--")
-	e2eCmd.Args = append(e2eCmd.Args, e2eArgs...)
-	e2eCmd.Args = append(e2eCmd.Args, config.toFlags()...)
-	e2eCmd = framework.CompleteCommand(e2eCmd, "Running e2e test", false)
-	if err := e2eCmd.Run(); err != nil {
+
+	// Formulate our command arguments
+	args := []string{}
+	args = append(args, ginkgoArgs...)
+	args = append(args, "/usr/local/bin/e2e.test")
+	args = append(args, "--")
+	args = append(args, e2eArgs...)
+	args = append(args, config.toFlags()...)
+
+	// Get our current working directory. Just for information, so we don't need
+	// to worry about errors at this point.
+	cwd, _ := os.Getwd()
+	ginkgoextensions.Byf("Running e2e test: dir=%s, command=%q", cwd, args)
+
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return errors.Wrap(err, "Unable to run conformance tests")
+	}
+
+	err = containerRuntime.RunContainer(ctx, &container.RunContainerInput{
+		Image:           input.ConformanceImage,
+		Network:         "kind",
+		User:            user.Uid,
+		Group:           user.Gid,
+		Volumes:         volumeMounts,
+		EnvironmentVars: env,
+		CommandArgs:     args,
+		Entrypoint:      []string{"/usr/local/bin/ginkgo"},
+	}, ginkgo.GinkgoWriter)
+	if err != nil {
 		return errors.Wrap(err, "Unable to run conformance tests")
 	}
 	return framework.GatherJUnitReports(reportDir, input.ArtifactsDirectory)
@@ -235,27 +257,6 @@ func countClusterNodes(ctx context.Context, proxy framework.ClusterProxy) (int, 
 	return len(nodeList.Items), nil
 }
 
-func isSELinuxEnforcing() bool {
-	dat, err := os.ReadFile("/sys/fs/selinux/enforce")
-	if err != nil {
-		return false
-	}
-	return string(dat) == "1"
-}
-
-func volumeArg(src, dest string) string {
-	volumeArg := "-v" + src + ":" + dest
-	if isSELinuxEnforcing() {
-		return volumeArg + ":z"
-	}
-	return volumeArg
-}
-
-func envArg(key, value string) string {
-	envArg := "-e" + key + "=" + value
-	return envArg
-}
-
 func versionToConformanceImage(kubernetesVersion string) string {
 	k8sVersion := strings.ReplaceAll(kubernetesVersion, "+", "_")
 	if isUsingCIArtifactsVersion(kubernetesVersion) {
@@ -273,17 +274,4 @@ func buildArgs(kv map[string]string, flagMarker string) []string {
 		i++
 	}
 	return args
-}
-
-func buildKubeTestRepoListArgs(kubetestConfigDir, kubeTestRepoListPath string) ([]string, error) {
-	args := make([]string, 2)
-
-	tmpKubeTestRepoListPath := path.Join(kubetestConfigDir, "repo_list.yaml")
-	if err := copyFile(kubeTestRepoListPath, tmpKubeTestRepoListPath); err != nil {
-		return nil, err
-	}
-	dest := "/tmp/repo_list.yaml"
-	args[0] = envArg("KUBE_TEST_REPO_LIST", dest)
-	args[1] = volumeArg(tmpKubeTestRepoListPath, dest)
-	return args, nil
 }

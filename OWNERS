@@ -8,12 +8,14 @@ approvers:
 
 emeritus_approvers:
   - chuckha
+  - detiber
   - kris-nova
   - ncdc
   - roberthbailey
   - davidewatson
 
 emeritus_maintainers:
+  - detiber
   - ncdc
 
 reviewers:

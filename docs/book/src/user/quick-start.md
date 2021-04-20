@@ -719,7 +719,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 <!-- links -->
 [AWS provider prerequisites]: https://cluster-api-aws.sigs.k8s.io/topics/using-clusterawsadm-to-fulfill-prerequisites.html
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
-[Azure Provider Prerequisites]: https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/master/docs/getting-started.md#prerequisites
+[Azure Provider Prerequisites]: https://capz.sigs.k8s.io/topics/getting-started.html#prerequisites
 [bootstrap cluster]: ../reference/glossary.md#bootstrap-cluster
 [capv-upload-images]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-machine-images
 [clusterctl config cluster]: ../clusterctl/commands/config-cluster.md

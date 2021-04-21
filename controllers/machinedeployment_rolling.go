@@ -25,6 +25,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/mdutil"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // rolloutRolling implements the logic for rolling a new machine set.
@@ -72,11 +73,11 @@ func (r *MachineDeploymentReconciler) rolloutRolling(ctx context.Context, d *clu
 
 func (r *MachineDeploymentReconciler) reconcileNewMachineSet(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	if deployment.Spec.Replicas == nil {
-		return errors.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
+		return errors.Errorf("spec replicas for MachineDeployment %s is nil, this is unexpected", client.ObjectKeyFromObject(deployment).String())
 	}
 
 	if newMS.Spec.Replicas == nil {
-		return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", newMS.Name)
+		return errors.Errorf("spec replicas for MachineSet %s is nil, this is unexpected", client.ObjectKeyFromObject(newMS).String())
 	}
 
 	if *(newMS.Spec.Replicas) == *(deployment.Spec.Replicas) {
@@ -86,16 +87,14 @@ func (r *MachineDeploymentReconciler) reconcileNewMachineSet(ctx context.Context
 
 	if *(newMS.Spec.Replicas) > *(deployment.Spec.Replicas) {
 		// Scale down.
-		err := r.scaleMachineSet(ctx, newMS, *(deployment.Spec.Replicas), deployment)
-		return err
+		return r.scaleMachineSet(ctx, newMS, *(deployment.Spec.Replicas), deployment)
 	}
 
 	newReplicasCount, err := mdutil.NewMSNewReplicas(deployment, allMSs, newMS)
 	if err != nil {
 		return err
 	}
-	err = r.scaleMachineSet(ctx, newMS, newReplicasCount, deployment)
-	return err
+	return r.scaleMachineSet(ctx, newMS, newReplicasCount, deployment)
 }
 
 func (r *MachineDeploymentReconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {

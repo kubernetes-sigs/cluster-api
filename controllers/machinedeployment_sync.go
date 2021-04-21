@@ -356,7 +356,7 @@ func (r *MachineDeploymentReconciler) syncDeploymentStatus(allMSs []*clusterv1.M
 	return nil
 }
 
-// calculateStatus calculates the latest status for the provided deployment by looking into the provided machine sets.
+// calculateStatus calculates the latest status for the provided deployment by looking into the provided MachineSets.
 func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) clusterv1.MachineDeploymentStatus {
 	availableReplicas := mdutil.GetAvailableReplicaCountForMachineSets(allMSs)
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)

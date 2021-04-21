@@ -20,14 +20,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
-func TestMachineDeploymentSyncStatus(t *testing.T) {
+func TestCalculateStatus(t *testing.T) {
 	msStatusError := capierrors.MachineSetStatusError("some failure")
 
 	var tests = map[string]struct {
@@ -165,7 +164,7 @@ func TestMachineDeploymentSyncStatus(t *testing.T) {
 				Phase:               "ScalingDown",
 			},
 		},
-		"machine set failed": {
+		"MachineSet failed": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: pointer.Int32Ptr(2),

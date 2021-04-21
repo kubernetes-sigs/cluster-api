@@ -9,10 +9,10 @@ These metrics are protected by [kube-auth-proxy](https://github.com/brancz/kube-
 by default.
 
 You will need to grant permissions to your Prometheus server so that it can
-scrape the protected metrics. To achieve that, you can create a `clusterRole` and a 
-`clusterRoleBinding` to bind to the service account that your Prometheus server uses.
+scrape the protected metrics. To achieve that, you can create a `ClusterRole` and a 
+`ClusterRoleBinding` to bind to the service account that your Prometheus server uses.
 
-Create a YAML file named `capi-metrics-reader-clusterrole.yaml` with following content
+Create a manifest named `capi-metrics-reader-clusterrole.yaml` with the following content:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -24,13 +24,13 @@ rules:
   verbs: ["get"]
 ```
 
-and apply the `clusterRole` with
+and apply the `ClusterRole` with
 
 ```bash
 kubectl apply -f capi-metrics-reader-clusterrole.yaml
 ```
 
-You can run the following kubectl command to create a `clusterRoleBinding` and grant access on the `/metrics` endpoint to your Prometheus instance (`<namespace>` must be the namespace where your Prometheus instance is running. `<service-account-name>` must be the service account name which is configured in your Prometheus instance).
+You can run the following kubectl command to create a `ClusterRoleBinding` and grant access on the `/metrics` endpoint to your Prometheus instance (`<namespace>` must be the namespace where your Prometheus instance is running. `<service-account-name>` must be the service account name which is configured in your Prometheus instance).
 
 ```bash
 kubectl create clusterrolebinding capi-metrics-reader --clusterrole=capi-metrics-reader --serviceaccount=<namespace>:<service-account-name>
@@ -73,4 +73,4 @@ To scrape metrics, your Prometheus instance need at least following [`kubernetes
             regex: __meta_kubernetes_service_label_(.+)
 ```
 
-You are no able to check for metrics in your Prometheus instance. To verify, you could search with e.g. `{namespace="capi-system"}` to get all metrics from components running in `capi-system` Namespace.
+You are no able to check for metrics in your Prometheus instance. To verify, you could search with e.g. `{namespace="capi-system"}` to get all metrics from components running in the `capi-system` namespace.

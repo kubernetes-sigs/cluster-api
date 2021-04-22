@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/collections"
 	"time"
 
 	"github.com/pkg/errors"
@@ -40,6 +39,7 @@ import (
 	kubedrain "sigs.k8s.io/cluster-api/third_party/kubernetes-drain"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -657,12 +657,30 @@ func (r *MachineReconciler) nodeToMachine(o client.Object) []reconcile.Request {
 		panic(fmt.Sprintf("Expected a Node but got a %T", o))
 	}
 
+	// Match by nodeName and status.nodeRef.name.
+	filters := []client.ListOption{
+		client.MatchingFields{clusterv1.MachineNodeNameIndex: node.Name},
+	}
+
+	// Match by clusterName when the node has the annotation.
+	if clusterName, ok := node.GetAnnotations()[clusterv1.ClusterNameAnnotation]; ok {
+		filters = append(filters,
+			client.MatchingLabels{
+				clusterv1.ClusterLabelName: clusterName,
+			},
+		)
+	}
+
+	// Match by namespace when the node has the annotation.
+	if namespace, ok := node.GetAnnotations()[clusterv1.ClusterNamespaceAnnotation]; ok {
+		filters = append(filters, client.InNamespace(namespace))
+	}
+
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(
 		context.TODO(),
 		machineList,
-		client.MatchingFields{clusterv1.MachineNodeNameIndex: node.Name},
-	); err != nil {
+		filters...); err != nil {
 		return nil
 	}
 

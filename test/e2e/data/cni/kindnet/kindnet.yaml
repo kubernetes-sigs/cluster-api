@@ -78,7 +78,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: POD_SUBNET
-              value: "192.168.0.0/16"
+              value: '${DOCKER_POD_CIDRS}'
           volumeMounts:
             - name: cni-cfg
               mountPath: /etc/cni/net.d

@@ -19,8 +19,10 @@ package docker
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/pkg/errors"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/third_party/forked/loadbalancer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,37 +30,43 @@ import (
 )
 
 type lbCreator interface {
-	CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error)
+	CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error)
 }
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
 type LoadBalancer struct {
 	name      string
 	container *types.Node
-
+	ipFamily  clusterv1.ClusterIPFamily
 	lbCreator lbCreator
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
-func NewLoadBalancer(name string) (*LoadBalancer, error) {
-	if name == "" {
-		return nil, errors.New("name is required when creating a docker.LoadBalancer")
+func NewLoadBalancer(cluster *clusterv1.Cluster) (*LoadBalancer, error) {
+	if cluster.Name == "" {
+		return nil, errors.New("create load balancer: cluster name is empty")
 	}
 
 	// look for the container that is hosting the loadbalancer for the cluster.
 	// filter based on the label and the roles regardless of whether or not it is running.
 	// if non-running container is chosen, then it will not have an IP address associated with it.
 	container, err := getContainer(
-		withLabel(clusterLabel(name)),
+		withLabel(clusterLabel(cluster.Name)),
 		withLabel(roleLabel(constants.ExternalLoadBalancerNodeRoleValue)),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	ipFamily, err := cluster.GetIPFamily()
+	if err != nil {
+		return nil, fmt.Errorf("create load balancer: %s", err)
+	}
+
 	return &LoadBalancer{
-		name:      name,
+		name:      cluster.Name,
 		container: container,
+		ipFamily:  ipFamily,
 		lbCreator: &Manager{},
 	}, nil
 }
@@ -71,7 +79,12 @@ func (s *LoadBalancer) containerName() string {
 // Create creates a docker container hosting a load balancer for the cluster.
 func (s *LoadBalancer) Create(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
+	log = log.WithValues("cluster", s.name, "ipFamily", s.ipFamily)
 
+	listenAddr := "0.0.0.0"
+	if s.ipFamily == clusterv1.IPv6IPFamily {
+		listenAddr = "::"
+	}
 	// Create if not exists.
 	if s.container == nil {
 		var err error
@@ -80,8 +93,9 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 			s.containerName(),
 			loadbalancer.Image,
 			clusterLabel(s.name),
-			"0.0.0.0",
+			listenAddr,
 			0,
+			s.ipFamily,
 		)
 		if err != nil {
 			return errors.WithStack(err)
@@ -110,17 +124,21 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 
 	var backendServers = map[string]string{}
 	for _, n := range controlPlaneNodes {
-		controlPlaneIPv4, _, err := n.IP(ctx)
+		controlPlaneIPv4, controlPlaneIPv6, err := n.IP(ctx)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get IP for container %s", n.String())
 		}
-		backendServers[n.String()] = fmt.Sprintf("%s:%d", controlPlaneIPv4, 6443)
+		if s.ipFamily == clusterv1.IPv6IPFamily {
+			backendServers[n.String()] = net.JoinHostPort(controlPlaneIPv6, "6443")
+		} else {
+			backendServers[n.String()] = net.JoinHostPort(controlPlaneIPv4, "6443")
+		}
 	}
 
 	loadBalancerConfig, err := loadbalancer.Config(&loadbalancer.ConfigData{
 		ControlPlanePort: 6443,
 		BackendServers:   backendServers,
-		IPv6:             false,
+		IPv6:             s.ipFamily == clusterv1.IPv6IPFamily,
 	})
 	if err != nil {
 		return errors.WithStack(err)
@@ -136,15 +154,21 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 
 // IP returns the load balancer IP address.
 func (s *LoadBalancer) IP(ctx context.Context) (string, error) {
-	lbip4, _, err := s.container.IP(ctx)
+	lbIPv4, lbIPv6, err := s.container.IP(ctx)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
-	if lbip4 == "" {
+	var lbIP string
+	if s.ipFamily == clusterv1.IPv6IPFamily {
+		lbIP = lbIPv6
+	} else {
+		lbIP = lbIPv4
+	}
+	if lbIP == "" {
 		// if there is a load balancer container with the same name exists but is stopped, it may not have IP address associated with it.
 		return "", errors.Errorf("load balancer IP cannot be empty: container %s does not have an associated IP address", s.containerName())
 	}
-	return lbip4, nil
+	return lbIP, nil
 }
 
 // Delete the docker container hosting the cluster load balancer.

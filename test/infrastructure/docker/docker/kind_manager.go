@@ -23,6 +23,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -34,7 +36,7 @@ const ControlPlanePort = 6443
 
 type Manager struct{}
 
-func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
+func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error) {
 	// gets a random host port for the API server
 	if port == 0 {
 		p, err := getPort()
@@ -51,7 +53,7 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddres
 		ContainerPort: KubeadmContainerPort,
 	})
 	node, err := createNode(
-		name, image, clusterLabel, constants.ControlPlaneNodeRoleValue, mounts, portMappingsWithAPIServer,
+		name, image, clusterLabel, constants.ControlPlaneNodeRoleValue, mounts, portMappingsWithAPIServer, ipFamily,
 		// publish selected port for the API server
 		append([]string{"--expose", fmt.Sprintf("%d", port)}, labelsAsArgs(labels)...)...,
 	)
@@ -62,11 +64,11 @@ func (m *Manager) CreateControlPlaneNode(name, image, clusterLabel, listenAddres
 	return node, nil
 }
 
-func (m *Manager) CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (*types.Node, error) {
-	return createNode(name, image, clusterLabel, constants.WorkerNodeRoleValue, mounts, portMappings, labelsAsArgs(labels)...)
+func (m *Manager) CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error) {
+	return createNode(name, image, clusterLabel, constants.WorkerNodeRoleValue, mounts, portMappings, ipFamily, labelsAsArgs(labels)...)
 }
 
-func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error) {
+func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error) {
 	// gets a random host port for control-plane load balancer
 	// gets a random host port for the API server
 	if port == 0 {
@@ -84,7 +86,7 @@ func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, list
 		ContainerPort: ControlPlanePort,
 	}}
 	node, err := createNode(name, image, clusterLabel, constants.ExternalLoadBalancerNodeRoleValue,
-		nil, portMappings,
+		nil, portMappings, ipFamily,
 		// publish selected port for the control plane
 		"--expose", fmt.Sprintf("%d", port),
 	)
@@ -95,7 +97,7 @@ func (m *Manager) CreateExternalLoadBalancerNode(name, image, clusterLabel, list
 	return node, nil
 }
 
-func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, extraArgs ...string) (*types.Node, error) {
+func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, ipFamily clusterv1.ClusterIPFamily, extraArgs ...string) (*types.Node, error) {
 	runArgs := []string{
 		"--detach", // run the container detached
 		"--tty",    // allocate a tty for entrypoint logs
@@ -124,6 +126,13 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 		"--label", clusterLabel,
 		// label the node with the role ID
 		"--label", fmt.Sprintf("%s=%s", nodeRoleLabelKey, role),
+	}
+
+	if ipFamily == clusterv1.IPv6IPFamily {
+		runArgs = append(runArgs,
+			"--sysctl=net.ipv6.conf.all.disable_ipv6=0",
+			"--sysctl=net.ipv6.conf.all.forwarding=1",
+		)
 	}
 
 	// pass proxy environment variables to be used by node's docker daemon

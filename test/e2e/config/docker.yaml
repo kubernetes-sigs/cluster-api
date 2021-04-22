@@ -104,6 +104,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-node-drain.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-upgrades.yaml"
     - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-scale-in.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-ipv6.yaml"
     - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
 
 variables:
@@ -115,8 +116,8 @@ variables:
   KUBERNETES_VERSION_UPGRADE_TO: "v1.19.1"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.18.2"
   DOCKER_SERVICE_DOMAIN: "cluster.local"
+  IP_FAMILY: "IPv4"
   DOCKER_SERVICE_CIDRS: "10.128.0.0/12"
-  # IMPORTANT! This values should match the one used by the CNI provider
   DOCKER_POD_CIDRS: "192.168.0.0/16"
   CNI: "./data/cni/kindnet/kindnet.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"

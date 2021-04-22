@@ -69,6 +69,7 @@ cluster-templates-v1alpha4: $(KUSTOMIZE) ## Generate cluster templates for v1alp
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-node-drain --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-node-drain.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-upgrades --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-upgrades.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-scale-in --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-scale-in.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-ipv6 --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-ipv6.yaml
 ## --------------------------------------
 ## Testing
 ## --------------------------------------

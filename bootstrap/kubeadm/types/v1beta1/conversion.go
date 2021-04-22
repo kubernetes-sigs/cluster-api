@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -67,4 +68,9 @@ func (src *JoinConfiguration) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.JoinConfiguration)
 	return Convert_v1alpha4_JoinConfiguration_To_v1beta1_JoinConfiguration(src, dst, nil)
+}
+
+func Convert_v1beta1_DNS_To_v1alpha4_DNS(in *DNS, out *bootstrapv1.DNS, s apimachineryconversion.Scope) error {
+	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported, dropping this info.
+	return autoConvert_v1beta1_DNS_To_v1alpha4_DNS(in, out, s)
 }

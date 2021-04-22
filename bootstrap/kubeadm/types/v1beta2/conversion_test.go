@@ -74,6 +74,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		nodeRegistrationOptionsFuzzer,
 		initConfigurationFuzzer,
 		joinControlPlanesFuzzer,
+		dnsFuzzer,
 	}
 }
 
@@ -96,4 +97,11 @@ func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 
 	// InitConfiguration.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
 	obj.CertificateKey = ""
+}
+
+func dnsFuzzer(obj *DNS, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
+	obj.Type = ""
 }

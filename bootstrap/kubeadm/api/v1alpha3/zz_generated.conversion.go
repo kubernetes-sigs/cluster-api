@@ -198,6 +198,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1alpha4.ClusterConfiguration)(nil), (*v1beta1.ClusterConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(a.(*v1alpha4.ClusterConfiguration), b.(*v1beta1.ClusterConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta1.ClusterConfiguration)(nil), (*v1alpha4.ClusterConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(a.(*v1beta1.ClusterConfiguration), b.(*v1alpha4.ClusterConfiguration), scope)
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -384,7 +394,15 @@ func Convert_v1alpha4_KubeadmConfigList_To_v1alpha3_KubeadmConfigList(in *v1alph
 }
 
 func autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *KubeadmConfigSpec, out *v1alpha4.KubeadmConfigSpec, s conversion.Scope) error {
-	out.ClusterConfiguration = (*v1alpha4.ClusterConfiguration)(unsafe.Pointer(in.ClusterConfiguration))
+	if in.ClusterConfiguration != nil {
+		in, out := &in.ClusterConfiguration, &out.ClusterConfiguration
+		*out = new(v1alpha4.ClusterConfiguration)
+		if err := Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ClusterConfiguration = nil
+	}
 	out.InitConfiguration = (*v1alpha4.InitConfiguration)(unsafe.Pointer(in.InitConfiguration))
 	out.JoinConfiguration = (*v1alpha4.JoinConfiguration)(unsafe.Pointer(in.JoinConfiguration))
 	out.Files = *(*[]v1alpha4.File)(unsafe.Pointer(&in.Files))
@@ -406,7 +424,15 @@ func Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *Kubead
 }
 
 func autoConvert_v1alpha4_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *v1alpha4.KubeadmConfigSpec, out *KubeadmConfigSpec, s conversion.Scope) error {
-	out.ClusterConfiguration = (*v1beta1.ClusterConfiguration)(unsafe.Pointer(in.ClusterConfiguration))
+	if in.ClusterConfiguration != nil {
+		in, out := &in.ClusterConfiguration, &out.ClusterConfiguration
+		*out = new(v1beta1.ClusterConfiguration)
+		if err := Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ClusterConfiguration = nil
+	}
 	out.InitConfiguration = (*v1beta1.InitConfiguration)(unsafe.Pointer(in.InitConfiguration))
 	out.JoinConfiguration = (*v1beta1.JoinConfiguration)(unsafe.Pointer(in.JoinConfiguration))
 	out.Files = *(*[]File)(unsafe.Pointer(&in.Files))
@@ -501,7 +527,17 @@ func Convert_v1alpha4_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(in
 
 func autoConvert_v1alpha3_KubeadmConfigTemplateList_To_v1alpha4_KubeadmConfigTemplateList(in *KubeadmConfigTemplateList, out *v1alpha4.KubeadmConfigTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1alpha4.KubeadmConfigTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1alpha4.KubeadmConfigTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_KubeadmConfigTemplate_To_v1alpha4_KubeadmConfigTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -512,7 +548,17 @@ func Convert_v1alpha3_KubeadmConfigTemplateList_To_v1alpha4_KubeadmConfigTemplat
 
 func autoConvert_v1alpha4_KubeadmConfigTemplateList_To_v1alpha3_KubeadmConfigTemplateList(in *v1alpha4.KubeadmConfigTemplateList, out *KubeadmConfigTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]KubeadmConfigTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]KubeadmConfigTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 

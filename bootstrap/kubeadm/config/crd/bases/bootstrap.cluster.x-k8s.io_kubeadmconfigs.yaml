@@ -834,9 +834,6 @@ spec:
                       imageTag:
                         description: ImageTag allows to specify a tag for the image. In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
                         type: string
-                      type:
-                        description: Type defines the DNS add-on to be used
-                        type: string
                     type: object
                   etcd:
                     description: 'Etcd holds configuration for etcd. NB: This value defaults to a Local (stacked) etcd'

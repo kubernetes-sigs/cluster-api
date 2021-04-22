@@ -26,6 +26,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -42,15 +43,17 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigStatusFuzzFuncs},
 	}))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1alpha4.KubeadmConfigTemplate{},
-		Spoke:  &KubeadmConfigTemplate{},
+		Scheme:      scheme,
+		Hub:         &v1alpha4.KubeadmConfigTemplate{},
+		Spoke:       &KubeadmConfigTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigStatusFuzzFuncs},
 	}))
 }
 
 func KubeadmConfigStatusFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		KubeadmConfigStatusFuzzer,
+		dnsFuzzer,
 	}
 }
 
@@ -59,4 +62,11 @@ func KubeadmConfigStatusFuzzer(obj *KubeadmConfigStatus, c fuzz.Continue) {
 
 	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.BootstrapData = nil
+}
+
+func dnsFuzzer(obj *v1beta1.DNS, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.Type = ""
 }

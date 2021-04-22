@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	kubeadmbootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	kubeadmbootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -74,4 +75,15 @@ func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in *KubeadmConfigStatus, out *kubeadmbootstrapv1alpha4.KubeadmConfigStatus, s apiconversion.Scope) error { //nolint
 	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4 because its content has been moved to the bootstrap data secret, value will be lost during conversion.
 	return autoConvert_v1alpha3_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in, out, s)
+}
+
+func Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *kubeadmbootstrapv1alpha4.ClusterConfiguration, out *kubeadmbootstrapv1beta1.ClusterConfiguration, s apiconversion.Scope) error {
+	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported; the information will be left to empty (kubeadm defaults it to CoredDNS);
+	// Existing clusters using kube-dns or other DNS solutions will continue to be managed/supported via the skip-coredns annotation.
+	return kubeadmbootstrapv1beta1.Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
+}
+
+func Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in *kubeadmbootstrapv1beta1.ClusterConfiguration, out *kubeadmbootstrapv1alpha4.ClusterConfiguration, s apiconversion.Scope) error {
+	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported, dropping this info.
+	return kubeadmbootstrapv1beta1.Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in, out, s)
 }

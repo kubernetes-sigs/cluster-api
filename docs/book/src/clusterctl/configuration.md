@@ -23,11 +23,11 @@ Users can customize the list of available providers using the `clusterctl` confi
 providers:
   # add a custom provider
   - name: "my-infra-provider"
-    url: "https://github.com/myorg/myrepo/releases/latest/infrastructure_components.yaml"
+    url: "https://github.com/myorg/myrepo/releases/latest/infrastructure-components.yaml"
     type: "InfrastructureProvider"
   # override a pre-defined provider
   - name: "cluster-api"
-    url: "https://github.com/myorg/myforkofclusterapi/releases/latest/core_components.yaml"
+    url: "https://github.com/myorg/myforkofclusterapi/releases/latest/core-components.yaml"
     type: "CoreProvider"
 ```
 

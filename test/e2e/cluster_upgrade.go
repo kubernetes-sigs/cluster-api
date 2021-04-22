@@ -83,7 +83,10 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		By("Creating a workload cluster")
 
 		var controlPlaneMachineCount int64 = 1
-		var workerMachineCount int64 = 2
+		// clusterTemplateWorkerMachineCount is used for ConfigCluster, as it is used for MachineDeployment and
+		// MachinePool, we actually get 2 * clusterTemplateWorkerMachineCount Machines
+		var clusterTemplateWorkerMachineCount int64 = 2
+		var workerMachineCount = 2 * clusterTemplateWorkerMachineCount
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
@@ -97,7 +100,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
 				ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
-				WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
+				WorkerMachineCount:       pointer.Int64Ptr(clusterTemplateWorkerMachineCount),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -142,7 +145,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		framework.WaitForNodesReady(ctx, framework.WaitForNodesReadyInput{
 			Lister:            workloadClient,
 			KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			Count:             int(controlPlaneMachineCount + 2*workerMachineCount),
+			Count:             int(controlPlaneMachineCount + workerMachineCount),
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
@@ -153,10 +156,10 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			ctx,
 			kubetest.RunInput{
 				ClusterProxy:       workloadProxy,
-				NumberOfNodes:      int(2 * workerMachineCount),
+				NumberOfNodes:      int(workerMachineCount),
 				ArtifactsDirectory: input.ArtifactFolder,
 				ConfigFilePath:     kubetestConfigFilePath,
-				GinkgoNodes:        int(2 * workerMachineCount),
+				GinkgoNodes:        int(workerMachineCount),
 			},
 		)
 		Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")

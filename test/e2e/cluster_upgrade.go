@@ -82,6 +82,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 	It("Should create and upgrade a workload cluster and run kubetest", func() {
 		By("Creating a workload cluster")
 
+		var controlPlaneMachineCount int64 = 1
 		var workerMachineCount int64 = 2
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -95,7 +96,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
-				ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
 				WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -141,7 +142,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		framework.WaitForNodesReady(ctx, framework.WaitForNodesReadyInput{
 			Lister:            workloadClient,
 			KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			Count:             int(1 + 2*workerMachineCount),
+			Count:             int(controlPlaneMachineCount + 2*workerMachineCount),
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 

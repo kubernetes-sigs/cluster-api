@@ -33,7 +33,8 @@ type WaitForNodesReadyInput struct {
 	WaitForNodesReady []interface{}
 }
 
-// WaitForNodesReady waits until all nodes match with the Kubernetes version and are ready.
+// WaitForNodesReady waits until there are exactly the given count nodes and they have the correct Kubernetes version
+// and are ready.
 func WaitForNodesReady(ctx context.Context, input WaitForNodesReadyInput) {
 	Eventually(func() (bool, error) {
 		nodeList := &corev1.NodeList{}
@@ -43,9 +44,13 @@ func WaitForNodesReady(ctx context.Context, input WaitForNodesReadyInput) {
 		nodeReadyCount := 0
 		for _, node := range nodeList.Items {
 			n := node
-			if node.Status.NodeInfo.KubeletVersion == input.KubernetesVersion && noderefutil.IsNodeReady(&n) {
-				nodeReadyCount++
+			if node.Status.NodeInfo.KubeletVersion != input.KubernetesVersion {
+				return false, nil
 			}
+			if !noderefutil.IsNodeReady(&n) {
+				return false, nil
+			}
+			nodeReadyCount++
 		}
 		return input.Count == nodeReadyCount, nil
 	}, input.WaitForNodesReady...).Should(BeTrue())

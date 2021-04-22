@@ -82,7 +82,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 	It("Should create and upgrade a workload cluster and run kubetest", func() {
 		By("Creating a workload cluster")
 
-		var workerMachineCount int64 = 3
+		var workerMachineCount int64 = 2
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
@@ -135,18 +135,27 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			MachinePools:                   clusterResources.MachinePools,
 		})
 
-		By("Running conformance tests")
+		By("Waiting until nodes are ready")
 		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
+		workloadClient := workloadProxy.GetClient()
+		framework.WaitForNodesReady(ctx, framework.WaitForNodesReadyInput{
+			Lister:            workloadClient,
+			KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+			Count:             int(1 + 2*workerMachineCount),
+			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
+		})
+
+		By("Running conformance tests")
 
 		// Start running the conformance test suite.
 		err := kubetest.Run(
 			ctx,
 			kubetest.RunInput{
 				ClusterProxy:       workloadProxy,
-				NumberOfNodes:      int(workerMachineCount),
+				NumberOfNodes:      int(2 * workerMachineCount),
 				ArtifactsDirectory: input.ArtifactFolder,
 				ConfigFilePath:     kubetestConfigFilePath,
-				GinkgoNodes:        int(workerMachineCount),
+				GinkgoNodes:        int(2 * workerMachineCount),
 			},
 		)
 		Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")

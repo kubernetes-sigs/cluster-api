@@ -195,7 +195,14 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, cluster *cl
 		return ctrl.Result{}, r.sync(ctx, d, msList)
 	}
 
+	if d.Spec.Strategy == nil {
+		return ctrl.Result{}, errors.Errorf("missing MachineDeployment strategy")
+	}
+
 	if d.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
+		if d.Spec.Strategy.RollingUpdate == nil {
+			return ctrl.Result{}, errors.Errorf("missing MachineDeployment settings for strategy type: %s", d.Spec.Strategy.Type)
+		}
 		return ctrl.Result{}, r.rolloutRolling(ctx, d, msList)
 	}
 

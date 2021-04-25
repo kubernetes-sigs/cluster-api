@@ -119,7 +119,7 @@ func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.Object
 	return original.DeepCopy(), nil
 }
 
-// UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
+// UpdateImageRepositoryInKubeadmConfigMap updates the image repository in the kubeadm config map.
 func (w *Workload) UpdateImageRepositoryInKubeadmConfigMap(ctx context.Context, imageRepository string) error {
 	configMapKey := ctrlclient.ObjectKey{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
 	kubeadmConfigMap, err := w.getConfigMap(ctx, configMapKey)

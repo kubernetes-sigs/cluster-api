@@ -31,6 +31,11 @@ kind: MachineDeployment
 metadata:
   name: "${CLUSTER_NAME}-md-0"
 spec:
+  strategy:
+    type: "RollingUpdate"
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   clusterName: "${CLUSTER_NAME}"
   replicas: ${WORKER_MACHINE_COUNT}
   selector:

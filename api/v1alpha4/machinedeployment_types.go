@@ -69,8 +69,7 @@ type MachineDeploymentSpec struct {
 
 	// The deployment strategy to use to replace existing machines with
 	// new ones.
-	// +optional
-	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
+	Strategy *MachineDeploymentStrategy `json:"strategy"`
 
 	// Minimum number of seconds for which a newly created machine should
 	// be ready.
@@ -107,8 +106,7 @@ type MachineDeploymentStrategy struct {
 	// Type of deployment.
 	// Default is RollingUpdate.
 	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
-	// +optional
-	Type MachineDeploymentStrategyType `json:"type,omitempty"`
+	Type MachineDeploymentStrategyType `json:"type"`
 
 	// Rolling update config params. Present only if
 	// MachineDeploymentStrategyType = RollingUpdate.
@@ -134,8 +132,7 @@ type MachineRollingUpdateDeployment struct {
 	// down further, followed by scaling up the new MachineSet, ensuring
 	// that the total number of machines available at all times
 	// during the update is at least 70% of desired machines.
-	// +optional
-	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable"`
 
 	// The maximum number of machines that can be scheduled above the
 	// desired number of machines.
@@ -150,8 +147,7 @@ type MachineRollingUpdateDeployment struct {
 	// machines. Once old machines have been killed, new MachineSet can
 	// be scaled up further, ensuring that total number of machines running
 	// at any time during the update is at most 130% of desired machines.
-	// +optional
-	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
+	MaxSurge *intstr.IntOrString `json:"maxSurge"`
 
 	// DeletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
 	// Valid values are "Random, "Newest", "Oldest"

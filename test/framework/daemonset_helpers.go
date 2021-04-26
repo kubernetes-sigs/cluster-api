@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// WaitForKubeProxyUpgradeInput is the input for WaitForKubeProxyUpgradeInput.
+// WaitForKubeProxyUpgradeInput is the input for WaitForKubeProxyUpgrade.
 type WaitForKubeProxyUpgradeInput struct {
 	Getter            Getter
 	KubernetesVersion string

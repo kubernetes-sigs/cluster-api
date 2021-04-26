@@ -82,7 +82,11 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 	It("Should create and upgrade a workload cluster and run kubetest", func() {
 		By("Creating a workload cluster")
 
-		var workerMachineCount int64 = 3
+		var controlPlaneMachineCount int64 = 1
+		// clusterTemplateWorkerMachineCount is used for ConfigCluster, as it is used for MachineDeployment and
+		// MachinePool, we actually get 2 * clusterTemplateWorkerMachineCount Machines
+		var clusterTemplateWorkerMachineCount int64 = 2
+		var workerMachineCount = 2 * clusterTemplateWorkerMachineCount
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
@@ -95,8 +99,8 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
-				ControlPlaneMachineCount: pointer.Int64Ptr(1),
-				WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
+				ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
+				WorkerMachineCount:       pointer.Int64Ptr(clusterTemplateWorkerMachineCount),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -135,8 +139,17 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			MachinePools:                   clusterResources.MachinePools,
 		})
 
-		By("Running conformance tests")
+		By("Waiting until nodes are ready")
 		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
+		workloadClient := workloadProxy.GetClient()
+		framework.WaitForNodesReady(ctx, framework.WaitForNodesReadyInput{
+			Lister:            workloadClient,
+			KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+			Count:             int(controlPlaneMachineCount + workerMachineCount),
+			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
+		})
+
+		By("Running conformance tests")
 
 		// Start running the conformance test suite.
 		err := kubetest.Run(

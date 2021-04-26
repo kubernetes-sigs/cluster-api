@@ -1,8 +1,8 @@
 ---
 title: Kubeadm Based Control Plane Management
 authors:
-  - "@detiber”
-  - "@chuckha”
+  - "@detiber"
+  - "@chuckha"
   - "@randomvariable"
   - "@dlipovetsky"
   - "@amy"
@@ -48,7 +48,7 @@ status: implementable
                * [Scale Down](#scale-down)
                * [Delete of the entire KubeadmControlPlane (kubectl delete controlplane my-controlplane)](#delete-of-the-entire-kubeadmcontrolplane-kubectl-delete-controlplane-my-controlplane)
                * [KubeadmControlPlane rollout](#kubeadmcontrolplane-rollout)
-               * [Rolling update strategy](#rolling update strategy)
+               * [Rolling update strategy](#rolling-update-strategy)
                * [Constraints and Assumptions](#constraints-and-assumptions)                
                * [Remediation (using delete-and-recreate)](#remediation-using-delete-and-recreate)
                   * [Why delete and recreate](#why-delete-and-recreate)

@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
@@ -50,10 +51,20 @@ func TestMachineDeploymentDefault(t *testing.T) {
 }
 
 func TestMachineDeploymentValidation(t *testing.T) {
+	badMaxSurge := intstr.FromString("1")
+	badMaxUnavailable := intstr.FromString("0")
+
+	goodMaxSurgePercentage := intstr.FromString("1%")
+	goodMaxUnavailablePercentage := intstr.FromString("0%")
+
+	goodMaxSurgeInt := intstr.FromInt(1)
+	goodMaxUnavailableInt := intstr.FromInt(0)
+
 	tests := []struct {
 		name      string
 		selectors map[string]string
 		labels    map[string]string
+		strategy  MachineDeploymentStrategy
 		expectErr bool
 	}{
 		{
@@ -86,6 +97,58 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			labels:    map[string]string{"-123-foo": "bar"},
 			expectErr: true,
 		},
+		{
+			name:      "should return error for invalid maxSurge",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: MachineDeploymentStrategy{
+				Type: RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &MachineRollingUpdateDeployment{
+					MaxUnavailable: &goodMaxUnavailableInt,
+					MaxSurge:       &badMaxSurge,
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should return error for invalid maxUnavailable",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: MachineDeploymentStrategy{
+				Type: RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &MachineRollingUpdateDeployment{
+					MaxUnavailable: &badMaxUnavailable,
+					MaxSurge:       &goodMaxSurgeInt,
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should not return error for valid int maxSurge and maxUnavailable",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: MachineDeploymentStrategy{
+				Type: RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &MachineRollingUpdateDeployment{
+					MaxUnavailable: &goodMaxUnavailableInt,
+					MaxSurge:       &goodMaxSurgeInt,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:      "should not return error for valid percentage string maxSurge and maxUnavailable",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: MachineDeploymentStrategy{
+				Type: RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &MachineRollingUpdateDeployment{
+					MaxUnavailable: &goodMaxUnavailablePercentage,
+					MaxSurge:       &goodMaxSurgePercentage,
+				},
+			},
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -93,6 +156,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			g := NewWithT(t)
 			md := &MachineDeployment{
 				Spec: MachineDeploymentSpec{
+					Strategy: &tt.strategy,
 					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},

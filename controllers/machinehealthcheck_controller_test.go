@@ -2183,7 +2183,7 @@ func TestGetMaxUnhealthy(t *testing.T) {
 			maxUnhealthy:         &intstr.IntOrString{Type: intstr.String, StrVal: "abcdef"},
 			expectedMaxUnhealthy: 0,
 			actualMachineCount:   3,
-			expectedErr:          errors.New("invalid value for IntOrString: invalid value \"abcdef\": strconv.Atoi: parsing \"abcdef\": invalid syntax"),
+			expectedErr:          errors.New("invalid value for IntOrString: invalid type: string is not a percentage"),
 		},
 		{
 			name:                 "when maxUnhealthy is an int",

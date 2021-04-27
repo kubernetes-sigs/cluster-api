@@ -492,6 +492,14 @@ func TestResolveFenceposts(t *testing.T) {
 			expectUnavailable: 0,
 			expectError:       true,
 		},
+		{
+			maxSurge:          "5",
+			maxUnavailable:    "1",
+			desired:           7,
+			expectSurge:       0,
+			expectUnavailable: 0,
+			expectError:       true,
+		},
 	}
 
 	for _, test := range tests {

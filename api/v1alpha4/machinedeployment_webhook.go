@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -90,6 +91,33 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 			allErrs,
 			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
 		)
+	}
+
+	if m.Spec.Strategy != nil && m.Spec.Strategy.RollingUpdate != nil {
+		total := 1
+		if m.Spec.Replicas != nil {
+			total = int(*m.Spec.Replicas)
+		}
+
+		if m.Spec.Strategy.RollingUpdate.MaxSurge != nil {
+			if _, err := intstrutil.GetScaledValueFromIntOrPercent(m.Spec.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
+				allErrs = append(
+					allErrs,
+					field.Invalid(field.NewPath("spec", "strategy", "rollingUpdate", "maxSurge"),
+						m.Spec.Strategy.RollingUpdate.MaxSurge, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+				)
+			}
+		}
+
+		if m.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
+			if _, err := intstrutil.GetScaledValueFromIntOrPercent(m.Spec.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
+				allErrs = append(
+					allErrs,
+					field.Invalid(field.NewPath("spec", "strategy", "rollingUpdate", "maxUnavailable"),
+						m.Spec.Strategy.RollingUpdate.MaxUnavailable, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+				)
+			}
+		}
 	}
 
 	if len(allErrs) == 0 {

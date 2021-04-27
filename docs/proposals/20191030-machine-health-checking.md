@@ -187,11 +187,11 @@ This is the default remediation strategy.
 
 A generic mechanism for supporting externally provided custom remediation strategies.
 
-We propose modifying the MachineHealthCheck CRD to support a externalRemediationTemplate, an ObjectReference to a provider-specific template CRD.
+We propose modifying the MachineHealthCheck CRD to support a remediationTemplate, an ObjectReference to a provider-specific template CRD.
 
-If no value for externalRemediationTemplate is defined for the MachineHealthCheck CR, the condition-based flow is preserved.
+If no value for remediationTemplate is defined for the MachineHealthCheck CR, the condition-based flow is preserved.
 
-If a value for externalRemediationTemplate is supplied and the Machine enters an unhealthy state, the template will be instantiated using existing CAPI functionality, with the same name and namespace as the target Machine, and the remediation flow passed to an External Remediation Controller (ERC) watching for that CR.
+If a value for remediationTemplate is supplied and the Machine enters an unhealthy state, the template will be instantiated using existing CAPI functionality, with the same name and namespace as the target Machine, and the remediation flow passed to an External Remediation Controller (ERC) watching for that CR.
 
 No further action (deletion or applying conditions) will be taken by the MachineHealthCheck controller until the Node becomes healthy, when it will locate and delete the instantiated MachineRemediation CR.
 
@@ -200,7 +200,7 @@ No further action (deletion or applying conditions) will be taken by the Machine
         ...
     
         // +optional
-        ExternalRemediationTemplate *ObjectReference `json:"externalRemediationTemplate,omitempty"`
+        RemediationTemplate *ObjectReference `json:"remediationTemplate,omitempty"`
     }
 ```
 
@@ -237,7 +237,7 @@ MachineHealthCheck:
       selector:
         matchLabels: 
           ...
-      externalRemediationTemplate:
+      remediationTemplate:
         kind: Metal3RemediationTemplate
         apiVersion: remediation.metal3.io/v1alphaX
         name: M3_REMEDIATION_GROUP

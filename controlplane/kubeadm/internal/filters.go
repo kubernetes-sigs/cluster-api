@@ -90,7 +90,7 @@ func MatchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 // NOTE: Machines that have KubeadmClusterConfigurationAnnotation will have to match with KCP ClusterConfiguration.
 // If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes
 // made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
-// Users should use KCP.Spec.UpgradeAfter field to force a rollout in this case.
+// Users should use KCP.Spec.RolloutAfter field to force a rollout in this case.
 func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) bool {
 	machineClusterConfigStr, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]
 	if !ok {

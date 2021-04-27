@@ -164,7 +164,7 @@ func autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlan
 	if err := apiv1alpha3.Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
-	out.UpgradeAfter = (*v1.Time)(unsafe.Pointer(in.UpgradeAfter))
+	// WARNING: in.UpgradeAfter requires manual conversion: does not exist in peer-type
 	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
 	return nil
 }
@@ -176,7 +176,7 @@ func autoConvert_v1alpha4_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlan
 	if err := apiv1alpha3.Convert_v1alpha4_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
-	out.UpgradeAfter = (*v1.Time)(unsafe.Pointer(in.UpgradeAfter))
+	// WARNING: in.RolloutAfter requires manual conversion: does not exist in peer-type
 	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
 	// WARNING: in.RolloutStrategy requires manual conversion: does not exist in peer-type
 	return nil

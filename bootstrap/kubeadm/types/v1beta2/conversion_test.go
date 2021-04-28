@@ -75,6 +75,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		initConfigurationFuzzer,
 		joinControlPlanesFuzzer,
 		dnsFuzzer,
+		clusterConfigurationFuzzer,
 	}
 }
 
@@ -104,4 +105,11 @@ func dnsFuzzer(obj *DNS, c fuzz.Continue) {
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
 	obj.Type = ""
+}
+
+func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
+	obj.UseHyperKubeImage = false
 }

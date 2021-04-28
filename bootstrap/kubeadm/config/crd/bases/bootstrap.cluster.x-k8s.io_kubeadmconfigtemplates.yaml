@@ -1347,11 +1347,6 @@ spec:
                                   type: object
                                 type: array
                             type: object
-                          useHyperKubeImage:
-                            description: UseHyperKubeImage controls if hyperkube should
-                              be used for Kubernetes components instead of their respective
-                              separate images
-                            type: boolean
                         type: object
                       diskSetup:
                         description: DiskSetup specifies options for the creation

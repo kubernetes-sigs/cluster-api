@@ -89,3 +89,8 @@ func Convert_v1beta2_DNS_To_v1alpha4_DNS(in *DNS, out *bootstrapv1.DNS, s apimac
 	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported, dropping this info.
 	return autoConvert_v1beta2_DNS_To_v1alpha4_DNS(in, out, s)
 }
+
+func Convert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
+	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
+	return autoConvert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in, out, s)
+}

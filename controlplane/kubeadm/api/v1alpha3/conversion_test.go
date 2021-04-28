@@ -60,6 +60,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		kubeadmBootstrapTokenStringFuzzer,
 		cabpkBootstrapTokenStringFuzzer,
 		dnsFuzzer,
+		kubeadmClusterConfigurationFuzzer,
 	}
 }
 
@@ -77,4 +78,11 @@ func dnsFuzzer(obj *kubeadmv1beta1.DNS, c fuzz.Continue) {
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
+}
+
+func kubeadmClusterConfigurationFuzzer(obj *kubeadmv1beta1.ClusterConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.UseHyperKubeImage = false
 }

@@ -59,6 +59,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		kubeadmBootstrapTokenStringFuzzer,
 		cabpkBootstrapTokenStringFuzzer,
+		dnsFuzzer,
 	}
 }
 
@@ -69,4 +70,11 @@ func kubeadmBootstrapTokenStringFuzzer(in *kubeadmv1beta1.BootstrapTokenString, 
 func cabpkBootstrapTokenStringFuzzer(in *cabpkv1.BootstrapTokenString, c fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
+}
+
+func dnsFuzzer(obj *kubeadmv1beta1.DNS, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.Type = ""
 }

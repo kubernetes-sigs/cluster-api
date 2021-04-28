@@ -883,7 +883,6 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 					DNS: bootstrapv1.DNS{
-						Type: bootstrapv1.CoreDNS,
 						ImageMeta: bootstrapv1.ImageMeta{
 							ImageRepository: "k8s.gcr.io",
 							ImageTag:        "1.7.2",

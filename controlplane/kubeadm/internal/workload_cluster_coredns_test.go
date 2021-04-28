@@ -40,7 +40,6 @@ func TestUpdateCoreDNS(t *testing.T) {
 			KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 					DNS: bootstrapv1.DNS{
-						Type: "",
 						ImageMeta: bootstrapv1.ImageMeta{
 							ImageRepository: "",
 							ImageTag:        "",
@@ -144,9 +143,7 @@ kind: ClusterConfiguration
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							DNS: bootstrapv1.DNS{
-								Type: "",
-							},
+							DNS: bootstrapv1.DNS{},
 						},
 					},
 				},
@@ -159,22 +156,6 @@ kind: ClusterConfiguration
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{},
-				},
-			},
-			objs:      []client.Object{badCM},
-			expectErr: false,
-		},
-		{
-			name: "returns early without error if KCP Cluster config DNS is not empty && not CoreDNS",
-			kcp: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							DNS: bootstrapv1.DNS{
-								Type: "foobarDNS",
-							},
-						},
-					},
 				},
 			},
 			objs:      []client.Object{badCM},
@@ -204,7 +185,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									// image is older than what's already
 									// installed.
@@ -226,7 +206,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									// provide an newer image to update to
 									ImageRepository: "k8s.gcr.io/some-folder/coredns",
@@ -248,7 +227,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									// provide an newer image to update to
 									ImageRepository: "k8s.gcr.io/some-folder/coredns",
@@ -272,7 +250,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									// provide an newer image to update to
 									ImageRepository: "k8s.gcr.io/some-repo",
@@ -298,7 +275,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									// provide an newer image to update to
 									ImageRepository: "k8s.gcr.io/some-repo",
@@ -324,7 +300,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									ImageRepository: "k8s.gcr.io",
 									ImageTag:        "1.7.0",
@@ -349,7 +324,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									ImageRepository: "k8s.gcr.io",
 									ImageTag:        "1.7.0",
@@ -373,7 +347,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									ImageRepository: "k8s.gcr.io",
 									ImageTag:        "v1.8.0", // NOTE: ImageTags requires the v prefix
@@ -398,7 +371,6 @@ kind: ClusterConfiguration
 					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								Type: bootstrapv1.CoreDNS,
 								ImageMeta: bootstrapv1.ImageMeta{
 									ImageRepository: "k8s.gcr.io",
 									ImageTag:        "v1.8.0", // NOTE: ImageTags requires the v prefix
@@ -952,7 +924,6 @@ scheduler: {}`,
 	delete(emptyCM.Data, "ClusterConfiguration")
 
 	dns := &bootstrapv1.DNS{
-		Type: bootstrapv1.CoreDNS,
 		ImageMeta: bootstrapv1.ImageMeta{
 			ImageRepository: "gcr.io/example",
 			ImageTag:        "1.0.1-somever.1",

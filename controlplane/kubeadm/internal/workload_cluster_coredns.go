@@ -86,10 +86,6 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	}
 
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
-	// Return early if the type is anything other than empty (default), or CoreDNS.
-	if clusterConfig.DNS.Type != "" && clusterConfig.DNS.Type != bootstrapv1.CoreDNS {
-		return nil
-	}
 
 	// Get the CoreDNS info needed for the upgrade.
 	info, err := w.getCoreDNSInfo(ctx, clusterConfig)

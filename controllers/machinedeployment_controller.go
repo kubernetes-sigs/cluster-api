@@ -306,7 +306,7 @@ func (r *MachineDeploymentReconciler) getMachineDeploymentsForMachineSet(ctx con
 	return deployments
 }
 
-// MachineSetTodeployments is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
+// MachineSetToDeployments is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for MachineDeployments that might adopt an orphaned MachineSet.
 func (r *MachineDeploymentReconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}

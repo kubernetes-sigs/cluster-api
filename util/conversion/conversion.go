@@ -34,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -128,7 +129,26 @@ func UnmarshalData(from metav1.Object, to interface{}) (bool, error) {
 
 // GetFuzzer returns a new fuzzer to be used for testing.
 func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer {
-	funcs = append([]fuzzer.FuzzerFuncs{metafuzzer.Funcs}, funcs...)
+	funcs = append([]fuzzer.FuzzerFuncs{
+		metafuzzer.Funcs,
+		func(_ runtimeserializer.CodecFactory) []interface{} {
+			return []interface{}{
+				// Custom fuzzer for metav1.Time pointers which weren't
+				// fuzzed and always resulted in `nil` values.
+				// This implementation is somewhat similar to the one provided
+				// in the metafuzzer.Funcs.
+				func(input *metav1.Time, c fuzz.Continue) {
+					if input != nil {
+						var sec, nsec uint32
+						c.Fuzz(&sec)
+						c.Fuzz(&nsec)
+						fuzzed := metav1.Unix(int64(sec), int64(nsec)).Rfc3339Copy()
+						input.Time = fuzzed.Time
+					}
+				},
+			}
+		},
+	}, funcs...)
 	return fuzzer.FuzzerFor(
 		fuzzer.MergeFuzzerFuncs(funcs...),
 		rand.NewSource(rand.Int63()),

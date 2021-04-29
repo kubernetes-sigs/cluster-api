@@ -80,10 +80,13 @@ func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in *Ku
 func Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *kubeadmbootstrapv1alpha4.ClusterConfiguration, out *kubeadmbootstrapv1beta1.ClusterConfiguration, s apiconversion.Scope) error {
 	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported; the information will be left to empty (kubeadm defaults it to CoredDNS);
 	// Existing clusters using kube-dns or other DNS solutions will continue to be managed/supported via the skip-coredns annotation.
+
+	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
 	return kubeadmbootstrapv1beta1.Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
 }
 
 func Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in *kubeadmbootstrapv1beta1.ClusterConfiguration, out *kubeadmbootstrapv1alpha4.ClusterConfiguration, s apiconversion.Scope) error {
-	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported, dropping this info.
+	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported; the information will be left to empty (kubeadm defaults it to CoredDNS);
+	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
 	return kubeadmbootstrapv1beta1.Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in, out, s)
 }

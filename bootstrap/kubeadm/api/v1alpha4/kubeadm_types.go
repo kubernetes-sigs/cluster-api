@@ -119,10 +119,6 @@ type ClusterConfiguration struct {
 	// +optional
 	ImageRepository string `json:"imageRepository,omitempty"`
 
-	// UseHyperKubeImage controls if hyperkube should be used for Kubernetes components instead of their respective separate images
-	// +optional
-	UseHyperKubeImage bool `json:"useHyperKubeImage,omitempty"`
-
 	// FeatureGates enabled by the user.
 	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`

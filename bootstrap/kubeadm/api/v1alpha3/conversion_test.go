@@ -40,20 +40,21 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &v1alpha4.KubeadmConfig{},
 		Spoke:       &KubeadmConfig{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigStatusFuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &v1alpha4.KubeadmConfigTemplate{},
 		Spoke:       &KubeadmConfigTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigStatusFuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 }
 
-func KubeadmConfigStatusFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		KubeadmConfigStatusFuzzer,
 		dnsFuzzer,
+		clusterConfigurationFuzzer,
 	}
 }
 
@@ -69,4 +70,11 @@ func dnsFuzzer(obj *v1beta1.DNS, c fuzz.Continue) {
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
+}
+
+func clusterConfigurationFuzzer(obj *v1beta1.ClusterConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> v1alpha4 --> v1beta1 round trip errors.
+	obj.UseHyperKubeImage = false
 }

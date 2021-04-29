@@ -434,9 +434,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	imageRepository := before.DeepCopy()
 	imageRepository.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository = "a new image repository"
 
-	useHyperKubeImage := before.DeepCopy()
-	useHyperKubeImage.Spec.KubeadmConfigSpec.ClusterConfiguration.UseHyperKubeImage = true
-
 	featureGates := before.DeepCopy()
 	featureGates.Spec.KubeadmConfigSpec.ClusterConfiguration.FeatureGates = map[string]bool{"a feature gate": true}
 
@@ -680,12 +677,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       imageRepository,
-		},
-		{
-			name:      "should fail when making a change to the cluster config's useHyperKubeImage field",
-			expectErr: true,
-			before:    before,
-			kcp:       useHyperKubeImage,
 		},
 		{
 			name:      "should fail when making a change to the cluster config's featureGates",

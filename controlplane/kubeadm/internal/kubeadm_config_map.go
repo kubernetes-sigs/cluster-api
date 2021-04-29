@@ -36,7 +36,6 @@ const (
 	statusAPIEndpointsKey    = "apiEndpoints"
 	configVersionKey         = "kubernetesVersion"
 	dnsKey                   = "dns"
-	dnsTypeKey               = "type"
 	dnsImageRepositoryKey    = "imageRepository"
 	dnsImageTagKey           = "imageTag"
 	configImageRepositoryKey = "imageRepository"
@@ -205,7 +204,6 @@ func (k *kubeadmConfig) UpdateCoreDNSImageInfo(repository, tag string) error {
 		return errors.Wrapf(err, "unable to decode kubeadm ConfigMap's %q to Unstructured object", clusterConfigurationKey)
 	}
 	dnsMap := map[string]string{
-		dnsTypeKey:            string(bootstrapv1.CoreDNS),
 		dnsImageRepositoryKey: repository,
 		dnsImageTagKey:        tag,
 	}

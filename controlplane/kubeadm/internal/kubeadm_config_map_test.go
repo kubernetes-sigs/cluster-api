@@ -389,7 +389,6 @@ scheduler: {}`,
 
 			g.Expect(yaml.Unmarshal([]byte(kc.ConfigMap.Data[clusterConfigurationKey]), &actualClusterConfig)).To(Succeed())
 			actualDNS := actualClusterConfig.DNS
-			g.Expect(actualDNS.Type).To(BeEquivalentTo(bootstrapv1.CoreDNS))
 			g.Expect(actualDNS.ImageRepository).To(Equal(imageRepository))
 			g.Expect(actualDNS.ImageTag).To(Equal(imageTag))
 		})
@@ -576,8 +575,8 @@ kind: ClusterConfiguration
     name: mount1
   - hostPath: /a/b
     mountPath: /c/d
-    name: mount2   
-  timeoutForControlPlane: 3m0s 
+    name: mount2
+  timeoutForControlPlane: 3m0s
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 `},
@@ -612,8 +611,8 @@ kind: ClusterConfiguration
     name: mount1
   - hostPath: /a/b
     mountPath: /c/d
-    name: mount2   
-  timeoutForControlPlane: 3m0s 
+    name: mount2
+  timeoutForControlPlane: 3m0s
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 `,

@@ -303,7 +303,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.InfrastructureTemplate.Name = "orange"
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
 	now := metav1.NewTime(time.Now())
-	validUpdate.Spec.UpgradeAfter = &now
+	validUpdate.Spec.RolloutAfter = &now
 
 	scaleToZero := before.DeepCopy()
 	scaleToZero.Spec.Replicas = pointer.Int32Ptr(0)

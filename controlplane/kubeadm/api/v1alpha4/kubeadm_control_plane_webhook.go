@@ -133,7 +133,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, "infrastructureTemplate", "name"},
 		{spec, "replicas"},
 		{spec, "version"},
-		{spec, "upgradeAfter"},
+		{spec, "rolloutAfter"},
 		{spec, "nodeDrainTimeout"},
 		{spec, "rolloutStrategy", "*"},
 	}

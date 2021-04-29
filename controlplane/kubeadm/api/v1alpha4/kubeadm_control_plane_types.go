@@ -66,11 +66,12 @@ type KubeadmControlPlaneSpec struct {
 	// to use for initializing and joining machines to the control plane.
 	KubeadmConfigSpec cabpkv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
-	// UpgradeAfter is a field to indicate an upgrade should be performed
+	// RolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
-	// KubeadmControlPlane
+	// KubeadmControlPlane.
+	//
 	// +optional
-	UpgradeAfter *metav1.Time `json:"upgradeAfter,omitempty"`
+	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.

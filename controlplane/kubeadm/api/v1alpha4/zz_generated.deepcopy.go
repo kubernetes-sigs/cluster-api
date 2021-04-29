@@ -96,8 +96,8 @@ func (in *KubeadmControlPlaneSpec) DeepCopyInto(out *KubeadmControlPlaneSpec) {
 	}
 	out.InfrastructureTemplate = in.InfrastructureTemplate
 	in.KubeadmConfigSpec.DeepCopyInto(&out.KubeadmConfigSpec)
-	if in.UpgradeAfter != nil {
-		in, out := &in.UpgradeAfter, &out.UpgradeAfter
+	if in.RolloutAfter != nil {
+		in, out := &in.RolloutAfter, &out.RolloutAfter
 		*out = (*in).DeepCopy()
 	}
 	if in.NodeDrainTimeout != nil {

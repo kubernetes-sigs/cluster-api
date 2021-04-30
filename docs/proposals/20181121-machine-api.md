@@ -138,7 +138,7 @@ generally been used as a timeline of state transitions for the object's
 reconciliation, and difficult to consume for clients that just want a meaningful
 representation of the object's current state. There are no existing examples of
 the new pattern to follow instead, just the guidance that we should use
-top-level fields in the status to reprensent meaningful information. We can
+top-level fields in the status to represent meaningful information. We can
 revisit the specifics when new patterns start to emerge in core.
 
 ## Types

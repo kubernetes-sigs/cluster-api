@@ -1,5 +1,5 @@
 ---
-title: Externally Managed cluster infastructure
+title: Externally Managed cluster infrastructure
 authors:
   - "@enxebre"
   - "@joelspeed"
@@ -18,7 +18,7 @@ replaces:
 superseded-by:
 ---
 
-# Externally Managed cluster infrastucture
+# Externally Managed cluster infrastructure
 
 ## Table of Contents
    * [Externally Managed cluster infrastructure](#externally-managed-cluster-infrastructure)
@@ -79,7 +79,7 @@ This proposal introduces support to allow infrastructure cluster resources (e.g.
 Currently, Cluster API infrastructure providers support an opinionated happy path to create and manage cluster infrastructure lifecycle.
 The fundamental use case we want to support is out of tree controllers or tools that can manage these resources.
 
-For example, users could create clusters using tools such as Terraform, Crossplane, or Kops and run CAPI on top of intalled infrastructure.
+For example, users could create clusters using tools such as Terraform, Crossplane, or Kops and run CAPI on top of installed infrastructure.
 
 The proposal might also ease adoption of Cluster API in heavily restricted environments where the provider infrastructure for the cluster needs to be managed out of band.
 
@@ -123,7 +123,7 @@ For example, Cluster API Provider AWS only supports a single architecture for de
 As a cluster operator I want to use CAPI to orchestrate kubernetes bootstrapping while restricting the privileges I need to grant for my cloud provider because of organisational cloud security constraints.
 
 #### Story 3 - Consuming existing cloud infrastructure
-As a cluster operator I want to use CAPI to orchestate Kubernetes bootstrapping while reusing infrastructure that has already been created in the organisation either by me or another team.
+As a cluster operator I want to use CAPI to orchestrate Kubernetes bootstrapping while reusing infrastructure that has already been created in the organisation either by me or another team.
 
 Following from the example in Story 1, many AWS environments are tightly governed by an organisation's cloud security operations unit, and provisioning of security groups in particular is often prohibited.
 
@@ -162,7 +162,7 @@ This predicate filters out any resource that has been marked as "externally mana
 When externally managed, the required cloud provider privileges required by CAPI might be significantly reduced when compared with a traditionally managed cluster.
 The only privileges required by CAPI are those that are required to manage machines.
 
-For example, when an AWS cluster is managed by CAPI, persmissions are required to be able to create VPCs and other networking components that are managed by the AWSCluster controller. When externally managed, these permissions are not required as the external entity is reponsible for creating such components.
+For example, when an AWS cluster is managed by CAPI, permissions are required to be able to create VPCs and other networking components that are managed by the AWSCluster controller. When externally managed, these permissions are not required as the external entity is responsible for creating such components.
 
 Support for minimising permissions in Cluster API Provider AWS will be added to its IAM provisioning tool, `clusterawsadm`.
 
@@ -207,12 +207,12 @@ The exact mechanism for how this will work is undecided, though the following id
 
 We could have an adhoc CRD https://github.com/kubernetes-sigs/cluster-api/issues/4095
 
-This would introduce complexity for the CAPI ecosystem with yet an additional CRD and it woudn't scale well across providers as it would need to contain provider specific information.
+This would introduce complexity for the CAPI ecosystem with yet an additional CRD and it wouldn't scale well across providers as it would need to contain provider specific information.
 
 ### ManagementPolicy field
 
 As an alternative to the proposed annotation, a `ManagementPolicy` field on Infrastructure Cluster spec could be required as part of this contract.
-The field would be an enum that initially has 2 possisble values: managed and unmanaged.
+The field would be an enum that initially has 2 possible values: managed and unmanaged.
 That would require a new provider contract and modification of existing infrastructure CRDs, so this option is not preferred.
 
 ## Upgrade Strategy

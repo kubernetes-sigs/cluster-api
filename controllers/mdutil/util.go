@@ -533,7 +533,7 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 	switch deployment.Spec.Strategy.Type {
 	case clusterv1.RollingUpdateMachineDeploymentStrategyType:
 		// Check if we can scale up.
-		maxSurge, err := intstrutil.GetValueFromIntOrPercent(deployment.Spec.Strategy.RollingUpdate.MaxSurge, int(*(deployment.Spec.Replicas)), true)
+		maxSurge, err := intstrutil.GetScaledValueFromIntOrPercent(deployment.Spec.Strategy.RollingUpdate.MaxSurge, int(*(deployment.Spec.Replicas)), true)
 		if err != nil {
 			return 0, err
 		}
@@ -593,11 +593,11 @@ func IsSaturated(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineS
 // 2 desired, max unavailable 0%, surge 1% - should scale new(+1), then old(-1), then new(+1), then old(-1)
 // 1 desired, max unavailable 0%, surge 1% - should scale new(+1), then old(-1).
 func ResolveFenceposts(maxSurge, maxUnavailable *intstrutil.IntOrString, desired int32) (int32, int32, error) {
-	surge, err := intstrutil.GetValueFromIntOrPercent(maxSurge, int(desired), true)
+	surge, err := intstrutil.GetScaledValueFromIntOrPercent(maxSurge, int(desired), true)
 	if err != nil {
 		return 0, 0, err
 	}
-	unavailable, err := intstrutil.GetValueFromIntOrPercent(maxUnavailable, int(desired), false)
+	unavailable, err := intstrutil.GetScaledValueFromIntOrPercent(maxUnavailable, int(desired), false)
 	if err != nil {
 		return 0, 0, err
 	}

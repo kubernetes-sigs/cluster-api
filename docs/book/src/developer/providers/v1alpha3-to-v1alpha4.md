@@ -245,3 +245,10 @@ with `cert-manager.io/v1`
   ```yaml
   serviceAccountName: manager
   ```
+
+## Percentage String or Int API input will fail with a string different from an integer with % appended.
+
+`MachineDeployment.Spec.Strategy.RollingUpdate.MaxSurge`, `MachineDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable` and `MachineHealthCheck.Spec.MaxUnhealthy` would have previously taken a String value with an integer character in it e.g "3" as a valid input and process it as a percentage value.
+Only String values like "3%" or Int values e.g 3 are valid input values now. A string not matching the percentage format will fail, e.g "3".
+
+

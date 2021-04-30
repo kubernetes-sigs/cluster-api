@@ -80,6 +80,17 @@ transparently manage `MachineSet`s and `Machine`s to allow for a seamless scalin
 [these instructions](./change-machine-template.md) for changing the
 template for an existing `MachineDeployment`.
 
+`MachineDeployment`s support different strategies for rolling out changes to `Machines`:
+
+- RollingUpdate
+
+Changes are rolled out by honouring `MaxUnavailable` and `MaxSurge` values.
+Only values allowed are of type Int or Strings with an integer and percentage symbol e.g "5%".
+
+- OnDelete
+
+Changes are rolled out driven by the user or any entity deleting the old `Machines`. Only when a `Machine` is fully deleted a new one will come up.
+
 For a more in-depth look at how `MachineDeployments` manage scaling events, take a look at the [`MachineDeployment`
 controller documentation](../developer/architecture/controllers/machine-deployment.md) and the [`MachineSet` controller
 documentation](../developer/architecture/controllers/machine-set.md).

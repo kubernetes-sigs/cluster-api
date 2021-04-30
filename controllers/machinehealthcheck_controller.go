@@ -590,7 +590,7 @@ func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {
 	if mhc.Spec.MaxUnhealthy == nil {
 		return 0, errors.New("spec.maxUnhealthy must be set")
 	}
-	maxUnhealthy, err := intstr.GetValueFromIntOrPercent(mhc.Spec.MaxUnhealthy, int(mhc.Status.ExpectedMachines), false)
+	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(mhc.Spec.MaxUnhealthy, int(mhc.Status.ExpectedMachines), false)
 	if err != nil {
 		return 0, err
 	}

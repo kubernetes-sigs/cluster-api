@@ -614,6 +614,137 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	}
 }
 
+func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
+	g := NewWithT(t)
+
+	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
+
+	// Template on a file
+	tmpDir, err := os.MkdirTemp("", "cc")
+	g.Expect(err).NotTo(HaveOccurred())
+	defer os.RemoveAll(tmpDir)
+
+	path := filepath.Join(tmpDir, "cluster-template.yaml")
+	g.Expect(os.WriteFile(path, rawTemplate, 0600)).To(Succeed())
+
+	// Template in a ConfigMap in a cluster not initialized
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns1",
+			Name:      "my-template",
+		},
+		Data: map[string]string{
+			"prod": string(rawTemplate),
+		},
+	}
+
+	config1 := newFakeConfig().
+		WithProvider(infraProviderConfig)
+
+	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
+		WithObjs(configMap)
+
+	client := newFakeClient(config1).
+		WithCluster(cluster1)
+
+	type args struct {
+		options GetClusterTemplateOptions
+	}
+
+	type templateValues struct {
+		variables       []string
+		targetNamespace string
+		yaml            []byte
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    templateValues
+		wantErr bool
+	}{
+		{
+			name: "repository source - fails because the cluster is not initialized/not v1alpha3",
+			args: args{
+				options: GetClusterTemplateOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					ProviderRepositorySource: &ProviderRepositorySourceOptions{
+						InfrastructureProvider: "infra:v3.0.0",
+						Flavor:                 "",
+					},
+					ClusterName:              "test",
+					TargetNamespace:          "ns1",
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "URL source - pass",
+			args: args{
+				options: GetClusterTemplateOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					URLSource: &URLSourceOptions{
+						URL: path,
+					},
+					ClusterName:              "test",
+					TargetNamespace:          "ns1",
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				},
+			},
+			want: templateValues{
+				variables:       []string{"CLUSTER_NAME"}, // variable detected
+				targetNamespace: "ns1",
+				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
+			},
+		},
+		{
+			name: "ConfigMap source - pass",
+			args: args{
+				options: GetClusterTemplateOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					ConfigMapSource: &ConfigMapSourceOptions{
+						Namespace: "ns1",
+						Name:      "my-template",
+						DataKey:   "prod",
+					},
+					ClusterName:              "test",
+					TargetNamespace:          "ns1",
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				},
+			},
+			want: templateValues{
+				variables:       []string{"CLUSTER_NAME"}, // variable detected
+				targetNamespace: "ns1",
+				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
+			got, err := client.GetClusterTemplate(tt.args.options)
+			if tt.wantErr {
+				gs.Expect(err).To(HaveOccurred())
+				return
+			}
+			gs.Expect(err).NotTo(HaveOccurred())
+
+			gs.Expect(got.Variables()).To(Equal(tt.want.variables))
+			gs.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
+
+			gotYaml, err := got.Yaml()
+			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(gotYaml).To(Equal(tt.want.yaml))
+		})
+	}
+}
+
 func Test_clusterctlClient_ProcessYAML(t *testing.T) {
 	g := NewWithT(t)
 	template := `v1: ${VAR1:=default1}

@@ -29,7 +29,7 @@ In order to make it possible for users to deploy multiple instances of the same 
 ⚠️ Users selecting this deployment model, please be aware:
 
 - Support should be considered best-effort.
-- Cluster API (incl. every provider managed under `kubernetes-sigs`, won't release a specialized components file
+- Cluster API (incl. every provider managed under `kubernetes-sigs`) won't release a specialized components file
   supporting the scenario described above; however, users should be able to create such deployment model from
   the `/config` folder.
 - Cluster API (incl. every provider managed under `kubernetes-sigs`) testing infrastructure won't run test cases

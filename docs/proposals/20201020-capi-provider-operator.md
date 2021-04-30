@@ -716,7 +716,7 @@ contract change.
 
 On top of changing a provider version (upgrades), the operator supports also
 changing other provider fields, most notably controller flags and variables.
-This can be acheived by either `kubectl edit` or `kubectl apply` to the
+This can be achieved by either `kubectl edit` or `kubectl apply` to the
 provider object.
 
 The operation internally works like upgrades: The current instance of the
@@ -968,7 +968,7 @@ type ControllerManagerConfigurationSpec struct {
 	// GracefulShutdownTimeout is the duration given to runnable to stop before the manager actually returns on stop.
 	// To disable graceful shutdown, set to time.Duration(0)
 	// To use graceful shutdown without timeout, set to a negative duration, e.G. time.Duration(-1)
-	// The graceful shutdown is skipped for safety reasons in case the leadere election lease is lost.
+	// The graceful shutdown is skipped for safety reasons in case the leader election lease is lost.
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutDown,omitempty"`
 
 	// Metrics contains thw controller metrics configuration

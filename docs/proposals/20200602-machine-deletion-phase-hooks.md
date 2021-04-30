@@ -109,7 +109,7 @@ lifecycle hook.
 - Create a mechanism to signal what lifecycle point a machine is at currently.
 - Dictate implementation of controllers that respond to the hooks.
 - Implement ordering in the machine-controller.
-- Require anyone use these hooks for normal machine operations, these are
+- Require anyone uses these hooks for normal machine operations, these are
 strictly optional and for custom integrations only.
 
 
@@ -144,7 +144,7 @@ node.
 
 ### Implementation Details/Notes/Constraints
 
-For each defined lifecycle point, one or more hooks may be applied as an annotation to the machine object.  These annotations will pause reconciliation of a machine object until all hooks are resolved for that lifecycle point.  The hooks should be managed by an Hook Implementing Controler or other external application, or
+For each defined lifecycle point, one or more hooks may be applied as an annotation to the machine object.  These annotations will pause reconciliation of a machine object until all hooks are resolved for that lifecycle point.  The hooks should be managed by a Hook Implementing Controller or other external application, or
 manually created and removed by an administrator.
 
 #### Lifecycle Points
@@ -182,7 +182,7 @@ Some information about who created or is otherwise in charge of managing the ann
 ##### Annotation Examples
 
 These examples are all hypothetical to illustrate what form annotations should
-take.  The names of of each hook and the respective controllers are fictional.
+take.  The names of each hook and the respective controllers are fictional.
 
 pre-drain.hook.machine.cluster-api.x-k8s.io/migrate-important-app: my-app-migration-controller
 
@@ -242,7 +242,7 @@ proceeding.
 
 #### Determining when to take action
 
-An Hook Implementing Controller should watch machines and determine when is the
+A Hook Implementing Controller should watch machines and determine when is the
 best time to take action.
 
 For example, if an HIC manages a lifecycle hook at the pre-drain lifecycle-point,
@@ -281,7 +281,7 @@ Require advanced users to fork and customize.  This can already be done if someo
 
 ### Finalizers
 We define additional finalizers, but this really only implies the deletion lifecycle point.  A misbehaving controller that
-accidentally removes finalizers could have undesireable
+accidentally removes finalizers could have undesirable
 effects.
 
 ### Status Field

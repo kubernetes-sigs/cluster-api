@@ -190,17 +190,8 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		"currentTotalMembers", currentTotalMembers,
 		"currentMembers", etcdMembers)
 
-	// The cluster MUST have at least 3 members, because this is the smallest cluster size that allows any etcd failure tolerance.
-	//
-	// NOTE: This should not happen given that we are checking the number of replicas before calling this method, however
-	// given that this could be destructive, this is an additional safeguard.
-	if currentTotalMembers < 3 {
-		log.Info("etcd cluster with less of 3 members can't be safely remediated")
-		return false, nil
-	}
-
-	targetTotalMembers := currentTotalMembers - 1
-	targetQuorum := targetTotalMembers/2.0 + 1
+	// Projects the target etcd cluster after remediation, considering all the etcd members except the one being remediated.
+	targetTotalMembers := 0
 	targetUnhealthyMembers := 0
 
 	healthyMembers := []string{}
@@ -210,6 +201,9 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		if machineToBeRemediated.Status.NodeRef != nil && machineToBeRemediated.Status.NodeRef.Name == etcdMember {
 			continue
 		}
+
+		// Include the member in the target etcd cluster.
+		targetTotalMembers++
 
 		// Search for the machine corresponding to the etcd member.
 		var machine *clusterv1.Machine
@@ -241,14 +235,17 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		healthyMembers = append(healthyMembers, fmt.Sprintf("%s (%s)", etcdMember, machine.Name))
 	}
 
+	targetQuorum := targetTotalMembers/2.0 + 1
+	canSafelyRemediate := targetTotalMembers-targetUnhealthyMembers >= targetQuorum
+
 	log.Info(fmt.Sprintf("etcd cluster projected after remediation of %s", machineToBeRemediated.Name),
 		"healthyMembers", healthyMembers,
 		"unhealthyMembers", unhealthyMembers,
 		"targetTotalMembers", targetTotalMembers,
 		"targetQuorum", targetQuorum,
 		"targetUnhealthyMembers", targetUnhealthyMembers,
-		"projectedQuorum", targetTotalMembers-targetUnhealthyMembers)
-	if targetTotalMembers-targetUnhealthyMembers >= targetQuorum {
+		"canSafelyRemediate", canSafelyRemediate)
+	if canSafelyRemediate {
 		return true, nil
 	}
 	return false, nil

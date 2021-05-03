@@ -301,7 +301,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		g.Expect(testEnv.Cleanup(ctx, m1)).To(Succeed())
 	})
-	t.Run("Can't safely remediate 2 machine CP without additional etcd member failures", func(t *testing.T) {
+	t.Run("Can safely remediate 2 machine CP without additional etcd member failures", func(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
@@ -364,6 +364,36 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		ret, err := r.canSafelyRemoveEtcdMember(context.TODO(), controlPlane, m1)
 		g.Expect(ret).To(BeTrue())
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(testEnv.Cleanup(ctx, m1, m2)).To(Succeed())
+	})
+	t.Run("Can't safely remediate 2 machines CP with one additional etcd member failure", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
+		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-unhealthy-", withUnhealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Replicas: utilpointer.Int32Ptr(3),
+			}},
+			Cluster:  &clusterv1.Cluster{},
+			Machines: collections.FromMachines(m1, m2),
+		}
+
+		r := &KubeadmControlPlaneReconciler{
+			Client:   testEnv.GetClient(),
+			recorder: record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{
+				Workload: fakeWorkloadCluster{
+					EtcdMembersResult: nodes(controlPlane.Machines),
+				},
+			},
+		}
+
+		ret, err := r.canSafelyRemoveEtcdMember(context.TODO(), controlPlane, m1)
+		g.Expect(ret).To(BeFalse())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(testEnv.Cleanup(ctx, m1, m2)).To(Succeed())

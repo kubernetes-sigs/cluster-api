@@ -154,7 +154,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 // without loosing etcd quorum.
 //
 // The answer mostly depend on the existence of other failing members on top of the one being deleted, and according
-// to the etcd fault tolerance specification (see https://github.com/etcd-io/etcd/blob/master/Documentation/faq.md#what-is-failure-tolerance):
+// to the etcd fault tolerance specification (see https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance):
 // - 3 CP cluster does not tolerate additional failing members on top of the one being deleted (the target
 //   cluster size after deletion is 2, fault tolerance 0)
 // - 5 CP cluster tolerates 1 additional failing members on top of the one being deleted (the target
@@ -235,7 +235,8 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		healthyMembers = append(healthyMembers, fmt.Sprintf("%s (%s)", etcdMember, machine.Name))
 	}
 
-	targetQuorum := targetTotalMembers/2.0 + 1
+	// See https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance for fault tolerance formula explanation.
+	targetQuorum := (targetTotalMembers / 2.0) + 1
 	canSafelyRemediate := targetTotalMembers-targetUnhealthyMembers >= targetQuorum
 
 	log.Info(fmt.Sprintf("etcd cluster projected after remediation of %s", machineToBeRemediated.Name),
@@ -245,8 +246,6 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		"targetQuorum", targetQuorum,
 		"targetUnhealthyMembers", targetUnhealthyMembers,
 		"canSafelyRemediate", canSafelyRemediate)
-	if canSafelyRemediate {
-		return true, nil
-	}
-	return false, nil
+
+	return canSafelyRemediate, nil
 }

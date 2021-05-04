@@ -209,3 +209,35 @@ func processIfLabelMatch(logger logr.Logger, obj client.Object, labelValue strin
 	log.V(4).Info("Resource does not match label, will not attempt to map resource")
 	return false
 }
+
+// ResourceIsNotExternallyManaged returns a predicate that returns true only if the resource does not contain
+// the externally managed annotation.
+// This implements a requirement for InfraCluster providers to be able to ignore externally managed
+// cluster infrastructure.
+func ResourceIsNotExternallyManaged(logger logr.Logger) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return processIfNotExternallyManaged(logger.WithValues("predicate", "updateEvent"), e.ObjectNew)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return processIfNotExternallyManaged(logger.WithValues("predicate", "createEvent"), e.Object)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return processIfNotExternallyManaged(logger.WithValues("predicate", "deleteEvent"), e.Object)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return processIfNotExternallyManaged(logger.WithValues("predicate", "genericEvent"), e.Object)
+		},
+	}
+}
+
+func processIfNotExternallyManaged(logger logr.Logger, obj client.Object) bool {
+	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
+	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+	if annotations.IsExternallyManaged(obj) {
+		log.V(4).Info("Resource is externally managed, will not attempt to map resource")
+		return false
+	}
+	log.V(4).Info("Resource is managed, will attempt to map resource")
+	return true
+}

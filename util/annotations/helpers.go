@@ -31,6 +31,11 @@ func IsPaused(cluster *clusterv1.Cluster, o metav1.Object) bool {
 	return HasPausedAnnotation(o)
 }
 
+// IsExternallyManaged returns true if the object has the `managed-by` annotation.
+func IsExternallyManaged(o metav1.Object) bool {
+	return hasAnnotation(o, clusterv1.ManagedByAnnotation)
+}
+
 // HasPausedAnnotation returns true if the object has the `paused` annotation.
 func HasPausedAnnotation(o metav1.Object) bool {
 	return hasAnnotation(o, clusterv1.PausedAnnotation)

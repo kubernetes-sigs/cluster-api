@@ -83,6 +83,14 @@ const (
 
 	// InterruptibleLabel is the label used to mark the nodes that run on interruptible instances.
 	InterruptibleLabel = "cluster.x-k8s.io/interruptible"
+
+	// ManagedByAnnotation is an annotation that can be applied to InfraCluster resources to signify that
+	// some external system is managing the cluster infrastructure.
+	//
+	// Provider InfraCluster controllers will ignore resources with this annotation.
+	// An external controller must fulfill the contract of the InfraCluster resource.
+	// External infrastructure providers should ensure that the annotation, once set, cannot be removed.
+	ManagedByAnnotation = "cluster.x-k8s.io/managed-by"
 )
 
 // MachineAddressType describes a valid MachineAddress type.

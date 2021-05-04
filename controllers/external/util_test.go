@@ -130,7 +130,12 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 				"template": map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"annotations": map[string]interface{}{
-							"test": "annotations",
+							"test-template": "annotations",
+							"precedence":    "template",
+						},
+						"labels": map[string]interface{}{
+							"test-template": "label",
+							"precedence":    "template",
 						},
 					},
 					"spec": map[string]interface{}{
@@ -175,7 +180,12 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 		ClusterName: testClusterName,
 		OwnerRef:    owner.DeepCopy(),
 		Labels: map[string]string{
-			"test-label-1": "value-1",
+			"precedence":               "input",
+			clusterv1.ClusterLabelName: "should-be-overwritten",
+		},
+		Annotations: map[string]string{
+			"precedence": "input",
+			clusterv1.TemplateClonedFromNameAnnotation: "should-be-overwritten",
 		},
 	})
 	g.Expect(err).NotTo(HaveOccurred())
@@ -201,10 +211,12 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 
 	cloneLabels := clone.GetLabels()
 	g.Expect(cloneLabels).To(HaveKeyWithValue(clusterv1.ClusterLabelName, testClusterName))
-	g.Expect(cloneLabels).To(HaveKeyWithValue("test-label-1", "value-1"))
+	g.Expect(cloneLabels).To(HaveKeyWithValue("test-template", "label"))
+	g.Expect(cloneLabels).To(HaveKeyWithValue("precedence", "input"))
 
 	cloneAnnotations := clone.GetAnnotations()
-	g.Expect(cloneAnnotations).To(HaveKeyWithValue("test", "annotations"))
+	g.Expect(cloneAnnotations).To(HaveKeyWithValue("test-template", "annotations"))
+	g.Expect(cloneAnnotations).To(HaveKeyWithValue("precedence", "input"))
 
 	g.Expect(cloneAnnotations).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, templateRef.Name))
 	g.Expect(cloneAnnotations).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, templateRef.GroupVersionKind().GroupKind().String()))

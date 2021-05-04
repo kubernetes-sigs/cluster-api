@@ -33,11 +33,14 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
+	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	addonsv1old "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
+	expv1old "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	"sigs.k8s.io/cluster-api/feature"
@@ -79,8 +82,11 @@ func init() {
 	klog.InitFlags(nil)
 
 	_ = clientgoscheme.AddToScheme(scheme)
+	_ = clusterv1old.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
+	_ = expv1old.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
+	_ = addonsv1old.AddToScheme(scheme)
 	_ = addonsv1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme

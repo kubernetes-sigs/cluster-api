@@ -176,6 +176,9 @@ func NewTestEnvironment() *TestEnvironment {
 	if err := (&crs.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for crs: %+v", err)
 	}
+	if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("unable to create webhook for machinepool: %+v", err)
+	}
 
 	return &TestEnvironment{
 		Manager: mgr,

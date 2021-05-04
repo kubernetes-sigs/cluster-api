@@ -78,6 +78,8 @@ Choose one of the options below:
    Then follow the instruction for your kind version using  `kind create cluster --config kind-cluster-with-extramounts.yaml`
    to create the management cluster using the above file.
 
+   Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers. 
+
    {{#/tab }}
    {{#/tabs }}
 

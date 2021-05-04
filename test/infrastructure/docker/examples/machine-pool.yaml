@@ -39,7 +39,7 @@ spec:
     clusterConfiguration:
       controllerManager:
         extraArgs:
-          enable-hostpath-provisioner: true
+          enable-hostpath-provisioner: "true"
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:

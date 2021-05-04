@@ -38,6 +38,8 @@ Choose one of the options below:
 
    **Minimum [kind] supported version**: v0.9.0
 
+   Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers (recommend 6Gb for CAPD).
+
    </aside>
 
    [kind] can be used for creating a local Kubernetes cluster for development environments or for
@@ -77,8 +79,6 @@ Choose one of the options below:
 
    Then follow the instruction for your kind version using  `kind create cluster --config kind-cluster-with-extramounts.yaml`
    to create the management cluster using the above file.
-
-   Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers. 
 
    {{#/tab }}
    {{#/tabs }}

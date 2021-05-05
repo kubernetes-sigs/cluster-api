@@ -85,23 +85,29 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	var nextCheckTimes []time.Duration
 	now := time.Now()
 
+	nextReconcileCheck := time.Duration(0)
+	//requeuing reconcile in case we need to send an alert for an old emr
+	if t.MHC.Spec.RemediationTemplate != nil {
+		nextReconcileCheck = oldEmrAlertTimeout + time.Minute
+	}
+
 	if t.Machine.Status.FailureReason != nil {
 		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "FailureReason: %v", t.Machine.Status.FailureReason)
 		logger.V(3).Info("Target is unhealthy", "failureReason", t.Machine.Status.FailureReason)
-		return true, time.Duration(0)
+		return true, nextReconcileCheck
 	}
 
 	if t.Machine.Status.FailureMessage != nil {
 		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "FailureMessage: %v", t.Machine.Status.FailureMessage)
 		logger.V(3).Info("Target is unhealthy", "failureMessage", t.Machine.Status.FailureMessage)
-		return true, time.Duration(0)
+		return true, nextReconcileCheck
 	}
 
 	// the node does not exist
 	if t.nodeMissing {
 		logger.V(3).Info("Target is unhealthy: node is missing")
 		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
-		return true, time.Duration(0)
+		return true, nextReconcileCheck
 	}
 
 	// Don't penalize any Machine/Node if the control plane has not been initialized.
@@ -138,7 +144,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		if comparisonTime.Add(timeoutForMachineToHaveNode).Before(now) {
 			conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.NodeStartupTimeoutReason, clusterv1.ConditionSeverityWarning, "Node failed to report startup in %s", timeoutForMachineToHaveNode.String())
 			logger.V(3).Info("Target is unhealthy: machine has no node", "duration", timeoutForMachineToHaveNode.String())
-			return true, time.Duration(0)
+			return true, nextReconcileCheck
 		}
 
 		durationUnhealthy := now.Sub(comparisonTime)

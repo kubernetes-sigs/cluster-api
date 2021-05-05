@@ -57,6 +57,9 @@ const (
 	// EventRemediationRestricted is emitted in case when machine remediation
 	// is restricted by remediation circuit shorting logic.
 	EventRemediationRestricted string = "RemediationRestricted"
+
+	oldEmrAnnotationKey = "sigs.k8s.io/cluster-api/old-emr-flag"
+	oldEmrAlertTimeout  = time.Hour * 48
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -632,5 +635,38 @@ func (r *MachineHealthCheckReconciler) externalRemediationRequestExists(ctx cont
 	if err != nil {
 		return false
 	}
+	logger := ctrl.LoggerFrom(ctx)
+	if r.isAlertOldEmr(remediationReq, logger) {
+		//TODO mshitrit send alert here
+		//metrics.ObserveMachineHealthCheckOldEmr(m.Name, m.Namespace)
+	}
 	return remediationReq != nil
+}
+
+func (r *MachineHealthCheckReconciler) isAlertOldEmr(emr *unstructured.Unstructured, logger logr.Logger) bool {
+	//verify emr exist
+	if emr == nil {
+		return false
+	}
+	isSendAlert := false
+	//verify emr is old
+	if time.Now().After(emr.GetCreationTimestamp().Add(oldEmrAlertTimeout)) {
+		var emrAnnotations map[string]string
+		if emrAnnotations = emr.GetAnnotations(); emrAnnotations == nil {
+			emrAnnotations = map[string]string{}
+		}
+		//verify this is the first alert for this emr
+		if _, isAlertedSent := emrAnnotations[oldEmrAnnotationKey]; !isAlertedSent {
+			emrAnnotations[oldEmrAnnotationKey] = "flagon"
+			emr.SetAnnotations(emrAnnotations)
+			if err := r.Client.Update(context.TODO(), emr); err == nil {
+				isSendAlert = true
+			} else {
+				logger.Error(err, "Setting old emr annotation on Emr %s: failed to update", emr.GetName())
+			}
+
+		}
+	}
+	return isSendAlert
+
 }

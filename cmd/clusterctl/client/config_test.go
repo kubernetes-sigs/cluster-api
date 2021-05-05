@@ -25,14 +25,14 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
@@ -648,8 +648,14 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		WithObjs(configMap)
 
+	repository1 := newFakeRepository(infraProviderConfig, config1).
+		WithPaths("root", "components").
+		WithDefaultVersion("v3.0.0").
+		WithFile("v3.0.0", "cluster-template.yaml", rawTemplate)
+
 	client := newFakeClient(config1).
-		WithCluster(cluster1)
+		WithCluster(cluster1).
+		WithRepository(repository1)
 
 	type args struct {
 		options GetClusterTemplateOptions
@@ -668,12 +674,32 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "repository source - fails because the cluster is not initialized/not v1alpha3",
+			name: "repository source - pass if the cluster is not initialized but infra provider:version are specified",
 			args: args{
 				options: GetClusterTemplateOptions{
 					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					ProviderRepositorySource: &ProviderRepositorySourceOptions{
 						InfrastructureProvider: "infra:v3.0.0",
+						Flavor:                 "",
+					},
+					ClusterName:              "test",
+					TargetNamespace:          "ns1",
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				},
+			},
+			want: templateValues{
+				variables:       []string{"CLUSTER_NAME"}, // variable detected
+				targetNamespace: "ns1",
+				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
+			},
+		},
+		{
+			name: "repository source - fails if the cluster is not initialized and infra provider:version are not specified",
+			args: args{
+				options: GetClusterTemplateOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					ProviderRepositorySource: &ProviderRepositorySourceOptions{
+						InfrastructureProvider: "",
 						Flavor:                 "",
 					},
 					ClusterName:              "test",
@@ -722,6 +748,117 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 				targetNamespace: "ns1",
 				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
 			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
+			got, err := client.GetClusterTemplate(tt.args.options)
+			if tt.wantErr {
+				gs.Expect(err).To(HaveOccurred())
+				return
+			}
+			gs.Expect(err).NotTo(HaveOccurred())
+
+			gs.Expect(got.Variables()).To(Equal(tt.want.variables))
+			gs.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
+
+			gotYaml, err := got.Yaml()
+			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(gotYaml).To(Equal(tt.want.yaml))
+		})
+	}
+}
+
+func newFakeClientWithoutCluster(configClient config.Client) *fakeClient {
+	fake := &fakeClient{
+		configClient: configClient,
+		repositories: map[string]repository.Client{},
+	}
+
+	var err error
+	fake.internalClient, err = newClusterctlClient("fake-config",
+		InjectConfig(fake.configClient),
+		InjectRepositoryFactory(func(input RepositoryClientFactoryInput) (repository.Client, error) {
+			if _, ok := fake.repositories[input.Provider.ManifestLabel()]; !ok {
+				return nil, errors.Errorf("Repository for kubeconfig %q does not exist.", input.Provider.ManifestLabel())
+			}
+			return fake.repositories[input.Provider.ManifestLabel()], nil
+		}),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	return fake
+}
+
+func Test_clusterctlClient_GetClusterTemplate_withoutCluster(t *testing.T) {
+	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
+
+	config1 := newFakeConfig().
+		WithProvider(infraProviderConfig)
+
+	repository1 := newFakeRepository(infraProviderConfig, config1).
+		WithPaths("root", "components").
+		WithDefaultVersion("v3.0.0").
+		WithFile("v3.0.0", "cluster-template.yaml", rawTemplate)
+
+	client := newFakeClientWithoutCluster(config1).
+		WithRepository(repository1)
+
+	type args struct {
+		options GetClusterTemplateOptions
+	}
+
+	type templateValues struct {
+		variables       []string
+		targetNamespace string
+		yaml            []byte
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    templateValues
+		wantErr bool
+	}{
+		{
+			name: "repository source - pass without kubeconfig but infra provider:version are specified",
+			args: args{
+				options: GetClusterTemplateOptions{
+					Kubeconfig: Kubeconfig{Path: "", Context: ""},
+					ProviderRepositorySource: &ProviderRepositorySourceOptions{
+						InfrastructureProvider: "infra:v3.0.0",
+						Flavor:                 "",
+					},
+					ClusterName:              "test",
+					TargetNamespace:          "ns1",
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				},
+			},
+			want: templateValues{
+				variables:       []string{"CLUSTER_NAME"}, // variable detected
+				targetNamespace: "ns1",
+				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
+			},
+		},
+		{
+			name: "repository source - fails without kubeconfig and infra provider:version are not specified",
+			args: args{
+				options: GetClusterTemplateOptions{
+					Kubeconfig: Kubeconfig{Path: "", Context: ""},
+					ProviderRepositorySource: &ProviderRepositorySourceOptions{
+						InfrastructureProvider: "",
+						Flavor:                 "",
+					},
+					ClusterName:              "test",
+					TargetNamespace:          "ns1",
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

@@ -16,7 +16,8 @@ limitations under the License.
 
 package controllers
 
-// This file adds RBAC permissions to the Docker Infrastructure manager to operate on all objects in the experimental API group.
+// This file adds RBAC permissions to the Docker Infrastructure manager to operate on objects in the experimental API group.
 
-// +kubebuilder:rbac:groups=exp.infrastructure.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=*,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch

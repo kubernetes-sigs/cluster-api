@@ -1,6 +1,6 @@
 ---
 # MachinePool which references the DockerMachinePool and KubeadmConfigTemplate below
-apiVersion: exp.cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: MachinePool
 metadata:
   name: "${CLUSTER_NAME}-mp-0"
@@ -16,13 +16,13 @@ spec:
           name: "${CLUSTER_NAME}-mp-0-config"
       clusterName: '${CLUSTER_NAME}'
       infrastructureRef:
-        apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha4
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
         kind: DockerMachinePool
         name: "${CLUSTER_NAME}-dmp-0"
       version: "${KUBERNETES_VERSION}"
 ---
 # DockerMachinePool using default values referenced by the MachinePool
-apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: DockerMachinePool
 metadata:
   name: "${CLUSTER_NAME}-dmp-0"

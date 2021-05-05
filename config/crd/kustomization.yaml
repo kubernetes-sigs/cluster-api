@@ -6,7 +6,7 @@ resources:
 - bases/cluster.x-k8s.io_machines.yaml
 - bases/cluster.x-k8s.io_machinesets.yaml
 - bases/cluster.x-k8s.io_machinedeployments.yaml
-- bases/exp.cluster.x-k8s.io_machinepools.yaml
+- bases/cluster.x-k8s.io_machinepools.yaml
 - bases/addons.cluster.x-k8s.io_clusterresourcesets.yaml
 - bases/addons.cluster.x-k8s.io_clusterresourcesetbindings.yaml
 - bases/cluster.x-k8s.io_machinehealthchecks.yaml

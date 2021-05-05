@@ -219,7 +219,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 
 func (p *providerComponents) DeleteWebhookNamespace() error {
 	log := logf.Log
-	log.V(5).Info("Deleting %s namespace", repository.WebhookNamespaceName)
+	log.V(5).Info("Deleting", "namespace", repository.WebhookNamespaceName)
 
 	c, err := p.proxy.NewClient()
 	if err != nil {

@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -533,6 +534,15 @@ func (c *E2EConfig) GetIntervals(spec, key string) []interface{} {
 	return intervalsInterfaces
 }
 
+func (c *E2EConfig) HasVariable(varName string) bool {
+	if _, ok := os.LookupEnv(varName); ok {
+		return true
+	}
+
+	_, ok := c.Variables[varName]
+	return ok
+}
+
 // GetVariable returns a variable from environment variables or from the e2e config file.
 func (c *E2EConfig) GetVariable(varName string) string {
 	if value, ok := os.LookupEnv(varName); ok {
@@ -566,4 +576,35 @@ func (c *E2EConfig) GetInt32PtrVariable(varName string) *int32 {
 	wCount, err := strconv.ParseUint(wCountStr, 10, 32)
 	Expect(err).NotTo(HaveOccurred())
 	return pointer.Int32Ptr(int32(wCount))
+}
+
+// GetProviderVersions returns the sorted list of versions defined for a provider.
+func (c *E2EConfig) GetProviderVersions(provider string) []string {
+	versions := []string{}
+	for _, p := range c.Providers {
+		if p.Name == provider {
+			for _, v := range p.Versions {
+				versions = append(versions, v.Name)
+			}
+		}
+	}
+
+	sort.Slice(versions, func(i, j int) bool {
+		// NOTE: Ignoring errors because the validity of the format is ensured by Validation.
+		vI, _ := version.ParseSemantic(versions[i])
+		vJ, _ := version.ParseSemantic(versions[j])
+		return vI.LessThan(vJ)
+	})
+	return versions
+}
+
+func (c *E2EConfig) GetProvidersWithOldestVersion(providers ...string) []string {
+	ret := make([]string, 0, len(providers))
+	for _, p := range providers {
+		versions := c.GetProviderVersions(p)
+		if len(versions) > 0 {
+			ret = append(ret, fmt.Sprintf("%s:%s", p, versions[0]))
+		}
+	}
+	return ret
 }

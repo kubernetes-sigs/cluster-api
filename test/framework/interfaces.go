@@ -49,11 +49,3 @@ type GetLister interface {
 	Getter
 	Lister
 }
-
-// ComponentGenerator is used to install components, generally any YAML bundle.
-type ComponentGenerator interface {
-	// GetName returns the name of the component.
-	GetName() string
-	// Manifests return the YAML bundle.
-	Manifests(context.Context) ([]byte, error)
-}

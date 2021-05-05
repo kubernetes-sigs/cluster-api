@@ -19,9 +19,11 @@ package framework
 import (
 	"context"
 	"fmt"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"os"
 	osExec "os/exec"
 	"path/filepath"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"strings"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -45,6 +47,22 @@ func machineContainerName(cluster, machine string) string {
 
 func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error {
 	containerName := machineContainerName(m.Spec.ClusterName, m.Name)
+	return k.collectLogsFromNode(outputPath, containerName)
+}
+
+func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, managementClusterClient client.Client, m *expv1.MachinePool, outputPath string) error {
+	var errs []error
+	for _, instance := range m.Status.NodeRefs {
+		containerName := machineContainerName(m.Spec.ClusterName, instance.Name)
+		if err := k.collectLogsFromNode(filepath.Join(outputPath, instance.Name), containerName); err != nil {
+			// collecting logs is best effort so we proceed to the next instance even if we encounter an error.
+			errs = append(errs, err)
+		}
+	}
+	return kerrors.NewAggregate(errs)
+}
+
+func (k DockerLogCollector) collectLogsFromNode(outputPath string, containerName string) error {
 	execToPathFn := func(outputFileName, command string, args ...string) func() error {
 		return func() error {
 			f, err := fileOnHost(filepath.Join(outputPath, outputFileName))

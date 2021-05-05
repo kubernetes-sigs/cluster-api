@@ -229,11 +229,6 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 		return nil, err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := cluster.ProviderInventory().CheckCAPIContract(); err != nil {
-		return nil, err
-	}
-
 	// If the option specifying the targetNamespace is empty, try to detect it.
 	if options.TargetNamespace == "" {
 		currentNamespace, err := cluster.Proxy().CurrentNamespace()
@@ -253,6 +248,10 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 
 	// Gets the workload cluster template from the selected source
 	if options.ProviderRepositorySource != nil {
+		// Ensure this command only runs against management clusters with the current Cluster API contract.
+		if err := cluster.ProviderInventory().CheckCAPIContract(); err != nil {
+			return nil, err
+		}
 		return c.getTemplateFromRepository(cluster, options)
 	}
 	if options.ConfigMapSource != nil {

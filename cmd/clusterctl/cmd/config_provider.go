@@ -28,6 +28,11 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
+/*
+NOTE: This command is deprecated in favor of `clusterctl generate provider`. The source code is located at `cmd/clusterctl/cmd/generate_provider.go`.
+This file will be removed in 0.5.x. Do not make any changes to this file.
+*/
+
 const (
 	// ComponentsOutputYaml is an option used to print the components in yaml format.
 	ComponentsOutputYaml = "yaml"
@@ -79,6 +84,7 @@ var configProviderCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runGetComponents()
 	},
+	Deprecated: "use `clusterctl generate provider` instead",
 }
 
 func init() {

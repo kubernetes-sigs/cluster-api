@@ -2,8 +2,8 @@
 title: Clusterctl redesign - Improve user experience and management across Cluster API providers
 authors:
   - "@timothysc"
-  - “@frapposelli”
-  - “@fabriziopandini” 
+  - "@frapposelli"
+  - "@fabriziopandini" 
 reviewers:
   - "@detiber"
   - "@ncdc"

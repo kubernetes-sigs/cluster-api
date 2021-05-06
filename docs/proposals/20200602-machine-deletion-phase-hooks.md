@@ -109,7 +109,7 @@ lifecycle hook.
 - Create a mechanism to signal what lifecycle point a machine is at currently.
 - Dictate implementation of controllers that respond to the hooks.
 - Implement ordering in the machine-controller.
-- Require anyone uses these hooks for normal machine operations, these are
+- Require anyone to use these hooks for normal machine operations, these are
 strictly optional and for custom integrations only.
 
 

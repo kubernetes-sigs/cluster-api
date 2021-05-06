@@ -3,10 +3,10 @@ title: Extensible Templating Processing for clusterctl
 authors:
 * "@wfernandes"
 reviewers:
-* ”@timothysc”
-* “@ncdc”
-* “@fabriziopandini”
-* “@vincepri”
+* "@timothysc"
+* "@ncdc"
+* "@fabriziopandini"
+* "@vincepri"
 
 
 creation-date: 2020-04-27
@@ -233,12 +233,12 @@ libraries so the issue of support should be solved with this contract.
 - Currently, clusterctl relies on the conformance of file name conventions
   such as `infrastructure-components.yaml` and
   `cluster-template-<flavor>.yaml`. Other templating tools might require other
-  conventions to be defined and followed to allow the same “day 1” experience.
+  conventions to be defined and followed to allow the same "day 1" experience.
 - Some templating tools will require multiple files to be defined rather than
-  a single yaml file. These artifacts will need to be “grouped” together to
+  a single yaml file. These artifacts will need to be "grouped" together to
   support current retrieval mechanisms. Currently, `clusterctl config cluster`
   retrieves templates from multiple sources such as ConfigMaps within a
-  cluster, URL, Github Repository, Local Repository and even the overrides'
+  cluster, URL, Github Repository, Local Repository and even the overrides
   directory. To ensure compatibility, we’ll need to establish a compression
   format like tar.gz
 

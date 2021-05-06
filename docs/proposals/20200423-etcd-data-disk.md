@@ -5,7 +5,7 @@ authors:
 reviewers:
   - "@bagnaram"
   - "@vincepri"
-  - “@detiber”
+  - "@detiber"
   - "@fabrizio.pandini"
 creation-date: 2020-04-23
 last-updated: 2020-05-11
@@ -80,9 +80,9 @@ As a user of a Workload Cluster, I want provision and mount additional data stor
 
 ### Implementation Details/Notes/Constraints
 
-### Changes required in the bootstrap provider (ie. CABPK)
+### Changes required in the bootstrap provider (i.e. CABPK)
 
-1. Add a two new fields to KubeadmConfig for disk setup and mount points
+1. Add two new fields to KubeadmConfig for disk setup and mount points
 
 ```go
    // DiskSetup specifies options for the creation of partition tables and file systems on devices.

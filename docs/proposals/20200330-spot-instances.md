@@ -102,7 +102,7 @@ Allow users to cut costs of running Kubernetes clusters on cloud providers by mo
 
 - Any logic for choosing instances types based on availability from the cloud provider
 
-- A one to one map for each provider available mechanism for deploying spot instances, e.g aws fleet.
+- A one to one map for each provider available mechanism for deploying spot instances, e.g. aws fleet.
 
 - Support Spot instances via MachinePool for any cloud provider that doesn't already support MachinePool
 
@@ -315,7 +315,7 @@ could introduce instability to the cluster or even result in a loss of quorum fo
 Running control-plane instances on top of spot instances should be forbidden.
 
 There may also be limitations within cloud providers that restrict the usage of spot instances within the control-plane,
-eg. Azure Spot VMs do not support [ephemeral disks](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/spot-vms#limitations) which may be desired for control-plane instances.
+e.g. Azure Spot VMs do not support [ephemeral disks](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/spot-vms#limitations) which may be desired for control-plane instances.
 
 This risk will be documented and it will be strongly advised that users do not attempt to create control-plane instances on spot instances.
 To prevent it completely, an admission controller could be used to verify that Infrastructure Machines do not get created with the control-plane label,
@@ -459,7 +459,7 @@ Spot VMs are available in two forms in Azure.
 ###### Scale Sets
 
 Scale sets include support for Spot VMs by indicating when created, that they should be backed by Spot VMs.
-At this point, a eviction policy should be set and a maximum price you wish to pay.
+At this point, an eviction policy should be set and a maximum price you wish to pay.
 Alternatively, you can also choose to only be preempted in the case that there are capacity constraints,
 in which case, you will pay whatever the market rate is, but will be preempted less often.
 
@@ -468,7 +468,7 @@ Once support is added, enabling Spot backed Scale Sets would be a case of modify
 
 ###### Single Instances
 Azure supports Spot VMs on single VM instances by indicating when created, that the VM should be a Spot VM.
-At this point, a eviction policy should be set and a maximum price you wish to pay.
+At this point, an eviction policy should be set and a maximum price you wish to pay.
 Alternatively, you can also choose to only be preempted in the case that there are capacity constraints,
 in which case, you will pay whatever the market rate is, but will be preempted less often.
 

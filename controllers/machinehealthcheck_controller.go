@@ -287,8 +287,8 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	m.Status.RemediationsAllowed = remediationCount
 	conditions.MarkTrue(m, clusterv1.RemediationAllowedCondition)
 
-	errList := r.PatchUnhealthyTargets(ctx, logger, unhealthy, cluster, m)
-	errList = append(errList, r.PatchHealthyTargets(ctx, logger, healthy, cluster, m)...)
+	errList := r.patchUnhealthyTargets(ctx, logger, unhealthy, cluster, m)
+	errList = append(errList, r.patchHealthyTargets(ctx, logger, healthy, m)...)
 
 	// handle update errors
 	if len(errList) > 0 {
@@ -306,8 +306,8 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	return ctrl.Result{}, nil
 }
 
-// PatchHealthyTargets patches healthy machines with MachineHealthCheckSuccededCondition.
-func (r *MachineHealthCheckReconciler) PatchHealthyTargets(ctx context.Context, logger logr.Logger, healthy []healthCheckTarget, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) []error {
+// patchHealthyTargets patches healthy machines with MachineHealthCheckSucceededCondition.
+func (r *MachineHealthCheckReconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger, healthy []healthCheckTarget, m *clusterv1.MachineHealthCheck) []error {
 	errList := []error{}
 	for _, t := range healthy {
 		if m.Spec.RemediationTemplate != nil {
@@ -337,8 +337,8 @@ func (r *MachineHealthCheckReconciler) PatchHealthyTargets(ctx context.Context, 
 	return errList
 }
 
-// PatchUnhealthyTargets patches machines with MachineOwnerRemediatedCondition for remediation.
-func (r *MachineHealthCheckReconciler) PatchUnhealthyTargets(ctx context.Context, logger logr.Logger, unhealthy []healthCheckTarget, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) []error {
+// patchUnhealthyTargets patches machines with MachineOwnerRemediatedCondition for remediation.
+func (r *MachineHealthCheckReconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logger, unhealthy []healthCheckTarget, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) []error {
 	// mark for remediation
 	errList := []error{}
 	for _, t := range unhealthy {

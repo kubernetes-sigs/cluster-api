@@ -56,7 +56,7 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 ### Managed cluster infrastructure
 
 Cluster infrastructure whose lifecycle is managed by a provider InfraCluster controller.
-E.g in AWS:
+E.g. in AWS:
 - Network
     - VPC
     - Subnets

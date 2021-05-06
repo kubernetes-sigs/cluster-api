@@ -254,7 +254,7 @@ ControlPlaneReady=False, Reason=ScalingUp, Severity=Info
 ```
 
 In other cases, the combination of `Reason` and `Severity` allows to detect when a failure is due to a catastrophic
-error or to other events that are transient or can be eventually remediated by an user intervention
+error or to other events that are transient or can be eventually remediated by a user intervention
 
 ```
 MachineReady=False, Reason=MachineNotHealthy, Severity=Error
@@ -456,7 +456,7 @@ time an upgrade starts.
 Then, those new conditions will be then captured by the summary in `KubeadmControlPlane.Status.Conditions[Ready]`
 and be reflected to `Cluster.Status.Conditions[ControlPlaneReady]`.
 
-However, please note that during upgrades, some rules that are be used to evaluate the
+However, please note that during upgrades, some rules that are been used to evaluate the
 operational state of a control plane should be temporary changed e.g. during upgrades:
 
 - It is acceptable to have a number of replicas higher than the desired number of replicas
@@ -482,11 +482,11 @@ enhance the condition utilities to handle those situations in a generalized way.
   - Mitigation: Ensure all the implementations comply with the defined set of constraints/design principles. 
 
 - Risk: Having a consistent polarity ensures a simple and clear contract with the consumers, and it allows 
-  processing conditions in a simple and consistent way without being forced to implements specific logic
+  processing conditions in a simple and consistent way without being forced to implement specific logic
   for each condition type. However, we are aware about the fact that enforcing of consistent polarity (truthy)
   combined with the usage of recommended suffix for condition types can lead to verbal contortions to express 
   conditions, especially in case of conditions designed to signal problems or in case of conditions
-  that might exists or not.
+  that might exist or not.
   - Mitigation: We are relaxing the rule about recommended suffix and allowing usage of custom suffix.
   - Mitigation: We are recommending the condition adhere to the design principle to express the operational state
     of the component, and this should help in avoiding conditions name to surface internal implementation details.

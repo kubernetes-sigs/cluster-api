@@ -63,7 +63,7 @@ should take this opportunity to stop relying on the assumption that the kubeadm 
 KubeadmConfig/KubeadmControlPlane specs are supported(1) by all the Kubernetes/kubeadm version
 in the support range.
 
-This would allow to separate what users fill in in the KubeadmConfig/KubeadmControlPlane
+This would allow to separate what users fill in the KubeadmConfig/KubeadmControlPlane
 from which kubeadm API version Cluster API end up using in the bootstrap data.
 
 (1) Supported in this context means that the serialization format of the types is the same,

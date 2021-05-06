@@ -30,9 +30,14 @@ import (
 // 1. Checks for all the variables in the cluster template YAML file and replace with corresponding config values
 // 2. Ensure all the cluster objects are deployed in the target namespace.
 type Template interface {
-	// Variables required by the template.
-	// This value is derived by the template YAML.
+	// Variables used by the template.
+	// This value is derived from the template YAML.
 	Variables() []string
+
+	// Variables used by the template with their default values. If the value is `nil`, there is no
+	// default and the variable is required.
+	// This value is derived from the template YAML.
+	VariableMap() map[string]*string
 
 	// TargetNamespace where the template objects will be installed.
 	TargetNamespace() string
@@ -47,6 +52,7 @@ type Template interface {
 // template implements Template.
 type template struct {
 	variables       []string
+	variableMap     map[string]*string
 	targetNamespace string
 	objs            []unstructured.Unstructured
 }
@@ -56,6 +62,10 @@ var _ Template = &template{}
 
 func (t *template) Variables() []string {
 	return t.variables
+}
+
+func (t *template) VariableMap() map[string]*string {
+	return t.variableMap
 }
 
 func (t *template) TargetNamespace() string {
@@ -86,9 +96,15 @@ func NewTemplate(input TemplateInput) (Template, error) {
 		return nil, err
 	}
 
+	variableMap, err := input.Processor.GetVariableMap(input.RawArtifact)
+	if err != nil {
+		return nil, err
+	}
+
 	if input.ListVariablesOnly {
 		return &template{
 			variables:       variables,
+			variableMap:     variableMap,
 			targetNamespace: input.TargetNamespace,
 		}, nil
 	}
@@ -111,6 +127,7 @@ func NewTemplate(input TemplateInput) (Template, error) {
 
 	return &template{
 		variables:       variables,
+		variableMap:     variableMap,
 		targetNamespace: input.TargetNamespace,
 		objs:            objs,
 	}, nil

@@ -20,9 +20,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
@@ -41,14 +45,67 @@ func printYamlOutput(printer client.YamlPrinter) error {
 	return nil
 }
 
+func stringPtr(s string) *string {
+	return &s
+}
+
 // printVariablesOutput prints the expected variables in the template to stdout.
-func printVariablesOutput(printer client.YamlPrinter) error {
-	if len(printer.Variables()) > 0 {
-		fmt.Println("Variables:")
-		for _, v := range printer.Variables() {
+func printVariablesOutput(cmd *cobra.Command, template client.Template) error {
+	// Decorate the variable map for printing
+	variableMap := template.VariableMap()
+	for name, defaultValue := range variableMap {
+		if defaultValue != nil {
+			v := *defaultValue
+			// Add quotes around any unquoted strings
+			if len(v) > 0 && !strings.HasPrefix(v, "\"") {
+				v = fmt.Sprintf("\"%s\"", v)
+				variableMap[name] = &v
+			}
+		}
+	}
+	// Add variables that are defaulted from clusterctl
+	controlPlaneMachineCount, err := cmd.Flags().GetInt64("control-plane-machine-count")
+	if err != nil {
+		return err
+	}
+	variableMap["CONTROL_PLANE_MACHINE_COUNT"] = stringPtr(strconv.FormatInt(controlPlaneMachineCount, 10))
+	workerMachineCount, err := cmd.Flags().GetInt64("worker-machine-count")
+	if err != nil {
+		return err
+	}
+	variableMap["WORKER_MACHINE_COUNT"] = stringPtr(strconv.FormatInt(workerMachineCount, 10))
+	variableMap["KUBERNETES_VERSION"] = stringPtr("the value of --kubernetes-version")
+	variableMap["CLUSTER_NAME"] = stringPtr("<name> from \"clusterctl config cluster <name>\"")
+
+	// transform variable map into required and optional lists
+	var requiredVariables []string
+	var optionalVariables []string
+	for name, defaultValue := range variableMap {
+		if defaultValue != nil {
+			optionalVariables = append(optionalVariables, name)
+		} else {
+			requiredVariables = append(requiredVariables, name)
+		}
+	}
+	sort.Strings(requiredVariables)
+	sort.Strings(optionalVariables)
+
+	if len(requiredVariables) > 0 {
+		fmt.Println("Required Variables:")
+		for _, v := range requiredVariables {
 			fmt.Printf("  - %s\n", v)
 		}
 	}
+
+	if len(optionalVariables) > 0 {
+		fmt.Println("\nOptional Variables:")
+		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', tabwriter.FilterHTML)
+		for _, v := range optionalVariables {
+			fmt.Fprintf(w, "  - %s\t(defaults to %s)\n", v, *variableMap[v])
+		}
+		w.Flush()
+	}
+
 	fmt.Println()
 	return nil
 }

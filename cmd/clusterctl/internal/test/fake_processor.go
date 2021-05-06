@@ -17,9 +17,10 @@ limitations under the License.
 package test
 
 type FakeProcessor struct {
-	errGetVariables error
-	errProcess      error
-	artifactName    string
+	errGetVariables   error
+	errGetVariableMap error
+	errProcess        error
+	artifactName      string
 }
 
 func NewFakeProcessor() *FakeProcessor {
@@ -47,6 +48,10 @@ func (fp *FakeProcessor) GetTemplateName(version, flavor string) string {
 
 func (fp *FakeProcessor) GetVariables(raw []byte) ([]string, error) {
 	return nil, fp.errGetVariables
+}
+
+func (fp *FakeProcessor) GetVariableMap(raw []byte) (map[string]*string, error) {
+	return nil, fp.errGetVariableMap
 }
 
 func (fp *FakeProcessor) Process(raw []byte, variablesGetter func(string) (string, error)) ([]byte, error) {

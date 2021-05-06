@@ -54,19 +54,35 @@ func (tp *SimpleProcessor) GetTemplateName(_, flavor string) string {
 
 // GetVariables returns a list of the variables specified in the yaml.
 func (tp *SimpleProcessor) GetVariables(rawArtifact []byte) ([]string, error) {
-	strArtifact := convertLegacyVars(string(rawArtifact))
-
-	variables, err := inspectVariables(strArtifact)
+	variables, err := tp.GetVariableMap(rawArtifact)
 	if err != nil {
 		return nil, err
 	}
-
 	varNames := make([]string, 0, len(variables))
 	for k := range variables {
 		varNames = append(varNames, k)
 	}
 	sort.Strings(varNames)
 	return varNames, nil
+}
+
+// GetVariableMap returns a map of the variables specified in the yaml.
+func (tp *SimpleProcessor) GetVariableMap(rawArtifact []byte) (map[string]*string, error) {
+	strArtifact := convertLegacyVars(string(rawArtifact))
+	variables, err := inspectVariables(strArtifact)
+	if err != nil {
+		return nil, err
+	}
+	varMap := make(map[string]*string, len(variables))
+	for k, v := range variables {
+		if v == "" {
+			varMap[k] = nil
+		} else {
+			v := v
+			varMap[k] = &v
+		}
+	}
+	return varMap, nil
 }
 
 // Process returns the final yaml with all the variables replaced with their
@@ -82,11 +98,11 @@ func (tp *SimpleProcessor) Process(rawArtifact []byte, variablesClient func(stri
 
 	var missingVariables []string
 	// keep track of missing variables to return as error later
-	for name, hasDefault := range variables {
+	for name, defaultValue := range variables {
 		_, err := variablesClient(name)
 		// add to missingVariables list if the variable does not exist in the
 		// variablesClient AND it does not have a default value
-		if err != nil && !hasDefault {
+		if err != nil && len(defaultValue) == 0 {
 			missingVariables = append(missingVariables, name)
 			continue
 		}
@@ -122,8 +138,8 @@ func (e *errMissingVariables) Error() string {
 // inspectVariables parses through the yaml and returns a map of the variable
 // names and if they have default values. It returns an error if it cannot
 // parse the yaml.
-func inspectVariables(data string) (map[string]bool, error) {
-	variables := make(map[string]bool)
+func inspectVariables(data string) (map[string]string, error) {
+	variables := make(map[string]string)
 	t, err := parse.Parse(data)
 	if err != nil {
 		return nil, err
@@ -134,7 +150,7 @@ func inspectVariables(data string) (map[string]bool, error) {
 
 // traverse recursively walks down the root node and tracks the variables
 // which are FuncNodes and if the variables have default values.
-func traverse(root parse.Node, variables map[string]bool) {
+func traverse(root parse.Node, variables map[string]string) {
 	switch v := root.(type) {
 	case *parse.ListNode:
 		// iterate through the list node
@@ -143,8 +159,19 @@ func traverse(root parse.Node, variables map[string]bool) {
 		}
 	case *parse.FuncNode:
 		if _, ok := variables[v.Param]; !ok {
-			// if there are args, then the variable has a default value
-			variables[v.Param] = len(v.Args) > 0
+			// Build up a default value string
+			b := strings.Builder{}
+			for _, a := range v.Args {
+				switch w := a.(type) {
+				case *parse.FuncNode:
+					b.WriteString(fmt.Sprintf("${%s}", w.Param))
+				case *parse.TextNode:
+					b.WriteString(w.Value)
+				}
+			}
+			// Key the variable name to its default string from the template,
+			// or to an empty string if it's required (no default).
+			variables[v.Param] = b.String()
 		}
 	}
 }

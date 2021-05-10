@@ -4,7 +4,7 @@
 
 - The Go version used by Cluster API is now Go 1.16+
   - In case cloudbuild is used to push images, please upgrade to `gcr.io/k8s-testimages/gcb-docker-gcloud:v20210331-c732583`
-    in the cloudbuild YAML files.  
+    in the cloudbuild YAML files.
 
 ## Controller Runtime version
 

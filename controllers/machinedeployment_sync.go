@@ -293,14 +293,11 @@ func (r *MachineDeploymentReconciler) scale(ctx context.Context, deployment *clu
 		// drives what happens in case we are trying to scale machine sets of the same size.
 		// In such a case when scaling up, we should scale up newer machine sets first, and
 		// when scaling down, we should scale down older machine sets first.
-		var scalingOperation string
 		switch {
 		case deploymentReplicasToAdd > 0:
 			sort.Sort(mdutil.MachineSetsBySizeNewer(allMSs))
-			scalingOperation = "up"
 		case deploymentReplicasToAdd < 0:
 			sort.Sort(mdutil.MachineSetsBySizeOlder(allMSs))
-			scalingOperation = "down"
 		}
 
 		// Iterate over all active machine sets and estimate proportions for each of them.
@@ -339,8 +336,7 @@ func (r *MachineDeploymentReconciler) scale(ctx context.Context, deployment *clu
 				}
 			}
 
-			// TODO: Use transactions when we have them.
-			if err := r.scaleMachineSetOperation(ctx, ms, nameToSize[ms.Name], deployment, scalingOperation); err != nil {
+			if err := r.scaleMachineSet(ctx, ms, nameToSize[ms.Name], deployment); err != nil {
 				// Return as soon as we fail, the deployment is requeued
 				return err
 			}
@@ -406,30 +402,12 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 
 func (r *MachineDeploymentReconciler) scaleMachineSet(ctx context.Context, ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment) error {
 	if ms.Spec.Replicas == nil {
-		return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+		return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(ms))
 	}
 
-	// No need to scale
-	if *(ms.Spec.Replicas) == newScale {
-		return nil
+	if deployment.Spec.Replicas == nil {
+		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(deployment))
 	}
-
-	var scalingOperation string
-	if *(ms.Spec.Replicas) < newScale {
-		scalingOperation = "up"
-	} else {
-		scalingOperation = "down"
-	}
-
-	return r.scaleMachineSetOperation(ctx, ms, newScale, deployment, scalingOperation)
-}
-
-func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ctx context.Context, ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment, scaleOperation string) error {
-	if ms.Spec.Replicas == nil {
-		return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
-	}
-
-	sizeNeedsUpdate := *(ms.Spec.Replicas) != newScale
 
 	annotationsNeedUpdate := mdutil.ReplicasAnnotationsNeedUpdate(
 		ms,
@@ -437,23 +415,32 @@ func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ctx context.Conte
 		*(deployment.Spec.Replicas)+mdutil.MaxSurge(*deployment),
 	)
 
-	if sizeNeedsUpdate || annotationsNeedUpdate {
-		patchHelper, err := patch.NewHelper(ms, r.Client)
-		if err != nil {
-			return err
-		}
+	// No need to scale nor setting annotations, return.
+	if *(ms.Spec.Replicas) == newScale && !annotationsNeedUpdate {
+		return nil
+	}
 
-		*(ms.Spec.Replicas) = newScale
-		mdutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+mdutil.MaxSurge(*deployment))
-
-		err = patchHelper.Patch(ctx, ms)
-		if err != nil {
-			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %q: %v", ms.Name, err)
-		} else if sizeNeedsUpdate {
-			r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled %s MachineSet %q to %d", scaleOperation, ms.Name, newScale)
-		}
+	// If we're here, a scaling operation is required.
+	patchHelper, err := patch.NewHelper(ms, r.Client)
+	if err != nil {
 		return err
 	}
+
+	// Save original replicas to log in event.
+	originalReplicas := *(ms.Spec.Replicas)
+
+	// Mutate replicas and the related annotation.
+	ms.Spec.Replicas = &newScale
+	mdutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+mdutil.MaxSurge(*deployment))
+
+	if err := patchHelper.Patch(ctx, ms); err != nil {
+		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %v: %v",
+			client.ObjectKeyFromObject(ms), err)
+		return err
+	}
+
+	r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled MachineSet %v: %d -> %d",
+		client.ObjectKeyFromObject(ms), originalReplicas, *ms.Spec.Replicas)
 
 	return nil
 }

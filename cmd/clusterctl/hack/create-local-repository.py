@@ -44,6 +44,7 @@ import json
 import subprocess
 import os
 from distutils.dir_util import copy_tree
+from distutils.file_util import copy_file
 import errno
 import sys
 
@@ -52,24 +53,24 @@ settings = {}
 providers = {
       'cluster-api': {
               'componentsFile': 'core-components.yaml',
-              'nextVersion': 'v0.3.8',
+              'nextVersion': 'v0.3.99',
               'type': 'CoreProvider',
       },
       'bootstrap-kubeadm': {
             'componentsFile': 'bootstrap-components.yaml',
-            'nextVersion': 'v0.3.8',
+            'nextVersion': 'v0.3.99',
             'type': 'BootstrapProvider',
             'configFolder': 'bootstrap/kubeadm/config',
       },
       'control-plane-kubeadm': {
             'componentsFile': 'control-plane-components.yaml',
-            'nextVersion': 'v0.3.8',
+            'nextVersion': 'v0.3.99',
             'type': 'ControlPlaneProvider',
             'configFolder': 'controlplane/kubeadm/config',
       },
       'infrastructure-docker': {
           'componentsFile': 'infrastructure-components.yaml',
-          'nextVersion': 'v0.3.8',
+          'nextVersion': 'v0.3.99',
           'type': 'InfrastructureProvider',
           'configFolder': 'test/infrastructure/docker/config',
       },
@@ -116,7 +117,7 @@ def get_repository_folder():
     home = get_home()
     return os.path.join(home, '.cluster-api', 'dev-repository')
 
-def write_local_repository(provider, version, components_file, components_yaml):
+def write_local_repository(provider, version, components_file, components_yaml, metadata_file):
     try:
         repository_folder = get_repository_folder()
         provider_folder = os.path.join(repository_folder, provider, version)
@@ -129,6 +130,8 @@ def write_local_repository(provider, version, components_file, components_yaml):
         f = open(components_path, 'wb')
         f.write(components_yaml)
         f.close()
+
+        copy_file(metadata_file, provider_folder)
 
         if provider == "infrastructure-docker":
             copy_tree("test/infrastructure/docker/templates", provider_folder)
@@ -148,6 +151,7 @@ def create_local_repositories():
 
         repo = p.get('repo', '.')
         config_folder = p.get('configFolder', 'config')
+        metadata_file = repo+'/metadata.yaml'
 
         next_version = p.get('nextVersion')
         assert next_version is not None, 'invalid configuration for provider {}: please provide nextVersion value'.format(provider)
@@ -159,7 +163,7 @@ def create_local_repositories():
         assert components_file is not None, 'invalid configuration for provider {}: please provide componentsFile value'.format(provider)
 
         components_yaml = execCmd(['kustomize', 'build', os.path.join(repo, config_folder)])
-        components_path = write_local_repository(provider, next_version, components_file, components_yaml)
+        components_path = write_local_repository(provider, next_version, components_file, components_yaml, metadata_file)
 
         yield name, type, next_version, components_path
 

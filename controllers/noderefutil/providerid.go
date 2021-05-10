@@ -19,6 +19,7 @@ package noderefutil
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -99,4 +100,12 @@ func (p *ProviderID) String() string {
 // Validate returns true if the provider id is valid.
 func (p *ProviderID) Validate() bool {
 	return p.CloudProvider() != "" && p.ID() != ""
+}
+
+// IndexKey returns a string concatenating the cloudProvider and the ID parts of the providerID.
+// E.g Format: cloudProvider://optional/segments/etc/id. IndexKey: cloudProvider/id
+// This is useful to use the providerID as a reliable index between nodes and machines
+// as it guarantees the infra Providers contract.
+func (p *ProviderID) IndexKey() string {
+	return fmt.Sprintf("%s/%s", p.CloudProvider(), p.ID())
 }

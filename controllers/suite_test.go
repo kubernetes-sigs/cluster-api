@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -59,7 +60,16 @@ func TestMain(m *testing.M) {
 	// requiring a connection to a remote cluster
 	tracker, err := remote.NewClusterCacheTracker(
 		env.Manager,
-		remote.ClusterCacheTrackerOptions{Log: log.Log},
+		remote.ClusterCacheTrackerOptions{
+			Log: log.Log,
+			Indexes: []remote.Index{
+				{
+					Object:       &corev1.Node{},
+					Field:        noderefutil.NodeProviderIDIndex,
+					ExtractValue: noderefutil.IndexNodeByProviderID,
+				},
+			},
+		},
 	)
 	if err != nil {
 		panic(fmt.Sprintf("unable to create cluster cache tracker: %v", err))

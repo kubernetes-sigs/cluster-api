@@ -27,11 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"sigs.k8s.io/cluster-api/util/collections"
-
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -39,11 +35,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestGetMachinesForCluster(t *testing.T) {
@@ -108,7 +107,16 @@ func TestGetWorkloadCluster(t *testing.T) {
 	badCrtEtcdSecret.Data[secret.TLSCrtDataName] = []byte("bad cert")
 	tracker, err := remote.NewClusterCacheTracker(
 		env.Manager,
-		remote.ClusterCacheTrackerOptions{Log: log.Log},
+		remote.ClusterCacheTrackerOptions{
+			Log: log.Log,
+			Indexes: []remote.Index{
+				{
+					Object:       &corev1.Node{},
+					Field:        noderefutil.NodeProviderIDIndex,
+					ExtractValue: noderefutil.IndexNodeByProviderID,
+				},
+			},
+		},
 	)
 	g.Expect(err).ToNot(HaveOccurred())
 

@@ -764,14 +764,10 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 
 func TestUpdateStaticPodCondition(t *testing.T) {
 	machine := &clusterv1.Machine{}
-	node := corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node",
-		},
-	}
+	nodeName := "node"
 	component := "kube-component"
 	condition := clusterv1.ConditionType("kubeComponentHealthy")
-	podName := staticPodName(component, node.Name)
+	podName := staticPodName(component, nodeName)
 	podkey := client.ObjectKey{
 		Namespace: metav1.NamespaceSystem,
 		Name:      podName,
@@ -780,13 +776,20 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 	tests := []struct {
 		name              string
 		injectClient      client.Client // This test is injecting a fake client because it is required to create pods with a controlled Status or to fail with a specific error.
+		node              *corev1.Node
 		expectedCondition clusterv1.Condition
 	}{
+		{
+			name:              "if node Ready is unknown, assume pod status is stale",
+			node:              fakeNode(nodeName, withReadyCondition(corev1.ConditionUnknown)),
+			expectedCondition: *conditions.UnknownCondition(condition, controlplanev1.PodInspectionFailedReason, "Node Ready condition is unknown, pod data might be stale"),
+		},
 		{
 			name: "if gets pod return a NotFound error should report PodCondition=False, PodMissing",
 			injectClient: &fakeClient{
 				getErr: apierrors.NewNotFound(schema.ParseGroupResource("Pod"), component),
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodMissingReason, clusterv1.ConditionSeverityError, "Pod kube-component-node is missing"),
 		},
 		{
@@ -794,6 +797,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 			injectClient: &fakeClient{
 				getErr: errors.New("get failure"),
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.UnknownCondition(condition, controlplanev1.PodInspectionFailedReason, "Failed to get pod status"),
 		},
 		{
@@ -806,6 +810,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "Waiting to be scheduled"),
 		},
 		{
@@ -819,6 +824,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "Running init containers"),
 		},
 		{
@@ -832,6 +838,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, ""),
 		},
 		{
@@ -844,6 +851,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.TrueCondition(condition),
 		},
 		{
@@ -860,6 +868,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "Waiting something"),
 		},
 		{
@@ -881,6 +890,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, "Waiting something"),
 		},
 		{
@@ -897,6 +907,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, "Something failed"),
 		},
 		{
@@ -908,6 +919,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "Waiting for startup or readiness probes"),
 		},
 		{
@@ -919,6 +931,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, "All the containers have been terminated"),
 		},
 		{
@@ -930,6 +943,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.FalseCondition(condition, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, "All the containers have been terminated"),
 		},
 		{
@@ -941,6 +955,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 					),
 				},
 			},
+			node:              fakeNode(nodeName),
 			expectedCondition: *conditions.UnknownCondition(condition, controlplanev1.PodInspectionFailedReason, "Pod is reporting unknown status"),
 		},
 	}
@@ -952,7 +967,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 			w := &Workload{
 				Client: tt.injectClient,
 			}
-			w.updateStaticPodCondition(ctx, machine, node, component, condition)
+			w.updateStaticPodCondition(ctx, machine, *tt.node, component, condition)
 
 			g.Expect(*conditions.Get(machine, condition)).To(conditions.MatchCondition(tt.expectedCondition))
 		})
@@ -978,6 +993,15 @@ func withUnreachableTaint() fakeNodeOption {
 		node.Spec.Taints = append(node.Spec.Taints, corev1.Taint{
 			Key:    corev1.TaintNodeUnreachable,
 			Effect: corev1.TaintEffectNoExecute,
+		})
+	}
+}
+
+func withReadyCondition(status corev1.ConditionStatus) fakeNodeOption {
+	return func(node *corev1.Node) {
+		node.Status.Conditions = append(node.Status.Conditions, corev1.NodeCondition{
+			Type:   corev1.NodeReady,
+			Status: status,
 		})
 	}
 }

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -113,6 +114,10 @@ func (r *MachineReconciler) reconcileNode(ctx context.Context, cluster *clusterv
 	status, message := summarizeNodeConditions(node)
 	if status == corev1.ConditionFalse {
 		conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeConditionsFailedReason, clusterv1.ConditionSeverityWarning, message)
+		return ctrl.Result{}, nil
+	}
+	if status == corev1.ConditionUnknown {
+		conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeConditionsFailedReason, message)
 		return ctrl.Result{}, nil
 	}
 

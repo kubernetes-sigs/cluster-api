@@ -96,9 +96,9 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 
 	cmd := exec.Command(binary, "init",
 		"--core", input.CoreProvider,
-		"--bootstrap", strings.Join(input.BootstrapProviders, ", "),
-		"--control-plane", strings.Join(input.ControlPlaneProviders, ", "),
-		"--infrastructure", strings.Join(input.InfrastructureProviders, ", "),
+		"--bootstrap", strings.Join(input.BootstrapProviders, ","),
+		"--control-plane", strings.Join(input.ControlPlaneProviders, ","),
+		"--infrastructure", strings.Join(input.InfrastructureProviders, ","),
 		"--config", input.ClusterctlConfigPath,
 		"--kubeconfig", input.KubeconfigPath,
 	)
@@ -209,7 +209,7 @@ func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, inp
 	cmd := exec.Command(clusterctlBinaryPath, "config", "cluster",
 		input.ClusterName,
 		"--infrastructure", input.InfrastructureProvider,
-		"--kubernetes-version", input.InfrastructureProvider,
+		"--kubernetes-version", input.KubernetesVersion,
 		"--control-plane-machine-count", fmt.Sprint(*input.ControlPlaneMachineCount),
 		"--worker-machine-count", fmt.Sprint(*input.WorkerMachineCount),
 		"--flavor", input.Flavor,

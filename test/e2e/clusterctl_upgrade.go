@@ -56,20 +56,22 @@ type ClusterctlUpgradeSpecInput struct {
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
 //
-// NOTE: this test is designed to test v1alpha3 --> v1alpha4 upgrades and v1alpha4 --> v1alpha4.
+// NOTE: this test is designed to test v1alpha3 --> v1alpha4 upgrades.
 func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpgradeSpecInput) {
 	var (
 		specName = "clusterctl-upgrade"
 		input    ClusterctlUpgradeSpecInput
 
+		testNamespace     *corev1.Namespace
+		testCancelWatches context.CancelFunc
+
+		managementClusterName          string
 		managementClusterNamespace     *corev1.Namespace
 		managementClusterCancelWatches context.CancelFunc
 		managementClusterResources     *clusterctl.ApplyClusterTemplateAndWaitResult
 		managementClusterProxy         framework.ClusterProxy
 
-		testNamespace     *corev1.Namespace
-		testCancelWatches context.CancelFunc
-		clusterName       string
+		workLoadClusterName string
 	)
 
 	BeforeEach(func() {
@@ -78,13 +80,13 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
-		Expect(input.E2EConfig.Variables).To(HaveKey(initWithBinaryVariableName), "Invalid argument. INIT_WITH_BINARY variable must be defined when calling %s spec", specName)
-		Expect(input.E2EConfig.Variables[initWithBinaryVariableName]).ToNot(BeEmpty(), "Invalid argument. INIT_WITH_BINARY variable can't be empty when calling %s spec", specName)
+		Expect(input.E2EConfig.Variables).To(HaveKey(initWithBinaryVariableName), "Invalid argument. %s variable must be defined when calling %s spec", initWithBinaryVariableName, specName)
+		Expect(input.E2EConfig.Variables[initWithBinaryVariableName]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithBinaryVariableName, specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(os.MkdirAll(input.ArtifactFolder, 0755)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		managementClusterNamespace, managementClusterCancelWatches = setupSpecNamespace(context.TODO(), specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		managementClusterNamespace, managementClusterCancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 		managementClusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
@@ -92,7 +94,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		By("Creating a workload cluster to be used as a new management cluster")
 		// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
 		// So we are creating a workload cluster that will be used as a new management cluster where to install older version of providers
-
+		managementClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -102,7 +104,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                managementClusterNamespace.Name,
-				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+				ClusterName:              managementClusterName,
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
@@ -114,7 +116,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		By("Turning the workload cluster into a management cluster with older versions of providers")
 
-		// In case of the cluster id a DockerCluster, we should load controller images into the nodes.
+		// If the cluster is a DockerCluster, we should load controller images into the nodes.
 		// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
 		// this approach because this allows to have a single source of truth for images, the e2e config
 		// Nb. the images for official version of the providers will be pulled from internet, but the latest images must be
@@ -127,7 +129,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			})).To(Succeed())
 		}
 
-		// Get a ClusterBroker so we can interact with the workload cluster
+		// Get a ClusterProxy so we can interact with the workload cluster
 		managementClusterProxy = input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 
 		// Download the v1alpha3 clusterctl version to be used for setting up the management cluster to be upgraded
@@ -136,15 +138,15 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		clusterctlBinaryURL = strings.ReplaceAll(clusterctlBinaryURL, "{ARCH}", runtime.GOARCH)
 
 		log.Logf("downloading clusterctl binary from %s", clusterctlBinaryURL)
-		binaryFileclusterctlBinaryPath := downloadToTmpFile(clusterctlBinaryURL)
-		defer os.Remove(binaryFileclusterctlBinaryPath) // clean up
+		clusterctlBinaryPath := downloadToTmpFile(clusterctlBinaryURL)
+		defer os.Remove(clusterctlBinaryPath) // clean up
 
-		err := os.Chmod(binaryFileclusterctlBinaryPath, 0744)
+		err := os.Chmod(clusterctlBinaryPath, 0744)
 		Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
 
 		By("Initializing the workload cluster with older versions of providers")
 		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
-			ClusterctlBinaryPath:    binaryFileclusterctlBinaryPath, // use older version of clusterctl to init the management cluster
+			ClusterctlBinaryPath:    clusterctlBinaryPath, // use older version of clusterctl to init the management cluster
 			ClusterProxy:            managementClusterProxy,
 			ClusterctlConfigPath:    input.ClusterctlConfigPath,
 			CoreProvider:            input.E2EConfig.GetProvidersWithOldestVersion(config.ClusterAPIProviderName)[0],
@@ -167,19 +169,19 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		By("Creating a test workload cluster")
 
 		// NOTE: This workload cluster is used to check the old management cluster works fine.
-		// In this case ApplyClusterTemplateAndWait can't be used because this helpers is linked to last version of the API;
-		// so the are getting a template using the downloaded version of clusterctl, applying it, and wait for machines to be provisioned.
+		// In this case ApplyClusterTemplateAndWait can't be used because this helper is linked to the last version of the API;
+		// so we are getting a template using the downloaded version of clusterctl, applying it, and wait for machines to be provisioned.
 
-		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+		workLoadClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		kubernetesVersion := input.E2EConfig.GetVariable(KubernetesVersion)
 		controlPlaneMachineCount := pointer.Int64Ptr(1)
 		workerMachineCount := pointer.Int64Ptr(1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-			clusterName, "(default)", kubernetesVersion, controlPlaneMachineCount, workerMachineCount)
+			workLoadClusterName, "(default)", kubernetesVersion, controlPlaneMachineCount, workerMachineCount)
 
 		log.Logf("Getting the cluster template yaml")
-		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, binaryFileclusterctlBinaryPath, clusterctl.ConfigClusterInput{
+		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
 			// pass reference to the management cluster hosting this test
 			KubeconfigPath: managementClusterProxy.GetKubeconfigPath(),
 			// pass the clusterctl config file that points to the local provider repository created for this test,
@@ -188,7 +190,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			Flavor: clusterctl.DefaultFlavor,
 			// define template variables
 			Namespace:                testNamespace.Name,
-			ClusterName:              clusterName,
+			ClusterName:              workLoadClusterName,
 			KubernetesVersion:        kubernetesVersion,
 			ControlPlaneMachineCount: controlPlaneMachineCount,
 			WorkerMachineCount:       workerMachineCount,
@@ -205,7 +207,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Eventually(func() (int64, error) {
 			var n int64 = 0
 			machineList := &clusterv1old.MachineList{}
-			if err := managementClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(testNamespace.Name), client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}); err == nil {
+			if err := managementClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(testNamespace.Name), client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName}); err == nil {
 				for _, machine := range machineList.Items {
 					if machine.Status.NodeRef != nil {
 						n++
@@ -233,7 +235,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
 			Lister:      managementClusterProxy.GetClient(),
-			ClusterName: clusterName,
+			ClusterName: workLoadClusterName,
 			Namespace:   testNamespace.Name,
 		})
 
@@ -253,7 +255,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	AfterEach(func() {
 		if testNamespace != nil {
 			// Dump all the logs from the workload cluster before deleting them.
-			managementClusterProxy.CollectWorkloadClusterLogs(ctx, testNamespace.Name, clusterName, filepath.Join(input.ArtifactFolder, "clusters", clusterName, "machines"))
+			managementClusterProxy.CollectWorkloadClusterLogs(ctx, testNamespace.Name, managementClusterName, filepath.Join(input.ArtifactFolder, "clusters", managementClusterName, "machines"))
 
 			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
 				Lister:    managementClusterProxy.GetClient(),
@@ -262,7 +264,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			})
 
 			if !input.SkipCleanup {
-				Byf("Deleting cluster %s/%s", testNamespace.Name, clusterName)
+				Byf("Deleting cluster %s and %s", testNamespace.Name, managementClusterName)
 				framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
 					Client:    managementClusterProxy.GetClient(),
 					Namespace: testNamespace.Name,

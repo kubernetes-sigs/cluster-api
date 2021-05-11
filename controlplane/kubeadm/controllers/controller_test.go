@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -974,7 +975,7 @@ kubernetesVersion: metav1.16.1`,
 			},
 		}
 
-		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp)).To(Succeed())
+		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp, semver.MustParse("1.19.1"))).To(Succeed())
 
 		var actualCoreDNSCM corev1.ConfigMap
 		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, &actualCoreDNSCM)).To(Succeed())
@@ -1032,7 +1033,7 @@ kubernetesVersion: metav1.16.1`,
 			},
 		}
 
-		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp)).To(Succeed())
+		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp, semver.MustParse("1.19.1"))).To(Succeed())
 	})
 
 	t.Run("should not return an error when there is no CoreDNS configmap", func(t *testing.T) {
@@ -1054,7 +1055,7 @@ kubernetesVersion: metav1.16.1`,
 			},
 		}
 
-		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp)).To(Succeed())
+		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp, semver.MustParse("1.19.1"))).To(Succeed())
 	})
 
 	t.Run("should not return an error when there is no CoreDNS deployment", func(t *testing.T) {
@@ -1078,7 +1079,7 @@ kubernetesVersion: metav1.16.1`,
 			},
 		}
 
-		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp)).To(Succeed())
+		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp, semver.MustParse("1.19.1"))).To(Succeed())
 	})
 
 	t.Run("should not return an error when no DNS upgrade is requested", func(t *testing.T) {
@@ -1103,7 +1104,7 @@ kubernetesVersion: metav1.16.1`,
 			},
 		}
 
-		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp)).To(Succeed())
+		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp, semver.MustParse("1.19.1"))).To(Succeed())
 
 		var actualCoreDNSCM corev1.ConfigMap
 		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, &actualCoreDNSCM)).To(Succeed())
@@ -1139,7 +1140,7 @@ kubernetesVersion: metav1.16.1`,
 			},
 		}
 
-		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp)).ToNot(Succeed())
+		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp, semver.MustParse("1.19.1"))).ToNot(Succeed())
 	})
 }
 

@@ -20,11 +20,10 @@ import (
 	"testing"
 	"time"
 
-	"sigs.k8s.io/cluster-api/util/collections"
-
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/collections"
 )
 
 func TestMachineCollection(t *testing.T) {
@@ -36,7 +35,7 @@ func TestMachineCollection(t *testing.T) {
 		g.Expect(sortedMachines[0].Name).To(Equal("machine-1"))
 		g.Expect(sortedMachines[len(sortedMachines)-1].Name).To(Equal("machine-5"))
 	})
-	t.Run("returns the collection with elements of the second collection removed", func(t *testing.T) {
+	t.Run("should return the collection with elements of the second collection removed", func(t *testing.T) {
 		g := NewWithT(t)
 		collection := machines()
 		c2 := collection.Filter(func(m *clusterv1.Machine) bool {
@@ -47,7 +46,7 @@ func TestMachineCollection(t *testing.T) {
 		g.Expect(collection.Names()).To(ContainElement("machine-1"))
 		g.Expect(c3.Names()).To(ConsistOf("machine-1"))
 	})
-	t.Run("returns a slice of names of each machine in the collection", func(t *testing.T) {
+	t.Run("should return a slice of names of each machine in the collection", func(t *testing.T) {
 		g := NewWithT(t)
 		g.Expect(collections.New().Names()).To(BeEmpty())
 		g.Expect(collections.FromMachines(machine("1"), machine("2")).Names()).To(ConsistOf("1", "2"))

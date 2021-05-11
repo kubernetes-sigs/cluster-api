@@ -17,11 +17,11 @@ limitations under the License.
 package utils
 
 import (
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
@@ -30,6 +30,9 @@ import (
 )
 
 var (
+	v1beta1KubeadmVersion = semver.MustParse("1.13.0")
+	v1beta2KubeadmVersion = semver.MustParse("1.15.0")
+
 	clusterConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		v1beta2.GroupVersion: &v1beta2.ClusterConfiguration{},
 		v1beta1.GroupVersion: &v1beta1.ClusterConfiguration{},
@@ -51,18 +54,11 @@ var (
 	}
 )
 
-func KubeVersionToKubeadmAPIGroupVersion(version string) (schema.GroupVersion, error) {
-	if version == "" {
-		return schema.GroupVersion{}, errors.New("version cannot be empty")
-	}
-	semVersion, err := versionutil.ParseSemantic(version)
-	if err != nil {
-		return schema.GroupVersion{}, errors.Wrap(err, "error parsing the Kubernetes version")
-	}
+func KubeVersionToKubeadmAPIGroupVersion(version semver.Version) (schema.GroupVersion, error) {
 	switch {
-	case semVersion.LessThan(versionutil.MustParseSemantic("v1.13.0")):
+	case version.LT(v1beta1KubeadmVersion):
 		return schema.GroupVersion{}, errors.New("the bootstrap provider for kubeadm doesn't support Kubernetes version lower than v1.13.0")
-	case semVersion.LessThan(versionutil.MustParseSemantic("v1.15.0")):
+	case version.LT(v1beta2KubeadmVersion):
 		// NOTE: All the Kubernetes version >= v1.13 and < v1.15 should use the kubeadm API version v1beta1
 		return v1beta1.GroupVersion, nil
 	default:
@@ -79,32 +75,32 @@ func KubeVersionToKubeadmAPIGroupVersion(version string) (schema.GroupVersion, e
 // MarshalClusterConfigurationForVersion converts a Cluster API ClusterConfiguration type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalClusterConfigurationForVersion(obj *bootstrapv1.ClusterConfiguration, version string) (string, error) {
+func MarshalClusterConfigurationForVersion(obj *bootstrapv1.ClusterConfiguration, version semver.Version) (string, error) {
 	return marshalForVersion(obj, version, clusterConfigurationVersionTypeMap)
 }
 
 // MarshalClusterStatusForVersion converts a Cluster API ClusterStatus type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalClusterStatusForVersion(obj *bootstrapv1.ClusterStatus, version string) (string, error) {
+func MarshalClusterStatusForVersion(obj *bootstrapv1.ClusterStatus, version semver.Version) (string, error) {
 	return marshalForVersion(obj, version, clusterStatusVersionTypeMap)
 }
 
 // MarshalInitConfigurationForVersion converts a Cluster API InitConfiguration type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalInitConfigurationForVersion(obj *bootstrapv1.InitConfiguration, version string) (string, error) {
+func MarshalInitConfigurationForVersion(obj *bootstrapv1.InitConfiguration, version semver.Version) (string, error) {
 	return marshalForVersion(obj, version, initConfigurationVersionTypeMap)
 }
 
 // MarshalJoinConfigurationForVersion converts a Cluster API JoinConfiguration type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalJoinConfigurationForVersion(obj *bootstrapv1.JoinConfiguration, version string) (string, error) {
+func MarshalJoinConfigurationForVersion(obj *bootstrapv1.JoinConfiguration, version semver.Version) (string, error) {
 	return marshalForVersion(obj, version, joinConfigurationVersionTypeMap)
 }
 
-func marshalForVersion(obj conversion.Hub, version string, kubeadmObjVersionTypeMap map[schema.GroupVersion]conversion.Convertible) (string, error) {
+func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVersionTypeMap map[schema.GroupVersion]conversion.Convertible) (string, error) {
 	kubeadmAPIGroupVersion, err := KubeVersionToKubeadmAPIGroupVersion(version)
 	if err != nil {
 		return "", err

@@ -228,6 +228,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
 				Replicas: utilpointer.Int32Ptr(2),
+				Version:  "v1.19.1",
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
@@ -276,6 +277,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
 				Replicas: utilpointer.Int32Ptr(3),
+				Version:  "v1.19.1",
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
@@ -325,6 +327,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
 				Replicas: utilpointer.Int32Ptr(4),
+				Version:  "v1.19.1",
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4),

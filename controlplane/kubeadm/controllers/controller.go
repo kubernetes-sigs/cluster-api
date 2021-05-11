@@ -19,8 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/collections"
 	"time"
+
+	"sigs.k8s.io/cluster-api/util/collections"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -372,7 +373,12 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// Update CoreDNS deployment.
-	if err := workloadCluster.UpdateCoreDNS(ctx, kcp); err != nil {
+	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
+	}
+
+	if err := workloadCluster.UpdateCoreDNS(ctx, kcp, parsedVersion); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update CoreDNS deployment")
 	}
 
@@ -527,7 +533,12 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return ctrl.Result{}, errors.Wrap(err, "cannot get remote client to workload cluster")
 	}
 
-	removedMembers, err := workloadCluster.ReconcileEtcdMembers(ctx, nodeNames)
+	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
+	}
+
+	removedMembers, err := workloadCluster.ReconcileEtcdMembers(ctx, nodeNames, parsedVersion)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed attempt to reconcile etcd members")
 	}

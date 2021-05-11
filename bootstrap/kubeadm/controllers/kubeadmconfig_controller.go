@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -367,6 +368,10 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// should not handle special cases.
 
 	kubernetesVersion := scope.ConfigOwner.KubernetesVersion()
+	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
+	}
 
 	if scope.Config.Spec.InitConfiguration == nil {
 		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{
@@ -376,7 +381,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 			},
 		}
 	}
-	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(scope.Config.Spec.InitConfiguration, kubernetesVersion)
+	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(scope.Config.Spec.InitConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal init configuration")
 		return ctrl.Result{}, err
@@ -394,7 +399,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// injects into config.ClusterConfiguration values from top level object
 	r.reconcileTopLevelObjectSettings(ctx, scope.Cluster, machine, scope.Config)
 
-	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, kubernetesVersion)
+	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal cluster configuration")
 		return ctrl.Result{}, err
@@ -476,7 +481,13 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return res, nil
 	}
 
-	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, scope.ConfigOwner.KubernetesVersion())
+	kubernetesVersion := scope.ConfigOwner.KubernetesVersion()
+	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
+	}
+
+	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -557,7 +568,13 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return res, nil
 	}
 
-	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, scope.ConfigOwner.KubernetesVersion())
+	kubernetesVersion := scope.ConfigOwner.KubernetesVersion()
+	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
+	}
+
+	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err

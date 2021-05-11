@@ -75,28 +75,28 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 
 	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
 		imageRepository := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository
-		if err := workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(ctx, imageRepository); err != nil {
+		if err := workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(ctx, imageRepository, parsedVersion); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update the image repository in the kubeadm config map")
 		}
 	}
 
 	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil && kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
 		meta := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta
-		if err := workloadCluster.UpdateEtcdVersionInKubeadmConfigMap(ctx, meta.ImageRepository, meta.ImageTag); err != nil {
+		if err := workloadCluster.UpdateEtcdVersionInKubeadmConfigMap(ctx, meta.ImageRepository, meta.ImageTag, parsedVersion); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update the etcd version in the kubeadm config map")
 		}
 	}
 
 	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
-		if err := workloadCluster.UpdateAPIServerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer); err != nil {
+		if err := workloadCluster.UpdateAPIServerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer, parsedVersion); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update api server in the kubeadm config map")
 		}
 
-		if err := workloadCluster.UpdateControllerManagerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager); err != nil {
+		if err := workloadCluster.UpdateControllerManagerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager, parsedVersion); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update controller manager in the kubeadm config map")
 		}
 
-		if err := workloadCluster.UpdateSchedulerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler); err != nil {
+		if err := workloadCluster.UpdateSchedulerInKubeadmConfigMap(ctx, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler, parsedVersion); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update scheduler in the kubeadm config map")
 		}
 	}

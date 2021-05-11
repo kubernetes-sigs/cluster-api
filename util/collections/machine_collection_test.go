@@ -27,29 +27,35 @@ import (
 )
 
 func TestMachineCollection(t *testing.T) {
-	t.Run("should return the same number of machines as are in the collection", func(t *testing.T) {
-		g := NewWithT(t)
-		collection := machines()
-		sortedMachines := collection.SortedByCreationTimestamp()
-		g.Expect(sortedMachines).To(HaveLen(len(collection)))
-		g.Expect(sortedMachines[0].Name).To(Equal("machine-1"))
-		g.Expect(sortedMachines[len(sortedMachines)-1].Name).To(Equal("machine-5"))
-	})
-	t.Run("should return the collection with elements of the second collection removed", func(t *testing.T) {
-		g := NewWithT(t)
-		collection := machines()
-		c2 := collection.Filter(func(m *clusterv1.Machine) bool {
-			return m.Name != "machine-1"
+	t.Run("SortedByAge", func(t *testing.T) {
+		t.Run("should return the same number of machines as are in the collection", func(t *testing.T) {
+			g := NewWithT(t)
+			collection := machines()
+			sortedMachines := collection.SortedByCreationTimestamp()
+			g.Expect(sortedMachines).To(HaveLen(len(collection)))
+			g.Expect(sortedMachines[0].Name).To(Equal("machine-1"))
+			g.Expect(sortedMachines[len(sortedMachines)-1].Name).To(Equal("machine-5"))
 		})
-		c3 := collection.Difference(c2)
-		// does not mutate
-		g.Expect(collection.Names()).To(ContainElement("machine-1"))
-		g.Expect(c3.Names()).To(ConsistOf("machine-1"))
 	})
-	t.Run("should return a slice of names of each machine in the collection", func(t *testing.T) {
-		g := NewWithT(t)
-		g.Expect(collections.New().Names()).To(BeEmpty())
-		g.Expect(collections.FromMachines(machine("1"), machine("2")).Names()).To(ConsistOf("1", "2"))
+	t.Run("Difference", func(t *testing.T) {
+		t.Run("should return the collection with elements of the second collection removed", func(t *testing.T) {
+			g := NewWithT(t)
+			collection := machines()
+			c2 := collection.Filter(func(m *clusterv1.Machine) bool {
+				return m.Name != "machine-1"
+			})
+			c3 := collection.Difference(c2)
+			// does not mutate
+			g.Expect(collection.Names()).To(ContainElement("machine-1"))
+			g.Expect(c3.Names()).To(ConsistOf("machine-1"))
+		})
+	})
+	t.Run("Names", func(t *testing.T) {
+		t.Run("should return a slice of names of each machine in the collection", func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(collections.New().Names()).To(BeEmpty())
+			g.Expect(collections.FromMachines(machine("1"), machine("2")).Names()).To(ConsistOf("1", "2"))
+		})
 	})
 }
 

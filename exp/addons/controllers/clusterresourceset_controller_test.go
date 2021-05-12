@@ -18,9 +18,9 @@ package controllers
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
@@ -38,27 +38,25 @@ const (
 	defaultNamespaceName = "default"
 )
 
-var _ = Describe("ClusterResourceSet Reconciler", func() {
-
+func TestClusterResourceSetReconciler(t *testing.T) {
 	var clusterResourceSetName string
-
 	var testCluster *clusterv1.Cluster
 	var clusterName string
 	var labels map[string]string
 	var configmapName = "test-configmap"
 	var secretName = "test-secret"
 
-	BeforeEach(func() {
+	setup := func(t *testing.T, g *WithT) {
 		clusterResourceSetName = fmt.Sprintf("clusterresourceset-%s", util.RandomString(6))
 		labels = map[string]string{clusterResourceSetName: "bar"}
 
 		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
 		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: defaultNamespaceName}}
 
-		By("Creating the Cluster")
-		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
-		By("Creating the remote Cluster kubeconfig")
-		Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+		t.Log("Creating the Cluster")
+		g.Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
+		t.Log("Creating the remote Cluster kubeconfig")
+		g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 		testConfigmap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configmapName,
@@ -87,19 +85,20 @@ metadata:
  namespace: default`,
 			},
 		}
-		By("Creating a Secret and a ConfigMap with ConfigMap in their data field")
+		t.Log("Creating a Secret and a ConfigMap with ConfigMap in their data field")
 		testEnv.Create(ctx, testConfigmap)
 		testEnv.Create(ctx, testSecret)
-	})
-	AfterEach(func() {
-		By("Deleting the Kubeconfigsecret")
+	}
+
+	teardown := func(t *testing.T, g *WithT) {
+		t.Log("Deleting the Kubeconfigsecret")
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterName + "-kubeconfig",
 				Namespace: defaultNamespaceName,
 			},
 		}
-		Expect(testEnv.Delete(ctx, secret)).To(Succeed())
+		g.Expect(testEnv.Delete(ctx, secret)).To(Succeed())
 
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -110,10 +109,10 @@ metadata:
 
 		err := testEnv.Get(ctx, client.ObjectKey{Namespace: clusterResourceSetInstance.Namespace, Name: clusterResourceSetInstance.Name}, clusterResourceSetInstance)
 		if err == nil {
-			Expect(testEnv.Delete(ctx, clusterResourceSetInstance)).To(Succeed())
+			g.Expect(testEnv.Delete(ctx, clusterResourceSetInstance)).To(Succeed())
 		}
 
-		Eventually(func() bool {
+		g.Eventually(func() bool {
 			crsKey := client.ObjectKey{
 				Namespace: clusterResourceSetInstance.Namespace,
 				Name:      clusterResourceSetInstance.Name,
@@ -122,14 +121,18 @@ metadata:
 			err := testEnv.Get(ctx, crsKey, crs)
 			return err != nil
 		}, timeout).Should(BeTrue())
-	})
+	}
 
-	It("Should reconcile a ClusterResourceSet with multiple resources when a cluster with matching label exists", func() {
-		By("Updating the cluster with labels")
+	t.Run("Should reconcile a ClusterResourceSet with multiple resources when a cluster with matching label exists", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+
+		t.Log("Updating the cluster with labels")
 		testCluster.SetLabels(labels)
-		Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
+		g.Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
 
-		By("Creating a ClusterResourceSet instance that has same labels as selector")
+		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterResourceSetName,
@@ -143,10 +146,10 @@ metadata:
 			},
 		}
 		// Create the ClusterResourceSet.
-		Expect(testEnv.Create(ctx, clusterResourceSetInstance)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, clusterResourceSetInstance)).To(Succeed())
 
-		By("Verifying ClusterResourceSetBinding is created with cluster owner reference")
-		Eventually(func() bool {
+		t.Log("Verifying ClusterResourceSetBinding is created with cluster owner reference")
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			clusterResourceSetBindingKey := client.ObjectKey{
 				Namespace: testCluster.Namespace,
@@ -175,10 +178,14 @@ metadata:
 				UID:        testCluster.UID,
 			})
 		}, timeout).Should(BeTrue())
-		By("Deleting the Cluster")
-		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
+		t.Log("Deleting the Cluster")
+		g.Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 	})
-	It("Should reconcile a cluster when its labels are changed to match a ClusterResourceSet's selector", func() {
+
+	t.Run("Should reconcile a cluster when its labels are changed to match a ClusterResourceSet's selector", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
 
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -192,13 +199,13 @@ metadata:
 			},
 		}
 		// Create the ClusterResourceSet.
-		Expect(testEnv.Create(ctx, clusterResourceSetInstance)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, clusterResourceSetInstance)).To(Succeed())
 
 		testCluster.SetLabels(labels)
-		Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
+		g.Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
 
-		By("Verifying ClusterResourceSetBinding is created with cluster owner reference")
-		Eventually(func() bool {
+		t.Log("Verifying ClusterResourceSetBinding is created with cluster owner reference")
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			clusterResourceSetBindingKey := client.ObjectKey{
 				Namespace: testCluster.Namespace,
@@ -222,23 +229,28 @@ metadata:
 			Namespace: testCluster.Namespace,
 			Name:      testCluster.Name,
 		}
-		Eventually(func() bool {
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 
 			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
 			return err == nil
 		}, timeout).Should(BeTrue())
 
-		By("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
-		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
+		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
+		g.Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 
-		Eventually(func() bool {
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
 			return apierrors.IsNotFound(err)
 		}, timeout).Should(BeTrue())
 	})
-	It("Should reconcile a ClusterResourceSet when a resource is created that is part of ClusterResourceSet resources", func() {
+
+	t.Run("Should reconcile a ClusterResourceSet when a resource is created that is part of ClusterResourceSet resources", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+
 		newCMName := fmt.Sprintf("test-configmap-%s", util.RandomString(6))
 
 		crsInstance := &addonsv1.ClusterResourceSet{
@@ -254,18 +266,18 @@ metadata:
 			},
 		}
 		// Create the ClusterResourceSet.
-		Expect(testEnv.Create(ctx, crsInstance)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, crsInstance)).To(Succeed())
 
 		testCluster.SetLabels(labels)
-		Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
+		g.Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
 
-		By("Verifying ClusterResourceSetBinding is created with cluster owner reference")
+		t.Log("Verifying ClusterResourceSetBinding is created with cluster owner reference")
 		// Wait until ClusterResourceSetBinding is created for the Cluster
 		clusterResourceSetBindingKey := client.ObjectKey{
 			Namespace: testCluster.Namespace,
 			Name:      testCluster.Name,
 		}
-		Eventually(func() bool {
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 
 			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
@@ -273,7 +285,7 @@ metadata:
 		}, timeout).Should(BeTrue())
 
 		// Initially ConfigMap is missing, so no resources in the binding.
-		Eventually(func() bool {
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 
 			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
@@ -292,23 +304,23 @@ metadata:
 			},
 			Data: map[string]string{},
 		}
-		Expect(testEnv.Create(ctx, newConfigmap)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, newConfigmap)).To(Succeed())
 		defer func() {
-			Expect(testEnv.Delete(ctx, newConfigmap)).To(Succeed())
+			g.Expect(testEnv.Delete(ctx, newConfigmap)).To(Succeed())
 		}()
 
 		cmKey := client.ObjectKey{
 			Namespace: defaultNamespaceName,
 			Name:      newCMName,
 		}
-		Eventually(func() bool {
+		g.Eventually(func() bool {
 			m := &corev1.ConfigMap{}
 			err := testEnv.Get(ctx, cmKey, m)
 			return err == nil
 		}, timeout).Should(BeTrue())
 
 		// When the ConfigMap resource is created, CRS should get reconciled immediately.
-		Eventually(func() error {
+		g.Eventually(func() error {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			if err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding); err != nil {
 				return err
@@ -319,21 +331,26 @@ metadata:
 			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, binding.Spec.Bindings)
 		}, timeout).Should(Succeed())
 
-		By("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
-		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
+		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
+		g.Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 
-		Eventually(func() bool {
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			err := testEnv.Get(ctx, clusterResourceSetBindingKey, binding)
 			return apierrors.IsNotFound(err)
 		}, timeout).Should(BeTrue())
 	})
-	It("Should delete ClusterResourceSet from the bindings list when ClusterResourceSet is deleted", func() {
-		By("Updating the cluster with labels")
-		testCluster.SetLabels(labels)
-		Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
 
-		By("Creating a ClusterResourceSet instance that has same labels as selector")
+	t.Run("Should delete ClusterResourceSet from the bindings list when ClusterResourceSet is deleted", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+
+		t.Log("Updating the cluster with labels")
+		testCluster.SetLabels(labels)
+		g.Expect(testEnv.Update(ctx, testCluster)).To(Succeed())
+
+		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSetInstance2 := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterResourceSetName,
@@ -347,9 +364,9 @@ metadata:
 			},
 		}
 		// Create the ClusterResourceSet.
-		Expect(testEnv.Create(ctx, clusterResourceSetInstance2)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, clusterResourceSetInstance2)).To(Succeed())
 
-		By("Creating a second ClusterResourceSet instance that has same labels as selector")
+		t.Log("Creating a second ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSetInstance3 := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-clusterresourceset2",
@@ -363,10 +380,10 @@ metadata:
 			},
 		}
 		// Create the ClusterResourceSet.
-		Expect(testEnv.Create(ctx, clusterResourceSetInstance3)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, clusterResourceSetInstance3)).To(Succeed())
 
-		By("Verifying ClusterResourceSetBinding is created with 2 ClusterResourceSets")
-		Eventually(func() bool {
+		t.Log("Verifying ClusterResourceSetBinding is created with 2 ClusterResourceSets")
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			clusterResourceSetBindingKey := client.ObjectKey{
 				Namespace: testCluster.Namespace,
@@ -379,10 +396,10 @@ metadata:
 			return len(binding.Spec.Bindings) == 2
 		}, timeout).Should(BeTrue())
 
-		By("Verifying deleted CRS is deleted from ClusterResourceSetBinding")
+		t.Log("Verifying deleted CRS is deleted from ClusterResourceSetBinding")
 		// Delete one of the CRS instances and wait until it is removed from the binding list.
-		Expect(testEnv.Delete(ctx, clusterResourceSetInstance2)).To(Succeed())
-		Eventually(func() bool {
+		g.Expect(testEnv.Delete(ctx, clusterResourceSetInstance2)).To(Succeed())
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			clusterResourceSetBindingKey := client.ObjectKey{
 				Namespace: testCluster.Namespace,
@@ -395,10 +412,10 @@ metadata:
 			return len(binding.Spec.Bindings) == 1
 		}, timeout).Should(BeTrue())
 
-		By("Verifying ClusterResourceSetBinding  is deleted after deleting all matching CRS objects")
+		t.Log("Verifying ClusterResourceSetBinding is deleted after deleting all matching CRS objects")
 		// Delete one of the CRS instances and wait until it is removed from the binding list.
-		Expect(testEnv.Delete(ctx, clusterResourceSetInstance3)).To(Succeed())
-		Eventually(func() bool {
+		g.Expect(testEnv.Delete(ctx, clusterResourceSetInstance3)).To(Succeed())
+		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			clusterResourceSetBindingKey := client.ObjectKey{
 				Namespace: testCluster.Namespace,
@@ -407,10 +424,15 @@ metadata:
 			return testEnv.Get(ctx, clusterResourceSetBindingKey, binding) != nil
 		}, timeout).Should(BeTrue())
 
-		By("Deleting the Cluster")
-		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
+		t.Log("Deleting the Cluster")
+		g.Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
 	})
-	It("Should add finalizer after reconcile", func() {
+
+	t.Run("Should add finalizer after reconcile", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+
 		dt := metav1.Now()
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -426,8 +448,8 @@ metadata:
 			},
 		}
 		// Create the ClusterResourceSet.
-		Expect(testEnv.Create(ctx, clusterResourceSetInstance)).To(Succeed())
-		Eventually(func() bool {
+		g.Expect(testEnv.Create(ctx, clusterResourceSetInstance)).To(Succeed())
+		g.Eventually(func() bool {
 			crsKey := client.ObjectKey{
 				Namespace: clusterResourceSetInstance.Namespace,
 				Name:      clusterResourceSetInstance.Name,
@@ -441,4 +463,4 @@ metadata:
 			return false
 		}, timeout).Should(BeTrue())
 	})
-})
+}

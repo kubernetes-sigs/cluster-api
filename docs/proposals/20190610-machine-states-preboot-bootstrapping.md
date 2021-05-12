@@ -1,75 +1,5 @@
 ---
 title: Machine States & Preboot Bootstrapping
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-
-- [Machine States & Preboot Bootstrapping](#machine-states--preboot-bootstrapping)
-  - [Table of Contents](#table-of-contents)
-  - [Glossary](#glossary)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Non-Goals/Future Work](#non-goalsfuture-work)
-  - [Proposal](#proposal)
-    - [Data model changes](#data-model-changes)
-  - [States and transitions](#states-and-transitions)
-    - [Pending](#pending)
-      - [Transition Conditions](#transition-conditions)
-      - [Expectations](#expectations)
-    - [Provisioning](#provisioning)
-      - [Transition Conditions](#transition-conditions-1)
-      - [Expectations](#expectations-1)
-    - [Provisioned](#provisioned)
-      - [Transition Conditions](#transition-conditions-2)
-      - [Expectations](#expectations-2)
-    - [Running](#running)
-      - [Transition Conditions](#transition-conditions-3)
-      - [Expectations](#expectations-3)
-    - [Deleting](#deleting)
-      - [Transition Conditions](#transition-conditions-4)
-      - [Expectations](#expectations-4)
-    - [Deleted](#deleted)
-      - [Transition Conditions](#transition-conditions-5)
-      - [Expectations](#expectations-5)
-    - [Failed](#failed)
-      - [Transition Conditions](#transition-conditions-6)
-      - [Expectations](#expectations-6)
-    - [Sequence diagram: User creates a machine with Kubeadm bootstrapper.](#sequence-diagram-user-creates-a-machine-with-kubeadm-bootstrapper)
-    - [User Stories](#user-stories)
-      - [As a Kubernetes operator, I’d like to provide custom bootstrap data without the use of a Kubernetes controller.](#as-a-kubernetes-operator-id-like-to-provide-custom-bootstrap-data-without-the-use-of-a-kubernetes-controller)
-      - [As a Kubernetes operator, I’d like to monitor the progress of fulfilling a Machine and understand what errors, if any, have been reported by the controllers involved.](#as-a-kubernetes-operator-id-like-to-monitor-the-progress-of-fulfilling-a-machine-and-understand-what-errors-if-any-have-been-reported-by-the-controllers-involved)
-      - [As an infrastructure provider author, I would like to build the fewest number of components possible to support the full cluster-api.](#as-an-infrastructure-provider-author-i-would-like-to-build-the-fewest-number-of-components-possible-to-support-the-full-cluster-api)
-      - [As an infrastructure provider author, I would like to take advantage of the kubernetes API to provide validation for provider-specific data needed to provision a machine.](#as-an-infrastructure-provider-author-i-would-like-to-take-advantage-of-the-kubernetes-api-to-provide-validation-for-provider-specific-data-needed-to-provision-a-machine)
-      - [As an infrastructure provider author, I would like to build a controller to manage provisioning machines using tools of my own choosing.](#as-an-infrastructure-provider-author-i-would-like-to-build-a-controller-to-manage-provisioning-machines-using-tools-of-my-own-choosing)
-      - [As an infrastructure provider author, I would like to build a controller to manage provisioning machines without being restricted to a CRUD API.](#as-an-infrastructure-provider-author-i-would-like-to-build-a-controller-to-manage-provisioning-machines-without-being-restricted-to-a-crud-api)
-      - [As an infrastructure provider consumer, I would like to have validation for the provider-specific data I need to give the system to have it provision a machine.](#as-an-infrastructure-provider-consumer-i-would-like-to-have-validation-for-the-provider-specific-data-i-need-to-give-the-system-to-have-it-provision-a-machine)
-    - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-      - [Machine Controller Role](#machine-controller-role)
-      - [Machine Controller dynamic watchers](#machine-controller-dynamic-watchers)
-      - [Object References, Templates, MachineSets and MachineDeployments](#object-references-templates-machinesets-and-machinedeployments)
-      - [Controllers and the single responsibility approach](#controllers-and-the-single-responsibility-approach)
-      - [Remote references and accessing a workload cluster](#remote-references-and-accessing-a-workload-cluster)
-      - [The “Phase” field and its role](#the-phase-field-and-its-role)
-      - [Showing a status summary to users](#showing-a-status-summary-to-users)
-    - [Risks and Mitigations](#risks-and-mitigations)
-      - [State transitions are inflexible](#state-transitions-are-inflexible)
-      - [Machine Controller can access any machine or cluster in any namespace](#machine-controller-can-access-any-machine-or-cluster-in-any-namespace)
-      - [Certificates and tokens are exposed in plaintext](#certificates-and-tokens-are-exposed-in-plaintext)
-      - [Bootstrap data cannot be merged](#bootstrap-data-cannot-be-merged)
-      - [MachineClass is deprecated and will be revisited later](#machineclass-is-deprecated-and-will-be-revisited-later)
-  - [Design Details](#design-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
-    - [Version Skew Strategy](#version-skew-strategy)
-  - [Implementation History](#implementation-history)
-  - [Drawbacks](#drawbacks)
-  - [Alternatives](#alternatives)
-      - [Object References, Templates, MachineSets and MachineDeployments](#object-references-templates-machinesets-and-machinedeployments-1)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 authors:
   - "@ncdc"
   - "@vincepri"
@@ -94,8 +24,7 @@ status: implemented
   * [Summary](#summary)
   * [Motivation](#motivation)
     * [Goals](#goals)
-    * [Non\-Goals](#non-goals)
-    * [Future Work](#future-work)
+    * [Non-Goals/Future Work](#non-goalsfuture-work)
   * [Proposal](#proposal)
     * [Data model changes](#data-model-changes)
   * [States and transitions](#states-and-transitions)
@@ -122,13 +51,6 @@ status: implemented
       * [Expectations](#expectations-6)
     * [Sequence diagram: User creates a machine with Kubeadm bootstrapper\.](#sequence-diagram-user-creates-a-machine-with-kubeadm-bootstrapper)
     * [User Stories](#user-stories)
-      * [As a Kubernetes operator, I’d like to provide custom bootstrap data without the use of a Kubernetes controller\.](#as-a-kubernetes-operator-id-like-to-provide-custom-bootstrap-data-without-the-use-of-a-kubernetes-controller)
-      * [As a Kubernetes operator, I’d like to monitor the progress of fulfilling a Machine and understand what errors, if any, have been reported by the controllers involved\.](#as-a-kubernetes-operator-id-like-to-monitor-the-progress-of-fulfilling-a-machine-and-understand-what-errors-if-any-have-been-reported-by-the-controllers-involved)
-      * [As an infrastructure provider author, I would like to build the fewest number of components possible to support the full cluster\-api\.](#as-an-infrastructure-provider-author-i-would-like-to-build-the-fewest-number-of-components-possible-to-support-the-full-cluster-api)
-      * [As an infrastructure provider author, I would like to take advantage of the kubernetes API to provide validation for provider\-specific data needed to provision a machine\.](#as-an-infrastructure-provider-author-i-would-like-to-take-advantage-of-the-kubernetes-api-to-provide-validation-for-provider-specific-data-needed-to-provision-a-machine)
-      * [As an infrastructure provider consumer, I would like to have validation for the provider\-specific data I need to give the system to have it provision a machine\.](#as-an-infrastructure-provider-consumer-i-would-like-to-have-validation-for-the-provider-specific-data-i-need-to-give-the-system-to-have-it-provision-a-machine)
-      * [As an infrastructure  provider author, I would like to build a controller to manage provisioning machines using tools of my own choosing\.](#as-an-infrastructure--provider-author-i-would-like-to-build-a-controller-to-manage-provisioning-machines-using-tools-of-my-own-choosing)
-      * [As an infrastructure provider author, I would like to build a controller to manage provisioning machines without being restricted to a CRUD API\.](#as-an-infrastructure-provider-author-i-would-like-to-build-a-controller-to-manage-provisioning-machines-without-being-restricted-to-a-crud-api)
     * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
       * [Machine Controller Role](#machine-controller-role)
       * [Machine Controller dynamic watchers](#machine-controller-dynamic-watchers)
@@ -402,19 +324,19 @@ The Machine has now become a Kubernetes Node and ready to be used.
 
 ### User Stories
 
-#### As a Kubernetes operator, I’d like to provide custom bootstrap data without the use of a Kubernetes controller.
+- As a Kubernetes operator, I’d like to provide custom bootstrap data without the use of a Kubernetes controller.
 
-#### As a Kubernetes operator, I’d like to monitor the progress of fulfilling a Machine and understand what errors, if any, have been reported by the controllers involved.
+- As a Kubernetes operator, I’d like to monitor the progress of fulfilling a Machine and understand what errors, if any, have been reported by the controllers involved.
 
-#### As an infrastructure provider author, I would like to build the fewest number of components possible to support the full cluster-api.
+- As an infrastructure provider author, I would like to build the fewest number of components possible to support the full cluster-api.
 
-#### As an infrastructure provider author, I would like to take advantage of the kubernetes API to provide validation for provider-specific data needed to provision a machine.
+- As an infrastructure provider author, I would like to take advantage of the kubernetes API to provide validation for provider-specific data needed to provision a machine.
 
-#### As an infrastructure provider author, I would like to build a controller to manage provisioning machines using tools of my own choosing.
+- As an infrastructure provider author, I would like to build a controller to manage provisioning machines using tools of my own choosing.
 
-#### As an infrastructure provider author, I would like to build a controller to manage provisioning machines without being restricted to a CRUD API.
+- As an infrastructure provider author, I would like to build a controller to manage provisioning machines without being restricted to a CRUD API.
 
-#### As an infrastructure provider consumer, I would like to have validation for the provider-specific data I need to give the system to have it provision a machine.
+- As an infrastructure provider consumer, I would like to have validation for the provider-specific data I need to give the system to have it provision a machine.
 
 ### Implementation Details/Notes/Constraints
 

@@ -36,7 +36,6 @@ import (
 )
 
 func TestPatchHelper(t *testing.T) {
-
 	t.Run("should patch an unstructured object", func(t *testing.T) {
 		g := NewWithT(t)
 

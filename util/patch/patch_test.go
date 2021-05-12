@@ -37,8 +37,6 @@ import (
 
 func TestPatchHelper(t *testing.T) {
 	t.Run("should patch an unstructured object", func(t *testing.T) {
-		g := NewWithT(t)
-
 		obj := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "BootstrapMachine",
@@ -51,6 +49,8 @@ func TestPatchHelper(t *testing.T) {
 		}
 
 		t.Run("adding an owner reference, preserving its status", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 
 			t.Log("Creating the unstructured object")
@@ -109,9 +109,9 @@ func TestPatchHelper(t *testing.T) {
 	})
 
 	t.Run("Should patch conditions", func(t *testing.T) {
-		g := NewWithT(t)
-
 		t.Run("on a corev1.Node object", func(t *testing.T) {
+			g := NewWithT(t)
+
 			conditionTime := metav1.Date(2015, 1, 1, 12, 0, 0, 0, metav1.Now().Location())
 
 			obj := &corev1.Node{
@@ -168,8 +168,6 @@ func TestPatchHelper(t *testing.T) {
 		})
 
 		t.Run("on a clusterv1.Cluster object", func(t *testing.T) {
-			g := NewWithT(t)
-
 			obj := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test-",
@@ -178,6 +176,8 @@ func TestPatchHelper(t *testing.T) {
 			}
 
 			t.Run("should mark it ready", func(t *testing.T) {
+				g := NewWithT(t)
+
 				obj := obj.DeepCopy()
 
 				t.Log("Creating the object")
@@ -217,6 +217,8 @@ func TestPatchHelper(t *testing.T) {
 			})
 
 			t.Run("should recover if there is a resolvable conflict", func(t *testing.T) {
+				g := NewWithT(t)
+
 				obj := obj.DeepCopy()
 
 				t.Log("Creating the object")
@@ -272,6 +274,8 @@ func TestPatchHelper(t *testing.T) {
 			})
 
 			t.Run("should recover if there is a resolvable conflict, incl. patch spec and status", func(t *testing.T) {
+				g := NewWithT(t)
+
 				obj := obj.DeepCopy()
 
 				t.Log("Creating the object")
@@ -334,6 +338,8 @@ func TestPatchHelper(t *testing.T) {
 			})
 
 			t.Run("should return an error if there is an unresolvable conflict", func(t *testing.T) {
+				g := NewWithT(t)
+
 				obj := obj.DeepCopy()
 
 				t.Log("Creating the object")
@@ -383,6 +389,8 @@ func TestPatchHelper(t *testing.T) {
 			})
 
 			t.Run("should not return an error if there is an unresolvable conflict but the conditions is owned by the controller", func(t *testing.T) {
+				g := NewWithT(t)
+
 				obj := obj.DeepCopy()
 
 				t.Log("Creating the object")
@@ -435,6 +443,8 @@ func TestPatchHelper(t *testing.T) {
 			})
 
 			t.Run("should not return an error if there is an unresolvable conflict when force overwrite is enabled", func(t *testing.T) {
+				g := NewWithT(t)
+
 				obj := obj.DeepCopy()
 
 				t.Log("Creating the object")
@@ -489,8 +499,6 @@ func TestPatchHelper(t *testing.T) {
 	})
 
 	t.Run("Should patch a clusterv1.Cluster", func(t *testing.T) {
-		g := NewWithT(t)
-
 		obj := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-",
@@ -498,7 +506,9 @@ func TestPatchHelper(t *testing.T) {
 			},
 		}
 
-		t.Run("add a finalizers", func(t *testing.T) {
+		t.Run("add a finalizer", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 
 			t.Log("Creating the object")
@@ -539,6 +549,8 @@ func TestPatchHelper(t *testing.T) {
 		})
 
 		t.Run("removing finalizers", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 			obj.Finalizers = append(obj.Finalizers, clusterv1.ClusterFinalizer)
 
@@ -580,6 +592,8 @@ func TestPatchHelper(t *testing.T) {
 		})
 
 		t.Run("updating spec", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 			obj.ObjectMeta.Namespace = "default"
 
@@ -627,6 +641,8 @@ func TestPatchHelper(t *testing.T) {
 		})
 
 		t.Run("updating status", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 
 			t.Log("Creating the object")
@@ -666,6 +682,8 @@ func TestPatchHelper(t *testing.T) {
 		})
 
 		t.Run("updating both spec, status, and adding a condition", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 			obj.ObjectMeta.Namespace = "default"
 
@@ -721,8 +739,6 @@ func TestPatchHelper(t *testing.T) {
 	})
 
 	t.Run("Should update Status.ObservedGeneration when using WithStatusObservedGeneration option", func(t *testing.T) {
-		g := NewWithT(t)
-
 		obj := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-ms",
@@ -739,6 +755,8 @@ func TestPatchHelper(t *testing.T) {
 		}
 
 		t.Run("when updating spec", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 
 			t.Log("Creating the MachineSet object")
@@ -780,6 +798,8 @@ func TestPatchHelper(t *testing.T) {
 		})
 
 		t.Run("when updating spec, status, and metadata", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 
 			t.Log("Creating the MachineSet object")
@@ -831,6 +851,8 @@ func TestPatchHelper(t *testing.T) {
 		})
 
 		t.Run("without any changes", func(t *testing.T) {
+			g := NewWithT(t)
+
 			obj := obj.DeepCopy()
 
 			t.Log("Creating the MachineSet object")

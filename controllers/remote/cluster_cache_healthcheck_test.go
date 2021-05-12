@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-var _ = Describe("ClusterCache HealthCheck suite", func() {
-	Context("when health checking clusters", func() {
+func TestClusterCacheHealthCheck(t *testing.T) {
+	t.Run("when health checking clusters", func(t *testing.T) {
 		var mgr manager.Manager
 		var mgrContext context.Context
 		var mgrCancel context.CancelFunc
@@ -52,65 +52,69 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 		var testPollTimeout = 50 * time.Millisecond
 		var testUnhealthyThreshold = 3
 
-		BeforeEach(func() {
-			By("Setting up a new manager")
+		setup := func(t *testing.T, g *WithT) {
+			t.Log("Setting up a new manager")
 			var err error
 			mgr, err = manager.New(testEnv.Config, manager.Options{
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})
-			Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).NotTo(HaveOccurred())
 
 			mgrContext, mgrCancel = context.WithCancel(ctx)
-			By("Starting the manager")
+			t.Log("Starting the manager")
 			go func() {
-				Expect(mgr.Start(mgrContext)).To(Succeed())
+				g.Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
 			<-testEnv.Manager.Elected()
 
 			k8sClient = mgr.GetClient()
 
-			By("Setting up a ClusterCacheTracker")
+			t.Log("Setting up a ClusterCacheTracker")
 			cct, err = NewClusterCacheTracker(klogr.New(), mgr)
-			Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).NotTo(HaveOccurred())
 
-			By("Creating a namespace for the test")
+			t.Log("Creating a namespace for the test")
 			testNamespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cluster-cache-test-"}}
-			Expect(k8sClient.Create(ctx, testNamespace)).To(Succeed())
+			g.Expect(k8sClient.Create(ctx, testNamespace)).To(Succeed())
 
-			By("Creating a test cluster")
+			t.Log("Creating a test cluster")
 			testCluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: testNamespace.GetName(),
 				},
 			}
-			Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
+			g.Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
 			conditions.MarkTrue(testCluster, clusterv1.ControlPlaneInitializedCondition)
 			testCluster.Status.InfrastructureReady = true
-			Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
+			g.Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
 
-			By("Creating a test cluster kubeconfig")
-			Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+			t.Log("Creating a test cluster kubeconfig")
+			g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 
 			testClusterKey = util.ObjectKey(testCluster)
 
 			_, cancel := context.WithCancel(ctx)
 			cc = &stoppableCache{cancelFunc: cancel}
 			cct.clusterAccessors[testClusterKey] = &clusterAccessor{cache: cc}
-		})
+		}
 
-		AfterEach(func() {
-			By("Deleting any Secrets")
-			Expect(cleanupTestSecrets(ctx, k8sClient)).To(Succeed())
-			By("Deleting any Clusters")
-			Expect(cleanupTestClusters(ctx, k8sClient)).To(Succeed())
-			By("Stopping the manager")
+		teardown := func(t *testing.T, g *WithT) {
+			t.Log("Deleting any Secrets")
+			g.Expect(cleanupTestSecrets(ctx, k8sClient)).To(Succeed())
+			t.Log("Deleting any Clusters")
+			g.Expect(cleanupTestClusters(ctx, k8sClient)).To(Succeed())
+			t.Log("Stopping the manager")
 			cc.cancelFunc()
 			mgrCancel()
-		})
+		}
 
-		It("with a healthy cluster", func() {
+		t.Run("with a healthy cluster", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
@@ -125,10 +129,14 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			})
 
 			// Make sure this passes for at least two seconds, to give the health check goroutine time to run.
-			Consistently(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeTrue())
+			g.Consistently(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeTrue())
 		})
 
-		It("with an invalid path", func() {
+		t.Run("with an invalid path", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
@@ -144,18 +152,22 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 				})
 
 			// This should succeed after N consecutive failed requests.
-			Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeFalse())
+			g.Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeFalse())
 		})
 
-		It("with an invalid config", func() {
+		t.Run("with an invalid config", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
 			// Set the host to a random free port on localhost
 			addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-			Expect(err).ToNot(HaveOccurred())
+			g.Expect(err).NotTo(HaveOccurred())
 			l, err := net.ListenTCP("tcp", addr)
-			Expect(err).ToNot(HaveOccurred())
+			g.Expect(err).NotTo(HaveOccurred())
 			l.Close()
 
 			config := rest.CopyConfig(testEnv.Config)
@@ -172,7 +184,7 @@ var _ = Describe("ClusterCache HealthCheck suite", func() {
 			})
 
 			// This should succeed after N consecutive failed requests.
-			Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeFalse())
+			g.Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 2*time.Second, 100*time.Millisecond).Should(BeFalse())
 		})
 	})
-})
+}

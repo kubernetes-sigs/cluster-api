@@ -29,8 +29,13 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: v0.4.0
-  # Use manifest from source files
+  - name: v0.3.16 # latest published release
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/core-components.yaml"
+    type: "url"
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+  - name: v0.4.99 # next; use manifest from source files
     value: ../../../config/default
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
@@ -41,8 +46,13 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: v0.4.0
-  # Use manifest from source files
+  - name: v0.3.16 # latest published release
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/bootstrap-components.yaml"
+    type: "url"
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+  - name: v0.4.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
@@ -53,8 +63,13 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: v0.4.0
-  # Use manifest from source files
+  - name: v0.3.16 # latest published release
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/control-plane-components.yaml"
+    type: "url"
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+  - name: v0.4.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
@@ -65,8 +80,16 @@ providers:
 - name: docker
   type: InfrastructureProvider
   versions:
-  - name: v0.4.0
-  # Use manifest from source files
+  - name: v0.3.16 # latest published release
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/infrastructure-components-development.yaml"
+    type: "url"
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      # Add cluster templates
+      - sourcePath: "../data/infrastructure-docker/v1alpha3/cluster-template.yaml"
+  - name: v0.4.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:
     - old: --metrics-bind-addr=127.0.0.1:8080
@@ -100,6 +123,8 @@ variables:
   EXP_MACHINE_POOL: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
+  # NOTE: INIT_WITH_BINARY is used only by the clusterctl upgrade test to initialize the management cluster to be upgraded
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/clusterctl-{OS}-{ARCH}"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

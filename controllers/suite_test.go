@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
@@ -33,7 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	// +kubebuilder:scaffold:imports
 )
@@ -48,7 +46,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	fmt.Println("Creating new test environment")
+	fmt.Println("Creating a new test environment")
 	testEnv = helpers.NewTestEnvironment()
 
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
@@ -102,34 +100,25 @@ func TestMain(m *testing.M) {
 	}
 
 	go func() {
-		fmt.Println("Starting the manager")
+		fmt.Println("Starting the test environment manager")
 		if err := testEnv.StartManager(ctx); err != nil {
-			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
+			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
 		}
 	}()
 	<-testEnv.Manager.Elected()
 	testEnv.WaitForWebhooks()
 
+	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
+	SetDefaultEventuallyTimeout(timeout)
+
 	code := m.Run()
 
-	fmt.Println("Tearing down test suite")
+	fmt.Println("Stopping the test environment")
 	if err := testEnv.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop envtest: %v", err))
+		panic(fmt.Sprintf("Failed to stop the test environment: %v", err))
 	}
 
 	os.Exit(code)
-}
-
-// TestGinkgoSuite will run the ginkgo tests.
-// This will run with the testEnv setup and teardown in TestMain.
-func TestGinkgoSuite(t *testing.T) {
-	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
-	SetDefaultEventuallyTimeout(timeout)
-	RegisterFailHandler(Fail)
-
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controllers Suite",
-		[]Reporter{printer.NewlineReporter{}})
 }
 
 func ContainRefOfGroupKind(group, kind string) types.GomegaMatcher {

@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +45,7 @@ func init() {
 	externalReadyWait = 1 * time.Second
 }
 
-var _ = Describe("Reconcile Machine Phases", func() {
+func TestReconcileMachinePhases(t *testing.T) {
 	deletionTimestamp := metav1.Now()
 
 	var defaultKubeconfigSecret *corev1.Secret
@@ -108,11 +107,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		},
 	}
 
-	BeforeEach(func() {
+	t.Run("Should set OwnerReference and cluster name label on external objects", func(t *testing.T) {
+		g := NewWithT(t)
+
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-	})
-
-	It("Should set OwnerReference and cluster name label on external objects", func() {
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -131,23 +129,26 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
 		r.reconcilePhase(ctx, machine)
 
-		Expect(r.Client.Get(ctx, types.NamespacedName{Name: bootstrapConfig.GetName(), Namespace: bootstrapConfig.GetNamespace()}, bootstrapConfig)).To(Succeed())
+		g.Expect(r.Client.Get(ctx, types.NamespacedName{Name: bootstrapConfig.GetName(), Namespace: bootstrapConfig.GetNamespace()}, bootstrapConfig)).To(Succeed())
 
-		Expect(bootstrapConfig.GetOwnerReferences()).To(HaveLen(1))
-		Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo("test-cluster"))
+		g.Expect(bootstrapConfig.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo("test-cluster"))
 
-		Expect(r.Client.Get(ctx, types.NamespacedName{Name: infraConfig.GetName(), Namespace: infraConfig.GetNamespace()}, infraConfig)).To(Succeed())
+		g.Expect(r.Client.Get(ctx, types.NamespacedName{Name: infraConfig.GetName(), Namespace: infraConfig.GetNamespace()}, infraConfig)).To(Succeed())
 
-		Expect(infraConfig.GetOwnerReferences()).To(HaveLen(1))
-		Expect(infraConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo("test-cluster"))
+		g.Expect(infraConfig.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(infraConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo("test-cluster"))
 	})
 
-	It("Should set `Pending` with a new Machine", func() {
+	t.Run("Should set `Pending` with a new Machine", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -166,27 +167,30 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
 		r.reconcilePhase(ctx, machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
+		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
 
 		// LastUpdated should be set as the phase changes
-		Expect(machine.Status.LastUpdated).ToNot(BeNil())
+		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
 	})
 
-	It("Should set `Provisioning` when bootstrap is ready", func() {
+	t.Run("Should set `Provisioning` when bootstrap is ready", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
@@ -206,38 +210,41 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(ctx, machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
+		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
 
 		// Verify that the LastUpdated timestamp was updated
-		Expect(machine.Status.LastUpdated).ToNot(BeNil())
-		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
-	It("Should set `Running` when bootstrap and infra is ready", func() {
+	t.Run("Should set `Running` when bootstrap and infra is ready", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
 		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, "us-east-2a", "spec", "failureDomain")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
 			map[string]interface{}{
@@ -249,7 +256,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				"address": "10.0.0.2",
 			},
 		}, "status", "addresses")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
@@ -282,37 +289,40 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-		Expect(machine.Status.Addresses).To(HaveLen(2))
-		Expect(*machine.Spec.FailureDomain).To(Equal("us-east-2a"))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(machine.Status.Addresses).To(HaveLen(2))
+		g.Expect(*machine.Spec.FailureDomain).To(Equal("us-east-2a"))
 
 		r.reconcilePhase(ctx, machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 
 		// Verify that the LastUpdated timestamp was updated
-		Expect(machine.Status.LastUpdated).ToNot(BeNil())
-		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
-	It("Should set `Running` when bootstrap and infra is ready with no Status.Addresses", func() {
+	t.Run("Should set `Running` when bootstrap and infra is ready with no Status.Addresses", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
 		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
@@ -345,36 +355,39 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-		Expect(machine.Status.Addresses).To(HaveLen(0))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(machine.Status.Addresses).To(HaveLen(0))
 
 		r.reconcilePhase(ctx, machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 
 		// Verify that the LastUpdated timestamp was updated
-		Expect(machine.Status.LastUpdated).ToNot(BeNil())
-		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
-	It("Should set `Running` when bootstrap, infra, and NodeRef is ready", func() {
+	t.Run("Should set `Running` when bootstrap, infra, and NodeRef is ready", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
 		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
 			map[string]interface{}{
@@ -386,7 +399,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				"address": "10.0.0.2",
 			},
 		}, "addresses")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
@@ -418,28 +431,31 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(ctx, machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 
 		// Verify that the LastUpdated timestamp was updated
-		Expect(machine.Status.LastUpdated).ToNot(BeNil())
-		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
-	It("Should set `Provisioned` when there is a NodeRef but infra is not ready ", func() {
+	t.Run("Should set `Provisioned` when there is a NodeRef but infra is not ready ", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
@@ -462,18 +478,21 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.RequeueAfter).To(Equal(externalReadyWait))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.RequeueAfter).To(Equal(externalReadyWait))
 
 		r.reconcilePhase(ctx, machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
+		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
 
 		// Verify that the LastUpdated timestamp was updated
-		Expect(machine.Status.LastUpdated).ToNot(BeNil())
-		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
-	It("Should set `Deleting` when Machine is being deleted", func() {
+	t.Run("Should set `Deleting` when Machine is being deleted", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
 		machine := defaultMachine.DeepCopy()
 		// Need the second Machine to allow deletion of one.
 		machineSecond := defaultMachine.DeepCopy()
@@ -483,17 +502,17 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		// Set bootstrap ready.
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
 		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
 			map[string]interface{}{
@@ -505,7 +524,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				"address": "10.0.0.2",
 			},
 		}, "addresses")
-		Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set Cluster label.
 		machine.Labels[clusterv1.ClusterLabelName] = machine.Spec.ClusterName
@@ -541,21 +560,21 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}
 
 		res, err := r.reconcileDelete(ctx, defaultCluster, machine)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(ctx, machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
+		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
 
 		nodeHealthyCondition := conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
-		Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
-		Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))
+		g.Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
+		g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))
 
 		// Verify that the LastUpdated timestamp was updated
-		Expect(machine.Status.LastUpdated).ToNot(BeNil())
-		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
-})
+}
 
 func TestReconcileBootstrap(t *testing.T) {
 	defaultMachine := clusterv1.Machine{
@@ -611,7 +630,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			expectError:  false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(m.Spec.Bootstrap.DataSecretName).ToNot(BeNil())
+				g.Expect(m.Spec.Bootstrap.DataSecretName).NotTo(BeNil())
 				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(ContainSubstring("secret-data"))
 			},
 		},
@@ -848,7 +867,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machine)
 			g.Expect(res).To(Equal(tc.expectResult))
 			if tc.expectError {
-				g.Expect(err).ToNot(BeNil())
+				g.Expect(err).NotTo(BeNil())
 			} else {
 				g.Expect(err).To(BeNil())
 			}
@@ -994,8 +1013,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:  true,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(m.Status.FailureMessage).ToNot(BeNil())
-				g.Expect(m.Status.FailureReason).ToNot(BeNil())
+				g.Expect(m.Status.FailureMessage).NotTo(BeNil())
+				g.Expect(m.Status.FailureReason).NotTo(BeNil())
 				g.Expect(m.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseFailed))
 			},
 		},
@@ -1062,7 +1081,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			r.reconcilePhase(ctx, tc.machine)
 			g.Expect(result).To(Equal(tc.expectResult))
 			if tc.expectError {
-				g.Expect(err).ToNot(BeNil())
+				g.Expect(err).NotTo(BeNil())
 			} else {
 				g.Expect(err).To(BeNil())
 			}

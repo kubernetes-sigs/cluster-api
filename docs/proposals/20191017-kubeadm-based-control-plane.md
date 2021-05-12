@@ -394,7 +394,7 @@ spec:
   for additional details. When there are multiple machines that are marked for remediation, the oldest one will be remediated first.
 
 - Following rules should be satisfied in order to start remediation
-  - The cluster MUST have spec.replicas >= 3, because this is the smallest cluster size that allows any etcd failure tolerance.
+  - The cluster MUST have at least two control plane machines, because this is the smallest cluster size that can be remediated.
   - The number of replicas MUST be equal to or greater than the desired replicas. This rule ensures that when the cluster
     is missing replicas, we skip remediation and instead perform regular scale up/rollout operations first.
   - The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.

@@ -24,9 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// These tests are written in BDD-style using Ginkgo framework. Refer to
-// http://onsi.github.io/ginkgo to learn more.
-
 func TestClusterValidate(t *testing.T) {
 	cases := map[string]struct {
 		in        *KubeadmConfig

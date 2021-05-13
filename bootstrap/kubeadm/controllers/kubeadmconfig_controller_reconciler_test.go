@@ -17,7 +17,8 @@ limitations under the License.
 package controllers
 
 import (
-	. "github.com/onsi/ginkgo"
+	"testing"
+
 	. "github.com/onsi/gomega"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,36 +27,35 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 )
 
-var _ = Describe("KubeadmConfigReconciler", func() {
-	BeforeEach(func() {})
-	AfterEach(func() {})
+func TestKubeadmConfigReconciler(t *testing.T) {
+	t.Run("Reconcile a KubeadmConfig", func(t *testing.T) {
+		t.Run("should wait until infrastructure is ready", func(t *testing.T) {
+			g := NewWithT(t)
 
-	Context("Reconcile a KubeadmConfig", func() {
-		It("should wait until infrastructure is ready", func() {
 			cluster := newCluster("cluster1")
-			Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+			g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
 
 			machine := newMachine(cluster, "my-machine")
-			Expect(testEnv.Create(ctx, machine)).To(Succeed())
+			g.Expect(testEnv.Create(ctx, machine)).To(Succeed())
 
 			config := newKubeadmConfig(machine, "my-machine-config")
-			Expect(testEnv.Create(ctx, config)).To(Succeed())
+			g.Expect(testEnv.Create(ctx, config)).To(Succeed())
 
 			reconciler := KubeadmConfigReconciler{
 				Client: testEnv,
 			}
-			By("Calling reconcile should requeue")
+			t.Log("Calling reconcile should requeue")
 			result, err := reconciler.Reconcile(ctx, ctrl.Request{
 				NamespacedName: client.ObjectKey{
 					Namespace: "default",
 					Name:      "my-machine-config",
 				},
 			})
-			Expect(err).To(Succeed())
-			Expect(result.Requeue).To(BeFalse())
+			g.Expect(err).To(Succeed())
+			g.Expect(result.Requeue).To(BeFalse())
 		})
 	})
-})
+}
 
 // getKubeadmConfig returns a KubeadmConfig object from the cluster.
 func getKubeadmConfig(c client.Client, name string) (*bootstrapv1.KubeadmConfig, error) {

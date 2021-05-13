@@ -141,7 +141,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			alarmList := []string{}
 			for _, alarm := range member.Alarms {
 				switch alarm {
-				case etcd.AlarmOk:
+				case etcd.AlarmOK:
 					continue
 				default:
 					alarmList = append(alarmList, etcd.AlarmTypeName[alarm])

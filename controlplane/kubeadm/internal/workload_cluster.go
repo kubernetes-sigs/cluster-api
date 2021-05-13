@@ -36,6 +36,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/util/retry"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
@@ -246,14 +247,9 @@ func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machin
 
 // RemoveNodeFromKubeadmConfigMap removes the entry for the node from the kubeadm configmap.
 func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string, version semver.Version) error {
-	return util.Retry(func() (bool, error) {
-		if err := w.updateClusterStatus(ctx, func(s *bootstrapv1.ClusterStatus) {
-			delete(s.APIEndpoints, name)
-		}, version); err != nil {
-			return false, err
-		}
-		return true, nil
-	}, 5)
+	return w.updateClusterStatus(ctx, func(s *bootstrapv1.ClusterStatus) {
+		delete(s.APIEndpoints, name)
+	}, version)
 }
 
 // updateClusterStatus gets the ClusterStatus kubeadm-config ConfigMap, converts it to the
@@ -261,36 +257,38 @@ func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name stri
 // data are converted back into the Kubeadm API version in use for the target Kubernetes version and the
 // kubeadm-config ConfigMap updated.
 func (w *Workload) updateClusterStatus(ctx context.Context, mutator func(status *bootstrapv1.ClusterStatus), version semver.Version) error {
-	key := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
-	configMap, err := w.getConfigMap(ctx, key)
-	if err != nil {
-		return errors.Wrap(err, "failed to get kubeadmConfigMap")
-	}
-
-	currentData, ok := configMap.Data[clusterStatusKey]
-	if !ok {
-		return errors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterStatusKey)
-	}
-
-	currentClusterStatus, err := kubeadmtypes.UnmarshalClusterStatus(currentData)
-	if err != nil {
-		return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterStatusKey)
-	}
-
-	updatedClusterStatus := currentClusterStatus.DeepCopy()
-	mutator(updatedClusterStatus)
-
-	if !reflect.DeepEqual(currentClusterStatus, updatedClusterStatus) {
-		updatedData, err := kubeadmtypes.MarshalClusterStatusForVersion(updatedClusterStatus, version)
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		key := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
+		configMap, err := w.getConfigMap(ctx, key)
 		if err != nil {
-			return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterStatusKey)
+			return errors.Wrap(err, "failed to get kubeadmConfigMap")
 		}
-		configMap.Data[clusterStatusKey] = updatedData
-		if err := w.Client.Update(ctx, configMap); err != nil {
-			return errors.Wrap(err, "failed to upgrade the kubeadmConfigMap")
+
+		currentData, ok := configMap.Data[clusterStatusKey]
+		if !ok {
+			return errors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterStatusKey)
 		}
-	}
-	return nil
+
+		currentClusterStatus, err := kubeadmtypes.UnmarshalClusterStatus(currentData)
+		if err != nil {
+			return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterStatusKey)
+		}
+
+		updatedClusterStatus := currentClusterStatus.DeepCopy()
+		mutator(updatedClusterStatus)
+
+		if !reflect.DeepEqual(currentClusterStatus, updatedClusterStatus) {
+			updatedData, err := kubeadmtypes.MarshalClusterStatusForVersion(updatedClusterStatus, version)
+			if err != nil {
+				return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterStatusKey)
+			}
+			configMap.Data[clusterStatusKey] = updatedData
+			if err := w.Client.Update(ctx, configMap); err != nil {
+				return errors.Wrap(err, "failed to upgrade the kubeadmConfigMap")
+			}
+		}
+		return nil
+	})
 }
 
 // updateClusterConfiguration gets the ClusterConfiguration kubeadm-config ConfigMap, converts it to the
@@ -298,36 +296,38 @@ func (w *Workload) updateClusterStatus(ctx context.Context, mutator func(status 
 // data are converted back into the Kubeadm API version in use for the target Kubernetes version and the
 // kubeadm-config ConfigMap updated.
 func (w *Workload) updateClusterConfiguration(ctx context.Context, mutator func(*bootstrapv1.ClusterConfiguration), version semver.Version) error {
-	key := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
-	configMap, err := w.getConfigMap(ctx, key)
-	if err != nil {
-		return errors.Wrap(err, "failed to get kubeadmConfigMap")
-	}
-
-	currentData, ok := configMap.Data[clusterConfigurationKey]
-	if !ok {
-		return errors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterConfigurationKey)
-	}
-
-	currentObj, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData)
-	if err != nil {
-		return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterConfigurationKey)
-	}
-
-	updatedObj := currentObj.DeepCopy()
-	mutator(updatedObj)
-
-	if !reflect.DeepEqual(currentObj, updatedObj) {
-		updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(updatedObj, version)
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		key := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
+		configMap, err := w.getConfigMap(ctx, key)
 		if err != nil {
-			return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterConfigurationKey)
+			return errors.Wrap(err, "failed to get kubeadmConfigMap")
 		}
-		configMap.Data[clusterConfigurationKey] = updatedData
-		if err := w.Client.Update(ctx, configMap); err != nil {
-			return errors.Wrap(err, "failed to upgrade the kubeadmConfigMap")
+
+		currentData, ok := configMap.Data[clusterConfigurationKey]
+		if !ok {
+			return errors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterConfigurationKey)
 		}
-	}
-	return nil
+
+		currentObj, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData)
+		if err != nil {
+			return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterConfigurationKey)
+		}
+
+		updatedObj := currentObj.DeepCopy()
+		mutator(updatedObj)
+
+		if !reflect.DeepEqual(currentObj, updatedObj) {
+			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(updatedObj, version)
+			if err != nil {
+				return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterConfigurationKey)
+			}
+			configMap.Data[clusterConfigurationKey] = updatedData
+			if err := w.Client.Update(ctx, configMap); err != nil {
+				return errors.Wrap(err, "failed to upgrade the kubeadmConfigMap")
+			}
+		}
+		return nil
+	})
 }
 
 // ClusterStatus holds stats information about the cluster.

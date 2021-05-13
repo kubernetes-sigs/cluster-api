@@ -416,7 +416,7 @@ kind: ClusterConfiguration
 					for _, o := range tt.objs {
 						o := o.DeepCopyObject().(client.Object)
 						err := testEnv.Get(ctx, client.ObjectKeyFromObject(o), o)
-						if err == nil || (err != nil && !apierrors.IsNotFound(err)) {
+						if err == nil || !apierrors.IsNotFound(err) {
 							return false
 						}
 					}

@@ -259,7 +259,7 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 	defer os.RemoveAll(dir)
 
 	for i, image := range images {
-		imageTarPath := filepath.Join(dir, fmt.Sprintf("image-%d.tar", i))
+		imageTarPath := filepath.Clean(filepath.Join(dir, fmt.Sprintf("image-%d.tar", i)))
 
 		err = exec.Command("docker", "save", "-o", imageTarPath, image).Run()
 		if err != nil {

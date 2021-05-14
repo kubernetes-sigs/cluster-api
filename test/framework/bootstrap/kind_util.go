@@ -152,7 +152,7 @@ func save(ctx context.Context, image, dest string) error {
 // copied from kind https://github.com/kubernetes-sigs/kind/blob/v0.7.0/pkg/cmd/kind/load/docker-image/docker-image.go#L158
 // loads an image tarball onto a node.
 func load(imageTarName string, node kindnodes.Node) error {
-	f, err := os.Open(imageTarName)
+	f, err := os.Open(filepath.Clean(imageTarName))
 	if err != nil {
 		return errors.Wrap(err, "failed to open image")
 	}

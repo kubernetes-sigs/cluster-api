@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	kubeadmv1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -53,13 +53,13 @@ func TestKubeadmControlPlaneConversion(t *testing.T) {
 				Name:       infraMachineTemplateName,
 			},
 			KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-				ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
-					APIServer: kubeadmv1beta1.APIServer{
-						ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
+				ClusterConfiguration: &kubeadmv1beta2.ClusterConfiguration{
+					APIServer: kubeadmv1beta2.APIServer{
+						ControlPlaneComponent: kubeadmv1beta2.ControlPlaneComponent{
 							ExtraArgs: map[string]string{
 								"foo": "bar",
 							},
-							ExtraVolumes: []kubeadmv1beta1.HostPathMount{
+							ExtraVolumes: []kubeadmv1beta2.HostPathMount{
 								{
 									Name:      "mount-path",
 									HostPath:  "/foo",
@@ -70,14 +70,14 @@ func TestKubeadmControlPlaneConversion(t *testing.T) {
 						},
 					},
 				},
-				InitConfiguration: &kubeadmv1beta1.InitConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+				InitConfiguration: &kubeadmv1beta2.InitConfiguration{
+					NodeRegistration: kubeadmv1beta2.NodeRegistrationOptions{
 						Name:      "foo",
 						CRISocket: "/var/run/containerd/containerd.sock",
 					},
 				},
-				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+				JoinConfiguration: &kubeadmv1beta2.JoinConfiguration{
+					NodeRegistration: kubeadmv1beta2.NodeRegistrationOptions{
 						Name:      "foo",
 						CRISocket: "/var/run/containerd/containerd.sock",
 					},

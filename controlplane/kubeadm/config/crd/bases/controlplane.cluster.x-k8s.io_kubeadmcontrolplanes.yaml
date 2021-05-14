@@ -432,9 +432,12 @@ spec:
                             type: array
                         type: object
                       useHyperKubeImage:
-                        description: UseHyperKubeImage controls if hyperkube should
+                        description: "UseHyperKubeImage controls if hyperkube should
                           be used for Kubernetes components instead of their respective
-                          separate images
+                          separate images \n Deprecated: As hyperkube is itself deprecated,
+                          this fields is too. It will be removed in future kubeadm
+                          config versions, kubeadm will print multiple warnings when
+                          set to true, and at some point it may become ignored."
                         type: boolean
                     type: object
                   diskSetup:
@@ -641,6 +644,11 @@ spec:
                           - token
                           type: object
                         type: array
+                      certificateKey:
+                        description: CertificateKey sets the key with which certificates
+                          and keys are encrypted prior to being uploaded in a secret
+                          in the cluster during the uploadcerts init phase.
+                        type: string
                       kind:
                         description: 'Kind is a string value representing the REST
                           resource this object represents. Servers may infer this
@@ -669,9 +677,6 @@ spec:
                               Server to bind to. Defaults to 6443.
                             format: int32
                             type: integer
-                        required:
-                        - advertiseAddress
-                        - bindPort
                         type: object
                       nodeRegistration:
                         description: NodeRegistration holds fields that relate to
@@ -685,6 +690,13 @@ spec:
                               info. This information will be annotated to the Node
                               API object, for later re-use
                             type: string
+                          ignorePreflightErrors:
+                            description: IgnorePreflightErrors provides a slice of
+                              pre-flight errors to be ignored when the current node
+                              is registered.
+                            items:
+                              type: string
+                            type: array
                           kubeletExtraArgs:
                             additionalProperties:
                               type: string
@@ -709,7 +721,7 @@ spec:
                             description: 'Taints specifies the taints the Node API
                               object should be registered with. If this field is unset,
                               i.e. nil, in the `kubeadm init` process it will be defaulted
-                              to []v1.Taint{''node-role.kubernetes.io/master=""''}.
+                              to []corev1.Taint{''node-role.kubernetes.io/master=""''}.
                               If you don''t want to taint your control-plane node,
                               set this field to an empty slice, i.e. `taints: {}`
                               in the YAML file. This field is solely used for Node
@@ -756,16 +768,21 @@ spec:
                           values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
                         type: string
                       caCertPath:
-                        description: 'CACertPath is the path to the SSL certificate
+                        description: CACertPath is the path to the SSL certificate
                           authority used to secure comunications between node and
                           control-plane. Defaults to "/etc/kubernetes/pki/ca.crt".
-                          TODO: revisit when there is defaulting from k/k'
                         type: string
                       controlPlane:
                         description: ControlPlane defines the additional control plane
                           instance to be deployed on the joining node. If nil, no
                           additional control plane instance will be deployed.
                         properties:
+                          certificateKey:
+                            description: CertificateKey is the key that is used for
+                              decryption of certificates after they are downloaded
+                              from the secret upon joining a new control plane node.
+                              The corresponding encryption key is in the InitConfiguration.
+                            type: string
                           localAPIEndpoint:
                             description: LocalAPIEndpoint represents the endpoint
                               of the API server instance to be deployed on this node.
@@ -779,15 +796,11 @@ spec:
                                   API Server to bind to. Defaults to 6443.
                                 format: int32
                                 type: integer
-                            required:
-                            - advertiseAddress
-                            - bindPort
                             type: object
                         type: object
                       discovery:
-                        description: 'Discovery specifies the options for the kubelet
-                          to use during the TLS Bootstrap process TODO: revisit when
-                          there is defaulting from k/k'
+                        description: Discovery specifies the options for the kubelet
+                          to use during the TLS Bootstrap process
                         properties:
                           bootstrapToken:
                             description: BootstrapToken is used to set the options
@@ -808,9 +821,7 @@ spec:
                                   currently supported type is "sha256". This is a
                                   hex-encoded SHA-256 hash of the Subject Public Key
                                   Info (SPKI) object in DER-encoded ASN.1. These hashes
-                                  can be calculated using, for example, OpenSSL: openssl
-                                  x509 -pubkey -in ca.crt openssl rsa -pubin -outform
-                                  der 2>&/dev/null | openssl dgst -sha256 -hex'
+                                  can be calculated using, for example, OpenSSL:'
                                 items:
                                   type: string
                                 type: array
@@ -826,7 +837,6 @@ spec:
                                 type: boolean
                             required:
                             - token
-                            - unsafeSkipCAVerification
                             type: object
                           file:
                             description: File is used to specify a file or URL to
@@ -845,13 +855,12 @@ spec:
                             description: Timeout modifies the discovery timeout
                             type: string
                           tlsBootstrapToken:
-                            description: 'TLSBootstrapToken is a token used for TLS
+                            description: TLSBootstrapToken is a token used for TLS
                               bootstrapping. If .BootstrapToken is set, this field
                               is defaulted to .BootstrapToken.Token, but can be overridden.
                               If .File is set, this field **must be set** in case
                               the KubeConfigFile does not contain any other authentication
-                              information TODO: revisit when there is defaulting from
-                              k/k'
+                              information
                             type: string
                         type: object
                       kind:
@@ -872,6 +881,13 @@ spec:
                               info. This information will be annotated to the Node
                               API object, for later re-use
                             type: string
+                          ignorePreflightErrors:
+                            description: IgnorePreflightErrors provides a slice of
+                              pre-flight errors to be ignored when the current node
+                              is registered.
+                            items:
+                              type: string
+                            type: array
                           kubeletExtraArgs:
                             additionalProperties:
                               type: string
@@ -896,7 +912,7 @@ spec:
                             description: 'Taints specifies the taints the Node API
                               object should be registered with. If this field is unset,
                               i.e. nil, in the `kubeadm init` process it will be defaulted
-                              to []v1.Taint{''node-role.kubernetes.io/master=""''}.
+                              to []corev1.Taint{''node-role.kubernetes.io/master=""''}.
                               If you don''t want to taint your control-plane node,
                               set this field to an empty slice, i.e. `taints: {}`
                               in the YAML file. This field is solely used for Node

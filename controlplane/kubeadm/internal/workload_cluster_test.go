@@ -476,41 +476,6 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:    "converts kubeadm api version during mutation if required",
-			version: semver.MustParse("1.17.2"),
-			objs: []client.Object{&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
-				Data: map[string]string{
-					clusterConfigurationKey: "apiVersion: kubeadm.k8s.io/v1beta1\n" +
-						"kind: ClusterConfiguration\n" +
-						"kubernetesVersion: v1.16.1\n",
-				},
-			}},
-			mutator: func(c *bootstrapv1.ClusterConfiguration) {
-				c.KubernetesVersion = "v1.17.2"
-			},
-			wantConfigMap: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
-				Data: map[string]string{
-					clusterConfigurationKey: "apiServer: {}\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"controllerManager: {}\n" +
-						"dns: {}\n" +
-						"etcd: {}\n" +
-						"kind: ClusterConfiguration\n" +
-						"kubernetesVersion: v1.17.2\n" +
-						"networking: {}\n" +
-						"scheduler: {}\n",
-				},
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -652,42 +617,6 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:    "converts kubeadm api version during mutation if required",
-			version: semver.MustParse("1.17.2"),
-			objs: []client.Object{&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
-				Data: map[string]string{
-					clusterStatusKey: "apiEndpoints:\n" +
-						"  ip-10-0-0-1.ec2.internal:\n" +
-						"    advertiseAddress: 10.0.0.1\n" +
-						"    bindPort: 6443\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta1\n" +
-						"kind: ClusterStatus\n",
-				},
-			}},
-			mutator: func(status *bootstrapv1.ClusterStatus) {
-				status.APIEndpoints["ip-10-0-0-2.ec2.internal"] = bootstrapv1.APIEndpoint{}
-			},
-			wantConfigMap: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
-				Data: map[string]string{
-					clusterStatusKey: "apiEndpoints:\n" +
-						"  ip-10-0-0-1.ec2.internal:\n" +
-						"    advertiseAddress: 10.0.0.1\n" +
-						"    bindPort: 6443\n" +
-						"  ip-10-0-0-2.ec2.internal: {}\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterStatus\n",
-				},
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -728,7 +657,7 @@ func TestUpdateKubernetesVersionInKubeadmConfigMap(t *testing.T) {
 		{
 			name:    "updates the config map and changes the kubeadm API version",
 			version: semver.MustParse("1.17.2"),
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta1\n" +
+			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
 				"kind: ClusterConfiguration\n" +
 				"kubernetesVersion: v1.16.1\n",
 		},

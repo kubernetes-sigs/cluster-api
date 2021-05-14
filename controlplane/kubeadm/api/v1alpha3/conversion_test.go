@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	kubeadmv1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -61,10 +61,13 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		cabpkBootstrapTokenStringFuzzer,
 		dnsFuzzer,
 		kubeadmClusterConfigurationFuzzer,
+		initConfigFuzzer,
+		joinConfigFuzzer,
+		nodeRegistrationOptionsFuzzer,
 	}
 }
 
-func kubeadmBootstrapTokenStringFuzzer(in *kubeadmv1beta1.BootstrapTokenString, c fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzer(in *kubeadmv1beta2.BootstrapTokenString, c fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
@@ -73,14 +76,37 @@ func cabpkBootstrapTokenStringFuzzer(in *cabpkv1.BootstrapTokenString, c fuzz.Co
 	in.Secret = "abcdef0123456789"
 }
 
-func dnsFuzzer(obj *kubeadmv1beta1.DNS, c fuzz.Continue) {
+func dnsFuzzer(obj *kubeadmv1beta2.DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
 }
 
-func kubeadmClusterConfigurationFuzzer(obj *kubeadmv1beta1.ClusterConfiguration, c fuzz.Continue) {
+func initConfigFuzzer(obj *kubeadmv1beta2.InitConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// InitConfiguration.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.CertificateKey = ""
+}
+
+func joinConfigFuzzer(obj *kubeadmv1beta2.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// JoinConfiguration.ControlPlane.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	if obj.ControlPlane != nil {
+		obj.ControlPlane.CertificateKey = ""
+	}
+}
+
+func nodeRegistrationOptionsFuzzer(obj *kubeadmv1beta2.NodeRegistrationOptions, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// NodeRegistrationOptions.IgnorePreflightErrors does not exists in v1alpha4, so setting it to nil in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
+	obj.IgnorePreflightErrors = nil
+}
+
+func kubeadmClusterConfigurationFuzzer(obj *kubeadmv1beta2.ClusterConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.

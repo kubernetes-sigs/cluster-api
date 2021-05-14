@@ -19,7 +19,7 @@ package v1alpha3
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	kubeadmbootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmbootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	kubeadmbootstrapv1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -77,16 +77,33 @@ func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in *Ku
 	return autoConvert_v1alpha3_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in, out, s)
 }
 
-func Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *kubeadmbootstrapv1alpha4.ClusterConfiguration, out *kubeadmbootstrapv1beta1.ClusterConfiguration, s apiconversion.Scope) error {
+func Convert_v1alpha4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *kubeadmbootstrapv1alpha4.ClusterConfiguration, out *kubeadmbootstrapv1beta2.ClusterConfiguration, s apiconversion.Scope) error {
 	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported; the information will be left to empty (kubeadm defaults it to CoredDNS);
 	// Existing clusters using kube-dns or other DNS solutions will continue to be managed/supported via the skip-coredns annotation.
 
 	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
-	return kubeadmbootstrapv1beta1.Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
+	return kubeadmbootstrapv1beta2.Convert_v1alpha4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
 }
 
-func Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in *kubeadmbootstrapv1beta1.ClusterConfiguration, out *kubeadmbootstrapv1alpha4.ClusterConfiguration, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in *kubeadmbootstrapv1beta2.ClusterConfiguration, out *kubeadmbootstrapv1alpha4.ClusterConfiguration, s apiconversion.Scope) error {
 	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported; the information will be left to empty (kubeadm defaults it to CoredDNS);
 	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
-	return kubeadmbootstrapv1beta1.Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in, out, s)
+	return kubeadmbootstrapv1beta2.Convert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in, out, s)
+}
+
+func Convert_v1alpha4_InitConfiguration_To_v1beta2_InitConfiguration(in *kubeadmbootstrapv1alpha4.InitConfiguration, out *kubeadmbootstrapv1beta2.InitConfiguration, s apiconversion.Scope) error {
+	return kubeadmbootstrapv1beta2.Convert_v1alpha4_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s)
+}
+
+func Convert_v1beta2_InitConfiguration_To_v1alpha4_InitConfiguration(in *kubeadmbootstrapv1beta2.InitConfiguration, out *kubeadmbootstrapv1alpha4.InitConfiguration, s apiconversion.Scope) error {
+	// InitConfiguration.CertificateKey exists in v1beta2 types but not in bootstrapv1.InitConfiguration (Cluster API does not uses automatic copy certs). Ignoring when converting.
+	return kubeadmbootstrapv1beta2.Convert_v1beta2_InitConfiguration_To_v1alpha4_InitConfiguration(in, out, s)
+}
+
+func Convert_v1beta2_JoinConfiguration_To_v1alpha4_JoinConfiguration(in *kubeadmbootstrapv1beta2.JoinConfiguration, out *kubeadmbootstrapv1alpha4.JoinConfiguration, s apiconversion.Scope) error {
+	return kubeadmbootstrapv1beta2.Convert_v1beta2_JoinConfiguration_To_v1alpha4_JoinConfiguration(in, out, s)
+}
+
+func Convert_v1alpha4_JoinConfiguration_To_v1beta2_JoinConfiguration(in *kubeadmbootstrapv1alpha4.JoinConfiguration, out *kubeadmbootstrapv1beta2.JoinConfiguration, s apiconversion.Scope) error {
+	return kubeadmbootstrapv1beta2.Convert_v1alpha4_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s)
 }

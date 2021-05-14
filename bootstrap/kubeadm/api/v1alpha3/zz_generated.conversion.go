@@ -28,7 +28,7 @@ import (
 	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	v1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	v1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
 )
 
 func init() {
@@ -198,13 +198,33 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1alpha4.ClusterConfiguration)(nil), (*v1beta1.ClusterConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(a.(*v1alpha4.ClusterConfiguration), b.(*v1beta1.ClusterConfiguration), scope)
+	if err := s.AddConversionFunc((*v1alpha4.ClusterConfiguration)(nil), (*v1beta2.ClusterConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(a.(*v1alpha4.ClusterConfiguration), b.(*v1beta2.ClusterConfiguration), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.ClusterConfiguration)(nil), (*v1alpha4.ClusterConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(a.(*v1beta1.ClusterConfiguration), b.(*v1alpha4.ClusterConfiguration), scope)
+	if err := s.AddConversionFunc((*v1alpha4.InitConfiguration)(nil), (*v1beta2.InitConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_InitConfiguration_To_v1beta2_InitConfiguration(a.(*v1alpha4.InitConfiguration), b.(*v1beta2.InitConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.JoinConfiguration)(nil), (*v1beta2.JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_JoinConfiguration_To_v1beta2_JoinConfiguration(a.(*v1alpha4.JoinConfiguration), b.(*v1beta2.JoinConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ClusterConfiguration)(nil), (*v1alpha4.ClusterConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(a.(*v1beta2.ClusterConfiguration), b.(*v1alpha4.ClusterConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.InitConfiguration)(nil), (*v1alpha4.InitConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_InitConfiguration_To_v1alpha4_InitConfiguration(a.(*v1beta2.InitConfiguration), b.(*v1alpha4.InitConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.JoinConfiguration)(nil), (*v1alpha4.JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_JoinConfiguration_To_v1alpha4_JoinConfiguration(a.(*v1beta2.JoinConfiguration), b.(*v1alpha4.JoinConfiguration), scope)
 	}); err != nil {
 		return err
 	}
@@ -397,14 +417,30 @@ func autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *Ku
 	if in.ClusterConfiguration != nil {
 		in, out := &in.ClusterConfiguration, &out.ClusterConfiguration
 		*out = new(v1alpha4.ClusterConfiguration)
-		if err := Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(*in, *out, s); err != nil {
+		if err := Convert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
 		out.ClusterConfiguration = nil
 	}
-	out.InitConfiguration = (*v1alpha4.InitConfiguration)(unsafe.Pointer(in.InitConfiguration))
-	out.JoinConfiguration = (*v1alpha4.JoinConfiguration)(unsafe.Pointer(in.JoinConfiguration))
+	if in.InitConfiguration != nil {
+		in, out := &in.InitConfiguration, &out.InitConfiguration
+		*out = new(v1alpha4.InitConfiguration)
+		if err := Convert_v1beta2_InitConfiguration_To_v1alpha4_InitConfiguration(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InitConfiguration = nil
+	}
+	if in.JoinConfiguration != nil {
+		in, out := &in.JoinConfiguration, &out.JoinConfiguration
+		*out = new(v1alpha4.JoinConfiguration)
+		if err := Convert_v1beta2_JoinConfiguration_To_v1alpha4_JoinConfiguration(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.JoinConfiguration = nil
+	}
 	out.Files = *(*[]v1alpha4.File)(unsafe.Pointer(&in.Files))
 	out.DiskSetup = (*v1alpha4.DiskSetup)(unsafe.Pointer(in.DiskSetup))
 	out.Mounts = *(*[]v1alpha4.MountPoints)(unsafe.Pointer(&in.Mounts))
@@ -426,15 +462,31 @@ func Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *Kubead
 func autoConvert_v1alpha4_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *v1alpha4.KubeadmConfigSpec, out *KubeadmConfigSpec, s conversion.Scope) error {
 	if in.ClusterConfiguration != nil {
 		in, out := &in.ClusterConfiguration, &out.ClusterConfiguration
-		*out = new(v1beta1.ClusterConfiguration)
-		if err := Convert_v1alpha4_ClusterConfiguration_To_v1beta1_ClusterConfiguration(*in, *out, s); err != nil {
+		*out = new(v1beta2.ClusterConfiguration)
+		if err := Convert_v1alpha4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
 		out.ClusterConfiguration = nil
 	}
-	out.InitConfiguration = (*v1beta1.InitConfiguration)(unsafe.Pointer(in.InitConfiguration))
-	out.JoinConfiguration = (*v1beta1.JoinConfiguration)(unsafe.Pointer(in.JoinConfiguration))
+	if in.InitConfiguration != nil {
+		in, out := &in.InitConfiguration, &out.InitConfiguration
+		*out = new(v1beta2.InitConfiguration)
+		if err := Convert_v1alpha4_InitConfiguration_To_v1beta2_InitConfiguration(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InitConfiguration = nil
+	}
+	if in.JoinConfiguration != nil {
+		in, out := &in.JoinConfiguration, &out.JoinConfiguration
+		*out = new(v1beta2.JoinConfiguration)
+		if err := Convert_v1alpha4_JoinConfiguration_To_v1beta2_JoinConfiguration(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.JoinConfiguration = nil
+	}
 	out.Files = *(*[]File)(unsafe.Pointer(&in.Files))
 	out.DiskSetup = (*DiskSetup)(unsafe.Pointer(in.DiskSetup))
 	out.Mounts = *(*[]MountPoints)(unsafe.Pointer(&in.Mounts))

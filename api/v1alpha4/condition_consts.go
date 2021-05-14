@@ -201,3 +201,14 @@ const (
 	// from making any further remediations.
 	TooManyUnhealthyReason = "TooManyUnhealthy"
 )
+
+// Conditions and condition Reasons for  MachineDeployments
+
+const (
+	// MachineDeploymentAvailableCondition means the MachineDeployment is available, that is, at least the minimum available
+	// machines required (i.e. Spec.Replicas-MaxUnavailable when MachineDeploymentStrategyType = RollingUpdate) are up and running for at least minReadySeconds.
+	MachineDeploymentAvailableCondition ConditionType = "Available"
+
+	// WaitingForAvailableMachinesReason (Severity=Warning) reflects the fact that the required minimum number of machines for a machinedeployment are not available.
+	WaitingForAvailableMachinesReason = "WaitingForAvailableMachines"
+)

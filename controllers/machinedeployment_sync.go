@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/mdutil"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -353,6 +354,16 @@ func (r *MachineDeploymentReconciler) scale(ctx context.Context, deployment *clu
 // syncDeploymentStatus checks if the status is up-to-date and sync it if necessary.
 func (r *MachineDeploymentReconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, d *clusterv1.MachineDeployment) error {
 	d.Status = calculateStatus(allMSs, newMS, d)
+
+	// minReplicasNeeded will be equal to d.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
+	minReplicasNeeded := *(d.Spec.Replicas) - mdutil.MaxUnavailable(*d)
+
+	if d.Status.AvailableReplicas >= minReplicasNeeded {
+		// NOTE: The structure of calculateStatus() does not allow us to update the machinedeployment directly, we can only update the status obj it returns. Ideally, we should change calculateStatus() --> updateStatus() to be consistent with the rest of the code base, until then, we update conditions here.
+		conditions.MarkTrue(d, clusterv1.MachineDeploymentAvailableCondition)
+	} else {
+		conditions.MarkFalse(d, clusterv1.MachineDeploymentAvailableCondition, clusterv1.WaitingForAvailableMachinesReason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, d.Status.AvailableReplicas)
+	}
 	return nil
 }
 
@@ -380,6 +391,7 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 		ReadyReplicas:       mdutil.GetReadyReplicaCountForMachineSets(allMSs),
 		AvailableReplicas:   availableReplicas,
 		UnavailableReplicas: unavailableReplicas,
+		Conditions:          deployment.Status.Conditions,
 	}
 
 	if *deployment.Spec.Replicas == status.ReadyReplicas {

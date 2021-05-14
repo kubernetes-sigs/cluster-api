@@ -23,6 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
@@ -391,6 +392,103 @@ func TestScaleMachineSet(t *testing.T) {
 				clusterv1.MaxReplicasAnnotation:     fmt.Sprintf("%d", (*tc.machineDeployment.Spec.Replicas)+mdutil.MaxSurge(*tc.machineDeployment)),
 			}
 			g.Expect(freshMachineSet.GetAnnotations()).To(BeEquivalentTo(expectedMachineSetAnnotations))
+		})
+	}
+}
+
+func newTestMachineDeployment(pds *int32, replicas, statusReplicas, updatedReplicas, availableReplicas int32, conditions clusterv1.Conditions) *clusterv1.MachineDeployment {
+	d := &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "progress-test",
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			ProgressDeadlineSeconds: pds,
+			Replicas:                &replicas,
+			Strategy: &clusterv1.MachineDeploymentStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+					MaxUnavailable: intOrStrPtr(0),
+					MaxSurge:       intOrStrPtr(1),
+					DeletePolicy:   pointer.StringPtr("Oldest"),
+				},
+			},
+		},
+		Status: clusterv1.MachineDeploymentStatus{
+			Replicas:          statusReplicas,
+			UpdatedReplicas:   updatedReplicas,
+			AvailableReplicas: availableReplicas,
+			Conditions:        conditions,
+		},
+	}
+	return d
+}
+
+// helper to create MS with given availableReplicas.
+func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, availableReplicas int32) *clusterv1.MachineSet {
+	return &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              name,
+			CreationTimestamp: metav1.Time{},
+			Namespace:         metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineSetSpec{
+			Replicas: pointer.Int32Ptr(specReplicas),
+		},
+		Status: clusterv1.MachineSetStatus{
+			AvailableReplicas: availableReplicas,
+			Replicas:          statusReplicas,
+		},
+	}
+}
+
+func TestSyncDeploymentStatus(t *testing.T) {
+	pds := int32(60)
+	tests := []struct {
+		name               string
+		d                  *clusterv1.MachineDeployment
+		oldMachineSets     []*clusterv1.MachineSet
+		newMachineSet      *clusterv1.MachineSet
+		expectedConditions []*clusterv1.Condition
+	}{
+		{
+			name:           "Deployment not available: MachineDeploymentAvailableCondition should exist and be false",
+			d:              newTestMachineDeployment(&pds, 3, 2, 2, 2, clusterv1.Conditions{}),
+			oldMachineSets: []*clusterv1.MachineSet{},
+			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 2, 2),
+			expectedConditions: []*clusterv1.Condition{
+				{
+					Type:     clusterv1.MachineDeploymentAvailableCondition,
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityWarning,
+					Reason:   clusterv1.WaitingForAvailableMachinesReason,
+				},
+			},
+		},
+		{
+			name:           "Deployment Available: MachineDeploymentAvailableCondition should exist and be true",
+			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3, clusterv1.Conditions{}),
+			oldMachineSets: []*clusterv1.MachineSet{},
+			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 3, 3),
+			expectedConditions: []*clusterv1.Condition{
+				{
+					Type:   clusterv1.MachineDeploymentAvailableCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+			r := &MachineDeploymentReconciler{
+				Client:   fake.NewClientBuilder().Build(),
+				recorder: record.NewFakeRecorder(32),
+			}
+			allMachineSets := append(test.oldMachineSets, test.newMachineSet)
+			err := r.syncDeploymentStatus(allMachineSets, test.newMachineSet, test.d)
+			g.Expect(err).ToNot(HaveOccurred())
+			assertConditions(t, test.d, test.expectedConditions...)
 		})
 	}
 }

@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 var _ reconcile.Reconciler = &MachineDeploymentReconciler{}
@@ -388,6 +389,13 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 			return len(machineSets.Items)
 		}, timeout*5).Should(BeEquivalentTo(0))
+
+		t.Log("Verifying MachineDeployment has correct Conditions")
+		g.Eventually(func() bool {
+			key := client.ObjectKey{Name: deployment.Name, Namespace: deployment.Namespace}
+			g.Expect(env.Get(ctx, key, deployment)).To(Succeed())
+			return conditions.IsTrue(deployment, clusterv1.MachineDeploymentAvailableCondition)
+		}, timeout).Should(BeTrue())
 
 		// Validate that the controller set the cluster name label in selector.
 		g.Expect(deployment.Status.Selector).To(ContainSubstring(testCluster.Name))

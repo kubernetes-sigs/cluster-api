@@ -83,6 +83,10 @@ var _ = Describe("MachineSet Reconciler", func() {
 						Labels: map[string]string{
 							"label-1": "true",
 						},
+						Annotations: map[string]string{
+							"annotation-1": "true",
+							"precedence":   "MachineSet",
+						},
 					},
 					Spec: clusterv1.MachineSpec{
 						ClusterName: testCluster.Name,
@@ -127,7 +131,11 @@ var _ = Describe("MachineSet Reconciler", func() {
 		infraResource := map[string]interface{}{
 			"kind":       "InfrastructureMachine",
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
-			"metadata":   map[string]interface{}{},
+			"metadata": map[string]interface{}{
+				"annotations": map[string]interface{}{
+					"precedence": "InfrastructureMachineTemplate",
+				},
+			},
 			"spec": map[string]interface{}{
 				"size": "3xlarge",
 			},
@@ -190,6 +198,22 @@ var _ = Describe("MachineSet Reconciler", func() {
 			}
 			return len(machines.Items)
 		}, timeout).Should(BeEquivalentTo(replicas))
+
+		By("Creating a InfrastructureMachine for each Machine")
+		infraMachines := &unstructured.UnstructuredList{}
+		infraMachines.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
+		infraMachines.SetKind("InfrastructureMachine")
+		Eventually(func() int {
+			if err := testEnv.List(ctx, infraMachines, client.InNamespace(namespace.Name)); err != nil {
+				return -1
+			}
+			return len(machines.Items)
+		}, timeout).Should(BeEquivalentTo(replicas))
+		for _, im := range infraMachines.Items {
+			Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
+			Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the infrastructure template ones")
+			Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+		}
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {

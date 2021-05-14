@@ -361,6 +361,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				Namespace:   machine.Namespace,
 				ClusterName: machine.Spec.ClusterName,
 				Labels:      machine.Labels,
+				Annotations: machine.Annotations,
 			})
 			if err != nil {
 				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)

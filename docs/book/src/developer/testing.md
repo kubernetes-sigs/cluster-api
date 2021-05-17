@@ -53,14 +53,89 @@ The following guidelines should be followed when developing E2E tests:
 
 See [e2e development] for more information on developing e2e tests for CAPI and external providers.
 
-## Running the end-to-end tests
+## Running the end-to-end tests locally
 
-`make docker-build-e2e` will build the images for all providers that will be needed for the e2e test.
+Usually the e2e tests are executed by Prow, either pre-submit (on PRs) or periodically on certain branches
+(e.g. the default branch). Those jobs are defined in the kubernetes/test-infra repository in [config/jobs/kubernetes-sigs/cluster-api](https://github.com/kubernetes/test-infra/tree/master/config/jobs/kubernetes-sigs/cluster-api).
+For development and debugging those tests can also be executed locally.
+
+### Prerequisites
+
+`make docker-build-e2e` will build the images for all providers that will be needed for the e2e tests.
+
+### Test execution via ci-e2e.sh
+
+To run a test locally via the command line, you should look at the Prow Job configuration for the test you want to run and then execute the same commands locally.
+For example to run [pull-cluster-api-e2e-main](https://github.com/kubernetes/test-infra/blob/49ab08a6a2a17377d52a11212e6f1104c3e87bfc/config/jobs/kubernetes-sigs/cluster-api/cluster-api-presubmits-main.yaml#L113-L140)
+just execute:
+
+```bash
+GINKGO_FOCUS="\[PR-Blocking\]" ./scripts/ci-e2e.sh
+```
+
+### Test execution via make test-e2e
 
 `make test-e2e` will run e2e tests by using whatever provider images already exist on disk.
-After running `make docker-build-e2e` at least once, this can be used for a faster test run if there are no provider code changes.
+After running `make docker-build-e2e` at least once, `make test-e2e` can be used for a faster test run, if there are no 
+provider code changes. If the provider code is changed, run `make docker-build-e2e` to update the images.
 
-Additionally, `test-e2e` target supports the following env variables:
+### Test execution via IDE
+
+It's also possible to run the tests via an IDE which makes it easier to debug the test code by stepping through the code.
+
+First, we have to make sure all prerequisites are fulfilled, i.e. all required images have been built (this also includes 
+kind images). This can be done by executing the `./scripts/ci-e2e.sh` script.
+
+```bash
+# Notes:
+# * You can cancel the script as soon as it starts the actual test execution via `make -C test/e2e/ run`.
+# * If you want to run other tests (e.g. upgrade tests), make sure all required env variables are set (see the Prow Job config). 
+GINKGO_FOCUS="\[PR-Blocking\]" ./scripts/ci-e2e.sh
+
+# Make sure the cluster-templates have been generated.
+make -C test/e2e cluster-templates
+```
+
+Now, the tests can be run in an IDE. The following describes how this can be done in Intellij IDEA. It should work
+roughly the same way in VS Code and other IDEs. We assume the `cluster-api` repository has been checked
+out into `/home/user/code/src/sigs.k8s.io/cluster-api`.
+
+Create a new run configuration and fill in:
+* Test framework: `gotest`
+* Test kind: `Package`
+* Package path: `sigs.k8s.io/cluster-api/test/e2e`
+* Pattern: `^\QTestE2E\E$`
+* Working directory: `/home/user/code/src/sigs.k8s.io/cluster-api/test/e2e`
+* Environment: `ARTIFACTS=/home/user/code/src/sigs.k8s.io/cluster-api/_artifacts`
+* Program arguments: `-e2e.config=/home/user/code/src/sigs.k8s.io/cluster-api/test/e2e/config/docker.yaml -ginkgo.focus="\[PR-Blocking\]"`
+
+Execute the run configuration with `Debug`.
+
+<aside class="note">
+
+<h1>Tips</h1>
+
+If you want to debug CAPI controller during e2e tests, just scale down the controller in the local kind cluster
+and run it via the IDE.
+
+</aside>
+
+### Running specific tests
+
+To run a subset of tests, a combination of either one or both of `GINKGO_FOCUS` and `GINKGO_SKIP` env variables can be set.
+Each of these can be used to match tests, for example:
+- `[PR-Blocking]` => Sanity tests run before each PR merge
+- `[K8s-Upgrade]` => Tests which verify k8s component version upgrades on workload clusters
+- `[Conformance]` => Tests which run the k8s conformance suite on workload clusters
+- `When testing KCP.*` => Tests which start with `When testing KCP`
+
+For example:
+` GINKGO_FOCUS="\\[PR-Blocking\\]" make test-e2e ` can be used to run the sanity E2E tests
+` GINKGO_SKIP="\\[K8s-Upgrade\\]" make test-e2e ` can be used to skip the upgrade E2E tests
+
+### Further customization
+
+The following env variables can be set to customize the test execution:
 
 - `GINKGO_FOCUS` to set ginkgo focus (default empty - all tests)
 - `GINKGO_SKIP` to set ginkgo skip (default empty - to allow running all tests)
@@ -71,17 +146,7 @@ Additionally, `test-e2e` target supports the following env variables:
 - `USE_EXISTING_CLUSTER` to use an existing management cluster instead of creating a new one for each test run (default to false)
 - `GINKGO_NOCOLOR` to turn off the ginkgo colored output (default to false)
 
-### Running specific tests
-
-To run a subset of tests, a combination of either one or both of `GINKGO_FOCUS` and `GINKGO_SKIP` env variables can be set.
-Each of these can be set to one of the following values:
-- `[PR-Blocking]` => Sanity tests run before each PR merge
-- `[K8s-Upgrade]` => Tests which verify k8s component version upgrades on workload clusters
-- `[Conformance]` => Tests which run the k8s conformance suite on workload clusters
-
-For example:
-` GINKGO_FOCUS="\\[PR-Blocking\\]" make test-e2e ` can be used to run the sanity E2E tests
-` GINKGO_SKIP="\\[K8s-Upgrade\\]" make test-e2e ` can be used to skip the upgrade E2E tests
+Furthermore, it's possible to overwrite all env variables specified in `variables` in `test/e2e/config/docker.yaml`.
 
 ## Quick reference
 
@@ -281,6 +346,8 @@ In Cluster API all the test MUST use [Gomega] assertions.
 
 In Cluster API Unit and integration test MUST use [go test].
 
+[Cluster API quick start]: https://cluster-api.sigs.k8s.io/user/quick-start.html
+[Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
 [e2e development]: ./e2e.md
 [Ginkgo]: http://onsi.github.io/ginkgo/
 [Gomega]: http://onsi.github.io/gomega/

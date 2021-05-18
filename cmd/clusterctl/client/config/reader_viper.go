@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/util/homedir"
+
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 

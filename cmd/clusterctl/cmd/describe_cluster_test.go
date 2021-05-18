@@ -21,16 +21,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fatih/color"
 	"github.com/gosuri/uitable"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/util/conditions"
-
-	"github.com/fatih/color"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func Test_getRowName(t *testing.T) {

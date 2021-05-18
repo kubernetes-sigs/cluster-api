@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/version"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
 

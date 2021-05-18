@@ -18,10 +18,10 @@ package v1alpha3
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
-
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {

@@ -22,11 +22,12 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/kind/pkg/cluster/constants"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/third_party/forked/loadbalancer"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
 type lbCreator interface {

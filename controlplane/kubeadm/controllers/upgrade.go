@@ -21,12 +21,13 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(

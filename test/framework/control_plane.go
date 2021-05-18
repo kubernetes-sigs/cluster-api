@@ -21,9 +21,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // WaitForControlPlaneToBeUpToDateInput is the input for WaitForControlPlaneToBeUpToDate.

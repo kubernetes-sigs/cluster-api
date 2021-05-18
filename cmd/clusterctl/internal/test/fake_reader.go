@@ -18,8 +18,9 @@ package test
 
 import (
 	"github.com/pkg/errors"
-	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/yaml"
+
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
 // FakeReader provider a reader implementation backed by a map.

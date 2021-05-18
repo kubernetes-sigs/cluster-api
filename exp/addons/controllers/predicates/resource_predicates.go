@@ -19,9 +19,10 @@ package predicates
 import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 )
 
 // ResourceCreate returns a predicate that returns true for a create event.

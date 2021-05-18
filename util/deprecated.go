@@ -20,9 +20,10 @@ import (
 	"context"
 
 	"github.com/blang/semver"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/version"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ParseMajorMinorPatch returns a semver.Version from the string provided

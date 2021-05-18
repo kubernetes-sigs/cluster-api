@@ -17,15 +17,16 @@ limitations under the License.
 package utils
 
 import (
+	"testing"
+
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
-
-	"testing"
 )
 
 func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {

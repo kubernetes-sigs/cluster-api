@@ -23,13 +23,13 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	kind "sigs.k8s.io/kind/pkg/cluster"
+	kindnodes "sigs.k8s.io/kind/pkg/cluster/nodes"
+	kindnodesutils "sigs.k8s.io/kind/pkg/cluster/nodeutils"
 
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
-	kind "sigs.k8s.io/kind/pkg/cluster"
-	kindnodes "sigs.k8s.io/kind/pkg/cluster/nodes"
-	kindnodesutils "sigs.k8s.io/kind/pkg/cluster/nodeutils"
 )
 
 // CreateKindBootstrapClusterAndLoadImagesInput is the input for CreateKindBootstrapClusterAndLoadImages.

@@ -17,9 +17,9 @@ limitations under the License.
 package failuredomains
 
 import (
-	"k8s.io/klog/v2/klogr"
 	"sort"
 
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"

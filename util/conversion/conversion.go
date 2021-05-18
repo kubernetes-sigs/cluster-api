@@ -34,14 +34,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/rest"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 const (
@@ -131,7 +131,7 @@ func UnmarshalData(from metav1.Object, to interface{}) (bool, error) {
 func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer {
 	funcs = append([]fuzzer.FuzzerFuncs{
 		metafuzzer.Funcs,
-		func(_ runtimeserializer.CodecFactory) []interface{} {
+		func(_ serializer.CodecFactory) []interface{} {
 			return []interface{}{
 				// Custom fuzzer for metav1.Time pointers which weren't
 				// fuzzed and always resulted in `nil` values.

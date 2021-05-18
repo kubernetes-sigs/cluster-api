@@ -7,6 +7,7 @@ linters:
   - depguard
   - dogsled
   - errcheck
+  - gci
   - goconst
   - gocritic
   - gocyclo
@@ -34,6 +35,10 @@ linters:
   - varcheck
   - godot
   - whitespace
+
+linters-settings:
+  gci:
+    local-prefixes: sigs.k8s.io/cluster-api
 
 issues:
   max-same-issues: 0

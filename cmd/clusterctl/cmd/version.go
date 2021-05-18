@@ -22,8 +22,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api/version"
 )
 
 // Version provides the version information of clusterctl.

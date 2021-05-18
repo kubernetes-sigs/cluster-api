@@ -21,21 +21,19 @@ import (
 	"fmt"
 	"time"
 
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
-	corev1 "k8s.io/api/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var (
@@ -105,7 +103,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 
 	// Reconcile node annotations.
 	for _, nodeRef := range nodeRefsResult.references {
-		node := &corev1.Node{}
+		node := &apicorev1.Node{}
 		if err := clusterClient.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
 			log.V(2).Info("Failed to get Node, skipping setting annotations", "err", err, "nodeRef.Name", nodeRef.Name)
 			continue
@@ -146,7 +144,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 	nodeRefsMap := make(map[string]*apicorev1.Node, len(nodeRefs))
 	for _, nodeRef := range nodeRefs {
-		node := &corev1.Node{}
+		node := &apicorev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
 			log.V(2).Info("Failed to get Node, skipping", "err", err, "nodeRef.Name", nodeRef.Name)
 			continue

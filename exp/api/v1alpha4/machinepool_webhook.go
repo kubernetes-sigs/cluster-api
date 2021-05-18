@@ -19,14 +19,14 @@ package v1alpha4
 import (
 	"fmt"
 
-	"k8s.io/utils/pointer"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 func (m *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {

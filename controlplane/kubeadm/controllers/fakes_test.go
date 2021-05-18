@@ -18,11 +18,13 @@ package controllers
 
 import (
 	"context"
+
 	"github.com/blang/semver"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type fakeManagementCluster struct {

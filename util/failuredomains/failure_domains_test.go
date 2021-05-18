@@ -17,14 +17,13 @@ limitations under the License.
 package failuredomains
 
 import (
-	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/collections"
 )
 
 func TestNewFailureDomainPicker(t *testing.T) {

@@ -21,8 +21,9 @@ import (
 	"os"
 	"testing"
 
-	"sigs.k8s.io/cluster-api/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"sigs.k8s.io/cluster-api/test/helpers"
 )
 
 var (

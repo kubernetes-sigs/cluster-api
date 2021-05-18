@@ -18,8 +18,9 @@ package v1beta1
 
 import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 )
 
 // ConvertTo converts this ClusterConfiguration to the Hub version (v1alpha4).

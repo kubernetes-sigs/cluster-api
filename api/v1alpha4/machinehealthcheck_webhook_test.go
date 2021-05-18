@@ -21,9 +21,9 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 

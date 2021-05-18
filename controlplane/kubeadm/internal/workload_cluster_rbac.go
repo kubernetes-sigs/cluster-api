@@ -23,11 +23,9 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	rbac "k8s.io/api/rbac/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -50,7 +48,7 @@ const (
 // EnsureResource creates a resoutce if the target resource doesn't exist. If the resource exists already, this function will ignore the resource instead.
 func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error {
 	testObj := obj.DeepCopyObject().(client.Object)
-	key := ctrlclient.ObjectKeyFromObject(obj)
+	key := client.ObjectKeyFromObject(obj)
 	if err := w.Client.Get(ctx, key, testObj); err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "failed to determine if resource %s/%s already exists", key.Namespace, key.Name)
 	} else if err == nil {
@@ -119,7 +117,7 @@ func (w *Workload) ReconcileKubeletRBACBinding(ctx context.Context, version semv
 			Namespace: metav1.NamespaceSystem,
 			Name:      roleName,
 		},
-		Subjects: []rbacv1.Subject{
+		Subjects: []rbac.Subject{
 			{
 				APIGroup: rbac.GroupName,
 				Kind:     rbac.GroupKind,
@@ -131,7 +129,7 @@ func (w *Workload) ReconcileKubeletRBACBinding(ctx context.Context, version semv
 				Name:     NodeBootstrapTokenAuthGroup,
 			},
 		},
-		RoleRef: rbacv1.RoleRef{
+		RoleRef: rbac.RoleRef{
 			APIGroup: rbac.GroupName,
 			Kind:     "Role",
 			Name:     roleName,
@@ -142,12 +140,12 @@ func (w *Workload) ReconcileKubeletRBACBinding(ctx context.Context, version semv
 // ReconcileKubeletRBACRole will create a Role for the new kubelet version during upgrades.
 // If the role already exists this function is a no-op.
 func (w *Workload) ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error {
-	return w.EnsureResource(ctx, &rbacv1.Role{
+	return w.EnsureResource(ctx, &rbac.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      generateKubeletConfigRoleName(version),
 			Namespace: metav1.NamespaceSystem,
 		},
-		Rules: []rbacv1.PolicyRule{
+		Rules: []rbac.PolicyRule{
 			{
 				Verbs:         []string{"get"},
 				APIGroups:     []string{""},

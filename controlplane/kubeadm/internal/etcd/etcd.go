@@ -26,6 +26,7 @@ import (
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/etcdserver/etcdserverpb"
 	"google.golang.org/grpc"
+
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 )
 

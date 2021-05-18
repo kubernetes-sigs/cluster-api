@@ -23,15 +23,14 @@ import (
 	"fmt"
 	"time"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/util/collections"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 const (
@@ -41,7 +40,7 @@ const (
 
 // ManagementCluster defines all behaviors necessary for something to function as a management cluster.
 type ManagementCluster interface {
-	ctrlclient.Reader
+	client.Reader
 
 	GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error)
 	GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error)
@@ -49,7 +48,7 @@ type ManagementCluster interface {
 
 // Management holds operations on the management cluster.
 type Management struct {
-	Client  ctrlclient.Reader
+	Client  client.Reader
 	Tracker *remote.ClusterCacheTracker
 }
 
@@ -62,13 +61,13 @@ type RemoteClusterConnectionError struct {
 func (e *RemoteClusterConnectionError) Error() string { return e.Name + ": " + e.Err.Error() }
 func (e *RemoteClusterConnectionError) Unwrap() error { return e.Err }
 
-// Get implements ctrlclient.Reader.
-func (m *Management) Get(ctx context.Context, key ctrlclient.ObjectKey, obj client.Object) error {
+// Get implements client.Reader.
+func (m *Management) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	return m.Client.Get(ctx, key, obj)
 }
 
-// List implements ctrlclient.Reader.
-func (m *Management) List(ctx context.Context, list client.ObjectList, opts ...ctrlclient.ListOption) error {
+// List implements client.Reader.
+func (m *Management) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	return m.Client.List(ctx, list, opts...)
 }
 
@@ -137,9 +136,9 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	}, nil
 }
 
-func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey ctrlclient.ObjectKey) ([]byte, []byte, error) {
+func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.ObjectKey) ([]byte, []byte, error) {
 	etcdCASecret := &corev1.Secret{}
-	etcdCAObjectKey := ctrlclient.ObjectKey{
+	etcdCAObjectKey := client.ObjectKey{
 		Namespace: clusterKey.Namespace,
 		Name:      fmt.Sprintf("%s-etcd", clusterKey.Name),
 	}
@@ -154,9 +153,9 @@ func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey ctrlclient
 	return crtData, keyData, nil
 }
 
-func (m *Management) getApiServerEtcdClientCert(ctx context.Context, clusterKey ctrlclient.ObjectKey) (tls.Certificate, error) {
+func (m *Management) getApiServerEtcdClientCert(ctx context.Context, clusterKey client.ObjectKey) (tls.Certificate, error) {
 	apiServerEtcdClientCertificateSecret := &corev1.Secret{}
-	apiServerEtcdClientCertificateObjectKey := ctrlclient.ObjectKey{
+	apiServerEtcdClientCertificateObjectKey := client.ObjectKey{
 		Namespace: clusterKey.Namespace,
 		Name:      fmt.Sprintf("%s-apiserver-etcd-client", clusterKey.Name),
 	}

@@ -20,10 +20,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"k8s.io/utils/pointer"
+
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	infrav1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -36,10 +35,10 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 			Header:              "test",
 			PreKubeadmCommands:  nil,
 			PostKubeadmCommands: nil,
-			AdditionalFiles: []infrav1.File{
+			AdditionalFiles: []bootstrapv1.File{
 				{
 					Path:     "/tmp/my-path",
-					Encoding: infrav1.Base64,
+					Encoding: bootstrapv1.Base64,
 					Content:  "aGk=",
 				},
 				{

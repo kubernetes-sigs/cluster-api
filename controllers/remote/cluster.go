@@ -23,8 +23,9 @@ import (
 	"github.com/pkg/errors"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 const (

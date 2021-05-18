@@ -22,6 +22,7 @@ package v1alpha3
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+
 	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 )

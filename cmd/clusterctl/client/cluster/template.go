@@ -28,10 +28,11 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // TemplateClient has methods to work with templates stored in the cluster/out of the provider repository.

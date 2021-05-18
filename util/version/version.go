@@ -17,10 +17,11 @@ limitations under the License.
 package version
 
 import (
-	"github.com/blang/semver"
-	"github.com/pkg/errors"
 	"regexp"
 	"strconv"
+
+	"github.com/blang/semver"
+	"github.com/pkg/errors"
 )
 
 var (

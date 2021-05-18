@@ -18,9 +18,11 @@ package collections
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 // GetFilteredMachinesForCluster returns a list of machines that can be filtered or not.

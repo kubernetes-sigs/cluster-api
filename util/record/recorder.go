@@ -52,12 +52,12 @@ func Eventf(object runtime.Object, reason, message string, args ...interface{}) 
 	defaultRecorder.Eventf(object, corev1.EventTypeNormal, strings.Title(reason), message, args...)
 }
 
-// Event constructs a warning event from the given information and puts it in the queue for sending.
+// Warn constructs a warning event from the given information and puts it in the queue for sending.
 func Warn(object runtime.Object, reason, message string) {
 	defaultRecorder.Event(object, corev1.EventTypeWarning, strings.Title(reason), message)
 }
 
-// Eventf is just like Event, but with Sprintf for the message field.
+// Warnf is just like Warn, but with Sprintf for the message field.
 func Warnf(object runtime.Object, reason, message string, args ...interface{}) {
 	defaultRecorder.Eventf(object, corev1.EventTypeWarning, strings.Title(reason), message, args...)
 }

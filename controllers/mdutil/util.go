@@ -702,7 +702,7 @@ func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 		DisableMethods: true,
 		SpewKeys:       true,
 	}
-	_, _ = printer.Fprintf(hasher, "%#v", objectToWrite)
+	printer.Fprintf(hasher, "%#v", objectToWrite)
 }
 
 func ComputeHash(template *clusterv1.MachineTemplateSpec) uint32 {

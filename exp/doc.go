@@ -14,6 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha3 contains the v1alpha3 API implementation.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4
-package v1alpha3
+// Package exp implements experimental code.
+package exp

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controlplane defines the types for a generic control plane provider used for tests.
 // +kubebuilder:object:generate=true
 // +groupName=controlplane.cluster.x-k8s.io
 package controlplane

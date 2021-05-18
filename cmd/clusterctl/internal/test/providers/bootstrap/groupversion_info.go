@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package bootstrap defines the types for a generic bootstrap provider used for tests.
 // +kubebuilder:object:generate=true
 // +groupName=bootstrap.cluster.x-k8s.io
 package bootstrap

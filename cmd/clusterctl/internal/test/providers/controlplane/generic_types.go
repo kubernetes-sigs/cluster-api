@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
-package controlplane defines the types for a generic control plane provider used for tests
-*/
 package controlplane
 
 import (

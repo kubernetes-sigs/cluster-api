@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/exec"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/cloudinit"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
@@ -45,8 +46,8 @@ const (
 )
 
 type nodeCreator interface {
-	CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
-	CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string) (node *types.Node, err error)
+	CreateControlPlaneNode(name, image, clusterLabel, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (node *types.Node, err error)
+	CreateWorkerNode(name, image, clusterLabel string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (node *types.Node, err error)
 }
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
@@ -54,6 +55,7 @@ type Machine struct {
 	cluster   string
 	machine   string
 	image     string
+	ipFamily  clusterv1.ClusterIPFamily
 	labels    map[string]string
 	container *types.Node
 
@@ -61,17 +63,20 @@ type Machine struct {
 }
 
 // NewMachine returns a new Machine service for the given Cluster/DockerCluster pair.
-func NewMachine(cluster, machine, image string, labels map[string]string) (*Machine, error) {
-	if cluster == "" {
+func NewMachine(cluster *clusterv1.Cluster, machine, image string, labels map[string]string) (*Machine, error) {
+	if cluster == nil {
 		return nil, errors.New("cluster is required when creating a docker.Machine")
+	}
+	if cluster.Name == "" {
+		return nil, errors.New("cluster name is required when creating a docker.Machine")
 	}
 	if machine == "" {
 		return nil, errors.New("machine is required when creating a docker.Machine")
 	}
 
 	filters := []string{
-		withLabel(clusterLabel(cluster)),
-		withName(machineContainerName(cluster, machine)),
+		withLabel(clusterLabel(cluster.Name)),
+		withName(machineContainerName(cluster.Name, machine)),
 	}
 	for key, val := range labels {
 		filters = append(filters, withLabel(toLabel(key, val)))
@@ -82,23 +87,32 @@ func NewMachine(cluster, machine, image string, labels map[string]string) (*Mach
 		return nil, err
 	}
 
+	ipFamily, err := cluster.GetIPFamily()
+	if err != nil {
+		return nil, fmt.Errorf("create docker machine: %s", err)
+	}
+
 	return &Machine{
-		cluster:     cluster,
+		cluster:     cluster.Name,
 		machine:     machine,
 		image:       image,
+		ipFamily:    ipFamily,
 		container:   container,
 		labels:      labels,
 		nodeCreator: &Manager{},
 	}, nil
 }
 
-func ListMachinesByCluster(cluster string, labels map[string]string) ([]*Machine, error) {
-	if cluster == "" {
+func ListMachinesByCluster(cluster *clusterv1.Cluster, labels map[string]string) ([]*Machine, error) {
+	if cluster == nil {
 		return nil, errors.New("cluster is required when listing machines in the cluster")
+	}
+	if cluster.Name == "" {
+		return nil, errors.New("cluster name is required when listing machines in the cluster")
 	}
 
 	filters := []string{
-		withLabel(clusterLabel(cluster)),
+		withLabel(clusterLabel(cluster.Name)),
 	}
 	for key, val := range labels {
 		filters = append(filters, withLabel(toLabel(key, val)))
@@ -109,12 +123,18 @@ func ListMachinesByCluster(cluster string, labels map[string]string) ([]*Machine
 		return nil, err
 	}
 
+	ipFamily, err := cluster.GetIPFamily()
+	if err != nil {
+		return nil, fmt.Errorf("list docker machines by cluster: %s", err)
+	}
+
 	machines := make([]*Machine, len(containers))
 	for i, container := range containers {
 		machines[i] = &Machine{
-			cluster:     cluster,
-			machine:     machineFromContainerName(cluster, container.Name),
+			cluster:     cluster.Name,
+			machine:     machineFromContainerName(cluster.Name, container.Name),
 			image:       container.Image,
+			ipFamily:    ipFamily,
 			labels:      labels,
 			container:   container,
 			nodeCreator: &Manager{},
@@ -164,11 +184,14 @@ func (m *Machine) ProviderID() string {
 }
 
 func (m *Machine) Address(ctx context.Context) (string, error) {
-	ipv4, _, err := m.container.IP(ctx)
+	ipv4, ipv6, err := m.container.IP(ctx)
 	if err != nil {
 		return "", err
 	}
 
+	if m.ipFamily == clusterv1.IPv6IPFamily {
+		return ipv6, nil
+	}
 	return ipv4, nil
 }
 
@@ -197,6 +220,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 				kindMounts(mounts),
 				nil,
 				m.labels,
+				m.ipFamily,
 			)
 			if err != nil {
 				return errors.WithStack(err)
@@ -210,6 +234,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 				kindMounts(mounts),
 				nil,
 				m.labels,
+				m.ipFamily,
 			)
 			if err != nil {
 				return errors.WithStack(err)

@@ -40,6 +40,7 @@ const (
 	KubernetesVersionUpgradeTo   = "KUBERNETES_VERSION_UPGRADE_TO"
 	EtcdVersionUpgradeTo         = "ETCD_VERSION_UPGRADE_TO"
 	CoreDNSVersionUpgradeTo      = "COREDNS_VERSION_UPGRADE_TO"
+	IPFamily                     = "IP_FAMILY"
 )
 
 func Byf(format string, a ...interface{}) {

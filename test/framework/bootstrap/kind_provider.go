@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
@@ -58,6 +59,14 @@ func WithDockerSockMount() KindClusterOption {
 	})
 }
 
+// WithIPv6Family implements a New Option that instruct the kindClusterProvider to set the IPFamily to IPv6 in
+// the new kind cluster.
+func WithIPv6Family() KindClusterOption {
+	return kindClusterOptionAdapter(func(k *kindClusterProvider) {
+		k.ipFamily = clusterv1.IPv6IPFamily
+	})
+}
+
 // NewKindClusterProvider returns a ClusterProvider that can create a kind cluster.
 func NewKindClusterProvider(name string, options ...KindClusterOption) *kindClusterProvider {
 	Expect(name).ToNot(BeEmpty(), "name is required for NewKindClusterProvider")
@@ -77,6 +86,7 @@ type kindClusterProvider struct {
 	withDockerSock bool
 	kubeconfigPath string
 	nodeImage      string
+	ipFamily       clusterv1.ClusterIPFamily
 }
 
 // Create a Kubernetes cluster using kind.
@@ -100,9 +110,24 @@ func (k *kindClusterProvider) createKindCluster() {
 	kindCreateOptions := []kind.CreateOption{
 		kind.CreateWithKubeconfigPath(k.kubeconfigPath),
 	}
-	if k.withDockerSock {
-		kindCreateOptions = append(kindCreateOptions, kind.CreateWithV1Alpha4Config(withDockerSockConfig()))
+
+	cfg := &kindv1.Cluster{
+		TypeMeta: kindv1.TypeMeta{
+			APIVersion: "kind.x-k8s.io/v1alpha4",
+			Kind:       "Cluster",
+		},
 	}
+
+	if k.ipFamily == clusterv1.IPv6IPFamily {
+		cfg.Networking.IPFamily = kindv1.IPv6Family
+	}
+	kindv1.SetDefaultsCluster(cfg)
+
+	if k.withDockerSock {
+		setDockerSockConfig(cfg)
+	}
+
+	kindCreateOptions = append(kindCreateOptions, kind.CreateWithV1Alpha4Config(cfg))
 
 	nodeImage := DefaultNodeImage
 	if k.nodeImage != "" {
@@ -114,15 +139,8 @@ func (k *kindClusterProvider) createKindCluster() {
 	Expect(err).ToNot(HaveOccurred(), "Failed to create the kind cluster %q")
 }
 
-// withDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.
-func withDockerSockConfig() *kindv1.Cluster {
-	cfg := &kindv1.Cluster{
-		TypeMeta: kindv1.TypeMeta{
-			APIVersion: "kind.x-k8s.io/v1alpha4",
-			Kind:       "Cluster",
-		},
-	}
-	kindv1.SetDefaultsCluster(cfg)
+// setDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.
+func setDockerSockConfig(cfg *kindv1.Cluster) {
 	cfg.Nodes = []kindv1.Node{
 		{
 			Role: kindv1.ControlPlaneRole,
@@ -134,7 +152,6 @@ func withDockerSockConfig() *kindv1.Cluster {
 			},
 		},
 	}
-	return cfg
 }
 
 // GetKubeconfigPath returns the path to the kubeconfig file for the cluster.

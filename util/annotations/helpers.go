@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package annotations implements annotation helper functions.
 package annotations
 
 import (

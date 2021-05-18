@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package failuredomains implements FailureDomain utility functions.
 package failuredomains
 
 import (
-	"k8s.io/klog/v2/klogr"
 	"sort"
 
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ginkgoextensions extends ginko.
 package ginkgoextensions
 
 import (

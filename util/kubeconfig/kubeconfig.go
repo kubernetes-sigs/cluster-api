@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package kubeconfig implements utilities for working with kubeconfigs.
 package kubeconfig
 
 import (

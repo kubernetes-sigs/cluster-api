@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package mdutil implements MachineDeployment utilities.
 package mdutil
 
 import (
@@ -701,7 +702,7 @@ func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 		DisableMethods: true,
 		SpewKeys:       true,
 	}
-	printer.Fprintf(hasher, "%#v", objectToWrite)
+	_, _ = printer.Fprintf(hasher, "%#v", objectToWrite)
 }
 
 func ComputeHash(template *clusterv1.MachineTemplateSpec) uint32 {

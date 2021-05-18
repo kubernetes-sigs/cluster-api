@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package bootstrap implements bootstrap functionality for e2e testing.
 package bootstrap
 
 import "context"

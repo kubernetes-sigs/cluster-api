@@ -14,13 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package version implements version handling.
 package version
 
 import (
-	"github.com/blang/semver"
-	"github.com/pkg/errors"
 	"regexp"
 	"strconv"
+
+	"github.com/blang/semver"
+	"github.com/pkg/errors"
 )
 
 var (

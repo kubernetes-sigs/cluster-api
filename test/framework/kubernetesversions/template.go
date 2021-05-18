@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package kubernetesversions implements kubernetes version functions.
 package kubernetesversions
 
 import (

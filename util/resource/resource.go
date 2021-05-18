@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package resource implements resource utilites.
 package resource
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

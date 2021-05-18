@@ -14,10 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tree
-
 /*
-This package support the generation of an "at glance" view of a Cluster API cluster designed to help the user in quickly
+Package tree supports the generation of an "at glance" view of a Cluster API cluster designed to help the user in quickly
 understanding if there are problems and where.
 
 The "at glance" view is based on the idea that we should avoid to overload the user with information, but instead
@@ -53,3 +51,4 @@ e.g is virtual node, is group node, meta name etc.
 
 The Discovery object uses the ObjectTree to build the "at glance" view of a Cluster API.
 */
+package tree

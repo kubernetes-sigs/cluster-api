@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -39,27 +38,31 @@ import (
 
 var _ reconcile.Reconciler = &MachineSetReconciler{}
 
-var _ = Describe("MachineSet Reconciler", func() {
+func TestMachineSetReconciler(t *testing.T) {
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ms-test"}}
 	testCluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "test-cluster"}}
 
-	BeforeEach(func() {
-		By("Creating the namespace")
-		Expect(testEnv.Create(ctx, namespace)).To(Succeed())
-		By("Creating the Cluster")
-		Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
-		By("Creating the Cluster Kubeconfig Secret")
-		Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-	})
+	setup := func(t *testing.T, g *WithT) {
+		t.Log("Creating the namespace")
+		g.Expect(testEnv.Create(ctx, namespace)).To(Succeed())
+		t.Log("Creating the Cluster")
+		g.Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
+		t.Log("Creating the Cluster Kubeconfig Secret")
+		g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+	}
 
-	AfterEach(func() {
-		By("Deleting the Cluster")
-		Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
-		By("Deleting the namespace")
-		Expect(testEnv.Delete(ctx, namespace)).To(Succeed())
-	})
+	teardown := func(t *testing.T, g *WithT) {
+		t.Log("Deleting the Cluster")
+		g.Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
+		t.Log("Deleting the namespace")
+		g.Expect(testEnv.Delete(ctx, namespace)).To(Succeed())
+	}
 
-	It("Should reconcile a MachineSet", func() {
+	t.Run("Should reconcile a MachineSet", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+
 		replicas := int32(2)
 		version := "v1.14.2"
 		instance := &clusterv1.MachineSet{
@@ -125,7 +128,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha4")
 		bootstrapTmpl.SetName("ms-template")
 		bootstrapTmpl.SetNamespace(namespace.Name)
-		Expect(testEnv.Create(ctx, bootstrapTmpl)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, bootstrapTmpl)).To(Succeed())
 
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
@@ -151,16 +154,16 @@ var _ = Describe("MachineSet Reconciler", func() {
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
 		infraTmpl.SetName("ms-template")
 		infraTmpl.SetNamespace(namespace.Name)
-		Expect(testEnv.Create(ctx, infraTmpl)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, infraTmpl)).To(Succeed())
 
 		// Create the MachineSet.
-		Expect(testEnv.Create(ctx, instance)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, instance)).To(Succeed())
 		defer func() {
-			Expect(testEnv.Delete(ctx, instance)).To(Succeed())
+			g.Expect(testEnv.Delete(ctx, instance)).To(Succeed())
 		}()
 
-		By("Verifying the linked bootstrap template has a cluster owner reference")
-		Eventually(func() bool {
+		t.Log("Verifying the linked bootstrap template has a cluster owner reference")
+		g.Eventually(func() bool {
 			obj, err := external.Get(ctx, testEnv, instance.Spec.Template.Spec.Bootstrap.ConfigRef, instance.Namespace)
 			if err != nil {
 				return false
@@ -174,8 +177,8 @@ var _ = Describe("MachineSet Reconciler", func() {
 			})
 		}, timeout).Should(BeTrue())
 
-		By("Verifying the linked infrastructure template has a cluster owner reference")
-		Eventually(func() bool {
+		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
+		g.Eventually(func() bool {
 			obj, err := external.Get(ctx, testEnv, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
 			if err != nil {
 				return false
@@ -192,41 +195,41 @@ var _ = Describe("MachineSet Reconciler", func() {
 		machines := &clusterv1.MachineList{}
 
 		// Verify that we have 2 replicas.
-		Eventually(func() int {
+		g.Eventually(func() int {
 			if err := testEnv.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			return len(machines.Items)
 		}, timeout).Should(BeEquivalentTo(replicas))
 
-		By("Creating a InfrastructureMachine for each Machine")
+		t.Log("Creating a InfrastructureMachine for each Machine")
 		infraMachines := &unstructured.UnstructuredList{}
 		infraMachines.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
 		infraMachines.SetKind("InfrastructureMachine")
-		Eventually(func() int {
+		g.Eventually(func() int {
 			if err := testEnv.List(ctx, infraMachines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			return len(machines.Items)
 		}, timeout).Should(BeEquivalentTo(replicas))
 		for _, im := range infraMachines.Items {
-			Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
-			Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the infrastructure template ones")
-			Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
+			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the infrastructure template ones")
+			g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
 		}
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
-			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource)
-			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
+			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
+			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
 		}
 
 		// Try to delete 1 machine and check the MachineSet scales back up.
 		machineToBeDeleted := machines.Items[0]
-		Expect(testEnv.Delete(ctx, &machineToBeDeleted)).To(Succeed())
+		g.Expect(testEnv.Delete(ctx, &machineToBeDeleted)).To(Succeed())
 
 		// Verify that the Machine has been deleted.
-		Eventually(func() bool {
+		g.Eventually(func() bool {
 			key := client.ObjectKey{Name: machineToBeDeleted.Name, Namespace: machineToBeDeleted.Namespace}
 			if err := testEnv.Get(ctx, key, &machineToBeDeleted); apierrors.IsNotFound(err) || !machineToBeDeleted.DeletionTimestamp.IsZero() {
 				return true
@@ -235,7 +238,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		}, timeout).Should(BeTrue())
 
 		// Verify that we have 2 replicas.
-		Eventually(func() (ready int) {
+		g.Eventually(func() (ready int) {
 			if err := testEnv.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
@@ -257,15 +260,15 @@ var _ = Describe("MachineSet Reconciler", func() {
 				continue
 			}
 
-			Expect(m.Spec.Version).ToNot(BeNil())
-			Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
-			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource)
-			providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
-			fakeMachineNodeRef(&m, providerID)
+			g.Expect(m.Spec.Version).ToNot(BeNil())
+			g.Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
+			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
+			providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+			fakeMachineNodeRef(&m, providerID, g)
 		}
 
 		// Verify that all Machines are Ready.
-		Eventually(func() int32 {
+		g.Eventually(func() int32 {
 			key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
 			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return -1
@@ -274,9 +277,9 @@ var _ = Describe("MachineSet Reconciler", func() {
 		}, timeout).Should(BeEquivalentTo(replicas))
 
 		// Validate that the controller set the cluster name label in selector.
-		Expect(instance.Status.Selector).To(ContainSubstring(testCluster.Name))
+		g.Expect(instance.Status.Selector).To(ContainSubstring(testCluster.Name))
 	})
-})
+}
 
 func TestMachineSetOwnerReference(t *testing.T) {
 	testCluster := &clusterv1.Cluster{

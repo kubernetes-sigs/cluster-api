@@ -129,7 +129,7 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for WatchNamespaceEvents")
 	Expect(input.Name).NotTo(BeEmpty(), "input.Name is required for WatchNamespaceEvents")
 
-	logFile := path.Join(input.LogFolder, "resources", input.Name, "events.log")
+	logFile := filepath.Clean(path.Join(input.LogFolder, "resources", input.Name, "events.log"))
 	Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
 
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

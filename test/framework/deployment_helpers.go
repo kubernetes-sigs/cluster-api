@@ -120,7 +120,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 			go func(pod corev1.Pod, container corev1.Container) {
 				defer GinkgoRecover()
 
-				logFile := path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+".log")
+				logFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+".log"))
 				Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
 
 				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

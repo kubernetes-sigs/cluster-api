@@ -62,7 +62,6 @@ To enable/disable features on existing management clusters, users can modify CAP
 #  kubectl edit -n capi-system deployment.apps/capi-controller-manager
    // Enable/disable available feautures by modifying Args below.
     Args:
-      --metrics-bind-addr=127.0.0.1:8080
       --leader-elect
       --feature-gates=MachinePool=true,ClusterResourceSet=true
 ```

@@ -80,7 +80,6 @@ func Test_clusterctlClient_InitImages(t *testing.T) {
 				kubeconfigContext:      "mgmt-context",
 			},
 			expectedImages: []string{
-				"gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0",
 				"k8s.gcr.io/cluster-api-aws/cluster-api-aws-controller:v0.5.3",
 			},
 			wantErr: false,
@@ -796,8 +795,6 @@ spec:
   template:
     spec:
       containers:
-      - image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
-        name: kube-rbac-proxy
       - image: k8s.gcr.io/cluster-api-aws/cluster-api-aws-controller:v0.5.3
         name: manager
         volumeMounts:

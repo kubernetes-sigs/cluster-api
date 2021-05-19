@@ -22,10 +22,6 @@
   - When imported, the test module version should always match the Cluster API one.
 - The CAPD go module in test/infrastructure/docker has been removed.
 
-## Upgrade kube-rbac-proxy to v0.8.0
-
-- Find and replace the `kube-rbac-proxy` version (usually the image is `gcr.io/kubebuilder/kube-rbac-proxy`) and update it to `v0.8.0`.
-
 ## Klog version
 
 - The klog package used has been upgraded to v2.5.x. It is recommended that
@@ -94,6 +90,14 @@ For a `/config` folder reference, please use the testdata in the Kubebuilder pro
 
 Provider's `/config` folder has the same structure of  `/config` folder in CAPI controllers.
 
+**Changes in the `/config/rbac` folder:**
+
+- Remove the `kube-rbac-proxy` configuration files:
+  - `auth_proxy_role.yaml`
+  - `auth_proxy_role_binding.yaml`
+  - `auth_proxy_service.yaml`
+-  Remove the references to the above files in `config/rbac/kustomization.yaml`
+
 **Changes in the `/config/webhook` folder:**
 
 1. Edit the `/config/webhook/kustomization.yaml` file:
@@ -121,18 +125,16 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
 1. Edit the `/config/manager/manager.yaml` file:
     - Add the following items to the `args` list for the `manager` container list
     ```
-    - "--metrics-bind-addr=127.0.0.1:8080"
+    - "--metrics-bind-addr=localhost:8080"
     ```
-    - Verify that fetaure flags required by your container are properly set
+    - Verify that feature flags required by your container are properly set
       (as it was in `/config/webhook/manager_webhook_patch.yaml`).
-1. Edit the `/config/manager/manager_auth_proxy_patch.yaml` file:
-    - Remove the patch for the container with name `manager`
 1. Move the following files to the `/config/default` folder
-    - `/config/manager/manager_auth_proxy_patch.yaml`
     - `/config/manager/manager_image_patch.yaml`
     - `/config/manager/manager_pull_policy.yaml`
 
 **Changes in the `/config/default` folder:**
+1. Remove the file `config/default/manager_auth_proxy_patch.yaml` and the reference to it in `config/default/kustomization.yaml`
 1. Create a file named `/config/default/kustomizeconfig.yaml` with the following content:
    ```
    # This configuration is for teaching kustomize how to update name ref and var substitution
@@ -150,7 +152,6 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
       ```
     - Add the `patchesStrategicMerge:` list, with the following items:
       ```
-      - manager_auth_proxy_patch.yaml
       - manager_image_patch.yaml
       - manager_pull_policy.yaml
       - manager_webhook_patch.yaml
@@ -162,6 +163,7 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
       - kustomizeconfig.yaml
       ```
 
+
 **Changes in the `/config` folder:**
 
 1. Remove the `/config/kustomization.yaml` file
@@ -171,6 +173,7 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
 
 1. Change default value for the flags `webhook-port` flag to `9443`
 1. Change your code so all the controllers and the webhooks are started no matter if the webhooks port selected.
+1. Change default value for the flags `metrics-bind-addr` flag to `localhost:8080`
 
 **Other changes:**
 

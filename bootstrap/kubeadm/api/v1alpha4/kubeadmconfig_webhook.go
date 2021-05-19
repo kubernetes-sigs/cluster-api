@@ -20,15 +20,14 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
-	ConflictingFileSourceMsg = "only one of content of contentFrom may be specified for a single file"
-	MissingFileSourceMsg     = "source for file content must be specified if contenFrom is non-nil"
+	ConflictingFileSourceMsg = "only one of content or contentFrom may be specified for a single file"
 	MissingSecretNameMsg     = "secret file source must specify non-empty secret name"
 	MissingSecretKeyMsg      = "secret file source must specify non-empty secret key"
 	PathConflictMsg          = "path property must be unique among all files"

@@ -177,9 +177,9 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:      "when the nodeStartupTimeout is 0",
+			name:      "when the nodeStartupTimeout is 0 (disabled)",
 			timeout:   &zero,
-			expectErr: true,
+			expectErr: false,
 		},
 	}
 

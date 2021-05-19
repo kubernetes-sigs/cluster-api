@@ -18,6 +18,7 @@ package v1alpha4
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -91,6 +92,11 @@ const (
 	// An external controller must fulfill the contract of the InfraCluster resource.
 	// External infrastructure providers should ensure that the annotation, once set, cannot be removed.
 	ManagedByAnnotation = "cluster.x-k8s.io/managed-by"
+)
+
+var (
+	// ZeroDuration is a zero value of the metav1.Duration type.
+	ZeroDuration = metav1.Duration{}
 )
 
 // MachineAddressType describes a valid MachineAddress type.

@@ -209,8 +209,13 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	// do sort to avoid keep changing m.Status as the returned machines are not in order
 	sort.Strings(m.Status.Targets)
 
+	nodeStartupTimeout := m.Spec.NodeStartupTimeout
+	if nodeStartupTimeout == nil {
+		nodeStartupTimeout = &clusterv1.DefaultNodeStartupTimeout
+	}
+
 	// health check all targets and reconcile mhc status
-	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)
+	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, *nodeStartupTimeout)
 	m.Status.CurrentHealthy = int32(len(healthy))
 
 	var unhealthyLimitKey, unhealthyLimitValue interface{}

@@ -44,6 +44,11 @@ const (
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
 )
 
+var (
+	// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
+	disabledNodeStartupTimeout = clusterv1.ZeroDuration
+)
+
 // healthCheckTarget contains the information required to perform a health check
 // on the node to determine if any remediation is required.
 type healthCheckTarget struct {
@@ -81,7 +86,7 @@ func (t *healthCheckTarget) nodeName() string {
 // If the target doesn't currently need rememdiation, provide a duration after
 // which the target should next be checked.
 // The target should be requeued after this duration.
-func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachineToHaveNode time.Duration) (bool, time.Duration) {
+func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) (bool, time.Duration) {
 	var nextCheckTimes []time.Duration
 	now := time.Now()
 
@@ -120,6 +125,12 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 	// the node has not been set yet
 	if t.Node == nil {
+		if timeoutForMachineToHaveNode == disabledNodeStartupTimeout {
+			// Startup timeout is disabled so no need to go any further.
+			// No node yet to check conditions, can return early here.
+			return false, 0
+		}
+
 		controlPlaneInitializedTime := conditions.GetLastTransitionTime(t.Cluster, clusterv1.ControlPlaneInitializedCondition).Time
 		clusterInfraReadyTime := conditions.GetLastTransitionTime(t.Cluster, clusterv1.InfrastructureReadyCondition).Time
 		machineCreationTime := t.Machine.CreationTimestamp.Time
@@ -135,14 +146,14 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		}
 		logger.V(3).Info("Using comparison time", "time", comparisonTime)
 
-		if comparisonTime.Add(timeoutForMachineToHaveNode).Before(now) {
+		if comparisonTime.Add(timeoutForMachineToHaveNode.Duration).Before(now) {
 			conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.NodeStartupTimeoutReason, clusterv1.ConditionSeverityWarning, "Node failed to report startup in %s", timeoutForMachineToHaveNode.String())
 			logger.V(3).Info("Target is unhealthy: machine has no node", "duration", timeoutForMachineToHaveNode.String())
 			return true, time.Duration(0)
 		}
 
 		durationUnhealthy := now.Sub(comparisonTime)
-		nextCheck := timeoutForMachineToHaveNode - durationUnhealthy + time.Second
+		nextCheck := timeoutForMachineToHaveNode.Duration - durationUnhealthy + time.Second
 
 		return false, nextCheck
 	}
@@ -261,7 +272,7 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(ctx context.Context, c
 
 // healthCheckTargets health checks a slice of targets
 // and gives a data to measure the average health.
-func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, timeoutForMachineToHaveNode time.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
+func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
 	var nextCheckTimes []time.Duration
 	var unhealthy []healthCheckTarget
 	var healthy []healthCheckTarget
@@ -290,7 +301,7 @@ func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckT
 			continue
 		}
 
-		if t.Machine.DeletionTimestamp.IsZero() {
+		if t.Machine.DeletionTimestamp.IsZero() && t.Node != nil {
 			conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
 			healthy = append(healthy, t)
 		}

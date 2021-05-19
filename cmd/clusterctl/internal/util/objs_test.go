@@ -80,7 +80,7 @@ func Test_inspectImages(t *testing.T) {
 											},
 											{
 												"name":  "kube-rbac-proxy",
-												"image": "gcr.io/kubebuilder/kube-rbac-proxy:v0.4.1",
+												"image": "gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0",
 											},
 										},
 									},
@@ -90,7 +90,7 @@ func Test_inspectImages(t *testing.T) {
 					},
 				},
 			},
-			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master", "gcr.io/kubebuilder/kube-rbac-proxy:v0.4.1"},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master", "gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0"},
 			wantErr: false,
 		},
 		{

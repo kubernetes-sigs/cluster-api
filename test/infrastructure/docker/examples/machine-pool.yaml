@@ -39,7 +39,7 @@ spec:
     clusterConfiguration:
       controllerManager:
         extraArgs:
-          enable-hostpath-provisioner: true
+          enable-hostpath-provisioner: "true"
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
@@ -63,7 +63,7 @@ spec:
   template:
     spec: {}
 ---
-apiVersion: exp.cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: MachinePool
 metadata:
   name: worker-mp-0
@@ -81,13 +81,13 @@ spec:
           namespace: default
       clusterName: my-cluster
       infrastructureRef:
-        apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha4
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
         kind: DockerMachinePool
         name: worker-dmp-0
         namespace: default
       version: v1.19.1
 ---
-apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: DockerMachinePool
 metadata:
   name: worker-dmp-0

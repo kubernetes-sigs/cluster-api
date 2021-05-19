@@ -269,3 +269,11 @@ the resource.
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
   ```
+  
+## MachinePool API group changed to `cluster.x-k8s.io`
+
+MachinePool is today an experiment, and the API group we originally decided to pick was `exp.cluster.x-k8s.io`. Given that the intent is in the future to move MachinePool to the core API group, we changed the experiment to use `cluster.x-k8s.io` group to avoid future breaking changes.
+
+All InfraMachinePool implementations should be moved to `infrastructure.cluster.x-k8s.io`. See `DockerMachinePool` for an example.
+
+Note that MachinePools are still experimental after this change and should still be feature gated.

@@ -24,24 +24,13 @@ rules:
   - list
   - watch
 - apiGroups:
-  - exp.cluster.x-k8s.io
+  - cluster.x-k8s.io
   resources:
-  - '*'
+  - machinepools
+  - machinepools/status
   verbs:
   - get
   - list
-  - watch
-- apiGroups:
-  - exp.infrastructure.cluster.x-k8s.io
-  resources:
-  - '*'
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
@@ -59,6 +48,26 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - dockerclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - dockermachinepools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - dockermachinepools/status
   verbs:
   - get
   - patch

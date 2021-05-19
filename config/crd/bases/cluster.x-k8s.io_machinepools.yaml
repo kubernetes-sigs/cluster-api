@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.6.0-beta.0
   creationTimestamp: null
-  name: machinepools.exp.cluster.x-k8s.io
+  name: machinepools.cluster.x-k8s.io
 spec:
-  group: exp.cluster.x-k8s.io
+  group: cluster.x-k8s.io
   names:
     categories:
     - cluster-api

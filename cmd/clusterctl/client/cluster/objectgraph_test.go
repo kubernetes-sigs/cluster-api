@@ -727,7 +727,7 @@ var objectGraphsTests = []struct {
 					},
 				},
 
-				"exp.cluster.x-k8s.io/v1alpha4, Kind=MachinePool, ns1/mp1": {
+				"cluster.x-k8s.io/v1alpha4, Kind=MachinePool, ns1/mp1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 					},

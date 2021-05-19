@@ -117,13 +117,13 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-exp-cluster-x-k8s-io-v1alpha4-machinepool
+      path: /mutate-cluster-x-k8s-io-v1alpha4-machinepool
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: default.exp.machinepool.cluster.x-k8s.io
+  name: default.machinepool.cluster.x-k8s.io
   rules:
   - apiGroups:
-    - exp.cluster.x-k8s.io
+    - cluster.x-k8s.io
     apiVersions:
     - v1alpha4
     operations:
@@ -272,13 +272,13 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-exp-cluster-x-k8s-io-v1alpha4-machinepool
+      path: /validate-cluster-x-k8s-io-v1alpha4-machinepool
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: validation.exp.machinepool.cluster.x-k8s.io
+  name: validation.machinepool.cluster.x-k8s.io
   rules:
   - apiGroups:
-    - exp.cluster.x-k8s.io
+    - cluster.x-k8s.io
     apiVersions:
     - v1alpha4
     operations:

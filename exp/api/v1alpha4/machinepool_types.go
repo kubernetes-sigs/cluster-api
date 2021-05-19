@@ -25,7 +25,7 @@ import (
 
 const (
 	// MachinePoolFinalizer is used to ensure deletion of dependencies (nodes, infra).
-	MachinePoolFinalizer = "machinepool.exp.cluster.x-k8s.io"
+	MachinePoolFinalizer = "machinepool.cluster.x-k8s.io"
 )
 
 // ANCHOR: MachinePoolSpec

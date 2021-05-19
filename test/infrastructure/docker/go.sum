@@ -999,8 +999,8 @@ rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
-sigs.k8s.io/controller-runtime v0.9.0-beta.1 h1:pmJVlNQeVMtkszjrRP59XT55Ny7+1it7ri3yyukwYTE=
-sigs.k8s.io/controller-runtime v0.9.0-beta.1/go.mod h1:ufPDuvefw2Y1KnBgHQrLdOjueYlj+XJV2AszbT+WTxs=
+sigs.k8s.io/controller-runtime v0.9.0-beta.5 h1:yteq8am8lUFvlI/bfIgySMp/MqAPXiAghxX+XrMCifE=
+sigs.k8s.io/controller-runtime v0.9.0-beta.5/go.mod h1:ufPDuvefw2Y1KnBgHQrLdOjueYlj+XJV2AszbT+WTxs=
 sigs.k8s.io/kind v0.9.0 h1:SoDlXq6pEc7dGagHULNRCCBYrLH6xOi7lqXTRXeAlg4=
 sigs.k8s.io/kind v0.9.0/go.mod h1:cxKQWwmbtRDzQ+RNKnR6gZG6fjbeTtItp5cGf+ww+1Y=
 sigs.k8s.io/kustomize/api v0.8.5/go.mod h1:M377apnKT5ZHJS++6H4rQoCHmWtt6qTpp3mbe7p6OLY=

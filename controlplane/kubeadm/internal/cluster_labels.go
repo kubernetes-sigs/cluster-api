@@ -18,12 +18,18 @@ package internal
 
 import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 )
 
-// ControlPlaneLabelsForCluster returns a set of labels to add to a control plane machine for this specific cluster.
-func ControlPlaneLabelsForCluster(clusterName string) map[string]string {
-	return map[string]string{
-		clusterv1.ClusterLabelName:             clusterName,
-		clusterv1.MachineControlPlaneLabelName: "",
+// ControlPlaneMachineLabelsForCluster returns a set of labels to add to a control plane machine for this specific cluster.
+func ControlPlaneMachineLabelsForCluster(kcp *controlplanev1.KubeadmControlPlane, clusterName string) map[string]string {
+	labels := kcp.Spec.MachineTemplate.ObjectMeta.Labels
+	if labels == nil {
+		labels = map[string]string{}
 	}
+
+	// Always force these labels over the ones coming from the spec.
+	labels[clusterv1.ClusterLabelName] = clusterName
+	labels[clusterv1.MachineControlPlaneLabelName] = ""
+	return labels
 }

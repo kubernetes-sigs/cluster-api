@@ -46,11 +46,12 @@ metadata:
   namespace: "${NAMESPACE}"
 spec:
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
-  infrastructureTemplate:
-    kind: DockerMachineTemplate
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-    name: "${CLUSTER_NAME}-control-plane"
-    namespace: "${NAMESPACE}"
+  machineTemplate:
+    infrastructureRef:
+      kind: DockerMachineTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+      name: "${CLUSTER_NAME}-control-plane"
+      namespace: "${NAMESPACE}"
   kubeadmConfigSpec:
     clusterConfiguration:
       controllerManager:

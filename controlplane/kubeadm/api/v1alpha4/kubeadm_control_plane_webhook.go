@@ -54,8 +54,8 @@ func (in *KubeadmControlPlane) Default() {
 		in.Spec.Replicas = &replicas
 	}
 
-	if in.Spec.InfrastructureTemplate.Namespace == "" {
-		in.Spec.InfrastructureTemplate.Namespace = in.Namespace
+	if in.Spec.MachineTemplate.InfrastructureRef.Namespace == "" {
+		in.Spec.MachineTemplate.InfrastructureRef.Namespace = in.Namespace
 	}
 
 	if !strings.HasPrefix(in.Spec.Version, "v") {
@@ -112,7 +112,7 @@ const (
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	// add a * to indicate everything beneath is ok.
-	// For example, {"spec", "*"} will allow any path under "spec" to change, such as spec.infrastructureTemplate.name
+	// For example, {"spec", "*"} will allow any path under "spec" to change.
 	allowedPaths := [][]string{
 		{"metadata", "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageRepository"},
@@ -130,7 +130,8 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, files},
 		{spec, kubeadmConfigSpec, "verbosity"},
 		{spec, kubeadmConfigSpec, users},
-		{spec, "infrastructureTemplate", "name"},
+		{spec, "machineTemplate", "metadata"},
+		{spec, "machineTemplate", "infrastructureRef", "name"},
 		{spec, "replicas"},
 		{spec, "version"},
 		{spec, "rolloutAfter"},
@@ -274,12 +275,32 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 		}
 	}
 
-	if in.Spec.InfrastructureTemplate.Namespace != in.Namespace {
+	if in.Spec.MachineTemplate.InfrastructureRef.APIVersion == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "infrastructureTemplate", "namespace"),
-				in.Spec.InfrastructureTemplate.Namespace,
+				field.NewPath("spec", "machineTemplate", "infrastructure", "apiVersion"),
+				in.Spec.MachineTemplate.InfrastructureRef.APIVersion,
+				"cannot be empty",
+			),
+		)
+	}
+	if in.Spec.MachineTemplate.InfrastructureRef.Kind == "" {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				field.NewPath("spec", "machineTemplate", "infrastructure", "kind"),
+				in.Spec.MachineTemplate.InfrastructureRef.Kind,
+				"cannot be empty",
+			),
+		)
+	}
+	if in.Spec.MachineTemplate.InfrastructureRef.Namespace != in.Namespace {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				field.NewPath("spec", "machineTemplate", "infrastructure", "namespace"),
+				in.Spec.MachineTemplate.InfrastructureRef.Namespace,
 				"must match metadata.namespace",
 			),
 		)

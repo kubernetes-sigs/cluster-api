@@ -30,11 +30,12 @@ metadata:
 spec:
   replicas: 1
   version: v1.19.1
-  infrastructureTemplate:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-    kind: DockerMachineTemplate
-    name: controlplane
-    namespace: default
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+      kind: DockerMachineTemplate
+      name: controlplane
+      namespace: default
   kubeadmConfigSpec:
     clusterConfiguration:
       controllerManager:

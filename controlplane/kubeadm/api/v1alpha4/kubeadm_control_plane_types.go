@@ -58,9 +58,9 @@ type KubeadmControlPlaneSpec struct {
 	// Version defines the desired Kubernetes version.
 	Version string `json:"version"`
 
-	// InfrastructureTemplate is a required reference to a custom resource
-	// offered by an infrastructure provider.
-	InfrastructureTemplate corev1.ObjectReference `json:"infrastructureTemplate"`
+	// MachineTemplate contains information about how machines
+	// should be shaped when creating or updating a control plane.
+	MachineTemplate KubeadmControlPlaneMachineTemplate `json:"machineTemplate"`
 
 	// KubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
@@ -83,6 +83,17 @@ type KubeadmControlPlaneSpec struct {
 	// new ones.
 	// +optional
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
+}
+
+type KubeadmControlPlaneMachineTemplate struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+
+	// InfrastructureRef is a required reference to a custom resource
+	// offered by an infrastructure provider.
+	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 }
 
 // RolloutStrategy describes how to replace existing machines

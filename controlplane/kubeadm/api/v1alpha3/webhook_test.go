@@ -34,11 +34,12 @@ import (
 
 func TestKubeadmControlPlaneConversion(t *testing.T) {
 	g := NewWithT(t)
+
 	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 	infraMachineTemplateName := fmt.Sprintf("test-machinetemplate-%s", util.RandomString(5))
 	controlPlaneName := fmt.Sprintf("test-controlpane-%s", util.RandomString(5))
-	controlPane := &KubeadmControlPlane{
+	controlPlane := &KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      controlPlaneName,
 			Namespace: ns.Name,
@@ -86,8 +87,8 @@ func TestKubeadmControlPlaneConversion(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, controlPane)).To(Succeed())
+	g.Expect(testEnv.Create(ctx, controlPlane)).To(Succeed())
 	defer func(do ...client.Object) {
 		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
-	}(ns, controlPane)
+	}(ns, controlPlane)
 }

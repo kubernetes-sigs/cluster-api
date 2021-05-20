@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"time"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -44,6 +45,7 @@ type ManagementCluster interface {
 	ctrlclient.Reader
 
 	GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error)
+	GetMachinePoolsForCluster(ctx context.Context, cluster *clusterv1.Cluster) (*expv1.MachinePoolList, error)
 	GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error)
 }
 
@@ -76,6 +78,19 @@ func (m *Management) List(ctx context.Context, list client.ObjectList, opts ...c
 // If no filter is supplied then all machines associated with the target cluster are returned.
 func (m *Management) GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {
 	return collections.GetFilteredMachinesForCluster(ctx, m.Client, cluster, filters...)
+}
+
+// GetMachinePoolsForCluster returns a list of machine pools owned by the cluster.
+func (m *Management) GetMachinePoolsForCluster(ctx context.Context, cluster *clusterv1.Cluster) (*expv1.MachinePoolList, error) {
+	selectors := []client.ListOption{
+		client.InNamespace(cluster.GetNamespace()),
+		client.MatchingLabels{
+			clusterv1.ClusterLabelName: cluster.GetName(),
+		},
+	}
+	machinePoolList := &expv1.MachinePoolList{}
+	err := m.Client.List(ctx, machinePoolList, selectors...)
+	return machinePoolList, err
 }
 
 // GetWorkloadCluster builds a cluster object.

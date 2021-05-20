@@ -70,6 +70,7 @@ func GetMachineDeploymentsByCluster(ctx context.Context, input GetMachineDeploym
 
 	deployments := make([]*clusterv1.MachineDeployment, len(deploymentList.Items))
 	for i := range deploymentList.Items {
+		Expect(deploymentList.Items[i].Spec.Replicas).ToNot(BeNil())
 		deployments[i] = &deploymentList.Items[i]
 	}
 	return deployments
@@ -306,7 +307,7 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ScaleAndWaitMachineDeployment")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling ScaleAndWaitMachineDeployment")
 
-	log.Logf("Scaling machine deployment %s/%s from %v to %v replicas", input.MachineDeployment.Namespace, input.MachineDeployment.Name, input.MachineDeployment.Spec.Replicas, input.Replicas)
+	log.Logf("Scaling machine deployment %s/%s from %d to %d replicas", input.MachineDeployment.Namespace, input.MachineDeployment.Name, *input.MachineDeployment.Spec.Replicas, input.Replicas)
 	patchHelper, err := patch.NewHelper(input.MachineDeployment, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	input.MachineDeployment.Spec.Replicas = pointer.Int32Ptr(input.Replicas)

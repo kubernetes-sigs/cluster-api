@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package infrastructure defines the types for a generic infrastructure provider used for tests.
 // +kubebuilder:object:generate=true
 // +groupName=infrastructure.cluster.x-k8s.io
 package infrastructure

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package external defines the types for a generic external provider used for tests.
 // +kubebuilder:object:generate=true
 // +groupName=custom.cluster.x-k8s.io
 package external

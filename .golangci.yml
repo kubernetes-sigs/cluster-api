@@ -8,6 +8,7 @@ linters:
   - dogsled
   - exportloopref
   - errcheck
+  - exportloopref
   - goconst
   - gocritic
   - gocyclo
@@ -19,6 +20,7 @@ linters:
   - gosimple
   - govet
   - importas
+  - ifshort
   - ineffassign
   - misspell
   - nakedret

@@ -25,6 +25,11 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
+/*
+NOTE: This command is deprecated in favor of `clusterctl generate cluster`. The source code is located at `cmd/clusterctl/cmd/generate_cluster.go`.
+This file will be removed in 0.5.x. Do not make any changes to this file.
+*/
+
 type configClusterOptions struct {
 	kubeconfig             string
 	kubeconfigContext      string
@@ -90,6 +95,7 @@ var configClusterClusterCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runGetClusterTemplate(cmd, args[0])
 	},
+	Deprecated: "use `clusterctl generate cluster` instead",
 }
 
 func init() {

@@ -53,6 +53,5 @@ func NewNode(input *NodeInput) ([]byte, error) {
 		return nil, err
 	}
 	input.Header = cloudConfigHeader
-	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	return generate("Node", nodeCloudInit, input)
 }

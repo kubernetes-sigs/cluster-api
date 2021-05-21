@@ -142,7 +142,7 @@ func (matcher *refGroupKindMatcher) Match(actual interface{}) (success bool, err
 	for _, ref := range ownerRefs {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return false, nil
+			return false, nil // nolint:nilerr // If we can't get the group version we can't match, but it's not a failure
 		}
 		if ref.Kind == matcher.kind && gv.Group == clusterv1.GroupVersion.Group {
 			return true, nil

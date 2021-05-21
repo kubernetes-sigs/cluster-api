@@ -128,7 +128,7 @@ func (cm *certManagerClient) Images() ([]string, error) {
 	// Gets the cert-manager objects from the embedded assets.
 	objs, err := cm.getManifestObjs()
 	if err != nil {
-		return []string{}, nil
+		return []string{}, nil // nolint:nilerr // If there are no manifests we don't want to error, just return
 	}
 
 	images, err := util.InspectImages(objs)

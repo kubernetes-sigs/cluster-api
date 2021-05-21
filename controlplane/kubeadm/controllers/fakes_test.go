@@ -21,16 +21,18 @@ import (
 	"github.com/blang/semver"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type fakeManagementCluster struct {
 	// TODO: once all client interactions are moved to the Management cluster this can go away
-	Management *internal.Management
-	Machines   collections.Machines
-	Workload   fakeWorkloadCluster
-	Reader     client.Reader
+	Management   *internal.Management
+	Machines     collections.Machines
+	MachinePools *expv1.MachinePoolList
+	Workload     fakeWorkloadCluster
+	Reader       client.Reader
 }
 
 func (f *fakeManagementCluster) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
@@ -50,6 +52,13 @@ func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, cluster
 		return f.Management.GetMachinesForCluster(c, cluster, filters...)
 	}
 	return f.Machines, nil
+}
+
+func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, cluster *clusterv1.Cluster) (*expv1.MachinePoolList, error) {
+	if f.Management != nil {
+		return f.Management.GetMachinePoolsForCluster(c, cluster)
+	}
+	return f.MachinePools, nil
 }
 
 type fakeWorkloadCluster struct {

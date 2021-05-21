@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/feature"
 	"sync"
 	"testing"
 	"time"
@@ -1201,6 +1203,55 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		}
 
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachine.DeepCopy()}
+
+		for i := 0; i < 3; i++ {
+			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
+			initObjs = append(initObjs, m)
+		}
+
+		fakeClient := newFakeClient(g, initObjs...)
+
+		r := &KubeadmControlPlaneReconciler{
+			Client: fakeClient,
+			managementCluster: &fakeManagementCluster{
+				Management: &internal.Management{Client: fakeClient},
+				Workload:   fakeWorkloadCluster{},
+			},
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		result, err := r.reconcileDelete(ctx, cluster, kcp)
+		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
+		g.Expect(err).To(BeNil())
+
+		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
+
+		controlPlaneMachines := clusterv1.MachineList{}
+		labels := map[string]string{
+			clusterv1.MachineControlPlaneLabelName: "",
+		}
+		g.Expect(fakeClient.List(ctx, &controlPlaneMachines, client.MatchingLabels(labels))).To(Succeed())
+		g.Expect(controlPlaneMachines.Items).To(HaveLen(3))
+	})
+
+	t.Run("does not remove any control plane Machines if MachinePools exist", func(t *testing.T) {
+		_ = feature.MutableGates.Set("MachinePool=true")
+		g := NewWithT(t)
+
+		cluster, kcp, _ := createClusterWithControlPlane()
+		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
+
+		workerMachinePool := &expv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "worker",
+				Namespace: cluster.Namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterLabelName: cluster.Name,
+				},
+			},
+		}
+
+		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachinePool.DeepCopy()}
 
 		for i := 0; i < 3; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)

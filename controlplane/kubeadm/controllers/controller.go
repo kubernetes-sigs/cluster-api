@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/feature"
 	"time"
 
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -423,8 +425,16 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	// all the machines are deleted in parallel.
 	conditions.SetAggregate(kcp, controlplanev1.MachinesReadyCondition, ownedMachines.ConditionGetters(), conditions.AddSourceRef(), conditions.WithStepCounterIf(false))
 
+	allMachinePools := &expv1.MachinePoolList{}
+	// Get all machine pools.
+	if feature.Gates.Enabled(feature.MachinePool) {
+		allMachinePools, err = r.managementCluster.GetMachinePoolsForCluster(ctx, cluster)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 	// Verify that only control plane machines remain
-	if len(allMachines) != len(ownedMachines) {
+	if len(allMachines) != len(ownedMachines) || len(allMachinePools.Items) != 0 {
 		log.Info("Waiting for worker nodes to be deleted first")
 		conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "Waiting for worker nodes to be deleted first")
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil

@@ -1,6 +1,6 @@
 ## Metrics
 
-By default, controller-runtime builds a global prometheus registry and
+By default, controller-runtime builds a global Prometheus registry and
 publishes a collection of performance metrics for each controller.
 
 ### Protecting the Metrics
@@ -38,7 +38,7 @@ kubectl create clusterrolebinding capi-metrics-reader --clusterrole=capi-metrics
 
 ### Scraping the Metrics with Prometheus
 
-To scrape metrics, your Prometheus instance need at least following [`kubernetes_sd_config`](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#kubernetes_sd_config) section.
+To scrape metrics, your Prometheus instance needs at least the following [`kubernetes_sd_config`](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#kubernetes_sd_config) section.
 
 
 ```yaml
@@ -73,4 +73,4 @@ To scrape metrics, your Prometheus instance need at least following [`kubernetes
             regex: __meta_kubernetes_service_label_(.+)
 ```
 
-You are no able to check for metrics in your Prometheus instance. To verify, you could search with e.g. `{namespace="capi-system"}` to get all metrics from components running in the `capi-system` namespace.
+You are now able to check for metrics in your Prometheus instance. To verify, you could search with e.g. `{namespace="capi-system"}` to get all metrics from components running in the `capi-system` namespace.

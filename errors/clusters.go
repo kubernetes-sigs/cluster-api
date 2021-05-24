@@ -20,7 +20,7 @@ import (
 	"fmt"
 )
 
-// A more descriptive kind of error that represents an error condition that
+// ClusterError is a more descriptive kind of error that represents an error condition that
 // should be set in the Cluster.Status. The "Reason" field is meant for short,
 // enum-style constants meant to be interpreted by clusters. The "Message"
 // field is meant to be read by humans.

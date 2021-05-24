@@ -107,7 +107,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		{
 			name: "install core/current contract + infra1/current contract on an empty cluster",
 			fields: fields{
-				proxy: test.NewFakeProxy(), //empty cluster
+				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
 					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
@@ -190,7 +190,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		{
 			name: "install core/previous contract + infra1/previous contract on an empty cluster (not supported)",
 			fields: fields{
-				proxy: test.NewFakeProxy(), //empty cluster
+				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
 					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v0.9.0", "cluster-api-system", ""),
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v0.9.0", "infra1-system", ""),
@@ -201,7 +201,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		{
 			name: "install core/previous contract + infra1/current contract on an empty cluster (not supported)",
 			fields: fields{
-				proxy: test.NewFakeProxy(), //empty cluster
+				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
 					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v0.9.0", "cluster-api-system", ""),
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system", ""),
@@ -223,7 +223,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		{
 			name: "install core/next contract + infra1/next contract on an empty cluster (not supported)",
 			fields: fields{
-				proxy: test.NewFakeProxy(), //empty cluster
+				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
 					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v2.0.0", "cluster-api-system", ""),
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra1-system", ""),
@@ -234,7 +234,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		{
 			name: "install core/current contract + infra1/next contract on an empty cluster (not supported)",
 			fields: fields{
-				proxy: test.NewFakeProxy(), //empty cluster
+				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
 					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra1-system", ""),

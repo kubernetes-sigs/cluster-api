@@ -24,9 +24,10 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"math/big"
-	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/cluster-api/util/collections"
 
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/log"

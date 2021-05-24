@@ -652,7 +652,7 @@ func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
 
 	if err := cFrom.Get(ctx, sourceObjKey, sourceObj); err != nil {
 		if apierrors.IsNotFound(err) {
-			//If the object is already deleted, move on.
+			// If the object is already deleted, move on.
 			log.V(5).Info("Object already deleted, skipping delete for", nodeToDelete.identity.Kind, nodeToDelete.identity.Name, "Namespace", nodeToDelete.identity.Namespace)
 			return nil
 		}

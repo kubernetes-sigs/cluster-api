@@ -371,7 +371,7 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 	if in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || prev.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 		return allErrs
 	}
-	//return if either current or target versions is empty
+	// return if either current or target versions is empty
 	if prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" || in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" {
 		return allErrs
 	}

@@ -21,7 +21,7 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 // Conditions and condition Reasons for the KubeadmControlPlane object
 
 const (
-	// MachinesReady reports an aggregate of current status of the machines controlled by the KubeadmControlPlane.
+	// MachinesReadyCondition reports an aggregate of current status of the machines controlled by the KubeadmControlPlane.
 	MachinesReadyCondition clusterv1.ConditionType = "MachinesReady"
 )
 

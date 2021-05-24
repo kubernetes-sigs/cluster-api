@@ -107,7 +107,7 @@ func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectR
 	return GetObjectReference(to), nil
 }
 
-// GenerateTemplate input is everything needed to generate a new template.
+// GenerateTemplateInput is the input needed to generate a new template.
 type GenerateTemplateInput struct {
 	// Template is the TemplateRef turned into an unstructured.
 	// +required

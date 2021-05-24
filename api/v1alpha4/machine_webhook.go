@@ -18,8 +18,9 @@ package v1alpha4
 
 import (
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/version"
 	"strings"
+
+	"sigs.k8s.io/cluster-api/util/version"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"

@@ -6,6 +6,7 @@ linters:
   - deadcode
   - depguard
   - dogsled
+  - exportloopref
   - errcheck
   - goconst
   - gocritic
@@ -23,11 +24,9 @@ linters:
   - nolintlint
   - prealloc
   - rowserrcheck
-  - scopelint
   - staticcheck
   - structcheck
   - stylecheck
-  - testpackage
   - typecheck
   - unconvert
   - unparam
@@ -43,20 +42,44 @@ issues:
   exclude-use-default: false
   # List of regexps of issue texts to exclude, empty list by default.
   exclude:
-    - Using the variable on range scope `(tc)|(rt)|(tt)|(test)|(testcase)|(testCase)` in function literal
-    - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
-    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-    # The following are being worked on to remove their exclusion. This list should be reduced or go away all together over time.
-    # If it is decided they will not be addressed they should be moved above this comment.
-    - Subprocess launch(ed with variable|ing should be audited)
-    - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
-    - (G104|G307)
+  - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
+  - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+  - exported method `.*.Reconcile` should have comment or be unexported
+  - exported method `.*.SetupWithManager` should have comment or be unexported
+  # The following are being worked on to remove their exclusion. This list should be reduced or go away all together over time.
+  # If it is decided they will not be addressed they should be moved above this comment.
+  - Subprocess launch(ed with variable|ing should be audited)
+  - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
+  - (G104|G307)
+  - exported (method|function|type|const) (.+) should have comment or be unexported
+  exclude-rules:
+  # With Go 1.16, the new embed directive can be used with an un-named import,
+  # golint only allows these to be imported in a main.go, which wouldn't work for us.
+  # This directive allows the embed package to be imported with an underscore everywhere.
+  - linters:
+    - golint
+    source: _ "embed"
+  # Disable unparam "always receives" which might not be really
+  # useful when building libraries.
+  - linters:
+    - unparam
+    text: always receives
+  # Dot imports for gomega or ginkgo are allowed
+  # within test files.
+  - path: _test\.go
+    text: should not use dot imports
+  - path: _test\.go
+    text: cyclomatic complexity
+  - path: test/framework.*.go
+    text: should not use dot imports
+  - path: test/e2e.*.go
+    text: should not use dot imports
 
 run:
   timeout: 10m
   skip-files:
-    - "zz_generated.*\\.go$"
-    - ".*conversion.*\\.go$"
+  - "zz_generated.*\\.go$"
+  - ".*conversion.*\\.go$"
   skip-dirs:
-    - third_party
+  - third_party
   allow-parallel-runners: true

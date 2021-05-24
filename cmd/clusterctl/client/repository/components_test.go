@@ -189,7 +189,7 @@ func Test_fixTargetNamespace(t *testing.T) {
 			g := NewWithT(t)
 
 			got := fixTargetNamespace(tt.args.objs, tt.args.targetNamespace)
-			g.Expect(got).To(ContainElements(tt.want)) //skipping from test the automatically added namespace Object
+			g.Expect(got).To(ContainElements(tt.want)) // skipping from test the automatically added namespace Object
 		})
 	}
 }

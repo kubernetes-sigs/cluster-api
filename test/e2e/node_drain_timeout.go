@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// NodeDrainTimeoutInput is the input for NodeDrainTimeoutSpec.
+// NodeDrainTimeoutSpecInput is the input for NodeDrainTimeoutSpec.
 type NodeDrainTimeoutSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string

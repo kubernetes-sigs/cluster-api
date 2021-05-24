@@ -20,7 +20,7 @@ import (
 	"fmt"
 )
 
-// A more descriptive kind of error that represents an error condition that
+// MachineError is a more descriptive kind of error that represents an error condition that
 // should be set in the Machine.Status. The "Reason" field is meant for short,
 // enum-style constants meant to be interpreted by machines. The "Message"
 // field is meant to be read by humans.

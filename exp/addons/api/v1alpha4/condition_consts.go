@@ -37,6 +37,6 @@ const (
 	// RetrievingResourceFailedReason (Severity=Warning) documents at least one of the resources are not successfully retrieved.
 	RetrievingResourceFailedReason = "RetrievingResourceFailed"
 
-	// WrongSecretType (Severity=Warning) documents at least one of the Secret's type in the resource list is not supported.
+	// WrongSecretTypeReason (Severity=Warning) documents at least one of the Secret's type in the resource list is not supported.
 	WrongSecretTypeReason = "WrongSecretType"
 )

@@ -496,7 +496,7 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-// InfraProvider returns the infrastructure provider selected for running this E2E test.
+// InfrastructureProviders returns the infrastructure provider selected for running this E2E test.
 func (c *E2EConfig) InfrastructureProviders() []string {
 	InfraProviders := []string{}
 	for _, provider := range c.Providers {

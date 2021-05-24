@@ -44,10 +44,13 @@ const (
 	customResourceDefinitionKind       = "CustomResourceDefinition"
 	deploymentKind                     = "Deployment"
 
-	WebhookNamespaceName = "capi-webhook-system"
-
 	controllerContainerName = "manager"
 	namespaceArgPrefix      = "--namespace="
+)
+
+const (
+	// WebhookNamespaceName is the namespace used to deploy Cluster API webhooks.
+	WebhookNamespaceName = "capi-webhook-system"
 )
 
 // Components wraps a YAML file that defines the provider components
@@ -199,7 +202,7 @@ type ComponentsInput struct {
 // 4. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
 // 5. Set the watching namespace for the provider controller
 // 6. Adds labels to all the components in order to allow easy identification of the provider objects.
-func NewComponents(input ComponentsInput) (*components, error) {
+func NewComponents(input ComponentsInput) (Components, error) {
 	variables, err := input.Processor.GetVariables(input.RawYaml)
 	if err != nil {
 		return nil, err

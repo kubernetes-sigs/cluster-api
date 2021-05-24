@@ -99,7 +99,7 @@ func (p *providerComponents) createObj(obj unstructured.Unstructured) error {
 			return errors.Wrapf(err, "failed to get current provider object")
 		}
 
-		//if it does not exists, create the component
+		// if it does not exists, create the component
 		log.V(5).Info("Creating", logf.UnstructuredToValues(obj)...)
 		if err := c.Create(ctx, &obj); err != nil {
 			return errors.Wrapf(err, "failed to create provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())

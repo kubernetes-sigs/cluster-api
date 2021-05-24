@@ -215,16 +215,7 @@ e2e-framework: ## Builds the CAPI e2e framework
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(MAKE) -j8 lint-all
-
-.PHONY: lint-all lint-core lint-e2e lint-capd
-lint-all: lint-core lint-e2e lint-capd
-lint-core:
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-lint-e2e:
-	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-lint-capd:
-	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter.

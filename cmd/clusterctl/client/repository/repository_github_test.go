@@ -301,7 +301,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 	// setup an handler for returning no releases
 	mux.HandleFunc("/repos/o/r2/releases", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		//no releases
+		// no releases
 	})
 
 	// setup an handler for returning fake prereleases only
@@ -439,7 +439,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType) //tree/master/path not relevant for the test
+	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType) // tree/master/path not relevant for the test
 
 	// test.NewFakeGitHub an handler for returning a fake release asset
 	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
@@ -506,7 +506,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 					TagName: &tagName,
 					Assets: []*github.ReleaseAsset{
 						{
-							ID:   &id2, //id does not match any file (this should not happen)
+							ID:   &id2, // id does not match any file (this should not happen)
 							Name: &file,
 						},
 					},

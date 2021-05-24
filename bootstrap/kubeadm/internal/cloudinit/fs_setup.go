@@ -33,7 +33,7 @@ fs_setup:{{ range .Filesystems }}
     replace_fs: {{ .ReplaceFS }}
   {{- end }}
   {{- if .ExtraOpts }}
-    extra_opts: {{ range .ExtraOpts }}
+    extra_opts: {{- range .ExtraOpts }}
       - {{ . }}
         {{- end -}}
   {{- end -}}

@@ -79,7 +79,7 @@ type TemplateInput struct {
 }
 
 // NewTemplate returns a new objects embedding a cluster template YAML file.
-func NewTemplate(input TemplateInput) (*template, error) {
+func NewTemplate(input TemplateInput) (Template, error) {
 	variables, err := input.Processor.GetVariables(input.RawArtifact)
 	if err != nil {
 		return nil, err

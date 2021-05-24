@@ -38,6 +38,7 @@ import (
 )
 
 var (
+	// ErrDependentCertificateNotFound signals that a CA secret could not be found.
 	ErrDependentCertificateNotFound = errors.New("could not find secret ca")
 )
 

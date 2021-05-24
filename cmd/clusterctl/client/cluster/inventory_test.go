@@ -67,7 +67,7 @@ func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 			proxy := test.NewFakeProxy()
 			p := newInventoryClient(proxy, fakePollImmediateWaiter)
 			if tt.fields.alreadyHasCRD {
-				//forcing creation of metadata before test
+				// forcing creation of metadata before test
 				g.Expect(p.EnsureCustomResourceDefinitions()).To(Succeed())
 			}
 

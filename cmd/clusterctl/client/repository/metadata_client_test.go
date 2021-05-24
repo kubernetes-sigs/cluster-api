@@ -73,7 +73,7 @@ func Test_metadataClient_Get(t *testing.T) {
 			fields: fields{
 				provider: config.NewProvider("p1", "", clusterctlv1.CoreProviderType),
 				version:  "v1.0.0",
-				repository: test.NewFakeRepository(). //repository without a metadata file
+				repository: test.NewFakeRepository(). // repository without a metadata file
 									WithPaths("root", "").
 									WithDefaultVersion("v1.0.0"),
 			},

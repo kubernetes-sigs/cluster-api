@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 )
 
-// etcdClientGenerator generates etcd clients that connect to specific etcd members on particular control plane nodes.
-type etcdClientGenerator struct {
+// EtcdClientGenerator generates etcd clients that connect to specific etcd members on particular control plane nodes.
+type EtcdClientGenerator struct {
 	restConfig   *rest.Config
 	tlsConfig    *tls.Config
 	createClient clientCreator
@@ -38,8 +38,8 @@ type etcdClientGenerator struct {
 type clientCreator func(ctx context.Context, endpoints []string) (*etcd.Client, error)
 
 // NewEtcdClientGenerator returns a new etcdClientGenerator instance.
-func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config) *etcdClientGenerator {
-	ecg := &etcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
+func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config) *EtcdClientGenerator {
+	ecg := &EtcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
 
 	ecg.createClient = func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 		p := proxy.Proxy{
@@ -56,7 +56,7 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config) *etc
 }
 
 // forFirstAvailableNode takes a list of nodes and returns a client for the first one that connects.
-func (c *etcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
+func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
 	var errs []error
 	for _, name := range nodeNames {
 		endpoints := []string{staticPodName("etcd", name)}
@@ -71,7 +71,7 @@ func (c *etcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNam
 }
 
 // forLeader takes a list of nodes and returns a client to the leader node.
-func (c *etcdClientGenerator) forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
+func (c *EtcdClientGenerator) forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
 	var errs []error
 
 	for _, nodeName := range nodeNames {

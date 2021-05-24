@@ -17,9 +17,10 @@ limitations under the License.
 package version
 
 import (
+	"testing"
+
 	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestParseMajorMinorPatch(t *testing.T) {

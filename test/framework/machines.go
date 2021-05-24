@@ -27,13 +27,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// WaitForClusterMachineNodesRefsInput is the input for WaitForClusterMachineNodesRefs.
+// WaitForClusterMachineNodeRefsInput is the input for WaitForClusterMachineNodesRefs.
 type WaitForClusterMachineNodeRefsInput struct {
 	GetLister GetLister
 	Cluster   *clusterv1.Cluster
 }
 
-// WaitForClusterMachineNodesRefs waits until all nodes associated with a machine deployment exist.
+// WaitForClusterMachineNodeRefs waits until all nodes associated with a machine deployment exist.
 func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMachineNodeRefsInput, intervals ...interface{}) {
 	By("Waiting for the machines' nodes to exist")
 	machines := &clusterv1.MachineList{}

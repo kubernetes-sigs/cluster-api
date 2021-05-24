@@ -1183,12 +1183,12 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 			APIVersion: "CustomResourceDefinition",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s.%s", strings.ToLower(kind), group), //NB. this technically should use plural(kind), but for the sake of test what really matters is to generate a unique name
+			Name: fmt.Sprintf("%s.%s", strings.ToLower(kind), group), // NB. this technically should use plural(kind), but for the sake of test what really matters is to generate a unique name
 			Labels: map[string]string{
 				clusterctlv1.ClusterctlLabelName: "",
 			},
 		},
-		Spec: apiextensionslv1.CustomResourceDefinitionSpec{ //NB. the spec contains only what is strictly required by the move test
+		Spec: apiextensionslv1.CustomResourceDefinitionSpec{ // NB. the spec contains only what is strictly required by the move test
 			Group: group,
 			Names: apiextensionslv1.CustomResourceDefinitionNames{
 				Kind: kind,

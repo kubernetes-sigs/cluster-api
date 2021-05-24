@@ -41,6 +41,7 @@ var (
 	verbosity *int
 )
 
+// RootCmd is clusterctl root CLI command.
 var RootCmd = &cobra.Command{
 	Use:          "clusterctl",
 	SilenceUsage: true,

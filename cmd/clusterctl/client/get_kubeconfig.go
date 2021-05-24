@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//GetKubeconfigOptions carries all the options supported by GetKubeconfig.
+// GetKubeconfigOptions carries all the options supported by GetKubeconfig.
 type GetKubeconfigOptions struct {
 	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
 	// default rules for kubeconfig discovery will be used.

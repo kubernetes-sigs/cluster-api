@@ -19,15 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/feature"
 	"time"
-
-	"sigs.k8s.io/cluster-api/util/collections"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,8 +34,11 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"

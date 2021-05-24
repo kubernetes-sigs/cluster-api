@@ -21,12 +21,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GenericControlPlaneSpec contains a generic control plane spec.
 type GenericControlPlaneSpec struct {
 	InfrastructureTemplate corev1.ObjectReference `json:"infrastructureTemplate"`
 }
 
 // +kubebuilder:object:root=true
 
+// GenericControlPlane is a generic representation of a control plane.
 type GenericControlPlane struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -35,6 +37,7 @@ type GenericControlPlane struct {
 
 // +kubebuilder:object:root=true
 
+// GenericControlPlaneList is list of generic control planes.
 type GenericControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

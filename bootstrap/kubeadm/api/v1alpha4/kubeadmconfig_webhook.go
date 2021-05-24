@@ -27,10 +27,10 @@ import (
 )
 
 var (
-	ConflictingFileSourceMsg = "only one of content or contentFrom may be specified for a single file"
-	MissingSecretNameMsg     = "secret file source must specify non-empty secret name"
-	MissingSecretKeyMsg      = "secret file source must specify non-empty secret key"
-	PathConflictMsg          = "path property must be unique among all files"
+	conflictingFileSourceMsg = "only one of content or contentFrom may be specified for a single file"
+	missingSecretNameMsg     = "secret file source must specify non-empty secret name"
+	missingSecretKeyMsg      = "secret file source must specify non-empty secret key"
+	pathConflictMsg          = "path property must be unique among all files"
 )
 
 func (c *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -71,7 +71,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 				field.Invalid(
 					field.NewPath("spec", "files", fmt.Sprintf("%d", i)),
 					file,
-					ConflictingFileSourceMsg,
+					conflictingFileSourceMsg,
 				),
 			)
 		}
@@ -85,7 +85,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 					field.Invalid(
 						field.NewPath("spec", "files", fmt.Sprintf("%d", i), "contentFrom", "secret", "name"),
 						file,
-						MissingSecretNameMsg,
+						missingSecretNameMsg,
 					),
 				)
 			}
@@ -95,7 +95,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 					field.Invalid(
 						field.NewPath("spec", "files", fmt.Sprintf("%d", i), "contentFrom", "secret", "key"),
 						file,
-						MissingSecretKeyMsg,
+						missingSecretKeyMsg,
 					),
 				)
 			}
@@ -107,7 +107,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 				field.Invalid(
 					field.NewPath("spec", "files", fmt.Sprintf("%d", i), "path"),
 					file,
-					PathConflictMsg,
+					pathConflictMsg,
 				),
 			)
 		}

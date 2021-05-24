@@ -61,7 +61,10 @@ const (
 
 var (
 	minVerKubeletSystemdDriver = semver.MustParse("1.21.0")
-	ErrControlPlaneMinNodes    = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
+
+	// ErrControlPlaneMinNodes signals that a cluster doesn't meet the minimum required nodes
+	// to remove an etcd memnber.
+	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
 )
 
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster

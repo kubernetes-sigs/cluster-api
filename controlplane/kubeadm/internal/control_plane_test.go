@@ -17,8 +17,9 @@ limitations under the License.
 package internal
 
 import (
-	"sigs.k8s.io/cluster-api/util/collections"
 	"testing"
+
+	"sigs.k8s.io/cluster-api/util/collections"
 
 	. "github.com/onsi/gomega"
 

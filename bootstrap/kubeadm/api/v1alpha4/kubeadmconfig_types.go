@@ -204,7 +204,7 @@ type FileSource struct {
 	Secret SecretFileSource `json:"secret"`
 }
 
-// Adapts a Secret into a FileSource.
+// SecretFileSource adapts a Secret into a FileSource.
 //
 // The contents of the target Secret's Data field will be presented
 // as files using the keys in the Data field as the file names.

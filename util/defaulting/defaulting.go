@@ -26,7 +26,7 @@ import (
 
 // DefaultingValidator interface is for objects that define both defaulting
 // and validating webhooks.
-type DefaultingValidator interface {
+type DefaultingValidator interface { //nolint:golint
 	admission.Defaulter
 	admission.Validator
 }

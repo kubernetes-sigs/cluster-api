@@ -35,18 +35,18 @@ const (
 
 // KindClusterOption is a NewKindClusterProvider option.
 type KindClusterOption interface {
-	apply(*kindClusterProvider)
+	apply(*KindClusterProvider)
 }
 
-type kindClusterOptionAdapter func(*kindClusterProvider)
+type kindClusterOptionAdapter func(*KindClusterProvider)
 
-func (adapter kindClusterOptionAdapter) apply(kindClusterProvider *kindClusterProvider) {
+func (adapter kindClusterOptionAdapter) apply(kindClusterProvider *KindClusterProvider) {
 	adapter(kindClusterProvider)
 }
 
 // WithNodeImage implements a New Option that instruct the kindClusterProvider to use a specific node image / Kubernetes version.
 func WithNodeImage(image string) KindClusterOption {
-	return kindClusterOptionAdapter(func(k *kindClusterProvider) {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
 		k.nodeImage = image
 	})
 }
@@ -54,7 +54,7 @@ func WithNodeImage(image string) KindClusterOption {
 // WithDockerSockMount implements a New Option that instruct the kindClusterProvider to mount /var/run/docker.sock into
 // the new kind cluster.
 func WithDockerSockMount() KindClusterOption {
-	return kindClusterOptionAdapter(func(k *kindClusterProvider) {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
 		k.withDockerSock = true
 	})
 }
@@ -62,16 +62,16 @@ func WithDockerSockMount() KindClusterOption {
 // WithIPv6Family implements a New Option that instruct the kindClusterProvider to set the IPFamily to IPv6 in
 // the new kind cluster.
 func WithIPv6Family() KindClusterOption {
-	return kindClusterOptionAdapter(func(k *kindClusterProvider) {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
 		k.ipFamily = clusterv1.IPv6IPFamily
 	})
 }
 
 // NewKindClusterProvider returns a ClusterProvider that can create a kind cluster.
-func NewKindClusterProvider(name string, options ...KindClusterOption) *kindClusterProvider {
+func NewKindClusterProvider(name string, options ...KindClusterOption) *KindClusterProvider {
 	Expect(name).ToNot(BeEmpty(), "name is required for NewKindClusterProvider")
 
-	clusterProvider := &kindClusterProvider{
+	clusterProvider := &KindClusterProvider{
 		name: name,
 	}
 	for _, option := range options {
@@ -80,8 +80,8 @@ func NewKindClusterProvider(name string, options ...KindClusterOption) *kindClus
 	return clusterProvider
 }
 
-// kindClusterProvider implements a ClusterProvider that can create a kind cluster.
-type kindClusterProvider struct {
+// KindClusterProvider implements a ClusterProvider that can create a kind cluster.
+type KindClusterProvider struct {
 	name           string
 	withDockerSock bool
 	kubeconfigPath string
@@ -90,7 +90,7 @@ type kindClusterProvider struct {
 }
 
 // Create a Kubernetes cluster using kind.
-func (k *kindClusterProvider) Create(ctx context.Context) {
+func (k *KindClusterProvider) Create(ctx context.Context) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Create")
 
 	// Sets the kubeconfig path to a temp file.
@@ -106,7 +106,7 @@ func (k *kindClusterProvider) Create(ctx context.Context) {
 // createKindCluster calls the kind library taking care of passing options for:
 // - use a dedicated kubeconfig file (test should not alter the user environment)
 // - if required, mount /var/run/docker.sock.
-func (k *kindClusterProvider) createKindCluster() {
+func (k *KindClusterProvider) createKindCluster() {
 	kindCreateOptions := []kind.CreateOption{
 		kind.CreateWithKubeconfigPath(k.kubeconfigPath),
 	}
@@ -155,12 +155,12 @@ func setDockerSockConfig(cfg *kindv1.Cluster) {
 }
 
 // GetKubeconfigPath returns the path to the kubeconfig file for the cluster.
-func (k *kindClusterProvider) GetKubeconfigPath() string {
+func (k *KindClusterProvider) GetKubeconfigPath() string {
 	return k.kubeconfigPath
 }
 
 // Dispose the kind cluster and its kubeconfig file.
-func (k *kindClusterProvider) Dispose(ctx context.Context) {
+func (k *KindClusterProvider) Dispose(ctx context.Context) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Dispose")
 
 	if err := kind.NewProvider().Delete(k.name, k.kubeconfigPath); err != nil {

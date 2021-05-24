@@ -49,7 +49,7 @@ type viperReader struct {
 
 type viperReaderOption func(*viperReader)
 
-func InjectConfigPaths(configPaths []string) viperReaderOption {
+func injectConfigPaths(configPaths []string) viperReaderOption {
 	return func(vr *viperReader) {
 		vr.configPaths = configPaths
 	}

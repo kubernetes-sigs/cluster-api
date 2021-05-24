@@ -39,6 +39,7 @@ const (
 	ciArtifactImage = "gcr.io/k8s-staging-ci-images/conformance"
 )
 
+// Export Ginkgo constants.
 const (
 	DefaultGinkgoNodes            = 1
 	DefaultGinkoSlowSpecThreshold = 120

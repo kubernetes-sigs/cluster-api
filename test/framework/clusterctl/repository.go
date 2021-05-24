@@ -42,7 +42,8 @@ const (
 	httpsURIScheme = "https"
 )
 
-// Provides helpers for managing a clusterctl local repository to be used for running e2e tests in isolation.
+// RepositoryFileTransformation is a helpers for managing a clusterctl
+// local repository to be used for running e2e tests in isolation.
 type RepositoryFileTransformation func([]byte) ([]byte, error)
 
 // CreateRepositoryInput is the input for CreateRepository.

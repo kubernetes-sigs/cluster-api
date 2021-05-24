@@ -38,7 +38,7 @@ type DiscoverMachineHealthCheckAndWaitForRemediationInput struct {
 	WaitForMachineRemediation []interface{}
 }
 
-// DiscoverMachineHealthCheckAndWaitForRemediation patches an unhealthy node condition to one node observed by the Machine Health Check and then wait for remediation.
+// DiscoverMachineHealthChecksAndWaitForRemediation patches an unhealthy node condition to one node observed by the Machine Health Check and then wait for remediation.
 func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input DiscoverMachineHealthCheckAndWaitForRemediationInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoverMachineHealthChecksAndWaitForRemediation")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DiscoverMachineHealthChecksAndWaitForRemediation")

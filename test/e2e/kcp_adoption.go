@@ -40,7 +40,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// KCPUpgradeSpecInput is the input for KCPUpgradeSpec.
+// KCPAdoptionSpecInput is the input for KCPAdoptionSpec.
 type KCPAdoptionSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string

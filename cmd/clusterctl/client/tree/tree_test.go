@@ -707,7 +707,7 @@ func Test_Add_Grouping(t *testing.T) {
 
 type clusterOption func(*clusterv1.Cluster)
 
-func fakeCluster(name string, options ...clusterOption) *clusterv1.Cluster { // nolint:unparam
+func fakeCluster(name string, options ...clusterOption) *clusterv1.Cluster {
 	c := &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Cluster",

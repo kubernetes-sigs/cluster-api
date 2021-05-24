@@ -45,7 +45,6 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
 	cluster.Spec.ControlPlaneEndpoint.Host = Host
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
-	//kcp.Spec.Version = Version
 	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
 	kcp.Spec.Replicas = pointer.Int32Ptr(1)
 	setKCPHealthy(kcp)
@@ -135,7 +134,6 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	cluster, kcp, tmpl := createClusterWithControlPlane()
 	cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com1"
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
-	//kcp.Spec.Version = Version
 	kcp.Spec.Replicas = pointer.Int32Ptr(3)
 	kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
 	setKCPHealthy(kcp)

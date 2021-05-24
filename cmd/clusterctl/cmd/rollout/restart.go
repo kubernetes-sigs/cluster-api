@@ -64,7 +64,7 @@ func NewCmdRolloutRestart(cfgFile string) *cobra.Command {
 	return cmd
 }
 
-func runRestart(cfgFile string, cmd *cobra.Command, args []string) error {
+func runRestart(cfgFile string, _ *cobra.Command, args []string) error {
 	restartOpt.resources = args
 
 	c, err := client.New(cfgFile)

@@ -40,7 +40,7 @@ func (m *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &MachineSet{}
 var _ webhook.Validator = &MachineSet{}
 
-// DefaultingFunction sets default MachineSet field values.
+// Default sets default MachineSet field values.
 func (m *MachineSet) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)

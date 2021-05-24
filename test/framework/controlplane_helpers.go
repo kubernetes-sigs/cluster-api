@@ -108,7 +108,7 @@ func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitFo
 	}, intervals...).Should(Equal(int(*input.ControlPlane.Spec.Replicas)))
 }
 
-// WaitForOneKubeadmControlPlaneMachinesToExistInput is the input for WaitForKubeadmControlPlaneMachinesToExist.
+// WaitForOneKubeadmControlPlaneMachineToExistInput is the input for WaitForKubeadmControlPlaneMachinesToExist.
 type WaitForOneKubeadmControlPlaneMachineToExistInput struct {
 	Lister       Lister
 	Cluster      *clusterv1.Cluster

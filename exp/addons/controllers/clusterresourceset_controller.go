@@ -50,6 +50,7 @@ import (
 )
 
 var (
+	// ErrSecretTypeNotSupported signals that a Secret is not supported.
 	ErrSecretTypeNotSupported = errors.New("unsupported secret type")
 )
 

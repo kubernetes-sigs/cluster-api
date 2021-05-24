@@ -190,7 +190,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	machine := newMachine(cluster, "machine")
 	config := newKubeadmConfig(machine, "cfg")
 
-	//cluster infra not ready
+	// cluster infra not ready
 	cluster.Status = clusterv1.ClusterStatus{
 		InfrastructureReady: false,
 	}

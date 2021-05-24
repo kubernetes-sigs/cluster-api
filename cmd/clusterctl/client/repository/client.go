@@ -150,7 +150,7 @@ type Repository interface {
 
 var _ Repository = &test.FakeRepository{}
 
-//repositoryFactory returns the repository implementation corresponding to the provider URL.
+// repositoryFactory returns the repository implementation corresponding to the provider URL.
 func repositoryFactory(providerConfig config.Provider, configVariablesClient config.VariablesClient) (Repository, error) {
 	// parse the repository url
 	rURL, err := url.Parse(providerConfig.URL())

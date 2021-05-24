@@ -23,7 +23,6 @@ import (
 
 	"k8s.io/utils/pointer"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	infrav1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -36,10 +35,10 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 			Header:              "test",
 			PreKubeadmCommands:  nil,
 			PostKubeadmCommands: nil,
-			AdditionalFiles: []infrav1.File{
+			AdditionalFiles: []bootstrapv1.File{
 				{
 					Path:     "/tmp/my-path",
-					Encoding: infrav1.Base64,
+					Encoding: bootstrapv1.Base64,
 					Content:  "aGk=",
 				},
 				{
@@ -167,7 +166,7 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
   - label: test_disk
     filesystem: ext4
     device: test-device
-    extra_opts: 
+    extra_opts:
       - -F
       - -E
       - lazy_itable_init=1,lazy_journal_init=1`
@@ -175,7 +174,7 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
   - - test_disk
     - /var/lib/testdir`
 
-	g.Expect(out).To(ContainSubstring(expectedDiskSetup))
-	g.Expect(out).To(ContainSubstring(expectedFSSetup))
-	g.Expect(out).To(ContainSubstring(expectedMounts))
+	g.Expect(string(out)).To(ContainSubstring(expectedDiskSetup))
+	g.Expect(string(out)).To(ContainSubstring(expectedFSSetup))
+	g.Expect(string(out)).To(ContainSubstring(expectedMounts))
 }

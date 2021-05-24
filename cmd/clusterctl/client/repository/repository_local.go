@@ -28,6 +28,10 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
 
+const (
+	latestVersionTag = "latest"
+)
+
 // localRepository provides support for providers located on the local filesystem.
 // As part of the provider object, the URL is expected to contain the absolute
 // path to the components yaml on the local filesystem.
@@ -83,7 +87,7 @@ func (r *localRepository) ComponentsPath() string {
 func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
 	var err error
 
-	if version == "latest" {
+	if version == latestVersionTag {
 		version, err = r.getLatestRelease()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get the latest release")
@@ -162,7 +166,7 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 
 	componentsPath := urlSplit[len(urlSplit)-1]
 	defaultVersion := urlSplit[len(urlSplit)-2]
-	if defaultVersion != "latest" {
+	if defaultVersion != latestVersionTag {
 		_, err = version.ParseSemantic(defaultVersion)
 		if err != nil {
 			return nil, errors.Errorf("invalid version: %q. Version must obey the syntax and semantics of the \"Semantic Versioning\" specification (http://semver.org/) and path format {basepath}/{provider-name}/{version}/{components.yaml}", defaultVersion)
@@ -187,7 +191,7 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 		componentsPath:        componentsPath,
 	}
 
-	if defaultVersion == "latest" {
+	if defaultVersion == latestVersionTag {
 		repo.defaultVersion, err = repo.getLatestRelease()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get latest version")

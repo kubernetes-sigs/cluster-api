@@ -22,6 +22,8 @@ import (
 	"fmt"
 )
 
+// KubectlApply shells out to kubectl apply.
+//
 // TODO: Remove this usage of kubectl and replace with a function from apply.go using the controller-runtime client.
 func KubectlApply(ctx context.Context, kubeconfigPath string, resources []byte, args ...string) error {
 	aargs := append([]string{"apply", "--kubeconfig", kubeconfigPath, "-f", "-"}, args...)
@@ -40,6 +42,7 @@ func KubectlApply(ctx context.Context, kubeconfigPath string, resources []byte, 
 	return nil
 }
 
+// KubectlWait shells out to kubectl wait.
 func KubectlWait(ctx context.Context, kubeconfigPath string, args ...string) error {
 	wargs := append([]string{"wait", "--kubeconfig", kubeconfigPath}, args...)
 	wait := NewCommand(

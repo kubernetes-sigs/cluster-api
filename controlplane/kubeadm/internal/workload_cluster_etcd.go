@@ -196,7 +196,8 @@ type EtcdMemberStatus struct {
 	Responsive bool
 }
 
-// EtcdStatus returns the current status of the etcd cluster
+// EtcdMembers returns the current set of members in an etcd cluster.
+//
 // NOTE: This methods uses control plane machines/nodes only to get in contact with etcd,
 // but then it relies on etcd as ultimate source of truth for the list of members.
 // This is intended to allow informed decisions on actions impacting etcd quorum.

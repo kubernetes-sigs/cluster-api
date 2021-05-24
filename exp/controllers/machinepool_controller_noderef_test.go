@@ -134,7 +134,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			name:           "valid provider id, no node found",
 			providerIDList: []string{"aws:///id-node-100"},
 			expected:       nil,
-			err:            ErrNoAvailableNodes,
+			err:            errNoAvailableNodes,
 		},
 	}
 

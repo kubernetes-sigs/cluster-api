@@ -63,7 +63,7 @@ type node struct {
 	// virtual records if this node was discovered indirectly, e.g. by processing an OwnerRef, but not yet observed as a concrete object.
 	virtual bool
 
-	//newID stores the new UID the objects gets once created in the target cluster.
+	// newID stores the new UID the objects gets once created in the target cluster.
 	newUID types.UID
 
 	// tenantClusters define the list of Clusters which are tenant for the node, no matter if the node has a direct OwnerReference to the Cluster or if

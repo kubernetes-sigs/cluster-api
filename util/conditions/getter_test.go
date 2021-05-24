@@ -131,7 +131,7 @@ func TestSummary(t *testing.T) {
 	foo := TrueCondition("foo")
 	bar := FalseCondition("bar", "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
 	baz := FalseCondition("baz", "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2")
-	existingReady := FalseCondition(clusterv1.ReadyCondition, "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") //NB. existing ready has higher priority than other conditions
+	existingReady := FalseCondition(clusterv1.ReadyCondition, "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. existing ready has higher priority than other conditions
 
 	tests := []struct {
 		name    string
@@ -239,7 +239,7 @@ func TestSummary(t *testing.T) {
 func TestAggregate(t *testing.T) {
 	ready1 := TrueCondition(clusterv1.ReadyCondition)
 	ready2 := FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
-	bar := FalseCondition("bar", "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") //NB. bar has higher priority than other conditions
+	bar := FalseCondition("bar", "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. bar has higher priority than other conditions
 
 	tests := []struct {
 		name string

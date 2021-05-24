@@ -31,7 +31,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -440,13 +439,13 @@ kind: ClusterConfiguration
 			if tt.expectUpdates {
 				// assert kubeadmConfigMap
 				var expectedKubeadmConfigMap corev1.ConfigMap
-				g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
+				g.Expect(testEnv.Get(ctx, client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
 				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring(tt.kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)))
 				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring(tt.kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageRepository)))
 
 				// assert CoreDNS corefile
 				var expectedConfigMap corev1.ConfigMap
-				g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+				g.Expect(testEnv.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 				g.Expect(expectedConfigMap.Data).To(HaveLen(2))
 				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
 				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", expectedCorefile))
@@ -454,7 +453,7 @@ kind: ClusterConfiguration
 				// assert CoreDNS deployment
 				var actualDeployment appsv1.Deployment
 				g.Eventually(func() string {
-					g.Expect(testEnv.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+					g.Expect(testEnv.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
 					return actualDeployment.Spec.Template.Spec.Containers[0].Image
 				}, "5s").Should(Equal(tt.expectImage))
 			}
@@ -605,7 +604,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		g.Expect(fakeMigrator.migrateCalled).To(BeTrue())
 
 		var expectedConfigMap corev1.ConfigMap
-		g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 		g.Expect(expectedConfigMap.Data).To(HaveLen(1))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", originalCorefile))
 	})
@@ -636,7 +635,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 
 		var expectedConfigMap corev1.ConfigMap
-		g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 		g.Expect(expectedConfigMap.Data).To(HaveLen(2))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", originalCorefile))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", originalCorefile))
@@ -683,11 +682,11 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		}
 
 		var actualDeployment appsv1.Deployment
-		g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
 		g.Expect(actualDeployment.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolume))
 
 		var expectedConfigMap corev1.ConfigMap
-		g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 		g.Expect(expectedConfigMap.Data).To(HaveLen(2))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
 		g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", originalCorefile))
@@ -1061,7 +1060,7 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 			}
 
 			var actualDeployment appsv1.Deployment
-			g.Expect(fakeClient.Get(ctx, ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
 			// ensure the image is updated and the volumes point to the corefile
 			g.Expect(actualDeployment.Spec.Template.Spec.Containers[0].Image).To(Equal(tt.info.ToImage))
 			g.Expect(actualDeployment.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolume))

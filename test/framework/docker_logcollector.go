@@ -19,14 +19,14 @@ package framework
 import (
 	"context"
 	"fmt"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"os"
 	osExec "os/exec"
 	"path/filepath"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"strings"
 
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kind/pkg/errors"
 	"sigs.k8s.io/kind/pkg/exec"

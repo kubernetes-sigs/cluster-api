@@ -55,7 +55,7 @@ const (
 // Conditions and condition Reasons for the Cluster object
 
 const (
-	// ControlPlaneReady reports the ready condition from the control plane object defined for this cluster.
+	// ControlPlaneReadyCondition reports the ready condition from the control plane object defined for this cluster.
 	// This condition is mirrored from the Ready condition in the control plane ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
 	// the control plane provider does not not implements the Ready condition yet.
@@ -173,7 +173,7 @@ const (
 	// allowed to remediate any Machines or whether it is blocked from remediating any further.
 	RemediationAllowedCondition ConditionType = "RemediationAllowed"
 
-	// TooManyUnhealthy is the reason used when too many Machines are unhealthy and the MachineHealthCheck is blocked
+	// TooManyUnhealthyReason is the reason used when too many Machines are unhealthy and the MachineHealthCheck is blocked
 	// from making any further remediations.
 	TooManyUnhealthyReason = "TooManyUnhealthy"
 )

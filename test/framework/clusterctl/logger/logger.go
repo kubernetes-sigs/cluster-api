@@ -54,7 +54,7 @@ func (l *logger) Error(err error, msg string, kvs ...interface{}) {
 	panic("using log.Error is deprecated in clusterctl")
 }
 
-func (l *logger) V(level int) logr.InfoLogger {
+func (l *logger) V(level int) logr.Logger {
 	nl := l.clone()
 	return nl
 }

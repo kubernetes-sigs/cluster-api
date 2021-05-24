@@ -26,11 +26,13 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
+// Core providers.
 const (
-	// Core providers.
 	ClusterAPIProviderName = "cluster-api"
+)
 
-	// Infra providers.
+// Infra providers.
+const (
 	AWSProviderName       = "aws"
 	AzureProviderName     = "azure"
 	DockerProviderName    = "docker"
@@ -41,18 +43,24 @@ const (
 	PacketProviderName    = "packet"
 	SideroProviderName    = "sidero"
 	VSphereProviderName   = "vsphere"
+)
 
-	// Bootstrap providers.
+// Bootstrap providers.
+const (
 	KubeadmBootstrapProviderName = "kubeadm"
 	TalosBootstrapProviderName   = "talos"
 	AWSEKSBootstrapProviderName  = "aws-eks"
+)
 
-	// ControlPlane providers.
+// ControlPlane providers.
+const (
 	KubeadmControlPlaneProviderName = "kubeadm"
 	TalosControlPlaneProviderName   = "talos"
 	AWSEKSControlPlaneProviderName  = "aws-eks"
+)
 
-	// Other.
+// Other.
+const (
 	ProvidersConfigKey = "providers"
 )
 
@@ -238,7 +246,7 @@ func (p *providersClient) Get(name string, providerType clusterctlv1.ProviderTyp
 		return nil, err
 	}
 
-	provider := NewProvider(name, "", providerType) //Nb. Having the url empty is fine because the url is not considered by SameAs.
+	provider := NewProvider(name, "", providerType) // NB. Having the url empty is fine because the url is not considered by SameAs.
 	for _, r := range l {
 		if r.SameAs(provider) {
 			return r, nil

@@ -112,7 +112,7 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 		},
 		{
 			name: "fails with overlapping core providers",
-			fields: fields{ //two core providers watching for the same namespaces
+			fields: fields{ // two core providers watching for the same namespaces
 				proxy: test.NewFakeProxy().
 					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system1", "").
 					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system2", ""),
@@ -122,7 +122,7 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 		},
 		{
 			name: "fails with overlapping core providers",
-			fields: fields{ //a provider watching for objects controlled by more than one core provider
+			fields: fields{ // a provider watching for objects controlled by more than one core provider
 				proxy: test.NewFakeProxy().
 					WithProviderInventory("infrastructure", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system", "").
 					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system1", "ns1").
@@ -133,7 +133,7 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 		},
 		{
 			name: "fails with orphan providers",
-			fields: fields{ //a provider watching for objects not controlled any core provider
+			fields: fields{ // a provider watching for objects not controlled any core provider
 				proxy: test.NewFakeProxy().
 					WithProviderInventory("infrastructure", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system", "ns1").
 					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system1", "ns2"),

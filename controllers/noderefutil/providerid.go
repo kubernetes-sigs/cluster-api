@@ -24,7 +24,10 @@ import (
 )
 
 var (
-	ErrEmptyProviderID   = errors.New("providerID is empty")
+	// ErrEmptyProviderID means that the provider id is empty.
+	ErrEmptyProviderID = errors.New("providerID is empty")
+
+	// ErrInvalidProviderID means that the provider id has an invalid form.
 	ErrInvalidProviderID = errors.New("providerID must be of the form <cloudProvider>://<optional>/<segments>/<provider id>")
 )
 

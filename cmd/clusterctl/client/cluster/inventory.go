@@ -278,7 +278,7 @@ func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
 				return errors.Wrapf(err, "failed to get current provider object")
 			}
 
-			//if it does not exists, create the provider object
+			// if it does not exists, create the provider object
 			if err := cl.Create(ctx, &m); err != nil {
 				return errors.Wrapf(err, "failed to create provider object")
 			}

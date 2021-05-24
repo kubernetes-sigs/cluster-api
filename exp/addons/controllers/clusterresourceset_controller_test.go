@@ -86,8 +86,8 @@ metadata:
 			},
 		}
 		t.Log("Creating a Secret and a ConfigMap with ConfigMap in their data field")
-		testEnv.Create(ctx, testConfigmap)
-		testEnv.Create(ctx, testSecret)
+		g.Expect(testEnv.Create(ctx, testConfigmap)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, testSecret)).To(Succeed())
 	}
 
 	teardown := func(t *testing.T, g *WithT) {
@@ -121,6 +121,15 @@ metadata:
 			err := testEnv.Get(ctx, crsKey, crs)
 			return err != nil
 		}, timeout).Should(BeTrue())
+
+		g.Expect(testEnv.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+			Name:      configmapName,
+			Namespace: defaultNamespaceName,
+		}})).To(Succeed())
+		g.Expect(testEnv.Delete(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: defaultNamespaceName,
+		}})).To(Succeed())
 	}
 
 	t.Run("Should reconcile a ClusterResourceSet with multiple resources when a cluster with matching label exists", func(t *testing.T) {

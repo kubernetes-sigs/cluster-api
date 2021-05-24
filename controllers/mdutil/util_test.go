@@ -252,7 +252,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec, reversed bool) {
+			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec) {
 				// Run
 				equal := EqualMachineTemplate(t1, t2)
 				g.Expect(equal).To(Equal(test.Expected))
@@ -260,9 +260,9 @@ func TestEqualMachineTemplate(t *testing.T) {
 				g.Expect(t2.Labels).NotTo(BeNil())
 			}
 
-			runTest(&test.Former, &test.Latter, false)
+			runTest(&test.Former, &test.Latter)
 			// Test the same case in reverse order
-			runTest(&test.Latter, &test.Former, true)
+			runTest(&test.Latter, &test.Former)
 		})
 	}
 }
@@ -712,28 +712,28 @@ func TestMaxUnavailable(t *testing.T) {
 	}
 }
 
-//Set of simple tests for annotation related util functions.
+// TestAnnotationUtils is a set of simple tests for annotation related util functions.
 func TestAnnotationUtils(t *testing.T) {
-	//Setup
+	// Setup
 	tDeployment := generateDeployment("nginx")
 	tMS := generateMS(tDeployment)
 	tDeployment.Annotations[clusterv1.RevisionAnnotation] = "1"
 	logger := klogr.New()
 
-	//Test Case 1: Check if anotations are copied properly from deployment to MS
+	// Test Case 1: Check if anotations are copied properly from deployment to MS
 	t.Run("SetNewMachineSetAnnotations", func(t *testing.T) {
 		g := NewWithT(t)
 
-		//Try to set the increment revision from 1 through 20
+		// Try to set the increment revision from 1 through 20
 		for i := 0; i < 20; i++ {
 			nextRevision := fmt.Sprintf("%d", i+1)
 			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true, logger)
-			//Now the MachineSets Revision Annotation should be i+1
+			// Now the MachineSets Revision Annotation should be i+1
 			g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.RevisionAnnotation, nextRevision))
 		}
 	})
 
-	//Test Case 2:  Check if annotations are set properly
+	// Test Case 2:  Check if annotations are set properly
 	t.Run("SetReplicasAnnotations", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -742,7 +742,7 @@ func TestAnnotationUtils(t *testing.T) {
 		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, "11"))
 	})
 
-	//Test Case 3:  Check if annotations reflect deployments state
+	// Test Case 3:  Check if annotations reflect deployments state
 	tMS.Annotations[clusterv1.DesiredReplicasAnnotation] = "1"
 	tMS.Status.AvailableReplicas = 1
 	tMS.Spec.Replicas = new(int32)
@@ -753,7 +753,6 @@ func TestAnnotationUtils(t *testing.T) {
 
 		g.Expect(IsSaturated(&tDeployment, &tMS)).To(BeTrue())
 	})
-	//Tear Down
 }
 
 func TestReplicasAnnotationsNeedUpdate(t *testing.T) {

@@ -54,6 +54,8 @@ var (
 	certManagerManifest []byte
 	//go:embed assets/cert-manager-test-resources.yaml
 	certManagerTestManifest []byte
+
+	certManagerRegexp = regexp.MustCompile("(?:quay.io/jetstack/cert-manager-controller:)(.*)")
 )
 
 // CertManagerUpgradePlan defines the upgrade plan if cert-manager needs to be
@@ -93,18 +95,12 @@ type certManagerClient struct {
 // Ensure certManagerClient implements the CertManagerClient interface.
 var _ CertManagerClient = &certManagerClient{}
 
-func (cm *certManagerClient) setManifestHash() error {
+func (cm *certManagerClient) setManifestHash() {
 	cm.embeddedCertManagerManifestHash = fmt.Sprintf("%x", sha256.Sum256(certManagerManifest))
-	return nil
 }
 
 func (cm *certManagerClient) setManifestVersion() error {
-	r, err := regexp.Compile("(?:quay.io/jetstack/cert-manager-controller:)(.*)")
-	if err != nil {
-		return err
-	}
-
-	if match := r.FindStringSubmatch(string(certManagerManifest)); len(match) > 0 {
+	if match := certManagerRegexp.FindStringSubmatch(string(certManagerManifest)); len(match) > 0 {
 		cm.embeddedCertManagerManifestVersion = match[1]
 		return nil
 	}
@@ -123,10 +119,7 @@ func newCertManagerClient(configClient config.Client, proxy Proxy, pollImmediate
 		return nil, err
 	}
 
-	err = cm.setManifestHash()
-	if err != nil {
-		return nil, err
-	}
+	cm.setManifestHash()
 	return cm, nil
 }
 
@@ -458,7 +451,7 @@ func (cm *certManagerClient) deleteObj(obj unstructured.Unstructured) error {
 // cert-manager API group.
 // If retry is true, the createObj call will be retried if it fails. Otherwise, the
 // 'create' operations will only be attempted once.
-func (cm *certManagerClient) waitForAPIReady(ctx context.Context, retry bool) error {
+func (cm *certManagerClient) waitForAPIReady(_ context.Context, retry bool) error {
 	log := logf.Log
 	// Waits for for the cert-manager to be available.
 	if retry {

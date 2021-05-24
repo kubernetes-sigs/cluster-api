@@ -19,11 +19,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/feature"
 	"sync"
 	"testing"
 	"time"
+
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/feature"
 
 	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
@@ -139,7 +140,7 @@ func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(result).To(Equal(ctrl.Result{}))
 
-	//calling reconcile should return error
+	// calling reconcile should return error
 	g.Expect(testEnv.Delete(ctx, cluster)).To(Succeed())
 
 	g.Eventually(func() error {

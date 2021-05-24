@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	subject *etcdClientGenerator
+	subject *EtcdClientGenerator
 )
 
 func TestNewEtcdClientGenerator(t *testing.T) {

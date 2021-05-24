@@ -48,7 +48,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const defaultNamespaceName = "default"
+const (
+	defaultNamespaceName = "default"
+	testClusterName      = "test-cluster"
+)
 
 func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	t.Run("it should ensure the correct cluster-name label when no existing labels exist", func(t *testing.T) {
@@ -1801,7 +1804,7 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	}
 
 	namespace := defaultNamespaceName
-	clusterName := "test-cluster"
+	clusterName := testClusterName
 	labels := make(map[string]string)
 
 	mhc1 := newMachineHealthCheckWithLabels("mhc1", namespace, clusterName, labels)
@@ -1881,7 +1884,7 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	}
 
 	namespace := defaultNamespaceName
-	clusterName := "test-cluster"
+	clusterName := testClusterName
 	nodeName := "node1"
 	labels := map[string]string{"cluster": "foo", "nodepool": "bar"}
 
@@ -1957,7 +1960,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	}
 
 	namespace := defaultNamespaceName
-	clusterName := "test-cluster"
+	clusterName := testClusterName
 	nodeName := "node1"
 	labels := map[string]string{"cluster": "foo", "nodepool": "bar"}
 
@@ -2568,7 +2571,7 @@ func TestPatchTargets(t *testing.T) {
 	g := NewWithT(t)
 
 	namespace := defaultNamespaceName
-	clusterName := "test-cluster"
+	clusterName := testClusterName
 	defaultCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,

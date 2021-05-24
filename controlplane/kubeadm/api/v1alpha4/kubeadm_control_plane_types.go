@@ -28,12 +28,14 @@ import (
 type RolloutStrategyType string
 
 const (
-	// Replace the old control planes by new one using rolling update
+	// RollingUpdateStrategyType replaces the old control planes by new one using rolling update
 	// i.e. gradually scale up or down the old control planes and scale up or down the new one.
 	RollingUpdateStrategyType RolloutStrategyType = "RollingUpdate"
 )
 
 const (
+	// KubeadmControlPlaneFinalizer is the finalizer applied to KubeadmControlPlane resources
+	// by its managing controller.
 	KubeadmControlPlaneFinalizer = "kubeadm.controlplane.cluster.x-k8s.io"
 
 	// SkipCoreDNSAnnotation annotation explicitly skips reconciling CoreDNS if set.

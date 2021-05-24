@@ -18,9 +18,10 @@ package controllers
 
 import (
 	"context"
+	"strings"
+
 	"github.com/blang/semver"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"

@@ -29,6 +29,8 @@ import (
 )
 
 const (
+	// ClusterFinalizer is the finalizer used by the cluster controller to
+	// cleanup the cluster resources when a Cluster is being deleted.
 	ClusterFinalizer = "cluster.cluster.x-k8s.io"
 )
 
@@ -87,6 +89,7 @@ type ClusterNetwork struct {
 // ANCHOR_END: ClusterNetwork
 
 // ANCHOR: NetworkRanges
+
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	CIDRBlocks []string `json:"cidrBlocks"`

@@ -107,7 +107,7 @@ func Test_providers_List(t *testing.T) {
 				configGetter: test.NewFakeReader().
 					WithVar(
 						ProvidersConfigKey,
-						"- name: \"\"\n"+ //name must not be empty
+						"- name: \"\"\n"+ // name must not be empty
 							"  url: \"\"\n"+
 							"  type: \"\"\n",
 					),

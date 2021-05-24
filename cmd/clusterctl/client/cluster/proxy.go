@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	Scheme = scheme.Scheme
+	localScheme = scheme.Scheme
 )
 
 type proxy struct {
@@ -138,7 +138,7 @@ func (k *proxy) NewClient() (client.Client, error) {
 	connectBackoff := newConnectBackoff()
 	if err := retryWithExponentialBackoff(connectBackoff, func() error {
 		var err error
-		c, err = client.New(config, client.Options{Scheme: Scheme})
+		c, err = client.New(config, client.Options{Scheme: localScheme})
 		if err != nil {
 			return err
 		}

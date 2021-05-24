@@ -24,11 +24,9 @@ import (
 	"os"
 	"path"
 	goruntime "runtime"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"strings"
 
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -36,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"

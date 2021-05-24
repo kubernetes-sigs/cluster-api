@@ -29,9 +29,13 @@ const (
 	// // alpha: v1.X
 	// MyFeature featuregate.Feature = "MyFeature".
 
+	// MachinePool is a feature gate for MachinePool functionality.
+	//
 	// alpha: v0.3
 	MachinePool featuregate.Feature = "MachinePool"
 
+	// ClusterResourceSet is a feature gate for the ClusterResourceSet functionality.
+	//
 	// alpha: v0.3
 	ClusterResourceSet featuregate.Feature = "ClusterResourceSet"
 )

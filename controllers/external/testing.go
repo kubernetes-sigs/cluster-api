@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	// TestGenericBootstrapCRD is a generic boostrap CRD.
 	TestGenericBootstrapCRD = &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
@@ -70,6 +71,7 @@ var (
 		},
 	}
 
+	// TestGenericBootstrapTemplateCRD is a generic boostrap template CRD.
 	TestGenericBootstrapTemplateCRD = &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
@@ -116,6 +118,7 @@ var (
 		},
 	}
 
+	// TestGenericInfrastructureCRD is a generic infrastructure CRD.
 	TestGenericInfrastructureCRD = &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
@@ -162,6 +165,7 @@ var (
 		},
 	}
 
+	// TestGenericInfrastructureTemplateCRD is a generic infrastructure template CRD.
 	TestGenericInfrastructureTemplateCRD = &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
@@ -208,6 +212,7 @@ var (
 		},
 	}
 
+	// TestGenericInfrastructureRemediationCRD is a generic infrastructure remediation CRD.
 	TestGenericInfrastructureRemediationCRD = &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
@@ -254,6 +259,7 @@ var (
 		},
 	}
 
+	// TestGenericInfrastructureRemediationTemplateCRD is a generic infrastructure remediation template CRD.
 	TestGenericInfrastructureRemediationTemplateCRD = &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),

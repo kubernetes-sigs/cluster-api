@@ -60,7 +60,7 @@ func (a *writeFilesAction) Commands() ([]Cmd, error) {
 	commands := make([]Cmd, 0)
 	for _, f := range a.Files {
 		// Fix attributes and apply defaults
-		path := fixPath(f.Path) //NB. the real cloud init module for writes files converts path into absolute paths; this is not possible here...
+		path := fixPath(f.Path) // NB. the real cloud init module for writes files converts path into absolute paths; this is not possible here...
 		encodings := fixEncoding(f.Encoding)
 		owner := fixOwner(f.Owner)
 		permissions := fixPermissions(f.Permissions)

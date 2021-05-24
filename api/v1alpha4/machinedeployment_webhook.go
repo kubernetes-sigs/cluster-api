@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -100,7 +99,7 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 		}
 
 		if m.Spec.Strategy.RollingUpdate.MaxSurge != nil {
-			if _, err := intstrutil.GetScaledValueFromIntOrPercent(m.Spec.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
+			if _, err := intstr.GetScaledValueFromIntOrPercent(m.Spec.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
 				allErrs = append(
 					allErrs,
 					field.Invalid(field.NewPath("spec", "strategy", "rollingUpdate", "maxSurge"),
@@ -110,7 +109,7 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 		}
 
 		if m.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-			if _, err := intstrutil.GetScaledValueFromIntOrPercent(m.Spec.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
+			if _, err := intstr.GetScaledValueFromIntOrPercent(m.Spec.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
 				allErrs = append(
 					allErrs,
 					field.Invalid(field.NewPath("spec", "strategy", "rollingUpdate", "maxUnavailable"),

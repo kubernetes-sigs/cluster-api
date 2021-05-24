@@ -39,6 +39,8 @@ import (
 )
 
 const (
+	// DefaultMachineDeploymentUniqueLabelKey is the label applied to Machines
+	// in a MachineDeployment containing the hash of the template.
 	DefaultMachineDeploymentUniqueLabelKey = "machine-template-hash"
 
 	// FailedMSCreateReason is added in a machine deployment when it cannot create a new machine set.
@@ -49,9 +51,6 @@ const (
 	// estimated once a deployment is paused.
 	PausedDeployReason = "DeploymentPaused"
 
-	//
-	// Available:
-	//
 	// MinimumReplicasAvailable is added in a deployment when it has its minimum replicas required available.
 	MinimumReplicasAvailable = "MinimumReplicasAvailable"
 	// MinimumReplicasUnavailable is added in a deployment when it doesn't have the minimum required replicas
@@ -224,7 +223,7 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 			logger.Error(err, "Updating machine set revision OldRevision not int")
 			return false
 		}
-		//If the MS annotation is empty then initialise it to 0
+		// If the MS annotation is empty then initialise it to 0
 		oldRevisionInt = 0
 	}
 	newRevisionInt, err := strconv.ParseInt(newRevision, 10, 64)
@@ -301,7 +300,7 @@ func SetReplicasAnnotations(ms *clusterv1.MachineSet, desiredReplicas, maxReplic
 	return updated
 }
 
-// AnnotationsNeedUpdate return true if ReplicasAnnotations need to be updated.
+// ReplicasAnnotationsNeedUpdate return true if the replicas annotation needs to be updated.
 func ReplicasAnnotationsNeedUpdate(ms *clusterv1.MachineSet, desiredReplicas, maxReplicas int32) bool {
 	if ms.Annotations == nil {
 		return true
@@ -635,7 +634,7 @@ func FilterMachineSets(mSes []*clusterv1.MachineSet, filterFn filterMS) []*clust
 	return filtered
 }
 
-// Clones the given map and returns a new map with the given key and value added.
+// CloneAndAddLabel clones the given map and returns a new map with the given key and value added.
 // Returns the given map, if labelKey is empty.
 func CloneAndAddLabel(labels map[string]string, labelKey, labelValue string) map[string]string {
 	if labelKey == "" {
@@ -651,7 +650,7 @@ func CloneAndAddLabel(labels map[string]string, labelKey, labelValue string) map
 	return newLabels
 }
 
-// Clones the given selector and returns a new selector with the given key and value added.
+// CloneSelectorAndAddLabel clones the given selector and returns a new selector with the given key and value added.
 // Returns the given selector, if labelKey is empty.
 func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelValue string) *metav1.LabelSelector {
 	if labelKey == "" {
@@ -705,6 +704,7 @@ func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 	printer.Fprintf(hasher, "%#v", objectToWrite)
 }
 
+// ComputeHash computes the has of a MachineTemplateSpec.
 func ComputeHash(template *clusterv1.MachineTemplateSpec) uint32 {
 	machineTemplateSpecHasher := fnv.New32a()
 	DeepHashObject(machineTemplateSpecHasher, *template)

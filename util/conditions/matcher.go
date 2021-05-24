@@ -19,7 +19,7 @@ package conditions
 import (
 	"fmt"
 
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
@@ -41,7 +41,7 @@ func (m matchConditions) Match(actual interface{}) (success bool, err error) {
 		elems = append(elems, MatchCondition(condition))
 	}
 
-	return ConsistOf(elems).Match(actual)
+	return gomega.ConsistOf(elems).Match(actual)
 }
 
 func (m matchConditions) FailureMessage(actual interface{}) (message string) {
@@ -69,23 +69,23 @@ func (m matchCondition) Match(actual interface{}) (success bool, err error) {
 		return false, fmt.Errorf("actual should be of type Condition")
 	}
 
-	ok, err = Equal(m.expected.Type).Match(actualCondition.Type)
+	ok, err = gomega.Equal(m.expected.Type).Match(actualCondition.Type)
 	if !ok {
 		return ok, err
 	}
-	ok, err = Equal(m.expected.Status).Match(actualCondition.Status)
+	ok, err = gomega.Equal(m.expected.Status).Match(actualCondition.Status)
 	if !ok {
 		return ok, err
 	}
-	ok, err = Equal(m.expected.Severity).Match(actualCondition.Severity)
+	ok, err = gomega.Equal(m.expected.Severity).Match(actualCondition.Severity)
 	if !ok {
 		return ok, err
 	}
-	ok, err = Equal(m.expected.Reason).Match(actualCondition.Reason)
+	ok, err = gomega.Equal(m.expected.Reason).Match(actualCondition.Reason)
 	if !ok {
 		return ok, err
 	}
-	ok, err = Equal(m.expected.Message).Match(actualCondition.Message)
+	ok, err = gomega.Equal(m.expected.Message).Match(actualCondition.Message)
 	if !ok {
 		return ok, err
 	}

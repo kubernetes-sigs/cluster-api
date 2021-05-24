@@ -102,13 +102,16 @@ var (
 // MachineAddressType describes a valid MachineAddress type.
 type MachineAddressType string
 
+// Define the MachineAddressType constants.
 const (
 	MachineHostName    MachineAddressType = "Hostname"
 	MachineExternalIP  MachineAddressType = "ExternalIP"
 	MachineInternalIP  MachineAddressType = "InternalIP"
 	MachineExternalDNS MachineAddressType = "ExternalDNS"
 	MachineInternalDNS MachineAddressType = "InternalDNS"
+)
 
+const (
 	// MachineNodeNameIndex is used by the Machine Controller to index Machines by Node name, and add a watch on Nodes.
 	MachineNodeNameIndex = "status.nodeRef.name"
 )

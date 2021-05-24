@@ -336,7 +336,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 		return nil, g.handleGithubErr(err, "failed to download file %q from %q release", *release.TagName, fileName)
 	}
 	if redirect != "" {
-		response, err := http.Get(redirect) //nolint:bodyclose // (NB: The reader is actually closed in a defer)
+		response, err := http.Get(redirect) //nolint:bodyclose,gosec // (NB: The reader is actually closed in a defer)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to download file %q from %q release via redirect location %q", *release.TagName, fileName, redirect)
 		}

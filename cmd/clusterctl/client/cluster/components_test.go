@@ -97,7 +97,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 				Name: repository.WebhookNamespaceName,
 				Labels: map[string]string{
 					clusterctlv1.ClusterctlResourceLifecyleLabelName: string(clusterctlv1.ResourceLifecycleShared),
-					//NB. the capi-webhook-system namespace doe not have a provider label (see fixSharedLabels)
+					// NB. the capi-webhook-system namespace doe not have a provider label (see fixSharedLabels)
 				},
 			},
 		},

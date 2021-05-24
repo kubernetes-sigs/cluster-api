@@ -82,12 +82,6 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 	}
 }
 
-func sortTypeMetaList(list []metav1.TypeMeta) func(i int, j int) bool {
-	return func(i, j int) bool {
-		return list[i].GroupVersionKind().String() < list[j].GroupVersionKind().String()
-	}
-}
-
 type wantGraphItem struct {
 	virtual    bool
 	owners     []string
@@ -345,7 +339,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -372,7 +366,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -404,7 +398,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -420,7 +414,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster2-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {
@@ -449,7 +443,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -505,7 +499,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -577,7 +571,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -652,7 +646,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 
@@ -718,7 +712,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -794,7 +788,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -842,7 +836,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster2-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {
@@ -911,7 +905,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -967,7 +961,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -983,7 +977,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster2-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {
@@ -1041,7 +1035,7 @@ var objectGraphsTests = []struct {
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -1172,7 +1166,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
@@ -1188,7 +1182,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 					},
 					"/v1, Kind=Secret, ns2/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/cluster1", //NB. this secret is not linked to the cluster through owner ref
+							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns2/cluster1-kubeconfig": {
@@ -1220,7 +1214,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", //NB. this secret is not linked to the cluster through owner ref
+							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {

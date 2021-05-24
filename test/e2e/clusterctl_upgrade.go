@@ -290,7 +290,7 @@ func downloadToTmpFile(url string) string {
 	defer tmpFile.Close()
 
 	// Get the data
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec
 	Expect(err).ToNot(HaveOccurred(), "failed to get clusterctl")
 	defer resp.Body.Close()
 

@@ -47,12 +47,12 @@ func (c Conn) Write(b []byte) (n int, err error) {
 	return c.stream.Write(b)
 }
 
-// Return a fake address representing the proxied connection.
+// LocalAddr returns a fake address representing the proxied connection.
 func (c Conn) LocalAddr() net.Addr {
 	return NewAddrFromConn(c)
 }
 
-// Return a fake address representing the proxied connection.
+// RemoteAddr returns a fake address representing the proxied connection.
 func (c Conn) RemoteAddr() net.Addr {
 	return NewAddrFromConn(c)
 }

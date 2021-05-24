@@ -17,12 +17,13 @@ limitations under the License.
 package collections_test
 
 import (
+	"testing"
+	"time"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/collections"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api/util/conditions"

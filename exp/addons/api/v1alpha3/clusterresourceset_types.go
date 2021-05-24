@@ -53,6 +53,7 @@ type ClusterResourceSetSpec struct {
 // ClusterResourceSetResourceKind is a string representation of a ClusterResourceSet resource kind.
 type ClusterResourceSetResourceKind string
 
+// Define the ClusterResourceSetResourceKind constants.
 const (
 	SecretClusterResourceSetResourceKind    ClusterResourceSetResourceKind = "Secret"
 	ConfigMapClusterResourceSetResourceKind ClusterResourceSetResourceKind = "ConfigMap"

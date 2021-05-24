@@ -43,6 +43,7 @@ import (
 const (
 	rootOwnerValue = "root:root"
 
+	// DefaultCertificatesDir is the default directory where Kubernetes stores its PKI information.
 	DefaultCertificatesDir = "/etc/kubernetes/pki"
 )
 

@@ -35,6 +35,7 @@ import (
 )
 
 var (
+	// ErrNodeNotFound signals that a corev1.Node could not be found for the given provider id.
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 )
 

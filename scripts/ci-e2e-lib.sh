@@ -127,7 +127,7 @@ kind::buildNodeImage() {
   # build the node image
   version="${version//+/_}"
   echo "+ Building kindest/node:$version"
-  kind build node-image --type docker --image "kindest/node:$version"
+  kind build node-image --image "kindest/node:$version"
 
   # move back to Cluster API
   cd "$REPO_ROOT" || exit
@@ -146,7 +146,7 @@ k8s::checkoutBranch() {
     # should be already been tagged.
     echo "+ checkout tag $version"
     git fetch --all --tags
-    git checkout "tags/$version" -b "$version-branch"
+    git checkout "tags/$version" -B "$version-branch"
   else
     # otherwise we are requiring a Kubernetes version that should be built from HEAD
     # of one of the existing branches
@@ -163,7 +163,7 @@ k8s::checkoutBranch() {
     if [[ "$releaseBranch" != "" ]]; then
       # if there is already a release branch for the required Kubernetes branch, use it
       echo "+ checkout $releaseBranch branch"
-      git checkout "$releaseBranch" -b "release-$major.$minor"
+      git checkout "$releaseBranch" -B "release-$major.$minor"
     else
       # otherwise, we should build from master, which is the branch for the next release
       echo "+ checkout master branch"

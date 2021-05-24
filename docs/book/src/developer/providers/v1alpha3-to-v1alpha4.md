@@ -12,7 +12,7 @@
 
 ## Kind version
 
-- The KIND version used for this release is v0.9.x
+- The KIND version used for this release is v0.11.x
 
 ## Upgrade kube-rbac-proxy to v0.8.0
 

@@ -20,7 +20,6 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 
@@ -92,7 +91,7 @@ type DiscoveryAndWaitForMachinePoolsInput struct {
 	Cluster *clusterv1.Cluster
 }
 
-// DiscoveryAndWaitForMachinePools discovers the MachinePools existing in a cluster and waits for them to be ready (all the machine provisioned).
+// DiscoveryAndWaitForMachinePools discovers the MachinePools existing in a cluster and waits for them to be ready (all the machines provisioned).
 func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWaitForMachinePoolsInput, intervals ...interface{}) []*clusterv1exp.MachinePool {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForMachinePools")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForMachinePools")
@@ -131,25 +130,23 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 	mgmtClient := input.ClusterProxy.GetClient()
 	for i := range input.MachinePools {
 		mp := input.MachinePools[i]
-		log.Logf("Patching the new kubernetes version to Machine Pool %s/%s", mp.Namespace, mp.Name)
+		log.Logf("Patching the new Kubernetes version to Machine Pool %s/%s", mp.Namespace, mp.Name)
 		patchHelper, err := patch.NewHelper(mp, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 
+		oldVersion := mp.Spec.Template.Spec.Version
 		mp.Spec.Template.Spec.Version = &input.UpgradeVersion
 		Expect(patchHelper.Patch(ctx, mp)).To(Succeed())
-	}
 
-	for i := range input.MachinePools {
-		mp := input.MachinePools[i]
-		oldVersion := mp.Spec.Template.Spec.Version
 		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s/%s to be upgraded from %s to %s",
 			mp.Namespace, mp.Name, *oldVersion, input.UpgradeVersion)
 		WaitForMachinePoolInstancesToBeUpgraded(ctx, WaitForMachinePoolInstancesToBeUpgradedInput{
 			Getter:                   mgmtClient,
+			WorkloadClusterGetter:    input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient(),
 			Cluster:                  input.Cluster,
 			MachineCount:             int(*mp.Spec.Replicas),
 			KubernetesUpgradeVersion: input.UpgradeVersion,
-			MachinePool:              *mp,
+			MachinePool:              mp,
 		}, input.WaitForMachinePoolToBeUpgraded...)
 	}
 }
@@ -190,10 +187,11 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 // WaitForMachinePoolInstancesToBeUpgradedInput is the input for WaitForMachinePoolInstancesToBeUpgraded.
 type WaitForMachinePoolInstancesToBeUpgradedInput struct {
 	Getter                   Getter
+	WorkloadClusterGetter    Getter
 	Cluster                  *clusterv1.Cluster
 	KubernetesUpgradeVersion string
 	MachineCount             int
-	MachinePool              clusterv1exp.MachinePool
+	MachinePool              *clusterv1exp.MachinePool
 }
 
 // WaitForMachinePoolInstancesToBeUpgraded waits until all instances belonging to a MachinePool are upgraded to the correct kubernetes version.
@@ -207,10 +205,17 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 
 	log.Logf("Ensuring all MachinePool Instances have upgraded kubernetes version %s", input.KubernetesUpgradeVersion)
 	Eventually(func() (int, error) {
-		versions := GetMachinePoolInstanceVersions(ctx, GetMachinesPoolInstancesInput{
-			Getter:      input.Getter,
-			Namespace:   input.Cluster.Namespace,
-			MachinePool: input.MachinePool,
+		nn := client.ObjectKey{
+			Namespace: input.MachinePool.Namespace,
+			Name:      input.MachinePool.Name,
+		}
+		if err := input.Getter.Get(ctx, nn, input.MachinePool); err != nil {
+			return 0, err
+		}
+		versions := getMachinePoolInstanceVersions(ctx, GetMachinesPoolInstancesInput{
+			WorkloadClusterGetter: input.WorkloadClusterGetter,
+			Namespace:             input.Cluster.Namespace,
+			MachinePool:           input.MachinePool,
 		})
 
 		matches := 0
@@ -230,41 +235,30 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 
 // GetMachinesPoolInstancesInput is the input for GetMachinesPoolInstances.
 type GetMachinesPoolInstancesInput struct {
-	Getter      Getter
-	Namespace   string
-	MachinePool clusterv1exp.MachinePool
+	WorkloadClusterGetter Getter
+	Namespace             string
+	MachinePool           *clusterv1exp.MachinePool
 }
 
-// GetMachinePoolInstanceVersions returns the.
-func GetMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolInstancesInput) []string {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for GetMachinePoolInstanceVersions")
-	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling GetMachinePoolInstanceVersions")
-	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling GetMachinePoolInstanceVersions")
+// getMachinePoolInstanceVersions returns the Kubernetes versions of the machine pool instances.
+func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolInstancesInput) []string {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for getMachinePoolInstanceVersions")
+	Expect(input.WorkloadClusterGetter).ToNot(BeNil(), "Invalid argument. input.WorkloadClusterGetter can't be nil when calling getMachinePoolInstanceVersions")
+	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling getMachinePoolInstanceVersions")
+	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachinePool can't be nil when calling getMachinePoolInstanceVersions")
 
-	obj := getUnstructuredRef(ctx, input.Getter, &input.MachinePool.Spec.Template.Spec.InfrastructureRef, input.Namespace)
-	instances, found, err := unstructured.NestedSlice(obj.Object, "status", "instances")
-	Expect(err).ToNot(HaveOccurred(), "failed to extract machines from unstructured")
-	if !found {
-		return nil
-	}
-
+	instances := input.MachinePool.Status.NodeRefs
 	versions := make([]string, len(instances))
 	for i, instance := range instances {
-		version, found, err := unstructured.NestedString(instance.(map[string]interface{}), "version")
-		Expect(err).ToNot(HaveOccurred(), "failed to extract versions from unstructured instance")
-		Expect(found).To(BeTrue(), "unable to find nested version string in unstructured instance")
-		versions[i] = version
+		node := &corev1.Node{}
+		err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
+		if err != nil {
+			versions[i] = "unknown"
+		} else {
+			versions[i] = node.Status.NodeInfo.KubeletVersion
+		}
+		log.Logf("Node %s version is %s", instance.Name, versions[i])
 	}
 
 	return versions
-}
-
-func getUnstructuredRef(ctx context.Context, getter Getter, ref *corev1.ObjectReference, namespace string) *unstructured.Unstructured {
-	obj := new(unstructured.Unstructured)
-	obj.SetAPIVersion(ref.APIVersion)
-	obj.SetKind(ref.Kind)
-	obj.SetName(ref.Name)
-	key := client.ObjectKey{Name: obj.GetName(), Namespace: namespace}
-	Expect(getter.Get(ctx, key, obj)).ToNot(HaveOccurred(), "failed to retrieve %s object %q/%q", obj.GetKind(), key.Namespace, key.Name)
-	return obj
 }

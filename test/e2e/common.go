@@ -63,7 +63,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	Byf("Dumping logs from the %q workload cluster", cluster.Name)
 
 	// Dump all the logs from the workload cluster before deleting them.
-	clusterProxy.CollectWorkloadClusterLogs(ctx, cluster.Namespace, cluster.Name, filepath.Join(artifactFolder, "clusters", cluster.Name, "machines"))
+	clusterProxy.CollectWorkloadClusterLogs(ctx, cluster.Namespace, cluster.Name, filepath.Join(artifactFolder, "clusters", cluster.Name))
 
 	Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
 

@@ -18,11 +18,13 @@ package framework
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
 	goruntime "runtime"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"strings"
 
 	. "github.com/onsi/gomega"
@@ -81,6 +83,7 @@ type ClusterLogCollector interface {
 	// CollectMachineLog collects log from a machine.
 	// TODO: describe output folder struct
 	CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error
+	CollectMachinePoolLog(ctx context.Context, managementClusterClient client.Client, m *expv1.MachinePool, outputPath string) error
 }
 
 // Option is a configuration option supplied to NewClusterProxy.
@@ -226,27 +229,52 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 
 	for i := range machines.Items {
 		m := &machines.Items[i]
-		err := p.logCollector.CollectMachineLog(ctx, p.GetClient(), m, path.Join(outputPath, m.GetName()))
+		err := p.logCollector.CollectMachineLog(ctx, p.GetClient(), m, path.Join(outputPath, "machines", m.GetName()))
 		if err != nil {
 			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
 			fmt.Printf("Failed to get logs for machine %s, cluster %s/%s: %v\n", m.GetName(), namespace, name, err)
+		}
+	}
+
+	machinePools, err := getMachinePoolsInCluster(ctx, p.GetClient(), namespace, name)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get machine pools for the %s/%s cluster", namespace, name)
+
+	for i := range machinePools.Items {
+		mp := &machinePools.Items[i]
+		err := p.logCollector.CollectMachinePoolLog(ctx, p.GetClient(), mp, path.Join(outputPath, "machine-pools", mp.GetName()))
+		if err != nil {
+			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
+			fmt.Printf("Failed to get logs for machine pool %s, cluster %s/%s: %v\n", mp.GetName(), namespace, name, err)
 		}
 	}
 }
 
 func getMachinesInCluster(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachineList, error) {
 	if name == "" {
-		return nil, nil
+		return nil, errors.New("cluster name should not be empty")
 	}
 
 	machineList := &clusterv1.MachineList{}
 	labels := map[string]string{clusterv1.ClusterLabelName: name}
-
 	if err := c.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, err
 	}
 
 	return machineList, nil
+}
+
+func getMachinePoolsInCluster(ctx context.Context, c client.Client, namespace, name string) (*expv1.MachinePoolList, error) {
+	if name == "" {
+		return nil, errors.New("cluster name should not be empty")
+	}
+
+	machinePoolList := &expv1.MachinePoolList{}
+	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	if err := c.List(ctx, machinePoolList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	return machinePoolList, nil
 }
 
 func (p *clusterProxy) getKubeconfig(ctx context.Context, namespace string, name string) *api.Config {

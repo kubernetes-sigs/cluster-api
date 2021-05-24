@@ -43,7 +43,7 @@ issues:
   exclude-use-default: false
   # List of regexps of issue texts to exclude, empty list by default.
   exclude:
-    - Using the variable on range scope `(tc)|(rt)|(tt)|(test)|(testcase)|(testCase)` in function literal
+    - Using the variable on range scope .* in function literal
     - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
     - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
     # The following are being worked on to remove their exclusion. This list should be reduced or go away all together over time.

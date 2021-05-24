@@ -164,6 +164,7 @@ type FuzzTestFuncInput struct {
 	HubAfterMutation func(conversion.Hub)
 
 	Spoke                      conversion.Convertible
+	SpokeBeforeMutation        func(convertible conversion.Convertible)
 	SpokeAfterMutation         func(convertible conversion.Convertible)
 	SkipSpokeAnnotationCleanup bool
 
@@ -182,7 +183,9 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 				// Create the spoke and fuzz it
 				spokeBefore := input.Spoke.DeepCopyObject().(conversion.Convertible)
 				fuzzer.Fuzz(spokeBefore)
-
+				if input.SpokeBeforeMutation != nil {
+					input.SpokeBeforeMutation(spokeBefore)
+				}
 				// First convert spoke to hub
 				hubCopy := input.Hub.DeepCopyObject().(conversion.Hub)
 				g.Expect(spokeBefore.ConvertTo(hubCopy)).To(gomega.Succeed())

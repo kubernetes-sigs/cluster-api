@@ -19,7 +19,6 @@ package v1alpha3
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
-
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -38,6 +37,7 @@ func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {
 	}
 
 	dest.Spec.RolloutStrategy = restored.Spec.RolloutStrategy
+	dest.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
 
 	return nil
 }
@@ -69,10 +69,12 @@ func (dest *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in *v1alpha4.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apiconversion.Scope) error {
 	out.UpgradeAfter = in.RolloutAfter
+	out.InfrastructureTemplate = in.MachineTemplate.InfrastructureRef
 	return autoConvert_v1alpha4_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s)
 }
 
 func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, out *v1alpha4.KubeadmControlPlaneSpec, s apiconversion.Scope) error {
 	out.RolloutAfter = in.UpgradeAfter
+	out.MachineTemplate.InfrastructureRef = in.InfrastructureTemplate
 	return autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in, out, s)
 }

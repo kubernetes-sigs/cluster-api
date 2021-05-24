@@ -273,20 +273,12 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 	t.Run("returns true if the machine does not have a bootstrap config", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
-		m := &clusterv1.Machine{}
-		g.Expect(matchInitOrJoinConfiguration(nil, kcp, m)).To(BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(nil, kcp)).To(BeTrue())
 	})
 	t.Run("returns true if the there are problems reading the bootstrap config", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
-		m := &clusterv1.Machine{
-			Spec: clusterv1.MachineSpec{
-				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{},
-				},
-			},
-		}
-		g.Expect(matchInitOrJoinConfiguration(nil, kcp, m)).To(BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(nil, kcp)).To(BeTrue())
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -334,7 +326,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeTrue())
 	})
 	t.Run("returns false if InitConfiguration is NOT equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -386,7 +378,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeFalse())
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -434,7 +426,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeTrue())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeTrue())
 	})
 	t.Run("returns false if JoinConfiguration is NOT equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -486,7 +478,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeFalse())
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -535,7 +527,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs, kcp, m)).To(BeFalse())
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeFalse())
 	})
 }
 
@@ -842,6 +834,94 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
 		g.Expect(f(m)).To(BeFalse())
 	})
+	t.Run("should match on labels and annotations", func(t *testing.T) {
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+					ObjectMeta: clusterv1.ObjectMeta{
+						Annotations: map[string]string{
+							"test": "annotation",
+						},
+						Labels: map[string]string{
+							"test": "labels",
+						},
+					},
+				},
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
+					InitConfiguration:    &bootstrapv1.InitConfiguration{},
+					JoinConfiguration:    &bootstrapv1.JoinConfiguration{},
+				},
+			},
+		}
+		m := &clusterv1.Machine{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "KubeadmConfig",
+				APIVersion: clusterv1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "test",
+			},
+			Spec: clusterv1.MachineSpec{
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: &corev1.ObjectReference{
+						Kind:       "KubeadmConfig",
+						Namespace:  "default",
+						Name:       "test",
+						APIVersion: bootstrapv1.GroupVersion.String(),
+					},
+				},
+			},
+		}
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{},
+				},
+			},
+		}
+
+		t.Run("by returning false if neither labels or annotations match", func(t *testing.T) {
+			g := NewWithT(t)
+			machineConfigs[m.Name].Annotations = nil
+			machineConfigs[m.Name].Labels = nil
+			f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
+			g.Expect(f(m)).To(BeFalse())
+		})
+
+		t.Run("by returning false if only labels don't match", func(t *testing.T) {
+			g := NewWithT(t)
+			machineConfigs[m.Name].Annotations = kcp.Spec.MachineTemplate.ObjectMeta.Annotations
+			machineConfigs[m.Name].Labels = nil
+			f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
+			g.Expect(f(m)).To(BeFalse())
+		})
+
+		t.Run("by returning false if only annotations don't match", func(t *testing.T) {
+			g := NewWithT(t)
+			machineConfigs[m.Name].Annotations = nil
+			machineConfigs[m.Name].Labels = kcp.Spec.MachineTemplate.ObjectMeta.Labels
+			f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
+			g.Expect(f(m)).To(BeFalse())
+		})
+
+		t.Run("by returning true if both labels and annotations match", func(t *testing.T) {
+			g := NewWithT(t)
+			machineConfigs[m.Name].Labels = kcp.Spec.MachineTemplate.ObjectMeta.Labels
+			machineConfigs[m.Name].Annotations = kcp.Spec.MachineTemplate.ObjectMeta.Annotations
+			f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
+			g.Expect(f(m)).To(BeTrue())
+		})
+	})
 }
 
 func TestMatchesTemplateClonedFrom(t *testing.T) {
@@ -869,6 +949,101 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 			MatchesTemplateClonedFrom(map[string]*unstructured.Unstructured{}, kcp)(machine),
 		).To(BeTrue())
 	})
+
+	t.Run("matches labels or annotations", func(t *testing.T) {
+		kcp := &controlplanev1.KubeadmControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+			},
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+					ObjectMeta: clusterv1.ObjectMeta{
+						Annotations: map[string]string{
+							"test": "annotation",
+						},
+						Labels: map[string]string{
+							"test": "labels",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						Kind:       "GenericMachineTemplate",
+						Namespace:  "default",
+						Name:       "infra-foo",
+						APIVersion: "generic.io/v1",
+					},
+				},
+			},
+		}
+		m := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "GenericMachine",
+					Namespace:  "default",
+					Name:       "infra-foo",
+					APIVersion: "generic.io/v1",
+				},
+			},
+		}
+
+		infraConfigs := map[string]*unstructured.Unstructured{
+			m.Name: {
+				Object: map[string]interface{}{
+					"kind":       "InfrastructureMachine",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+					"metadata": map[string]interface{}{
+						"name":      "infra-config1",
+						"namespace": "default",
+					},
+				},
+			},
+		}
+
+		t.Run("by returning false if neither labels or annotations match", func(t *testing.T) {
+			g := NewWithT(t)
+			infraConfigs[m.Name].SetAnnotations(map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
+				clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericMachineTemplate.generic.io",
+			})
+			infraConfigs[m.Name].SetLabels(nil)
+			f := MatchesTemplateClonedFrom(infraConfigs, kcp)
+			g.Expect(f(m)).To(BeFalse())
+		})
+
+		t.Run("by returning false if only labels don't match", func(t *testing.T) {
+			g := NewWithT(t)
+			infraConfigs[m.Name].SetAnnotations(map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
+				clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericMachineTemplate.generic.io",
+				"test": "annotation",
+			})
+			infraConfigs[m.Name].SetLabels(nil)
+			f := MatchesTemplateClonedFrom(infraConfigs, kcp)
+			g.Expect(f(m)).To(BeFalse())
+		})
+
+		t.Run("by returning false if only annotations don't match", func(t *testing.T) {
+			g := NewWithT(t)
+			infraConfigs[m.Name].SetAnnotations(map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
+				clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericMachineTemplate.generic.io",
+			})
+			infraConfigs[m.Name].SetLabels(kcp.Spec.MachineTemplate.ObjectMeta.Labels)
+			f := MatchesTemplateClonedFrom(infraConfigs, kcp)
+			g.Expect(f(m)).To(BeFalse())
+		})
+
+		t.Run("by returning true if both labels and annotations match", func(t *testing.T) {
+			g := NewWithT(t)
+			infraConfigs[m.Name].SetAnnotations(map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
+				clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericMachineTemplate.generic.io",
+				"test": "annotation",
+			})
+			infraConfigs[m.Name].SetLabels(kcp.Spec.MachineTemplate.ObjectMeta.Labels)
+			f := MatchesTemplateClonedFrom(infraConfigs, kcp)
+			g.Expect(f(m)).To(BeTrue())
+		})
+	})
 }
 
 func TestMatchesTemplateClonedFrom_WithClonedFromAnnotations(t *testing.T) {
@@ -877,11 +1052,13 @@ func TestMatchesTemplateClonedFrom_WithClonedFromAnnotations(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			InfrastructureTemplate: corev1.ObjectReference{
-				Kind:       "GenericMachineTemplate",
-				Namespace:  "default",
-				Name:       "infra-foo",
-				APIVersion: "generic.io/v1",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "GenericMachineTemplate",
+					Namespace:  "default",
+					Name:       "infra-foo",
+					APIVersion: "generic.io/v1",
+				},
 			},
 		},
 	}

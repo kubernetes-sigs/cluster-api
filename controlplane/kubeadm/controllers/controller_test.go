@@ -213,6 +213,14 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "UnknownInfraMachine",
+					APIVersion: "test/v1alpha1",
+					Name:       "foo",
+					Namespace:  "test",
+				},
+			},
 		},
 	}
 	kcp.Default()
@@ -243,6 +251,14 @@ func TestReconcileNoKCP(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "UnknownInfraMachine",
+					APIVersion: "test/v1alpha1",
+					Name:       "foo",
+					Namespace:  "test",
+				},
+			},
 		},
 	}
 
@@ -273,6 +289,14 @@ func TestReconcileNoCluster(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "UnknownInfraMachine",
+					APIVersion: "test/v1alpha1",
+					Name:       "foo",
+					Namespace:  "test",
+				},
+			},
 		},
 	}
 	kcp.Default()
@@ -314,6 +338,14 @@ func TestReconcilePaused(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "UnknownInfraMachine",
+					APIVersion: "test/v1alpha1",
+					Name:       "foo",
+					Namespace:  "test",
+				},
+			},
 		},
 	}
 	kcp.Default()
@@ -359,6 +391,14 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "UnknownInfraMachine",
+					APIVersion: "test/v1alpha1",
+					Name:       "foo",
+					Namespace:  "test",
+				},
+			},
 		},
 	}
 	kcp.Default()
@@ -421,7 +461,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -484,7 +524,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -592,7 +632,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -649,7 +689,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: cluster.Namespace,
 						Name:      "test0",
-						Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+						Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
@@ -733,11 +773,13 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Replicas: nil,
 			Version:  "v1.16.6",
-			InfrastructureTemplate: corev1.ObjectReference{
-				Kind:       genericMachineTemplate.GetKind(),
-				APIVersion: genericMachineTemplate.GetAPIVersion(),
-				Name:       genericMachineTemplate.GetName(),
-				Namespace:  cluster.Namespace,
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       genericMachineTemplate.GetKind(),
+					APIVersion: genericMachineTemplate.GetAPIVersion(),
+					Name:       genericMachineTemplate.GetName(),
+					Namespace:  cluster.Namespace,
+				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
 		},
@@ -1373,11 +1415,13 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 			},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			InfrastructureTemplate: corev1.ObjectReference{
-				Kind:       "GenericMachineTemplate",
-				Namespace:  namespace,
-				Name:       "infra-foo",
-				APIVersion: "generic.io/v1",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       "GenericMachineTemplate",
+					Namespace:  namespace,
+					Name:       "infra-foo",
+					APIVersion: "generic.io/v1",
+				},
 			},
 			Replicas: pointer.Int32Ptr(int32(3)),
 			Version:  "v1.16.6",
@@ -1431,7 +1475,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      name,
-			Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+			Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},

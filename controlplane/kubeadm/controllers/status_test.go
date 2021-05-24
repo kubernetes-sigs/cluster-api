@@ -56,6 +56,13 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "test/v1alpha1",
+					Kind:       "UnknownInfraMachine",
+					Name:       "foo",
+				},
+			},
 		},
 	}
 	kcp.Default()
@@ -105,6 +112,13 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "test/v1alpha1",
+					Kind:       "UnknownInfraMachine",
+					Name:       "foo",
+				},
+			},
 		},
 	}
 	kcp.Default()
@@ -163,6 +177,13 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "test/v1alpha1",
+					Kind:       "UnknownInfraMachine",
+					Name:       "foo",
+				},
+			},
 		},
 	}
 	kcp.Default()
@@ -229,6 +250,13 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "test/v1alpha1",
+					Kind:       "UnknownInfraMachine",
+					Name:       "foo",
+				},
+			},
 		},
 	}
 	kcp.Default()
@@ -295,6 +323,13 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version:  "v1.16.6",
 			Replicas: pointer.Int32Ptr(3),
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "test/v1alpha1",
+					Kind:       "UnknownInfraMachine",
+					Name:       "foo",
+				},
+			},
 		},
 	}
 	kcp.Default()

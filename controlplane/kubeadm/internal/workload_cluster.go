@@ -60,10 +60,20 @@ const (
 )
 
 var (
+	// Starting from v1.22.0 kubeadm dropped the usage of the ClusterStatus entry from the kubeadm-config ConfigMap
+	// so we're not anymore required to remove API endpoints for control plane nodes after deletion.
+	//
+	// NOTE: The following assumes that kubeadm version equals to Kubernetes version.
+	minKubernetesVersionWithoutClusterStatus = semver.MustParse("1.22.0")
+
+	// Starting from v1.21.0 kubeadm defaults to systemdCGroup driver, as well as images built with ImageBuilder,
+	// so it is necessary to mutate the kubelet-config-xx ConfigMap.
+	//
+	// NOTE: The following assumes that kubeadm version equals to Kubernetes version.
 	minVerKubeletSystemdDriver = semver.MustParse("1.21.0")
 
 	// ErrControlPlaneMinNodes signals that a cluster doesn't meet the minimum required nodes
-	// to remove an etcd memnber.
+	// to remove an etcd member.
 	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
 )
 
@@ -250,6 +260,10 @@ func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machin
 
 // RemoveNodeFromKubeadmConfigMap removes the entry for the node from the kubeadm configmap.
 func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string, version semver.Version) error {
+	if version.GTE(minKubernetesVersionWithoutClusterStatus) {
+		return nil
+	}
+
 	return w.updateClusterStatus(ctx, func(s *bootstrapv1.ClusterStatus) {
 		delete(s.APIEndpoints, name)
 	}, version)

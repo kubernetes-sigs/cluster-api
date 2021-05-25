@@ -135,6 +135,12 @@ func createNode(name, image, clusterLabel, role string, mounts []v1alpha4.Mount,
 		)
 	}
 
+	// mount /dev/mapper if docker storage driver if Btrfs or ZFS
+	// https://github.com/kubernetes-sigs/kind/pull/1464
+	if needsDevMapper() {
+		runArgs = append(runArgs, "--volume", "/dev/mapper:/dev/mapper:ro")
+	}
+
 	// pass proxy environment variables to be used by node's docker daemon
 	proxyDetails, err := getProxyDetails()
 	if err != nil || proxyDetails == nil {
@@ -400,4 +406,20 @@ func generatePortMappings(portMappings ...v1alpha4.PortMapping) []string {
 		result = append(result, publish)
 	}
 	return result
+}
+
+// needsDevMapper checks whether we need to mount /dev/mapper.
+// This is required when the docker storage driver is Btrfs or ZFS.
+// https://github.com/kubernetes-sigs/kind/pull/1464
+func needsDevMapper() bool {
+	storage := ""
+	cmd := exec.Command("docker", "info", "-f", "{{.Driver}}")
+	lines, err := exec.CombinedOutputLines(cmd)
+	if err != nil {
+		return false
+	}
+	if len(lines) > 0 {
+		storage = strings.ToLower(strings.TrimSpace(lines[0]))
+	}
+	return storage == "btrfs" || storage == "zfs"
 }

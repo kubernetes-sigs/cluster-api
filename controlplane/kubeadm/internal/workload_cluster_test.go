@@ -171,6 +171,12 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 	}
 }
 
+var kubernetesVersionWithClusterStatus = semver.Version{
+	Major: minKubernetesVersionWithoutClusterStatus.Major,
+	Minor: minKubernetesVersionWithoutClusterStatus.Minor - 1,
+	Patch: minKubernetesVersionWithoutClusterStatus.Patch,
+}
+
 func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 	machine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
@@ -185,29 +191,30 @@ func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			clusterStatusKey: `apiEndpoints:
-  ip-10-0-0-1.ec2.internal:
-    advertiseAddress: 10.0.0.1
-    bindPort: 6443
-  ip-10-0-0-2.ec2.internal:
-    advertiseAddress: 10.0.0.2
-    bindPort: 6443
-    someFieldThatIsAddedInTheFuture: bar
-apiVersion: kubeadm.k8s.io/vNbetaM
-kind: ClusterStatus`,
+			clusterStatusKey: "apiEndpoints:\n" +
+				"  ip-10-0-0-1.ec2.internal:\n" +
+				"    advertiseAddress: 10.0.0.1\n" +
+				"    bindPort: 6443\n" +
+				"  ip-10-0-0-2.ec2.internal:\n" +
+				"    advertiseAddress: 10.0.0.2\n" +
+				"    bindPort: 6443\n" +
+				"    someFieldThatIsAddedInTheFuture: bar\n" +
+				"apiVersion: kubeadm.k8s.io/vNbetaM\n" +
+				"kind: ClusterStatus\n",
 		},
 		BinaryData: map[string][]byte{
 			"": nil,
 		},
 	}
-	kconfWithoutKey := kubeadmConfig.DeepCopy()
-	delete(kconfWithoutKey.Data, clusterStatusKey)
+	kubeadmConfigWithoutClusterStatus := kubeadmConfig.DeepCopy()
+	delete(kubeadmConfigWithoutClusterStatus.Data, clusterStatusKey)
 
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name              string
+		kubernetesVersion semver.Version
 		machine           *clusterv1.Machine
 		objs              []runtime.Object
 		expectErr         bool
@@ -227,29 +234,38 @@ kind: ClusterStatus`,
 			expectErr: false,
 		},
 		{
-			name:      "returns error if unable to find kubeadm-config",
-			machine:   machine,
-			expectErr: true,
+			name:              "returns error if unable to find kubeadm-config for Kubernetes version < 1.22.0",
+			kubernetesVersion: kubernetesVersionWithClusterStatus, // Kubernetes version < 1.22.0 has ClusterStatus
+			machine:           machine,
+			expectErr:         true,
 		},
 		{
-			name:      "returns error if unable to remove api endpoint",
-			machine:   machine,
-			objs:      []runtime.Object{kconfWithoutKey},
-			expectErr: true,
+			name:              "returns error if unable to remove api endpoint for Kubernetes version < 1.22.0",
+			kubernetesVersion: kubernetesVersionWithClusterStatus, // Kubernetes version < 1.22.0 has ClusterStatus
+			machine:           machine,
+			objs:              []runtime.Object{kubeadmConfigWithoutClusterStatus},
+			expectErr:         true,
 		},
 		{
-			name:      "removes the machine node ref from kubeadm config",
-			machine:   machine,
-			objs:      []runtime.Object{kubeadmConfig},
-			expectErr: false,
-			expectedEndpoints: `apiEndpoints:
-  ip-10-0-0-2.ec2.internal:
-    advertiseAddress: 10.0.0.2
-    bindPort: 6443
-    someFieldThatIsAddedInTheFuture: bar
-apiVersion: kubeadm.k8s.io/vNbetaM
-kind: ClusterStatus
-`,
+			name:              "removes the machine node ref from kubeadm config for Kubernetes version < 1.22.0",
+			kubernetesVersion: kubernetesVersionWithClusterStatus, // Kubernetes version < 1.22.0 has ClusterStatus
+			machine:           machine,
+			objs:              []runtime.Object{kubeadmConfig},
+			expectErr:         false,
+			expectedEndpoints: "apiEndpoints:\n" +
+				"  ip-10-0-0-2.ec2.internal:\n" +
+				"    advertiseAddress: 10.0.0.2\n" +
+				"    bindPort: 6443\n" +
+				"    someFieldThatIsAddedInTheFuture: bar\n" +
+				"apiVersion: kubeadm.k8s.io/vNbetaM\n" +
+				"kind: ClusterStatus\n",
+		},
+		{
+			name:              "no op for Kubernetes version >= 1.22.0",
+			kubernetesVersion: minKubernetesVersionWithoutClusterStatus, // Kubernetes version >= 1.22.0 should not manage ClusterStatus
+			machine:           machine,
+			objs:              []runtime.Object{kubeadmConfigWithoutClusterStatus},
+			expectErr:         false,
 		},
 	}
 
@@ -261,7 +277,7 @@ kind: ClusterStatus
 				Client: fakeClient,
 			}
 			ctx := context.TODO()
-			err := w.RemoveMachineFromKubeadmConfigMap(ctx, tt.machine)
+			err := w.RemoveMachineFromKubeadmConfigMap(ctx, tt.machine, tt.kubernetesVersion)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

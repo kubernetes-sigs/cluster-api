@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -135,7 +136,12 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		}
 	}
 
-	if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToBeRemediated); err != nil {
+	kubernetesVersion := controlPlane.KCP.Spec.Version
+	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
+	}
+	if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToBeRemediated, parsedVersion); err != nil {
 		logger.Error(err, "Failed to remove machine from kubeadm ConfigMap")
 		return ctrl.Result{}, err
 	}
@@ -164,7 +170,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 // - etc.
 //
 // NOTE: this func assumes the list of members in sync with the list of machines/nodes, it is required to call reconcileEtcdMembers
-// ans well as reconcileControlPlaneConditions before this.
+// and well as reconcileControlPlaneConditions before this.
 func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Context, controlPlane *internal.ControlPlane, machineToBeRemediated *clusterv1.Machine) (bool, error) {
 	logger := r.Log.WithValues("namespace", controlPlane.KCP.Namespace, "kubeadmControlPlane", controlPlane.KCP.Name, "cluster", controlPlane.Cluster.Name)
 

@@ -20,6 +20,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -128,7 +129,12 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		}
 	}
 
-	if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToDelete); err != nil {
+	kubernetesVersion := controlPlane.KCP.Spec.Version
+	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
+	}
+	if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToDelete, parsedVersion); err != nil {
 		logger.Error(err, "Failed to remove machine from kubeadm ConfigMap")
 		return ctrl.Result{}, err
 	}

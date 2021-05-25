@@ -82,13 +82,13 @@ type WorkloadCluster interface {
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
-	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error
-	RemoveNodeFromKubeadmConfigMap(ctx context.Context, nodeName string) error
+	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine, version semver.Version) error
+	RemoveNodeFromKubeadmConfigMap(ctx context.Context, nodeName string, version semver.Version) error
 	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error
 	AllowBootstrapTokensToGetNodes(ctx context.Context) error
 
 	// State recovery tasks.
-	ReconcileEtcdMembers(ctx context.Context, nodeNames []string) ([]string, error)
+	ReconcileEtcdMembers(ctx context.Context, nodeNames []string, version semver.Version) ([]string, error)
 }
 
 // Workload defines operations on workload clusters.
@@ -296,17 +296,28 @@ func (w *Workload) UpdateSchedulerInKubeadmConfigMap(ctx context.Context, schedu
 }
 
 // RemoveMachineFromKubeadmConfigMap removes the entry for the machine from the kubeadm configmap.
-func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error {
+func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine, version semver.Version) error {
 	if machine == nil || machine.Status.NodeRef == nil {
 		// Nothing to do, no node for Machine
 		return nil
 	}
 
-	return w.RemoveNodeFromKubeadmConfigMap(ctx, machine.Status.NodeRef.Name)
+	return w.RemoveNodeFromKubeadmConfigMap(ctx, machine.Status.NodeRef.Name, version)
 }
 
+var (
+	// Starting from v1.22.0 kubeadm dropped usage of the ClusterStatus entry from the kubeadm-config ConfigMap
+	// so it isn't necessary anymore to remove API endpoints for control plane nodes after deletion.
+	// NOTE: This assume kubeadm version equals to Kubernetes version.
+	minKubernetesVersionWithoutClusterStatus = semver.MustParse("1.22.0")
+)
+
 // RemoveNodeFromKubeadmConfigMap removes the entry for the node from the kubeadm configmap.
-func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string) error {
+func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string, version semver.Version) error {
+	if version.GTE(minKubernetesVersionWithoutClusterStatus) {
+		return nil
+	}
+
 	return util.Retry(func() (bool, error) {
 		configMapKey := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
 		kubeadmConfigMap, err := w.getConfigMap(ctx, configMapKey)

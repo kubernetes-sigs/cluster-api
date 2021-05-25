@@ -25,17 +25,18 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
+// HaveSameStateOf matches a condition to have the same state of another.
 func HaveSameStateOf(expected *clusterv1.Condition) types.GomegaMatcher {
-	return &ConditionMatcher{
+	return &conditionMatcher{
 		Expected: expected,
 	}
 }
 
-type ConditionMatcher struct {
+type conditionMatcher struct {
 	Expected *clusterv1.Condition
 }
 
-func (matcher *ConditionMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *conditionMatcher) Match(actual interface{}) (success bool, err error) {
 	actualCondition, ok := actual.(*clusterv1.Condition)
 	if !ok {
 		return false, errors.New("value should be a condition")
@@ -44,9 +45,9 @@ func (matcher *ConditionMatcher) Match(actual interface{}) (success bool, err er
 	return hasSameState(actualCondition, matcher.Expected), nil
 }
 
-func (matcher *ConditionMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *conditionMatcher) FailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "to have the same state of", matcher.Expected)
 }
-func (matcher *ConditionMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *conditionMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "not to have the same state of", matcher.Expected)
 }

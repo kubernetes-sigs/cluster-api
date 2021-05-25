@@ -59,7 +59,10 @@ type RemoteClusterConnectionError struct {
 	Err  error
 }
 
+// Error satisfies the error interface.
 func (e *RemoteClusterConnectionError) Error() string { return e.Name + ": " + e.Err.Error() }
+
+// Unwrap satisfies the unwrap error inteface.
 func (e *RemoteClusterConnectionError) Unwrap() error { return e.Err }
 
 // Get implements client.Reader.

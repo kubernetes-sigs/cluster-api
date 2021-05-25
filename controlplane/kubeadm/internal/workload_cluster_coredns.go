@@ -52,8 +52,10 @@ type coreDNSMigrator interface {
 	Migrate(currentVersion string, toVersion string, corefile string, deprecations bool) (string, error)
 }
 
+// CoreDNSMigrator is a shim that can be used to migrate CoreDNS files from one version to another.
 type CoreDNSMigrator struct{}
 
+// Migrate calls the CoreDNS migration library to migrate a corefile.
 func (c *CoreDNSMigrator) Migrate(fromCoreDNSVersion, toCoreDNSVersion, corefile string, deprecations bool) (string, error) {
 	return migration.Migrate(fromCoreDNSVersion, toCoreDNSVersion, corefile, deprecations)
 }

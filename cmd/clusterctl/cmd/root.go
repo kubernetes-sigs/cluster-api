@@ -88,6 +88,7 @@ var RootCmd = &cobra.Command{
 	},
 }
 
+// Execute executes the root command.
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
 		if verbosity != nil && *verbosity >= 5 {
@@ -134,7 +135,7 @@ func initConfig() {
 	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
 }
 
-const Indentation = `  `
+const indentation = `  `
 
 // LongDesc normalizes a command's long description to follow the conventions.
 func LongDesc(s string) string {
@@ -172,7 +173,7 @@ func (s normalizer) indent() normalizer {
 	indentedLines := make([]string, 0, len(splitLines))
 	for _, line := range splitLines {
 		trimmed := strings.TrimSpace(line)
-		indented := Indentation + trimmed
+		indented := indentation + trimmed
 		indentedLines = append(indentedLines, indented)
 	}
 	s.string = strings.Join(indentedLines, "\n")

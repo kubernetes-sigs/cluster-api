@@ -211,14 +211,17 @@ type Cluster struct {
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the set of conditions for this object.
 func (c *Cluster) GetConditions() Conditions {
 	return c.Status.Conditions
 }
 
+// SetConditions sets the conditions on this object.
 func (c *Cluster) SetConditions(conditions Conditions) {
 	c.Status.Conditions = conditions
 }
 
+// GetIPFamily returns a ClusterIPFamily from the configuration provided.
 func (c *Cluster) GetIPFamily() (ClusterIPFamily, error) {
 	var podCIDRs, serviceCIDRs []string
 	if c.Spec.ClusterNetwork != nil {
@@ -287,6 +290,7 @@ func ipFamilyForCIDRStrings(cidrs []string) (ClusterIPFamily, error) {
 	}
 }
 
+// ClusterIPFamily defines the types of supported IP families.
 type ClusterIPFamily int
 
 // Define the ClusterIPFamily constants.

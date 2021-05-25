@@ -70,6 +70,7 @@ func (t *template) Yaml() ([]byte, error) {
 	return utilyaml.FromUnstructured(t.objs)
 }
 
+// TemplateInput is an input struct for NewTemplate.
 type TemplateInput struct {
 	RawArtifact           []byte
 	ConfigVariablesClient config.VariablesClient

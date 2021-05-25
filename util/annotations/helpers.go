@@ -47,6 +47,7 @@ func HasSkipRemediationAnnotation(o metav1.Object) bool {
 	return hasAnnotation(o, clusterv1.MachineSkipRemediationAnnotation)
 }
 
+// HasWithPrefix returns true if at least one of the annotations has the prefix specified.
 func HasWithPrefix(prefix string, annotations map[string]string) bool {
 	for key := range annotations {
 		if strings.HasPrefix(key, prefix) {

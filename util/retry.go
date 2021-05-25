@@ -29,6 +29,7 @@ const (
 	backoffJitter   = 1.0
 )
 
+// Retry retries a given function with exponential backoff.
 func Retry(fn wait.ConditionFunc, initialBackoffSec int) error {
 	if initialBackoffSec <= 0 {
 		initialBackoffSec = backoffDuration
@@ -46,10 +47,14 @@ func Retry(fn wait.ConditionFunc, initialBackoffSec int) error {
 	return nil
 }
 
+// Poll tries a condition func until it returns true, an error, or the timeout
+// is reached.
 func Poll(interval, timeout time.Duration, condition wait.ConditionFunc) error {
 	return wait.Poll(interval, timeout, condition)
 }
 
+// PollImmediate tries a condition func until it returns true, an error, or the timeout
+// is reached.
 func PollImmediate(interval, timeout time.Duration, condition wait.ConditionFunc) error {
 	return wait.PollImmediate(interval, timeout, condition)
 }

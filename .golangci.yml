@@ -44,14 +44,12 @@ issues:
   exclude:
   - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
   - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-  - exported method `.*.Reconcile` should have comment or be unexported
-  - exported method `.*.SetupWithManager` should have comment or be unexported
+  - exported method `.*.(Reconcile|SetupWithManager|SetupWebhookWithManager)` should have comment or be unexported
   # The following are being worked on to remove their exclusion. This list should be reduced or go away all together over time.
   # If it is decided they will not be addressed they should be moved above this comment.
   - Subprocess launch(ed with variable|ing should be audited)
   - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
   - (G104|G307)
-  - exported (method|function|type|const) (.+) should have comment or be unexported
   exclude-rules:
   # With Go 1.16, the new embed directive can be used with an un-named import,
   # golint only allows these to be imported in a main.go, which wouldn't work for us.
@@ -59,6 +57,19 @@ issues:
   - linters:
     - golint
     source: _ "embed"
+  # Exclude some packages or code to require comments, for example test code, or fake clients.
+  - linters:
+    - golint
+    text: exported (method|function|type|const) (.+) should have comment or be unexported
+    source: (func|type).*Fake.*
+  - linters:
+    - golint
+    text: exported (method|function|type|const) (.+) should have comment or be unexported
+    path: fake_\.go
+  - linters:
+    - golint
+    text: exported (method|function|type|const) (.+) should have comment or be unexported
+    path: .*test/(providers|framework|e2e).*.go
   # Disable unparam "always receives" which might not be really
   # useful when building libraries.
   - linters:
@@ -70,9 +81,7 @@ issues:
     text: should not use dot imports
   - path: _test\.go
     text: cyclomatic complexity
-  - path: test/framework.*.go
-    text: should not use dot imports
-  - path: test/e2e.*.go
+  - path: test/(framework|e2e).*.go
     text: should not use dot imports
 
 run:

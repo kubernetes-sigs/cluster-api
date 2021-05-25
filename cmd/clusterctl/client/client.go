@@ -105,20 +105,22 @@ type clusterctlClient struct {
 	alphaClient             alpha.Client
 }
 
-// RepositoryClientFactoryInput represents the inputs required by the
-// RepositoryClientFactory.
+// RepositoryClientFactoryInput represents the inputs required by the factory.
 type RepositoryClientFactoryInput struct {
 	Provider  Provider
 	Processor Processor
 }
+
+// RepositoryClientFactory is a factory of repository.Client from a given input.
 type RepositoryClientFactory func(RepositoryClientFactoryInput) (repository.Client, error)
 
-// ClusterClientFactoryInput reporesents the inputs required by the
-// ClusterClientFactory.
+// ClusterClientFactoryInput reporesents the inputs required by the factory.
 type ClusterClientFactoryInput struct {
 	Kubeconfig Kubeconfig
 	Processor  Processor
 }
+
+// ClusterClientFactory is a factory of cluster.Client from a given input.
 type ClusterClientFactory func(ClusterClientFactoryInput) (cluster.Client, error)
 
 // Ensure clusterctlClient implements Client.

@@ -104,10 +104,12 @@ type DockerMachine struct {
 	Status DockerMachineStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the set of conditions for this object.
 func (c *DockerMachine) GetConditions() clusterv1.Conditions {
 	return c.Status.Conditions
 }
 
+// SetConditions sets the conditions on this object.
 func (c *DockerMachine) SetConditions(conditions clusterv1.Conditions) {
 	c.Status.Conditions = conditions
 }

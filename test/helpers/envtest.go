@@ -264,12 +264,15 @@ func initializeWebhookInEnvironment() {
 		MutatingWebhooks:   mutatingWebhooks,
 	}
 }
+
+// StartManager starts the manager.
 func (t *TestEnvironment) StartManager(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	t.cancel = cancel
 	return t.Manager.Start(ctx)
 }
 
+// WaitForWebhooks waits for the webhook server to be available.
 func (t *TestEnvironment) WaitForWebhooks() {
 	port := env.WebhookInstallOptions.LocalServingPort
 
@@ -288,15 +291,18 @@ func (t *TestEnvironment) WaitForWebhooks() {
 	}
 }
 
+// Stop stops the test environment.
 func (t *TestEnvironment) Stop() error {
 	t.cancel()
 	return env.Stop()
 }
 
+// CreateKubeconfigSecret generates a new Kubeconfig secret from the envtest config.
 func (t *TestEnvironment) CreateKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster) error {
 	return t.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(t.Config, cluster)))
 }
 
+// Cleanup deletes all the given objects.
 func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) error {
 	errs := []error{}
 	for _, o := range objs {
@@ -317,6 +323,7 @@ func (t *TestEnvironment) CreateObj(ctx context.Context, obj client.Object, opts
 	return t.Client.Create(ctx, obj, opts...)
 }
 
+// CreateNamespace creates a new namespace with a generated name.
 func (t *TestEnvironment) CreateNamespace(ctx context.Context, generateName string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

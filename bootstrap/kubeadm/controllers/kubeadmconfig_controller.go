@@ -77,6 +77,7 @@ type KubeadmConfigReconciler struct {
 	remoteClientGetter remote.ClusterClientGetter
 }
 
+// Scope is a scoped struct used during reconciliation.
 type Scope struct {
 	logr.Logger
 	Config      *bootstrapv1.KubeadmConfig

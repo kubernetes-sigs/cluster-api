@@ -27,6 +27,7 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
+// NoopProvider determines if a provider passed in should behave as a no-op.
 const NoopProvider = "-"
 
 // InitOptions carries the options supported by Init.

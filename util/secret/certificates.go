@@ -353,6 +353,7 @@ func (c *Certificate) AsFiles() []bootstrapv1.File {
 	return out
 }
 
+// Generate generates a certificate.
 func (c *Certificate) Generate() error {
 	// Do not generate the APIServerEtcdClient key pair. It is user supplied
 	if c.Purpose == APIServerEtcdClient {

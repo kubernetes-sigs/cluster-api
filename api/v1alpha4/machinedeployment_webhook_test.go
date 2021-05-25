@@ -33,6 +33,13 @@ func TestMachineDeploymentDefault(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-md",
 		},
+		Spec: MachineDeploymentSpec{
+			Template: MachineTemplateSpec{
+				Spec: MachineSpec{
+					Version: pointer.String("1.19.10"),
+				},
+			},
+		},
 	}
 	t.Run("for MachineDeployment", utildefaulting.DefaultValidateTest(md))
 	md.Default()
@@ -48,6 +55,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(BeNil())
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
+	g.Expect(*md.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
 }
 
 func TestMachineDeploymentValidation(t *testing.T) {
@@ -167,6 +175,65 @@ func TestMachineDeploymentValidation(t *testing.T) {
 					},
 				},
 			}
+			if tt.expectErr {
+				g.Expect(md.ValidateCreate()).NotTo(Succeed())
+				g.Expect(md.ValidateUpdate(md)).NotTo(Succeed())
+			} else {
+				g.Expect(md.ValidateCreate()).To(Succeed())
+				g.Expect(md.ValidateUpdate(md)).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestMachineDeploymentVersionValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		version   string
+		expectErr bool
+	}{
+		{
+			name:      "should succeed when given a valid semantic version with prepended 'v'",
+			version:   "v1.17.2",
+			expectErr: false,
+		},
+		{
+			name:      "should return error when given a valid semantic version without 'v'",
+			version:   "1.17.2",
+			expectErr: true,
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			version:   "1",
+			expectErr: true,
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			version:   "v1",
+			expectErr: true,
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			version:   "wrong_version",
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			md := &MachineDeployment{
+				Spec: MachineDeploymentSpec{
+
+					Template: MachineTemplateSpec{
+						Spec: MachineSpec{
+							Version: pointer.String(tt.version),
+						},
+					},
+				},
+			}
+
 			if tt.expectErr {
 				g.Expect(md.ValidateCreate()).NotTo(Succeed())
 				g.Expect(md.ValidateUpdate(md)).NotTo(Succeed())

@@ -518,7 +518,7 @@ export OPENSTACK_IMAGE_NAME=<image name>
 export OPENSTACK_SSH_KEY_NAME=<ssh key pair name>
 ```
 
-A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/configuration.md).
+A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/book/src/clusteropenstack/configuration.md).
 
 {{#/tab }}
 {{#tab Metal3}}
@@ -760,7 +760,6 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [clusterctl config cluster]: ../clusterctl/commands/config-cluster.md
 [clusterctl get kubeconfig]: ../clusterctl/commands/get-kubeconfig.md
 [clusterctl]: ../clusterctl/overview.md
-[docker-provider]: ../clusterctl/developers.md#additional-steps-for-the-docker-provider
 [Docker]: https://www.docker.com/
 [GCP provider]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
@@ -772,5 +771,5 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
 [Packet getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-packet#using
 [provider components]: ../reference/glossary.md#provider-components
-[vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/
+[vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md
 [workload cluster]: ../reference/glossary.md#workload-cluster

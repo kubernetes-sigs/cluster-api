@@ -30,7 +30,7 @@ import (
 
 const (
 	// DefaultNodeImage is the default node image to be used for for testing.
-	DefaultNodeImage = "kindest/node:v1.19.1"
+	DefaultNodeImage = "kindest/node:v1.19.11"
 )
 
 // KindClusterOption is a NewKindClusterProvider option.

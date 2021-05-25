@@ -36,6 +36,7 @@ func (c *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &Cluster{}
 var _ webhook.Validator = &Cluster{}
 
+// Default satisfies the defaulting webhook interface.
 func (c *Cluster) Default() {
 	if c.Spec.InfrastructureRef != nil && len(c.Spec.InfrastructureRef.Namespace) == 0 {
 		c.Spec.InfrastructureRef.Namespace = c.Namespace

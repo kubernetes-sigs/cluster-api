@@ -217,14 +217,17 @@ func listObjByGVK(c client.Client, groupVersion, kind string, options []client.L
 	return objList, nil
 }
 
+// ProxyOption defines a function that can change proxy options.
 type ProxyOption func(p *proxy)
 
+// InjectProxyTimeout sets the proxy timeout.
 func InjectProxyTimeout(t time.Duration) ProxyOption {
 	return func(p *proxy) {
 		p.timeout = t
 	}
 }
 
+// InjectKubeconfigPaths sets the kubeconfig paths loading rules.
 func InjectKubeconfigPaths(paths []string) ProxyOption {
 	return func(p *proxy) {
 		p.configLoadingRules.Precedence = paths

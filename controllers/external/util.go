@@ -49,6 +49,7 @@ func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, name
 	return obj, nil
 }
 
+// CloneTemplateInput is the input to CloneTemplate.
 type CloneTemplateInput struct {
 	// Client is the controller runtime client.
 	// +required
@@ -138,6 +139,7 @@ type GenerateTemplateInput struct {
 	Annotations map[string]string
 }
 
+// GenerateTemplate generates an object with the given template input.
 func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, error) {
 	template, found, err := unstructured.NestedMap(in.Template.Object, "spec", "template")
 	if !found {

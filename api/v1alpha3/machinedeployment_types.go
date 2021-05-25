@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+// MachineDeploymentStrategyType defines the type of MachineDeployment rollout strategies.
 type MachineDeploymentStrategyType string
 
 const (

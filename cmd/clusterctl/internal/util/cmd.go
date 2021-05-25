@@ -36,6 +36,7 @@ type Cmd struct {
 	stderr  io.Writer
 }
 
+// NewCmd returns a new Cmd with the given arguments.
 func NewCmd(command string, args ...string) *Cmd {
 	return &Cmd{
 		command: command,
@@ -43,16 +44,19 @@ func NewCmd(command string, args ...string) *Cmd {
 	}
 }
 
+// Run runs the command.
 func (c *Cmd) Run() error {
 	return c.runInnerCommand()
 }
 
+// RunWithEcho runs the command and redirects its output to stdout and stderr.
 func (c *Cmd) RunWithEcho() error {
 	c.stdout = os.Stderr
 	c.stderr = os.Stdout
 	return c.runInnerCommand()
 }
 
+// RunAndCapture runs the command and captures any output.
 func (c *Cmd) RunAndCapture() (lines []string, err error) {
 	var buff bytes.Buffer
 	c.stdout = &buff
@@ -66,6 +70,7 @@ func (c *Cmd) RunAndCapture() (lines []string, err error) {
 	return lines, err
 }
 
+// Stdin sets the stdin for the command.
 func (c *Cmd) Stdin(in io.Reader) *Cmd {
 	c.stdin = in
 	return c

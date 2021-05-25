@@ -83,6 +83,7 @@ func (p *provider) Less(other Provider) bool {
 		(p.providerType.Order() == other.Type().Order() && p.name < other.Name())
 }
 
+// NewProvider creates a new Provider with the given input.
 func NewProvider(name string, url string, ttype clusterctlv1.ProviderType) Provider {
 	return &provider{
 		name:         name,

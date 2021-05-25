@@ -1143,6 +1143,7 @@ func (f *FakeExternalObject) Objs() []client.Object {
 	return []client.Object{externalObj}
 }
 
+// SelectClusterObj finds and returns a Cluster with the given name and namespace, if any.
 func SelectClusterObj(objs []client.Object, namespace, name string) *clusterv1.Cluster {
 	for _, o := range objs {
 		if o.GetObjectKind().GroupVersionKind().GroupKind() != clusterv1.GroupVersion.WithKind("Cluster").GroupKind() {

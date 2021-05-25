@@ -55,6 +55,7 @@ var (
 	}
 )
 
+// KubeVersionToKubeadmAPIGroupVersion maps a Kubernetes version to the correct Kubeadm API Group supported.
 func KubeVersionToKubeadmAPIGroupVersion(version semver.Version) (schema.GroupVersion, error) {
 	switch {
 	case version.LT(v1beta1KubeadmVersion):

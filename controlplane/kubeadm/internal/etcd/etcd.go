@@ -65,6 +65,7 @@ type MemberAlarm struct {
 	Type AlarmType
 }
 
+// AlarmType defines the type of alarm for etcd.
 type AlarmType int32
 
 const (

@@ -38,6 +38,7 @@ type templateClient struct {
 	processor             yaml.Processor
 }
 
+// TemplateClientInput is an input strict for newTemplateClient.
 type TemplateClientInput struct {
 	version               string
 	provider              config.Provider

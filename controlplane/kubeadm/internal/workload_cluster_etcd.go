@@ -191,6 +191,7 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 	return nil
 }
 
+// EtcdMemberStatus contains status information for a single etcd member.
 type EtcdMemberStatus struct {
 	Name       string
 	Responsive bool

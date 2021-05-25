@@ -31,6 +31,7 @@ var (
 	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 )
 
+// Info exposes information about the version used for the current running code.
 type Info struct {
 	Major        string `json:"major,omitempty"`
 	Minor        string `json:"minor,omitempty"`
@@ -43,6 +44,7 @@ type Info struct {
 	Platform     string `json:"platform,omitempty"`
 }
 
+// Get returns an Info object with all the information about the current running code.
 func Get() Info {
 	return Info{
 		Major:        gitMajor,

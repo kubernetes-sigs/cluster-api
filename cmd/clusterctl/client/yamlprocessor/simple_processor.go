@@ -34,6 +34,7 @@ type SimpleProcessor struct{}
 
 var _ Processor = &SimpleProcessor{}
 
+// NewSimpleProcessor returns a new simple template processor.
 func NewSimpleProcessor() *SimpleProcessor {
 	return &SimpleProcessor{}
 }

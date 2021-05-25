@@ -54,6 +54,7 @@ type templateClient struct {
 // ensure templateClient implements TemplateClient.
 var _ TemplateClient = &templateClient{}
 
+// TemplateClientInput is an input struct for newTemplateClient.
 type TemplateClientInput struct {
 	proxy        Proxy
 	configClient config.Client

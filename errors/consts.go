@@ -16,6 +16,7 @@ limitations under the License.
 
 package errors
 
+// MachineStatusError defines errors states for Machine objects.
 type MachineStatusError string
 
 // Constants aren't automatically generated for unversioned packages.
@@ -78,6 +79,7 @@ const (
 	JoinClusterTimeoutMachineError = "JoinClusterTimeoutError"
 )
 
+// ClusterStatusError defines errors states for Cluster objects.
 type ClusterStatusError string
 
 const (
@@ -103,6 +105,7 @@ const (
 	DeleteClusterError ClusterStatusError = "DeleteError"
 )
 
+// MachineSetStatusError defines errors states for MachineSet objects.
 type MachineSetStatusError string
 
 const (
@@ -115,6 +118,7 @@ const (
 	InvalidConfigurationMachineSetError MachineSetStatusError = "InvalidConfiguration"
 )
 
+// MachinePoolStatusFailure defines errors states for MachinePool objects.
 type MachinePoolStatusFailure string
 
 const (
@@ -127,6 +131,7 @@ const (
 	InvalidConfigurationMachinePoolError MachinePoolStatusFailure = "InvalidConfiguration"
 )
 
+// KubeadmControlPlaneStatusError defines errors states for KubeadmControlPlane objects.
 type KubeadmControlPlaneStatusError string
 
 const (

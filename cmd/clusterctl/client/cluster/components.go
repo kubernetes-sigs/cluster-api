@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// DeleteOptions defines delete options.
 type DeleteOptions struct {
 	Provider         clusterctlv1.Provider
 	IncludeNamespace bool

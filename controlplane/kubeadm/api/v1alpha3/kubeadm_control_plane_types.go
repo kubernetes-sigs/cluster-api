@@ -162,10 +162,12 @@ type KubeadmControlPlane struct {
 	Status KubeadmControlPlaneStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the set of conditions for this object.
 func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
 	return in.Status.Conditions
 }
 
+// SetConditions sets the conditions on this object.
 func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
 	in.Status.Conditions = conditions
 }

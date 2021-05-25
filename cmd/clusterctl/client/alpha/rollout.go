@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
+// MachineDeployment is a resource type.
 const MachineDeployment = "machinedeployment"
 
 var validResourceTypes = []string{MachineDeployment}

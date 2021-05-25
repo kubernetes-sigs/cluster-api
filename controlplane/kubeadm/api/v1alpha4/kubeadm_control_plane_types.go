@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
+// RolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
 type RolloutStrategyType string
 
 const (
@@ -87,6 +88,8 @@ type KubeadmControlPlaneSpec struct {
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
 }
 
+// KubeadmControlPlaneMachineTemplate defines the template for Machines
+// in a KubeadmControlPlane object.
 type KubeadmControlPlaneMachineTemplate struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
@@ -209,10 +212,12 @@ type KubeadmControlPlane struct {
 	Status KubeadmControlPlaneStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the set of conditions for this object.
 func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
 	return in.Status.Conditions
 }
 
+// SetConditions sets the conditions on this object.
 func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
 	in.Status.Conditions = conditions
 }

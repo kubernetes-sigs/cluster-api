@@ -25,6 +25,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
+// FromEnvTestConfig returns a new Kubeconfig in byte form when running in envtest.
 func FromEnvTestConfig(cfg *rest.Config, cluster *clusterv1.Cluster) []byte {
 	contextName := fmt.Sprintf("%s@%s", cfg.Username, cluster.Name)
 	c := api.Config{

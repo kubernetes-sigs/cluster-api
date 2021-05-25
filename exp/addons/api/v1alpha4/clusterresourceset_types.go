@@ -99,10 +99,12 @@ type ClusterResourceSetStatus struct {
 
 // ANCHOR_END: ClusterResourceSetStatus
 
+// GetConditions returns the set of conditions for this object.
 func (m *ClusterResourceSet) GetConditions() clusterv1.Conditions {
 	return m.Status.Conditions
 }
 
+// SetConditions sets the conditions on this object.
 func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
 	m.Status.Conditions = conditions
 }

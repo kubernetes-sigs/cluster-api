@@ -151,30 +151,35 @@ type ProviderList struct {
 	Items           []Provider `json:"items"`
 }
 
+// FilterByNamespace returns a new list of providers that reside in the namespace provided.
 func (l *ProviderList) FilterByNamespace(namespace string) []Provider {
 	return l.filterBy(func(p Provider) bool {
 		return p.Namespace == namespace
 	})
 }
 
+// FilterByProviderNameAndType returns a new list of provider that match the name and type.
 func (l *ProviderList) FilterByProviderNameAndType(provider string, providerType ProviderType) []Provider {
 	return l.filterBy(func(p Provider) bool {
 		return p.ProviderName == provider && p.Type == string(providerType)
 	})
 }
 
+// FilterByType returns a new list of providers that match the given type.
 func (l *ProviderList) FilterByType(providerType ProviderType) []Provider {
 	return l.filterBy(func(p Provider) bool {
 		return p.GetProviderType() == providerType
 	})
 }
 
+// FilterCore returns a new list of providers that are in the core.
 func (l *ProviderList) FilterCore() []Provider {
 	return l.filterBy(func(p Provider) bool {
 		return p.GetProviderType() == CoreProviderType
 	})
 }
 
+// FilterNonCore returns a new list of providers that are not in the core.
 func (l *ProviderList) FilterNonCore() []Provider {
 	return l.filterBy(func(p Provider) bool {
 		return p.GetProviderType() != CoreProviderType

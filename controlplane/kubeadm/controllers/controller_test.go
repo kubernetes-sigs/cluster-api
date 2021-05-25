@@ -149,8 +149,6 @@ func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
 }
 
 func TestReconcileUpdateObservedGeneration(t *testing.T) {
-	t.Skip("Disabling this test temporarily until we can get a fix for https://github.com/kubernetes/kubernetes/issues/80609 in controller runtime + switch to a live client in test env.")
-
 	g := NewWithT(t)
 	r := &KubeadmControlPlaneReconciler{
 		Client:            testEnv,
@@ -163,8 +161,9 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 	g.Expect(testEnv.Create(ctx, kcp)).To(Succeed())
 
 	// read kcp.Generation after create
-	errGettingObject := testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
-	g.Expect(errGettingObject).NotTo(HaveOccurred())
+	g.Eventually(func() error {
+		return testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
+	}).Should(Succeed())
 	generation := kcp.Generation
 
 	// Set cluster.status.InfrastructureReady so we actually enter in the reconcile loop
@@ -177,18 +176,17 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 	g.Expect(result).To(Equal(ctrl.Result{}))
 
 	g.Eventually(func() int64 {
-		errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
-		g.Expect(errGettingObject).NotTo(HaveOccurred())
+		if err := testEnv.Get(ctx, util.ObjectKey(kcp), kcp); err != nil {
+			return -1
+		}
 		return kcp.Status.ObservedGeneration
-	}, 10*time.Second).Should(Equal(generation))
+	}, 20*time.Second).Should(BeNumerically(">=", generation))
 
 	// triggers a generation change by changing the spec
 	kcp.Spec.Replicas = pointer.Int32Ptr(*kcp.Spec.Replicas + 2)
 	g.Expect(testEnv.Update(ctx, kcp)).To(Succeed())
 
-	// read kcp.Generation after the update
-	errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
-	g.Expect(errGettingObject).NotTo(HaveOccurred())
+	// Store kcp.Generation after the update
 	generation = kcp.Generation
 
 	// call reconcile the second time, so we can check if observedGeneration is set when calling defer patch
@@ -197,10 +195,11 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 	_, _ = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 
 	g.Eventually(func() int64 {
-		errGettingObject = testEnv.Get(ctx, util.ObjectKey(kcp), kcp)
-		g.Expect(errGettingObject).NotTo(HaveOccurred())
+		if err := testEnv.Get(ctx, util.ObjectKey(kcp), kcp); err != nil {
+			return -1
+		}
 		return kcp.Status.ObservedGeneration
-	}, 10*time.Second).Should(Equal(generation))
+	}, 20*time.Second).Should(BeNumerically(">=", generation))
 }
 
 func TestReconcileNoClusterOwnerRef(t *testing.T) {

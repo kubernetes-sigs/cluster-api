@@ -65,7 +65,6 @@ func printComponentsAsText(c client.Components) error {
 	fmt.Printf("Version:            %s\n", c.Version())
 	fmt.Printf("File:               %s\n", file)
 	fmt.Printf("TargetNamespace:    %s\n", c.TargetNamespace())
-	fmt.Printf("WatchingNamespace:  %s\n", c.WatchingNamespace())
 	if len(c.Variables()) > 0 {
 		fmt.Println("Variables:")
 		for _, v := range c.Variables() {

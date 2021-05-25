@@ -52,7 +52,6 @@ type configProvidersOptions struct {
 	infrastructureProvider string
 	output                 string
 	targetNamespace        string
-	watchingNamespace      string
 }
 
 var cpo = &configProvidersOptions{}
@@ -101,8 +100,6 @@ func init() {
 		fmt.Sprintf("Output format. Valid values: %v.", ComponentsOutputs))
 	configProviderCmd.Flags().StringVar(&cpo.targetNamespace, "target-namespace", "",
 		"The target namespace where the provider should be deployed. If unspecified, the components default namespace is used.")
-	configProviderCmd.Flags().StringVar(&cpo.watchingNamespace, "watching-namespace", "",
-		"Namespace the provider should watch when reconciling objects. If unspecified, all namespaces are watched.")
 
 	configCmd.AddCommand(configProviderCmd)
 }
@@ -145,9 +142,8 @@ func runGetComponents() error {
 	}
 
 	options := client.ComponentsOptions{
-		TargetNamespace:   cpo.targetNamespace,
-		WatchingNamespace: cpo.watchingNamespace,
-		SkipVariables:     true,
+		TargetNamespace: cpo.targetNamespace,
+		SkipVariables:   true,
 	}
 	components, err := c.GetProviderComponents(providerName, providerType, options)
 	if err != nil {
@@ -169,7 +165,6 @@ func printComponents(c client.Components, output string) error {
 		fmt.Printf("Version:            %s\n", c.Version())
 		fmt.Printf("File:               %s\n", file)
 		fmt.Printf("TargetNamespace:    %s\n", c.TargetNamespace())
-		fmt.Printf("WatchingNamespace:  %s\n", c.WatchingNamespace())
 		if len(c.Variables()) > 0 {
 			fmt.Println("Variables:")
 			for _, v := range c.Variables() {

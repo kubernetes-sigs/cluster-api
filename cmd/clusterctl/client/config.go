@@ -48,10 +48,9 @@ func (c *clusterctlClient) GetProvidersConfig() ([]Provider, error) {
 func (c *clusterctlClient) GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
 	// ComponentsOptions is an alias for repository.ComponentsOptions; this makes the conversion
 	inputOptions := repository.ComponentsOptions{
-		Version:           options.Version,
-		TargetNamespace:   options.TargetNamespace,
-		WatchingNamespace: options.WatchingNamespace,
-		SkipVariables:     options.SkipVariables,
+		Version:         options.Version,
+		TargetNamespace: options.TargetNamespace,
+		SkipVariables:   options.SkipVariables,
 	}
 	components, err := c.getComponentsByName(provider, providerType, inputOptions)
 	if err != nil {

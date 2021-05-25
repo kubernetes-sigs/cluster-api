@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -431,4 +432,27 @@ func toSemanticVersions(versions []string) []version.Version {
 		semanticVersions = append(semanticVersions, *version.MustParseSemantic(v))
 	}
 	return semanticVersions
+}
+
+func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, targetNamespace, watchingNamespace string) clusterctlv1.Provider {
+	return clusterctlv1.Provider{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterctlv1.GroupVersion.String(),
+			Kind:       "Provider",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			ResourceVersion: "1",
+			Namespace:       targetNamespace,
+			Name:            clusterctlv1.ManifestLabel(name, providerType),
+			Labels: map[string]string{
+				clusterctlv1.ClusterctlLabelName:     "",
+				clusterv1.ProviderLabelName:          clusterctlv1.ManifestLabel(name, providerType),
+				clusterctlv1.ClusterctlCoreLabelName: "inventory",
+			},
+		},
+		ProviderName:     name,
+		Type:             string(providerType),
+		Version:          version,
+		WatchedNamespace: watchingNamespace,
+	}
 }

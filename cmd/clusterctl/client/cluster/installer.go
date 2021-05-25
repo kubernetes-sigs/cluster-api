@@ -39,11 +39,8 @@ type ProviderInstaller interface {
 
 	// Validate performs steps to validate a management cluster by looking at the current state and the providers in the queue.
 	// The following checks are performed in order to ensure a fully operational cluster:
-	// - There must be only one instance of the same provider per namespace
-	// - Instances of the same provider must not be fighting for objects (no watching overlap)
-	// - Providers must combine in valid management groups
-	//   - All the providers must belong to one/only one management groups
-	//   - All the providers in a management group must support the same API Version of Cluster API (contract)
+	// - There must be only one instance of the same provider
+	// - All the providers in must support the same API Version of Cluster API (contract)
 	Validate() error
 
 	// Images returns the list of images required for installing the providers ready in the install queue.
@@ -167,43 +164,39 @@ func (i *providerInstaller) Validate() error {
 
 	// Starts simulating what will be the resulting management cluster by adding to the list the providers in the installQueue.
 	// During this operation following checks are performed:
-	// - There must be only one instance of the same provider per namespace
-	// - Instances of the same provider must not be fighting for objects (no watching overlap)
+	// - There must be only one instance of the same provider
 	for _, components := range i.installQueue {
 		if providerList, err = simulateInstall(providerList, components); err != nil {
 			return errors.Wrapf(err, "installing provider %q can lead to a non functioning management cluster", components.ManifestLabel())
 		}
 	}
 
-	// Now that the provider list contains all the providers that are scheduled for install, gets the resulting management groups.
-	// During this operation following check is performed:
-	// - Providers must combine in valid management groups
-	//   - All the providers must belong to one/only one management group
-	managementGroups, err := deriveManagementGroups(providerList)
+	// Gets the API Version of Cluster API (contract) all the providers in the management cluster must support,
+	// which is the same of the core provider.
+	providerInstanceContracts := map[string]string{}
+
+	coreProviders := providerList.FilterCore()
+	if len(coreProviders) != 1 {
+		return errors.Errorf("invalid management cluster: there should a core provider, found %d", len(coreProviders))
+	}
+	coreProvider := coreProviders[0]
+
+	managementClusterContract, err := i.getProviderContract(providerInstanceContracts, coreProvider)
 	if err != nil {
 		return err
 	}
 
-	// Checks if all the providers supports the same API Version of Cluster API (contract) of the corresponding management group.
-	providerInstanceContracts := map[string]string{}
+	// Checks if all the providers supports the same API Version of Cluster API (contract).
 	for _, components := range i.installQueue {
 		provider := components.InventoryObject()
 
-		// Gets the management group the providers belongs to, and then retrieve the API Version of Cluster API (contract)
-		// all the providers in the management group must support.
-		managementGroup := managementGroups.FindManagementGroupByProviderInstanceName(provider.InstanceName())
-		managementGroupContract, err := i.getProviderContract(providerInstanceContracts, managementGroup.CoreProvider)
-		if err != nil {
-			return err
-		}
-
-		// Gets the API Version of Cluster API (contract) the provider support and compare it with the  management group contract.
+		// Gets the API Version of Cluster API (contract) the provider support and compare it with the management cluster contract.
 		providerContract, err := i.getProviderContract(providerInstanceContracts, provider)
 		if err != nil {
 			return err
 		}
-		if providerContract != managementGroupContract {
-			return errors.Errorf("installing provider %q can lead to a non functioning management cluster: the target version for the provider supports the %s API Version of Cluster API (contract), while the management group is using %s", components.ManifestLabel(), providerContract, managementGroupContract)
+		if providerContract != managementClusterContract {
+			return errors.Errorf("installing provider %q can lead to a non functioning management cluster: the target version for the provider supports the %s API Version of Cluster API (contract), while the management cluster is using %s", components.ManifestLabel(), providerContract, managementClusterContract)
 		}
 	}
 	return nil
@@ -258,26 +251,11 @@ func simulateInstall(providerList *clusterctlv1.ProviderList, components reposit
 	provider := components.InventoryObject()
 
 	existingInstances := providerList.FilterByProviderNameAndType(provider.ProviderName, provider.GetProviderType())
-
-	// Target Namespace check
-	// Installing two instances of the same provider in the same namespace won't be supported
-	for _, i := range existingInstances {
-		if i.Namespace == provider.Namespace {
-			return providerList, errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.ManifestLabel(), provider.Namespace)
-		}
-	}
-
-	// Watching Namespace check:
-	// If we are going to install an instance of a provider watching objects in namespaces already controlled by other providers
-	// then there will be providers fighting for objects...
-	for _, i := range existingInstances {
-		if i.HasWatchingOverlapWith(provider) {
-			return providerList, errors.Errorf("the new instance of the %q provider is going to watch for objects in the namespace %q that is already controlled by other instances of the same provider", provider.ManifestLabel(), provider.WatchedNamespace)
-		}
+	if len(existingInstances) > 0 {
+		return providerList, errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.ManifestLabel(), provider.Namespace)
 	}
 
 	providerList.Items = append(providerList.Items, provider)
-
 	return providerList, nil
 }
 

@@ -17,7 +17,7 @@ Produces an output similar to this:
 ```shell
 Checking new release availability...
 
-Management group: capi-system/cluster-api, latest release available for the v1alpha3 API Version of Cluster API (contract):
+Latest release available for the v1alpha3 API Version of Cluster API (contract):
 
 NAME                NAMESPACE                          TYPE                     CURRENT VERSION   TARGET VERSION
 cluster-api         capi-system                        CoreProvider             v0.3.0            v0.3.1
@@ -28,10 +28,10 @@ docker              capd-system                        InfrastructureProvider   
 
 You can now apply the upgrade by executing the following command:
 
-   clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha3
+   clusterctl upgrade apply --contract v1alpha3
 ```
 
-The output contains the latest release available for each management group in the cluster/for each API Version of Cluster API (contract)
+The output contains the latest release available for each API Version of Cluster API (contract)
 available at the moment.
 
 <aside class="note">
@@ -47,13 +47,11 @@ release available for upgrade will be `v0.6.6`.
 # upgrade apply
 
 After choosing the desired option for the upgrade, you can run the following
-command to upgrade all the providers in the management group. This upgrades
+command to upgrade all the providers in the management cluster. This upgrades
 all the providers to the latest stable releases.
 
 ```shell
-clusterctl upgrade apply \
-  --management-group capi-system/cluster-api  \
-  --contract v1alpha3
+clusterctl upgrade apply --contract v1alpha3
 ```
 
 The upgrade process is composed by three steps:
@@ -85,7 +83,7 @@ In order to upgrade to a provider's pre-release version, we can do
 the following:
 
 ```shell
-clusterctl upgrade apply --management-group capi-system/cluster-api \
+clusterctl upgrade apply \
     --core capi-system/cluster-api:v0.3.1 \
     --bootstrap capi-kubeadm-bootstrap-system/kubeadm:v0.3.1 \
     --control-plane capi-kubeadm-control-plane-system/kubeadm:v0.3.1 \

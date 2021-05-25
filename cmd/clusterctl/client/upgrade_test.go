@@ -164,7 +164,6 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			args: args{
 				options: ApplyUpgradeOptions{
 					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					ManagementGroup:         "cluster-api-system/cluster-api",
 					Contract:                test.CurrentCAPIContract,
 					CoreProvider:            "",
 					BootstrapProviders:      nil,
@@ -193,7 +192,6 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			args: args{
 				options: ApplyUpgradeOptions{
 					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					ManagementGroup:         "cluster-api-system/cluster-api",
 					Contract:                "",
 					CoreProvider:            "cluster-api-system/cluster-api:v1.0.1",
 					BootstrapProviders:      nil,
@@ -222,7 +220,6 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			args: args{
 				options: ApplyUpgradeOptions{
 					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					ManagementGroup:         "cluster-api-system/cluster-api",
 					Contract:                "",
 					CoreProvider:            "",
 					BootstrapProviders:      nil,
@@ -251,7 +248,6 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			args: args{
 				options: ApplyUpgradeOptions{
 					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					ManagementGroup:         "cluster-api-system/cluster-api",
 					Contract:                "",
 					CoreProvider:            "cluster-api-system/cluster-api:v1.0.1",
 					BootstrapProviders:      nil,

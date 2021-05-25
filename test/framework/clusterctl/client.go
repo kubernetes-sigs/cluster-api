@@ -113,14 +113,12 @@ type UpgradeInput struct {
 	LogFolder            string
 	ClusterctlConfigPath string
 	KubeconfigPath       string
-	ManagementGroup      string
 	Contract             string
 }
 
 // Upgrade calls clusterctl upgrade apply with the list of providers defined in the local repository.
 func Upgrade(ctx context.Context, input UpgradeInput) {
-	log.Logf("clusterctl upgrade apply --management-group %s --contract %s",
-		input.ManagementGroup,
+	log.Logf("clusterctl upgrade apply --contract %s",
 		input.Contract,
 	)
 
@@ -129,8 +127,7 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 			Path:    input.KubeconfigPath,
 			Context: "",
 		},
-		ManagementGroup: input.ManagementGroup,
-		Contract:        input.Contract,
+		Contract: input.Contract,
 	}
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-upgrade.log", input.LogFolder)

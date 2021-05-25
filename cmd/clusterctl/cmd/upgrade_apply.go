@@ -26,7 +26,6 @@ import (
 type upgradeApplyOptions struct {
 	kubeconfig              string
 	kubeconfigContext       string
-	managementGroup         string
 	contract                string
 	coreProvider            string
 	bootstrapProviders      []string
@@ -42,16 +41,16 @@ var upgradeApplyCmd = &cobra.Command{
 	Long: LongDesc(`
 		The upgrade apply command applies new versions of Cluster API providers as defined by clusterctl upgrade plan.
 
-		New version should be applied for each management groups, ensuring all the providers on the same cluster API version
+		New version should be applied ensuring all the providers uses the same cluster API version
 		in order to guarantee the proper functioning of the management cluster.`),
 
 	Example: Examples(`
-		# Upgrades all the providers in the capi-system/cluster-api management group to the latest version available which is compliant
+		# Upgrades all the providers in the management cluster to the latest version available which is compliant
 		# to the v1alpha4 API Version of Cluster API (contract).
-		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha4
+		clusterctl upgrade apply --contract v1alpha4
 
-		# Upgrades only the capa-system/aws provider instance in the capi-system/cluster-api management group to the v0.5.0 version.
-		clusterctl upgrade apply --management-group capi-system/cluster-api  --infrastructure capa-system/aws:v0.5.0`),
+		# Upgrades only the capa-system/aws provider to the v0.5.0 version.
+		clusterctl upgrade apply --infrastructure capa-system/aws:v0.5.0`),
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runUpgradeApply()
@@ -63,10 +62,8 @@ func init() {
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
 	upgradeApplyCmd.Flags().StringVar(&ua.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
-	upgradeApplyCmd.Flags().StringVar(&ua.managementGroup, "management-group", "",
-		"The management group that should be upgraded (e.g. capi-system/cluster-api)")
 	upgradeApplyCmd.Flags().StringVar(&ua.contract, "contract", "",
-		"The API Version of Cluster API (contract, e.g. v1alpha4) the management group should upgrade to")
+		"The API Version of Cluster API (contract, e.g. v1alpha4) the management cluster should upgrade to")
 
 	upgradeApplyCmd.Flags().StringVar(&ua.coreProvider, "core", "",
 		"Core provider instance version (e.g. capi-system/cluster-api:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
@@ -95,7 +92,6 @@ func runUpgradeApply() error {
 
 	if err := c.ApplyUpgrade(client.ApplyUpgradeOptions{
 		Kubeconfig:              client.Kubeconfig{Path: ua.kubeconfig, Context: ua.kubeconfigContext},
-		ManagementGroup:         ua.managementGroup,
 		Contract:                ua.contract,
 		CoreProvider:            ua.coreProvider,
 		BootstrapProviders:      ua.bootstrapProviders,

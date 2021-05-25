@@ -277,3 +277,10 @@ MachinePool is today an experiment, and the API group we originally decided to p
 All InfraMachinePool implementations should be moved to `infrastructure.cluster.x-k8s.io`. See `DockerMachinePool` for an example.
 
 Note that MachinePools are still experimental after this change and should still be feature gated.
+
+## Golangci-lint configuration
+
+There were a lot of new useful linters added to `.golangci.yml`. Of course it's not mandatory to use `golangci-lint` or 
+a similar configuration, but it might make sense regardless. Please note there was previously an error in 
+the `exclude` configuration which has been fixed in [#4657](https://github.com/kubernetes-sigs/cluster-api/pull/4657). As 
+this configuration has been duplicated in a few other providers, it could be that you're also affected.

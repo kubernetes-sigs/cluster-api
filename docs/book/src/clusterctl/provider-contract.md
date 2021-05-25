@@ -150,7 +150,9 @@ Each provider is expected to deploy controllers using a Deployment.
 While defining the Deployment Spec, the container that executes the controller binary MUST be called `manager`.
 
 The manager MUST support a `--namespace` flag for specifying the namespace where the controller
-will look for objects to reconcile.
+will look for objects to reconcile; however, clusterctl will always install providers watching for all namespaces 
+(`--namespace=""`); for more details see [support for multiple instances](../../developer/architecture/controllers/support-multiple-instances.md)
+for more context.
 
 #### Variables
 
@@ -282,7 +284,6 @@ Provider authors should be aware of the following transformations that `clusterc
 * Enforcement of target namespace:
   * The name of the namespace object is set;
   * The namespace field of all the objects is set (with exception of cluster wide objects like e.g. ClusterRoles);
-* Enforcement of watching namespace;
 * All components are labeled;
 
 ### Cluster template transformations

@@ -29,7 +29,6 @@ type generateProvidersOptions struct {
 	controlPlaneProvider   string
 	infrastructureProvider string
 	targetNamespace        string
-	watchingNamespace      string
 	textOutput             bool
 }
 
@@ -79,8 +78,6 @@ func init() {
 		"ControlPlane provider and version (e.g. kubeadm:v0.3.0)")
 	generateProviderCmd.Flags().StringVar(&gpo.targetNamespace, "target-namespace", "",
 		"The target namespace where the provider should be deployed. If unspecified, the components default namespace is used.")
-	generateProviderCmd.Flags().StringVar(&gpo.watchingNamespace, "watching-namespace", "",
-		"Namespace the provider should watch when reconciling objects. If unspecified, all namespaces are watched.")
 	generateProviderCmd.Flags().BoolVar(&gpo.textOutput, "describe", false,
 		"Generate configuration without variable substitution.")
 
@@ -98,8 +95,7 @@ func runGenerateProviderComponents() error {
 	}
 
 	options := client.ComponentsOptions{
-		TargetNamespace:   gpo.targetNamespace,
-		WatchingNamespace: gpo.watchingNamespace,
+		TargetNamespace: gpo.targetNamespace,
 	}
 	components, err := c.GetProviderComponents(providerName, providerType, options)
 	if err != nil {

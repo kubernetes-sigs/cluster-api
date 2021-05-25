@@ -102,29 +102,6 @@ same target namespace.
 
 </aside>
 
-#### Watching namespace
-
-The `clusterctl init` command by default installs each provider configured for watching objects in all namespaces.
-
-<aside class="note">
-
-<h1> Is it possible to change the watching namespace ? </h1>
-
-You can specify the target namespace by using the `--watching-namespace` flag.
-
-Please, note that the `--watching-namespace` flag applies to all the providers to be installed during a `clusterctl init` operation.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-The `clusterctl init` command forbids users from installing two instances of the *same* provider watching for objects in the
-same namespace.
-
-</aside>
-
 ## Provider repositories
 
 To access provider specific information, such as the components YAML to be used for installing a provider,
@@ -184,7 +161,7 @@ subsequent moments of the provider's lifecycle, e.g. upgrades.
  ```
 
 * An additional `Provider` object is created in the target namespace where the provider is installed.
-This object keeps track of the provider version, the watching namespace, and other useful information
+This object keeps track of the provider version, and other useful information
 for the inventory of the providers currently installed in the management cluster.
 
 <aside class="note warning">

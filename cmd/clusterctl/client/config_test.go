@@ -137,9 +137,8 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 		WithRepository(repository1)
 
 	type args struct {
-		provider          string
-		targetNameSpace   string
-		watchingNamespace string
+		provider        string
+		targetNameSpace string
 	}
 	type want struct {
 		provider config.Provider
@@ -154,9 +153,8 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 		{
 			name: "Pass",
 			args: args{
-				provider:          capiProviderConfig.Name(),
-				targetNameSpace:   "ns2",
-				watchingNamespace: "",
+				provider:        capiProviderConfig.Name(),
+				targetNameSpace: "ns2",
 			},
 			want: want{
 				provider: capiProviderConfig,
@@ -167,9 +165,8 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 		{
 			name: "Fail",
 			args: args{
-				provider:          fmt.Sprintf("%s:v0.2.0", capiProviderConfig.Name()),
-				targetNameSpace:   "ns2",
-				watchingNamespace: "",
+				provider:        fmt.Sprintf("%s:v0.2.0", capiProviderConfig.Name()),
+				targetNameSpace: "ns2",
 			},
 			wantErr: true,
 		},
@@ -179,8 +176,7 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 			g := NewWithT(t)
 
 			options := ComponentsOptions{
-				TargetNamespace:   tt.args.targetNameSpace,
-				WatchingNamespace: tt.args.watchingNamespace,
+				TargetNamespace: tt.args.targetNameSpace,
 			}
 			got, err := client.GetProviderComponents(tt.args.provider, capiProviderConfig.Type(), options)
 			if tt.wantErr {
@@ -224,9 +220,8 @@ func Test_getComponentsByName_withEmptyVariables(t *testing.T) {
 		WithCluster(cluster1)
 
 	options := ComponentsOptions{
-		TargetNamespace:   "ns1",
-		WatchingNamespace: "",
-		SkipVariables:     true,
+		TargetNamespace: "ns1",
+		SkipVariables:   true,
 	}
 	components, err := client.GetProviderComponents(repository1Config.Name(), repository1Config.Type(), options)
 	g.Expect(err).NotTo(HaveOccurred())

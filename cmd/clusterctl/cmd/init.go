@@ -31,7 +31,6 @@ type initOptions struct {
 	controlPlaneProviders   []string
 	infrastructureProviders []string
 	targetNamespace         string
-	watchingNamespace       string
 	listImages              bool
 }
 
@@ -76,9 +75,6 @@ var initCmd = &cobra.Command{
 		# Initialize a management cluster with a custom target namespace for the provider resources.
 		clusterctl init --infrastructure aws --target-namespace foo
 
-		# Initialize a management cluster with a custom watching namespace for the given provider.
-		clusterctl init --infrastructure aws --watching-namespace=foo
-
 		# Lists the container images required for initializing the management cluster.
 		#
 		# Note: This command is a dry-run; it won't perform any action other than printing to screen.
@@ -104,8 +100,6 @@ func init() {
 		"Control plane providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
 	initCmd.Flags().StringVar(&initOpts.targetNamespace, "target-namespace", "",
 		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
-	initCmd.Flags().StringVar(&initOpts.watchingNamespace, "watching-namespace", "",
-		"Namespace the providers should watch when reconciling objects. If unspecified, all namespaces are watched.")
 
 	// TODO: Move this to a sub-command or similar, it shouldn't really be a flag.
 	initCmd.Flags().BoolVar(&initOpts.listImages, "list-images", false,
@@ -127,7 +121,6 @@ func runInit() error {
 		ControlPlaneProviders:   initOpts.controlPlaneProviders,
 		InfrastructureProviders: initOpts.infrastructureProviders,
 		TargetNamespace:         initOpts.targetNamespace,
-		WatchingNamespace:       initOpts.watchingNamespace,
 		LogUsageInstructions:    true,
 	}
 

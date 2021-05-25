@@ -54,10 +54,6 @@ type InitOptions struct {
 	// will be installed in a provider's default namespace.
 	TargetNamespace string
 
-	// WatchingNamespace defines the namespace the providers should watch to reconcile Cluster API objects.
-	// If unspecified, the providers watches for Cluster API objects across all namespaces.
-	WatchingNamespace string
-
 	// LogUsageInstructions instructs the init command to print the usage instructions in case of first run.
 	LogUsageInstructions bool
 
@@ -193,10 +189,9 @@ func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOp
 	installer := cluster.ProviderInstaller()
 
 	addOptions := addToInstallerOptions{
-		installer:         installer,
-		targetNamespace:   options.TargetNamespace,
-		watchingNamespace: options.WatchingNamespace,
-		skipVariables:     options.skipVariables,
+		installer:       installer,
+		targetNamespace: options.TargetNamespace,
+		skipVariables:   options.skipVariables,
 	}
 
 	if options.CoreProvider != "" {
@@ -245,10 +240,9 @@ func (c *clusterctlClient) addDefaultProviders(cluster cluster.Client, options *
 }
 
 type addToInstallerOptions struct {
-	installer         cluster.ProviderInstaller
-	targetNamespace   string
-	watchingNamespace string
-	skipVariables     bool
+	installer       cluster.ProviderInstaller
+	targetNamespace string
+	skipVariables   bool
 }
 
 // addToInstaller adds the components to the install queue and checks that the actual provider type match the target group.
@@ -262,9 +256,8 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, provide
 			continue
 		}
 		componentsOptions := repository.ComponentsOptions{
-			TargetNamespace:   options.targetNamespace,
-			WatchingNamespace: options.watchingNamespace,
-			SkipVariables:     options.skipVariables,
+			TargetNamespace: options.targetNamespace,
+			SkipVariables:   options.skipVariables,
 		}
 		components, err := c.getComponentsByName(provider, providerType, componentsOptions)
 		if err != nil {

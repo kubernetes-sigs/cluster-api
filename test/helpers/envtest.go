@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
+	"github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -36,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -68,6 +70,13 @@ func init() {
 
 var (
 	env *envtest.Environment
+
+	cacheSyncBackoff = wait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   1.5,
+		Steps:    8,
+		Jitter:   0.4,
+	}
 )
 
 func init() {
@@ -308,9 +317,6 @@ func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) er
 	for _, o := range objs {
 		err := t.Client.Delete(ctx, o)
 		if apierrors.IsNotFound(err) {
-			// If the object is not found, it must've been garbage collected
-			// already. For example, if we delete namespace first and then
-			// objects within it.
 			continue
 		}
 		errs = append(errs, err)
@@ -318,9 +324,65 @@ func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) er
 	return kerrors.NewAggregate(errs)
 }
 
-// CreateObj wraps around client.Create and creates the object.
-func (t *TestEnvironment) CreateObj(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	return t.Client.Create(ctx, obj, opts...)
+// CleanupAndWait deletes all the given objects and waits for the cache to be updated accordingly.
+//
+// NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
+func (t *TestEnvironment) CleanupAndWait(ctx context.Context, objs ...client.Object) error {
+	if err := t.Cleanup(ctx, objs...); err != nil {
+		return err
+	}
+
+	// Makes sure the cache is updated with the deleted object
+	errs := []error{}
+	for _, o := range objs {
+		// Ignoring namespaces because in testenv the namespace cleaner is not running.
+		if o.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("Namespace").GroupKind() {
+			continue
+		}
+
+		oCopy := o.DeepCopyObject().(client.Object)
+		key := client.ObjectKeyFromObject(o)
+		err := wait.ExponentialBackoff(
+			cacheSyncBackoff,
+			func() (done bool, err error) {
+				if err := t.Get(ctx, key, oCopy); err != nil {
+					if apierrors.IsNotFound(err) {
+						return true, nil
+					}
+					return false, err
+				}
+				return false, nil
+			})
+		errs = append(errs, errors.Wrapf(err, "key %s, %s is not being deleted from the testenv client cache", o.GetObjectKind().GroupVersionKind().String(), key))
+	}
+	return kerrors.NewAggregate(errs)
+}
+
+// CreateAndWait creates the given object and waits for the cache to be updated accordingly.
+//
+// NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
+func (t *TestEnvironment) CreateAndWait(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	if err := t.Client.Create(ctx, obj, opts...); err != nil {
+		return err
+	}
+
+	// Makes sure the cache is updated with the new object
+	objCopy := obj.DeepCopyObject().(client.Object)
+	key := client.ObjectKeyFromObject(obj)
+	if err := wait.ExponentialBackoff(
+		cacheSyncBackoff,
+		func() (done bool, err error) {
+			if err := t.Get(ctx, key, objCopy); err != nil {
+				if apierrors.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
+			}
+			return true, nil
+		}); err != nil {
+		return errors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+	}
+	return nil
 }
 
 // CreateNamespace creates a new namespace with a generated name.

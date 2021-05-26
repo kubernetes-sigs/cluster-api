@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -35,7 +36,7 @@ type etcdClientFor interface {
 
 // ReconcileEtcdMembers iterates over all etcd members and finds members that do not have corresponding nodes.
 // If there are any such members, it deletes them from etcd and removes their nodes from the kubeadm configmap so that kubeadm does not run etcd health checks on them.
-func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string) ([]string, error) {
+func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string, version semver.Version) ([]string, error) {
 	removedMembers := []string{}
 	errs := []error{}
 	for _, nodeName := range nodeNames {
@@ -73,7 +74,7 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string)
 				errs = append(errs, err)
 			}
 
-			if err := w.RemoveNodeFromKubeadmConfigMap(ctx, member.Name); err != nil {
+			if err := w.RemoveNodeFromKubeadmConfigMap(ctx, member.Name, version); err != nil {
 				errs = append(errs, err)
 			}
 		}

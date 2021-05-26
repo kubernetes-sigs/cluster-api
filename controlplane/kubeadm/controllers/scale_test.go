@@ -192,7 +192,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		}
 
 		cluster := &clusterv1.Cluster{}
-		kcp := &controlplanev1.KubeadmControlPlane{}
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.19.1",
+			},
+		}
 		setKCPHealthy(kcp)
 		controlPlane := &internal.ControlPlane{
 			KCP:      kcp,
@@ -230,7 +234,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		}
 
 		cluster := &clusterv1.Cluster{}
-		kcp := &controlplanev1.KubeadmControlPlane{}
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.19.1",
+			},
+		}
 		controlPlane := &internal.ControlPlane{
 			KCP:      kcp,
 			Cluster:  cluster,

@@ -1,0 +1,8 @@
+load('../Tiltfile', 'deploy_cert_manager')
+
+is_kind = k8s_context().startswith('kind-')
+deploy_cert_manager(load_to_kind=is_kind)
+
+local_resource(
+  name='verify-cert-manager',
+  cmd='kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment/cert-manager')

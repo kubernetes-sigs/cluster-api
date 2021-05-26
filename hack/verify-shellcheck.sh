@@ -64,9 +64,9 @@ fi
 
 echo "Running shellcheck..."
 cd "${ROOT_PATH}" || exit
-IGNORE_FILES=$(find . -name "*.sh" | grep third_party)
+IGNORE_FILES=$(find . -name "*.sh" | grep "third_party\|tilt_modules")
 echo "Ignoring shellcheck on ${IGNORE_FILES}"
-FILES=$(find . -name "*.sh" | grep -v third_party)
+FILES=$(find . -name "*.sh" -not -path "./tilt_modules/*" -not -path "*third_party*")
 while read -r file; do
     "$SHELLCHECK" -x "$file" >> "${OUT}" 2>&1
 done <<< "$FILES"

@@ -26,7 +26,7 @@ spec:
 """
 
 # Deploys cert manager to your environment
-def deploy_cert_manager(registry="quay.io/jetstack", version="v1.1.0", load_to_kind=False, kind_cluster_name="kind"):
+def deploy_cert_manager(registry="quay.io/jetstack", version="v1.3.1", load_to_kind=False, kind_cluster_name="kind"):
     silent=True
     if version.startswith('v0'):
       cert_manager_test_resources_versioned = cert_manager_test_resources.format(cert_manager_api_version='v1alpha2')
@@ -59,6 +59,7 @@ def deploy_cert_manager(registry="quay.io/jetstack", version="v1.1.0", load_to_k
 
     # 2. create a test certificate
     print("Testing cert-manager")
-    local("cat << EOF | kubectl apply -f - " + cert_manager_test_resources_versioned + "EOF", quiet=silent, echo_off=silent)
+    # The webhook may refuse connections initially (despite the deployment being Available), so try several times.
+    local("for i in 1 2 3 4 5 6; do (kubectl apply -f - <<EOF" + cert_manager_test_resources_versioned + "EOF\n) && break || sleep 15; done", quiet=silent, echo_off=silent)
     local("kubectl wait --for=condition=Ready --timeout=300s -n cert-manager-test certificate/selfsigned-cert ", quiet=silent, echo_off=silent)
-    local("cat << EOF | kubectl delete -f - " + cert_manager_test_resources_versioned + "EOF", quiet=silent, echo_off=silent)
+    local("kubectl delete -f - <<EOF" + cert_manager_test_resources_versioned + "EOF", quiet=silent, echo_off=silent)

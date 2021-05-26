@@ -2,8 +2,8 @@
 title: Add support for managed external etcd clusters in CAPI
 authors:
   - "@mrajashree"
-creation-date: 2021-03-23
-last-updated: 2021-03-23
+creation-date: 2021-05-24
+last-updated: 2021-05-26
 status: provisional
 ---
 
@@ -36,25 +36,44 @@ status: provisional
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+### Etcd provider
+A provider that creates and manages an etcd cluster to be used by a single workload cluster for the [external etcd topology](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/#external-etcd-topology).
 
+### Etcdadm based etcd provider
+This provider is an implementation of the Etcd provider that uses [etcdadm](https://github.com/kubernetes-sigs/etcdadm) to create and manage an external etcd cluster.
+
+### Etcdadm bootstrap provider
+The Etcdadm based etcd provider has two components, the Etcdadm bootstrap provider being one of them. It is responsible for running etcdadm commands on individual Machines to bring up an etcd cluster.
+
+### Etcdadm cluster controller
+The Etcdadm based etcd provider has two components and etcdadm cluster controller is one of them. It accepts the etcd cluster configuration options from the user, such as the cluster size or version, and generates the objects required by the Etcdadm bootstrap provider for etcd cluster creation. It is responsible for managing the etcd cluster lifecycle.
+
+
+Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
 If this proposal adds new terms, or defines some, make the changes to the book's glossary when in PR stage.
 
 ## Summary
 
-This is a proposal for adding support for provisioning external etcd clusters in Cluster API. CAPI's KubeadmControlPlane supports using an external etcd cluster. However, it currently does not support provisioning and managing this external etcd cluster. 
-As per [this KEP](https://github.com/kubernetes/enhancements/tree/master/keps/sig-cluster-lifecycle/etcdadm/2496-etcdadm), there are ongoing
-efforts to rebase [etcd-manager](https://github.com/kopeio/etcd-manager) (used in kOps) on to etcdadm, so as to make etcdadm a consistent etcd solution to be used across all projects, including cluster-api.
-This can be achieved for CAPI by adding a new pluggable provider that has two main components:
-- A bootstrap provider, that uses [etcdadm](https://github.com/kubernetes-sigs/etcdadm) to convert a machine into an etcd member.
-- A new controller that manages this etcd cluster's lifecycle
+This is a proposal for adding support for provisioning external etcd clusters in Cluster API. CAPI supports using an external etcd cluster, but the user needs to create and manage it. CAPI currently does not have a provider that can create and manage etcd clusters.
+This proposal intends to:
+- Define a contract for adding pluggable etcd providers.
+  - Just like the control plane and infrastructure providers are pluggable,  we can define a contract to make etcd providers pluggable too. This proposal defines such a contract which includes:
+    - The required services and API types an etcd provider should add.
+    - Contract for how the control plane providers and infrastructure providers can interact with an etcd provider.
+- Add a new provider that follows the contract and uses [etcdadm](https://github.com/kubernetes-sigs/etcdadm) to create and manage an etcd cluster.
+  - One of the goals mentioned in the [etcdadm project roadmap](https://github.com/kubernetes-sigs/etcdadm/blob/master/ROADMAP.md) is to integrate it with CAPI to support the "external etcd" use case.  
+  - This etcdadm based provider will have two main components:
+    - An etcd bootstrap provider, that runs the required etcdadm commands to convert a Machine into an etcd member. This bootstrap provider is only responsible for turning individual Machines into etcd members.
+    - An etcd controller that manages the etcd cluster's lifecycle. This controller will manage a new API type, through which the user can specify etcd cluster requirements such as size and version. It will create the resources required by the etcd bootstrap provider to run the etcdadm commands.
+  - This provider should be able to bring up an etcd cluster of any size (odd numbers only), including single member etcd clusters for testing purposes. But the documentation will specify the recommended cluster size for production use cases to range between 3 and 7.
+
 
 ## Motivation
 
 - Motivation behind having cluster-api provision and manage the external etcd cluster
 
   - Cluster API supports the use of an external etcd cluster, by allowing users to provide their external etcd cluster's endpoints.
-So it would be good to add support for provisioning the etcd cluster too.
+  So it would be good to add support for provisioning the etcd cluster too, so the user can have a single workflow for full management of a cluster using the external etcd topology. The user can offload the responsibility of managing an external etcd cluster to CAPI.
     
   - External etcd topology decouples the control plane and etcd member. So if a control plane-only node fails, or if there's a memory leak in a component like kube-apiserver, it won't directly impact an etcd member.
     
@@ -63,65 +82,51 @@ So it would be good to add support for provisioning the etcd cluster too.
     
 - Motivation behind using etcdadm as a pluggable etcd provider
   
-  - Leveraging existing projects such as etcdadm is one way of bringing up an etcd cluster. This [KEP](https://github.com/kubernetes/enhancements/tree/master/keps/sig-cluster-lifecycle/etcdadm/2496-etcdadm) and [etcdadm roadmap](https://github.com/kubernetes-sigs/etcdadm/blob/master/ROADMAP.md) doc indicate that this is one of the goals for etcdadm, to be integrated into cluster-api
-    
-  - Once the rebase of etcd-manager on etcdadm is completed, etcdadm can also provide cluster administration features that etcd-manager does, such as backups and restores.
+  - Leveraging existing projects such as etcdadm is one way of bringing up an etcd cluster. One of the goals mentioned in the [etcdadm project roadmap](https://github.com/kubernetes-sigs/etcdadm/blob/master/ROADMAP.md) is to integrate it with CAPI to support the "external etcd" use case.
   
-  - Etcd providers can be made pluggable and we can start with adding one that uses etcdadm.
+  - Etcd providers can be made pluggable and we can start by adding one that uses etcdadm.
 
 ### Goals
 
 - Introduce pluggable etcd providers in Cluster API, starting with an etcdadm based provider. This etcdadm provider will create and manage an etcd cluster.
 - User should be able to create a Kubernetes cluster that uses external etcd topology in a single step.
-- User should only have to create the CAPI Cluster resources, along with the required etcd provider specific resources. That should trigger creation of an etcd cluster, followed by creation of the target workload cluster that uses this etcd cluster.
+- User should only have to create the required CAPI resources, along with the required etcd provider specific resources. That should trigger creation of an etcd cluster, followed by creation of the target workload cluster which uses this etcd cluster. Meaning, the CAPI controllers will deploy the etcd cluster first and then use that as input to the workload cluster, without requiring any user intervention.
 - There will be a 1:1 mapping between the external etcd cluster and the workload cluster.
 - Define a contract for pluggable etcd providers and define steps that control plane providers should take to use a managed external etcd cluster.
-- Support following etcd cluster management actions: scale up and scale down, etcd member replacement, etcd version upgrades and rollbacks.
+- Support the following etcd cluster management actions: scale up and scale down, etcd member replacement and etcd version upgrades.
 - The etcd providers will utilize the existing Machine objects to represent etcd members for convenience instead of adding a new machine type for etcd.
-- Etcd cluster members will undergo upgrades using the rollingUpdate strategy.
 
 ### Non-Goals
 - The first iteration will use IP addresses/hostnames as etcd cluster endpoints. It can not configure static endpoint(s) till the Load Balancer provider is available.
 - API changes such as adding new fields within existing control plane providers, like the KubeadmControlPlane provider. We will utilize the existing external etcd endpoints field from the KubeadmConfigSpec for KCP.
+- An etcd cluster created for one workload cluster should not be used as etcd for another workload cluster. This proposal does not intend to add 1:many mapping for etcd to workload clusters.
+- This is not to be used for etcd-as-a-service. The etcd clusters created by an etcd provider within CAPI will only be used by the kube-apiserver of a target workload cluster.
 
 ## Proposal
 
 ### User Stories
 
 - As an end user, I want to be able to create a Kubernetes cluster that uses external etcd topology using CAPI with a single step.
-- On creating the required CRs in CAPI along with the new etcd provider specific CRs, CAPI should provision an etcd cluster, followed by a workload cluster that uses this external etcd cluster. 
+- On creating the required CRs in CAPI along with the new etcd provider specific CRs, CAPI controllers should provision an etcd cluster, and provide that as input to the workload cluster, without requiring any intervention from me as an end user.
 - As an end user, I should be able to use the etcd provider CRs to specify etcd cluster size during creation and specify/modify etcd version. CAPI controllers should modify and manage the etcd clusters accordingly.
 
 ### Implementation Details/Notes/Constraints
-
-These are some of the key differences between etcd cluster provisioning flow when using etcdadm CLI vs the new etcdadm based provider:
-- Etcdadm cluster provisioning using CLI commands works as follows:
-
-  - Run `etcdadm init` on any one of the nodes to create a single node etcd cluster. This generates the CA cert & key on that node, along with the server, peer and client certs for that node.
-  - The init command also gives as output `etcdadm join` command with the client URL of the first node.
-  - To add a new member to the cluster, copy the CA cert key pair from the first node to the right location (`etc/etcd/pki`) on the new node. Then run the `etcdadm join <client URL>` command.
-  
-- This flow can't be used within cluster-api as is, since it requires copying over certs from the first etcd node to others. Instead it will follow the design that Kubeadm uses by generating certs outside the etcd cluster.
-The etcd controller running on the management cluster will generate the certs, and save them as a Secret, which then each member can lookup and populate in the `write_files` section of its cloud-init script
-  
-- The first node outputs the `etcdadm join <client URL>` command, but cluster-api can't directly use this output. The only way to get this command from the output would be to save the cloud-init output and parse it. Instead the etcd controller can form this command once the first etcd node is provisioned by using that node's address with port 2379.
-
 
 #### Data Model Changes
 
 The following new type/CRDs will be added for the etcdadm based provider
 ```go
-// API Group: etcdcluster.cluster.x-k8s.io OR etcdplane.cluster.x-k8s.io
-type EtcdCluster struct {
+// API Group: etcd.cluster.x-k8s.io OR etcdplane.cluster.x-k8s.io
+type EtcdadmCluster struct {
     metav1.TypeMeta   `json:",inline"`
     metav1.ObjectMeta `json:"metadata,omitempty"`
 
-    Spec   EtcdClusterSpec   `json:"spec,omitempty"`
-    Status EtcdClusterStatus `json:"status,omitempty"`
+    Spec   EtcdadmClusterSpec   `json:"spec,omitempty"`
+    Status EtcdadmClusterStatus `json:"status,omitempty"`
 }
 
-// EtcdClusterSpec defines the desired state of EtcdCluster
-type EtcdClusterSpec struct {
+// EtcdadmClusterSpec defines the desired state of EtcdadmCluster
+type EtcdadmClusterSpec struct {
     // Replicas is the number of etcd members in the cluster. Defaults to 3 and immutable as really user shouldn't scale up/scale down without reason, since it will affect etcd quorum.
     Replicas *int32 `json:"replicas,omitempty"`
 
@@ -138,7 +143,7 @@ type EtcdClusterSpec struct {
     RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
 }
 
-type EtcdClusterStatus struct {
+type EtcdadmClusterStatus struct {
     // Total number of non-terminated machines targeted by this etcd cluster
     // (their labels match the selector).
     // +optional
@@ -151,10 +156,10 @@ type EtcdClusterStatus struct {
     Initialized bool `json:"initialized"`
 
     // +optional
-    Ready bool `json:"ready"`
+    CreationComplete bool `json:"ready"`
 
     // +optional
-    Endpoint string `json:"endpoint"`
+    Endpoints string `json:"endpoints"`
 
     // +optional
     Selector string `json:"selector,omitempty"`
@@ -198,7 +203,7 @@ type EtcdadmConfigStatus struct {
 }
 ```
 
-The following fields will be added/modified in existing CAPI types:
+The following fields will be added on existing CAPI types:
 - Add Cluster.Spec.ManagedExternalEtcdRef as:
 ```go
 // ManagedExternalEtcdRef is an optional reference to an etcd provider resource that holds details
@@ -206,82 +211,98 @@ The following fields will be added/modified in existing CAPI types:
 // +optional
 ManagedExternalEtcdRef *corev1.ObjectReference `json:"managedExternalEtcdRef,omitempty"`
 ```
-- Add Cluster.Status.ManagedExternalEtcdReady field as:
+- Add Cluster.Status.ManagedExternalEtcdProvisioned field as:
 ```go
-// ManagedExternalEtcdReady indicates external etcd cluster is fully provisioned
+// ManagedExternalEtcdProvisioned indicates external etcd cluster is fully provisioned
 // +optional
-ManagedExternalEtcdReady bool `json:"managedExternalEtcdReady"`
+ManagedExternalEtcdProvisioned bool `json:"managedExternalEtcdProvisioned"`
 ```
+- Add Cluster.Status.ManagedExternalEtcdInitialized field as:
+```go
+// ManagedExternalEtcdInitialized indicates external etcd cluster is initialized, the first member has been created
+// +optional
+ManagedExternalEtcdInitialized bool `json:"managedExternalEtcdInitialized"`
+```
+
+The following is a change proposed in the current validating webhook for KCP:
 - Make KubeadmConfigSpec.ClusterConfiguration.Etcd.External.Endpoints field mutable
     - The kubeadm validating webhook currently doesn't allow this field to get updated. It should be added as an [allowed path](https://github.com/mrajashree/cluster-api/commit/18c42c47d024ce17cdda39500fc0d6bd67c5aa67#diff-6603d336435f3ee62a50043413f62441b685d5c416e5cadd792ed2a536b2f55fR121) in the webhook.
+    - The main reason being that in case of a managed external etcd cluster, the user won't know the etcd endpoints when the KCP spec. The etcd provider will populate the KCP spec with the etcd cluster endpoints once it is available. Hence the field should be mutable so that the etcd provider can update it.
+    - Even though this is a change in an existing field's behavior, existing clusters that were created before this change goes in can utilize it for etcd cluster reconfiguration. For instance, let's assume that a cluster was created before this new etcd provider existed, and that cluster was using an external etcd cluster that the user was managing. If the user has to replace one of the etcd member VMs, user can do so and update the KCP spec to include the new endpoint. That will trigger a control plane rollout and the kube-apiserver on the new Machines will be able to connect to the new external etcd endpoints.
 
 
 #### Implementation details
 
-**Contract for pluggable etcd providers**
+##### Contract for pluggable etcd providers
+This section defines a contract for an etcd provider. Any etcd provider being added should follow this contract. We are starting by adding an etcdadm based provider, but it is possible that later someone wants to add a new provider that uses something else to bring up etcd. Hence we will design it in a way that's pluggable.
 
-##### An etcd controller’s main responsibilities are:
+###### An etcd provider's main responsibilities are:
 
-* Managing a set of Machines that represent an etcd member
-* Managing the etcd cluster, in terms of scaling up/down/upgrading etcd version, and running healthchecks
+* Managing a set of Machines that represent an etcd member.
+* Managing the etcd cluster, in terms of scaling up/down/upgrading etcd version, and running healthchecks.
 * Populating and updating a field that will contain the etcd cluster endpoints (IP addresses of all etcd members). 
 * Creating/managing two Kubernetes Secrets that will contain certs required by the API server to communicate with the etcd cluster
     * One Secret containing the etcd CA cert, by the name `{cluster.Name}-etcd`
     * One Secret containing the API server cert-key pair, by the name `{cluster.Name}-apiserver-etcd-client`
 
-##### Required services: 
-The etcd provider should install etcd with the version specified by the user for each member
+###### Required services:
+The etcd provider should install etcd with the version specified by the user for each member.
 
-##### Required fields: 
+###### Required fields:
 Each etcd provider should add a new API type to manage the etcd cluster lifecycle, and it should have the following required fields:
 - Spec:
-    - Replicas
+    - Replicas: Allow only odd numbers, and immutable after creation.
 - Status
-    - Ready: To be set to true once all etcd members pass healthcheck (making calls to /health endpoint).
-    - Endpoint: A comma separated string containing all etcd members endpoints.
+    - CreationComplete: To be set to true once all etcd members pass healthcheck after initial cluster creation.
+    - Endpoints: A comma separated string containing all etcd members endpoints.
 
-##### Contract between etcd provider and control plane provider
+###### Contract between etcd provider and control plane provider
 - Control plane providers should check for the presence of the paused annotation (`cluster.x-k8s.io/paused`), and not continue provisioning if it is set. The KubeadmControlPlane controller does that.
-- Control plane providers should for presence of `Cluster.Spec.ManagedExternalEtcdRef` field. This check should happen after the control plane is no longer paused, and before it the control plane controller starts provisioning.
-- The control plane provider should "Get" the CR referred by the cluster.spec.ManagedExternalEtcdRef and check its status.endpoint field. It will parse the endpoints from this field and use these endpoints where applicable. For instance, the KCP controller will read the status.endpoint field and parse it into a string slice, and then use it as the external etcd endpoints.
-- The control plane provider will read the etcd CA cert, and the client cert-key pair from the two Kubernetes Secrets named `{cluster.Name}-apiserver-etcd-client` and `{cluster.Name}-etcd`
+- Control plane providers should for presence of `Cluster.Spec.ManagedExternalEtcdRef` field. This check should happen after the control plane is no longer paused, and before it starts provisioning the control plane.
+- The control plane provider should "Get" the CR referred by the cluster.spec.ManagedExternalEtcdRef and check its status.Endpoints field. It will parse the endpoints from this field and use these endpoints as the external etcd endpoints where applicable. For instance, the KCP controller will read the status.Endpoints field and parse it into a string slice, and then use it as the [external etcd endpoints](https://github.com/kubernetes-sigs/cluster-api/blob/master/bootstrap/kubeadm/api/v1alpha4/kubeadm_types.go#L269).
+- The control plane provider will read the etcd CA cert, and the client cert-key pair from the two Kubernetes Secrets named `{cluster.Name}-apiserver-etcd-client` and `{cluster.Name}-etcd`. The KCP controller currently does that.
 
-##### Contract between etcd provider and infrastructure provider
-- Each etcd member requires ports 2379 and 2380 for client and peer communication respectively. 
-- In case of the infrastructure providers that use security groups, either the infrastructure provider will add a new security group specifically for etcd members, or document that user needs to create a security group allowing these two ports and use that for the etcd machines.
+###### Contract between etcd provider and infrastructure provider
+- Each etcd member requires port 2379 for client communication and port 2380 for peer communication.
+- In case of the infrastructure providers that use security groups, either the infrastructure provider may add a new security group specifically for etcd members, or document that user needs to create a security group allowing these two ports and use that for the etcd machines.
 
 ![etcd-controller-contract](images/managed-etcd/etcd-controller-contract.png)
 ---
 
 
-**Etcdadm based etcd provider**
+##### Etcdadm based etcd provider
 
-This etcd provider will have two main components:
+The etcdadm based provider follows the contract defined above. This provider has two main components:
 
 ##### Etcdadm bootstrap provider
 
-- The Etcdadm bootstrap provider will convert a Machine to an etcd member by generating cloud-init scripts that will run the required etcdadm commands. It will do so through the EtcdadmConfig resource.
-- Etcdadm bootstrap provider controller will follow the same flow as that of the kubeadm bootstrap provider
-    - This controller will also use the [InitLock](https://github.com/kubernetes-sigs/cluster-api/blob/master/bootstrap/kubeadm/controllers/kubeadmconfig_controller.go#L62) way of determining which member runs the init command in case multiple EtcdadmConfig resources are created at the same time. Along with this, the controller will also check the ManagedEtcdInitialized condition on the ClusterStatus. It will be set by the machine controller after the first node is provisioned. If it is not set, the Machine corresponding to the EtcdadmConfig resource being processed will run `etcdadm init` command. If the ManagedEtcdInitialized condition is true, then the Machine will run `etcdadm join` command. 
-     - For the init node, the controller will lookup existing CA cert-key pair, or generate a CA cert key and save them in a Secret in the management cluster. For subsequent etcd members, the controller will lookup the CA cert key pair.
-     - The controller will generate 
-  data for each etcd member, save it as a Secret and save this Secret's name on the EtcdadmConfig.Status.DataSecretName field. This cloud-init data will contain:
-          - The CA certs to be written at `etc/etcd/pki`
-          - Userdata provided through the EtcdadmConfig spec
-          - Etcdadm commands
-- The infrastructure provider controller will use this Secret the same way it would a Kubeadm bootstrap Secret, to execute the cloud-init script.
-  
-##### Etcd cluster controller
+The Etcdadm bootstrap provider will convert a Machine to an etcd member by running `etcdadm` commands on it. When using the `etcdadm` CLI, the two main steps in etcd cluster creation are:
+- Choosing any one of the machines and running `etcdadm init` on it to create a single node etcd cluster.
+- Running `etcdadm join <first member's endpoint>` on the remaining machines to add them to the cluster created in the first step. This requires the CA certs to be present at an expected path on the machines.
 
-- The Etcd cluster lifecycle controller will manage the external etcd through a new API type called EtcdCluster(or EtcdadmCluster). This CRD will accept etcd cluster spec, which includes replicas, etcd configuration options such as version, and an infrastructure template reference. This controller will create EtcdadmConfig CRs with the user specified spec to match the number of replicas. 
+This bootstrap provider will perform the steps specified above using a custom controller that processes the EtcdadmConfig CRs. This controller is similar in design to the Kubeadm bootstrap provider controller. It follows the contract defined for [bootstrap providers](https://cluster-api.sigs.k8s.io/developer/providers/bootstrap.html#behavior). It performs the following actions upon receiving an EtcdadmConfig CR from the Workqueue:
+  - Each EtcdadmConfig object has a 1:1 mapping to the Machine object. The controller will get the owning Machine for the EtcdadmConfig object being processed. (The next section explains how the [Etcdadm cluster controller](#etcdadm-cluster-controller)) creates this association between an EtcdadmConfig and a Machine object).
+  - The controller then gets the Cluster object from the Machine.
+    - If the Cluster does not have `ManagedExternalEtcdInitialized` condition set to true, the controller will choose this Machine to run the `etcdadm init` command.
+    - If etcd cluster is initialized, meaning the `ManagedExternalEtcdInitialized` condition is true, the controller will make this Machine run the `etcdadm join` command.
+  - For each Machine, the controller will lookup a Secret by the name `{Cluster.Name}-managed-etcd` to get the CA cert-key for the external etcd cluster. (The next section explains how the etcdadm cluster controller generates this Secret).
+  - To add the certs to the required path on the Machines and run the required etcdadm commands, the controller will generate [cloud-init](https://cloudinit.readthedocs.io/) data for each member containing:
+    - A [`write_files` section](https://cloudinit.readthedocs.io/en/latest/topics/modules.html#write-files) to write the CA cert-key pair at `etc/etcd/pki` path on each Machine.
+    - A [`runcmd` section](https://cloudinit.readthedocs.io/en/latest/topics/modules.html#runcmd) containing the etcdadm commands, along with any user specified commands.
+  The controller then saves this cloud-init script as a Secret, and this Secret's name on the EtcdadmConfig.Status.DataSecretName field.
+  - Since the EtcdadmConfig.Status.DataSecretName field gets set as per the [bootstrap provider specifications](https://cluster-api.sigs.k8s.io/developer/providers/bootstrap.html), the infrastructure providers will use the data from this Secret to initiate the Machines with the cloud-init script.
+  
+##### Etcdadm cluster controller
+
+- The Etcdadm cluster controller will manage the external etcd cluster through a new API type called EtcdadmCluster. This CRD will accept etcd cluster spec, which includes replicas, etcd configuration options such as version, and an infrastructure template reference. This controller will create EtcdadmConfig CRs with the user specified spec to match the number of replicas.
 - This controller is responsible for provisioning the etcd cluster, and signaling the control plane cluster once etcd is ready.
 - [These are the changes required in CAPI](https://github.com/mrajashree/cluster-api/commit/18c42c47d024ce17cdda39500fc0d6bd67c5aa67#diff-626ff994de7814a6e127010bda83fd45dddd14893839ceb4d3d40210a49132f2) for the end to end flow to work
 
 ###### Create use case
 
-- After an EtcdCluster object is created, it must bootstrap an etcd cluster with a given number of replicas.
-- EtcdCluster.Spec.Replicas must be an odd number. Ideally between 3 and 7.
-- Creating an EtcdCluster with > 1 replicas is equivalent to creating an EtcdCluster with 1 replica followed by scaling the EtcdCluster to the desired number of replicas.
+- After an EtcdadmCluster object is created, it must bootstrap an etcd cluster with a given number of replicas.
+- EtcdadmCluster.Spec.Replicas must be an odd number. Ideally between 3 and 7 for production use cases. But for test/dev setups, a single member can be used by setting Replicas to 1.
+- Creating an EtcdadmCluster with > 1 replicas is equivalent to creating an EtcdadmCluster with 1 replica followed by scaling up the EtcdadmCluster to the desired number of replicas.
 - This is the end-to-end flow of creating a cluster using managed external etcd upon applying the following manifest (left out the DockerMachineTemplate resources since nothing will change there):
 
 ```yaml
@@ -308,13 +329,13 @@ spec:
     name: "my-cluster-control-plane"
     namespace: "default"
   managedExternalEtcdRef:
-    kind: EtcdCluster
-    apiVersion: etcdcluster.cluster.x-k8s.io/v1alpha4
+    kind: EtcdadmCluster
+    apiVersion: etcd.cluster.x-k8s.io/v1alpha4
     name: "my-cluster-etcd-cluster"
     namespace: "default"
 ---
-kind: EtcdCluster
-apiVersion: etcdcluster.cluster.x-k8s.io/v1alpha4
+kind: EtcdadmCluster
+apiVersion: etcd.cluster.x-k8s.io/v1alpha4
 metadata:
   name: "my-cluster-etcd-cluster"
   namespace: default
@@ -374,32 +395,32 @@ spec:
 ![etcdcluster-sequence](images/managed-etcd/etcdcluster-sequence.png)
 
 - Cluster.Spec will have a new field `ManagedExternalEtcdRef` of type `ObjectReference` (same as `ControlPlaneRef`). For using CAPI managed etcd cluster, user will set this field in Cluster manifest as shown above.
-- Cluster controller's `reconcileControlPlane` will check if `managedExternalEtcdRef` is set on cluster spec and if External etcd cluster is not `Ready`, it will pause the control plane provisioning by setting clusterv1.Paused annotation (`cluster.x-k8s.io/paused`) on it. This will allow etcd cluster provisioning to occur first.
-- Etcd cluster controller will generate a CA cert-key pair to be used for all etcd members. This external etcd CA will be saved in a Secret with name `{cluster.Name}-managed-etcd`. We can use the existing util/secret pkg in CAPI for this and add a new [Purpose](https://github.com/mrajashree/cluster-api/blob/etcdadm_bootstrap/util/secret/consts.go#L50) for managed etcd.
+- Cluster controller's `reconcileControlPlane` will check if `managedExternalEtcdRef` is set on cluster spec and if External etcd cluster does not have `CreationComplete` set to true, it will pause the control plane provisioning by setting clusterv1.Paused annotation (`cluster.x-k8s.io/paused`) on it. This will allow etcd cluster provisioning to occur first.
+- Etcdadm cluster controller will generate a CA cert-key pair to be used for all etcd members. This external etcd CA will be saved in a Secret with name `{cluster.Name}-managed-etcd`. We can use the existing util/secret pkg in CAPI for this and add a new [Purpose](https://github.com/mrajashree/cluster-api/blob/etcdadm_bootstrap/util/secret/consts.go#L50) for managed etcd.
 - The external etcd controller will also save the etcd CA cert, and the apiserver client cert-key pair in Secrets named `{cluster.Name}-etcd` and `{cluster.Name}-apiserver-etcd-client` respectively.
 - Then the controller will first initialize etcd cluster by creating one EtcdadmConfig and a corresponding Machine resource. 
-- The CAPI [machine controller](https://github.com/mrajashree/cluster-api/blob/etcdadm_bootstrap/controllers/machine_controller_phases.go#L322-L378) gets the machine's IP address/hostname from the InfraMachine, and as soon as the first etcd machine's IP is obtained, it will create a Secret to store this address, and set the Initialized condition on the EtcdCluster object. This step is required because etcdadm join command must have the first node's client URL.
-- Once the EtcdCluster is Initialized, the etcd cluster controller will scale up the cluster to add as many members as required to match EtcdCluster.Spec.Replicas field
+- The CAPI [machine controller](https://github.com/mrajashree/cluster-api/blob/etcdadm_bootstrap/controllers/machine_controller_phases.go#L322-L378) gets the machine's IP address/hostname from the InfraMachine, and as soon as the first etcd machine's IP is obtained, it will create a Secret to store this address, and set the `Initialized` condition on the EtcdadmCluster object. This step is required because etcdadm join command must have the first node's client URL.
+- Once the EtcdadmCluster is Initialized, the etcd cluster controller will scale up the cluster to add as many members as required to match EtcdadmCluster.Spec.Replicas field
 - At the end of every reconciliation loop, the etcd cluster controller will check if desired number of members are created by
-    * Getting Machines owned by EtcdCluster
+    * Getting Machines owned by EtcdadmCluster
     * Running healthcheck for each Machine with the etcd `/health` endpoint at `https://client-url:2379/health`
-- Once all members are ready, EtcdCluster will set the endpoints on EtcdCluster.Status.Endpoints field, and set EtcdCluster.Status.Ready to true
-- The CAPI cluster controller will have a new `reconcileEtcdCluster` function, that will check if EtcdCluster is ready, and when it is ready it will resume the control plane by deleting the "paused" annotation.
+- Once all members are ready, EtcdadmCluster will set the endpoints on EtcdadmCluster.Status.Endpoints field, and set EtcdadmCluster.Status.CreationComplete to true
+- The CAPI cluster controller will have a new `reconcileEtcdCluster` function, that will check if EtcdadmCluster is ready, and when it is ready it will resume the control plane by deleting the "paused" annotation.
 - The control plane controller starts provisioning once it is no longer paused. It will first check if the Cluster spec contains the managedExternalEtcd ref. If the reference exists, it will get the endpoint from the referred etcdCluster object's status field. It will then start the provisioning of the control plane cluster using this etcd cluster.
 
 ###### Upgrade or member replacement use case
 
-- The EtcdCluster.Spec.Replicas field will be immutable. This is to protect the etcd cluster from losing quorum by unnecessarily adding/removing healthy members.
+- The EtcdadmCluster.Spec.Replicas field will be immutable. This is to protect the etcd cluster from losing quorum by unnecessarily adding/removing healthy members.
 - An etcd member will need to be replaced by the etcd controller in two cases:
   - Member is found unhealthy
   - During an upgrade
 - While replacing an unhealthy etcd member, it is important to first remove the member and only then replace it by adding a new one. This ensures the cluster stays stable. [This Etcd doc](https://etcd.io/docs/v3.4/faq/#should-i-add-a-member-before-removing-an-unhealthy-member) explains why removing an unhealthy member is important in depth. Etcd's latest versions allow adding new members as learners so it doesn't affect the quorum size, but that feature is in beta. Also, adding a learner is a two-step process, where you first add a member as learner and then promote it, and etcdadm currently doesn't support it. So we can include this in a later version once the learner feature becomes GA and etcdadm incorporates the required changes.
 - We can reuse this same "scale down" function when removing a healthy member during an etcd upgrade. So even upgrade will follow the same pattern of removing the member first and then adding a new one with the latest spec.
-- Once the upgrade/machine replacement is completed, the etcd controller will again update the EtcdCluster.Status.Endpoint field. The control plane controller will rollout new Machines that use the updated etcd endpoints for the apiserver.
+- Once the upgrade/machine replacement is completed, the etcd controller will again update the EtcdadmCluster.Status.Endpoints field. The control plane controller will rollout new Machines that use the updated etcd endpoints for the apiserver.
 
 ###### Periodic etcd member healthchecks
-- The controller should do healthchecks of the etcd members in a loop at a certain predetermined interval (10s).
-- When a member fails healthcheck for a certain amount of time (1m), replace that member with a new member
+- The etcdadm cluster controller will perform healthchecks on the etcd members periodically at a predetermined interval. The controller will perform client healthchecks by making HTTP Get requests to the `<etcd member address>:2379/health` endpoint of each etcd member. It cannot perform peer-to-peer healthchecks since the controller is external to the etcd cluster and there won't be any agents running on the etcd members.
+- If a member continuously fails healthcheck for a certain amount of time, the etcdadm cluster controller will replace that member with a new member.
 
 **Changes needed in docker machine controller**
 - Each machine infrastructure provider sets a providerID on every InfraMachine.
@@ -412,8 +433,8 @@ spec:
 - If any VMs running an etcd member get replaced, the kube-apiserver will have to be reconfigured to use the new etcd cluster endpoints. Using static endpoints for the external etcd cluster can avoid this. There are two ways of configuring static endpoints, using a load balancer or configuring DNS records.
 - Load balancer can add latency because of the hops associated with routing requests, whereas DNS records will directly resolve to the etcd members.
 - The DNS records can be configured such that each etcd member gets a separate sub-domain, under the domain associated with the etcd cluster. An example of this when using ec2 would be:
-    - User creates a hosted zone called `external.etcd.cluster` and gives that as input to `EtcdCluster.Spec.HostedZoneName`.
-    - The EtcdCluster controller creates a separate A record name within that hosted zone for each EtcdadmConfig it creates. The DNS controller will create the route53 A record once the corresponding Machine's IP address is set
+    - User creates a hosted zone called `external.etcd.cluster` and gives that as input to `EtcdadmCluster.Spec.HostedZoneName`.
+    - The EtcdadmCluster controller creates a separate A record name within that hosted zone for each EtcdadmConfig it creates. The DNS controller will create the route53 A record once the corresponding Machine's IP address is set
 - A suggestion from a CAPI meeting is to add a DNS configuration implementation in the [load balancer proposal](https://github.com/kubernetes-sigs/cluster-api/pull/4389)
 - In today's CAPI meeting (April 28th) we decided to implement phase 1 with IP addresses in the absence of the load balancer provider.
 
@@ -423,13 +444,18 @@ spec:
 - This feature in etcd is currently beta. And etcdadm does not support this two step member add process in its current version.
 - Once etcdadm makes changes to add members as learners, and the learner feature becomes stable, we can look into changing the upgrade logic to add members as learners first.
 
+##### Peer-to-peer healthchecks
+- Performing peer-to-peer healthchecks for the etcd cluster members will be possible when CAPI can run node agents on each Machine representing an etcd member.
+
+
 ### POC implementation
 - [etcdadm-bootstrap-provider](https://github.com/mrajashree/etcdadm-bootstrap-provider)
 - [etcdadm-controller](https://github.com/mrajashree/etcdadm-controller)
 - [CAPI changes](https://github.com/mrajashree/cluster-api/commit/18c42c47d024ce17cdda39500fc0d6bd67c5aa67)
 
-### Questions/concerns about implementation 
-    
+### Questions
+
+- This proposal suggests that etcd providers should be pluggable, in case someone might add a new etcd provider that uses something other than etcdadm to bring up a cluster. Also the pluggable etcd provider can be used by any control plane provider. However if we don't see the need of additional etcd providers, or any control plane providers other than KCP that will utilize external etcd, we can decide to make it specific to KCP for the first iteration.
 - Should the machines making the external etcd be registered as a  Kubernetes node or not?
     - So far the assumption is that the external etcd cluster will only run etcd and no other kubernetes components, but are there use cases that will need these machines to also register as a kubernetes node?
     - To clarify, if we have use cases where we need certain helper processes to run on these etcd nodes, we can do it with kubelet + static pod manifests.
@@ -453,7 +479,7 @@ spec:
         | Event | `*`
 
 
-      - The etcdadm controller needs following permissions:
+      - The etcdadm cluster controller needs following permissions:
       
         | Resource | Permissions
         | -------- | -------- 
@@ -483,7 +509,7 @@ spec:
 
 ## Alternatives
 
-The `Alternatives` section is used to highlight and record other possible approaches to delivering the value proposed by a proposal.
+- There are ongoing efforts as per this [KEP](https://github.com/kubernetes/enhancements/tree/master/keps/sig-cluster-lifecycle/etcdadm/2496-etcdadm) to rebase etcd-manager onto etcdadm. [Etcd-manager](https://github.com/kopeio/etcd-manager) is used in kOps clusters. Along with provisioning etcd clusters, it provides cluster management features such as scaling up, periodic healthchecks, upgrades. But the etcd-manager does not interact with CAPI, and its rebase on etcdadm isn't completed. Hence it cannot be used as is with the proposed etcdadm bootstrap provider. So as the design and implementation of the new etcdadm cluster controller progresses, we can pick up things from etcd-manager that can be reused in the proposed etcdadm cluster controller.
 
 ## Upgrade Strategy
 
@@ -492,7 +518,7 @@ The etcdadm provider will use rollingUpdate strategy to upgrade etcd members.
 - The etcd controller will get all owned Machines which differ in spec from the current EtcdadmConfigSpec and add them to a NeedsRollout pool
 - The rollingUpdate will only use `maxUnavailable` parameter which will be hard-coded to 1. This shouldn't be configurable else it will affect etcd quorum.
 - The controller will first scale down and remove one of the etcd members. So for a 3-node cluster, quorum size is 2, and even on removing the 3rd member the quorum size stays the same.
-- Then it will scale up to match replicas value (3 by default). During scale up, the new machines will get created with the updated etcdadmConfigSpec. During scale up, the machine will run `etcadm join` which calls the etcd `add member` API, and then waits for the member to be active by retrieving a test key. This ensures that the new member is successfully added to the cluster before moving on with the rest of the nodes.
+- Then it will scale up to match replicas value (3 by default). During scale up, the new machines will get created with the updated etcdadmConfigSpec. During scale up, the machine will run `etcdadm join` which calls the etcd `add member` API, and then waits for the member to be active by retrieving a test key. This ensures that the new member is successfully added to the cluster before moving on with the rest of the nodes.
 
 
 ## Additional Details
@@ -549,7 +575,7 @@ Consider the following in developing a version skew strategy for this enhancemen
 - [x] 03/31/2021: Compile a hackmd following the CAEP template
 - [x] 04/06/2021: First round of feedback from community
 - [x] 04/21/2021: Shared proposal after addressing feedback at CAPI weekly office hours
-- [x] 04/28/2021: Gave a demo of the POC for etcdadm controller + bootstrap provider end-to-end flow in CAPI weekly office hours
+- [x] 04/28/2021: Gave a demo of the POC for etcdadm cluster controller + bootstrap provider end-to-end flow in CAPI weekly office hours
 - [x] 05/24/2021: Open proposal PR
 
 <!-- Links -->

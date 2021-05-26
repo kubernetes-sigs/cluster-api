@@ -578,9 +578,9 @@ func TestReconcileEtcdMembers(t *testing.T) {
 			g := NewWithT(t)
 
 			for _, o := range tt.objs {
-				g.Expect(testEnv.CreateObj(ctx, o)).To(Succeed())
+				g.Expect(testEnv.CreateAndWait(ctx, o)).To(Succeed())
 				defer func(do client.Object) {
-					g.Expect(testEnv.Cleanup(ctx, do)).To(Succeed())
+					g.Expect(testEnv.CleanupAndWait(ctx, do)).To(Succeed())
 				}(o)
 			}
 

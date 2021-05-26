@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
@@ -398,29 +397,12 @@ kind: ClusterConfiguration
 			for _, o := range tt.objs {
 				// NB. deep copy test object so changes applied during a test does not affect other tests.
 				o := o.DeepCopyObject().(client.Object)
-				g.Expect(testEnv.Create(ctx, o)).To(Succeed())
-				// this makes sure that the cache is updated with the object
-				// to avoid 404 errors leading to test flakes
-				g.Eventually(func() bool {
-					err := testEnv.Get(ctx, client.ObjectKeyFromObject(o), o)
-					return err == nil
-				}, "10s").Should(BeTrue())
+				g.Expect(testEnv.CreateAndWait(ctx, o)).To(Succeed())
 			}
 
 			// Register cleanup function
 			t.Cleanup(func() {
-				// Cleanup test objects (and wait for deletion to complete).
-				_ = testEnv.Cleanup(ctx, tt.objs...)
-				g.Eventually(func() bool {
-					for _, o := range tt.objs {
-						o := o.DeepCopyObject().(client.Object)
-						err := testEnv.Get(ctx, client.ObjectKeyFromObject(o), o)
-						if err == nil || !apierrors.IsNotFound(err) {
-							return false
-						}
-					}
-					return true
-				}, "10s").Should(BeTrue())
+				_ = testEnv.CleanupAndWait(ctx, tt.objs...)
 			})
 
 			w := &Workload{

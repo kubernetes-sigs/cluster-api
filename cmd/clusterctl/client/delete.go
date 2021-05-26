@@ -29,10 +29,6 @@ type DeleteOptions struct {
 	// default rules for kubeconfig discovery will be used.
 	Kubeconfig Kubeconfig
 
-	// Namespace where the provider to be deleted lives. If unspecified, the namespace name will be inferred
-	// from the current configuration.
-	Namespace string
-
 	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, the
 	// cluster-api core provider's latest release is used.
 	CoreProvider string
@@ -87,15 +83,6 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 
 	if options.DeleteAll {
 		providersToDelete = installedProviders.Items
-		if options.Namespace != "" {
-			// Delete only the providers in the specified namespace
-			providersToDelete = []clusterctlv1.Provider{}
-			for _, provider := range installedProviders.Items {
-				if provider.Namespace == options.Namespace {
-					providersToDelete = append(providersToDelete, provider)
-				}
-			}
-		}
 	} else {
 		// Otherwise we are deleting only a subset of providers.
 		var providers []clusterctlv1.Provider
@@ -111,19 +98,13 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 				return err
 			}
 
-			// If the namespace where the provider is installed is not provided, try to detect it
-			provider.Namespace = options.Namespace
+			// Try to detect the namespace where the provider lives
+			provider.Namespace, err = clusterClient.ProviderInventory().GetDefaultProviderNamespace(provider.ProviderName, provider.GetProviderType())
+			if err != nil {
+				return err
+			}
 			if provider.Namespace == "" {
-				provider.Namespace, err = clusterClient.ProviderInventory().GetDefaultProviderNamespace(provider.ProviderName, provider.GetProviderType())
-				if err != nil {
-					return err
-				}
-
-				// if there are more instance of a providers, it is not possible to get a default namespace for the provider,
-				// so we should return and ask for it.
-				if provider.Namespace == "" {
-					return errors.Errorf("Unable to find default namespace for the %q provider. Please specify the provider's namespace", name)
-				}
+				return errors.Errorf("Unable to find default namespace for the %q provider.", name)
 			}
 
 			providersToDelete = append(providersToDelete, provider)

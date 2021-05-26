@@ -33,39 +33,6 @@ the aws provider, it deletes all the `AWSCluster`, `AWSMachine` etc.
 
 </aside>
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-KNOWN BUG:
-
-Deleting an infrastructure component from a namespace _that shares
-the same prefix_ with other namespaces (e.g. `foo` and `foo-bar`) will result
-in erroneous deletion of cluster scoped objects such as `ClusterRole` and
-`ClusterRoleBindings` that share the same namespace prefix.
-
-This is true if the prefix before a dash `-` is the same. That is, namespaces such
-as `foo` and `foobar` are fine however namespaces such as `foo` and `foo-bar`
-are not.
-
-For example,
-
-1. Init an infrastructure provider in namespace `foo` and `foo-bar`.
-    ```
-    clusterctl init --infrastructure aws --watching-namespace foo --target-namespace foo
-    clusterctl init --infrastructure aws --watching-namespace foo-bar --target-namespace foo-bar
-    ```
-1. Delete infrastructure components from namespace `foo`
-    ```
-    clusterctl delete --infrastructure aws --namespace foo
-    ```
-
-`ClusterRole` and `ClusterRoleBindings` for both the namespaces are deleted.
-
-See [issue 3119] for more details.
-
-</aside>
-
 If you want to delete all the providers in a single operation , you can use the `--all` flag.
 
 ```shell

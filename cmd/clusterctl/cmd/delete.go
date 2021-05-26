@@ -25,7 +25,6 @@ import (
 type deleteOptions struct {
 	kubeconfig              string
 	kubeconfigContext       string
-	targetNamespace         string
 	coreProvider            string
 	bootstrapProviders      []string
 	controlPlaneProviders   []string
@@ -49,29 +48,10 @@ var deleteCmd = &cobra.Command{
 		# and the CRDs.
 		clusterctl delete --infrastructure aws
 
-		# Deletes the instance of the AWS infrastructure provider hosted in the "foo" namespace
-		# Please note, if there are multiple instances of the AWS provider installed in the cluster,
-		# global/shared resources (e.g. ClusterRoles), are not deleted in order to preserve
-		# the functioning of the remaining instances.
-		#
-		# WARNING: There is a known bug where deleting an infrastructure component from a namespace that share
-		# the same prefix with other namespaces (e.g. 'foo' and 'foo-bar') will result
-		# in erroneous deletion of cluster scoped objects such as 'ClusterRole' and
-		# 'ClusterRoleBindings' that share the same namespace prefix.
-		# This is true if the prefix before a dash '-' is same. That is, namespaces such
-		# as 'foo' and 'foobar' are fine however namespaces such as 'foo' and 'foo-bar'
-		# are not. See CAPI issue 3119 for more details.
-		clusterctl delete --infrastructure aws --namespace=foo
-
 		# Deletes all the providers
 		# Important! As a consequence of this operation, all the corresponding resources managed by
 		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
 		clusterctl delete --all
-
-		# Deletes all the providers in a namespace
-		# Important! As a consequence of this operation, all the corresponding resources managed by
-		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
-		clusterctl delete --all --namespace=foo
 
 		# Delete the AWS infrastructure provider and Core provider. This will leave behind Bootstrap and ControlPlane
 		# providers
@@ -107,7 +87,6 @@ func init() {
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
 	deleteCmd.Flags().StringVar(&dd.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
-	deleteCmd.Flags().StringVar(&dd.targetNamespace, "namespace", "", "The namespace where the provider to be deleted lives. If unspecified, the namespace name will be inferred from the current configuration")
 
 	deleteCmd.Flags().BoolVar(&dd.includeNamespace, "include-namespace", false,
 		"Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
@@ -152,7 +131,6 @@ func runDelete() error {
 		Kubeconfig:              client.Kubeconfig{Path: dd.kubeconfig, Context: dd.kubeconfigContext},
 		IncludeNamespace:        dd.includeNamespace,
 		IncludeCRDs:             dd.includeCRDs,
-		Namespace:               dd.targetNamespace,
 		CoreProvider:            dd.coreProvider,
 		BootstrapProviders:      dd.bootstrapProviders,
 		InfrastructureProviders: dd.infrastructureProviders,

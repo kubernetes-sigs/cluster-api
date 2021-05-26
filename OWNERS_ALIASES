@@ -28,6 +28,7 @@ aliases:
   cluster-api-reviewers:
   - JoelSpeed
   - sbueringer
+  - enxebre
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for docs/book

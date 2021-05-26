@@ -181,28 +181,29 @@ func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			clusterStatusKey: `apiEndpoints:
-  ip-10-0-0-1.ec2.internal:
-    advertiseAddress: 10.0.0.1
-    bindPort: 6443
-  ip-10-0-0-2.ec2.internal:
-    advertiseAddress: 10.0.0.2
-    bindPort: 6443
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: ClusterStatus`,
+			clusterStatusKey: "apiEndpoints:\n" +
+				"  ip-10-0-0-1.ec2.internal:\n" +
+				"    advertiseAddress: 10.0.0.1\n" +
+				"    bindPort: 6443\n" +
+				"  ip-10-0-0-2.ec2.internal:\n" +
+				"    advertiseAddress: 10.0.0.2\n" +
+				"    bindPort: 6443\n" +
+				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
+				"kind: ClusterStatus\n",
 		},
 		BinaryData: map[string][]byte{
 			"": nil,
 		},
 	}
-	kconfWithoutKey := kubeadmConfig.DeepCopy()
-	delete(kconfWithoutKey.Data, clusterStatusKey)
+	kubeadmConfigWithoutClusterStatus := kubeadmConfig.DeepCopy()
+	delete(kubeadmConfigWithoutClusterStatus.Data, clusterStatusKey)
 
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name              string
+		kubernetesVersion semver.Version
 		machine           *clusterv1.Machine
 		objs              []client.Object
 		expectErr         bool
@@ -227,23 +228,38 @@ kind: ClusterStatus`,
 			expectErr: true,
 		},
 		{
-			name:      "returns error if unable to remove api endpoint",
-			machine:   machine,
-			objs:      []client.Object{kconfWithoutKey},
-			expectErr: true,
+			name:              "returns error if unable to find kubeadm-config for Kubernetes version < 1.22.0",
+			kubernetesVersion: semver.MustParse("1.19.1"),
+			machine:           machine,
+			objs:              []client.Object{kubeadmConfigWithoutClusterStatus},
+			expectErr:         true,
 		},
 		{
-			name:      "removes the machine node ref from kubeadm config",
-			machine:   machine,
-			objs:      []client.Object{kubeadmConfig},
-			expectErr: false,
-			expectedEndpoints: `apiEndpoints:
-  ip-10-0-0-2.ec2.internal:
-    advertiseAddress: 10.0.0.2
-    bindPort: 6443
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: ClusterStatus
-`,
+			name:              "returns error if unable to remove api endpoint for Kubernetes version < 1.22.0",
+			kubernetesVersion: semver.MustParse("1.19.1"), // Kubernetes version < 1.22.0 has ClusterStatus
+			machine:           machine,
+			objs:              []client.Object{kubeadmConfigWithoutClusterStatus},
+			expectErr:         true,
+		},
+		{
+			name:              "removes the machine node ref from kubeadm config for Kubernetes version < 1.22.0",
+			kubernetesVersion: semver.MustParse("1.19.1"), // Kubernetes version < 1.22.0 has ClusterStatus
+			machine:           machine,
+			objs:              []client.Object{kubeadmConfig},
+			expectErr:         false,
+			expectedEndpoints: "apiEndpoints:\n" +
+				"  ip-10-0-0-2.ec2.internal:\n" +
+				"    advertiseAddress: 10.0.0.2\n" +
+				"    bindPort: 6443\n" +
+				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
+				"kind: ClusterStatus\n",
+		},
+		{
+			name:              "no op for Kubernetes version >= 1.22.0",
+			kubernetesVersion: minKubernetesVersionWithoutClusterStatus, // Kubernetes version >= 1.22.0 should not manage ClusterStatus
+			machine:           machine,
+			objs:              []client.Object{kubeadmConfigWithoutClusterStatus},
+			expectErr:         false,
 		},
 	}
 
@@ -254,7 +270,7 @@ kind: ClusterStatus
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.RemoveMachineFromKubeadmConfigMap(ctx, tt.machine, semver.MustParse("1.19.1"))
+			err := w.RemoveMachineFromKubeadmConfigMap(ctx, tt.machine, tt.kubernetesVersion)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

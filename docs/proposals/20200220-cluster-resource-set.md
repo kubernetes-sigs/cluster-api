@@ -96,7 +96,7 @@ None. We are planning to implement this feature without modifying any of the exi
 
 #### ClusterResourceSet Object Definition
 
-This is the CRD that has a set of components (resources) to be applied to clusters that match the label selector in it.
+This is the CRD that has a set of components (resources) to be applied to clusters that match the label selector in it. The label selector cannot be empty.
 
 The resources field is a list of `Secrets`/`ConfigMaps` which should be in the same namespace with `ClusterResourceSet`. The clusterSelector field is a Kubernetes [label selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements) that matches against labels on clusters (only the clusters in the same namespace with the ClusterResourceSet resource).
 ClusterResourceSet is namespace-scoped, all resources and clusters needs to be in the same namespace as the ClusterResourceSet.

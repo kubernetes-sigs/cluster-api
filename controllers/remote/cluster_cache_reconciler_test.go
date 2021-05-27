@@ -85,7 +85,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			t.Log("Setting up a ClusterCacheTracker")
-			cct, err = NewClusterCacheTracker(log.NullLogger{}, mgr)
+			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{})
 			g.Expect(err).NotTo(HaveOccurred())
 
 			t.Log("Creating the ClusterCacheReconciler")

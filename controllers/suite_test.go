@@ -52,8 +52,8 @@ func TestMain(m *testing.M) {
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
 	tracker, err := remote.NewClusterCacheTracker(
-		log.Log,
 		env.Manager,
+		remote.ClusterCacheTrackerOptions{Log: log.Log},
 	)
 	if err != nil {
 		panic(fmt.Sprintf("unable to create cluster cache tracker: %v", err))

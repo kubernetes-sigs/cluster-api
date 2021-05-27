@@ -1796,7 +1796,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 }
 
 func TestClusterToMachineHealthCheck(t *testing.T) {
-	_ = clusterv1.AddToScheme(scheme.Scheme)
 	fakeClient := fake.NewClientBuilder().Build()
 
 	r := &MachineHealthCheckReconciler{
@@ -1876,7 +1875,6 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 }
 
 func TestMachineToMachineHealthCheck(t *testing.T) {
-	_ = clusterv1.AddToScheme(scheme.Scheme)
 	fakeClient := fake.NewClientBuilder().Build()
 
 	r := &MachineHealthCheckReconciler{
@@ -1952,7 +1950,6 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 }
 
 func TestNodeToMachineHealthCheck(t *testing.T) {
-	_ = clusterv1.AddToScheme(scheme.Scheme)
 	fakeClient := fake.NewClientBuilder().Build()
 
 	r := &MachineHealthCheckReconciler{
@@ -2567,7 +2564,6 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 }
 
 func TestPatchTargets(t *testing.T) {
-	_ = clusterv1.AddToScheme(scheme.Scheme)
 	g := NewWithT(t)
 
 	namespace := defaultNamespaceName
@@ -2587,7 +2583,7 @@ func TestPatchTargets(t *testing.T) {
 	machine2 := machine1.DeepCopy()
 	machine2.Name = "machine2"
 
-	cl := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
+	cl := fake.NewClientBuilder().WithObjects(
 		machine1,
 		machine2,
 		mhc,
@@ -2601,7 +2597,7 @@ func TestPatchTargets(t *testing.T) {
 	// To make the patch fail, create patchHelper with a different client.
 	fakeMachine := machine1.DeepCopy()
 	fakeMachine.Name = "fake"
-	patchHelper, _ := patch.NewHelper(fakeMachine, fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(fakeMachine).Build())
+	patchHelper, _ := patch.NewHelper(fakeMachine, fake.NewClientBuilder().WithObjects(fakeMachine).Build())
 	// healthCheckTarget with fake patchHelper, patch should fail on this target.
 	target1 := healthCheckTarget{
 		MHC:         mhc,

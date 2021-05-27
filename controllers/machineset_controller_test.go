@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -340,10 +339,8 @@ func TestMachineSetOwnerReference(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			msr := &MachineSetReconciler{
-				Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
+				Client: fake.NewClientBuilder().WithObjects(
 					testCluster,
 					ms1,
 					ms2,
@@ -392,10 +389,8 @@ func TestMachineSetReconcile(t *testing.T) {
 			NamespacedName: util.ObjectKey(ms),
 		}
 
-		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 		msr := &MachineSetReconciler{
-			Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(testCluster, ms).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(ctx, request)
@@ -415,11 +410,9 @@ func TestMachineSetReconcile(t *testing.T) {
 			NamespacedName: util.ObjectKey(ms),
 		}
 
-		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 		rec := record.NewFakeRecorder(32)
 		msr := &MachineSetReconciler{
-			Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(testCluster, ms).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
 			recorder: rec,
 		}
 		_, _ = msr.Reconcile(ctx, request)
@@ -438,11 +431,9 @@ func TestMachineSetReconcile(t *testing.T) {
 			NamespacedName: util.ObjectKey(ms),
 		}
 
-		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 		rec := record.NewFakeRecorder(32)
 		msr := &MachineSetReconciler{
-			Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(testCluster, ms).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
 			recorder: rec,
 		}
 		_, err := msr.Reconcile(ctx, request)
@@ -451,8 +442,6 @@ func TestMachineSetReconcile(t *testing.T) {
 }
 
 func TestMachineSetToMachines(t *testing.T) {
-	g := NewWithT(t)
-
 	machineSetList := []client.Object{
 		&clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -528,8 +517,6 @@ func TestMachineSetToMachines(t *testing.T) {
 			},
 		},
 	}
-
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	r := &MachineSetReconciler{
 		Client: fake.NewClientBuilder().WithObjects(append(machineSetList, &m, &m2, &m3)...).Build(),
@@ -674,10 +661,8 @@ func TestAdoptOrphan(t *testing.T) {
 		},
 	}
 
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 	r := &MachineSetReconciler{
-		Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(&m).Build(),
+		Client: fake.NewClientBuilder().WithObjects(&m).Build(),
 	}
 	for _, tc := range testCases {
 		g.Expect(r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())).To(Succeed())

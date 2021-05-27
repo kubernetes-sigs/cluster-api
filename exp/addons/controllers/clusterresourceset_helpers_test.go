@@ -33,11 +33,6 @@ import (
 )
 
 func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
-	g := NewWithT(t)
-
-	scheme := runtime.NewScheme()
-	g.Expect(addonsv1.AddToScheme(scheme)).To(Succeed())
-
 	testClusterWithBinding := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cluster-with-binding",
@@ -78,7 +73,6 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().
-		WithScheme(scheme).
 		WithObjects(testClusterResourceSetBinding).
 		Build()
 	r := &ClusterResourceSetReconciler{
@@ -115,11 +109,6 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 }
 
 func TestGetSecretFromNamespacedName(t *testing.T) {
-	g := NewWithT(t)
-
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
-
 	existingSecretName := types.NamespacedName{Name: "my-secret", Namespace: "default"}
 	existingSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
@@ -154,7 +143,6 @@ func TestGetSecretFromNamespacedName(t *testing.T) {
 			gs := NewWithT(t)
 
 			c := fake.NewClientBuilder().
-				WithScheme(scheme).
 				WithObjects(existingSecret).
 				Build()
 

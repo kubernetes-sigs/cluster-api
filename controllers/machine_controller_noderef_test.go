@@ -23,9 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -34,10 +32,8 @@ import (
 func TestGetNodeReference(t *testing.T) {
 	g := NewWithT(t)
 
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 	r := &MachineReconciler{
-		Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+		Client:   fake.NewClientBuilder().Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
 

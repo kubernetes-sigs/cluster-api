@@ -23,10 +23,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -125,8 +123,6 @@ func TestClusterReconcilePhases(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
-				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-				g.Expect(apiextensionsv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 				var c client.Client
 				if tt.infraRef != nil {
@@ -209,15 +205,12 @@ func TestClusterReconcilePhases(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
-				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 				c := fake.NewClientBuilder().
-					WithScheme(scheme.Scheme).
 					WithObjects(tt.cluster).
 					Build()
 				if tt.secret != nil {
 					c = fake.NewClientBuilder().
-						WithScheme(scheme.Scheme).
 						WithObjects(tt.cluster, tt.secret).
 						Build()
 				}
@@ -366,10 +359,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			c := fake.NewClientBuilder().
-				WithScheme(scheme.Scheme).
 				WithObjects(tt.cluster).
 				Build()
 

@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -157,7 +156,6 @@ func TestGetTargetsFromMHC(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			gs := NewGomegaWithT(t)
 
-			gs.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 			k8sClient := fake.NewClientBuilder().WithObjects(tc.toCreate...).Build()
 
 			// Create a test reconciler

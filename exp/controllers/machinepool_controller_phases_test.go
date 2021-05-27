@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
@@ -116,7 +115,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -145,7 +144,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -172,7 +171,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -215,7 +214,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -270,7 +269,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -303,7 +302,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -343,7 +342,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -396,7 +395,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -454,7 +453,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.SetDeletionTimestamp(&deletionTimestamp)
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -688,16 +687,13 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			if tc.machinepool == nil {
 				tc.machinepool = defaultMachinePool.DeepCopy()
 			}
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &MachinePoolReconciler{
-				Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(tc.machinepool, bootstrapConfig).Build(),
+				Client: fake.NewClientBuilder().WithObjects(tc.machinepool, bootstrapConfig).Build(),
 			}
 
 			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machinepool)
@@ -898,15 +894,13 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			if tc.machinepool == nil {
 				tc.machinepool = defaultMachinePool.DeepCopy()
 			}
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &MachinePoolReconciler{
-				Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(tc.machinepool, infraConfig).Build(),
+				Client: fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig).Build(),
 			}
 
 			res, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machinepool)

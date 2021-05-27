@@ -29,7 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
@@ -38,11 +37,6 @@ import (
 )
 
 func TestUpdateKubeProxyImageInfo(t *testing.T) {
-	g := NewWithT(t)
-
-	scheme := runtime.NewScheme()
-	g.Expect(appsv1.AddToScheme(scheme)).To(Succeed())
-
 	tests := []struct {
 		name        string
 		ds          appsv1.DaemonSet
@@ -147,7 +141,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			objects := []client.Object{
 				&tt.ds,
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(objects...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -198,9 +192,6 @@ func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 	kubeadmConfigWithoutClusterStatus := kubeadmConfig.DeepCopy()
 	delete(kubeadmConfigWithoutClusterStatus.Data, clusterStatusKey)
 
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name              string
 		kubernetesVersion semver.Version
@@ -266,7 +257,7 @@ func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -290,9 +281,6 @@ func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 }
 
 func TestUpdateKubeletConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name               string
 		version            semver.Version
@@ -364,7 +352,7 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}
@@ -387,9 +375,6 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 }
 
 func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name          string
 		version       semver.Version
@@ -532,7 +517,7 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 
 			w := &Workload{
 				Client: fakeClient,
@@ -556,9 +541,6 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 }
 
 func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name          string
 		version       semver.Version
@@ -709,7 +691,7 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 
 			w := &Workload{
 				Client: fakeClient,
@@ -733,9 +715,6 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 }
 
 func TestUpdateKubernetesVersionInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                     string
 		version                  semver.Version
@@ -753,7 +732,7 @@ func TestUpdateKubernetesVersionInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
 					Namespace: metav1.NamespaceSystem,
@@ -781,9 +760,6 @@ func TestUpdateKubernetesVersionInKubeadmConfigMap(t *testing.T) {
 }
 
 func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
@@ -810,7 +786,7 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
 					Namespace: metav1.NamespaceSystem,
@@ -838,9 +814,6 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 }
 
 func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
@@ -887,7 +860,7 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
 					Namespace: metav1.NamespaceSystem,
@@ -915,9 +888,6 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 }
 
 func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
@@ -962,7 +932,7 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
 					Namespace: metav1.NamespaceSystem,
@@ -990,9 +960,6 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 }
 
 func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
@@ -1036,7 +1003,7 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
 					Namespace: metav1.NamespaceSystem,
@@ -1121,9 +1088,7 @@ func TestClusterStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			scheme := runtime.NewScheme()
-			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 			w := &Workload{
 				Client: fakeClient,
 			}

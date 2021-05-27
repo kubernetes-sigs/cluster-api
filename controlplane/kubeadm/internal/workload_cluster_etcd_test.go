@@ -28,7 +28,6 @@ import (
 	pb "go.etcd.io/etcd/etcdserver/etcdserverpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	fake2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
@@ -37,9 +36,6 @@ import (
 )
 
 func TestUpdateEtcdVersionInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
@@ -85,7 +81,7 @@ func TestUpdateEtcdVersionInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
 					Namespace: metav1.NamespaceSystem,
@@ -136,9 +132,6 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 	cp2.Name = "cp2"
 	cp2.Namespace = "cp2"
 
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                string
 		machine             *clusterv1.Machine
@@ -604,9 +597,6 @@ func TestReconcileEtcdMembers(t *testing.T) {
 }
 
 func TestRemoveNodeFromKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name              string
 		apiEndpoint       string
@@ -652,7 +642,7 @@ func TestRemoveNodeFromKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
 					Namespace: metav1.NamespaceSystem,

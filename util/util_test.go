@@ -27,16 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
+	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-var (
-	ctx = ctrl.SetupSignalHandler()
 )
 
 func TestMachineToInfrastructureMapFunc(t *testing.T) {
@@ -396,9 +392,6 @@ func TestIsOwnedByObject(t *testing.T) {
 func TestGetOwnerClusterSuccessByName(t *testing.T) {
 	g := NewWithT(t)
 
-	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
 	myCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-cluster",
@@ -407,7 +400,6 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().
-		WithScheme(scheme).
 		WithObjects(myCluster).
 		Build()
 
@@ -436,9 +428,6 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 func TestGetOwnerMachineSuccessByName(t *testing.T) {
 	g := NewWithT(t)
 
-	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
 	myMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-machine",
@@ -447,7 +436,6 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().
-		WithScheme(scheme).
 		WithObjects(myMachine).
 		Build()
 
@@ -470,9 +458,6 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
 	g := NewWithT(t)
 
-	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
 	myMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-machine",
@@ -481,7 +466,6 @@ func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().
-		WithScheme(scheme).
 		WithObjects(myMachine).
 		Build()
 
@@ -503,9 +487,6 @@ func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
 
 func TestGetMachinesForCluster(t *testing.T) {
 	g := NewWithT(t)
-
-	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -544,7 +525,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 		},
 	}
 
-	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+	c := fake.NewClientBuilder().WithObjects(
 		machine,
 		machineDifferentClusterNameSameNamespace,
 		machineSameClusterNameDifferentNamespace,
@@ -662,9 +643,6 @@ func TestEnsureOwnerRef(t *testing.T) {
 func TestClusterToObjectsMapper(t *testing.T) {
 	g := NewWithT(t)
 
-	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test1",
@@ -747,8 +725,8 @@ func TestClusterToObjectsMapper(t *testing.T) {
 
 	for _, tc := range table {
 		tc.objects = append(tc.objects, cluster)
-		client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.objects...).Build()
-		f, err := ClusterToObjectsMapper(client, tc.input, scheme)
+		client := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
+		f, err := ClusterToObjectsMapper(client, tc.input, scheme.Scheme)
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
 		g.Expect(f(cluster)).To(ConsistOf(tc.output))
 	}

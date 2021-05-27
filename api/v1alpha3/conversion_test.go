@@ -20,54 +20,41 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
-	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
-	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/cluster-api/api/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(AddToScheme(scheme)).To(Succeed())
-	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
-
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:             scheme,
 		Hub:                &v1alpha4.Cluster{},
 		Spoke:              &Cluster{},
 		SpokeAfterMutation: clusterSpokeAfterMutation,
 	}))
 
 	t.Run("for Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
 		Hub:         &v1alpha4.Machine{},
 		Spoke:       &Machine{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs},
 	}))
 
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
 		Hub:         &v1alpha4.MachineSet{},
 		Spoke:       &MachineSet{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
 		Hub:         &v1alpha4.MachineDeployment{},
 		Spoke:       &MachineDeployment{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
 	t.Run("for MachineHealthCheckSpec", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1alpha4.MachineHealthCheck{},
-		Spoke:  &MachineHealthCheck{},
+		Hub:   &v1alpha4.MachineHealthCheck{},
+		Spoke: &MachineHealthCheck{},
 	}))
 }
 

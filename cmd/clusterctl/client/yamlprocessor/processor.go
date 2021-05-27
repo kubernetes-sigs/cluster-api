@@ -25,8 +25,12 @@ type Processor interface {
 	GetTemplateName(version, flavor string) string
 
 	// GetVariables parses the template blob of bytes and provides a
-	// list of variables that the template requires.
+	// list of variables that the template uses.
 	GetVariables([]byte) ([]string, error)
+
+	// GetVariables parses the template blob of bytes and provides a
+	// map of variables that the template uses with their default values.
+	GetVariableMap([]byte) (map[string]*string, error)
 
 	// Process processes the template blob of bytes and will return the final
 	// yaml with values retrieved from the values getter

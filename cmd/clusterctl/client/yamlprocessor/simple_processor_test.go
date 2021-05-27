@@ -99,6 +99,72 @@ func TestSimpleProcessor_GetVariables(t *testing.T) {
 	}
 }
 
+func TestSimpleProcessor_GetVariablesMap(t *testing.T) {
+	type args struct {
+		data string
+	}
+	def := "default"
+	aVar := "${A}"
+	foobar := "foobar"
+	quotes := `""`
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string]*string
+		wantErr bool
+	}{
+		{
+			name: "variable with different spacing around the name",
+			args: args{
+				data: "yaml with ${A} ${ B} ${ C} ${ D }",
+			},
+			want: map[string]*string{"A": nil, "B": nil, "C": nil, "D": nil},
+		},
+		{
+			name: "variables used in many places are grouped",
+			args: args{
+				data: "yaml with ${A } ${A} ${A}",
+			},
+			want: map[string]*string{"A": nil},
+		},
+		{
+			name: "variables in multiline texts are processed",
+			args: args{
+				data: "yaml with ${A}\n${B}\n${C}",
+			},
+			want: map[string]*string{"A": nil, "B": nil, "C": nil},
+		},
+		{
+			name: "returns error for variables with regex metacharacters",
+			args: args{
+				data: "yaml with ${BA$R}\n${FOO}",
+			},
+			wantErr: true,
+		},
+		{
+			name: "variables with envsubst functions are properly parsed",
+			args: args{
+				data: `yaml with ${C:=default}\n${B}\n${A=foobar}\n${E=""}\n${D:=${A}}`,
+			},
+			want: map[string]*string{"A": &foobar, "B": nil, "C": &def, "D": &aVar, "E": &quotes},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			p := NewSimpleProcessor()
+			actual, err := p.GetVariableMap([]byte(tt.args.data))
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(actual).To(Equal(tt.want))
+		})
+	}
+}
+
 func TestSimpleProcessor_Process(t *testing.T) {
 	type args struct {
 		yaml                  []byte

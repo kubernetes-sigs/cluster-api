@@ -89,7 +89,7 @@ CABPK will fill in some values if they are left empty with sensible defaults:
 
 | `KubeadmConfig` field                           | Default                                                      |
 | ----------------------------------------------- | ------------------------------------------------------------ |
-| `clusterConfiguration.KubernetesVersion`        | `Machine.Spec.Version`                                     |
+| `clusterConfiguration.KubernetesVersion`        | `Machine.Spec.Version`[1]                                     |
 | `clusterConfiguration.clusterName`              | `Cluster.metadata.name`                                      |
 | `clusterConfiguration.controlPlaneEndpoint`     | `Cluster.status.apiEndpoints[0]` |
 | `clusterConfiguration.networking.dnsDomain` | `Cluster.spec.clusterNetwork.serviceDomain`              |
@@ -99,10 +99,12 @@ CABPK will fill in some values if they are left empty with sensible defaults:
 
 > IMPORTANT! overriding above defaults could lead to broken Clusters.
 
+[1] if both `clusterConfiguration.KubernetesVersion` and `Machine.Spec.Version` are empty, the latest Kubernetes
+version will be installed (as defined by the default kubeadm behavior). 
 #### Examples
 Valid combinations of configuration objects are:
-- at least one of `InitConfiguration` and `ClusterConfiguration` for the first control plane node only
-- `JoinConfiguration` for worker nodes and additional control plane nodes
+- for KCP, `InitConfiguration` and `ClusterConfiguration` for the first control plane node; `JoinConfiguration` for additional control plane nodes
+- for machine deployments, `JoinConfiguration` for worker nodes
 
 Bootstrap control plane node:
 ```yaml
@@ -152,17 +154,17 @@ spec:
 CABPK supports multiple control plane machines initing at the same time.
 The generation of cloud-init scripts of different machines is orchestrated in order to ensure a cluster
 bootstrap process that will be compliant with the correct Kubeadm init/join sequence. More in detail:
-1. cloud-config-data generation starts only after `Cluster.InfrastructureReady` flag is set to `true`.
-2. at this stage, cloud-config-data will be generated for the first control plane machine even
-if multiple control plane machines are ready (kubeadm init).
-3. after `Cluster.metadata.Annotations[cluster.x-k8s.io/control-plane-ready]` is set to true,
+1. cloud-config-data generation starts only after `Cluster.Status.InfrastructureReady` flag is set to `true`.
+2. at this stage, cloud-config-data will be generated for the first control plane machine only, keeping
+on hold additional control plane machines existing in the cluster, if any (kubeadm init).
+3. after the `ControlPlaneInitialized` conditions on the cluster object is set to true,
 the cloud-config-data for all the other machines are generated (kubeadm join/join —control-plane).
 
 ### Certificate Management
 The user can choose two approaches for certificate management:
 1. provide required certificate authorities (CAs) to use for `kubeadm init/kubeadm join --control-plane`; such CAs
 should be provided as a `Secrets` objects in the management cluster.
-2. let CABPK to generate the necessary `Secrets` objects with a self-signed certificate authority for kubeadm
+2. let KCP to generate the necessary `Secrets` objects with a self-signed certificate authority for kubeadm
 
 See [here](ttps://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/) for more info about certificate management with kubeadm.
 

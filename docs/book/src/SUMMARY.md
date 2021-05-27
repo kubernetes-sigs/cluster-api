@@ -8,6 +8,7 @@
     - [Certificate Management](./tasks/certs/index.md)
         - [Using Custom Certificates](./tasks/certs/using-custom-certificates.md)
         - [Generating a Kubeconfig](./tasks/certs/generate-kubeconfig.md)
+    - [Kubeadm based bootstrap](./tasks/kubeadm-bootstrap.md)
     - [Upgrading management and workload clusters](./tasks/upgrading-clusters.md)
     - [Upgrading Cluster API components](./tasks/upgrading-cluster-api-versions.md)
     - [Configure a MachineHealthCheck](./tasks/healthcheck.md)

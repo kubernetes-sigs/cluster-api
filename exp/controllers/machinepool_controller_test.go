@@ -28,11 +28,11 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -111,12 +111,11 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			g := NewWithT(t)
 
 			mr := &MachinePoolReconciler{
-				Client: helpers.NewFakeClientWithScheme(
-					scheme.Scheme,
+				Client: fake.NewClientBuilder().WithObjects(
 					clusterCorrectMeta,
 					machinePoolValidCluster,
 					machinePoolWithFinalizer,
-				),
+				).Build(),
 			}
 
 			_, _ = mr.Reconcile(ctx, tc.request)
@@ -219,13 +218,12 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			g := NewWithT(t)
 
 			mr := &MachinePoolReconciler{
-				Client: helpers.NewFakeClientWithScheme(
-					scheme.Scheme,
+				Client: fake.NewClientBuilder().WithObjects(
 					testCluster,
 					machinePoolInvalidCluster,
 					machinePoolValidCluster,
 					machinePoolValidMachinePool,
-				),
+				).Build(),
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
@@ -411,13 +409,13 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run("machinePool should be "+tc.machinePool.Name, func(t *testing.T) {
 			g := NewWithT(t)
-			clientFake := helpers.NewFakeClientWithScheme(
-				scheme.Scheme,
+
+			clientFake := fake.NewClientBuilder().WithObjects(
 				&testCluster,
 				&tc.machinePool,
 				&infraConfig,
 				bootstrapConfig,
-			)
+			).Build()
 
 			r := &MachinePoolReconciler{
 				Client: clientFake,
@@ -540,7 +538,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			}
 
 			r := &MachinePoolReconciler{
-				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
+				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
 			ok, err := r.reconcileDeleteExternal(ctx, machinePool)
@@ -587,7 +585,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &MachinePoolReconciler{
-		Client: helpers.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
+		Client: fake.NewClientBuilder().WithObjects(testCluster, m).Build(),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -835,15 +833,16 @@ func TestMachinePoolConditions(t *testing.T) {
 				tt.beforeFunc(bootstrap, infra, mp, nodes)
 			}
 
-			clientFake := helpers.NewFakeClientWithScheme(
-				scheme.Scheme,
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+			clientFake := fake.NewClientBuilder().WithObjects(
 				testCluster,
 				mp,
 				infra,
 				bootstrap,
 				&nodes.Items[0],
 				&nodes.Items[1],
-			)
+			).Build()
 
 			r := &MachinePoolReconciler{
 				Client: clientFake,

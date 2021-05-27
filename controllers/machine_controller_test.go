@@ -31,12 +31,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -413,12 +413,11 @@ func TestMachineFinalizer(t *testing.T) {
 			g := NewWithT(t)
 
 			mr := &MachineReconciler{
-				Client: helpers.NewFakeClientWithScheme(
-					scheme.Scheme,
+				Client: fake.NewClientBuilder().WithObjects(
 					clusterCorrectMeta,
 					machineValidCluster,
 					machineWithFinalizer,
-				),
+				).Build(),
 			}
 
 			_, _ = mr.Reconcile(ctx, tc.request)
@@ -573,14 +572,13 @@ func TestMachineOwnerReference(t *testing.T) {
 			g := NewWithT(t)
 
 			mr := &MachineReconciler{
-				Client: helpers.NewFakeClientWithScheme(
-					scheme.Scheme,
+				Client: fake.NewClientBuilder().WithObjects(
 					testCluster,
 					machineInvalidCluster,
 					machineValidCluster,
 					machineValidMachine,
 					machineValidControlled,
-				),
+				).Build(),
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
@@ -742,14 +740,13 @@ func TestReconcileRequest(t *testing.T) {
 		t.Run("machine should be "+tc.machine.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			clientFake := helpers.NewFakeClientWithScheme(
-				scheme.Scheme,
+			clientFake := fake.NewClientBuilder().WithObjects(
 				node,
 				&testCluster,
 				&tc.machine,
 				external.TestGenericInfrastructureCRD.DeepCopy(),
 				&infraConfig,
-			)
+			).Build()
 
 			r := &MachineReconciler{
 				Client:  clientFake,
@@ -986,8 +983,7 @@ func TestMachineConditions(t *testing.T) {
 				tt.beforeFunc(bootstrap, infra, m)
 			}
 
-			clientFake := helpers.NewFakeClientWithScheme(
-				scheme.Scheme,
+			clientFake := fake.NewClientBuilder().WithObjects(
 				&testCluster,
 				m,
 				external.TestGenericInfrastructureCRD.DeepCopy(),
@@ -995,7 +991,7 @@ func TestMachineConditions(t *testing.T) {
 				external.TestGenericBootstrapCRD.DeepCopy(),
 				bootstrap,
 				node,
-			)
+			).Build()
 
 			r := &MachineReconciler{
 				Client:  clientFake,
@@ -1062,7 +1058,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"name":            "delete-bootstrap",
 						"namespace":       "default",
-						"resourceVersion": "1",
+						"resourceVersion": "999",
 					},
 				},
 			},
@@ -1087,7 +1083,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 			}
 
 			r := &MachineReconciler{
-				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
+				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
 			obj, err := r.reconcileDeleteExternal(ctx, machine, machine.Spec.Bootstrap.ConfigRef)
@@ -1129,7 +1125,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &MachineReconciler{
-		Client: helpers.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
+		Client: fake.NewClientBuilder().WithObjects(testCluster, m).Build(),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1255,7 +1251,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 			objs = append(objs, testCluster, tt.machine)
 
 			r := &MachineReconciler{
-				Client: helpers.NewFakeClientWithScheme(scheme.Scheme, objs...),
+				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
 			got := r.isNodeDrainAllowed(tt.machine)
@@ -1604,8 +1600,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			}
 
 			mr := &MachineReconciler{
-				Client: helpers.NewFakeClientWithScheme(
-					scheme.Scheme,
+				Client: fake.NewClientBuilder().WithObjects(
 					tc.cluster,
 					tc.machine,
 					m1,
@@ -1613,7 +1608,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					emp,
 					mcpBeingDeleted,
 					empBeingDeleted,
-				),
+				).Build(),
 			}
 
 			err := mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine)

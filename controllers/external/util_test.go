@@ -47,7 +47,7 @@ func TestGetResourceFound(t *testing.T) {
 	testResourceName := "greenTemplate"
 	testResourceKind := "GreenTemplate"
 	testResourceAPIVersion := "green.io/v1"
-	testResourceVersion := "1"
+	testResourceVersion := "999"
 
 	testResource := &unstructured.Unstructured{}
 	testResource.SetKind(testResourceKind)

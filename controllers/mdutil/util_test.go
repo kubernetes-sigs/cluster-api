@@ -717,7 +717,7 @@ func TestAnnotationUtils(t *testing.T) {
 	// Setup
 	tDeployment := generateDeployment("nginx")
 	tMS := generateMS(tDeployment)
-	tDeployment.Annotations[clusterv1.RevisionAnnotation] = "1"
+	tDeployment.Annotations[clusterv1.RevisionAnnotation] = "999"
 	logger := klogr.New()
 
 	// Test Case 1: Check if anotations are copied properly from deployment to MS

@@ -124,7 +124,7 @@ func newDockerMachine(dockerMachineName, machineName string) *infrav1.DockerMach
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            dockerMachineName,
-			ResourceVersion: "1",
+			ResourceVersion: "999",
 			Finalizers:      []string{infrav1.MachineFinalizer},
 			OwnerReferences: []metav1.OwnerReference{
 				{

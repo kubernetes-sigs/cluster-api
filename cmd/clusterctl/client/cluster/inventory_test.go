@@ -82,7 +82,7 @@ func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 	}
 }
 
-var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1", ResourceVersion: "1"}}
+var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1", ResourceVersion: "999"}}
 
 func Test_inventoryClient_List(t *testing.T) {
 	type fields struct {

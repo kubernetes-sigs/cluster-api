@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,7 +63,7 @@ func TestGetResourceFound(t *testing.T) {
 		Namespace:  testNamespace,
 	}
 
-	fakeClient := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(testResource.DeepCopy()).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(testResource.DeepCopy()).Build()
 	got, err := Get(ctx, fakeClient, testResourceReference, testNamespace)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(got).To(Equal(testResource))
@@ -82,7 +81,7 @@ func TestGetResourceNotFound(t *testing.T) {
 		Namespace:  namespace,
 	}
 
-	fakeClient := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
+	fakeClient := fake.NewClientBuilder().Build()
 	_, err := Get(ctx, fakeClient, testResourceReference, namespace)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(apierrors.IsNotFound(errors.Cause(err))).To(BeTrue())
@@ -100,7 +99,7 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 		Namespace:  testNamespace,
 	}
 
-	fakeClient := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
+	fakeClient := fake.NewClientBuilder().Build()
 	_, err := CloneTemplate(ctx, &CloneTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: testResourceReference,
@@ -171,7 +170,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	g.Expect(ok).To(BeTrue())
 	g.Expect(expectedSpec).NotTo(BeEmpty())
 
-	fakeClient := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(template.DeepCopy()).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
 	ref, err := CloneTemplate(ctx, &CloneTemplateInput{
 		Client:      fakeClient,
@@ -263,7 +262,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	g.Expect(ok).To(BeTrue())
 	g.Expect(expectedSpec).NotTo(BeEmpty())
 
-	fakeClient := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(template.DeepCopy()).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
 	ref, err := CloneTemplate(ctx, &CloneTemplateInput{
 		Client:      fakeClient,
@@ -317,7 +316,7 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 		Namespace:  testNamespace,
 	}
 
-	fakeClient := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(template.DeepCopy()).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
 	_, err := CloneTemplate(ctx, &CloneTemplateInput{
 		Client:      fakeClient,

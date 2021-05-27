@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 )
 
 type FakeRepository struct {
@@ -98,12 +99,7 @@ func (f *FakeRepository) WithVersions(version ...string) *FakeRepository {
 }
 
 func (f *FakeRepository) WithMetadata(version string, metadata *clusterctlv1.Metadata) *FakeRepository {
-	scheme := runtime.NewScheme()
-	if err := clusterctlv1.AddToScheme(scheme); err != nil {
-		panic(err)
-	}
-
-	codecs := serializer.NewCodecFactory(scheme)
+	codecs := serializer.NewCodecFactory(scheme.Scheme)
 
 	mediaType := "application/yaml"
 	info, match := runtime.SerializerInfoForMediaType(codecs.SupportedMediaTypes(), mediaType)

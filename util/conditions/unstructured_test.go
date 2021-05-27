@@ -23,36 +23,32 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 func TestUnstructuredGetConditions(t *testing.T) {
 	g := NewWithT(t)
 
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
 	// GetConditions should return conditions from an unstructured object
 	c := &clusterv1.Cluster{}
 	c.SetConditions(conditionList(true1))
 	u := &unstructured.Unstructured{}
-	g.Expect(scheme.Convert(c, u, nil)).To(Succeed())
+	g.Expect(scheme.Scheme.Convert(c, u, nil)).To(Succeed())
 
 	g.Expect(UnstructuredGetter(u).GetConditions()).To(haveSameConditionsOf(conditionList(true1)))
 
 	// GetConditions should return nil for an unstructured object with empty conditions
 	c = &clusterv1.Cluster{}
 	u = &unstructured.Unstructured{}
-	g.Expect(scheme.Convert(c, u, nil)).To(Succeed())
+	g.Expect(scheme.Scheme.Convert(c, u, nil)).To(Succeed())
 
 	g.Expect(UnstructuredGetter(u).GetConditions()).To(BeNil())
 
 	// GetConditions should return nil for an unstructured object without conditions
 	e := &corev1.Endpoints{}
 	u = &unstructured.Unstructured{}
-	g.Expect(scheme.Convert(e, u, nil)).To(Succeed())
+	g.Expect(scheme.Scheme.Convert(e, u, nil)).To(Succeed())
 
 	g.Expect(UnstructuredGetter(u).GetConditions()).To(BeNil())
 
@@ -70,7 +66,7 @@ func TestUnstructuredGetConditions(t *testing.T) {
 		},
 	}}
 	u = &unstructured.Unstructured{}
-	g.Expect(scheme.Convert(p, u, nil)).To(Succeed())
+	g.Expect(scheme.Scheme.Convert(p, u, nil)).To(Succeed())
 
 	g.Expect(UnstructuredGetter(u).GetConditions()).To(HaveLen(1))
 }
@@ -78,14 +74,9 @@ func TestUnstructuredGetConditions(t *testing.T) {
 func TestUnstructuredSetConditions(t *testing.T) {
 	g := NewWithT(t)
 
-	// gets an unstructured with empty conditions
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
 	c := &clusterv1.Cluster{}
 	u := &unstructured.Unstructured{}
-	g.Expect(scheme.Convert(c, u, nil)).To(Succeed())
+	g.Expect(scheme.Scheme.Convert(c, u, nil)).To(Succeed())
 
 	// set conditions
 	conditions := conditionList(true1, falseInfo1)

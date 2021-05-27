@@ -68,7 +68,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 
-	fakeClient := newFakeClient(g, kcp.DeepCopy(), cluster.DeepCopy())
+	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
@@ -133,7 +133,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		machines[m.Name] = m
 	}
 
-	fakeClient := newFakeClient(g, objs...)
+	fakeClient := newFakeClient(objs...)
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
@@ -198,7 +198,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		machines[m.Name] = m
 	}
 
-	fakeClient := newFakeClient(g, objs...)
+	fakeClient := newFakeClient(objs...)
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
@@ -272,7 +272,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	m, n := createMachineNodePair("testReady", cluster, kcp, true)
 	objs = append(objs, n, m, kubeadmConfigMap())
 	machines[m.Name] = m
-	fakeClient := newFakeClient(g, objs...)
+	fakeClient := newFakeClient(objs...)
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
@@ -344,7 +344,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 		objs = append(objs, n, m)
 	}
 
-	fakeClient := newFakeClient(g, objs...)
+	fakeClient := newFakeClient(objs...)
 	log.SetLogger(klogr.New())
 
 	// Set all the machines to `not ready`

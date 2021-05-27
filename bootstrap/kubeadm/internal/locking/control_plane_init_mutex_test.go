@@ -130,12 +130,6 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 	}
 }
 func TestControlPlaneInitMutex_UnLock(t *testing.T) {
-	g := NewWithT(t)
-
-	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
-
 	uid := types.UID("test-uid")
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -151,14 +145,14 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 		{
 			name: "should release lock by deleting config map",
 			client: &fakeClient{
-				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Client: fake.NewClientBuilder().Build(),
 			},
 			shouldRelease: true,
 		},
 		{
 			name: "should not release lock if cannot delete config map",
 			client: &fakeClient{
-				Client:      fake.NewClientBuilder().WithScheme(scheme).WithObjects(configMap).Build(),
+				Client:      fake.NewClientBuilder().WithObjects(configMap).Build(),
 				deleteError: errors.New("delete error"),
 			},
 			shouldRelease: false,
@@ -166,7 +160,7 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 		{
 			name: "should release lock if config map does not exist",
 			client: &fakeClient{
-				Client:   fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Client:   fake.NewClientBuilder().Build(),
 				getError: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, fmt.Sprintf("%s-controlplane", uid)),
 			},
 			shouldRelease: true,
@@ -174,7 +168,7 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 		{
 			name: "should not release lock if error while getting config map",
 			client: &fakeClient{
-				Client:   fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Client:   fake.NewClientBuilder().Build(),
 				getError: errors.New("get error"),
 			},
 			shouldRelease: false,
@@ -207,17 +201,13 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 func TestInfoLines_Lock(t *testing.T) {
 	g := NewWithT(t)
 
-	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
-
 	uid := types.UID("test-uid")
 	info := information{MachineName: "my-control-plane"}
 	b, err := json.Marshal(info)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	c := &fakeClient{
-		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+		Client: fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configMapName(clusterName),
 				Namespace: clusterNamespace,

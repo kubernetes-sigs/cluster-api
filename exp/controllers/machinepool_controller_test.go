@@ -110,8 +110,6 @@ func TestMachinePoolFinalizer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			mr := &MachinePoolReconciler{
 				Client: helpers.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -219,8 +217,6 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			mr := &MachinePoolReconciler{
 				Client: helpers.NewFakeClientWithScheme(
@@ -415,9 +411,6 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run("machinePool should be "+tc.machinePool.Name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			clientFake := helpers.NewFakeClientWithScheme(
 				scheme.Scheme,
 				&testCluster,
@@ -536,9 +529,6 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			objs := []client.Object{testCluster, machinePool}
 
 			if tc.bootstrapExists {
@@ -566,8 +556,6 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 
 func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	g := NewWithT(t)
-
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	dt := metav1.Now()
 
@@ -846,8 +834,6 @@ func TestMachinePoolConditions(t *testing.T) {
 			if tt.beforeFunc != nil {
 				tt.beforeFunc(bootstrap, infra, mp, nodes)
 			}
-
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			clientFake := helpers.NewFakeClientWithScheme(
 				scheme.Scheme,

@@ -26,7 +26,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -868,9 +867,6 @@ func TestGetCoreDNSInfo(t *testing.T) {
 }
 
 func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
@@ -902,7 +898,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
 					Namespace: metav1.NamespaceSystem,

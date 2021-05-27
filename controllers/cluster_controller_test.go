@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
@@ -459,10 +458,8 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 
-				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 				r := &ClusterReconciler{
-					Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef).Build(),
+					Client: fake.NewClientBuilder().WithObjects(cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef).Build(),
 				}
 				requests := r.controlPlaneMachineToCluster(tt.o)
 				g.Expect(requests).To(Equal(tt.want))

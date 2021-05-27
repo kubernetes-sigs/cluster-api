@@ -20,10 +20,8 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
-	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -32,13 +30,7 @@ import (
 )
 
 func TestFuzzyConversion(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(AddToScheme(scheme)).To(Succeed())
-	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
-
 	t.Run("for KubeadmControlPLane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
 		Hub:         &v1alpha4.KubeadmControlPlane{},
 		Spoke:       &KubeadmControlPlane{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},

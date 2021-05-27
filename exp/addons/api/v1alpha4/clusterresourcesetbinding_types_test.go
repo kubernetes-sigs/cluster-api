@@ -24,15 +24,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestIsResourceApplied(t *testing.T) {
-	g := NewWithT(t)
-
-	scheme := runtime.NewScheme()
-	g.Expect(AddToScheme(scheme)).To(Succeed())
-
 	resourceRefApplyFailed := ResourceRef{
 		Name: "applyFailed",
 		Kind: "Secret",
@@ -98,11 +92,6 @@ func TestIsResourceApplied(t *testing.T) {
 }
 
 func TestSetResourceBinding(t *testing.T) {
-	g := NewWithT(t)
-
-	scheme := runtime.NewScheme()
-	g.Expect(AddToScheme(scheme)).To(Succeed())
-
 	resourceRefApplyFailed := ResourceRef{
 		Name: "applyFailed",
 		Kind: "Secret",

@@ -847,8 +847,6 @@ func TestReconcileBootstrap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			if tc.machine == nil {
 				tc.machine = defaultMachine.DeepCopy()
 			}
@@ -856,7 +854,6 @@ func TestReconcileBootstrap(t *testing.T) {
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &MachineReconciler{
 				Client: fake.NewClientBuilder().
-					WithScheme(scheme.Scheme).
 					WithObjects(tc.machine,
 						external.TestGenericBootstrapCRD.DeepCopy(),
 						external.TestGenericInfrastructureCRD.DeepCopy(),
@@ -1060,8 +1057,6 @@ func TestReconcileInfrastructure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			if tc.machine == nil {
 				tc.machine = defaultMachine.DeepCopy()
 			}
@@ -1069,7 +1064,6 @@ func TestReconcileInfrastructure(t *testing.T) {
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &MachineReconciler{
 				Client: fake.NewClientBuilder().
-					WithScheme(scheme.Scheme).
 					WithObjects(tc.machine,
 						external.TestGenericBootstrapCRD.DeepCopy(),
 						external.TestGenericInfrastructureCRD.DeepCopy(),

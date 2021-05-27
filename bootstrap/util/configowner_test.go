@@ -22,27 +22,15 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var (
-	ctx = ctrl.SetupSignalHandler()
-)
-
 func TestGetConfigOwner(t *testing.T) {
-	g := NewWithT(t)
-
-	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
-
 	t.Run("should get the owner when present (Machine)", func(t *testing.T) {
 		g := NewWithT(t)
 		myMachine := &clusterv1.Machine{
@@ -65,7 +53,7 @@ func TestGetConfigOwner(t *testing.T) {
 			},
 		}
 
-		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(myMachine).Build()
+		c := fake.NewClientBuilder().WithObjects(myMachine).Build()
 		obj := &bootstrapv1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{
@@ -115,7 +103,7 @@ func TestGetConfigOwner(t *testing.T) {
 			},
 		}
 
-		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(myPool).Build()
+		c := fake.NewClientBuilder().WithObjects(myPool).Build()
 		obj := &bootstrapv1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{
@@ -142,7 +130,7 @@ func TestGetConfigOwner(t *testing.T) {
 
 	t.Run("return an error when not found", func(t *testing.T) {
 		g := NewWithT(t)
-		c := fake.NewClientBuilder().WithScheme(scheme).Build()
+		c := fake.NewClientBuilder().Build()
 		obj := &bootstrapv1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{
@@ -162,7 +150,7 @@ func TestGetConfigOwner(t *testing.T) {
 
 	t.Run("return nothing when there is no owner", func(t *testing.T) {
 		g := NewWithT(t)
-		c := fake.NewClientBuilder().WithScheme(scheme).Build()
+		c := fake.NewClientBuilder().Build()
 		obj := &bootstrapv1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{},

@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
@@ -173,6 +174,10 @@ type FuzzTestFuncInput struct {
 // FuzzTestFunc returns a new testing function to be used in tests to make sure conversions between
 // the Hub version of an object and an older version aren't lossy.
 func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
+	if input.Scheme == nil {
+		input.Scheme = scheme.Scheme
+	}
+
 	return func(t *testing.T) {
 		t.Run("spoke-hub-spoke", func(t *testing.T) {
 			g := gomega.NewWithT(t)

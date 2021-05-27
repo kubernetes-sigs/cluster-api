@@ -29,7 +29,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -78,14 +77,6 @@ users:
 	}
 )
 
-func setupScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	if err := corev1.AddToScheme(scheme); err != nil {
-		panic(err)
-	}
-	return scheme
-}
-
 func TestGetKubeConfigSecret(t *testing.T) {
 	g := NewWithT(t)
 
@@ -95,7 +86,7 @@ func TestGetKubeConfigSecret(t *testing.T) {
 	}
 	// creating a local copy to ensure validSecret.ObjectMeta.ResourceVersion does not get set by fakeClient
 	validSec := validSecret.DeepCopy()
-	client := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(validSec).Build()
+	client := fake.NewClientBuilder().WithObjects(validSec).Build()
 
 	found, err := FromSecret(ctx, client, clusterKey)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -258,7 +249,7 @@ func TestCreateSecretWithOwner(t *testing.T) {
 		},
 	}
 
-	c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(caSecret).Build()
+	c := fake.NewClientBuilder().WithObjects(caSecret).Build()
 
 	owner := metav1.OwnerReference{
 		Name:       "test1",
@@ -313,7 +304,7 @@ func TestCreateSecret(t *testing.T) {
 		},
 	}
 
-	c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(caSecret).Build()
+	c := fake.NewClientBuilder().WithObjects(caSecret).Build()
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -408,7 +399,7 @@ func TestRegenerateClientCerts(t *testing.T) {
 		},
 	}
 
-	c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(validSecret, caSecret).Build()
+	c := fake.NewClientBuilder().WithObjects(validSecret, caSecret).Build()
 
 	oldConfig, err := clientcmd.Load(validSecret.Data[secret.KubeconfigDataName])
 	g.Expect(err).NotTo(HaveOccurred())

@@ -25,8 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -88,14 +86,10 @@ users:
 )
 
 func TestNewClusterClient(t *testing.T) {
-	g := NewWithT(t)
-
-	testScheme := runtime.NewScheme()
-	g.Expect(scheme.AddToScheme(testScheme)).To(Succeed())
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(validSecret).Build()
+		client := fake.NewClientBuilder().WithObjects(validSecret).Build()
 		_, err := NewClusterClient(ctx, "test-source", client, clusterWithValidKubeConfig)
 		// Since we do not have a remote server to connect to, we should expect to get
 		// an error to that effect for the purpose of this test.
@@ -111,7 +105,7 @@ func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+		client := fake.NewClientBuilder().Build()
 		_, err := NewClusterClient(ctx, "test-source", client, clusterWithNoKubeConfig)
 		gs.Expect(err).To(MatchError(ContainSubstring("not found")))
 	})
@@ -119,7 +113,7 @@ func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with invalid kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(invalidSecret).Build()
+		client := fake.NewClientBuilder().WithObjects(invalidSecret).Build()
 		_, err := NewClusterClient(ctx, "test-source", client, clusterWithInvalidKubeConfig)
 		gs.Expect(err).To(HaveOccurred())
 		gs.Expect(apierrors.IsNotFound(err)).To(BeFalse())

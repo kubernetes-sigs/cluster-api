@@ -23,7 +23,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,17 +41,6 @@ var (
 	anotherMachine       = newMachine(clusterName, "my-machine-1", anotherDockerMachine)
 )
 
-func setupScheme() *runtime.Scheme {
-	s := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(s); err != nil {
-		panic(err)
-	}
-	if err := infrav1.AddToScheme(s); err != nil {
-		panic(err)
-	}
-	return s
-}
-
 func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 	g := NewWithT(t)
 
@@ -64,7 +52,7 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 		// Intentionally omitted
 		newMachine(clusterName, "my-machine-2", nil),
 	}
-	c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+	c := fake.NewClientBuilder().WithObjects(objects...).Build()
 	r := DockerMachineReconciler{
 		Client: c,
 	}

@@ -21,11 +21,10 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"sigs.k8s.io/cluster-api/util/collections"
+	"time"
 
 	. "github.com/onsi/gomega"
-
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -34,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -826,10 +826,26 @@ func getDeletingMachine(namespace, name string, options ...machineOption) *clust
 }
 
 func assertMachineCondition(ctx context.Context, g *WithT, m *clusterv1.Machine, t clusterv1.ConditionType, status corev1.ConditionStatus, reason string, severity clusterv1.ConditionSeverity, message string) {
-	g.Expect(testEnv.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m)).To(Succeed())
-	machineOwnerRemediatedCondition := conditions.Get(m, t)
-	g.Expect(machineOwnerRemediatedCondition.Status).To(Equal(status))
-	g.Expect(machineOwnerRemediatedCondition.Reason).To(Equal(reason))
-	g.Expect(machineOwnerRemediatedCondition.Severity).To(Equal(severity))
-	g.Expect(machineOwnerRemediatedCondition.Message).To(Equal(message))
+	g.Eventually(func() error {
+		if err := testEnv.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m); err != nil {
+			return err
+		}
+		c := conditions.Get(m, t)
+		if c == nil {
+			return errors.Errorf("condition %q was nil", t)
+		}
+		if c.Status != status {
+			return errors.Errorf("condition %q status %q did not match %q", t, c.Status, status)
+		}
+		if c.Reason != reason {
+			return errors.Errorf("condition %q reason %q did not match %q", t, c.Reason, reason)
+		}
+		if c.Severity != severity {
+			return errors.Errorf("condition %q severity %q did not match %q", t, c.Status, status)
+		}
+		if c.Message != message {
+			return errors.Errorf("condition %q message %q did not match %q", t, c.Message, message)
+		}
+		return nil
+	}, 10*time.Second).Should(Succeed())
 }

@@ -97,11 +97,8 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	}
 
 	// Before installing the providers, validates the management cluster resulting by the planned installation. The following checks are performed:
-	// - There should be only one instance of the same provider per namespace.
-	// - Instances of the same provider should not be fighting for objects (no watching overlap).
-	// - Providers combines in valid management groups
-	//   - All the providers should belong to one/only one management groups
-	//   - All the providers in a management group must support the same API Version of Cluster API (contract)
+	// - There should be only one instance of the same provider.
+	// - All the providers must support the same API Version of Cluster API (contract)
 	if err := installer.Validate(); err != nil {
 		return nil, err
 	}

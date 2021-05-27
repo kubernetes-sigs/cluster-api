@@ -103,9 +103,6 @@ type InventoryClient interface {
 	// this as the default namespace; In case there are more instances for the same provider installed in different namespaces, there is no default provider namespace.
 	GetDefaultProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error)
 
-	// GetManagementGroups returns the list of management groups defined in the management cluster.
-	GetManagementGroups() (ManagementGroupList, error)
-
 	// CheckCAPIContract checks the Cluster API version installed in the management cluster, and fails if this version
 	// does not match the current one supported by clusterctl.
 	CheckCAPIContract(...CheckCAPIContractOption) error

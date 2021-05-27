@@ -37,12 +37,13 @@ var upgradePlanCmd = &cobra.Command{
 	Use:   "plan",
 	Short: "Provide a list of recommended target versions for upgrading Cluster API providers in a management cluster",
 	Long: LongDesc(`
-		The upgrade plan command provides a list of recommended target versions for upgrading Cluster API providers in a management cluster.
+		The upgrade plan command provides a list of recommended target versions for upgrading the
+        Cluster API providers in a management cluster.
 
-		The providers are grouped into management groups, each one defining a set of providers that should be supporting
-		the same API Version of Cluster API (contract) in order to guarantee the proper functioning of the management cluster.
+		All the providers should be supporting the same API Version of Cluster API (contract) in order
+        to guarantee the proper functioning of the management cluster.
 
-		Then, for each provider in a management group, the following upgrade options are provided:
+		Then, for each provider, the following upgrade options are provided:
 		- The latest patch release for the current API Version of Cluster API (contract).
 		- The latest patch release for the next API Version of Cluster API (contract), if available.`),
 
@@ -89,7 +90,7 @@ func runUpgradePlan() error {
 	}
 
 	if len(upgradePlans) == 0 {
-		fmt.Println("There are no management groups in the cluster. Please use clusterctl init to initialize a Cluster API management cluster.")
+		fmt.Println("There are no providers in the cluster. Please use clusterctl init to initialize a Cluster API management cluster.")
 		return nil
 	}
 
@@ -103,7 +104,7 @@ func runUpgradePlan() error {
 		upgradeAvailable := false
 
 		fmt.Println("")
-		fmt.Printf("Management group: %s, latest release available for the %s API Version of Cluster API (contract):\n", plan.CoreProvider.InstanceName(), plan.Contract)
+		fmt.Printf("Latest release available for the %s API Version of Cluster API (contract):\n", plan.Contract)
 		fmt.Println("")
 		w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
 		fmt.Fprintln(w, "NAME\tNAMESPACE\tTYPE\tCURRENT VERSION\tNEXT VERSION")
@@ -120,7 +121,7 @@ func runUpgradePlan() error {
 			if plan.Contract == clusterv1.GroupVersion.Version {
 				fmt.Println("You can now apply the upgrade by executing the following command:")
 				fmt.Println("")
-				fmt.Printf("clusterctl upgrade apply --management-group %s --contract %s\n", plan.CoreProvider.InstanceName(), plan.Contract)
+				fmt.Printf("clusterctl upgrade apply --contract %s\n", plan.Contract)
 			} else {
 				fmt.Printf("The current version of clusterctl could not upgrade to %s contract (only %s supported).\n", plan.Contract, clusterv1.GroupVersion.Version)
 			}

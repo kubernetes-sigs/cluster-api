@@ -68,11 +68,6 @@ func (p *Provider) InstanceName() string {
 	return types.NamespacedName{Namespace: p.Namespace, Name: p.ManifestLabel()}.String()
 }
 
-// HasWatchingOverlapWith returns true if the provider has an overlapping watching namespace with another provider.
-func (p *Provider) HasWatchingOverlapWith(other Provider) bool {
-	return p.WatchedNamespace == "" || p.WatchedNamespace == other.WatchedNamespace || other.WatchedNamespace == ""
-}
-
 // SameAs returns true if two providers have the same ProviderName and Type.
 // Please note that there could be many instances of the same provider.
 func (p *Provider) SameAs(other Provider) bool {

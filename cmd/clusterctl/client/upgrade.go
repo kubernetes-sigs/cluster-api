@@ -74,9 +74,8 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 	aliasUpgradePlan := make([]UpgradePlan, len(upgradePlans))
 	for i, plan := range upgradePlans {
 		aliasUpgradePlan[i] = UpgradePlan{
-			Contract:     plan.Contract,
-			CoreProvider: plan.CoreProvider,
-			Providers:    plan.Providers,
+			Contract:  plan.Contract,
+			Providers: plan.Providers,
 		}
 	}
 
@@ -88,10 +87,7 @@ type ApplyUpgradeOptions struct {
 	// Kubeconfig to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig Kubeconfig
 
-	// ManagementGroup that should be upgraded (e.g. capi-system/cluster-api).
-	ManagementGroup string
-
-	// Contract defines the API Version of Cluster API (contract e.g. v1alpha4) the management group should upgrade to.
+	// Contract defines the API Version of Cluster API (contract e.g. v1alpha4) the management cluster should upgrade to.
 	// When upgrading by contract, the latest versions available will be used for all the providers; if you want
 	// a more granular control on upgrade, use CoreProvider, BootstrapProviders, ControlPlaneProviders, InfrastructureProviders.
 	Contract string
@@ -129,14 +125,6 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
 		return err
 	}
-
-	// The management group name is derived from the core provider name, so now
-	// convert the reference back into a coreProvider.
-	coreUpgradeItem, err := parseUpgradeItem(options.ManagementGroup, clusterctlv1.CoreProviderType)
-	if err != nil {
-		return err
-	}
-	coreProvider := coreUpgradeItem.Provider
 
 	// Ensures the latest version of cert-manager.
 	// NOTE: it is safe to upgrade to latest version of cert-manager given that it provides
@@ -182,15 +170,15 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 		}
 
 		// Execute the upgrade using the custom upgrade items
-		if err := clusterClient.ProviderUpgrader().ApplyCustomPlan(coreProvider, upgradeItems...); err != nil {
+		if err := clusterClient.ProviderUpgrader().ApplyCustomPlan(upgradeItems...); err != nil {
 			return err
 		}
 
 		return nil
 	}
 
-	// Otherwise we are upgrading a whole management group according to a clusterctl generated upgrade plan.
-	if err := clusterClient.ProviderUpgrader().ApplyPlan(coreProvider, options.Contract); err != nil {
+	// Otherwise we are upgrading a whole management cluster according to a clusterctl generated upgrade plan.
+	if err := clusterClient.ProviderUpgrader().ApplyPlan(options.Contract); err != nil {
 		return err
 	}
 

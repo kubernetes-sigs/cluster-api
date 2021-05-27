@@ -48,8 +48,7 @@ func sortUpgradeItems(plan client.UpgradePlan) {
 
 func sortUpgradePlans(upgradePlans []client.UpgradePlan) {
 	sort.Slice(upgradePlans, func(i, j int) bool {
-		return upgradePlans[i].CoreProvider.Namespace < upgradePlans[j].CoreProvider.Namespace ||
-			(upgradePlans[i].CoreProvider.Namespace == upgradePlans[j].CoreProvider.Namespace && upgradePlans[i].Contract < upgradePlans[j].Contract)
+		return upgradePlans[i].Contract < upgradePlans[j].Contract
 	})
 }
 

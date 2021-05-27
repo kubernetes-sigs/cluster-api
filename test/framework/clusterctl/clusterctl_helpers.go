@@ -125,7 +125,6 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 type UpgradeManagementClusterAndWaitInput struct {
 	ClusterProxy         framework.ClusterProxy
 	ClusterctlConfigPath string
-	ManagementGroup      string
 	Contract             string
 	LogFolder            string
 }
@@ -135,14 +134,12 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeManagementClusterAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeManagementClusterAndWait")
 	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling UpgradeManagementClusterAndWait")
-	Expect(input.ManagementGroup).ToNot(BeEmpty(), "Invalid argument. input.ManagementGroup can't be empty when calling UpgradeManagementClusterAndWait")
 	Expect(input.Contract).ToNot(BeEmpty(), "Invalid argument. input.Contract can't be empty when calling UpgradeManagementClusterAndWait")
 	Expect(os.MkdirAll(input.LogFolder, 0755)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for UpgradeManagementClusterAndWait")
 
 	Upgrade(ctx, UpgradeInput{
 		ClusterctlConfigPath: input.ClusterctlConfigPath,
 		KubeconfigPath:       input.ClusterProxy.GetKubeconfigPath(),
-		ManagementGroup:      input.ManagementGroup,
 		Contract:             input.Contract,
 		LogFolder:            input.LogFolder,
 	})

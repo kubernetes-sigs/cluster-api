@@ -223,7 +223,6 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			ClusterProxy:         managementClusterProxy,
-			ManagementGroup:      fmt.Sprintf("capi-system/%s", config.ClusterAPIProviderName),
 			Contract:             clusterv1.GroupVersion.Version,
 			LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)

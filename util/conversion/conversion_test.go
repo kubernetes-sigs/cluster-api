@@ -22,8 +22,17 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1a2 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterv1a3 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+)
+
+var (
+	oldMachineGVK = schema.GroupVersionKind{
+		Group:   clusterv1.GroupVersion.Group,
+		Version: "v1old",
+		Kind:    "Machine",
+	}
 )
 
 func TestMarshalData(t *testing.T) {
@@ -32,55 +41,51 @@ func TestMarshalData(t *testing.T) {
 	t.Run("should write source object to destination", func(t *testing.T) {
 		version := "v1.16.4"
 		providerID := "aws://some-id"
-		src := &clusterv1a3.Machine{
+		src := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-1",
 				Labels: map[string]string{
 					"label1": "",
 				},
 			},
-			Spec: clusterv1a3.MachineSpec{
+			Spec: clusterv1.MachineSpec{
 				ClusterName: "test-cluster",
 				Version:     &version,
 				ProviderID:  &providerID,
 			},
 		}
 
-		dst := &clusterv1a2.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-			},
-		}
+		dst := &unstructured.Unstructured{}
+		dst.SetGroupVersionKind(oldMachineGVK)
+		dst.SetName("test-1")
 
 		g.Expect(MarshalData(src, dst)).To(Succeed())
 		// ensure the src object is not modified
 		g.Expect(src.GetLabels()).ToNot(BeEmpty())
 
-		g.Expect(dst.Annotations[DataAnnotation]).ToNot(BeEmpty())
-		g.Expect(dst.Annotations[DataAnnotation]).To(ContainSubstring("test-cluster"))
-		g.Expect(dst.Annotations[DataAnnotation]).To(ContainSubstring("v1.16.4"))
-		g.Expect(dst.Annotations[DataAnnotation]).To(ContainSubstring("aws://some-id"))
-		g.Expect(dst.Annotations[DataAnnotation]).ToNot(ContainSubstring("metadata"))
-		g.Expect(dst.Annotations[DataAnnotation]).ToNot(ContainSubstring("label1"))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).ToNot(BeEmpty())
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).To(ContainSubstring("test-cluster"))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).To(ContainSubstring("v1.16.4"))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).To(ContainSubstring("aws://some-id"))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).ToNot(ContainSubstring("metadata"))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).ToNot(ContainSubstring("label1"))
 	})
 
 	t.Run("should append the annotation", func(t *testing.T) {
-		src := &clusterv1a3.Machine{
+		src := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-1",
 			},
 		}
-		dst := &clusterv1a2.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-				Annotations: map[string]string{
-					"annotation": "1",
-				},
-			},
-		}
+		dst := &unstructured.Unstructured{}
+		dst.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
+		dst.SetName("test-1")
+		dst.SetAnnotations(map[string]string{
+			"annotation": "1",
+		})
 
 		g.Expect(MarshalData(src, dst)).To(Succeed())
-		g.Expect(len(dst.Annotations)).To(Equal(2))
+		g.Expect(len(dst.GetAnnotations())).To(Equal(2))
 	})
 }
 
@@ -88,16 +93,14 @@ func TestUnmarshalData(t *testing.T) {
 	g := NewWithT(t)
 
 	t.Run("should return false without errors if annotation doesn't exist", func(t *testing.T) {
-		src := &clusterv1a3.Machine{
+		src := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-1",
 			},
 		}
-		dst := &clusterv1a2.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-			},
-		}
+		dst := &unstructured.Unstructured{}
+		dst.SetGroupVersionKind(oldMachineGVK)
+		dst.SetName("test-1")
 
 		ok, err := UnmarshalData(src, dst)
 		g.Expect(ok).To(BeFalse())
@@ -105,43 +108,50 @@ func TestUnmarshalData(t *testing.T) {
 	})
 
 	t.Run("should return true when a valid annotation with data exists", func(t *testing.T) {
-		src := &clusterv1a3.Machine{
+		src := &unstructured.Unstructured{}
+		src.SetGroupVersionKind(oldMachineGVK)
+		src.SetName("test-1")
+		src.SetAnnotations(map[string]string{
+			DataAnnotation: "{\"metadata\":{\"name\":\"test-1\",\"creationTimestamp\":null,\"labels\":{\"label1\":\"\"}},\"spec\":{\"clusterName\":\"\",\"bootstrap\":{},\"infrastructureRef\":{}},\"status\":{\"bootstrapReady\":true,\"infrastructureReady\":true}}",
+		})
+
+		dst := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-1",
-				Annotations: map[string]string{
-					DataAnnotation: "{\"metadata\":{\"name\":\"test-1\",\"creationTimestamp\":null,\"labels\":{\"label1\":\"\"}},\"spec\":{\"clusterName\":\"\",\"bootstrap\":{},\"infrastructureRef\":{}},\"status\":{\"bootstrapReady\":true,\"infrastructureReady\":true}}",
-				},
 			},
 		}
-		dst := &clusterv1a2.Machine{}
 
 		ok, err := UnmarshalData(src, dst)
-		g.Expect(ok).To(BeTrue())
 		g.Expect(err).To(BeNil())
+		g.Expect(ok).To(BeTrue())
 
-		g.Expect(len(dst.Labels)).To(Equal(1))
-		g.Expect(dst.Name).To(Equal("test-1"))
-		g.Expect(dst.Labels).To(HaveKeyWithValue("label1", ""))
-		g.Expect(dst.Annotations).To(BeEmpty())
+		g.Expect(len(dst.GetLabels())).To(Equal(1))
+		g.Expect(dst.GetName()).To(Equal("test-1"))
+		g.Expect(dst.GetLabels()).To(HaveKeyWithValue("label1", ""))
+		g.Expect(dst.GetAnnotations()).To(BeEmpty())
 	})
 
 	t.Run("should clean the annotation on successful unmarshal", func(t *testing.T) {
-		src := &clusterv1a3.Machine{
+
+		src := &unstructured.Unstructured{}
+		src.SetGroupVersionKind(oldMachineGVK)
+		src.SetName("test-1")
+		src.SetAnnotations(map[string]string{
+			"annotation-1": "",
+			DataAnnotation: "{\"metadata\":{\"name\":\"test-1\",\"creationTimestamp\":null,\"labels\":{\"label1\":\"\"}},\"spec\":{\"clusterName\":\"\",\"bootstrap\":{},\"infrastructureRef\":{}},\"status\":{\"bootstrapReady\":true,\"infrastructureReady\":true}}",
+		})
+
+		dst := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-1",
-				Annotations: map[string]string{
-					"annotation-1": "",
-					DataAnnotation: "{\"metadata\":{\"name\":\"test-1\",\"creationTimestamp\":null,\"labels\":{\"label1\":\"\"}},\"spec\":{\"clusterName\":\"\",\"bootstrap\":{},\"infrastructureRef\":{}},\"status\":{\"bootstrapReady\":true,\"infrastructureReady\":true}}",
-				},
 			},
 		}
-		dst := &clusterv1a2.Machine{}
 
 		ok, err := UnmarshalData(src, dst)
-		g.Expect(ok).To(BeTrue())
 		g.Expect(err).To(BeNil())
+		g.Expect(ok).To(BeTrue())
 
-		g.Expect(src.Annotations).ToNot(HaveKey(DataAnnotation))
-		g.Expect(len(src.Annotations)).To(Equal(1))
+		g.Expect(src.GetAnnotations()).ToNot(HaveKey(DataAnnotation))
+		g.Expect(len(src.GetAnnotations())).To(Equal(1))
 	})
 }

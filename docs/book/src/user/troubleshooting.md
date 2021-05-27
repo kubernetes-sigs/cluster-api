@@ -36,4 +36,17 @@ For convenience, here is an example one-liner to do this post installation
 
 ```
 kubectl get nodes --no-headers -l '!node-role.kubernetes.io/master' -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | xargs -I{} kubectl label node {} node-role.kubernetes.io/worker=''
-```
+```                  
+
+## Cluster API with Docker
+
+When provisioning workload clusters using Cluster API with Docker infrastructure,
+provisioning might be stuck: 
+ 
+1. if there are stopped containers on your machine from previous runs. Clean unused containers with [docker rm -f ](https://docs.docker.com/engine/reference/commandline/rm/). 
+
+2. if the docker space on your disk is being exhausted 
+    * Run [docker system df](https://docs.docker.com/engine/reference/commandline/system_df/) to inspect the disk space consumed by Docker resources.
+    * Run [docker system prune --volumes](https://docs.docker.com/engine/reference/commandline/system_prune/) to prune dangling images, containers, volumes and networks.
+
+

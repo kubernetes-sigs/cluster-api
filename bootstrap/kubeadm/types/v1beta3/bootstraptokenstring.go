@@ -29,7 +29,7 @@ import (
 // BootstrapTokenString is a token of the format abcdef.abcdef0123456789 that is used
 // for both validation of the practically of the API server from a joining node's point
 // of view and as an authentication method for the node in the bootstrap phase of
-// "kubeadm join". This token is and should be short-lived
+// "kubeadm join". This token is and should be short-lived.
 type BootstrapTokenString struct {
 	ID     string `json:"-" datapolicy:"token"`
 	Secret string `json:"-" datapolicy:"token"`
@@ -48,7 +48,7 @@ func (bts *BootstrapTokenString) UnmarshalJSON(b []byte) error {
 	}
 
 	// Remove unnecessary " characters coming from the JSON parser
-	token := strings.Replace(string(b), `"`, ``, -1)
+	token := strings.ReplaceAll(string(b), `"`, ``)
 	// Convert the string Token to a BootstrapTokenString object
 	newbts, err := NewBootstrapTokenString(token)
 	if err != nil {
@@ -59,7 +59,7 @@ func (bts *BootstrapTokenString) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// String returns the string representation of the BootstrapTokenString
+// String returns the string representation of the BootstrapTokenString.
 func (bts BootstrapTokenString) String() string {
 	if len(bts.ID) > 0 && len(bts.Secret) > 0 {
 		return bootstraputil.TokenFromIDAndSecret(bts.ID, bts.Secret)
@@ -70,7 +70,7 @@ func (bts BootstrapTokenString) String() string {
 // NewBootstrapTokenString converts the given Bootstrap Token as a string
 // to the BootstrapTokenString object used for serialization/deserialization
 // and internal usage. It also automatically validates that the given token
-// is of the right format
+// is of the right format.
 func NewBootstrapTokenString(token string) (*BootstrapTokenString, error) {
 	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
 	// TODO: Add a constant for the 3 value here, and explain better why it's needed (other than because how the regexp parsin works)
@@ -82,7 +82,7 @@ func NewBootstrapTokenString(token string) (*BootstrapTokenString, error) {
 }
 
 // NewBootstrapTokenStringFromIDAndSecret is a wrapper around NewBootstrapTokenString
-// that allows the caller to specify the ID and Secret separately
+// that allows the caller to specify the ID and Secret separately.
 func NewBootstrapTokenStringFromIDAndSecret(id, secret string) (*BootstrapTokenString, error) {
 	return NewBootstrapTokenString(bootstraputil.TokenFromIDAndSecret(id, secret))
 }

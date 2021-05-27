@@ -24,6 +24,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta3"
 
 	"testing"
 )
@@ -79,11 +80,27 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "pass with minimum kubernetes version for kubeadm API v1beta3",
+			args: args{
+				version: semver.MustParse("1.22.0"),
+			},
+			want:    v1beta3.GroupVersion,
+			wantErr: false,
+		},
+		{
+			name: "pass with kubernetes version for kubeadm API v1beta3",
+			args: args{
+				version: semver.MustParse("1.23.99"),
+			},
+			want:    v1beta3.GroupVersion,
+			wantErr: false,
+		},
+		{
 			name: "pass with future kubernetes version",
 			args: args{
 				version: semver.MustParse("99.99.99"),
 			},
-			want:    v1beta2.GroupVersion,
+			want:    v1beta3.GroupVersion,
 			wantErr: false,
 		},
 	}

@@ -99,12 +99,12 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 			}
 
 			// Try to detect the namespace where the provider lives
-			provider.Namespace, err = clusterClient.ProviderInventory().GetDefaultProviderNamespace(provider.ProviderName, provider.GetProviderType())
+			provider.Namespace, err = clusterClient.ProviderInventory().GetProviderNamespace(provider.ProviderName, provider.GetProviderType())
 			if err != nil {
 				return err
 			}
 			if provider.Namespace == "" {
-				return errors.Errorf("Unable to find default namespace for the %q provider.", name)
+				return errors.Errorf("Failed to identify the namespace for the %q provider.", name)
 			}
 
 			providersToDelete = append(providersToDelete, provider)

@@ -310,15 +310,15 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 			}
 		}
 
-		defaultProviderVersion, err := cluster.ProviderInventory().GetDefaultProviderVersion(name, clusterctlv1.InfrastructureProviderType)
+		inventoryVersion, err := cluster.ProviderInventory().GetProviderVersion(name, clusterctlv1.InfrastructureProviderType)
 		if err != nil {
 			return nil, err
 		}
 
-		if defaultProviderVersion == "" {
-			return nil, errors.Errorf("failed to identify the default version for the provider %q. Please specify a version", name)
+		if inventoryVersion == "" {
+			return nil, errors.Errorf("Unable to identify version for the provider %q automatically. Please specify a version", name)
 		}
-		version = defaultProviderVersion
+		version = inventoryVersion
 	}
 
 	// Get the template from the template repository.

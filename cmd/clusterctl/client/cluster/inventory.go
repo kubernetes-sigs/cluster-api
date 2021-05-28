@@ -93,15 +93,11 @@ type InventoryClient interface {
 	// this as the default provider; In case there are more provider of the same type, there is no default provider.
 	GetDefaultProviderName(providerType clusterctlv1.ProviderType) (string, error)
 
-	// GetDefaultProviderVersion returns the default version for a given provider.
-	// In case there is only a single version installed for a given provider, e.g. only the v0.4.1 version for the AWS provider, it returns
-	// this as the default version; In case there are more version installed for the same provider, there is no default provider version.
-	GetDefaultProviderVersion(provider string, providerType clusterctlv1.ProviderType) (string, error)
+	// GetProviderVersion returns the version for a given provider.
+	GetProviderVersion(provider string, providerType clusterctlv1.ProviderType) (string, error)
 
-	// GetDefaultProviderNamespace returns the default namespace for a given provider.
-	// In case there is only a single instance for a given provider, e.g. only the AWS provider in the capa-system namespace, it returns
-	// this as the default namespace; In case there are more instances for the same provider installed in different namespaces, there is no default provider namespace.
-	GetDefaultProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error)
+	// GetProviderNamespace returns the namespace for a given provider.
+	GetProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error)
 
 	// CheckCAPIContract checks the Cluster API version installed in the management cluster, and fails if this version
 	// does not match the current one supported by clusterctl.
@@ -340,7 +336,7 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 	return "", nil
 }
 
-func (p *inventoryClient) GetDefaultProviderVersion(provider string, providerType clusterctlv1.ProviderType) (string, error) {
+func (p *inventoryClient) GetProviderVersion(provider string, providerType clusterctlv1.ProviderType) (string, error) {
 	providerList, err := p.List()
 	if err != nil {
 		return "", err
@@ -356,11 +352,11 @@ func (p *inventoryClient) GetDefaultProviderVersion(provider string, providerTyp
 		return versions.List()[0], nil
 	}
 
-	// There is no version installed or more than one version installed for this provider; in both cases, a default version for this provider cannot be decided.
+	// The default version for this provider cannot be decided.
 	return "", nil
 }
 
-func (p *inventoryClient) GetDefaultProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error) {
+func (p *inventoryClient) GetProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error) {
 	providerList, err := p.List()
 	if err != nil {
 		return "", err
@@ -376,7 +372,7 @@ func (p *inventoryClient) GetDefaultProviderNamespace(provider string, providerT
 		return namespaces.List()[0], nil
 	}
 
-	// There is no provider or more than one namespace for this provider; in both cases, a default provider namespace cannot be decided.
+	// The default provider namespace cannot be decided.
 	return "", nil
 }
 

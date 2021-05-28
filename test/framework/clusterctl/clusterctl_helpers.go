@@ -198,13 +198,13 @@ type ApplyClusterTemplateAndWaitResult struct {
 // Important! this method assumes the cluster uses a KubeadmControlPlane and MachineDeployments.
 func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
-
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ApplyClusterTemplateAndWait")
-
 	Expect(result).ToNot(BeNil(), "Invalid argument. result can't be nil when calling ApplyClusterTemplateAndWait")
+	Expect(input.ConfigCluster.ControlPlaneMachineCount).ToNot(BeNil())
+	Expect(input.ConfigCluster.WorkerMachineCount).ToNot(BeNil())
 
 	log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-		input.ConfigCluster.ClusterName, valueOrDefault(input.ConfigCluster.Flavor), input.ConfigCluster.KubernetesVersion, input.ConfigCluster.ControlPlaneMachineCount, input.ConfigCluster.WorkerMachineCount)
+		input.ConfigCluster.ClusterName, valueOrDefault(input.ConfigCluster.Flavor), input.ConfigCluster.KubernetesVersion, *input.ConfigCluster.ControlPlaneMachineCount, *input.ConfigCluster.WorkerMachineCount)
 
 	log.Logf("Getting the cluster template yaml")
 	workloadClusterTemplate := ConfigCluster(ctx, ConfigClusterInput{

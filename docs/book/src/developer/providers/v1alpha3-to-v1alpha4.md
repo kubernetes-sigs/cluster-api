@@ -269,7 +269,7 @@ the resource.
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
   ```
-  
+
 ## MachinePool API group changed to `cluster.x-k8s.io`
 
 MachinePool is today an experiment, and the API group we originally decided to pick was `exp.cluster.x-k8s.io`. Given that the intent is in the future to move MachinePool to the core API group, we changed the experiment to use `cluster.x-k8s.io` group to avoid future breaking changes.
@@ -280,7 +280,14 @@ Note that MachinePools are still experimental after this change and should still
 
 ## Golangci-lint configuration
 
-There were a lot of new useful linters added to `.golangci.yml`. Of course it's not mandatory to use `golangci-lint` or 
-a similar configuration, but it might make sense regardless. Please note there was previously an error in 
-the `exclude` configuration which has been fixed in [#4657](https://github.com/kubernetes-sigs/cluster-api/pull/4657). As 
+There were a lot of new useful linters added to `.golangci.yml`. Of course it's not mandatory to use `golangci-lint` or
+a similar configuration, but it might make sense regardless. Please note there was previously an error in
+the `exclude` configuration which has been fixed in [#4657](https://github.com/kubernetes-sigs/cluster-api/pull/4657). As
 this configuration has been duplicated in a few other providers, it could be that you're also affected.
+
+# test/helpers.NewFakeClientWithScheme has been removed
+
+This function used to create a new fake client with the given scheme for testing,
+and all the objects given as input were initialized with a resource version of "1".
+The behavior of having a resource version in fake client has been fixed in controller-runtime,
+and this function isn't needed anymore.

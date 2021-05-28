@@ -528,7 +528,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Set Cluster label.
 		machine.Labels[clusterv1.ClusterLabelName] = machine.Spec.ClusterName
-		machine.ResourceVersion = "1"
+		machine.ResourceVersion = "999"
 		machineSecond.Labels[clusterv1.ClusterLabelName] = machine.Spec.ClusterName
 		machineSecond.Name = "SecondMachine"
 		// Set NodeRef.

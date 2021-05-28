@@ -2578,7 +2578,7 @@ func TestPatchTargets(t *testing.T) {
 
 	mhc := newMachineHealthCheckWithLabels("mhc", namespace, clusterName, labels)
 	machine1 := newTestMachine("machine1", namespace, clusterName, "nodeName", labels)
-	machine1.ResourceVersion = "1"
+	machine1.ResourceVersion = "999"
 	conditions.MarkTrue(machine1, clusterv1.MachineHealthCheckSuccededCondition)
 	machine2 := machine1.DeepCopy()
 	machine2.Name = "machine2"

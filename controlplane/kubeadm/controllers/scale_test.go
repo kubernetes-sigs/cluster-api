@@ -165,7 +165,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		endMachines := collections.FromMachineList(controlPlaneMachines)
 		for _, m := range endMachines {
 			bm, ok := beforeMachines[m.Name]
-			bm.SetResourceVersion("1")
+			bm.SetResourceVersion("999")
 			g.Expect(ok).To(BeTrue())
 			g.Expect(m).To(Equal(bm))
 		}

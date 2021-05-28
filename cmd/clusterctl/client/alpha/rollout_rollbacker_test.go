@@ -126,7 +126,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 								clusterv1.ClusterLabelName: "test",
 							},
 							Annotations: map[string]string{
-								clusterv1.RevisionAnnotation: "1",
+								clusterv1.RevisionAnnotation: "999",
 							},
 						},
 						Spec: clusterv1.MachineSetSpec{
@@ -161,7 +161,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 					Name:      "test-md-0",
 					Namespace: "default",
 				},
-				toRevision: int64(1),
+				toRevision: int64(999),
 			},
 			wantErr:                false,
 			wantVersion:            rollbackVersion,
@@ -230,7 +230,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 					Name:      "test-md-0",
 					Namespace: "default",
 				},
-				toRevision: int64(1),
+				toRevision: int64(999),
 			},
 			wantErr: true,
 		},

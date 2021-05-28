@@ -463,7 +463,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 		WithFile("v3.0.0", "cluster-template.yaml", rawTemplate)
 
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
-		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo", "bar").
+		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo").
 		WithObjs(configMap).
 		WithObjs(test.FakeCAPISetupObjects()...)
 

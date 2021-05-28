@@ -54,8 +54,7 @@ const (
 // 1. Checks for all the variables in the component YAML file and replace with corresponding config values
 // 2. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
 // 3. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
-// 4. Set the watching namespace for the provider controller
-// 5. Adds labels to all the components in order to allow easy identification of the provider objects.
+// 4. Adds labels to all the components in order to allow easy identification of the provider objects.
 type Components interface {
 	// configuration of the provider the provider components belongs to.
 	config.Provider
@@ -182,8 +181,7 @@ type ComponentsInput struct {
 // 2. The variables replacement can be skipped using the SkipVariables flag in the input options
 // 3. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
 // 4. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
-// 5. Set the watching namespace for the provider controller
-// 6. Adds labels to all the components in order to allow easy identification of the provider objects.
+// 5. Adds labels to all the components in order to allow easy identification of the provider objects.
 func NewComponents(input ComponentsInput) (Components, error) {
 	variables, err := input.Processor.GetVariables(input.RawYaml)
 	if err != nil {

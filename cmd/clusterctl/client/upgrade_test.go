@@ -337,8 +337,8 @@ func fakeClientForUpgrade() *fakeClient {
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		WithRepository(repository1).
 		WithRepository(repository2).
-		WithProviderInventory(core.Name(), core.Type(), "v1.0.0", "cluster-api-system", "").
-		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system", "").
+		WithProviderInventory(core.Name(), core.Type(), "v1.0.0", "cluster-api-system").
+		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system").
 		WithObjs(test.FakeCAPISetupObjects()...)
 
 	client := newFakeClient(config1).

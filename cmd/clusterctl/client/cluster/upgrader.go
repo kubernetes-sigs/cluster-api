@@ -269,10 +269,6 @@ func (u *providerUpgrader) createCustomPlan(upgradeItems []UpgradeItem) (*Upgrad
 			return nil, errors.Errorf("unable to complete that upgrade: the target version for the provider %s supports the %s API Version of Cluster API (contract), while the management cluster is using %s", upgradeItem.InstanceName(), contract, targetContract)
 		}
 
-		// Migrate the additional provider attributes to the upgrade item
-		// such as watching namespace.
-		upgradeItem.WatchedNamespace = provider.WatchedNamespace
-
 		upgradePlan.Providers = append(upgradePlan.Providers, upgradeItem)
 		upgradeInstanceNames.Insert(upgradeItem.InstanceName())
 	}

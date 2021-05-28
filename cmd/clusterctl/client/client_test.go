@@ -314,8 +314,8 @@ func (f *fakeClusterClient) WithObjs(objs ...client.Object) *fakeClusterClient {
 	return f
 }
 
-func (f *fakeClusterClient) WithProviderInventory(name string, providerType clusterctlv1.ProviderType, version, targetNamespace, watchingNamespace string) *fakeClusterClient {
-	f.fakeProxy.WithProviderInventory(name, providerType, version, targetNamespace, watchingNamespace)
+func (f *fakeClusterClient) WithProviderInventory(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) *fakeClusterClient {
+	f.fakeProxy.WithProviderInventory(name, providerType, version, targetNamespace)
 	return f
 }
 

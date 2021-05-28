@@ -749,7 +749,7 @@ func fakeInitializedCluster() *fakeClient {
 	p := client.clusters[input].Proxy()
 	fp := p.(*test.FakeProxy)
 
-	fp.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), "v1.0.0", "capi-system", "")
+	fp.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), "v1.0.0", "capi-system")
 
 	return client
 }

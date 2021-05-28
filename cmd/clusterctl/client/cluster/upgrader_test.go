@@ -64,19 +64,19 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases the current contract
 					Contract: test.CurrentCAPIContract,
 					Providers: []UpgradeItem{
 						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 							NextVersion: "v1.0.1",
 						},
 						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 							NextVersion: "v2.0.1",
 						},
 					},
@@ -115,19 +115,19 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases the current contract
 					Contract: test.CurrentCAPIContract,
 					Providers: []UpgradeItem{
 						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 							NextVersion: "v1.0.1",
 						},
 						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 							NextVersion: "v2.0.1",
 						},
 					},
@@ -162,19 +162,19 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the previous contract (not supported, but upgrade plan should report these options)
 					Contract: test.PreviousCAPIContractNotSupported,
 					Providers: []UpgradeItem{
 						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 							NextVersion: "v1.0.1",
 						},
 						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 							NextVersion: "v2.0.1",
 						},
 					},
@@ -183,11 +183,11 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					Contract: test.CurrentCAPIContract,
 					Providers: []UpgradeItem{
 						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 							NextVersion: "v2.0.0",
 						},
 						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 							NextVersion: "v3.0.0",
 						},
 					},
@@ -222,19 +222,19 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the current
 					Contract: test.CurrentCAPIContract,
 					Providers: []UpgradeItem{
 						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 							NextVersion: "v1.0.1",
 						},
 						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 							NextVersion: "v2.0.1",
 						},
 					},
@@ -243,11 +243,11 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					Contract: test.NextCAPIContractNotSupported,
 					Providers: []UpgradeItem{
 						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 							NextVersion: "v2.0.0",
 						},
 						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 							NextVersion: "v3.0.0",
 						},
 					},
@@ -281,19 +281,19 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the current contract
 					Contract: test.CurrentCAPIContract,
 					Providers: []UpgradeItem{
 						{
-							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 							NextVersion: "v1.0.1",
 						},
 						{
-							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 							NextVersion: "", // we are already to the latest version for the infra provider, but this is acceptable for the current contract
 						},
 					},
@@ -370,14 +370,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v2.0.1", // upgrade to next release in the current contract
 					},
 				},
@@ -386,7 +386,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				Contract: test.CurrentCAPIContract,
 				Providers: []UpgradeItem{
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v2.0.1",
 					},
 				},
@@ -418,14 +418,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v1.0.1", // upgrade to next release in the current contract
 					},
 				},
@@ -434,7 +434,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				Contract: test.CurrentCAPIContract,
 				Providers: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v1.0.1",
 					},
 				},
@@ -468,18 +468,18 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v2.0.0", // upgrade to next release in the next contract; not supported in current clusterctl release.
 					},
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v3.0.0", // upgrade to next release in the next contract; not supported in current clusterctl release.
 					},
 				},
@@ -488,11 +488,11 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				Contract: test.CurrentCAPIContract,
 				Providers: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v2.0.0",
 					},
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v3.0.0",
 					},
 				},
@@ -526,14 +526,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v3.0.0", // upgrade to next release in the next contract; not supported in current clusterctl release.
 					},
 				},
@@ -568,14 +568,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v3.0.0", // upgrade to next release in the current contract.
 					},
 				},
@@ -610,14 +610,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v2.0.0", // upgrade to next release in the next contract; not supported in current clusterctl release.
 					},
 				},
@@ -652,14 +652,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v2.0.0", // upgrade to next release in the current contract
 					},
 				},
@@ -694,18 +694,18 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v2.0.0", // upgrade to next release in the next contract; not supported in current clusterctl release.
 					},
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v3.0.0", // upgrade to next release in the next contract; not supported in current clusterctl release.
 					},
 				},
@@ -740,18 +740,18 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				// two providers existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			args: args{
-				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system", ""),
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
 				providersToUpgrade: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v2.0.0", // upgrade to next release in the next contract; not supported in current clusterctl release.
 					},
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v3.0.0", // upgrade to next release in the next contract; not supported in current clusterctl release.
 					},
 				},
@@ -760,11 +760,11 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				Contract: test.CurrentCAPIContract,
 				Providers: []UpgradeItem{
 					{
-						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 						NextVersion: "v2.0.0",
 					},
 					{
-						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 						NextVersion: "v3.0.0",
 					},
 				},
@@ -840,9 +840,9 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 				},
 				// two providers with multiple instances existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "default").
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system-1", "default-1").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", "default"),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system-1").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			contract: test.CurrentCAPIContract,
 			wantErr:  true,
@@ -876,9 +876,9 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 				},
 				// two providers with multiple instances existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "default").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", "default").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1", "default-1"),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1"),
 			},
 			contract: test.CurrentCAPIContract,
 			wantErr:  true,
@@ -954,17 +954,17 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 				},
 				// two providers with multiple instances existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "default").
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system-1", "default-1").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", "default"),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system-1").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			providersToUpgrade: []UpgradeItem{
 				{
-					Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+					Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 					NextVersion: "v2.0.0",
 				},
 				{
-					Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 					NextVersion: "v3.0.0",
 				},
 			},
@@ -999,21 +999,21 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 				},
 				// two providers with multiple instances existing in the cluster
 				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "default").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", "default").
-					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1", "default-1"),
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1"),
 			},
 			providersToUpgrade: []UpgradeItem{
 				{
-					Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+					Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 					NextVersion: "v2.0.0",
 				},
 				{
-					Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+					Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 					NextVersion: "v3.0.0",
 				},
 				{
-					Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1", ""),
+					Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1"),
 					NextVersion: "v3.0.0",
 				},
 			},

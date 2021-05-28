@@ -142,7 +142,7 @@ func (f *FakeProxy) WithNamespace(n string) *FakeProxy {
 // NB. this method adds an items to the Provider inventory, but it doesn't install the corresponding provider; if the
 // test case requires the actual provider to be installed, use the the fake client to install both the provider
 // components and the corresponding inventory item.
-func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1.ProviderType, version, targetNamespace, watchingNamespace string) *FakeProxy {
+func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) *FakeProxy {
 	f.objs = append(f.objs, &clusterctlv1.Provider{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterctlv1.GroupVersion.String(),
@@ -158,10 +158,9 @@ func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1
 				clusterctlv1.ClusterctlCoreLabelName: "inventory",
 			},
 		},
-		ProviderName:     name,
-		Type:             string(providerType),
-		Version:          version,
-		WatchedNamespace: watchingNamespace,
+		ProviderName: name,
+		Type:         string(providerType),
+		Version:      version,
 	})
 
 	return f

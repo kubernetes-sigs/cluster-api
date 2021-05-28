@@ -571,14 +571,14 @@ func TestReconcileEtcdMembers(t *testing.T) {
 			g := NewWithT(t)
 
 			for _, o := range tt.objs {
-				g.Expect(testEnv.CreateAndWait(ctx, o)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, o)).To(Succeed())
 				defer func(do client.Object) {
-					g.Expect(testEnv.CleanupAndWait(ctx, do)).To(Succeed())
+					g.Expect(env.CleanupAndWait(ctx, do)).To(Succeed())
 				}(o)
 			}
 
 			w := &Workload{
-				Client:              testEnv.Client,
+				Client:              env.Client,
 				etcdClientGenerator: tt.etcdClientGenerator,
 			}
 			ctx := context.TODO()
@@ -590,7 +590,7 @@ func TestReconcileEtcdMembers(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			if tt.assert != nil {
-				tt.assert(g, testEnv.Client)
+				tt.assert(g, env.Client)
 			}
 		})
 	}

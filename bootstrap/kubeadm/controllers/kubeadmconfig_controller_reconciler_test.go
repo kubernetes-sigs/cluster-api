@@ -33,16 +33,16 @@ func TestKubeadmConfigReconciler(t *testing.T) {
 			g := NewWithT(t)
 
 			cluster := newCluster("cluster1")
-			g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+			g.Expect(env.Create(ctx, cluster)).To(Succeed())
 
 			machine := newMachine(cluster, "my-machine")
-			g.Expect(testEnv.Create(ctx, machine)).To(Succeed())
+			g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 			config := newKubeadmConfig(machine, "my-machine-config")
-			g.Expect(testEnv.Create(ctx, config)).To(Succeed())
+			g.Expect(env.Create(ctx, config)).To(Succeed())
 
 			reconciler := KubeadmConfigReconciler{
-				Client: testEnv,
+				Client: env,
 			}
 			t.Log("Calling reconcile should requeue")
 			result, err := reconciler.Reconcile(ctx, ctrl.Request{

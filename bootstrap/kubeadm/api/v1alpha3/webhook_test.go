@@ -32,7 +32,7 @@ import (
 
 func TestKubeadmConfigConversion(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
+	ns, err := env.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 	kubeadmConfigName := fmt.Sprintf("test-kubeadmconfig-%s", util.RandomString(5))
 	kubeadmConfig := &KubeadmConfig{
@@ -43,15 +43,15 @@ func TestKubeadmConfigConversion(t *testing.T) {
 		Spec: fakeKubeadmConfigSpec,
 	}
 
-	g.Expect(testEnv.Create(ctx, kubeadmConfig)).To(Succeed())
+	g.Expect(env.Create(ctx, kubeadmConfig)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, kubeadmConfig)
 }
 
 func TestKubeadmConfigTemplateConversion(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
+	ns, err := env.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 	kubeadmConfigTemplateName := fmt.Sprintf("test-kubeadmconfigtemplate-%s", util.RandomString(5))
 	kubeadmConfigTemplate := &KubeadmConfigTemplate{
@@ -66,9 +66,9 @@ func TestKubeadmConfigTemplateConversion(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, kubeadmConfigTemplate)).To(Succeed())
+	g.Expect(env.Create(ctx, kubeadmConfigTemplate)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, kubeadmConfigTemplate)
 }
 

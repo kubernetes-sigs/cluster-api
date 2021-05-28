@@ -43,18 +43,18 @@ func TestMachineSetReconciler(t *testing.T) {
 
 	setup := func(t *testing.T, g *WithT) {
 		t.Log("Creating the namespace")
-		g.Expect(testEnv.Create(ctx, namespace)).To(Succeed())
+		g.Expect(env.Create(ctx, namespace)).To(Succeed())
 		t.Log("Creating the Cluster")
-		g.Expect(testEnv.Create(ctx, testCluster)).To(Succeed())
+		g.Expect(env.Create(ctx, testCluster)).To(Succeed())
 		t.Log("Creating the Cluster Kubeconfig Secret")
-		g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	}
 
 	teardown := func(t *testing.T, g *WithT) {
 		t.Log("Deleting the Cluster")
-		g.Expect(testEnv.Delete(ctx, testCluster)).To(Succeed())
+		g.Expect(env.Delete(ctx, testCluster)).To(Succeed())
 		t.Log("Deleting the namespace")
-		g.Expect(testEnv.Delete(ctx, namespace)).To(Succeed())
+		g.Expect(env.Delete(ctx, namespace)).To(Succeed())
 	}
 
 	t.Run("Should reconcile a MachineSet", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestMachineSetReconciler(t *testing.T) {
 		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha4")
 		bootstrapTmpl.SetName("ms-template")
 		bootstrapTmpl.SetNamespace(namespace.Name)
-		g.Expect(testEnv.Create(ctx, bootstrapTmpl)).To(Succeed())
+		g.Expect(env.Create(ctx, bootstrapTmpl)).To(Succeed())
 
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
@@ -153,17 +153,17 @@ func TestMachineSetReconciler(t *testing.T) {
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
 		infraTmpl.SetName("ms-template")
 		infraTmpl.SetNamespace(namespace.Name)
-		g.Expect(testEnv.Create(ctx, infraTmpl)).To(Succeed())
+		g.Expect(env.Create(ctx, infraTmpl)).To(Succeed())
 
 		// Create the MachineSet.
-		g.Expect(testEnv.Create(ctx, instance)).To(Succeed())
+		g.Expect(env.Create(ctx, instance)).To(Succeed())
 		defer func() {
-			g.Expect(testEnv.Delete(ctx, instance)).To(Succeed())
+			g.Expect(env.Delete(ctx, instance)).To(Succeed())
 		}()
 
 		t.Log("Verifying the linked bootstrap template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.Get(ctx, testEnv, instance.Spec.Template.Spec.Bootstrap.ConfigRef, instance.Namespace)
+			obj, err := external.Get(ctx, env, instance.Spec.Template.Spec.Bootstrap.ConfigRef, instance.Namespace)
 			if err != nil {
 				return false
 			}
@@ -178,7 +178,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.Get(ctx, testEnv, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
+			obj, err := external.Get(ctx, env, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
 			if err != nil {
 				return false
 			}
@@ -195,7 +195,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Verify that we have 2 replicas.
 		g.Eventually(func() int {
-			if err := testEnv.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
+			if err := env.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			return len(machines.Items)
@@ -206,7 +206,7 @@ func TestMachineSetReconciler(t *testing.T) {
 		infraMachines.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
 		infraMachines.SetKind("InfrastructureMachine")
 		g.Eventually(func() int {
-			if err := testEnv.List(ctx, infraMachines, client.InNamespace(namespace.Name)); err != nil {
+			if err := env.List(ctx, infraMachines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			return len(machines.Items)
@@ -225,12 +225,12 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Try to delete 1 machine and check the MachineSet scales back up.
 		machineToBeDeleted := machines.Items[0]
-		g.Expect(testEnv.Delete(ctx, &machineToBeDeleted)).To(Succeed())
+		g.Expect(env.Delete(ctx, &machineToBeDeleted)).To(Succeed())
 
 		// Verify that the Machine has been deleted.
 		g.Eventually(func() bool {
 			key := client.ObjectKey{Name: machineToBeDeleted.Name, Namespace: machineToBeDeleted.Namespace}
-			if err := testEnv.Get(ctx, key, &machineToBeDeleted); apierrors.IsNotFound(err) || !machineToBeDeleted.DeletionTimestamp.IsZero() {
+			if err := env.Get(ctx, key, &machineToBeDeleted); apierrors.IsNotFound(err) || !machineToBeDeleted.DeletionTimestamp.IsZero() {
 				return true
 			}
 			return false
@@ -238,7 +238,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Verify that we have 2 replicas.
 		g.Eventually(func() (ready int) {
-			if err := testEnv.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
+			if err := env.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			for _, m := range machines.Items {
@@ -269,7 +269,7 @@ func TestMachineSetReconciler(t *testing.T) {
 		// Verify that all Machines are Ready.
 		g.Eventually(func() int32 {
 			key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
-			if err := testEnv.Get(ctx, key, instance); err != nil {
+			if err := env.Get(ctx, key, instance); err != nil {
 				return -1
 			}
 			return instance.Status.AvailableReplicas

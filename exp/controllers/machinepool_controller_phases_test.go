@@ -109,7 +109,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set OwnerReference and cluster name label on external objects", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -138,7 +138,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set `Pending` with a new MachinePool", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -158,7 +158,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set `Provisioning` when bootstrap is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -185,7 +185,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set `Running` when bootstrap and infra is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -231,7 +231,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set `Running` when bootstrap, infra, and ready replicas equals spec replicas", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -286,7 +286,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set `Provisioned` when there is a NodeRef but infra is not ready ", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -316,7 +316,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set `ScalingUp` when infra is scaling up", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -362,7 +362,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set `ScalingDown` when infra is scaling down", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -415,7 +415,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	t.Run("Should set `Deleting` when MachinePool is being deleted", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(testEnv.Config, defaultCluster))
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
 		machinepool := defaultMachinePool.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()

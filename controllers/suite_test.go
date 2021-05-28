@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/test/helpers"
+	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -41,72 +41,72 @@ const (
 )
 
 var (
-	testEnv *helpers.TestEnvironment
-	ctx     = ctrl.SetupSignalHandler()
+	env *envtest.Environment
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {
 	fmt.Println("Creating a new test environment")
-	testEnv = helpers.NewTestEnvironment()
+	env = envtest.New()
 
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
 	tracker, err := remote.NewClusterCacheTracker(
 		log.Log,
-		testEnv.Manager,
+		env.Manager,
 	)
 	if err != nil {
 		panic(fmt.Sprintf("unable to create cluster cache tracker: %v", err))
 	}
 	if err := (&remote.ClusterCacheReconciler{
-		Client:  testEnv,
+		Client:  env,
 		Log:     log.Log,
 		Tracker: tracker,
-	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 	}
 	if err := (&ClusterReconciler{
-		Client:   testEnv,
-		recorder: testEnv.GetEventRecorderFor("cluster-controller"),
-	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		Client:   env,
+		recorder: env.GetEventRecorderFor("cluster-controller"),
+	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
 	}
 	if err := (&MachineReconciler{
-		Client:   testEnv,
+		Client:   env,
 		Tracker:  tracker,
-		recorder: testEnv.GetEventRecorderFor("machine-controller"),
-	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		recorder: env.GetEventRecorderFor("machine-controller"),
+	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 	}
 	if err := (&MachineSetReconciler{
-		Client:   testEnv,
+		Client:   env,
 		Tracker:  tracker,
-		recorder: testEnv.GetEventRecorderFor("machineset-controller"),
-	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		recorder: env.GetEventRecorderFor("machineset-controller"),
+	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
 	}
 	if err := (&MachineDeploymentReconciler{
-		Client:   testEnv,
-		recorder: testEnv.GetEventRecorderFor("machinedeployment-controller"),
-	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		Client:   env,
+		recorder: env.GetEventRecorderFor("machinedeployment-controller"),
+	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start MMachineDeploymentReconciler: %v", err))
 	}
 	if err := (&MachineHealthCheckReconciler{
-		Client:   testEnv,
+		Client:   env,
 		Tracker:  tracker,
-		recorder: testEnv.GetEventRecorderFor("machinehealthcheck-controller"),
-	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		recorder: env.GetEventRecorderFor("machinehealthcheck-controller"),
+	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start MachineHealthCheckReconciler : %v", err))
 	}
 
 	go func() {
 		fmt.Println("Starting the test environment manager")
-		if err := testEnv.StartManager(ctx); err != nil {
+		if err := env.Start(ctx); err != nil {
 			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
 		}
 	}()
-	<-testEnv.Manager.Elected()
-	testEnv.WaitForWebhooks()
+	<-env.Manager.Elected()
+	env.WaitForWebhooks()
 
 	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
 	SetDefaultEventuallyTimeout(timeout)
@@ -114,7 +114,7 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	fmt.Println("Stopping the test environment")
-	if err := testEnv.Stop(); err != nil {
+	if err := env.Stop(); err != nil {
 		panic(fmt.Sprintf("Failed to stop the test environment: %v", err))
 	}
 

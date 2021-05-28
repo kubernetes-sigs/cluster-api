@@ -43,7 +43,7 @@ import (
 
 func TestWatches(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, "test-machine-watches")
+	ns, err := env.CreateNamespace(ctx, "test-machine-watches")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	infraMachine := &unstructured.Unstructured{
@@ -99,24 +99,24 @@ func TestWatches(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, testCluster)).To(BeNil())
-	g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, defaultBootstrap)).To(BeNil())
-	g.Expect(testEnv.Create(ctx, node)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, infraMachine)).To(BeNil())
+	g.Expect(env.Create(ctx, testCluster)).To(BeNil())
+	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+	g.Expect(env.Create(ctx, defaultBootstrap)).To(BeNil())
+	g.Expect(env.Create(ctx, node)).To(Succeed())
+	g.Expect(env.Create(ctx, infraMachine)).To(BeNil())
 
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, testCluster, defaultBootstrap)
 
 	// Patch infra machine ready
-	patchHelper, err := patch.NewHelper(infraMachine, testEnv)
+	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
-	patchHelper, err = patch.NewHelper(defaultBootstrap, testEnv)
+	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
@@ -146,30 +146,30 @@ func TestWatches(t *testing.T) {
 			}},
 	}
 
-	g.Expect(testEnv.Create(ctx, machine)).To(BeNil())
+	g.Expect(env.Create(ctx, machine)).To(BeNil())
 	defer func() {
-		g.Expect(testEnv.Cleanup(ctx, machine)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, machine)).To(Succeed())
 	}()
 
 	// Wait for reconciliation to happen.
 	// Since infra and bootstrap objects are ready, a nodeRef will be assigned during node reconciliation.
 	key := client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, key, machine); err != nil {
+		if err := env.Get(ctx, key, machine); err != nil {
 			return false
 		}
 		return machine.Status.NodeRef != nil
 	}, timeout).Should(BeTrue())
 
 	// Node deletion will trigger node watchers and a request will be added to the queue.
-	g.Expect(testEnv.Delete(ctx, node)).To(Succeed())
+	g.Expect(env.Delete(ctx, node)).To(Succeed())
 	// TODO: Once conditions are in place, check if node deletion triggered a reconcile.
 
 	// Delete infra machine, external tracker will trigger reconcile
 	// and machine Status.FailureReason should be non-nil after reconcileInfrastructure
-	g.Expect(testEnv.Delete(ctx, infraMachine)).To(Succeed())
+	g.Expect(env.Delete(ctx, infraMachine)).To(Succeed())
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, key, machine); err != nil {
+		if err := env.Get(ctx, key, machine); err != nil {
 			return false
 		}
 		return machine.Status.FailureMessage != nil
@@ -246,12 +246,12 @@ func TestMachine_Reconcile(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, testCluster)).To(BeNil())
-	g.Expect(testEnv.Create(ctx, infraMachine)).To(BeNil())
-	g.Expect(testEnv.Create(ctx, defaultBootstrap)).To(BeNil())
+	g.Expect(env.Create(ctx, testCluster)).To(BeNil())
+	g.Expect(env.Create(ctx, infraMachine)).To(BeNil())
+	g.Expect(env.Create(ctx, defaultBootstrap)).To(BeNil())
 
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(testCluster)
 
 	machine := &clusterv1.Machine{
@@ -280,13 +280,13 @@ func TestMachine_Reconcile(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(testEnv.Create(ctx, machine)).To(BeNil())
+	g.Expect(env.Create(ctx, machine)).To(BeNil())
 
 	key := client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 
 	// Wait for reconciliation to happen when infra and bootstrap objects are not ready.
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, key, machine); err != nil {
+		if err := env.Get(ctx, key, machine); err != nil {
 			return false
 		}
 		return len(machine.Finalizers) > 0
@@ -295,16 +295,16 @@ func TestMachine_Reconcile(t *testing.T) {
 	// Set bootstrap ready.
 	bootstrapPatch := client.MergeFrom(defaultBootstrap.DeepCopy())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).NotTo(HaveOccurred())
-	g.Expect(testEnv.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
+	g.Expect(env.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
 
 	// Set infrastructure ready.
 	infraMachinePatch := client.MergeFrom(infraMachine.DeepCopy())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
-	g.Expect(testEnv.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
+	g.Expect(env.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
 
 	// Wait for Machine Ready Condition to become True.
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, key, machine); err != nil {
+		if err := env.Get(ctx, key, machine); err != nil {
 			return false
 		}
 		if conditions.Has(machine, clusterv1.InfrastructureReadyCondition) != true {
@@ -314,10 +314,10 @@ func TestMachine_Reconcile(t *testing.T) {
 		return readyCondition.Status == corev1.ConditionTrue
 	}, timeout).Should(BeTrue())
 
-	g.Expect(testEnv.Delete(ctx, machine)).NotTo(HaveOccurred())
+	g.Expect(env.Delete(ctx, machine)).NotTo(HaveOccurred())
 	// Wait for Machine to be deleted.
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, key, machine); err != nil {
+		if err := env.Get(ctx, key, machine); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true
 			}
@@ -328,7 +328,7 @@ func TestMachine_Reconcile(t *testing.T) {
 	// Check if Machine deletion successfully deleted infrastructure external reference.
 	keyInfra := client.ObjectKey{Name: infraMachine.GetName(), Namespace: infraMachine.GetNamespace()}
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, keyInfra, infraMachine); err != nil {
+		if err := env.Get(ctx, keyInfra, infraMachine); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true
 			}
@@ -339,7 +339,7 @@ func TestMachine_Reconcile(t *testing.T) {
 	// Check if Machine deletion successfully deleted bootstrap external reference.
 	keyBootstrap := client.ObjectKey{Name: defaultBootstrap.GetName(), Namespace: defaultBootstrap.GetNamespace()}
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, keyBootstrap, defaultBootstrap); err != nil {
+		if err := env.Get(ctx, keyBootstrap, defaultBootstrap); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true
 			}
@@ -1623,7 +1623,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 
 func TestNodeToMachine(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, "test-node-to-machine")
+	ns, err := env.CreateNamespace(ctx, "test-node-to-machine")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Set up cluster, machines and nodes to test against.
@@ -1711,32 +1711,32 @@ func TestNodeToMachine(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, testCluster)).To(BeNil())
-	g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, defaultBootstrap)).To(BeNil())
-	g.Expect(testEnv.Create(ctx, targetNode)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, randomNode)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, infraMachine)).To(BeNil())
-	g.Expect(testEnv.Create(ctx, infraMachine2)).To(BeNil())
+	g.Expect(env.Create(ctx, testCluster)).To(BeNil())
+	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+	g.Expect(env.Create(ctx, defaultBootstrap)).To(BeNil())
+	g.Expect(env.Create(ctx, targetNode)).To(Succeed())
+	g.Expect(env.Create(ctx, randomNode)).To(Succeed())
+	g.Expect(env.Create(ctx, infraMachine)).To(BeNil())
+	g.Expect(env.Create(ctx, infraMachine2)).To(BeNil())
 
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, testCluster, defaultBootstrap)
 
 	// Patch infra expectedMachine ready
-	patchHelper, err := patch.NewHelper(infraMachine, testEnv)
+	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch infra randomMachine ready
-	patchHelper, err = patch.NewHelper(infraMachine2, testEnv)
+	patchHelper, err = patch.NewHelper(infraMachine2, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine2.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine2, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
-	patchHelper, err = patch.NewHelper(defaultBootstrap, testEnv)
+	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
@@ -1766,16 +1766,16 @@ func TestNodeToMachine(t *testing.T) {
 			}},
 	}
 
-	g.Expect(testEnv.Create(ctx, expectedMachine)).To(BeNil())
+	g.Expect(env.Create(ctx, expectedMachine)).To(BeNil())
 	defer func() {
-		g.Expect(testEnv.Cleanup(ctx, expectedMachine)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, expectedMachine)).To(Succeed())
 	}()
 
 	// Wait for reconciliation to happen.
 	// Since infra and bootstrap objects are ready, a nodeRef will be assigned during node reconciliation.
 	key := client.ObjectKey{Name: expectedMachine.Name, Namespace: expectedMachine.Namespace}
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, key, expectedMachine); err != nil {
+		if err := env.Get(ctx, key, expectedMachine); err != nil {
 			return false
 		}
 		return expectedMachine.Status.NodeRef != nil
@@ -1805,16 +1805,16 @@ func TestNodeToMachine(t *testing.T) {
 			}},
 	}
 
-	g.Expect(testEnv.Create(ctx, randomMachine)).To(BeNil())
+	g.Expect(env.Create(ctx, randomMachine)).To(BeNil())
 	defer func() {
-		g.Expect(testEnv.Cleanup(ctx, randomMachine)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, randomMachine)).To(Succeed())
 	}()
 
 	// Wait for reconciliation to happen.
 	// Since infra and bootstrap objects are ready, a nodeRef will be assigned during node reconciliation.
 	key = client.ObjectKey{Name: randomMachine.Name, Namespace: randomMachine.Namespace}
 	g.Eventually(func() bool {
-		if err := testEnv.Get(ctx, key, randomMachine); err != nil {
+		if err := env.Get(ctx, key, randomMachine); err != nil {
 			return false
 		}
 		return randomMachine.Status.NodeRef != nil
@@ -1871,7 +1871,7 @@ func TestNodeToMachine(t *testing.T) {
 	}
 
 	r := &MachineReconciler{
-		Client: testEnv,
+		Client: env,
 	}
 	for _, node := range fakeNodes {
 		request := r.nodeToMachine(node)

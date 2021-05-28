@@ -396,16 +396,16 @@ kind: ClusterConfiguration
 			for _, o := range tt.objs {
 				// NB. deep copy test object so changes applied during a test does not affect other tests.
 				o := o.DeepCopyObject().(client.Object)
-				g.Expect(testEnv.CreateAndWait(ctx, o)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, o)).To(Succeed())
 			}
 
 			// Register cleanup function
 			t.Cleanup(func() {
-				_ = testEnv.CleanupAndWait(ctx, tt.objs...)
+				_ = env.CleanupAndWait(ctx, tt.objs...)
 			})
 
 			w := &Workload{
-				Client:          testEnv.GetClient(),
+				Client:          env.GetClient(),
 				CoreDNSMigrator: tt.migrator,
 			}
 			err := w.UpdateCoreDNS(ctx, tt.kcp, semver.MustParse("1.19.1"))
@@ -420,13 +420,13 @@ kind: ClusterConfiguration
 			if tt.expectUpdates {
 				// assert kubeadmConfigMap
 				var expectedKubeadmConfigMap corev1.ConfigMap
-				g.Expect(testEnv.Get(ctx, client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
+				g.Expect(env.Get(ctx, client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}, &expectedKubeadmConfigMap)).To(Succeed())
 				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring(tt.kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)))
 				g.Expect(expectedKubeadmConfigMap.Data).To(HaveKeyWithValue("ClusterConfiguration", ContainSubstring(tt.kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageRepository)))
 
 				// assert CoreDNS corefile
 				var expectedConfigMap corev1.ConfigMap
-				g.Expect(testEnv.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
+				g.Expect(env.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
 				g.Expect(expectedConfigMap.Data).To(HaveLen(2))
 				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
 				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", expectedCorefile))
@@ -434,7 +434,7 @@ kind: ClusterConfiguration
 				// assert CoreDNS deployment
 				var actualDeployment appsv1.Deployment
 				g.Eventually(func() string {
-					g.Expect(testEnv.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
+					g.Expect(env.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
 					return actualDeployment.Spec.Template.Spec.Containers[0].Image
 				}, "5s").Should(Equal(tt.expectImage))
 			}

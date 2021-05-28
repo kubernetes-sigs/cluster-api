@@ -47,16 +47,16 @@ func TestClusterReconciler(t *testing.T) {
 		}
 
 		// Create the Cluster object and expect the Reconcile and Deployment to be created
-		g.Expect(testEnv.Create(ctx, instance)).To(Succeed())
+		g.Expect(env.Create(ctx, instance)).To(Succeed())
 		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
 		defer func() {
-			err := testEnv.Delete(ctx, instance)
+			err := env.Delete(ctx, instance)
 			g.Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Make sure the Cluster exists.
 		g.Eventually(func() bool {
-			if err := testEnv.Get(ctx, key, instance); err != nil {
+			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
 			return len(instance.Finalizers) > 0
@@ -73,16 +73,16 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    "default",
 			},
 		}
-		g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := testEnv.Delete(ctx, cluster)
+			err := env.Delete(ctx, cluster)
 			g.Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
 		g.Eventually(func() bool {
-			if err := testEnv.Get(ctx, key, cluster); err != nil {
+			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -90,7 +90,7 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Patch
 		g.Eventually(func() bool {
-			ph, err := patch.NewHelper(cluster, testEnv)
+			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
 			cluster.Spec.ControlPlaneRef = &corev1.ObjectReference{Name: "test-too"}
@@ -101,7 +101,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Assertions
 		g.Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			if err := testEnv.Get(ctx, key, instance); err != nil {
+			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
 			return instance.Spec.InfrastructureRef != nil &&
@@ -119,16 +119,16 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    "default",
 			},
 		}
-		g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := testEnv.Delete(ctx, cluster)
+			err := env.Delete(ctx, cluster)
 			g.Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
 		g.Eventually(func() bool {
-			if err := testEnv.Get(ctx, key, cluster); err != nil {
+			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -136,7 +136,7 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Patch
 		g.Eventually(func() bool {
-			ph, err := patch.NewHelper(cluster, testEnv)
+			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -146,7 +146,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Assertions
 		g.Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			if err := testEnv.Get(ctx, key, instance); err != nil {
+			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
 			return instance.Status.InfrastructureReady
@@ -164,16 +164,16 @@ func TestClusterReconciler(t *testing.T) {
 			},
 		}
 
-		g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := testEnv.Delete(ctx, cluster)
+			err := env.Delete(ctx, cluster)
 			g.Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
 		g.Eventually(func() bool {
-			if err := testEnv.Get(ctx, key, cluster); err != nil {
+			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -181,7 +181,7 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Patch
 		g.Eventually(func() bool {
-			ph, err := patch.NewHelper(cluster, testEnv)
+			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
@@ -192,7 +192,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Assertions
 		g.Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			if err := testEnv.Get(ctx, key, instance); err != nil {
+			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
 			return instance.Status.InfrastructureReady &&
@@ -211,16 +211,16 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    "default",
 			},
 		}
-		g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := testEnv.Delete(ctx, cluster)
+			err := env.Delete(ctx, cluster)
 			g.Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
 		g.Eventually(func() bool {
-			if err := testEnv.Get(ctx, key, cluster); err != nil {
+			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -228,7 +228,7 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Remove finalizers
 		g.Eventually(func() bool {
-			ph, err := patch.NewHelper(cluster, testEnv)
+			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.SetFinalizers([]string{})
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -240,7 +240,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Check finalizers are re-applied
 		g.Eventually(func() []string {
 			instance := &clusterv1.Cluster{}
-			if err := testEnv.Get(ctx, key, instance); err != nil {
+			if err := env.Get(ctx, key, instance); err != nil {
 				return []string{"not-empty"}
 			}
 			return instance.Finalizers
@@ -257,17 +257,17 @@ func TestClusterReconciler(t *testing.T) {
 			},
 		}
 
-		g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
-			err := testEnv.Delete(ctx, cluster)
+			err := env.Delete(ctx, cluster)
 			g.Expect(err).NotTo(HaveOccurred())
 		}()
-		g.Expect(testEnv.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
+		g.Expect(env.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
 
 		// Wait for reconciliation to happen.
 		g.Eventually(func() bool {
-			if err := testEnv.Get(ctx, key, cluster); err != nil {
+			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return len(cluster.Finalizers) > 0
@@ -284,7 +284,7 @@ func TestClusterReconciler(t *testing.T) {
 			},
 		}
 
-		g.Expect(testEnv.Create(ctx, node)).To(Succeed())
+		g.Expect(env.Create(ctx, node)).To(Succeed())
 
 		machine := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
@@ -303,10 +303,10 @@ func TestClusterReconciler(t *testing.T) {
 			},
 		}
 		machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("test6-bootstrapdata")
-		g.Expect(testEnv.Create(ctx, machine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		key = client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 		defer func() {
-			err := testEnv.Delete(ctx, machine)
+			err := env.Delete(ctx, machine)
 			g.Expect(err).NotTo(HaveOccurred())
 		}()
 
@@ -318,7 +318,7 @@ func TestClusterReconciler(t *testing.T) {
 		// we continue to see test timeouts here, that will likely point to something else being the problem, but
 		// I've yet to determine any other possibility for the test flakes.
 		g.Eventually(func() bool {
-			if err := testEnv.Get(ctx, key, machine); err != nil {
+			if err := env.Get(ctx, key, machine); err != nil {
 				return false
 			}
 			return len(machine.Finalizers) > 0
@@ -327,7 +327,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Assertion
 		key = client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		g.Eventually(func() bool {
-			if err := testEnv.Get(ctx, key, cluster); err != nil {
+			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
 			return conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition)

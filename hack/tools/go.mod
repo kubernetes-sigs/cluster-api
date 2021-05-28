@@ -5,9 +5,12 @@ go 1.16
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
-	github.com/golangci/golangci-lint v1.40.1
 	github.com/joelanford/go-apidiff v0.1.0
 	github.com/onsi/ginkgo v1.16.1
+	github.com/sergi/go-diff v1.1.0 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
+	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect
+	golang.org/x/text v0.3.5 // indirect
 	golang.org/x/tools v0.1.2-0.20210512205948-8287d5da45e4
 	gotest.tools/gotestsum v1.6.3
 	k8s.io/code-generator v0.21.0

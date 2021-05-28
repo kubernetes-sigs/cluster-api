@@ -62,7 +62,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 			}, timeout).Should(Succeed())
 
 			t.Log("Creating a test cluster kubeconfig")
-			g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+			g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 
 			// Check the secret can be fetched from the API server
 			secretKey := client.ObjectKey{Namespace: testNamespace.GetName(), Name: fmt.Sprintf("%s-kubeconfig", testCluster.GetName())}
@@ -78,7 +78,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 		setup := func(t *testing.T, g *WithT) {
 			t.Log("Setting up a new manager")
 			var err error
-			mgr, err = manager.New(testEnv.Config, manager.Options{
+			mgr, err = manager.New(env.Config, manager.Options{
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})
@@ -101,7 +101,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 			go func() {
 				g.Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
-			<-testEnv.Manager.Elected()
+			<-env.Manager.Elected()
 
 			k8sClient = mgr.GetClient()
 

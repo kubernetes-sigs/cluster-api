@@ -32,7 +32,7 @@ import (
 
 func TestClusterConversion(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
+	ns, err := env.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 	clusterName := fmt.Sprintf("test-cluster-%s", util.RandomString(5))
 	cluster := &Cluster{
@@ -42,15 +42,15 @@ func TestClusterConversion(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
+	g.Expect(env.Create(ctx, cluster)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, cluster)
 }
 
 func TestMachineSetConversion(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
+	ns, err := env.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	clusterName := fmt.Sprintf("test-cluster-%s", util.RandomString(5))
@@ -69,15 +69,15 @@ func TestMachineSetConversion(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, machineSet)).To(Succeed())
+	g.Expect(env.Create(ctx, machineSet)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, machineSet)
 }
 
 func TestMachineDeploymentConversion(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
+	ns, err := env.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	clusterName := fmt.Sprintf("test-cluster-%s", util.RandomString(5))
@@ -94,9 +94,9 @@ func TestMachineDeploymentConversion(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, machineDeployment)).To(Succeed())
+	g.Expect(env.Create(ctx, machineDeployment)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, machineDeployment)
 }
 

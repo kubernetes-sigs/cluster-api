@@ -55,7 +55,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 		setup := func(t *testing.T, g *WithT) {
 			t.Log("Setting up a new manager")
 			var err error
-			mgr, err = manager.New(testEnv.Config, manager.Options{
+			mgr, err = manager.New(env.Config, manager.Options{
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})
@@ -66,7 +66,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			go func() {
 				g.Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
-			<-testEnv.Manager.Elected()
+			<-env.Manager.Elected()
 
 			k8sClient = mgr.GetClient()
 
@@ -91,7 +91,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			g.Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
 
 			t.Log("Creating a test cluster kubeconfig")
-			g.Expect(testEnv.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+			g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 
 			testClusterKey = util.ObjectKey(testCluster)
 
@@ -121,7 +121,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			// TODO(community): Fill in these field names.
 			go cct.healthCheckCluster(ctx, &healthCheckInput{
 				testClusterKey,
-				testEnv.Config,
+				env.Config,
 				testPollInterval,
 				testPollTimeout,
 				testUnhealthyThreshold,
@@ -144,7 +144,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			go cct.healthCheckCluster(ctx,
 				&healthCheckInput{
 					testClusterKey,
-					testEnv.Config,
+					env.Config,
 					testPollInterval,
 					testPollTimeout,
 					testUnhealthyThreshold,
@@ -170,7 +170,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			l.Close()
 
-			config := rest.CopyConfig(testEnv.Config)
+			config := rest.CopyConfig(env.Config)
 			config.Host = fmt.Sprintf("http://127.0.0.1:%d", l.Addr().(*net.TCPAddr).Port)
 
 			// TODO(community): Fill in these field names.

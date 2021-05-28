@@ -39,7 +39,7 @@ import (
 func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 	g := NewWithT(t)
 
-	ns, err := testEnv.CreateNamespace(ctx, "test-interruptible-node-label")
+	ns, err := env.CreateNamespace(ctx, "test-interruptible-node-label")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	infraMachine := &unstructured.Unstructured{
@@ -97,24 +97,24 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, node)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, infraMachine)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, machine)).To(Succeed())
+	g.Expect(env.Create(ctx, cluster)).To(Succeed())
+	g.Expect(env.Create(ctx, node)).To(Succeed())
+	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+	g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 	// Patch infra machine status
-	patchHelper, err := patch.NewHelper(infraMachine, testEnv)
+	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "interruptible")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(cluster, node, infraMachine, machine)
 
 	r := &MachineReconciler{
-		Client:   testEnv.Client,
-		Tracker:  remote.NewTestClusterCacheTracker(log.NullLogger{}, testEnv.Client, scheme.Scheme, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		Client:   env.Client,
+		Tracker:  remote.NewTestClusterCacheTracker(log.NullLogger{}, env.Client, scheme.Scheme, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		recorder: record.NewFakeRecorder(32),
 	}
 
@@ -124,7 +124,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 	// Check if node gets interruptible label
 	g.Eventually(func() bool {
 		updatedNode := &corev1.Node{}
-		err := testEnv.Get(ctx, client.ObjectKey{Name: node.Name}, updatedNode)
+		err := env.Get(ctx, client.ObjectKey{Name: node.Name}, updatedNode)
 		if err != nil {
 			return false
 		}

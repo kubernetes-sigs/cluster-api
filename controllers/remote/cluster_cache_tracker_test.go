@@ -64,7 +64,7 @@ func TestClusterCacheTracker(t *testing.T) {
 		setup := func(t *testing.T, g *WithT) {
 			t.Log("Setting up a new manager")
 			var err error
-			mgr, err = manager.New(testEnv.Config, manager.Options{
+			mgr, err = manager.New(env.Config, manager.Options{
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})
@@ -81,7 +81,7 @@ func TestClusterCacheTracker(t *testing.T) {
 			go func() {
 				g.Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
-			<-testEnv.Manager.Elected()
+			<-env.Manager.Elected()
 
 			k8sClient = mgr.GetClient()
 
@@ -107,7 +107,7 @@ func TestClusterCacheTracker(t *testing.T) {
 			g.Expect(k8sClient.Status().Update(ctx, clusterA)).To(Succeed())
 
 			t.Log("Creating a test cluster kubeconfig")
-			g.Expect(testEnv.CreateKubeconfigSecret(ctx, clusterA)).To(Succeed())
+			g.Expect(env.CreateKubeconfigSecret(ctx, clusterA)).To(Succeed())
 		}
 
 		teardown := func(t *testing.T, g *WithT) {

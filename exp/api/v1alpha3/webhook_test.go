@@ -32,7 +32,7 @@ import (
 
 func TestMachinePoolConversion(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
+	ns, err := env.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 	clusterName := fmt.Sprintf("test-cluster-%s", util.RandomString(5))
 	machinePoolName := fmt.Sprintf("test-machinepool-%s", util.RandomString(5))
@@ -54,9 +54,9 @@ func TestMachinePoolConversion(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, machinePool)).To(Succeed())
+	g.Expect(env.Create(ctx, machinePool)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, machinePool)
 }
 

@@ -30,7 +30,7 @@ import (
 
 func TestClusterResourceSetConversion(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
+	ns, err := env.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 	clusterName := fmt.Sprintf("test-cluster-%s", util.RandomString(5))
 	crsName := fmt.Sprintf("test-clusterresourceset-%s", util.RandomString(5))
@@ -55,15 +55,15 @@ func TestClusterResourceSetConversion(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, crs)).To(Succeed())
+	g.Expect(env.Create(ctx, crs)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, crs)
 }
 
 func TestClusterResourceSetBindingConversion(t *testing.T) {
 	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
+	ns, err := env.CreateNamespace(ctx, fmt.Sprintf("conversion-webhook-%s", util.RandomString(5)))
 	g.Expect(err).ToNot(HaveOccurred())
 	crsbindingName := fmt.Sprintf("test-clusterresourcesetbinding-%s", util.RandomString(5))
 	crsbinding := &ClusterResourceSetBinding{
@@ -100,8 +100,8 @@ func TestClusterResourceSetBindingConversion(t *testing.T) {
 		},
 	}
 
-	g.Expect(testEnv.Create(ctx, crsbinding)).To(Succeed())
+	g.Expect(env.Create(ctx, crsbinding)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(ns, crsbinding)
 }

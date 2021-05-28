@@ -148,7 +148,7 @@ func downloadFile(url string, filepath string) error {
 		return errors.Wrapf(err, "failed to download the clusterctl config file from %s", url)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("failed to download the clusterctl config file from %s got %d", url, resp.StatusCode))
+		return errors.Errorf("failed to download the clusterctl config file from %s got %d", url, resp.StatusCode)
 	}
 	defer resp.Body.Close()
 

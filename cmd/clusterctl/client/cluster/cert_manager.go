@@ -177,11 +177,7 @@ func (cm *certManagerClient) install() error {
 	}
 
 	// Wait for the cert-manager API to be ready to accept requests
-	if err := cm.waitForAPIReady(ctx, true); err != nil {
-		return err
-	}
-
-	return nil
+	return cm.waitForAPIReady(ctx, true)
 }
 
 // PlanUpgrade retruns a CertManagerUpgradePlan with information regarding
@@ -438,11 +434,7 @@ func (cm *certManagerClient) deleteObj(obj unstructured.Unstructured) error {
 		return err
 	}
 
-	if err := cl.Delete(ctx, &obj); err != nil {
-		return err
-	}
-
-	return nil
+	return cl.Delete(ctx, &obj)
 }
 
 // waitForAPIReady will attempt to create the cert-manager 'test assets' (i.e. a basic

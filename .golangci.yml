@@ -11,18 +11,20 @@ linters:
   - goconst
   - gocritic
   - gocyclo
+  - godot
   - gofmt
   - goimports
-  - golint
   - goprintffuncname
   - gosec
   - gosimple
   - govet
+  - importas
   - ineffassign
   - misspell
   - nakedret
   - nolintlint
   - prealloc
+  - revive
   - rowserrcheck
   - staticcheck
   - structcheck
@@ -31,8 +33,30 @@ linters:
   - unconvert
   - unparam
   - varcheck
-  - godot
   - whitespace
+
+linters-settings:
+  staticcheck:
+    go: "1.16"
+  stylecheck:
+    go: "1.16"
+  importas:
+    no-unaliased: true
+    alias:
+      # Kubernetes
+      - pkg: k8s.io/api/core/v1
+        alias: corev1
+      - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
+        alias: apiextensionsv1
+      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+        alias: metav1
+      - pkg: k8s.io/apimachinery/pkg/api/errors
+        alias: apierrors
+      - pkg: k8s.io/apimachinery/pkg/util/errors
+        alias: kerrors
+      # Controller Runtime
+      - pkg: sigs.k8s.io/controller-runtime
+        alias: ctrl
 
 issues:
   max-same-issues: 0
@@ -44,7 +68,7 @@ issues:
   exclude:
   - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
   - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-  - exported method `.*.(Reconcile|SetupWithManager|SetupWebhookWithManager)` should have comment or be unexported
+  - "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
   # The following are being worked on to remove their exclusion. This list should be reduced or go away all together over time.
   # If it is decided they will not be addressed they should be moved above this comment.
   - Subprocess launch(ed with variable|ing should be audited)
@@ -52,22 +76,22 @@ issues:
   - (G104|G307)
   exclude-rules:
   # With Go 1.16, the new embed directive can be used with an un-named import,
-  # golint only allows these to be imported in a main.go, which wouldn't work for us.
+  # revive (previously, golint) only allows these to be imported in a main.go, which wouldn't work for us.
   # This directive allows the embed package to be imported with an underscore everywhere.
   - linters:
-    - golint
+    - revive
     source: _ "embed"
   # Exclude some packages or code to require comments, for example test code, or fake clients.
   - linters:
-    - golint
+    - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
     source: (func|type).*Fake.*
   - linters:
-    - golint
+    - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
     path: fake_\.go
   - linters:
-    - golint
+    - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
     path: .*test/(providers|framework|e2e).*.go
   # Disable unparam "always receives" which might not be really
@@ -83,6 +107,10 @@ issues:
     text: cyclomatic complexity
   - path: test/(framework|e2e).*.go
     text: should not use dot imports
+  # Append should be able to assign to a different var/slice.
+  - linters:
+    - gocritic
+    text: "appendAssign: append result not assigned to the same slice"
 
 run:
   timeout: 10m

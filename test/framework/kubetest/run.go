@@ -28,7 +28,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -168,10 +168,7 @@ func Run(ctx context.Context, input RunInput) error {
 	if err := e2eCmd.Run(); err != nil {
 		return errors.Wrap(err, "Unable to run conformance tests")
 	}
-	if err := framework.GatherJUnitReports(reportDir, input.ArtifactsDirectory); err != nil {
-		return err
-	}
-	return nil
+	return framework.GatherJUnitReports(reportDir, input.ArtifactsDirectory)
 }
 
 func isUsingCIArtifactsVersion(k8sVersion string) bool {
@@ -213,7 +210,7 @@ func dockeriseKubeconfig(kubetestConfigDir string, kubeConfigPath string) (strin
 }
 
 func countClusterNodes(ctx context.Context, proxy framework.ClusterProxy) (int, error) {
-	nodeList, err := proxy.GetClientSet().CoreV1().Nodes().List(ctx, corev1.ListOptions{})
+	nodeList, err := proxy.GetClientSet().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return 0, errors.Wrap(err, "Unable to count nodes")
 	}

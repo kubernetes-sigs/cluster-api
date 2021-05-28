@@ -75,13 +75,10 @@ func runUndo(cfgFile string, args []string) error {
 		return err
 	}
 
-	if err := c.RolloutUndo(client.RolloutOptions{
+	return c.RolloutUndo(client.RolloutOptions{
 		Kubeconfig: client.Kubeconfig{Path: undoOpt.kubeconfig, Context: undoOpt.kubeconfigContext},
 		Namespace:  undoOpt.namespace,
 		Resources:  undoOpt.resources,
 		ToRevision: undoOpt.toRevision,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }

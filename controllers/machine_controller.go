@@ -639,16 +639,13 @@ func (r *MachineReconciler) watchClusterNodes(ctx context.Context, cluster *clus
 		return nil
 	}
 
-	if err := r.Tracker.Watch(ctx, remote.WatchInput{
+	return r.Tracker.Watch(ctx, remote.WatchInput{
 		Name:         "machine-watchNodes",
 		Cluster:      util.ObjectKey(cluster),
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachine),
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 func (r *MachineReconciler) nodeToMachine(o client.Object) []reconcile.Request {

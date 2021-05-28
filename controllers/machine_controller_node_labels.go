@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 
-	apicorev1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -64,13 +64,13 @@ func (r *MachineReconciler) reconcileInterruptibleNodeLabel(ctx context.Context,
 	}
 
 	log.V(3).Info("Set interruptible label to Machine's Node", "nodename", machine.Status.NodeRef.Name)
-	r.recorder.Event(machine, apicorev1.EventTypeNormal, "SuccessfulSetInterruptibleNodeLabel", machine.Status.NodeRef.Name)
+	r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetInterruptibleNodeLabel", machine.Status.NodeRef.Name)
 
 	return ctrl.Result{}, nil
 }
 
 func (r *MachineReconciler) setInterruptibleNodeLabel(ctx context.Context, remoteClient client.Client, nodeName string) error {
-	node := &apicorev1.Node{}
+	node := &corev1.Node{}
 	if err := remoteClient.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
 		return err
 	}

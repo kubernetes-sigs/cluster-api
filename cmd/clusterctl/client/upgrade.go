@@ -170,19 +170,11 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 		}
 
 		// Execute the upgrade using the custom upgrade items
-		if err := clusterClient.ProviderUpgrader().ApplyCustomPlan(upgradeItems...); err != nil {
-			return err
-		}
-
-		return nil
+		return clusterClient.ProviderUpgrader().ApplyCustomPlan(upgradeItems...)
 	}
 
 	// Otherwise we are upgrading a whole management cluster according to a clusterctl generated upgrade plan.
-	if err := clusterClient.ProviderUpgrader().ApplyPlan(options.Contract); err != nil {
-		return err
-	}
-
-	return nil
+	return clusterClient.ProviderUpgrader().ApplyPlan(options.Contract)
 }
 
 func addUpgradeItems(upgradeItems []cluster.UpgradeItem, providerType clusterctlv1.ProviderType, providers ...string) ([]cluster.UpgradeItem, error) {

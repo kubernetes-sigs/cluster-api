@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
@@ -48,7 +48,7 @@ func createToken(ctx context.Context, c client.Client) (string, error) {
 	tokenSecret := substrs[2]
 
 	secretName := bootstraputil.BootstrapTokenSecretName(tokenID)
-	secretToken := &v1.Secret{
+	secretToken := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
 			Namespace: metav1.NamespaceSystem,
@@ -72,7 +72,7 @@ func createToken(ctx context.Context, c client.Client) (string, error) {
 }
 
 // getToken fetches the token Secret and returns an error if it is invalid.
-func getToken(ctx context.Context, c client.Client, token string) (*v1.Secret, error) {
+func getToken(ctx context.Context, c client.Client, token string) (*corev1.Secret, error) {
 	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
 	if len(substrs) != 3 {
 		return nil, errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
@@ -80,7 +80,7 @@ func getToken(ctx context.Context, c client.Client, token string) (*v1.Secret, e
 	tokenID := substrs[1]
 
 	secretName := bootstraputil.BootstrapTokenSecretName(tokenID)
-	secret := &v1.Secret{}
+	secret := &corev1.Secret{}
 	if err := c.Get(ctx, client.ObjectKey{Name: secretName, Namespace: metav1.NamespaceSystem}, secret); err != nil {
 		return secret, err
 	}

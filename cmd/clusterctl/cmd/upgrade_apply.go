@@ -90,15 +90,12 @@ func runUpgradeApply() error {
 		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure")
 	}
 
-	if err := c.ApplyUpgrade(client.ApplyUpgradeOptions{
+	return c.ApplyUpgrade(client.ApplyUpgradeOptions{
 		Kubeconfig:              client.Kubeconfig{Path: ua.kubeconfig, Context: ua.kubeconfigContext},
 		Contract:                ua.contract,
 		CoreProvider:            ua.coreProvider,
 		BootstrapProviders:      ua.bootstrapProviders,
 		ControlPlaneProviders:   ua.controlPlaneProviders,
 		InfrastructureProviders: ua.infrastructureProviders,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }

@@ -83,9 +83,5 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 		options.Namespace = currentNamespace
 	}
 
-	if err := fromCluster.ObjectMover().Move(options.Namespace, toCluster, options.DryRun); err != nil {
-		return err
-	}
-
-	return nil
+	return fromCluster.ObjectMover().Move(options.Namespace, toCluster, options.DryRun)
 }

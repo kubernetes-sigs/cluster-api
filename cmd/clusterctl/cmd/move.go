@@ -78,13 +78,10 @@ func runMove() error {
 		return err
 	}
 
-	if err := c.Move(client.MoveOptions{
+	return c.Move(client.MoveOptions{
 		FromKubeconfig: client.Kubeconfig{Path: mo.fromKubeconfig, Context: mo.fromKubeconfigContext},
 		ToKubeconfig:   client.Kubeconfig{Path: mo.toKubeconfig, Context: mo.toKubeconfigContext},
 		Namespace:      mo.namespace,
 		DryRun:         mo.dryRun,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }

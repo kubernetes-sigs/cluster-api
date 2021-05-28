@@ -114,11 +114,7 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 	}
 
 	log.V(1).Info("Creating inventory entry", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
-	if err := providerInventory.Create(inventoryObject); err != nil {
-		return err
-	}
-
-	return nil
+	return providerInventory.Create(inventoryObject)
 }
 
 // shouldInstallSharedComponents checks if it is required to install shared components for a provider.

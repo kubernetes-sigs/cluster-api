@@ -397,9 +397,9 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 		return false
 	}
 
-	kMap := make(map[string]bool)
+	kindMap := make(map[string]bool)
 	for _, kind := range kinds {
-		kMap[kind] = true
+		kindMap[kind] = true
 	}
 
 	for _, mr := range refList {
@@ -408,7 +408,7 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 			return false
 		}
 
-		if mrGroupVersion.Group == gv.Group && kMap[mr.Kind] {
+		if mrGroupVersion.Group == gv.Group && kindMap[mr.Kind] {
 			return true
 		}
 	}

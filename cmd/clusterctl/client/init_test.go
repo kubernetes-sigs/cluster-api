@@ -781,7 +781,7 @@ func templateYAML(ns string, clusterName string) []byte {
 // infraComponentsYAML defines a namespace and deployment with container
 // images and a variable.
 func infraComponentsYAML(namespace string) []byte {
-	var infraComponentsYAML string = `---
+	var infraComponentsYAML = `---
 apiVersion: v1
 kind: Namespace
 metadata:

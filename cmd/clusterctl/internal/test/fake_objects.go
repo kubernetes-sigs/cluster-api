@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-	apiextensionslv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -1177,10 +1177,10 @@ func setUID(obj client.Object) {
 }
 
 // FakeCustomResourceDefinition returns a fake CRD object for the given group/versions/kind.
-func FakeCustomResourceDefinition(group string, kind string, versions ...string) *apiextensionslv1.CustomResourceDefinition {
-	crd := &apiextensionslv1.CustomResourceDefinition{
+func FakeCustomResourceDefinition(group string, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
+	crd := &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       apiextensionslv1.SchemeGroupVersion.String(),
+			Kind:       apiextensionsv1.SchemeGroupVersion.String(),
 			APIVersion: "CustomResourceDefinition",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -1189,9 +1189,9 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 				clusterctlv1.ClusterctlLabelName: "",
 			},
 		},
-		Spec: apiextensionslv1.CustomResourceDefinitionSpec{ // NB. the spec contains only what is strictly required by the move test
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{ // NB. the spec contains only what is strictly required by the move test
 			Group: group,
-			Names: apiextensionslv1.CustomResourceDefinitionNames{
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Kind: kind,
 			},
 		},
@@ -1199,7 +1199,7 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 
 	for i, version := range versions {
 		// set the first version as a storage version
-		versionObj := apiextensionslv1.CustomResourceDefinitionVersion{Name: version}
+		versionObj := apiextensionsv1.CustomResourceDefinitionVersion{Name: version}
 		if i == 0 {
 			versionObj.Storage = true
 		}
@@ -1210,14 +1210,14 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 }
 
 // FakeCRDList returns FakeCustomResourceDefinitions for all the Types used in the test object graph.
-func FakeCRDList() []*apiextensionslv1.CustomResourceDefinition {
+func FakeCRDList() []*apiextensionsv1.CustomResourceDefinition {
 	version := "v1alpha4"
 
 	// Ensure external objects are of a CRD type with the "force move" label
 	externalCRD := FakeCustomResourceDefinition(fakeexternal.GroupVersion.Group, "GenericExternalObject", version)
 	externalCRD.Labels[clusterctlv1.ClusterctlMoveLabelName] = ""
 
-	return []*apiextensionslv1.CustomResourceDefinition{
+	return []*apiextensionsv1.CustomResourceDefinition{
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Cluster", version),
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Machine", version),
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),

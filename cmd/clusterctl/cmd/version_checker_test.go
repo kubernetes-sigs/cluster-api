@@ -312,7 +312,7 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// override the github client with response to a new version v0.3.99
-	var githubCalled bool = false
+	var githubCalled bool
 	fakeGithubClient2, mux2, cleanup2 := test.NewFakeGitHub()
 	mux2.HandleFunc(
 		"/repos/kubernetes-sigs/cluster-api/releases/latest",

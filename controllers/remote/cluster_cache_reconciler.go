@@ -21,7 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,7 +61,7 @@ func (r *ClusterCacheReconciler) Reconcile(ctx context.Context, req reconcile.Re
 	if err == nil {
 		log.V(4).Info("Cluster still exists")
 		return reconcile.Result{}, nil
-	} else if !kerrors.IsNotFound(err) {
+	} else if !apierrors.IsNotFound(err) {
 		log.Error(err, "Error retrieving cluster")
 		return reconcile.Result{}, err
 	}

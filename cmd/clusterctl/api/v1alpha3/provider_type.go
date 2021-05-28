@@ -27,7 +27,6 @@ import (
 // +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".type"
 // +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".providerName"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".version"
-// +kubebuilder:printcolumn:name="Watch Namespace",type="string",JSONPath=".watchedNamespace"
 
 // Provider defines an entry in the provider inventory.
 type Provider struct {
@@ -49,6 +48,7 @@ type Provider struct {
 
 	// WatchedNamespace indicates the namespace where the provider controller is is watching.
 	// if empty the provider controller is watching for objects in all namespaces.
+	// Deprecated: in clusterctl v1alpha4 all the providers watch all the namespaces; this field will be removed in a future version of this API
 	// +optional
 	WatchedNamespace string `json:"watchedNamespace,omitempty"`
 }

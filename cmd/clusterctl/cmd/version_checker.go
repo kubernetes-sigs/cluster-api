@@ -172,10 +172,7 @@ func writeStateFile(path string, vs *VersionState) error {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, vsb, 0600); err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile(path, vsb, 0600)
 }
 
 func readStateFile(filepath string) (*VersionState, error) {

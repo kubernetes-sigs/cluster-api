@@ -713,8 +713,5 @@ func reconcileExternalTemplateReference(ctx context.Context, c client.Client, re
 		UID:        cluster.UID,
 	}))
 
-	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return err
-	}
-	return nil
+	return patchHelper.Patch(ctx, obj)
 }

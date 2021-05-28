@@ -714,7 +714,7 @@ func ComputeHash(template *clusterv1.MachineTemplateSpec) uint32 {
 // GetDeletingMachineCount gets the number of machines that are in the process of being deleted
 // in a machineList.
 func GetDeletingMachineCount(machineList *clusterv1.MachineList) int32 {
-	var deletingMachineCount int32 = 0
+	var deletingMachineCount int32
 	for _, machine := range machineList.Items {
 		if !machine.GetDeletionTimestamp().IsZero() {
 			deletingMachineCount++

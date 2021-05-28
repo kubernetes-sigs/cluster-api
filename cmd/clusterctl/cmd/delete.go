@@ -127,7 +127,7 @@ func runDelete() error {
 		return errors.New("At least one of --core, --bootstrap, --control-plane, --infrastructure should be specified or the --all flag should be set")
 	}
 
-	if err := c.Delete(client.DeleteOptions{
+	return c.Delete(client.DeleteOptions{
 		Kubeconfig:              client.Kubeconfig{Path: dd.kubeconfig, Context: dd.kubeconfigContext},
 		IncludeNamespace:        dd.includeNamespace,
 		IncludeCRDs:             dd.includeCRDs,
@@ -136,9 +136,5 @@ func runDelete() error {
 		InfrastructureProviders: dd.infrastructureProviders,
 		ControlPlaneProviders:   dd.controlPlaneProviders,
 		DeleteAll:               dd.deleteAll,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }

@@ -99,11 +99,7 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) erro
 		proxy = toCluster.Proxy()
 	}
 
-	if err := o.move(objectGraph, proxy); err != nil {
-		return err
-	}
-
-	return nil
+	return o.move(objectGraph, proxy)
 }
 
 func newObjectMover(fromProxy Proxy, fromProviderInventory InventoryClient) *objectMover {
@@ -250,11 +246,7 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 
 	// Reset the pause field on the Cluster object in the target management cluster, so the controllers start reconciling it.
 	log.V(1).Info("Resuming the target cluster")
-	if err := setClusterPause(toProxy, clusters, false, o.dryRun); err != nil {
-		return err
-	}
-
-	return nil
+	return setClusterPause(toProxy, clusters, false, o.dryRun)
 }
 
 // moveSequence defines a list of group of moveGroups.

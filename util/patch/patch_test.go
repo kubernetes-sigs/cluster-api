@@ -63,10 +63,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			obj.Object["status"] = map[string]interface{}{
@@ -133,10 +130,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
@@ -190,10 +184,7 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Checking that the object has been created")
 				g.Eventually(func() error {
 					obj := obj.DeepCopy()
-					if err := testEnv.Get(ctx, key, obj); err != nil {
-						return err
-					}
-					return nil
+					return testEnv.Get(ctx, key, obj)
 				}).Should(Succeed())
 
 				t.Log("Creating a new patch helper")
@@ -231,10 +222,7 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Checking that the object has been created")
 				g.Eventually(func() error {
 					obj := obj.DeepCopy()
-					if err := testEnv.Get(ctx, key, obj); err != nil {
-						return err
-					}
-					return nil
+					return testEnv.Get(ctx, key, obj)
 				}).Should(Succeed())
 
 				objCopy := obj.DeepCopy()
@@ -288,10 +276,7 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Checking that the object has been created")
 				g.Eventually(func() error {
 					obj := obj.DeepCopy()
-					if err := testEnv.Get(ctx, key, obj); err != nil {
-						return err
-					}
-					return nil
+					return testEnv.Get(ctx, key, obj)
 				}).Should(Succeed())
 
 				objCopy := obj.DeepCopy()
@@ -352,10 +337,7 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Checking that the object has been created")
 				g.Eventually(func() error {
 					obj := obj.DeepCopy()
-					if err := testEnv.Get(ctx, key, obj); err != nil {
-						return err
-					}
-					return nil
+					return testEnv.Get(ctx, key, obj)
 				}).Should(Succeed())
 
 				objCopy := obj.DeepCopy()
@@ -403,10 +385,7 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Checking that the object has been created")
 				g.Eventually(func() error {
 					obj := obj.DeepCopy()
-					if err := testEnv.Get(ctx, key, obj); err != nil {
-						return err
-					}
-					return nil
+					return testEnv.Get(ctx, key, obj)
 				}).Should(Succeed())
 
 				objCopy := obj.DeepCopy()
@@ -457,10 +436,7 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Checking that the object has been created")
 				g.Eventually(func() error {
 					obj := obj.DeepCopy()
-					if err := testEnv.Get(ctx, key, obj); err != nil {
-						return err
-					}
-					return nil
+					return testEnv.Get(ctx, key, obj)
 				}).Should(Succeed())
 
 				objCopy := obj.DeepCopy()
@@ -521,10 +497,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
@@ -564,10 +537,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
@@ -607,10 +577,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
@@ -655,10 +622,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
@@ -697,10 +661,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
@@ -769,10 +730,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
@@ -812,10 +770,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
@@ -865,10 +820,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Checking that the object has been created")
 			g.Eventually(func() error {
 				obj := obj.DeepCopy()
-				if err := testEnv.Get(ctx, key, obj); err != nil {
-					return err
-				}
-				return nil
+				return testEnv.Get(ctx, key, obj)
 			}).Should(Succeed())
 
 			obj.Status.ObservedGeneration = obj.GetGeneration()
@@ -888,7 +840,6 @@ func TestPatchHelper(t *testing.T) {
 				if err := testEnv.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-
 				return lastGeneration == objAfter.Status.ObservedGeneration
 			}, timeout).Should(BeTrue())
 		})

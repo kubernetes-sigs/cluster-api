@@ -205,7 +205,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		By("Waiting for the machines to exists")
 		Eventually(func() (int64, error) {
-			var n int64 = 0
+			var n int64
 			machineList := &clusterv1old.MachineList{}
 			if err := managementClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(testNamespace.Name), client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName}); err == nil {
 				for _, machine := range machineList.Items {

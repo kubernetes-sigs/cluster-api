@@ -273,11 +273,7 @@ func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Cl
 	}
 
 	// Save any certificates that have been generated
-	if err := c.SaveGenerated(ctx, ctrlclient, clusterName, owner); err != nil {
-		return err
-	}
-
-	return nil
+	return c.SaveGenerated(ctx, ctrlclient, clusterName, owner)
 }
 
 // Certificate represents a single certificate CA.

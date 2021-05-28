@@ -241,10 +241,7 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 		return err
 	}
 
-	if err := r.deleteRetiredNodes(ctx, clusterClient, machinepool.Status.NodeRefs, machinepool.Spec.ProviderIDList); err != nil {
-		return err
-	}
-	return nil
+	return r.deleteRetiredNodes(ctx, clusterClient, machinepool.Status.NodeRefs, machinepool.Spec.ProviderIDList)
 }
 
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.

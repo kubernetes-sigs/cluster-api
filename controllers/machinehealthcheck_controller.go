@@ -526,16 +526,13 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 		return nil
 	}
 
-	if err := r.Tracker.Watch(ctx, remote.WatchInput{
+	return r.Tracker.Watch(ctx, remote.WatchInput{
 		Name:         "machinehealthcheck-watchClusterNodes",
 		Cluster:      util.ObjectKey(cluster),
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachineHealthCheck),
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 // isAllowedRemediation checks the value of the MaxUnhealthy field to determine

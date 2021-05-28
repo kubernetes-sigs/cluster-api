@@ -72,12 +72,9 @@ func runResume(cfgFile string, args []string) error {
 		return err
 	}
 
-	if err := c.RolloutResume(client.RolloutOptions{
+	return c.RolloutResume(client.RolloutOptions{
 		Kubeconfig: client.Kubeconfig{Path: resumeOpt.kubeconfig, Context: resumeOpt.kubeconfigContext},
 		Namespace:  resumeOpt.namespace,
 		Resources:  resumeOpt.resources,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }

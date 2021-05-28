@@ -59,7 +59,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.1", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.1", "p1-system"),
 			},
 			want: &upgradeInfo{
 				metadata: &clusterctlv1.Metadata{
@@ -97,7 +97,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.1", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.1", "p1-system"),
 			},
 			want: &upgradeInfo{
 				metadata: &clusterctlv1.Metadata{
@@ -135,7 +135,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.1", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.1", "p1-system"),
 			},
 			want: &upgradeInfo{
 				metadata: &clusterctlv1.Metadata{
@@ -167,7 +167,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 									WithVersions("v1.0.0", "v1.0.1"),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system"),
 			},
 			want:    nil,
 			wantErr: true,
@@ -182,7 +182,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 									WithMetadata("v1.0.0", &clusterctlv1.Metadata{}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system"),
 			},
 			want:    nil,
 			wantErr: true,
@@ -197,7 +197,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 									WithMetadata("v1.0.1", &clusterctlv1.Metadata{}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system"),
 			},
 			want:    nil,
 			wantErr: true,
@@ -217,7 +217,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system"),
 			},
 			want:    nil,
 			wantErr: true,
@@ -434,7 +434,7 @@ func toSemanticVersions(versions []string) []version.Version {
 	return semanticVersions
 }
 
-func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, targetNamespace, watchingNamespace string) clusterctlv1.Provider {
+func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) clusterctlv1.Provider {
 	return clusterctlv1.Provider{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterctlv1.GroupVersion.String(),
@@ -450,9 +450,8 @@ func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, 
 				clusterctlv1.ClusterctlCoreLabelName: "inventory",
 			},
 		},
-		ProviderName:     name,
-		Type:             string(providerType),
-		Version:          version,
-		WatchedNamespace: watchingNamespace,
+		ProviderName: name,
+		Type:         string(providerType),
+		Version:      version,
 	}
 }

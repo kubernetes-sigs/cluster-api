@@ -131,10 +131,10 @@ func Test_inventoryClient_Create(t *testing.T) {
 	type args struct {
 		m clusterctlv1.Provider
 	}
-	providerV2 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.2.0", "", "")
+	providerV2 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.2.0", "")
 	// since this test object is used in a Create request, wherein setting ResourceVersion should no be set
 	providerV2.ResourceVersion = ""
-	providerV3 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.3.0", "", "")
+	providerV3 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.3.0", "")
 
 	tests := []struct {
 		name          string

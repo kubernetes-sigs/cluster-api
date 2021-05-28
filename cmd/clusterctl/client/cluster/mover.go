@@ -64,7 +64,7 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) erro
 
 	// checks that all the required providers in place in the target cluster.
 	if !o.dryRun {
-		if err := o.checkTargetProviders(namespace, toCluster.ProviderInventory()); err != nil {
+		if err := o.checkTargetProviders(toCluster.ProviderInventory()); err != nil {
 			return err
 		}
 	}
@@ -676,7 +676,7 @@ func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
 }
 
 // checkTargetProviders checks that all the providers installed in the source cluster exists in the target cluster as well (with a version >= of the current version).
-func (o *objectMover) checkTargetProviders(namespace string, toInventory InventoryClient) error {
+func (o *objectMover) checkTargetProviders(toInventory InventoryClient) error {
 	if o.dryRun {
 		return nil
 	}
@@ -695,11 +695,6 @@ func (o *objectMover) checkTargetProviders(namespace string, toInventory Invento
 	// Checks all the providers installed in the source cluster
 	errList := []error{}
 	for _, sourceProvider := range fromProviders.Items {
-		// If we are moving objects in a namespace only, skip all the providers not watching such namespace.
-		if namespace != "" && !(sourceProvider.WatchedNamespace == "" || sourceProvider.WatchedNamespace == namespace) {
-			continue
-		}
-
 		sourceVersion, err := version.ParseSemantic(sourceProvider.Version)
 		if err != nil {
 			return errors.Wrapf(err, "unable to parse version %q for the %s provider in the source cluster", sourceProvider.Version, sourceProvider.InstanceName())
@@ -713,19 +708,6 @@ func (o *objectMover) checkTargetProviders(namespace string, toInventory Invento
 				continue
 			}
 
-			// If we are moving objects in all the namespaces, skip all the providers with a different watching namespace.
-			// NB. This introduces a constraints for move all namespaces, that the configuration of source and target provider MUST match (except for the version);
-			// however this is acceptable because clusterctl supports only two models of multi-tenancy (n-Infra, n-Core).
-			if namespace == "" && !(targetProvider.WatchedNamespace == sourceProvider.WatchedNamespace) {
-				continue
-			}
-
-			// If we are moving objects in a namespace only, skip all the providers not watching such namespace.
-			// NB. This means that when moving a single namespace, we use a lazy matching (the watching namespace MUST overlap; exact match is not required).
-			if namespace != "" && !(targetProvider.WatchedNamespace == "" || targetProvider.WatchedNamespace == namespace) {
-				continue
-			}
-
 			targetVersion, err := version.ParseSemantic(targetProvider.Version)
 			if err != nil {
 				return errors.Wrapf(err, "unable to parse version %q for the %s provider in the target cluster", targetProvider.Version, targetProvider.InstanceName())
@@ -735,11 +717,7 @@ func (o *objectMover) checkTargetProviders(namespace string, toInventory Invento
 			}
 		}
 		if maxTargetVersion == nil {
-			watching := sourceProvider.WatchedNamespace
-			if namespace != "" {
-				watching = namespace
-			}
-			errList = append(errList, errors.Errorf("provider %s watching namespace %s not found in the target cluster", sourceProvider.Name, watching))
+			errList = append(errList, errors.Errorf("provider %s not found in the target cluster", sourceProvider.Name))
 			continue
 		}
 

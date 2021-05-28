@@ -852,8 +852,7 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 		fromProxy Proxy
 	}
 	type args struct {
-		toProxy   Proxy
-		namespace string
+		toProxy Proxy
 	}
 	tests := []struct {
 		name    string
@@ -862,87 +861,41 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "move objects in single namespace, all the providers in place (lazy matching)",
+			name: "all the providers in place (lazy matching)",
 			fields: fields{
 				fromProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system", "").
-					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system", "").
-					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system", ""),
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system").
+					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system").
+					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system"),
 			},
 			args: args{
-				namespace: "ns1", // a single namespaces
 				toProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system", "ns1").
-					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system", "ns1").
-					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system", "ns1"),
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system").
+					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system").
+					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system"),
 			},
 			wantErr: false,
 		},
 		{
-			name: "move objects in single namespace, all the providers in place but with a newer version (lazy matching)",
+			name: "all the providers in place but with a newer version (lazy matching)",
 			fields: fields{
 				fromProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system"),
 			},
 			args: args{
-				namespace: "ns1", // a single namespaces
 				toProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.1.0", "capi-system", "ns1"), // Lazy matching
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.1.0", "capi-system"), // Lazy matching
 			},
 			wantErr: false,
-		},
-		{
-			name: "move objects in all namespaces, all the providers in place (exact matching)",
-			fields: fields{
-				fromProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system", "").
-					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system", "").
-					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system", ""),
-			},
-			args: args{
-				namespace: "", // all namespaces
-				toProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system", "").
-					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system", "").
-					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system", ""),
-			},
-			wantErr: false,
-		},
-		{
-			name: "move objects in all namespaces, all the providers in place but with a newer version (exact matching)",
-			fields: fields{
-				fromProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
-			},
-			args: args{
-				namespace: "", // all namespaces
-				toProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.1.0", "capi-system", ""),
-			},
-			wantErr: false,
-		},
-		{
-			name: "move objects in all namespaces, not exact matching",
-			fields: fields{
-				fromProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
-			},
-			args: args{
-				namespace: "", // all namespaces
-				toProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.1.0", "capi-system", "ns1"), // Lazy matching only
-			},
-			wantErr: true,
 		},
 		{
 			name: "fails if a provider is missing",
 			fields: fields{
 				fromProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system"),
 			},
 			args: args{
-				namespace: "", // all namespaces
-				toProxy:   test.NewFakeProxy(),
+				toProxy: test.NewFakeProxy(),
 			},
 			wantErr: true,
 		},
@@ -950,12 +903,11 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 			name: "fails if a provider version is older than expected",
 			fields: fields{
 				fromProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system"),
 			},
 			args: args{
-				namespace: "", // all namespaces
 				toProxy: test.NewFakeProxy().
-					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi1-system", ""),
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi1-system"),
 			},
 			wantErr: true,
 		},
@@ -967,7 +919,7 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 			o := &objectMover{
 				fromProviderInventory: newInventoryClient(tt.fields.fromProxy, nil),
 			}
-			err := o.checkTargetProviders(tt.args.namespace, newInventoryClient(tt.args.toProxy, nil))
+			err := o.checkTargetProviders(newInventoryClient(tt.args.toProxy, nil))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

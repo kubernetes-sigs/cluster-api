@@ -28,9 +28,6 @@ spec:
     - jsonPath: .version
       name: Version
       type: string
-    - jsonPath: .watchedNamespace
-      name: Watch Namespace
-      type: string
     name: v1alpha3
     schema:
       openAPIV3Schema:
@@ -59,9 +56,11 @@ spec:
             description: Version indicates the component version.
             type: string
           watchedNamespace:
-            description: WatchedNamespace indicates the namespace where the provider
+            description: 'WatchedNamespace indicates the namespace where the provider
               controller is is watching. if empty the provider controller is watching
-              for objects in all namespaces.
+              for objects in all namespaces. Deprecated: in clusterctl v1alpha4 all
+              the providers watch all the namespaces; this field will be removed in
+              a future version of this API'
             type: string
         type: object
     served: true

@@ -26,6 +26,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta3"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
@@ -33,23 +34,28 @@ import (
 var (
 	v1beta1KubeadmVersion = semver.MustParse("1.13.0")
 	v1beta2KubeadmVersion = semver.MustParse("1.15.0")
+	v1beta3KubeadmVersion = semver.MustParse("1.22.0")
 
 	clusterConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
+		v1beta3.GroupVersion: &v1beta3.ClusterConfiguration{},
 		v1beta2.GroupVersion: &v1beta2.ClusterConfiguration{},
 		v1beta1.GroupVersion: &v1beta1.ClusterConfiguration{},
 	}
 
 	clusterStatusVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
+		// ClusterStatus has been removed in v1beta3, so we don't need an entry for v1beta3
 		v1beta2.GroupVersion: &v1beta2.ClusterStatus{},
 		v1beta1.GroupVersion: &v1beta1.ClusterStatus{},
 	}
 
 	initConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
+		v1beta3.GroupVersion: &v1beta3.InitConfiguration{},
 		v1beta2.GroupVersion: &v1beta2.InitConfiguration{},
 		v1beta1.GroupVersion: &v1beta1.InitConfiguration{},
 	}
 
 	joinConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
+		v1beta3.GroupVersion: &v1beta3.JoinConfiguration{},
 		v1beta2.GroupVersion: &v1beta2.JoinConfiguration{},
 		v1beta1.GroupVersion: &v1beta1.JoinConfiguration{},
 	}
@@ -63,14 +69,17 @@ func KubeVersionToKubeadmAPIGroupVersion(version semver.Version) (schema.GroupVe
 	case version.LT(v1beta2KubeadmVersion):
 		// NOTE: All the Kubernetes version >= v1.13 and < v1.15 should use the kubeadm API version v1beta1
 		return v1beta1.GroupVersion, nil
+	case version.LT(v1beta3KubeadmVersion):
+		// NOTE: All the Kubernetes version >= v1.15 and < v1.22 should use the kubeadm API version v1beta2
+		return v1beta2.GroupVersion, nil
 	default:
-		// NOTE: All the Kubernetes version greater or equal to v1.15  should use the kubeadm API version v1beta2.
-		// Also future Kubernetes versions (not yet released at the time of writing this code) are going to use v1beta2,
-		// no matter if kubeadm API versions newer than v1beta2 could be introduced by those release.
-		// This is acceptable because but v1beta2 will be supported by kubeadm until the deprecation cycle completes
+		// NOTE: All the Kubernetes version greater or equal to v1.22 should use the kubeadm API version v1beta3.
+		// Also future Kubernetes versions (not yet released at the time of writing this code) are going to use v1beta3,
+		// no matter if kubeadm API versions newer than v1beta3 could be introduced by those release.
+		// This is acceptable because v1beta3 will be supported by kubeadm until the deprecation cycle completes
 		// (9 months minimum after the deprecation date, not yet announced now); this gives Cluster API project time to
 		// introduce support for newer releases without blocking users to deploy newer version of Kubernetes.
-		return v1beta2.GroupVersion, nil
+		return v1beta3.GroupVersion, nil
 	}
 }
 

@@ -19,6 +19,7 @@ package cmd
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
@@ -30,6 +31,7 @@ type generateProvidersOptions struct {
 	infrastructureProvider string
 	targetNamespace        string
 	textOutput             bool
+	raw                    bool
 }
 
 var gpo = &generateProvidersOptions{}
@@ -60,7 +62,11 @@ var generateProviderCmd = &cobra.Command{
 		clusterctl generate provider --infrastructure aws --describe
 
 		# Displays information about a specific version of the infrastructure provider.
-		clusterctl generate provider --infrastructure aws:v0.4.1 --describe`),
+		clusterctl generate provider --infrastructure aws:v0.4.1 --describe
+
+		# Generates a yaml file for creating provider for a specific version.
+		# No variables will be processed and substituted using this flag
+		clusterctl generate provider --infrastructure aws:v0.4.1 --raw`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runGenerateProviderComponents()
@@ -80,6 +86,8 @@ func init() {
 		"The target namespace where the provider should be deployed. If unspecified, the components default namespace is used.")
 	generateProviderCmd.Flags().BoolVar(&gpo.textOutput, "describe", false,
 		"Generate configuration without variable substitution.")
+	generateProviderCmd.Flags().BoolVar(&gpo.raw, "raw", false,
+		"Generate configuration without variable substitution in a yaml format.")
 
 	generateCmd.AddCommand(generateProviderCmd)
 }
@@ -96,7 +104,9 @@ func runGenerateProviderComponents() error {
 
 	options := client.ComponentsOptions{
 		TargetNamespace: gpo.targetNamespace,
+		SkipVariables:   gpo.raw,
 	}
+
 	components, err := c.GetProviderComponents(providerName, providerType, options)
 	if err != nil {
 		return err

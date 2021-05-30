@@ -142,8 +142,8 @@ func runGetComponents() error {
 	}
 
 	options := client.ComponentsOptions{
-		TargetNamespace: cpo.targetNamespace,
-		SkipVariables:   true,
+		TargetNamespace:     cpo.targetNamespace,
+		SkipVariableProcess: true,
 	}
 	components, err := c.GetProviderComponents(providerName, providerType, options)
 	if err != nil {

@@ -114,7 +114,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "successfully gets the components even with SkipVariables defined",
+			name: "successfully gets the components even with SkipVariableProcess defined",
 			fields: fields{
 				provider: p1,
 				repository: test.NewFakeRepository().
@@ -260,9 +260,9 @@ func Test_componentsClient_Get(t *testing.T) {
 			gs := NewWithT(t)
 
 			options := ComponentsOptions{
-				Version:         tt.args.version,
-				TargetNamespace: tt.args.targetNamespace,
-				SkipVariables:   tt.args.skipVariables,
+				Version:             tt.args.version,
+				TargetNamespace:     tt.args.targetNamespace,
+				SkipVariableProcess: tt.args.skipVariables,
 			}
 			f := newComponentsClient(tt.fields.provider, tt.fields.repository, configClient)
 			if tt.fields.processor != nil {
@@ -291,7 +291,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				gs.Expect(yaml).To(ContainSubstring(variableValue))
 			}
 
-			// Verify that when SkipVariables is set we have all the variables
+			// Verify that when SkipVariableProcess is set we have all the variables
 			// in the template without the values processed.
 			if tt.args.skipVariables {
 				for _, v := range tt.want.variables {

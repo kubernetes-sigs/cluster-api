@@ -103,8 +103,8 @@ func runGenerateProviderComponents() error {
 	}
 
 	options := client.ComponentsOptions{
-		TargetNamespace: gpo.targetNamespace,
-		SkipVariables:   gpo.raw,
+		TargetNamespace:     gpo.targetNamespace,
+		SkipVariableProcess: gpo.raw,
 	}
 
 	components, err := c.GetProviderComponents(providerName, providerType, options)

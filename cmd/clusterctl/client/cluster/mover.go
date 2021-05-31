@@ -60,7 +60,7 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) erro
 		log.Info("********************************************************")
 	}
 
-	objectGraph := newObjectGraph(o.fromProxy)
+	objectGraph := newObjectGraph(o.fromProxy, o.fromProviderInventory)
 
 	// checks that all the required providers in place in the target cluster.
 	if !o.dryRun {

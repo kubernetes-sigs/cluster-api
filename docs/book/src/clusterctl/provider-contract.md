@@ -311,10 +311,18 @@ functioning of `clusterctl` when using non-compliant component YAML or cluster t
 
 Provider authors should be aware that `clusterctl move` command implements a discovery mechanism that considers:
 
-* All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init`.
-* `Secret` and `ConfigMap` objects.
-* The `OwnerReference` chain of the above objects.
-* Any object of Kind in which its CRD has the "move" label (`clusterctl.cluster.x-k8s.io/move`) attached to it.
+* All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init` from the namespace being moved.
+* `ConfigMap` objects from the namespace being moved.
+* `Secret` objects from the namespace being moved and from the namespaces where infrastructure providers are installed.
+
+`clusterctl move` does NOT consider any objects:
+
+* Not included in the set of objects defined above.
+* Included in the set of objects defined above, but not:
+  * Directly or indirectly linked to a `Cluster` object through the `OwnerReference` chain.
+  * Directly or indirectly linked to a `ClusterResourceSet` object through the `OwnerReference` chain.
+  * Explicitly required to move via the "move" label (`clusterctl.cluster.x-k8s.io/move`) attached to the object or to
+    the CRD definition.
 
 <aside class="note warning">
 
@@ -324,15 +332,8 @@ When using the "move" label, if the CRD is a global resource, the object is copi
 
 </aside>
 
-`clusterctl move` does NOT consider any objects:
-
-* Not included in the set of objects defined above.
-* Included in the set of objects defined above, but not:
-  * Directly or indirectly linked to a `Cluster` object through the `OwnerReference` chain.
-  * Directly or indirectly linked to a `ClusterResourceSet` object through the `OwnerReference` chain.
-
 If moving some of excluded object is required, the provider authors should create documentation describing the
-the exact move sequence to be executed by the user.
+exact move sequence to be executed by the user.
 
 Additionally, provider authors should be aware that `clusterctl move` assumes all the provider's Controllers respect the
 `Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification.

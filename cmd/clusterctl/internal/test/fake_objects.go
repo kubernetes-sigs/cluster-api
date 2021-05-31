@@ -1143,6 +1143,22 @@ func (f *FakeExternalObject) Objs() []client.Object {
 	return []client.Object{externalObj}
 }
 
+// NewSecret generates a new secret with the given namespace and name.
+func NewSecret(namespace, name string) *corev1.Secret {
+	s := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	setUID(s)
+	return s
+}
+
 // SelectClusterObj finds and returns a Cluster with the given name and namespace, if any.
 func SelectClusterObj(objs []client.Object, namespace, name string) *clusterv1.Cluster {
 	for _, o := range objs {

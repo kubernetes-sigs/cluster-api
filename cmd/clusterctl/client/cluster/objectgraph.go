@@ -105,15 +105,17 @@ func (n *node) isSoftOwnedBy(other *node) bool {
 
 // objectGraph manages the Kubernetes object graph that is generated during the discovery phase for the move operation.
 type objectGraph struct {
-	proxy     Proxy
-	uidToNode map[types.UID]*node
-	types     map[string]*discoveryTypeInfo
+	proxy             Proxy
+	providerInventory InventoryClient
+	uidToNode         map[types.UID]*node
+	types             map[string]*discoveryTypeInfo
 }
 
-func newObjectGraph(proxy Proxy) *objectGraph {
+func newObjectGraph(proxy Proxy, providerInventory InventoryClient) *objectGraph {
 	return &objectGraph{
-		proxy:     proxy,
-		uidToNode: map[types.UID]*node{},
+		proxy:             proxy,
+		providerInventory: providerInventory,
+		uidToNode:         map[types.UID]*node{},
 	}
 }
 
@@ -307,6 +309,26 @@ func (o *objectGraph) Discovery(namespace string) error {
 			return getObjList(o.proxy, typeMeta, selectors, objList)
 		}); err != nil {
 			return err
+		}
+
+		// if we are discovering Secrets, also secrets from the providers namespace should be included.
+		if discoveryType.typeMeta.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("SecretList").GroupKind() {
+			providers, err := o.providerInventory.List()
+			if err != nil {
+				return err
+			}
+			for _, p := range providers.Items {
+				if p.Type == string(clusterctlv1.InfrastructureProviderType) {
+					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
+					providerNamespaceSecretList := new(unstructured.UnstructuredList)
+					if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
+						return getObjList(o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
+					}); err != nil {
+						return err
+					}
+					objList.Items = append(objList.Items, providerNamespaceSecretList.Items...)
+				}
+			}
 		}
 
 		if len(objList.Items) == 0 {

@@ -22,12 +22,11 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"github.com/pkg/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -64,7 +63,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			graph := newObjectGraph(tt.fields.proxy)
+			graph := newObjectGraph(tt.fields.proxy, nil)
 			err := graph.getDiscoveryTypes()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -304,7 +303,7 @@ func TestObjectGraph_addObj(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			graph := newObjectGraph(nil)
+			graph := newObjectGraph(nil, nil)
 			for _, o := range tt.args.objs {
 				graph.addObj(o)
 			}
@@ -1012,44 +1011,47 @@ var objectGraphsTests = []struct {
 		},
 	},
 	{
-		name: "Cluster and Global + Namespaced External Objects",
+		// NOTE: External objects are CRD types installed by clusterctl, but not directly related with the CAPI hierarchy of objects. e.g. IPAM claims.
+		name: "Namespaced External Objects with force move label",
 		args: objectGraphTestArgs{
-			func() []client.Object {
-				objs := []client.Object{}
-				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
-				objs = append(objs, test.NewFakeExternalObject("ns1", "externalObject1").Objs()...)
-				objs = append(objs, test.NewFakeExternalObject("", "externalObject2").Objs()...)
-
-				return objs
-			}(),
+			objs: test.NewFakeExternalObject("ns1", "externalObject1").Objs(),
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, ns1/externalObject1": {},
-				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, /externalObject2":    {},
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1":                               {},
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
-					owners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
-					},
-				},
-				"/v1, Kind=Secret, ns1/cluster1-ca": {
-					softOwners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
-					},
-				},
-				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
-					owners: []string{
-						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
-					},
-				},
+			},
+		},
+	},
+	{
+		// NOTE: External objects are CRD types installed by clusterctl, but not directly related with the CAPI hierarchy of objects. e.g. IPAM claims.
+		name: "Global External Objects with force move label",
+		args: objectGraphTestArgs{
+			objs: test.NewFakeExternalObject("", "externalObject1").Objs(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, /externalObject1": {},
+			},
+		},
+	},
+	{
+		// NOTE: Infrastructure providers global credentials are going to be stored in Secrets in the provider's namespaces.
+		name: "Secrets from provider's namespace",
+		args: objectGraphTestArgs{
+			objs: []client.Object{
+				test.NewSecret("infra1", "credentials"),
+			},
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"/v1, Kind=Secret, infra1/credentials": {},
 			},
 		},
 	},
 }
 
 func getDetachedObjectGraphWihObjs(objs []client.Object) (*objectGraph, error) {
-	graph := newObjectGraph(nil) // detached from any cluster
+	graph := newObjectGraph(nil, nil) // detached from any cluster
 	for _, o := range objs {
 		u := &unstructured.Unstructured{}
 		if err := test.FakeScheme.Convert(o, u, nil); err != nil {
@@ -1084,7 +1086,10 @@ func getObjectGraphWithObjs(objs []client.Object) *objectGraph {
 		fromProxy.WithObjs(o)
 	}
 
-	return newObjectGraph(fromProxy)
+	fromProxy.WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.2.3", "infra1")
+	inventory := newInventoryClient(fromProxy, fakePollImmediateWaiter)
+
+	return newObjectGraph(fromProxy, inventory)
 }
 
 func getFakeProxyWithCRDs() *test.FakeProxy {
@@ -1222,6 +1227,34 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 						},
 					},
+				},
+			},
+		},
+		{
+			// NOTE: External objects are CRD types installed by clusterctl, but not directly related with the CAPI hierarchy of objects. e.g. IPAM claims.
+			name: "Namespaced External Objects with force move label",
+			args: args{
+				namespace: "ns1",                                                       // read only from ns1
+				objs:      test.NewFakeExternalObject("ns1", "externalObject1").Objs(), // Fake external object with
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, ns1/externalObject1": {},
+				},
+			},
+		},
+		{
+			// NOTE: Infrastructure providers global credentials are going to be stored in Secrets in the provider's namespaces.
+			name: "Secrets from provider's namespace (e.g. credentials) should always be read",
+			args: args{
+				namespace: "ns1", // read only from ns1
+				objs: []client.Object{
+					test.NewSecret("infra1", "credentials"), // a secret in infra1 namespace, where an infrastructure provider is installed
+				},
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"/v1, Kind=Secret, infra1/credentials": {},
 				},
 			},
 		},

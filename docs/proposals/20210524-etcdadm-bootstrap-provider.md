@@ -47,8 +47,6 @@ The Etcdadm based etcd provider has two components, the Etcdadm bootstrap provid
 
 ### Etcdadm cluster controller
 The Etcdadm based etcd provider has two components and etcdadm cluster controller is one of them. It accepts the etcd cluster configuration options from the user, such as the cluster size or version, and generates the objects required by the Etcdadm bootstrap provider for etcd cluster creation. It is responsible for managing the etcd cluster lifecycle.
-
-
 Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
 If this proposal adds new terms, or defines some, make the changes to the book's glossary when in PR stage.
 

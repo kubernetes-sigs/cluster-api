@@ -37,6 +37,7 @@ type ClusterResourceSetSpec struct {
 	// Label selector for Clusters. The Clusters that are
 	// selected by this will be the ones affected by this ClusterResourceSet.
 	// It must match the Cluster labels. This field is immutable.
+	// Label selector cannot be empty.
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
 
 	// Resources is a list of Secrets/ConfigMaps where each contains 1 or more resources to be applied to remote clusters.

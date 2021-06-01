@@ -90,7 +90,8 @@ This proposal intends to:
 - User should be able to create a Kubernetes cluster that uses external etcd topology in a single step.
 - User should only have to create the required CAPI resources, along with the required etcd provider specific resources. That should trigger creation of an etcd cluster, followed by creation of the target workload cluster which uses this etcd cluster. Meaning, the CAPI controllers will deploy the etcd cluster first and then use that as input to the workload cluster, without requiring any user intervention.
 - There will be a 1:1 mapping between the external etcd cluster and the workload cluster.
-- Define a contract for pluggable etcd providers and define steps that control plane providers should take to use a managed external etcd cluster.
+- Define a contract for pluggable etcd providers
+- Extend the contract for control plane providers in order to properly handle external etcd clusters managed by pluggable etcd providers.
 - Support the following etcd cluster management actions: scale up and scale down, etcd member replacement and etcd version upgrades.
 - The etcd providers will utilize the existing Machine objects to represent etcd members for convenience instead of adding a new machine type for etcd.
 

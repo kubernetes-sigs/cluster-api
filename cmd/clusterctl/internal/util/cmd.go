@@ -91,8 +91,7 @@ func (c *Cmd) runInnerCommand() error {
 		cmd.Stderr = io.MultiWriter(&b1, c.stderr)
 	}
 
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return errors.Wrapf(err, "failed to run: %s %s\n%s", c.command, strings.Join(c.args, " "), b1.String())
 	}
 

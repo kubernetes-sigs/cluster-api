@@ -407,8 +407,8 @@ func (r *ClusterResourceSetReconciler) patchOwnerRefToResource(ctx context.Conte
 		UID:        clusterResourceSet.GetUID(),
 	}
 
-	refs := resource.GetOwnerReferences()
 	if !util.IsOwnedByObject(resource, clusterResourceSet) {
+		refs := resource.GetOwnerReferences()
 		patch := client.MergeFrom(resource.DeepCopy())
 		refs = append(refs, newRef)
 		resource.SetOwnerReferences(refs)

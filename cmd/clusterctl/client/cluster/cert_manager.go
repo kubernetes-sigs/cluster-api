@@ -114,8 +114,7 @@ func newCertManagerClient(configClient config.Client, proxy Proxy, pollImmediate
 		proxy:               proxy,
 		pollImmediateWaiter: pollImmediateWaiter,
 	}
-	err := cm.setManifestVersion()
-	if err != nil {
+	if err := cm.setManifestVersion(); err != nil {
 		return nil, err
 	}
 

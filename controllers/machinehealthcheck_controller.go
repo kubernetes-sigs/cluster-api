@@ -209,7 +209,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	// do sort to avoid keep changing m.Status as the returned machines are not in order
 	sort.Strings(m.Status.Targets)
 
-	nodeStartupTimeout := m.Spec.NodeStartupTimeout
+	nodeStartupTimeout := m.Spec.NodeStartupTimeout // nolint:ifshort
 	if nodeStartupTimeout == nil {
 		nodeStartupTimeout = &clusterv1.DefaultNodeStartupTimeout
 	}

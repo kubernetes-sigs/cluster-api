@@ -45,8 +45,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handl
 
 	gvk := obj.GetObjectKind().GroupVersionKind()
 	key := gvk.GroupKind().String()
-	_, loaded := o.m.LoadOrStore(key, struct{}{})
-	if loaded {
+	if _, loaded := o.m.LoadOrStore(key, struct{}{}); loaded {
 		return nil
 	}
 

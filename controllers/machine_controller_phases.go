@@ -46,7 +46,7 @@ var (
 )
 
 func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
-	originalPhase := m.Status.Phase
+	originalPhase := m.Status.Phase // nolint:ifshort
 
 	// Set the phase to "pending" if nil.
 	if m.Status.Phase == "" {

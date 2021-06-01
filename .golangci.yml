@@ -39,10 +39,9 @@ linters:
   - whitespace
 
 linters-settings:
-  staticcheck:
-    go: "1.16"
-  stylecheck:
-    go: "1.16"
+  ifshort:
+    # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
+    max-decl-chars: 50
   importas:
     no-unaliased: true
     alias:
@@ -60,6 +59,10 @@ linters-settings:
       # Controller Runtime
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
+  staticcheck:
+    go: "1.16"
+  stylecheck:
+    go: "1.16"
 
 issues:
   max-same-issues: 0
@@ -114,6 +117,12 @@ issues:
   - linters:
     - gocritic
     text: "appendAssign: append result not assigned to the same slice"
+  # ifshort flags variables that are only used in the if-statement even though there is
+  # already a SimpleStmt being used in the if-statement in question.
+  - linters:
+    - ifshort
+    text: "variable .* is only used in the if-statement"
+    path: controllers/mdutil/util.go
 
 run:
   timeout: 10m

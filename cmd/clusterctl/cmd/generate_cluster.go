@@ -182,7 +182,7 @@ func runGenerateClusterTemplate(cmd *cobra.Command, name string) error {
 	}
 
 	if gc.listVariables {
-		return printVariablesOutput(cmd, template)
+		return printVariablesOutput(template, templateOptions)
 	}
 
 	return printYamlOutput(template)

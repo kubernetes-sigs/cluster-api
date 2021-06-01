@@ -178,3 +178,94 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 	g.Expect(string(out)).To(ContainSubstring(expectedFSSetup))
 	g.Expect(string(out)).To(ContainSubstring(expectedMounts))
 }
+
+func TestNewJoinControlPlaneAdditionalFileEncodings(t *testing.T) {
+	g := NewWithT(t)
+
+	cpinput := &ControlPlaneJoinInput{
+		BaseUserData: BaseUserData{
+			Header:              "test",
+			PreKubeadmCommands:  nil,
+			PostKubeadmCommands: nil,
+			AdditionalFiles: []bootstrapv1.File{
+				{
+					Path:     "/tmp/my-path",
+					Encoding: bootstrapv1.Base64,
+					Content:  "aGk=",
+				},
+				{
+					Path:    "/tmp/my-other-path",
+					Content: "hi",
+				},
+			},
+			WriteFiles: nil,
+			Users:      nil,
+			NTP:        nil,
+		},
+		Certificates:      secret.Certificates{},
+		BootstrapToken:    "my-bootstrap-token",
+		JoinConfiguration: "my-join-config",
+	}
+
+	for _, certificate := range cpinput.Certificates {
+		certificate.KeyPair = &certs.KeyPair{
+			Cert: []byte("some certificate"),
+			Key:  []byte("some key"),
+		}
+	}
+
+	out, err := NewJoinControlPlane(cpinput)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	expectedFiles := []string{
+		`-   path: /tmp/my-path
+    encoding: "base64"
+    content: |
+      aGk=`,
+		`-   path: /tmp/my-other-path
+    content: |
+      hi`,
+	}
+	for _, f := range expectedFiles {
+		g.Expect(out).To(ContainSubstring(f))
+	}
+}
+
+func TestNewJoinControlPlaneExperimentalRetry(t *testing.T) {
+	g := NewWithT(t)
+
+	cpinput := &ControlPlaneJoinInput{
+		BaseUserData: BaseUserData{
+			Header:               "test",
+			PreKubeadmCommands:   nil,
+			PostKubeadmCommands:  nil,
+			UseExperimentalRetry: true,
+			WriteFiles:           nil,
+			Users:                nil,
+			NTP:                  nil,
+		},
+		Certificates:      secret.Certificates{},
+		BootstrapToken:    "my-bootstrap-token",
+		JoinConfiguration: "my-join-config",
+	}
+
+	for _, certificate := range cpinput.Certificates {
+		certificate.KeyPair = &certs.KeyPair{
+			Cert: []byte("some certificate"),
+			Key:  []byte("some key"),
+		}
+	}
+
+	out, err := NewJoinControlPlane(cpinput)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	expectedFiles := []string{
+		`-   path: ` + retriableJoinScriptName + `
+    owner: ` + retriableJoinScriptOwner + `
+    permissions: '` + retriableJoinScriptPermissions + `'
+    `,
+	}
+	for _, f := range expectedFiles {
+		g.Expect(out).To(ContainSubstring(f))
+	}
+}

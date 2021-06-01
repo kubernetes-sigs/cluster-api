@@ -143,7 +143,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
-		"Webhook Server port")
+		"Webhook Server port. Set 0 to disable it.")
 
 	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
 		"Webhook cert dir, only used when webhook-port is specified.")
@@ -311,6 +311,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
+	if webhookPort == 0 {
+		return
+	}
+
 	if err := (&clusterv1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
 		os.Exit(1)

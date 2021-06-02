@@ -41,16 +41,17 @@ export DOCKER_CLI_EXPERIMENTAL := enabled
 # Full directory of where the Makefile resides
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 EXP_DIR := exp
-TOOLS_DIR := hack/tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
-E2E_FRAMEWORK_DIR := test/framework
-CAPD_DIR := test/infrastructure/docker
-RELEASE_NOTES_BIN := bin/release-notes
+TOOLS_DIR := hack/tools
+TOOLS_BIN_DIR := $(TOOLS_DIR)/$(BIN_DIR)
+TEST_DIR := test
+E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
+CAPD_DIR := $(TEST_DIR)/infrastructure/docker
+RELEASE_NOTES_BIN := (BIN_DIR)/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
-GO_APIDIFF_BIN := bin/go-apidiff
+GO_APIDIFF_BIN := (BIN_DIR)/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
-ENVSUBST_BIN := bin/envsubst
+ENVSUBST_BIN := (BIN_DIR)/envsubst
 ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -143,11 +144,11 @@ test-cover: ## Run tests with code coverage and code generate reports.
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Rebuild all Cluster API provider images to be used in the e2e tests
 	make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
-	$(MAKE) -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
+	$(MAKE) -C $(CAPD_DIR) docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 
 .PHONY: test-e2e
 test-e2e: ## Run the e2e tests
-	$(MAKE) -C test/e2e run
+	$(MAKE) -C $(TEST_DIR)/e2e run
 
 ## --------------------------------------
 ## Binaries
@@ -235,7 +236,7 @@ ALL_GENERATE_MODULES = core cabpk kcp
 .PHONY: generate
 generate: ## Generate code
 	$(MAKE) generate-manifests generate-go
-	$(MAKE) -C test/infrastructure/docker generate
+	$(MAKE) -C $(CAPD_DIR) generate
 
 .PHONY: generate-go
 generate-go:  ## Runs Go related generate targets
@@ -362,7 +363,7 @@ generate-manifests-kcp: $(CONTROLLER_GEN)
 modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
-	$(MAKE) -C $(CAPD_DIR) modules
+	cd $(TEST_DIR); go mod tidy
 
 ## --------------------------------------
 ## Docker
@@ -523,10 +524,10 @@ release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publis
 .PHONY: release-manifests-dev
 release-manifests-dev: ## Builds the development manifests and copies them in the release folder
 	# Release CAPD components and add them to the release dir
-	$(MAKE) -C test/infrastructure/docker/ release
-	cp test/infrastructure/docker/out/infrastructure-components.yaml $(RELEASE_DIR)/infrastructure-components-development.yaml
+	$(MAKE) -C $(CAPD_DIR) release
+	cp $(CAPD_DIR)/out/infrastructure-components.yaml $(RELEASE_DIR)/infrastructure-components-development.yaml
 	# Adds CAPD templates
-	cp test/infrastructure/docker/templates/* $(RELEASE_DIR)/
+	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
 
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
@@ -599,7 +600,7 @@ clean-book: ## Remove all generated GitBook files
 .PHONY: clean-manifests ## Reset manifests in config directories back to master
 clean-manifests:
 	@read -p "WARNING: This will reset all config directories to local master. Press [ENTER] to continue."
-	git checkout master config bootstrap/kubeadm/config controlplane/kubeadm/config test/infrastructure/docker/config
+	git checkout master config bootstrap/kubeadm/config controlplane/kubeadm/config $(CAPD_DIR)/config
 
 .PHONY: format-tiltfile
 format-tiltfile: ## Format Tiltfile

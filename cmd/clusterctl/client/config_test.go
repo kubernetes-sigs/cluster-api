@@ -220,8 +220,8 @@ func Test_getComponentsByName_withEmptyVariables(t *testing.T) {
 		WithCluster(cluster1)
 
 	options := ComponentsOptions{
-		TargetNamespace: "ns1",
-		SkipVariables:   true,
+		TargetNamespace:     "ns1",
+		SkipTemplateProcess: true,
 	}
 	components, err := client.GetProviderComponents(repository1Config.Name(), repository1Config.Type(), options)
 	g.Expect(err).NotTo(HaveOccurred())

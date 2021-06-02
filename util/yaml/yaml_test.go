@@ -470,22 +470,13 @@ func TestFromUnstructured(t *testing.T) {
 func TestRaw(t *testing.T) {
 	g := NewWithT(t)
 
-	input := "\n" +
-		"First Line" +
-		"\n" +
-		"Second Line"
-
-	output := "First Line\nSecond Line"
-	result := Raw(input)
-	g.Expect(result).To(Equal(output))
-
-	input = `
+	input := `
 		apiVersion:v1
 		kind:newKind
 		spec:
 			param: abc
 	`
-	output="apiVersion:v1\nkind:newKind\nspec:\n\tparam: abc\n"
-	result = Raw(input)
+	output := "apiVersion:v1\nkind:newKind\nspec:\n\tparam: abc\n"
+	result := Raw(input)
 	g.Expect(result).To(Equal(output))
 }

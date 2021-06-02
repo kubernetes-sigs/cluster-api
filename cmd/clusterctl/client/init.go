@@ -58,9 +58,9 @@ type InitOptions struct {
 	// LogUsageInstructions instructs the init command to print the usage instructions in case of first run.
 	LogUsageInstructions bool
 
-	// skipVariables skips variable parsing in the provider components yaml.
-	// It is set to true for listing images of provider components.
-	skipVariables bool
+	// SkipTemplateProcess allows for skipping the call to the template processor, including also variable replacement in the component YAML.
+	// NOTE this works only if the rawYaml is a valid yaml by itself, like e.g when using envsubst/the simple processor.
+	skipTemplateProcess bool
 }
 
 // Init initializes a management cluster by adding the requested list of providers.
@@ -104,11 +104,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	}
 
 	// Before installing the providers, ensure the cert-manager Webhook is in place.
-	certManager, err := clusterClient.CertManager()
-	if err != nil {
-		return nil, err
-	}
-
+	certManager := clusterClient.CertManager()
 	if err := certManager.EnsureInstalled(); err != nil {
 		return nil, err
 	}
@@ -156,7 +152,7 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	c.addDefaultProviders(clusterClient, &options)
 
 	// skip variable parsing when listing images
-	options.skipVariables = true
+	options.skipTemplateProcess = true
 
 	// create an installer service, add the requested providers to the install queue and then perform validation
 	// of the target state of the management cluster before starting the installation.
@@ -165,12 +161,8 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 		return nil, err
 	}
 
-	certManager, err := clusterClient.CertManager()
-	if err != nil {
-		return nil, err
-	}
-
 	// Gets the list of container images required for the cert-manager (if not already installed).
+	certManager := clusterClient.CertManager()
 	images, err := certManager.Images()
 	if err != nil {
 		return nil, err
@@ -187,9 +179,9 @@ func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOp
 	installer := cluster.ProviderInstaller()
 
 	addOptions := addToInstallerOptions{
-		installer:       installer,
-		targetNamespace: options.TargetNamespace,
-		skipVariables:   options.skipVariables,
+		installer:           installer,
+		targetNamespace:     options.TargetNamespace,
+		skipTemplateProcess: options.skipTemplateProcess,
 	}
 
 	if options.CoreProvider != "" {
@@ -238,9 +230,9 @@ func (c *clusterctlClient) addDefaultProviders(cluster cluster.Client, options *
 }
 
 type addToInstallerOptions struct {
-	installer       cluster.ProviderInstaller
-	targetNamespace string
-	skipVariables   bool
+	installer           cluster.ProviderInstaller
+	targetNamespace     string
+	skipTemplateProcess bool
 }
 
 // addToInstaller adds the components to the install queue and checks that the actual provider type match the target group.
@@ -254,8 +246,8 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, provide
 			continue
 		}
 		componentsOptions := repository.ComponentsOptions{
-			TargetNamespace: options.targetNamespace,
-			SkipVariables:   options.skipVariables,
+			TargetNamespace:     options.targetNamespace,
+			SkipTemplateProcess: options.skipTemplateProcess,
 		}
 		components, err := c.getComponentsByName(provider, providerType, componentsOptions)
 		if err != nil {

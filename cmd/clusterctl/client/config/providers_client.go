@@ -273,8 +273,7 @@ func validateProvider(r Provider) error {
 		return errors.New("provider URL value cannot be empty")
 	}
 
-	_, err := url.Parse(r.URL())
-	if err != nil {
+	if _, err := url.Parse(r.URL()); err != nil {
 		return errors.Wrap(err, "error parsing provider URL")
 	}
 

@@ -107,22 +107,6 @@ It is strongly recommended that:
 * Bootstrap providers release a file called ` bootstrap-components.yaml`
 * Control plane providers release a file called `control-plane-components.yaml`
 
-#### Shared and instance components
-
-The objects contained in a component YAML file can be divided in two sets:
-
-* Instance specific objects, like the Deployment for the controller, the ServiceAccount used for running the controller
-  and the related RBAC rules.
-* The objects that are shared among all the provider instances, like e.g. CRDs, ValidatingWebhookConfiguration or the
-  Deployment implementing the web-hook servers and related Service and Certificates.
-
-As per the Cluster API contract, all the shared objects are expected to be deployed in a namespace named `capi-webhook-system`
-(if applicable).
-
-clusterctl implements a different lifecycle for shared resources e.g.
-* Ensuring that the version of the shared objects for each provider matches the latest version installed in the cluster.
-* Ensuring that deleting an instance of a provider does not destroy shared resources unless explicitly requested by the user.
-
 #### Target namespace
 
 The instance components should contain one Namespace object, which will be used as the default target namespace
@@ -311,18 +295,35 @@ functioning of `clusterctl` when using non-compliant component YAML or cluster t
 
 Provider authors should be aware that `clusterctl move` command implements a discovery mechanism that considers:
 
-* All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init` from the namespace being moved.
-* `ConfigMap` objects from the namespace being moved.
-* `Secret` objects from the namespace being moved and from the namespaces where infrastructure providers are installed.
+* All the Kind defined in one of the CRDs installed by clusterctl using `clusterctl init` (identified via the `clusterctl.cluster.x-k8s.io label`); 
+  For each CRD, discovery collects:
+  * All the objects from the namespace being moved only if the CRD scope is `Namespaced`.
+  * All the objects if the CRD scope is `Cluster`.
+* All the `ConfigMap` objects from the namespace being moved.
+* All the `Secret` objects from the namespace being moved and from the namespaces where infrastructure providers are installed.
 
-`clusterctl move` does NOT consider any objects:
-
-* Not included in the set of objects defined above.
-* Included in the set of objects defined above, but not:
-  * Directly or indirectly linked to a `Cluster` object through the `OwnerReference` chain.
-  * Directly or indirectly linked to a `ClusterResourceSet` object through the `OwnerReference` chain.
-  * Explicitly required to move via the "move" label (`clusterctl.cluster.x-k8s.io/move`) attached to the object or to
-    the CRD definition.
+After completing discovery, `clusterctl move` moves to the target cluster only the objects discovered in the previous phase
+that are compliant with one of the following rules:
+  * The object is directly or indirectly linked to a `Cluster` object (linked through the `OwnerReference` chain).
+  * The object is a secret containing a user provided certificate (linked to a `Cluster` object via a naming convention).
+  * The object is directly or indirectly linked to a `ClusterResourceSet` object (through the `OwnerReference` chain).
+  * The object is directly or indirectly linked to another object with the `clusterctl.cluster.x-k8s.io/move-hierarchy` 
+    label, e.g. the infrastructure Provider ClusterIdentity objects (linked through the `OwnerReference` chain).
+  * The object hase the `clusterctl.cluster.x-k8s.io/move` label or the `clusterctl.cluster.x-k8s.io/move-hierarchy` label,
+    e.g. the CPI config secret. 
+    
+Note. `clusterctl.cluster.x-k8s.io/move` and `clusterctl.cluster.x-k8s.io/move-hierarchy` labels could be applied 
+to single objects or at the CRD level (the label applies to all the objects).
+    
+Please note that during move:
+  * Namespaced objects, if not existing in the target cluster, are created.
+  * Namespaced objects, if already existing in the target cluster, are updated.  
+  * Namespaced objects are removed from the source cluster.
+  * Global objects, if not existing in the target cluster, are created.
+  * Global objects, if already existing in the target cluster, are not updated.
+  * Global objects are not removed from the source cluster.
+  * Namespaced objects which are part of an owner chain that starts with a global object (e.g. a secret containing 
+    credentials for an infrastructure Provider ClusterIdentity) are treated as Global objects.
 
 <aside class="note warning">
 

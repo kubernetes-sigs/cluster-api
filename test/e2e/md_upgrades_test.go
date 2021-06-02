@@ -19,14 +19,12 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("When testing MachineDeployment upgrades", func() {
 
-	MachineDeploymentUpgradesSpec(context.TODO(), func() MachineDeploymentUpgradesSpecInput {
+	MachineDeploymentUpgradesSpec(ctx, func() MachineDeploymentUpgradesSpecInput {
 		return MachineDeploymentUpgradesSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,

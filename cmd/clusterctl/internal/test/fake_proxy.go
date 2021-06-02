@@ -155,7 +155,7 @@ func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1
 			Labels: map[string]string{
 				clusterctlv1.ClusterctlLabelName:     "",
 				clusterv1.ProviderLabelName:          clusterctlv1.ManifestLabel(name, providerType),
-				clusterctlv1.ClusterctlCoreLabelName: "inventory",
+				clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelInventoryValue,
 			},
 		},
 		ProviderName: name,

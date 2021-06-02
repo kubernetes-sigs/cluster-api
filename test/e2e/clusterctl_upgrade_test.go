@@ -19,14 +19,12 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("When testing clusterctl upgrades", func() {
 
-	ClusterctlUpgradeSpec(context.TODO(), func() ClusterctlUpgradeSpecInput {
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,

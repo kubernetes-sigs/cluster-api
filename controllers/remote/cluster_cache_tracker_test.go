@@ -31,7 +31,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -86,7 +85,7 @@ func TestClusterCacheTracker(t *testing.T) {
 			k8sClient = mgr.GetClient()
 
 			t.Log("Setting up a ClusterCacheTracker")
-			cct, err = NewClusterCacheTracker(log.NullLogger{}, mgr)
+			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{})
 			g.Expect(err).NotTo(HaveOccurred())
 
 			t.Log("Creating a namespace for the test")

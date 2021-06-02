@@ -262,9 +262,9 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(ctx context.Context, c
 	nodeKey := types.NamespacedName{
 		Name: machine.Status.NodeRef.Name,
 	}
-	err := clusterClient.Get(ctx, nodeKey, node)
+
 	// if it cannot find a node, send a nil node back...
-	if err != nil {
+	if err := clusterClient.Get(ctx, nodeKey, node); err != nil {
 		return nil, err
 	}
 	return node, nil

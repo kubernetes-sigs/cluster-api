@@ -25,23 +25,17 @@ const (
 	// ClusterctlCoreLabelName is applied to all the core objects managed by clusterctl.
 	ClusterctlCoreLabelName = "clusterctl.cluster.x-k8s.io/core"
 
-	// ClusterctlResourceLifecyleLabelName describes the lifecyle for a specific resource.
-	//
-	// Example: resources shared between instances of the same provider:  CRDs,
-	// ValidatingWebhookConfiguration, MutatingWebhookConfiguration, and so on.
-	ClusterctlResourceLifecyleLabelName = "clusterctl.cluster.x-k8s.io/lifecycle"
+	// ClusterctlCoreLabelInventoryValue define the value for ClusterctlCoreLabelName to be used for inventory objects.
+	ClusterctlCoreLabelInventoryValue = "inventory"
 
-	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move that are not part of a cluster.
+	// ClusterctlCoreLabelCertManagerValue define the value for ClusterctlCoreLabelName to be used for cert-manager objects.
+	ClusterctlCoreLabelCertManagerValue = "cert-manager"
+
+	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move but that are not part of a Cluster.
 	ClusterctlMoveLabelName = "clusterctl.cluster.x-k8s.io/move"
-)
 
-// ResourceLifecycle configures the lifecycle of a resource.
-type ResourceLifecycle string
-
-const (
-	// ResourceLifecycleShared is used to indicate that a resource is shared between
-	// multiple instances of a provider.
-	ResourceLifecycleShared = ResourceLifecycle("shared")
+	// ClusterctlMoveHierarchyLabelName can be set on CRDs that providers wish to move with their entire hierarchy, but that are not part of a Cluster.
+	ClusterctlMoveHierarchyLabelName = "clusterctl.cluster.x-k8s.io/move-hierarchy"
 )
 
 // ManifestLabel returns the cluster.x-k8s.io/provider label value for a provider/type.
@@ -50,8 +44,6 @@ const (
 // it's not meant to be used to describe each instance of a particular provider.
 func ManifestLabel(name string, providerType ProviderType) string {
 	switch providerType {
-	case CoreProviderType:
-		return name
 	case BootstrapProviderType:
 		return fmt.Sprintf("bootstrap-%s", name)
 	case ControlPlaneProviderType:
@@ -59,6 +51,6 @@ func ManifestLabel(name string, providerType ProviderType) string {
 	case InfrastructureProviderType:
 		return fmt.Sprintf("infrastructure-%s", name)
 	default:
-		return fmt.Sprintf("unknown-type-%s", name)
+		return name
 	}
 }

@@ -79,7 +79,7 @@ var (
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", ":8080",
+	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",
 		"The address the metric endpoint binds to.")
 
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -132,7 +132,9 @@ func main() {
 		}()
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	restConfig := ctrl.GetConfigOrDie()
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-kubeadm-control-plane-manager")
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsBindAddr,
 		LeaderElection:     enableLeaderElection,
@@ -185,10 +187,7 @@ func setupChecks(mgr ctrl.Manager) {
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Set up a ClusterCacheTracker to provide to controllers
 	// requiring a connection to a remote cluster
-	tracker, err := remote.NewClusterCacheTracker(
-		ctrl.Log.WithName("remote").WithName("ClusterCacheTracker"),
-		mgr,
-	)
+	tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
 	if err != nil {
 		setupLog.Error(err, "unable to create cluster cache tracker")
 		os.Exit(1)

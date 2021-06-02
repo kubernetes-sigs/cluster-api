@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -426,10 +427,21 @@ kind: ClusterConfiguration
 
 				// assert CoreDNS corefile
 				var expectedConfigMap corev1.ConfigMap
-				g.Expect(env.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
-				g.Expect(expectedConfigMap.Data).To(HaveLen(2))
-				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
-				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", expectedCorefile))
+				g.Eventually(func() error {
+					if err := env.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap); err != nil {
+						return errors.Wrap(err, "failed to get the coredns ConfigMap")
+					}
+					if len(expectedConfigMap.Data) != 2 {
+						return errors.Errorf("the coredns ConfigMap has %d data items, expected 2", len(expectedConfigMap.Data))
+					}
+					if val, ok := expectedConfigMap.Data["Corefile"]; !ok || val != "updated-core-file" {
+						return errors.New("the coredns ConfigMap does not have the Corefile entry or this it has an unexpected value")
+					}
+					if val, ok := expectedConfigMap.Data["Corefile-backup"]; !ok || val != expectedCorefile {
+						return errors.New("the coredns ConfigMap does not have the Corefile-backup entry or this it has an unexpected value")
+					}
+					return nil
+				}, "5s").Should(BeNil())
 
 				// assert CoreDNS deployment
 				var actualDeployment appsv1.Deployment
@@ -875,24 +887,28 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set the DNS image config",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n",
+			clusterConfigurationData: yaml.Raw(`
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+`),
 			newDNS: bootstrapv1.DNS{
 				ImageMeta: bootstrapv1.ImageMeta{
 					ImageRepository: "example.com/k8s",
 					ImageTag:        "v1.2.3",
 				},
 			},
-			wantClusterConfiguration: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"controllerManager: {}\n" +
-				"dns:\n" +
-				"  imageRepository: example.com/k8s\n" +
-				"  imageTag: v1.2.3\n" +
-				"etcd: {}\n" +
-				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
-				"scheduler: {}\n",
+			wantClusterConfiguration: yaml.Raw(`
+apiServer: {}
+apiVersion: kubeadm.k8s.io/v1beta2
+controllerManager: {}
+dns:
+  imageRepository: example.com/k8s
+  imageTag: v1.2.3
+etcd: {}
+kind: ClusterConfiguration
+networking: {}
+scheduler: {}
+`),
 		},
 	}
 	for _, tt := range tests {

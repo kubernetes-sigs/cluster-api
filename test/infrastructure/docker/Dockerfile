@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.16.4 as builder
+# Run this with docker build --build-arg builder_image=<golang:x.y.z>
+ARG builder_image
+FROM ${builder_image} as builder
 
 # Run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
@@ -24,11 +26,11 @@ WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
 
-# Essentially, change directories into CAPD
-WORKDIR /workspace/test/infrastructure/docker
+# Essentially, change directories into the test go module
+WORKDIR /workspace/test
 # Copy the Go Modules manifests
-COPY test/infrastructure/docker/go.mod go.mod
-COPY test/infrastructure/docker/go.sum go.sum
+COPY test/go.mod go.mod
+COPY test/go.sum go.sum
 
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer

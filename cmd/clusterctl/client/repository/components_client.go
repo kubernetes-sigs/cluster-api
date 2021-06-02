@@ -26,6 +26,7 @@ import (
 // ComponentsClient has methods to work with yaml file for generating provider components.
 // Assets are yaml files to be used for deploying a provider into a management cluster.
 type ComponentsClient interface {
+	Raw(options ComponentsOptions) ([]byte, error)
 	Get(options ComponentsOptions) (Components, error)
 }
 
@@ -51,7 +52,20 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 }
 
 // Get returns the components from a repository.
+func (f *componentsClient) Raw(options ComponentsOptions) ([]byte, error) {
+	return f.getRawBytes(&options)
+}
+
+// Get returns the components from a repository.
 func (f *componentsClient) Get(options ComponentsOptions) (Components, error) {
+	file, err := f.getRawBytes(&options)
+	if err != nil {
+		return nil, err
+	}
+	return NewComponents(ComponentsInput{f.provider, f.configClient, f.processor, file, options})
+}
+
+func (f *componentsClient) getRawBytes(options *ComponentsOptions) ([]byte, error) {
 	log := logf.Log
 
 	// If the request does not target a specific version, read from the default repository version that is derived from the repository URL, e.g. latest.
@@ -82,6 +96,5 @@ func (f *componentsClient) Get(options ComponentsOptions) (Components, error) {
 	} else {
 		log.Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
 	}
-
-	return NewComponents(ComponentsInput{f.provider, f.configClient, f.processor, file, options})
+	return file, nil
 }

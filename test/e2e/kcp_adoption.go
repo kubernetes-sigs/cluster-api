@@ -123,7 +123,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			Cluster:   cluster,
 		}, WaitForControlPlaneIntervals...)
 
-		workloadCluster := input.BootstrapClusterProxy.GetWorkloadCluster(context.TODO(), cluster.Namespace, cluster.Name)
+		workloadCluster := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 		framework.WaitForClusterMachinesReady(ctx, framework.WaitForClusterMachinesReadyInput{
 			GetLister:  input.BootstrapClusterProxy.GetClient(),
 			NodeGetter: workloadCluster.GetClient(),

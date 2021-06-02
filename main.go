@@ -36,6 +36,7 @@ import (
 	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	addonsv1old "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
@@ -94,7 +95,7 @@ func init() {
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", ":8080",
+	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",
 		"The address the metric endpoint binds to.")
 
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -171,7 +172,9 @@ func main() {
 		}()
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	restConfig := ctrl.GetConfigOrDie()
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-controller-manager")
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsBindAddr,
 		LeaderElection:     enableLeaderElection,
@@ -198,6 +201,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
+	setupIndexes(ctx, mgr)
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
@@ -221,12 +225,19 @@ func setupChecks(mgr ctrl.Manager) {
 	}
 }
 
+func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
+	if err := noderefutil.AddMachineNodeIndex(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to setup index")
+		os.Exit(1)
+	}
+}
+
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
 	tracker, err := remote.NewClusterCacheTracker(
-		ctrl.Log.WithName("remote").WithName("ClusterCacheTracker"),
 		mgr,
+		remote.ClusterCacheTrackerOptions{Log: ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")},
 	)
 	if err != nil {
 		setupLog.Error(err, "unable to create cluster cache tracker")

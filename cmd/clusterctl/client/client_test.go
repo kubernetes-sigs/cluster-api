@@ -274,8 +274,8 @@ func (f fakeClusterClient) Proxy() cluster.Proxy {
 	return f.fakeProxy
 }
 
-func (f *fakeClusterClient) CertManager() (cluster.CertManagerClient, error) {
-	return f.certManager, nil
+func (f *fakeClusterClient) CertManager() cluster.CertManagerClient {
+	return f.certManager
 }
 
 func (f fakeClusterClient) ProviderComponents() cluster.ComponentsClient {
@@ -354,6 +354,10 @@ type fakeConfigClient struct {
 }
 
 var _ config.Client = &fakeConfigClient{}
+
+func (f fakeConfigClient) CertManager() config.CertManagerClient {
+	return f.internalclient.CertManager()
+}
 
 func (f fakeConfigClient) Providers() config.ProvidersClient {
 	return f.internalclient.Providers()
@@ -522,13 +526,12 @@ type fakeComponentClient struct {
 	processor      yaml.Processor
 }
 
-func (f *fakeComponentClient) Get(options repository.ComponentsOptions) (repository.Components, error) {
-	if options.Version == "" {
-		options.Version = f.fakeRepository.DefaultVersion()
-	}
-	path := f.fakeRepository.ComponentsPath()
+func (f *fakeComponentClient) Raw(options repository.ComponentsOptions) ([]byte, error) {
+	return f.getRawBytes(&options)
+}
 
-	content, err := f.fakeRepository.GetFile(options.Version, path)
+func (f *fakeComponentClient) Get(options repository.ComponentsOptions) (repository.Components, error) {
+	content, err := f.getRawBytes(&options)
 	if err != nil {
 		return nil, err
 	}
@@ -542,4 +545,13 @@ func (f *fakeComponentClient) Get(options repository.ComponentsOptions) (reposit
 			Options:      options,
 		},
 	)
+}
+
+func (f *fakeComponentClient) getRawBytes(options *repository.ComponentsOptions) ([]byte, error) {
+	if options.Version == "" {
+		options.Version = f.fakeRepository.DefaultVersion()
+	}
+	path := f.fakeRepository.ComponentsPath()
+
+	return f.fakeRepository.GetFile(options.Version, path)
 }

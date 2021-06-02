@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,11 +50,16 @@ func TestMain(m *testing.M) {
 	fmt.Println("Creating a new test environment")
 	env = envtest.New()
 
+	// Set up the MachineNodeIndex
+	if err := noderefutil.AddMachineNodeIndex(ctx, env.Manager); err != nil {
+		panic(fmt.Sprintf("undable to setup machine node index: %v", err))
+	}
+
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
 	tracker, err := remote.NewClusterCacheTracker(
-		log.Log,
 		env.Manager,
+		remote.ClusterCacheTrackerOptions{Log: log.Log},
 	)
 	if err != nil {
 		panic(fmt.Sprintf("unable to create cluster cache tracker: %v", err))
@@ -142,7 +148,7 @@ func (matcher *refGroupKindMatcher) Match(actual interface{}) (success bool, err
 	for _, ref := range ownerRefs {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return false, nil
+			return false, nil // nolint:nilerr // If we can't get the group version we can't match, but it's not a failure
 		}
 		if ref.Kind == matcher.kind && gv.Group == clusterv1.GroupVersion.Group {
 			return true, nil

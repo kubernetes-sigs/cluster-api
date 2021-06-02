@@ -19,14 +19,12 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("When testing Cluster API working on self-hosted clusters", func() {
 
-	SelfHostedSpec(context.TODO(), func() SelfHostedSpecInput {
+	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,

@@ -38,7 +38,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    []metav1.TypeMeta
+		want    map[string]*discoveryTypeInfo
 		wantErr bool
 	}{
 		{
@@ -46,15 +46,170 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 			fields: fields{
 				proxy: test.NewFakeProxy().
 					WithObjs(
-						test.FakeCustomResourceDefinition("foo", "Bar", "v2", "v1"), // NB. foo/v1 Bar is not a storage version, so it should be ignored
-						test.FakeCustomResourceDefinition("foo", "Baz", "v1"),
+						test.FakeNamespacedCustomResourceDefinition("foo", "Bar", "v2", "v1"), // NB. foo/v1 Bar is not a storage version, so it should be ignored
+						test.FakeNamespacedCustomResourceDefinition("foo", "Baz", "v1"),
 					),
 			},
-			want: []metav1.TypeMeta{
-				{APIVersion: "foo/v2", Kind: "Bar"},
-				{APIVersion: "foo/v1", Kind: "Baz"},
-				{APIVersion: "v1", Kind: "Secret"},
-				{APIVersion: "v1", Kind: "ConfigMap"},
+			want: map[string]*discoveryTypeInfo{
+				"bars.foo": {
+					typeMeta:           metav1.TypeMeta{Kind: "Bar", APIVersion: "foo/v2"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "Namespaced",
+				},
+				"bazs.foo": {
+					typeMeta:           metav1.TypeMeta{Kind: "Baz", APIVersion: "foo/v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "Namespaced",
+				},
+				"secrets.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+				"configmaps.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Enforce force move for Cluster and ClusterResourceSet",
+			fields: fields{
+				proxy: test.NewFakeProxy().
+					WithObjs(
+						test.FakeNamespacedCustomResourceDefinition("cluster.x-k8s.io", "Cluster", "v1alpha4"),
+						test.FakeNamespacedCustomResourceDefinition("addons.cluster.x-k8s.io", "ClusterResourceSet", "v1alpha4"),
+					),
+			},
+			want: map[string]*discoveryTypeInfo{
+				"clusters.cluster.x-k8s.io": {
+					typeMeta:           metav1.TypeMeta{Kind: "Cluster", APIVersion: "cluster.x-k8s.io/v1alpha4"},
+					forceMove:          true,
+					forceMoveHierarchy: true,
+					scope:              "Namespaced",
+				},
+				"clusterresourcesets.addons.cluster.x-k8s.io": {
+					typeMeta:           metav1.TypeMeta{Kind: "ClusterResourceSet", APIVersion: "addons.cluster.x-k8s.io/v1alpha4"},
+					forceMove:          true,
+					forceMoveHierarchy: true,
+					scope:              "Namespaced",
+				},
+				"secrets.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+				"configmaps.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Identified Cluster scoped types",
+			fields: fields{
+				proxy: test.NewFakeProxy().
+					WithObjs(
+						test.FakeClusterCustomResourceDefinition("infrastructure.cluster.x-k8s.io", "GenericClusterInfrastructureIdentity", "v1alpha4"),
+					),
+			},
+			want: map[string]*discoveryTypeInfo{
+				"genericclusterinfrastructureidentitys.infrastructure.cluster.x-k8s.io": {
+					typeMeta:           metav1.TypeMeta{Kind: "GenericClusterInfrastructureIdentity", APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "Cluster",
+				},
+				"secrets.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+				"configmaps.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Identified force move label",
+			fields: fields{
+				proxy: test.NewFakeProxy().
+					WithObjs(
+						func() client.Object {
+							crd := test.FakeNamespacedCustomResourceDefinition("foo", "Bar", "v1")
+							crd.Labels[clusterctlv1.ClusterctlMoveLabelName] = ""
+							return crd
+						}(),
+					),
+			},
+			want: map[string]*discoveryTypeInfo{
+				"bars.foo": {
+					typeMeta:           metav1.TypeMeta{Kind: "Bar", APIVersion: "foo/v1"},
+					forceMove:          true,
+					forceMoveHierarchy: false,
+					scope:              "Namespaced",
+				},
+				"secrets.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+				"configmaps.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Identified force move hierarchy label",
+			fields: fields{
+				proxy: test.NewFakeProxy().
+					WithObjs(
+						func() client.Object {
+							crd := test.FakeNamespacedCustomResourceDefinition("foo", "Bar", "v1")
+							crd.Labels[clusterctlv1.ClusterctlMoveHierarchyLabelName] = ""
+							return crd
+						}(),
+					),
+			},
+			want: map[string]*discoveryTypeInfo{
+				"bars.foo": {
+					typeMeta:           metav1.TypeMeta{Kind: "Bar", APIVersion: "foo/v1"},
+					forceMove:          true, // force move is implicit when there is forceMoveHierarchy
+					forceMoveHierarchy: true,
+					scope:              "Namespaced",
+				},
+				"secrets.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
+				"configmaps.v1": {
+					typeMeta:           metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					forceMove:          false,
+					forceMoveHierarchy: false,
+					scope:              "",
+				},
 			},
 			wantErr: false,
 		},
@@ -71,20 +226,18 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 			}
 
 			g.Expect(err).NotTo(HaveOccurred())
-
-			discoveryTypeMetas := []metav1.TypeMeta{}
-			for _, discoveryType := range graph.types {
-				discoveryTypeMetas = append(discoveryTypeMetas, discoveryType.typeMeta)
-			}
-			g.Expect(discoveryTypeMetas).To(ConsistOf(tt.want))
+			g.Expect(graph.types).To(Equal(tt.want))
 		})
 	}
 }
 
 type wantGraphItem struct {
-	virtual    bool
-	owners     []string
-	softOwners []string
+	virtual            bool
+	isGlobal           bool
+	forceMove          bool
+	forceMoveHierarchy bool
+	owners             []string
+	softOwners         []string
 }
 
 type wantGraph struct {
@@ -100,6 +253,9 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 		gotNode, ok := got.uidToNode[types.UID(uid)]
 		g.Expect(ok).To(BeTrue(), "node %q not found", uid)
 		g.Expect(gotNode.virtual).To(Equal(wantNode.virtual), "node %q.virtual does not have the expected value", uid)
+		g.Expect(gotNode.isGlobal).To(Equal(wantNode.isGlobal), "node %q.isGlobal does not have the expected value", uid)
+		g.Expect(gotNode.forceMove).To(Equal(wantNode.forceMove), "node %q.forceMove does not have the expected value", uid)
+		g.Expect(gotNode.forceMoveHierarchy).To(Equal(wantNode.forceMoveHierarchy), "node %q.forceMoveHierarchy does not have the expected value", uid)
 		g.Expect(gotNode.owners).To(HaveLen(len(wantNode.owners)), "node %q.owner does not have the expected length", uid)
 
 		for _, wantOwner := range wantNode.owners {
@@ -330,7 +486,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -350,14 +509,17 @@ var objectGraphsTests = []struct {
 		},
 	},
 	{
-		name: "Cluster with force move label",
+		name: "Cluster with cloud config secret with the force move label",
 		args: objectGraphTestArgs{
 			objs: test.NewFakeCluster("ns1", "cluster1").
 				WithCloudConfigSecret().Objs(),
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -373,7 +535,9 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"/v1, Kind=Secret, ns1/cluster1-cloud-config": {},
+				"/v1, Kind=Secret, ns1/cluster1-cloud-config": {
+					forceMove: true,
+				},
 			},
 		},
 	},
@@ -389,7 +553,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -405,7 +572,10 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster2": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2",
@@ -434,7 +604,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -490,7 +663,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -562,7 +738,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -637,7 +816,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -703,7 +885,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -779,7 +964,10 @@ var objectGraphsTests = []struct {
 					},
 				},
 
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -827,7 +1015,10 @@ var objectGraphsTests = []struct {
 						"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/cluster1-m1",
 					},
 				},
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster2": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2",
@@ -896,7 +1087,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -912,7 +1106,10 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSet, ns1/crs1": {},
+				"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSet, ns1/crs1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSetBinding, ns1/cluster1": {
 					owners: []string{
 						"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSet, ns1/crs1",
@@ -952,7 +1149,10 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -968,7 +1168,10 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2": {},
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster2": {
 					owners: []string{
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2",
@@ -984,7 +1187,10 @@ var objectGraphsTests = []struct {
 						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster2",
 					},
 				},
-				"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSet, ns1/crs1": {},
+				"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSet, ns1/crs1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
 				"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSetBinding, ns1/cluster1": {
 					owners: []string{
 						"addons.cluster.x-k8s.io/v1alpha4, Kind=ClusterResourceSet, ns1/crs1",
@@ -1018,7 +1224,9 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, ns1/externalObject1": {},
+				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, ns1/externalObject1": {
+					forceMove: true,
+				},
 			},
 		},
 	},
@@ -1026,11 +1234,14 @@ var objectGraphsTests = []struct {
 		// NOTE: External objects are CRD types installed by clusterctl, but not directly related with the CAPI hierarchy of objects. e.g. IPAM claims.
 		name: "Global External Objects with force move label",
 		args: objectGraphTestArgs{
-			objs: test.NewFakeExternalObject("", "externalObject1").Objs(),
+			objs: test.NewFakeClusterExternalObject("externalObject1").Objs(),
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, /externalObject1": {},
+				"external.cluster.x-k8s.io/v1alpha4, Kind=GenericClusterExternalObject, /externalObject1": {
+					forceMove: true,
+					isGlobal:  true,
+				},
 			},
 		},
 	},
@@ -1039,12 +1250,69 @@ var objectGraphsTests = []struct {
 		name: "Secrets from provider's namespace",
 		args: objectGraphTestArgs{
 			objs: []client.Object{
-				test.NewSecret("infra1", "credentials"),
+				test.NewSecret("infra-system", "credentials"),
 			},
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"/v1, Kind=Secret, infra1/credentials": {},
+				"/v1, Kind=Secret, infra-system/credentials": {},
+			},
+		},
+	},
+	{
+		name: "Cluster owning a secret with infrastructure credentials",
+		args: objectGraphTestArgs{
+			objs: test.NewFakeCluster("ns1", "cluster1").
+				WithCredentialSecret().Objs(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-credentials": {
+					owners: []string{
+						"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "A global identity for an infrastructure provider owning a Secret with credentials in the provider's namespace",
+		args: objectGraphTestArgs{
+			objs: test.NewFakeClusterInfrastructureIdentity("infra1-identity").
+				WithSecretIn("infra1-system"). // a secret in infra1-system namespace, where an infrastructure provider is installed
+				Objs(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericClusterInfrastructureIdentity, /infra1-identity": {
+					isGlobal:           true,
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"/v1, Kind=Secret, infra1-system/infra1-identity-credentials": {
+					owners: []string{
+						"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericClusterInfrastructureIdentity, /infra1-identity",
+					},
+				},
 			},
 		},
 	},
@@ -1059,6 +1327,24 @@ func getDetachedObjectGraphWihObjs(objs []client.Object) (*objectGraph, error) {
 		}
 		graph.addObj(u)
 	}
+
+	// given that we are not relying on discovery while testing in "detached mode (without a fake client)" it is required to:
+	for _, node := range graph.getNodes() {
+		// enforce forceMoveHierarchy for Clusters, ClusterResourceSets, GenericClusterInfrastructureIdentity
+		if node.identity.Kind == "Cluster" || node.identity.Kind == "ClusterResourceSet" || node.identity.Kind == "GenericClusterInfrastructureIdentity" {
+			node.forceMove = true
+			node.forceMoveHierarchy = true
+		}
+		// enforce forceMove for GenericExternalObject, GenericClusterExternalObject
+		if node.identity.Kind == "GenericExternalObject" || node.identity.Kind == "GenericClusterExternalObject" {
+			node.forceMove = true
+		}
+		// enforce isGlobal for GenericClusterInfrastructureIdentity and GenericClusterExternalObject
+		if node.identity.Kind == "GenericClusterInfrastructureIdentity" || node.identity.Kind == "GenericClusterExternalObject" {
+			node.isGlobal = true
+		}
+	}
+
 	return graph, nil
 }
 
@@ -1086,7 +1372,7 @@ func getObjectGraphWithObjs(objs []client.Object) *objectGraph {
 		fromProxy.WithObjs(o)
 	}
 
-	fromProxy.WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.2.3", "infra1")
+	fromProxy.WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.2.3", "infra1-system")
 	inventory := newInventoryClient(fromProxy, fakePollImmediateWaiter)
 
 	return newObjectGraph(fromProxy, inventory)
@@ -1101,8 +1387,7 @@ func getFakeProxyWithCRDs() *test.FakeProxy {
 }
 
 func getFakeDiscoveryTypes(graph *objectGraph) error {
-	err := graph.getDiscoveryTypes()
-	if err != nil {
+	if err := graph.getDiscoveryTypes(); err != nil {
 		return err
 	}
 
@@ -1163,7 +1448,10 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+					"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
 					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
 							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -1179,7 +1467,10 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
 						},
 					},
-					"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/cluster1": {},
+					"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
 					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns2/cluster1": {
 						owners: []string{
 							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/cluster1",
@@ -1211,7 +1502,10 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {},
+					"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
 					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
 							"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1",
@@ -1239,7 +1533,9 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, ns1/externalObject1": {},
+					"external.cluster.x-k8s.io/v1alpha4, Kind=GenericExternalObject, ns1/externalObject1": {
+						forceMove: true,
+					},
 				},
 			},
 		},
@@ -1249,12 +1545,12 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			args: args{
 				namespace: "ns1", // read only from ns1
 				objs: []client.Object{
-					test.NewSecret("infra1", "credentials"), // a secret in infra1 namespace, where an infrastructure provider is installed
+					test.NewSecret("infra1-system", "infra1-credentials"), // a secret in infra1-system namespace, where an infrastructure provider is installed
 				},
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"/v1, Kind=Secret, infra1/credentials": {},
+					"/v1, Kind=Secret, infra1-system/infra1-credentials": {},
 				},
 			},
 		},
@@ -1544,8 +1840,8 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			// we want to check that soft dependent nodes are considered part of the cluster, so we make sure to call SetSoftDependants before SetClusterTenants
 			gb.setSoftOwnership()
 
-			// finally test SetClusterTenants
-			gb.setClusterTenants()
+			// finally test SetTenants
+			gb.setTenants()
 
 			gotClusters := gb.getClusters()
 			sort.Slice(gotClusters, func(i, j int) bool {
@@ -1560,9 +1856,10 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 
 				gotTenants := []string{}
 				for _, node := range gb.uidToNode {
-					for c := range node.tenantClusters {
+					for c := range node.tenant {
 						if c.identity.UID == cluster.identity.UID {
 							gotTenants = append(gotTenants, string(node.identity.UID))
+							g.Expect(node.isGlobalHierarchy).To(BeFalse()) // We should make sure that everything below a Cluster is not considered global
 						}
 					}
 				}
@@ -1643,7 +1940,7 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			gb, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			gb.setCRSTenants()
+			gb.setTenants()
 
 			gotCRSs := gb.getCRSs()
 			sort.Slice(gotCRSs, func(i, j int) bool {
@@ -1658,9 +1955,74 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 
 				gotTenants := []string{}
 				for _, node := range gb.uidToNode {
-					for c := range node.tenantCRSs {
+					for c := range node.tenant {
 						if c.identity.UID == crs.identity.UID {
 							gotTenants = append(gotTenants, string(node.identity.UID))
+							g.Expect(node.isGlobalHierarchy).To(BeFalse()) // We should make sure that everything below a CRS is not considered global
+						}
+					}
+				}
+
+				g.Expect(gotTenants).To(ConsistOf(wantTenants))
+			}
+		})
+	}
+}
+
+func Test_objectGraph_setGlobalIdentityTenants(t *testing.T) {
+	type fields struct {
+		objs []client.Object
+	}
+	tests := []struct {
+		name         string
+		fields       fields
+		wantIdentity map[string][]string
+	}{
+		{
+			name: "A global identity for an infrastructure provider owning a Secret with credentials in the provider's namespace",
+			fields: fields{
+				objs: test.NewFakeClusterInfrastructureIdentity("infra1-identity").
+					WithSecretIn("infra1-system"). // a secret in infra1-system namespace, where an infrastructure provider is installed
+					Objs(),
+			},
+			wantIdentity: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
+				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericClusterInfrastructureIdentity, /infra1-identity": {
+					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericClusterInfrastructureIdentity, /infra1-identity", // the global identity should be tenant of itself
+					"/v1, Kind=Secret, infra1-system/infra1-identity-credentials",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			gb, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gb.setTenants()
+
+			gotIdentity := []*node{}
+			for _, n := range gb.getNodes() {
+				if n.forceMoveHierarchy {
+					gotIdentity = append(gotIdentity, n)
+				}
+			}
+			sort.Slice(gotIdentity, func(i, j int) bool {
+				return gotIdentity[i].identity.UID < gotIdentity[j].identity.UID
+			})
+			g.Expect(gotIdentity).To(HaveLen(len(tt.wantIdentity)))
+
+			for _, i := range gotIdentity {
+				wantTenants, ok := tt.wantIdentity[string(i.identity.UID)]
+				g.Expect(ok).To(BeTrue())
+
+				gotTenants := []string{}
+				for _, node := range gb.uidToNode {
+					for c := range node.tenant {
+						if c.identity.UID == i.identity.UID {
+							gotTenants = append(gotTenants, string(node.identity.UID))
+							g.Expect(node.isGlobalHierarchy).To(BeTrue()) // We should make sure that everything below a global object is considered global
 						}
 					}
 				}

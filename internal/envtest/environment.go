@@ -103,7 +103,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func New() *Environment {
+func New(uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
 	root := path.Join(path.Dir(filename), "..", "..")
@@ -134,11 +134,17 @@ func New() *Environment {
 		panic(err)
 	}
 
+	objs := []client.Object{}
+	if len(uncachedObjs) > 0 {
+		objs = append(objs, uncachedObjs...)
+	}
+
 	options := manager.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-		CertDir:            env.WebhookInstallOptions.LocalServingCertDir,
-		Port:               env.WebhookInstallOptions.LocalServingPort,
+		Scheme:                scheme.Scheme,
+		MetricsBindAddress:    "0",
+		CertDir:               env.WebhookInstallOptions.LocalServingCertDir,
+		Port:                  env.WebhookInstallOptions.LocalServingPort,
+		ClientDisableCacheFor: objs,
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)

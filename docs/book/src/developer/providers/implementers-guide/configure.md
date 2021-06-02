@@ -43,15 +43,6 @@ And then, we have to add that patch to [`config/kustomization.yaml`][kustomizeya
 ```yaml
 patchesStrategicMerge
 - manager_image_patch.yaml
-# Protect the /metrics endpoint by putting it behind auth.
-# Only one of manager_auth_proxy_patch.yaml and
-# manager_prometheus_metrics_patch.yaml should be enabled.
-- manager_auth_proxy_patch.yaml
-# If you want your controller-manager to expose the /metrics
-# endpoint w/o any authn/z, uncomment the following line and
-# comment manager_auth_proxy_patch.yaml.
-# Only one of manager_auth_proxy_patch.yaml and
-# manager_prometheus_metrics_patch.yaml should be enabled.
 - manager_config.yaml
 ```
 

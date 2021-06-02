@@ -31,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	fake2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
+	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -45,36 +46,44 @@ func TestUpdateEtcdVersionInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set etcd version when local etcd",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n" +
-				"etcd:\n" +
-				"  local: {}\n",
+			clusterConfigurationData: yaml.Raw(`
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  local: {}
+`),
 			newImageRepository: "example.com/k8s",
 			newImageTag:        "v1.6.0",
-			wantClusterConfiguration: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"controllerManager: {}\n" +
-				"dns: {}\n" +
-				"etcd:\n" +
-				"  local:\n" +
-				"    imageRepository: example.com/k8s\n" +
-				"    imageTag: v1.6.0\n" +
-				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
-				"scheduler: {}\n",
+			wantClusterConfiguration: yaml.Raw(`
+apiServer: {}
+apiVersion: kubeadm.k8s.io/v1beta2
+controllerManager: {}
+dns: {}
+etcd:
+  local:
+    imageRepository: example.com/k8s
+    imageTag: v1.6.0
+kind: ClusterConfiguration
+networking: {}
+scheduler: {}
+`),
 		},
 		{
 			name: "no op when external etcd",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n" +
-				"etcd:\n" +
-				"  external: {}\n",
+			clusterConfigurationData: yaml.Raw(`
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  external: {}
+`),
 			newImageRepository: "example.com/k8s",
 			newImageTag:        "v1.6.0",
-			wantClusterConfiguration: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n" +
-				"etcd:\n" +
-				"  external: {}\n",
+			wantClusterConfiguration: yaml.Raw(`
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  external: {}
+`),
 		},
 	}
 
@@ -442,19 +451,21 @@ func TestReconcileEtcdMembers(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			clusterStatusKey: "apiEndpoints:\n" +
-				"  ip-10-0-0-1.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.1\n" +
-				"    bindPort: 6443\n" +
-				"  ip-10-0-0-2.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.2\n" +
-				"    bindPort: 6443\n" +
-				"    someFieldThatIsAddedInTheFuture: bar\n" +
-				"  ip-10-0-0-3.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.3\n" +
-				"    bindPort: 6443\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterStatus\n",
+			clusterStatusKey: yaml.Raw(`
+apiEndpoints:
+  ip-10-0-0-1.ec2.internal:
+    advertiseAddress: 10.0.0.1
+    bindPort: 6443
+  ip-10-0-0-2.ec2.internal:
+    advertiseAddress: 10.0.0.2
+    bindPort: 6443
+    someFieldThatIsAddedInTheFuture: bar
+  ip-10-0-0-3.ec2.internal:
+    advertiseAddress: 10.0.0.3
+    bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterStatus
+`),
 		},
 	}
 	kubeadmConfigWithoutClusterStatus := kubeadmConfig.DeepCopy()
@@ -516,16 +527,18 @@ func TestReconcileEtcdMembers(t *testing.T) {
 					client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 					&actualConfig,
 				)).To(Succeed())
-
-				g.Expect(actualConfig.Data[clusterStatusKey]).To(Equal("apiEndpoints:\n" +
-					"  ip-10-0-0-1.ec2.internal:\n" +
-					"    advertiseAddress: 10.0.0.1\n" +
-					"    bindPort: 6443\n" +
-					"  ip-10-0-0-2.ec2.internal:\n" +
-					"    advertiseAddress: 10.0.0.2\n" +
-					"    bindPort: 6443\n" +
-					"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-					"kind: ClusterStatus\n"))
+				expectedOutput := yaml.Raw(`
+apiEndpoints:
+  ip-10-0-0-1.ec2.internal:
+    advertiseAddress: 10.0.0.1
+    bindPort: 6443
+  ip-10-0-0-2.ec2.internal:
+    advertiseAddress: 10.0.0.2
+    bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterStatus
+`)
+				g.Expect(actualConfig.Data[clusterStatusKey]).To(Equal(expectedOutput))
 			},
 		},
 		{
@@ -606,37 +619,45 @@ func TestRemoveNodeFromKubeadmConfigMap(t *testing.T) {
 		{
 			name:        "removes the api endpoint",
 			apiEndpoint: "ip-10-0-0-2.ec2.internal",
-			clusterStatusData: "apiEndpoints:\n" +
-				"  ip-10-0-0-1.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.1\n" +
-				"    bindPort: 6443\n" +
-				"  ip-10-0-0-2.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.2\n" +
-				"    bindPort: 6443\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterStatus\n",
-			wantClusterStatus: "apiEndpoints:\n" +
-				"  ip-10-0-0-1.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.1\n" +
-				"    bindPort: 6443\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterStatus\n",
+			clusterStatusData: yaml.Raw(`
+apiEndpoints:
+  ip-10-0-0-1.ec2.internal:
+    advertiseAddress: 10.0.0.1
+    bindPort: 6443
+  ip-10-0-0-2.ec2.internal:
+    advertiseAddress: 10.0.0.2
+    bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterStatus
+`),
+			wantClusterStatus: yaml.Raw(`
+apiEndpoints:
+  ip-10-0-0-1.ec2.internal:
+    advertiseAddress: 10.0.0.1
+    bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterStatus
+`),
 		},
 		{
 			name:        "no op if the api endpoint does not exists",
 			apiEndpoint: "ip-10-0-0-2.ec2.internal",
-			clusterStatusData: "apiEndpoints:\n" +
-				"  ip-10-0-0-1.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.1\n" +
-				"    bindPort: 6443\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterStatus\n",
-			wantClusterStatus: "apiEndpoints:\n" +
-				"  ip-10-0-0-1.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.1\n" +
-				"    bindPort: 6443\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterStatus\n",
+			clusterStatusData: yaml.Raw(`
+apiEndpoints:
+  ip-10-0-0-1.ec2.internal:
+    advertiseAddress: 10.0.0.1
+    bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterStatus
+`),
+			wantClusterStatus: yaml.Raw(`
+apiEndpoints:
+  ip-10-0-0-1.ec2.internal:
+    advertiseAddress: 10.0.0.1
+    bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterStatus
+`),
 		},
 	}
 	for _, tt := range tests {

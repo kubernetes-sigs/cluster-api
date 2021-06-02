@@ -59,8 +59,13 @@ func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func Convert_v1beta3_InitConfiguration_To_v1alpha4_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
-	// InitConfiguration.CertificateKey exists in v1beta3 types but not in bootstrapv1.InitConfiguration (Cluster API does not uses automatic copy certs). Ignoring when converting.
+	// InitConfiguration.CertificateKey and SkipPhases exists in v1beta3 types but not in bootstrapv1.InitConfiguration (Cluster API does not uses automatic copy certs or does not support SkipPhases for now)). Ignoring when converting.
 	return autoConvert_v1beta3_InitConfiguration_To_v1alpha4_InitConfiguration(in, out, s)
+}
+
+func Convert_v1beta3_JoinConfiguration_To_v1alpha4_JoinConfiguration(in *JoinConfiguration, out *bootstrapv1.JoinConfiguration, s apimachineryconversion.Scope) error {
+	// JoinConfiguration.SkipPhases exists in v1beta3 types but not in bootstrapv1.JoinConfiguration (Cluster API does not support SkipPhases for now). Ignoring when converting.
+	return autoConvert_v1beta3_JoinConfiguration_To_v1alpha4_JoinConfiguration(in, out, s)
 }
 
 func Convert_v1beta3_NodeRegistrationOptions_To_v1alpha4_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {

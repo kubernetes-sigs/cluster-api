@@ -99,6 +99,11 @@ var (
 	ZeroDuration = metav1.Duration{}
 )
 
+const (
+	// MachineNodeNameIndex is used by the Machine Controller to index Machines by Node name, and add a watch on Nodes.
+	MachineNodeNameIndex = "status.nodeRef.name"
+)
+
 // MachineAddressType describes a valid MachineAddress type.
 type MachineAddressType string
 
@@ -109,11 +114,6 @@ const (
 	MachineInternalIP  MachineAddressType = "InternalIP"
 	MachineExternalDNS MachineAddressType = "ExternalDNS"
 	MachineInternalDNS MachineAddressType = "InternalDNS"
-)
-
-const (
-	// MachineNodeNameIndex is used by the Machine Controller to index Machines by Node name, and add a watch on Nodes.
-	MachineNodeNameIndex = "status.nodeRef.name"
 )
 
 // MachineAddress contains information for the node's address.

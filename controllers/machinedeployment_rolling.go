@@ -162,7 +162,7 @@ func (r *MachineDeploymentReconciler) reconcileOldMachineSets(ctx context.Contex
 	// and cause timeout. See https://github.com/kubernetes/kubernetes/issues/16737
 	oldMSs, cleanupCount, err := r.cleanupUnhealthyReplicas(ctx, oldMSs, deployment, maxScaledDown)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	log.V(4).Info("Cleaned up unhealthy replicas from old MachineSets", "count", cleanupCount)

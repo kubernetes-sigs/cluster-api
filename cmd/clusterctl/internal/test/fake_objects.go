@@ -45,6 +45,7 @@ type FakeCluster struct {
 	machineSets           []*FakeMachineSet
 	machines              []*FakeMachine
 	withCloudConfigSecret bool
+	withCredentialSecret  bool
 }
 
 // NewFakeCluster return a FakeCluster that can generate a cluster object, all its own ancillary objects:
@@ -72,6 +73,11 @@ func (f *FakeCluster) WithMachinePools(fakeMachinePool ...*FakeMachinePool) *Fak
 
 func (f *FakeCluster) WithCloudConfigSecret() *FakeCluster {
 	f.withCloudConfigSecret = true
+	return f
+}
+
+func (f *FakeCluster) WithCredentialSecret() *FakeCluster {
+	f.withCredentialSecret = true
 	return f
 }
 
@@ -172,6 +178,28 @@ func (f *FakeCluster) Objs() []client.Object {
 			clusterctlv1.ClusterctlMoveLabelName: "",
 		})
 		objs = append(objs, cloudSecret)
+	}
+
+	if f.withCredentialSecret {
+		credentialSecret := &corev1.Secret{ // provided by the user -- ** NOT RECONCILED **
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      f.name + "-credentials",
+				Namespace: f.namespace,
+			},
+		}
+		credentialSecret.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				APIVersion: cluster.APIVersion,
+				Kind:       cluster.Kind,
+				Name:       cluster.Name,
+				UID:        cluster.UID,
+			},
+		})
+		objs = append(objs, credentialSecret)
 	}
 
 	// if the cluster has a control plane object
@@ -1119,6 +1147,7 @@ type FakeExternalObject struct {
 	namespace string
 }
 
+// NewFakeExternalObject generates a new external object (a CR not related to the Cluster).
 func NewFakeExternalObject(namespace, name string) *FakeExternalObject {
 	return &FakeExternalObject{
 		name:      name,
@@ -1137,10 +1166,81 @@ func (f *FakeExternalObject) Objs() []client.Object {
 			Namespace: f.namespace,
 		},
 	}
-
 	setUID(externalObj)
 
 	return []client.Object{externalObj}
+}
+
+type FakeClusterExternalObject struct {
+	name string
+}
+
+// NewFakeClusterExternalObject generates a new global external object (a CR not related to the Cluster).
+func NewFakeClusterExternalObject(name string) *FakeClusterExternalObject {
+	return &FakeClusterExternalObject{
+		name: name,
+	}
+}
+
+func (f *FakeClusterExternalObject) Objs() []client.Object {
+	externalObj := &fakeexternal.GenericClusterExternalObject{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: fakeexternal.GroupVersion.String(),
+			Kind:       "GenericClusterExternalObject",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: f.name,
+		},
+	}
+	setUID(externalObj)
+
+	return []client.Object{externalObj}
+}
+
+type FakeClusterInfrastructureIdentity struct {
+	name            string
+	secretNamespace string
+}
+
+// NewFakeClusterInfrastructureIdentity generates a new global cluster identity object.
+func NewFakeClusterInfrastructureIdentity(name string) *FakeClusterInfrastructureIdentity {
+	return &FakeClusterInfrastructureIdentity{
+		name: name,
+	}
+}
+
+func (f *FakeClusterInfrastructureIdentity) WithSecretIn(namespace string) *FakeClusterInfrastructureIdentity {
+	f.secretNamespace = namespace
+	return f
+}
+
+func (f *FakeClusterInfrastructureIdentity) Objs() []client.Object {
+	identityObj := &fakeinfrastructure.GenericClusterInfrastructureIdentity{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: fakeinfrastructure.GroupVersion.String(),
+			Kind:       "GenericClusterInfrastructureIdentity",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: f.name,
+		},
+	}
+	setUID(identityObj)
+	objs := []client.Object{identityObj}
+
+	if f.secretNamespace != "" {
+		secret := NewSecret(f.secretNamespace, fmt.Sprintf("%s-credentials", f.name))
+		setUID(secret)
+
+		secret.SetOwnerReferences(append(secret.OwnerReferences, metav1.OwnerReference{
+			APIVersion: identityObj.APIVersion,
+			Kind:       identityObj.Kind,
+			Name:       identityObj.Name,
+			UID:        identityObj.UID,
+		}))
+		objs = append(objs, secret)
+	}
+
+	return objs
 }
 
 // NewSecret generates a new secret with the given namespace and name.
@@ -1192,8 +1292,21 @@ func setUID(obj client.Object) {
 	accessor.SetUID(types.UID(uid))
 }
 
-// FakeCustomResourceDefinition returns a fake CRD object for the given group/versions/kind.
-func FakeCustomResourceDefinition(group string, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
+// FakeClusterCustomResourceDefinition returns a fake CRD object for the given group/versions/kind.
+func FakeClusterCustomResourceDefinition(group string, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
+	crd := fakeCRD(group, kind, versions)
+	crd.Spec.Scope = apiextensionsv1.ClusterScoped
+	return crd
+}
+
+// FakeNamespacedCustomResourceDefinition returns a fake CRD object for the given group/versions/kind.
+func FakeNamespacedCustomResourceDefinition(group string, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
+	crd := fakeCRD(group, kind, versions)
+	crd.Spec.Scope = apiextensionsv1.NamespaceScoped
+	return crd
+}
+
+func fakeCRD(group string, kind string, versions []string) *apiextensionsv1.CustomResourceDefinition {
 	crd := &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       apiextensionsv1.SchemeGroupVersion.String(),
@@ -1221,32 +1334,40 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 		}
 		crd.Spec.Versions = append(crd.Spec.Versions, versionObj)
 	}
-
 	return crd
 }
 
 // FakeCRDList returns FakeCustomResourceDefinitions for all the Types used in the test object graph.
 func FakeCRDList() []*apiextensionsv1.CustomResourceDefinition {
-	version := "v1alpha4"
+	version := clusterv1.GroupVersion.Version
 
-	// Ensure external objects are of a CRD type with the "force move" label
-	externalCRD := FakeCustomResourceDefinition(fakeexternal.GroupVersion.Group, "GenericExternalObject", version)
+	// Ensure CRD for external objects is set as for "force move"
+	externalCRD := FakeNamespacedCustomResourceDefinition(fakeexternal.GroupVersion.Group, "GenericExternalObject", version)
 	externalCRD.Labels[clusterctlv1.ClusterctlMoveLabelName] = ""
 
+	clusterExternalCRD := FakeClusterCustomResourceDefinition(fakeexternal.GroupVersion.Group, "GenericClusterExternalObject", version)
+	clusterExternalCRD.Labels[clusterctlv1.ClusterctlMoveLabelName] = ""
+
+	// Ensure CRD for GenericClusterInfrastructureIdentity is set for "force move hierarchy"
+	clusterInfrastructureIdentityCRD := FakeClusterCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericClusterInfrastructureIdentity", version)
+	clusterInfrastructureIdentityCRD.Labels[clusterctlv1.ClusterctlMoveHierarchyLabelName] = ""
+
 	return []*apiextensionsv1.CustomResourceDefinition{
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Cluster", version),
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Machine", version),
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
-		FakeCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", version),
-		FakeCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSet", version),
-		FakeCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSetBinding", version),
-		FakeCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlane", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureCluster", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachine", version),
-		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachineTemplate", version),
-		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "GenericBootstrapConfig", version),
-		FakeCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "GenericBootstrapConfigTemplate", version),
+		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "Cluster", version),
+		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "Machine", version),
+		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
+		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
+		FakeNamespacedCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", version),
+		FakeNamespacedCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSet", version),
+		FakeNamespacedCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSetBinding", version),
+		FakeNamespacedCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlane", version),
+		FakeNamespacedCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureCluster", version),
+		FakeNamespacedCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachine", version),
+		FakeNamespacedCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachineTemplate", version),
+		FakeNamespacedCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "GenericBootstrapConfig", version),
+		FakeNamespacedCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "GenericBootstrapConfigTemplate", version),
 		externalCRD,
+		clusterExternalCRD,
+		clusterInfrastructureIdentityCRD,
 	}
 }

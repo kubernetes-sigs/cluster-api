@@ -172,3 +172,22 @@ The `clusterctl.cluster.x-k8s.io` labels, the `cluster.x-k8s.io/provider` labels
 If this happens, there are no guarantees about the proper functioning of `clusterctl`.
 
 </aside>
+
+## Cert-manager
+
+Cluster API providers require a cert-manager version supporting the `cert-manager.io/v1` API to be installed in the cluster.
+
+While doing init, clusterctl checks if there is a version of cert-manager already installed. If not, clusterctl will 
+install a default version (currently cert-manager v1.1.0). See [clusterctl configuration](../configuration.md) for
+available options to customize this operation.
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Please note that, if clusterctl installs cert-manager, it will take care of its lifecycle, eventually upgrading it
+during clusterctl upgrade. Instead, if cert-manager is provided by the users, the user is responsible for 
+upgrading this component when required.
+
+</aside>
+

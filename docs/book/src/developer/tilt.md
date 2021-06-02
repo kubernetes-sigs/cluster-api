@@ -40,6 +40,7 @@ First, make sure you have a kind cluster and that your `KUBECONFIG` is set up co
 ``` bash
 kind create cluster
 ```
+IMPORTANT, if you are planning to use the CAPD provider, check that you created the required mounts for allowing the provider to access the Docker socket on the host; see [quick start](https://cluster-api.sigs.k8s.io/user/quick-start.html#usage) for instructions.
 
 ### Create a tilt-settings.json file
 

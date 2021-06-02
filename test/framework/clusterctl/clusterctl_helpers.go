@@ -185,6 +185,16 @@ type ApplyClusterTemplateAndWaitInput struct {
 	WaitForMachineDeployments    []interface{}
 	WaitForMachinePools          []interface{}
 	Args                         []string // extra args to be used during `kubectl apply`
+	ControlPlaneWaiters
+}
+
+// Waiter is a function that runs and waits for a long running operation to finish and updates the result.
+type Waiter func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult)
+
+// ControlPlaneWaiters are Waiter functions for the control plane.
+type ControlPlaneWaiters struct {
+	WaitForControlPlaneInitialized   Waiter
+	WaitForControlPlaneMachinesReady Waiter
 }
 
 type ApplyClusterTemplateAndWaitResult struct {
@@ -197,6 +207,7 @@ type ApplyClusterTemplateAndWaitResult struct {
 // ApplyClusterTemplateAndWait gets a cluster template using clusterctl, and waits for the cluster to be ready.
 // Important! this method assumes the cluster uses a KubeadmControlPlane and MachineDeployments.
 func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
+	setDefaults(&input)
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ApplyClusterTemplateAndWait")
 	Expect(result).ToNot(BeNil(), "Invalid argument. result can't be nil when calling ApplyClusterTemplateAndWait")
@@ -237,10 +248,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	}, input.WaitForClusterIntervals...)
 
 	log.Logf("Waiting for control plane to be initialized")
-	result.ControlPlane = framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
-		Lister:  input.ClusterProxy.GetClient(),
-		Cluster: result.Cluster,
-	}, input.WaitForControlPlaneIntervals...)
+	input.WaitForControlPlaneInitialized(ctx, input, result)
 
 	if input.CNIManifestPath != "" {
 		log.Logf("Installing a CNI plugin to the workload cluster")
@@ -253,11 +261,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	}
 
 	log.Logf("Waiting for control plane to be ready")
-	framework.WaitForControlPlaneAndMachinesReady(ctx, framework.WaitForControlPlaneAndMachinesReadyInput{
-		GetLister:    input.ClusterProxy.GetClient(),
-		Cluster:      result.Cluster,
-		ControlPlane: result.ControlPlane,
-	}, input.WaitForControlPlaneIntervals...)
+	input.WaitForControlPlaneMachinesReady(ctx, input, result)
 
 	log.Logf("Waiting for the machine deployments to be provisioned")
 	result.MachineDeployments = framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
@@ -271,4 +275,27 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: result.Cluster,
 	}, input.WaitForMachineDeployments...)
+}
+
+// setDefaults sets the default values for ApplyClusterTemplateAndWaitInput if not set.
+// Currently, we set the default ControlPlaneWaiters here, which are implemented for KubeadmControlPlane.
+func setDefaults(input *ApplyClusterTemplateAndWaitInput) {
+	if input.WaitForControlPlaneInitialized == nil {
+		input.WaitForControlPlaneInitialized = func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
+			result.ControlPlane = framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
+				Lister:  input.ClusterProxy.GetClient(),
+				Cluster: result.Cluster,
+			}, input.WaitForControlPlaneIntervals...)
+		}
+	}
+
+	if input.WaitForControlPlaneMachinesReady == nil {
+		input.WaitForControlPlaneMachinesReady = func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
+			framework.WaitForControlPlaneAndMachinesReady(ctx, framework.WaitForControlPlaneAndMachinesReadyInput{
+				GetLister:    input.ClusterProxy.GetClient(),
+				Cluster:      result.Cluster,
+				ControlPlane: result.ControlPlane,
+			}, input.WaitForControlPlaneIntervals...)
+		}
+	}
 }

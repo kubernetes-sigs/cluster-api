@@ -14,9 +14,17 @@
 
 - The KIND version used for this release is v0.11.x
 
-## Upgrade kube-rbac-proxy to v0.8.0
+## :warning: Go Module changes :warning:
 
-- Find and replace the `kube-rbac-proxy` version (usually the image is `gcr.io/kubebuilder/kube-rbac-proxy`) and update it to `v0.8.0`.
+- The `test` folder now ships with its own Go module `sigs.k8s.io/cluster-api/test`.
+- The module is going to be tagged and versioned as part of the release.
+- Folks importing the test e2e framework or the docker infrastructure provider need to import the new module.
+  - When imported, the test module version should always match the Cluster API one.
+  - Add the following line in `go.mod` to replace the cluster-api dependency in the test module (change the version to your current Cluster API version):
+  ```
+  replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.x
+  ```
+- The CAPD go module in test/infrastructure/docker has been removed.
 
 ## Klog version
 
@@ -86,6 +94,14 @@ For a `/config` folder reference, please use the testdata in the Kubebuilder pro
 
 Provider's `/config` folder has the same structure of  `/config` folder in CAPI controllers.
 
+**Changes in the `/config/rbac` folder:**
+
+- Remove the `kube-rbac-proxy` configuration files:
+  - `auth_proxy_role.yaml`
+  - `auth_proxy_role_binding.yaml`
+  - `auth_proxy_service.yaml`
+-  Remove the references to the above files in `config/rbac/kustomization.yaml`
+
 **Changes in the `/config/webhook` folder:**
 
 1. Edit the `/config/webhook/kustomization.yaml` file:
@@ -115,7 +131,7 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
     ```
     - "--metrics-bind-addr=127.0.0.1:8080"
     ```
-    - Verify that fetaure flags required by your container are properly set
+    - Verify that feature flags required by your container are properly set
       (as it was in `/config/webhook/manager_webhook_patch.yaml`).
 1. Edit the `/config/manager/manager_auth_proxy_patch.yaml` file:
     - Remove the patch for the container with name `manager`
@@ -183,7 +199,7 @@ should be executed before this changes.
 **Changes in the `/config/certmanager` folder:**
 
 1. Edit the `/config/certmanager/certificates.yaml` file and replace all the occurrences of `cert-manager.io/v1alpha2`
-with `cert-manager.io/v1`
+   with `cert-manager.io/v1`
 
 **Changes in the `/config/default` folder:**
 
@@ -254,9 +270,9 @@ Only String values like "3%" or Int values e.g 3 are valid input values now. A s
 ## Required change to support externally managed infrastructure.
 
 - A new annotation `cluster.x-k8s.io/managed-by` has been introduced that allows cluster infrastructure to be managed
-externally.
+  externally.
 - When this annotation is added to an `InfraCluster` resource, the controller for these resources should not reconcile
-the resource.
+  the resource.
 - The `ResourceIsNotExternallyManaged` predicate is a useful helper to check for the annotation and the filter the resource easily:
   ```go
   c, err := ctrl.NewControllerManagedBy(mgr).
@@ -291,3 +307,27 @@ This function used to create a new fake client with the given scheme for testing
 and all the objects given as input were initialized with a resource version of "1".
 The behavior of having a resource version in fake client has been fixed in controller-runtime,
 and this function isn't needed anymore.
+
+## Required kustomize changes to remove Kubeadm-rbac-proxy
+
+NB. instructions assumes "Required kustomize changes to have a single manager watching all namespaces and answer to webhook calls"
+should be executed before this changes.
+
+**Changes in the `/config/default` folder:**
+1. Edit `/config/default/kustomization.yaml` and remove the `manager_auth_proxy_patch.yaml` item from the `patchesStrategicMerge` list.
+1. Delete the `/config/default/manager_auth_proxy_patch.yaml` file.
+
+**Changes in the `/config/manager` folder:**
+1. Edit `/config/manager/manager.yaml` and remove the `--metrics-bind-addr=127.0.0.1:8080` arg from the `args` list.
+
+**Changes in the `/config/rbac` folder:**
+1. Edit `/config/rbac/kustomization.yaml` and remove following items from the `resources` list.
+   - `auth_proxy_service.yaml`
+   - `auth_proxy_role.yaml`
+   - `auth_proxy_role_binding.yaml`
+1. Delete the `/config/rbac/auth_proxy_service.yaml` file.
+1. Delete the `/config/rbac/auth_proxy_role.yaml` file.
+1. Delete the `/config/rbac/auth_proxy_role_binding.yaml` file.
+
+**Changes in the `main.go` file:**
+1. Change the default value for the `metrics-bind-addr` from `:8080` to `localhost:8080`

@@ -37,6 +37,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -209,7 +210,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	// do sort to avoid keep changing m.Status as the returned machines are not in order
 	sort.Strings(m.Status.Targets)
 
-	nodeStartupTimeout := m.Spec.NodeStartupTimeout
+	nodeStartupTimeout := m.Spec.NodeStartupTimeout // nolint:ifshort
 	if nodeStartupTimeout == nil {
 		nodeStartupTimeout = &clusterv1.DefaultNodeStartupTimeout
 	}
@@ -488,36 +489,12 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o client.Object)
 		panic(fmt.Sprintf("Expected a corev1.Node, got %T", o))
 	}
 
-	machine, err := r.getMachineFromNode(context.TODO(), node.Name)
+	machine, err := noderefutil.GetMachineFromNode(context.TODO(), r.Client, node.Name)
 	if machine == nil || err != nil {
 		return nil
 	}
 
 	return r.machineToMachineHealthCheck(machine)
-}
-
-func (r *MachineHealthCheckReconciler) getMachineFromNode(ctx context.Context, nodeName string) (*clusterv1.Machine, error) {
-	machineList := &clusterv1.MachineList{}
-	if err := r.Client.List(
-		ctx,
-		machineList,
-		client.MatchingFields{clusterv1.MachineNodeNameIndex: nodeName},
-	); err != nil {
-		return nil, errors.Wrap(err, "failed getting machine list")
-	}
-	// TODO(vincepri): Remove this loop once controller runtime fake client supports
-	// adding indexes on objects.
-	items := []*clusterv1.Machine{}
-	for i := range machineList.Items {
-		machine := &machineList.Items[i]
-		if machine.Status.NodeRef != nil && machine.Status.NodeRef.Name == nodeName {
-			items = append(items, machine)
-		}
-	}
-	if len(items) != 1 {
-		return nil, errors.Errorf("expecting one machine for node %v, got %v", nodeName, machineNames(items))
-	}
-	return items[0], nil
 }
 
 func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
@@ -603,14 +580,6 @@ func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {
 // ie the delta between the expected number of machines and the current number deemed healthy.
 func unhealthyMachineCount(mhc *clusterv1.MachineHealthCheck) int {
 	return int(mhc.Status.ExpectedMachines - mhc.Status.CurrentHealthy)
-}
-
-func machineNames(machines []*clusterv1.Machine) []string {
-	result := make([]string, 0, len(machines))
-	for _, m := range machines {
-		result = append(result, m.Name)
-	}
-	return result
 }
 
 // getExternalRemediationRequest gets reference to External Remediation Request, unstructured object.

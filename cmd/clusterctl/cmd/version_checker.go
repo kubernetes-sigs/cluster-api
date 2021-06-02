@@ -145,7 +145,7 @@ func (v *versionChecker) getLatestRelease() (*ReleaseInfo, error) {
 			log.V(1).Info("⚠️ Unable to get latest github release for clusterctl")
 			// failing silently here so we don't error out in air-gapped
 			// environments.
-			return nil, nil
+			return nil, nil // nolint:nilerr
 		}
 
 		vs = &VersionState{

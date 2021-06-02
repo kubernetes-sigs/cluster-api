@@ -65,6 +65,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		nodeRegistrationOptionsFuzzer,
 		initConfigurationFuzzer,
+		joinConfigurationFuzzer,
 		joinControlPlanesFuzzer,
 	}
 }
@@ -88,4 +89,14 @@ func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 
 	// InitConfiguration.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
 	obj.CertificateKey = ""
+
+	// InitConfiguration.SkipPhases does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
+	obj.SkipPhases = nil
+}
+
+func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
+	c.Fuzz(obj)
+
+	// JoinConfiguration.SkipPhases does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
+	obj.SkipPhases = nil
 }

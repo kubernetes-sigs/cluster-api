@@ -20,10 +20,11 @@ package yaml
 import (
 	"bufio"
 	"bytes"
-	"github.com/MakeNowJust/heredoc"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/MakeNowJust/heredoc"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"

@@ -22,10 +22,14 @@ import (
 
 // Client is used to interact with the clusterctl configurations.
 // Clusterctl v2 handles the following configurations:
-// 1. The configuration of the providers (name, type and URL of the provider repository)
-// 2. Variables used when installing providers/creating clusters. Variables can be read from the environment or from the config file
-// 3. The configuration about image overrides.
+// 1. The cert manager configuration (URL of the repository)
+// 2. The configuration of the providers (name, type and URL of the provider repository)
+// 3. Variables used when installing providers/creating clusters. Variables can be read from the environment or from the config file
+// 4. The configuration about image overrides.
 type Client interface {
+	// CertManager provide access to the cert-manager configurations.
+	CertManager() CertManagerClient
+
 	// Providers provide access to provider configurations.
 	Providers() ProvidersClient
 
@@ -43,6 +47,10 @@ type configClient struct {
 
 // ensure configClient implements Client.
 var _ Client = &configClient{}
+
+func (c *configClient) CertManager() CertManagerClient {
+	return newCertManagerClient(c.reader)
+}
 
 func (c *configClient) Providers() ProvidersClient {
 	return newProvidersClient(c.reader)

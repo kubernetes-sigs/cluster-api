@@ -373,28 +373,22 @@ func (c *Certificate) Generate() error {
 
 // AsFiles converts a slice of certificates into bootstrap files.
 func (c Certificates) AsFiles() []bootstrapv1.File {
-	clusterCA := c.GetByPurpose(ClusterCA)
-	etcdCA := c.GetByPurpose(EtcdCA)
-	frontProxyCA := c.GetByPurpose(FrontProxyCA)
-	serviceAccountKey := c.GetByPurpose(ServiceAccount)
-
 	certFiles := make([]bootstrapv1.File, 0)
-	if clusterCA != nil {
+	if clusterCA := c.GetByPurpose(ClusterCA); clusterCA != nil {
 		certFiles = append(certFiles, clusterCA.AsFiles()...)
 	}
-	if etcdCA != nil {
+	if etcdCA := c.GetByPurpose(EtcdCA); etcdCA != nil {
 		certFiles = append(certFiles, etcdCA.AsFiles()...)
 	}
-	if frontProxyCA != nil {
+	if frontProxyCA := c.GetByPurpose(FrontProxyCA); frontProxyCA != nil {
 		certFiles = append(certFiles, frontProxyCA.AsFiles()...)
 	}
-	if serviceAccountKey != nil {
+	if serviceAccountKey := c.GetByPurpose(ServiceAccount); serviceAccountKey != nil {
 		certFiles = append(certFiles, serviceAccountKey.AsFiles()...)
 	}
 
 	// these will only exist if external etcd was defined and supplied by the user
-	apiserverEtcdClientCert := c.GetByPurpose(APIServerEtcdClient)
-	if apiserverEtcdClientCert != nil {
+	if apiserverEtcdClientCert := c.GetByPurpose(APIServerEtcdClient); apiserverEtcdClientCert != nil {
 		certFiles = append(certFiles, apiserverEtcdClientCert.AsFiles()...)
 	}
 

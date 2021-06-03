@@ -1101,8 +1101,7 @@ func getFakeProxyWithCRDs() *test.FakeProxy {
 }
 
 func getFakeDiscoveryTypes(graph *objectGraph) error {
-	err := graph.getDiscoveryTypes()
-	if err != nil {
+	if err := graph.getDiscoveryTypes(); err != nil {
 		return err
 	}
 

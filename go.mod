@@ -17,7 +17,7 @@ require (
 	github.com/google/go-github/v33 v33.0.0
 	github.com/google/gofuzz v1.2.0
 	github.com/gosuri/uitable v0.0.4
-	github.com/onsi/ginkgo v1.16.2
+	github.com/onsi/ginkgo v1.16.3
 	github.com/onsi/gomega v1.12.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.3
@@ -35,7 +35,7 @@ require (
 	k8s.io/component-base v0.21.1
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubectl v0.21.1
-	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
-	sigs.k8s.io/controller-runtime v0.9.0-beta.5
+	k8s.io/utils v0.0.0-20210517184530-5a248b5acedc
+	sigs.k8s.io/controller-runtime v0.9.0-beta.6
 	sigs.k8s.io/yaml v1.2.0
 )

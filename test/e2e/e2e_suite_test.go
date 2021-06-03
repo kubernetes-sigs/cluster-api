@@ -19,7 +19,6 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
 	"flag"
 	"os"
 	"path/filepath"
@@ -28,6 +27,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -52,6 +52,8 @@ var (
 
 // Test suite global vars
 var (
+	ctx = ctrl.SetupSignalHandler()
+
 	// e2eConfig to be used for this test, read from configPath.
 	e2eConfig *clusterctl.E2EConfig
 
@@ -153,7 +155,7 @@ func initScheme() *runtime.Scheme {
 }
 
 func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
-	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
+	config := clusterctl.LoadE2EConfig(ctx, clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
 
 	return config
@@ -172,7 +174,7 @@ func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, CNIResources)
 
-	clusterctlConfig := clusterctl.CreateRepository(context.TODO(), createRepositoryInput)
+	clusterctlConfig := clusterctl.CreateRepository(ctx, createRepositoryInput)
 	Expect(clusterctlConfig).To(BeAnExistingFile(), "The clusterctl config file does not exists in the local repository %s", repositoryFolder)
 	return clusterctlConfig
 }
@@ -181,7 +183,7 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	var clusterProvider bootstrap.ClusterProvider
 	kubeconfigPath := ""
 	if !useExistingCluster {
-		clusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(context.TODO(), bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
+		clusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(ctx, bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
 			Name:               config.ManagementClusterName,
 			RequiresDockerSock: config.HasDockerProvider(),
 			Images:             config.Images,
@@ -200,7 +202,7 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 }
 
 func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
-	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
+	clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 		ClusterProxy:            bootstrapClusterProxy,
 		ClusterctlConfigPath:    clusterctlConfig,
 		InfrastructureProviders: config.InfrastructureProviders(),
@@ -210,9 +212,9 @@ func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *
 
 func tearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
 	if bootstrapClusterProxy != nil {
-		bootstrapClusterProxy.Dispose(context.TODO())
+		bootstrapClusterProxy.Dispose(ctx)
 	}
 	if bootstrapClusterProvider != nil {
-		bootstrapClusterProvider.Dispose(context.TODO())
+		bootstrapClusterProvider.Dispose(ctx)
 	}
 }

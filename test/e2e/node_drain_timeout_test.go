@@ -19,14 +19,12 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("When testing node drain timeout", func() {
 
-	NodeDrainTimeoutSpec(context.TODO(), func() NodeDrainTimeoutSpecInput {
+	NodeDrainTimeoutSpec(ctx, func() NodeDrainTimeoutSpecInput {
 		return NodeDrainTimeoutSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,

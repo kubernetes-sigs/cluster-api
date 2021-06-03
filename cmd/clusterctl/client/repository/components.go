@@ -33,13 +33,10 @@ import (
 )
 
 const (
-	namespaceKind                      = "Namespace"
-	clusterRoleKind                    = "ClusterRole"
-	clusterRoleBindingKind             = "ClusterRoleBinding"
-	roleBindingKind                    = "RoleBinding"
-	validatingWebhookConfigurationKind = "ValidatingWebhookConfiguration"
-	mutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
-	customResourceDefinitionKind       = "CustomResourceDefinition"
+	namespaceKind          = "Namespace"
+	clusterRoleKind        = "ClusterRole"
+	clusterRoleBindingKind = "ClusterRoleBinding"
+	roleBindingKind        = "RoleBinding"
 )
 
 const (
@@ -82,11 +79,8 @@ type Components interface {
 	// Yaml return the provider components in the form of a YAML file.
 	Yaml() ([]byte, error)
 
-	// InstanceObjs return the instance specific components in the form of a list of Unstructured objects.
-	InstanceObjs() []unstructured.Unstructured
-
-	// SharedObjs returns CRDs, web-hooks and all the components shared across instances in the form of a list of Unstructured objects.
-	SharedObjs() []unstructured.Unstructured
+	// Objs return the components in the form of a list of Unstructured objects.
+	Objs() []unstructured.Unstructured
 }
 
 // components implement Components.
@@ -96,8 +90,7 @@ type components struct {
 	variables       []string
 	images          []string
 	targetNamespace string
-	instanceObjs    []unstructured.Unstructured
-	sharedObjs      []unstructured.Unstructured
+	objs            []unstructured.Unstructured
 }
 
 // ensure components implement Components.
@@ -139,20 +132,12 @@ func (c *components) InventoryObject() clusterctlv1.Provider {
 	}
 }
 
-func (c *components) InstanceObjs() []unstructured.Unstructured {
-	return c.instanceObjs
-}
-
-func (c *components) SharedObjs() []unstructured.Unstructured {
-	return c.sharedObjs
+func (c *components) Objs() []unstructured.Unstructured {
+	return c.objs
 }
 
 func (c *components) Yaml() ([]byte, error) {
-	objs := []unstructured.Unstructured{}
-	objs = append(objs, c.sharedObjs...)
-	objs = append(objs, c.instanceObjs...)
-
-	return utilyaml.FromUnstructured(objs)
+	return utilyaml.FromUnstructured(c.objs)
 }
 
 // ComponentsOptions represents specific inputs that are passed in to
@@ -216,17 +201,9 @@ func NewComponents(input ComponentsInput) (Components, error) {
 		return nil, errors.Wrap(err, "failed to detect required images")
 	}
 
-	// splits the component resources from the shared resources.
-	// This is required because a component yaml is designed for allowing users to create a single instance of a provider
-	// by running kubectl apply, while multi-tenant installations requires manual modifications to the yaml file.
-	// clusterctl does such modification for the user, and in order to do so, it is required to split objects in two sets;
-	// components resources are processed in order to make instance specific modifications, while identifying labels
-	// are applied to shared resources.
-	instanceObjs, sharedObjs := splitInstanceAndSharedResources(objs)
-
 	// inspect the list of objects for the default target namespace
 	// the default target namespace is the namespace object defined in the component yaml read from the repository, if any
-	defaultTargetNamespace, err := inspectTargetNamespace(instanceObjs)
+	defaultTargetNamespace, err := inspectTargetNamespace(objs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to detect default target namespace")
 	}
@@ -244,27 +221,21 @@ func NewComponents(input ComponentsInput) (Components, error) {
 	}
 
 	// add a Namespace object if missing (ensure the targetNamespace will be created)
-	instanceObjs = addNamespaceIfMissing(instanceObjs, input.Options.TargetNamespace)
+	objs = addNamespaceIfMissing(objs, input.Options.TargetNamespace)
 
 	// fix Namespace name in all the objects
-	instanceObjs = fixTargetNamespace(instanceObjs, input.Options.TargetNamespace)
+	objs = fixTargetNamespace(objs, input.Options.TargetNamespace)
 
 	// ensures all the ClusterRole and ClusterRoleBinding have the name prefixed with the namespace name and that
 	// all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace
 	// Nb. Making all the RBAC rules "namespaced" is required for supporting multi-tenancy
-	instanceObjs, err = fixRBAC(instanceObjs, input.Options.TargetNamespace)
+	objs, err = fixRBAC(objs, input.Options.TargetNamespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fix ClusterRoleBinding names")
 	}
 
-	// Add common labels to both the obj groups.
-	instanceObjs = addCommonLabels(instanceObjs, input.Provider)
-	sharedObjs = addCommonLabels(sharedObjs, input.Provider)
-
-	// Add an identifying label to shared components so next invocation of init, clusterctl delete and clusterctl upgrade can act accordingly.
-	// Additionally, the capi-webhook-system namespace gets detached from any provider, so we prevent that deleting
-	// a provider can delete all the web-hooks.
-	sharedObjs = fixSharedLabels(sharedObjs)
+	// Add common labels.
+	objs = addCommonLabels(objs, input.Provider)
 
 	return &components{
 		Provider:        input.Provider,
@@ -272,41 +243,8 @@ func NewComponents(input ComponentsInput) (Components, error) {
 		variables:       variables,
 		images:          images,
 		targetNamespace: input.Options.TargetNamespace,
-		instanceObjs:    instanceObjs,
-		sharedObjs:      sharedObjs,
+		objs:            objs,
 	}, nil
-}
-
-// splitInstanceAndSharedResources divides the objects contained in the component yaml into two sets, instance specific objects
-// and objects shared across many instances.
-func splitInstanceAndSharedResources(objs []unstructured.Unstructured) (instanceObjs []unstructured.Unstructured, sharedObjs []unstructured.Unstructured) {
-	for _, o := range objs {
-		// CRDs, and web-hook objects are shared among instances.
-		if o.GetKind() == customResourceDefinitionKind ||
-			o.GetKind() == mutatingWebhookConfigurationKind ||
-			o.GetKind() == validatingWebhookConfigurationKind {
-			sharedObjs = append(sharedObjs, o)
-			continue
-		}
-
-		// Web-hook objects are backed by a controller handling the web-hook calls; byt definition this
-		// controller and everything releted to it (eg. services, certificates) it is expected to be deployed in well
-		// know namespace named capi-webhook-system.
-		// So this namespace and all the objected belonging to it are considered shared resources.
-		if o.GetKind() == namespaceKind && o.GetName() == WebhookNamespaceName {
-			sharedObjs = append(sharedObjs, o)
-			continue
-		}
-
-		if util.IsResourceNamespaced(o.GetKind()) && o.GetNamespace() == WebhookNamespaceName {
-			sharedObjs = append(sharedObjs, o)
-			continue
-		}
-
-		// Everything else is considered an instance specific object.
-		instanceObjs = append(instanceObjs, o)
-	}
-	return
 }
 
 // inspectTargetNamespace identifies the name of the namespace object contained in the components YAML, if any.
@@ -397,11 +335,9 @@ func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstru
 			// assign a namespaced name
 			b.Name = fmt.Sprintf("%s-%s", targetNamespace, b.Name)
 
-			// ensure that namespaced subjects refers to targetNamespace; the only exception
-			// for this rule are the namespaced subjects located in the capi-webhook-system, which are
-			// not affected by the targetNamespace value
+			// ensure that namespaced subjects refers to targetNamespace
 			for k := range b.Subjects {
-				if b.Subjects[k].Namespace != "" && b.Subjects[k].Namespace != WebhookNamespaceName {
+				if b.Subjects[k].Namespace != "" {
 					b.Subjects[k].Namespace = targetNamespace
 				}
 			}
@@ -424,11 +360,9 @@ func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstru
 				return nil, err
 			}
 
-			// ensure that namespaced subjects refers to targetNamespace; the only exception
-			// for this rule are the namespaced subjects located in the capi-webhook-system, which are
-			// not affected by the targetNamespace value
+			// ensure that namespaced subjects refers to targetNamespace
 			for k := range b.Subjects {
-				if b.Subjects[k].Namespace != "" && b.Subjects[k].Namespace != WebhookNamespaceName {
+				if b.Subjects[k].Namespace != "" {
 					b.Subjects[k].Namespace = targetNamespace
 				}
 			}
@@ -465,21 +399,4 @@ func getCommonLabels(provider config.Provider) map[string]string {
 		clusterctlv1.ClusterctlLabelName: "",
 		clusterv1.ProviderLabelName:      provider.ManifestLabel(),
 	}
-}
-
-// fixSharedLabels ensures all the shared components have an identifying label so next invocation of init, clusterctl delete
-// and clusterctl upgrade can act accordingly.
-func fixSharedLabels(objs []unstructured.Unstructured) []unstructured.Unstructured {
-	for _, o := range objs {
-		labels := o.GetLabels()
-		labels[clusterctlv1.ClusterctlResourceLifecyleLabelName] = string(clusterctlv1.ResourceLifecycleShared)
-
-		// the capi-webhook-system namespace is shared among many providers, so removing the ProviderLabelName label.
-		if o.GetKind() == namespaceKind && o.GetName() == WebhookNamespaceName {
-			delete(labels, clusterv1.ProviderLabelName)
-		}
-		o.SetLabels(labels)
-	}
-
-	return objs
 }

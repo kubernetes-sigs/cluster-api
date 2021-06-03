@@ -29,13 +29,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// DeleteOptions defines delete options.
+const (
+	namespaceKind                      = "Namespace"
+	validatingWebhookConfigurationKind = "ValidatingWebhookConfiguration"
+	mutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
+	customResourceDefinitionKind       = "CustomResourceDefinition"
+)
+
+// DeleteOptions holds options for ComponentsClient.Delete func.
 type DeleteOptions struct {
 	Provider         clusterctlv1.Provider
 	IncludeNamespace bool
@@ -123,22 +129,13 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	log.Info("Deleting", "Provider", options.Provider.Name, "Version", options.Provider.Version, "TargetNamespace", options.Provider.Namespace)
 
 	// Fetch all the components belonging to a provider.
-	// We want that the delete operation is able to clean-up everything in a the most common use case that is
-	// single-tenant management clusters. However, the downside of this is that this operation might be destructive
-	// in multi-tenant scenario, because a single operation could delete both instance specific and shared CRDs/web-hook components.
-	// This is considered acceptable because we are considering the multi-tenant scenario an advanced use case, and the assumption
-	// is that user in this case understand the potential impacts of this operation.
-	// TODO: in future we can eventually block delete --IncludeCRDs in case more than one instance of a provider exists
+	// We want that the delete operation is able to clean-up everything.
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabelName: "",
 		clusterv1.ProviderLabelName:      options.Provider.ManifestLabel(),
 	}
 
 	namespaces := []string{options.Provider.Namespace}
-	if options.IncludeCRDs {
-		namespaces = append(namespaces, repository.WebhookNamespaceName)
-	}
-
 	resources, err := p.proxy.ListResources(labels, namespaces...)
 	if err != nil {
 		return err
@@ -149,15 +146,15 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	namespacesToDelete := sets.NewString()
 	instanceNamespacePrefix := fmt.Sprintf("%s-", options.Provider.Namespace)
 	for _, obj := range resources {
-		// If the CRDs (and by extensions, all the shared resources) should NOT be deleted, skip it;
+		// If the CRDs should NOT be deleted, skip it;
 		// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
-		isSharedResource := util.IsSharedResource(obj)
-		if !options.IncludeCRDs && isSharedResource {
+		isCRD := obj.GroupVersionKind().Kind == customResourceDefinitionKind
+		if !options.IncludeCRDs && isCRD {
 			continue
 		}
 
 		// If the resource is a namespace
-		isNamespace := obj.GroupVersionKind().Kind == "Namespace"
+		isNamespace := obj.GroupVersionKind().Kind == namespaceKind
 		if isNamespace {
 			// Skip all the namespaces not related to the provider instance being processed.
 			if obj.GetName() != options.Provider.Namespace {
@@ -171,17 +168,17 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 			namespacesToDelete.Insert(obj.GetName())
 		}
 
-		// If not a shared resource or not a namespace
-		if !isSharedResource && !isNamespace {
-			// If the resource is a cluster resource, skip it if the resource name does not start with the instance prefix.
-			// This is required because there are cluster resources like e.g. ClusterRoles and ClusterRoleBinding, which are instance specific;
-			// During the installation, clusterctl adds the instance namespace prefix to such resources (see fixRBAC), and so we can rely
-			// on that for deleting only the global resources belonging the the instance we are processing.
-			if util.IsClusterResource(obj.GetKind()) {
-				if !strings.HasPrefix(obj.GetName(), instanceNamespacePrefix) {
-					continue
-				}
-			}
+		// If the resource is a cluster resource, skip it if the resource name does not start with the instance prefix.
+		// This is required because there are cluster resources like e.g. ClusterRoles and ClusterRoleBinding, which are instance specific;
+		// During the installation, clusterctl adds the instance namespace prefix to such resources (see fixRBAC), and so we can rely
+		// on that for deleting only the global resources belonging the the instance we are processing.
+		// NOTE: namespace and CRD are special case managed above; webhook instead goes hand by hand with the controller they
+		// should always be deleted.
+		isWebhook := obj.GroupVersionKind().Kind == validatingWebhookConfigurationKind || obj.GroupVersionKind().Kind == mutatingWebhookConfigurationKind
+		if util.IsClusterResource(obj.GetKind()) &&
+			!isNamespace && !isCRD && !isWebhook &&
+			!strings.HasPrefix(obj.GetName(), instanceNamespacePrefix) {
+			continue
 		}
 
 		resourcesToDelete = append(resourcesToDelete, obj)
@@ -219,20 +216,22 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 }
 
 func (p *providerComponents) DeleteWebhookNamespace() error {
+	const webhookNamespaceName = "capi-webhook-system"
+
 	log := logf.Log
-	log.V(5).Info("Deleting", "namespace", repository.WebhookNamespaceName)
+	log.V(5).Info("Deleting", "namespace", webhookNamespaceName)
 
 	c, err := p.proxy.NewClient()
 	if err != nil {
 		return err
 	}
 
-	coreProviderWebhookNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: repository.WebhookNamespaceName}}
+	coreProviderWebhookNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: webhookNamespaceName}}
 	if err := c.Delete(ctx, coreProviderWebhookNs); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to delete namespace %s", repository.WebhookNamespaceName)
+		return errors.Wrapf(err, "failed to delete namespace %s", webhookNamespaceName)
 	}
 
 	return nil

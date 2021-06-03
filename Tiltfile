@@ -71,8 +71,8 @@ providers = {
         "image": "gcr.io/k8s-staging-cluster-api/capd-manager",
         "live_reload_deps": [
             "main.go",
-            "go.mod",
-            "go.sum",
+            "../../go.mod",
+            "../../go.sum",
             "api",
             "cloudinit",
             "controllers",

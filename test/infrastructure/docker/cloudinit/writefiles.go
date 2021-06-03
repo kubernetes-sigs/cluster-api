@@ -29,6 +29,19 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	kubeadmInitPath          = "/run/kubeadm/kubeadm.yaml"
+	kubeproxyComponentConfig = `
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+conntrack:
+# Skip setting sysctl value "net.netfilter.nf_conntrack_max"
+# It is a global variable that affects other namespaces
+  maxPerCore: 0
+`
+)
+
 // writeFilesAction defines a list of files that should be written to a node.
 type writeFilesAction struct {
 	Files []files `json:"write_files,"`
@@ -65,6 +78,9 @@ func (a *writeFilesAction) Commands() ([]Cmd, error) {
 		owner := fixOwner(f.Owner)
 		permissions := fixPermissions(f.Permissions)
 		content, err := fixContent(f.Content, encodings)
+		if path == kubeadmInitPath {
+			content += kubeproxyComponentConfig
+		}
 		if err != nil {
 			return commands, errors.Wrapf(err, "error decoding content for %s", path)
 		}
@@ -78,7 +94,7 @@ func (a *writeFilesAction) Commands() ([]Cmd, error) {
 			redirects = ">>"
 		}
 
-		// generate a command that will create a file with the epxected contents.
+		// generate a command that will create a file with the expected contents.
 		commands = append(commands, Cmd{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)}, Stdin: content})
 
 		// if permissions are different than default ownership, add a command to modify the permissions.

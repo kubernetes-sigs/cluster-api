@@ -19,14 +19,12 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("When testing K8S conformance [Conformance]", func() {
 
-	K8SConformanceSpec(context.TODO(), func() K8SConformanceSpecInput {
+	K8SConformanceSpec(ctx, func() K8SConformanceSpecInput {
 		return K8SConformanceSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,

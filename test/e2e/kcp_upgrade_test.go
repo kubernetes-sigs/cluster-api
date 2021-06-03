@@ -19,15 +19,13 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 var _ = Describe("When testing KCP upgrade in a single control plane cluster", func() {
-	KCPUpgradeSpec(context.TODO(), func() KCPUpgradeSpecInput {
+	KCPUpgradeSpec(ctx, func() KCPUpgradeSpecInput {
 		return KCPUpgradeSpecInput{
 			E2EConfig:                e2eConfig,
 			ClusterctlConfigPath:     clusterctlConfigPath,
@@ -41,7 +39,7 @@ var _ = Describe("When testing KCP upgrade in a single control plane cluster", f
 })
 
 var _ = Describe("When testing KCP upgrade in a HA cluster", func() {
-	KCPUpgradeSpec(context.TODO(), func() KCPUpgradeSpecInput {
+	KCPUpgradeSpec(ctx, func() KCPUpgradeSpecInput {
 		return KCPUpgradeSpecInput{
 			E2EConfig:                e2eConfig,
 			ClusterctlConfigPath:     clusterctlConfigPath,
@@ -55,7 +53,7 @@ var _ = Describe("When testing KCP upgrade in a HA cluster", func() {
 })
 
 var _ = Describe("When testing KCP upgrade in a HA cluster using scale in rollout", func() {
-	KCPUpgradeSpec(context.TODO(), func() KCPUpgradeSpecInput {
+	KCPUpgradeSpec(ctx, func() KCPUpgradeSpecInput {
 		return KCPUpgradeSpecInput{
 			E2EConfig:                e2eConfig,
 			ClusterctlConfigPath:     clusterctlConfigPath,

@@ -148,11 +148,6 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:webhook:dir=./config/webhook \
 		webhook
 
-.PHONY: modules
-modules: ## Runs go mod to ensure modules are up to date.
-	go mod tidy
-	cd $(TOOLS_DIR); go mod tidy
-
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
@@ -277,15 +272,7 @@ clean-release: ## Remove the release folder
 .PHONY: verify
 verify:
 	./hack/verify-all.sh
-	$(MAKE) verify-modules
 	$(MAKE) verify-gen
-
-.PHONY: verify-modules
-verify-modules: modules
-	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
-		git diff; \
-		echo "go module files are out of date"; exit 1; \
-	fi
 
 .PHONY: verify-gen
 verify-gen: generate

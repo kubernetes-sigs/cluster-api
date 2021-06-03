@@ -35,8 +35,7 @@ require (
 	k8s.io/component-base v0.21.1
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubectl v0.21.1
-	k8s.io/utils v0.0.0-20210517184530-5a248b5acedc
-	sigs.k8s.io/controller-runtime v0.9.0-beta.6
-	sigs.k8s.io/kind v0.11.0
+	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
+	sigs.k8s.io/controller-runtime v0.9.0-beta.5
 	sigs.k8s.io/yaml v1.2.0
 )

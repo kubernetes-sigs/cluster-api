@@ -56,10 +56,14 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 
 For version v0.x.y:
 
-1. Create an annotated tag `git tag -a v0.x.y -m v0.x.y`
-    1. To use your GPG signature when pushing the tag, use `git tag -s [...]` instead
-1. Push the tag to the GitHub repository `git push origin v0.x.y`
-    1. NB: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
+1. Create an annotated tag
+   > NOTE: To use your GPG signature when pushing the tag, use `git tag -s [...]` instead)
+   - `git tag -a v0.x.y -m v0.x.y`
+   - `git tag -a test/v0.x.y -m test/v0.x.y`
+1. Push the tag to the GitHub repository
+   > NOTE: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
+   - `git push origin v0.x.y`
+   - `git push origin test/v0.x.y`
 1. Run `make release` to build artifacts (the image is automatically built by CI)
 1. Follow the [Image Promotion process](https://git.k8s.io/k8s.io/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `k8s.gcr.io/cluster-api`
 1. Create a release in GitHub based on the tag created above

@@ -24,11 +24,11 @@ WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
 
-# Essentially, change directories into CAPD
-WORKDIR /workspace/test/infrastructure/docker
+# Essentially, change directories into the test go module
+WORKDIR /workspace/test
 # Copy the Go Modules manifests
-COPY test/infrastructure/docker/go.mod go.mod
-COPY test/infrastructure/docker/go.sum go.sum
+COPY test/go.mod go.mod
+COPY test/go.sum go.sum
 
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer

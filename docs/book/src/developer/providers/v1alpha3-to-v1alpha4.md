@@ -14,6 +14,14 @@
 
 - The KIND version used for this release is v0.11.x
 
+## :warning: Go Module changes :warning:
+
+- The `test` folder now ships with its own Go module `sigs.k8s.io/cluster-api/test`.
+- The module is going to be tagged and versioned as part of the release.
+- Folks importing the test e2e framework or the docker infrastructure provider need to import the new module.
+  - When imported, the test module version should always match the Cluster API one.
+- The CAPD go module in test/infrastructure/docker has been removed.
+
 ## Upgrade kube-rbac-proxy to v0.8.0
 
 - Find and replace the `kube-rbac-proxy` version (usually the image is `gcr.io/kubebuilder/kube-rbac-proxy`) and update it to `v0.8.0`.

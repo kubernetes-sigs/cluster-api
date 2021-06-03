@@ -36,6 +36,7 @@ import (
 	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	addonsv1old "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
@@ -200,6 +201,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
+	setupIndexes(ctx, mgr)
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
@@ -219,6 +221,13 @@ func setupChecks(mgr ctrl.Manager) {
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to create health check")
+		os.Exit(1)
+	}
+}
+
+func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
+	if err := noderefutil.AddMachineNodeIndex(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to setup index")
 		os.Exit(1)
 	}
 }

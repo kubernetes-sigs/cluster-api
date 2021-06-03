@@ -176,40 +176,6 @@ func TestWatches(t *testing.T) {
 	}, timeout).Should(BeTrue())
 }
 
-func TestIndexMachineByNodeName(t *testing.T) {
-	r := &MachineReconciler{}
-	testCases := []struct {
-		name     string
-		object   client.Object
-		expected []string
-	}{
-		{
-			name:     "when the machine has no NodeRef",
-			object:   &clusterv1.Machine{},
-			expected: []string{},
-		},
-		{
-			name: "when the machine has valid a NodeRef",
-			object: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
-						Name: "node1",
-					},
-				},
-			},
-			expected: []string{"node1"},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-			got := r.indexMachineByNodeName(tc.object)
-			g.Expect(got).To(ConsistOf(tc.expected))
-		})
-	}
-}
-
 func TestMachine_Reconcile(t *testing.T) {
 	g := NewWithT(t)
 	infraMachine := &unstructured.Unstructured{

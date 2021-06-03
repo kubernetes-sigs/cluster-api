@@ -426,10 +426,21 @@ kind: ClusterConfiguration
 
 				// assert CoreDNS corefile
 				var expectedConfigMap corev1.ConfigMap
-				g.Expect(env.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap)).To(Succeed())
-				g.Expect(expectedConfigMap.Data).To(HaveLen(2))
-				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile", "updated-core-file"))
-				g.Expect(expectedConfigMap.Data).To(HaveKeyWithValue("Corefile-backup", expectedCorefile))
+				g.Eventually(func() error {
+					if err := env.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap); err != nil {
+						return errors.Wrap(err, "failed to get the coredns ConfigMap")
+					}
+					if len(expectedConfigMap.Data) != 2 {
+						return errors.Errorf("the coredns ConfigMap has %d data items, expected 2", len(expectedConfigMap.Data))
+					}
+					if val, ok := expectedConfigMap.Data["Corefile"]; !ok || val != "updated-core-file" {
+						return errors.New("the coredns ConfigMap does not have the Corefile entry or this it has an unexpected value")
+					}
+					if val, ok := expectedConfigMap.Data["Corefile-backup"]; !ok || val != expectedCorefile {
+						return errors.New("the coredns ConfigMap does not have the Corefile-backup entry or this it has an unexpected value")
+					}
+					return nil
+				}, "5s").Should(BeNil())
 
 				// assert CoreDNS deployment
 				var actualDeployment appsv1.Deployment

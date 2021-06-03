@@ -65,10 +65,26 @@ type GenericInfrastructureMachineTemplateList struct {
 	Items           []GenericInfrastructureMachineTemplate `json:"items"`
 }
 
+// +kubebuilder:object:root=true
+
+type GenericClusterInfrastructureIdentity struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+type GenericClusterInfrastructureIdentityList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []GenericClusterInfrastructureIdentity `json:"items"`
+}
+
 func init() {
 	SchemeBuilder.Register(
 		&GenericInfrastructureCluster{}, &GenericInfrastructureClusterList{},
 		&GenericInfrastructureMachine{}, &GenericInfrastructureMachineList{},
 		&GenericInfrastructureMachineTemplate{}, &GenericInfrastructureMachineTemplateList{},
+		&GenericClusterInfrastructureIdentity{}, &GenericClusterInfrastructureIdentityList{},
 	)
 }

@@ -31,8 +31,11 @@ const (
 	// ValidatingWebhookConfiguration, MutatingWebhookConfiguration, and so on.
 	ClusterctlResourceLifecyleLabelName = "clusterctl.cluster.x-k8s.io/lifecycle"
 
-	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move that are not part of a cluster.
+	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move but that are not part of a Cluster.
 	ClusterctlMoveLabelName = "clusterctl.cluster.x-k8s.io/move"
+
+	// ClusterctlMoveHierarchyLabelName can be set on CRDs that providers wish to move with their entire hierarchy, but that are not part of a Cluster.
+	ClusterctlMoveHierarchyLabelName = "clusterctl.cluster.x-k8s.io/move-hierarchy"
 )
 
 // ResourceLifecycle configures the lifecycle of a resource.

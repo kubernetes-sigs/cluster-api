@@ -36,8 +36,25 @@ type GenericExternalObjectList struct {
 	Items           []GenericExternalObject `json:"items"`
 }
 
+// GenericClusterExternalObject is an object which is not actually managed by CAPI, but we wish to move with clusterctl
+// using the "move" label on the resource.
+// +kubebuilder:object:root=true
+type GenericClusterExternalObject struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+type GenericClusterExternalObjectList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []GenericExternalObject `json:"items"`
+}
+
 func init() {
 	SchemeBuilder.Register(
 		&GenericExternalObject{}, &GenericExternalObjectList{},
+		&GenericClusterExternalObject{}, &GenericClusterExternalObjectList{},
 	)
 }

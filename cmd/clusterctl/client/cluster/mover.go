@@ -561,24 +561,28 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 				obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
 		}
 
-		// If the object already exists, try to update it.
-		// Nb. This should not happen, but it is supported to make move more resilient to unexpected interrupt/restarts of the move process.
-		log.V(5).Info("Object already exists, updating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
+		// If the object already exists, try to update it if it is node a global object / something belonging to a global object hierarchy (e.g. a secrets owned by a global identity object).
+		if nodeToCreate.isGlobal || nodeToCreate.isGlobalHierarchy {
+			log.V(5).Info("Object already exists, skipping upgrade because it is global/it is owned by a global object", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
+		} else {
+			// Nb. This should not happen, but it is supported to make move more resilient to unexpected interrupt/restarts of the move process.
+			log.V(5).Info("Object already exists, updating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
 
-		// Retrieve the UID and the resource version for the update.
-		existingTargetObj := &unstructured.Unstructured{}
-		existingTargetObj.SetAPIVersion(obj.GetAPIVersion())
-		existingTargetObj.SetKind(obj.GetKind())
-		if err := cTo.Get(ctx, objKey, existingTargetObj); err != nil {
-			return errors.Wrapf(err, "error reading resource for %q %s/%s",
-				existingTargetObj.GroupVersionKind(), existingTargetObj.GetNamespace(), existingTargetObj.GetName())
-		}
+			// Retrieve the UID and the resource version for the update.
+			existingTargetObj := &unstructured.Unstructured{}
+			existingTargetObj.SetAPIVersion(obj.GetAPIVersion())
+			existingTargetObj.SetKind(obj.GetKind())
+			if err := cTo.Get(ctx, objKey, existingTargetObj); err != nil {
+				return errors.Wrapf(err, "error reading resource for %q %s/%s",
+					existingTargetObj.GroupVersionKind(), existingTargetObj.GetNamespace(), existingTargetObj.GetName())
+			}
 
-		obj.SetUID(existingTargetObj.GetUID())
-		obj.SetResourceVersion(existingTargetObj.GetResourceVersion())
-		if err := cTo.Update(ctx, obj); err != nil {
-			return errors.Wrapf(err, "error updating %q %s/%s",
-				obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+			obj.SetUID(existingTargetObj.GetUID())
+			obj.SetResourceVersion(existingTargetObj.GetResourceVersion())
+			if err := cTo.Update(ctx, obj); err != nil {
+				return errors.Wrapf(err, "error updating %q %s/%s",
+					obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+			}
 		}
 	}
 
@@ -594,11 +598,6 @@ func (o *objectMover) deleteGroup(group moveGroup) error {
 	errList := []error{}
 	for i := range group {
 		nodeToDelete := group[i]
-
-		// Don't delete cluster-wide nodes
-		if nodeToDelete.isGlobal {
-			continue
-		}
 
 		// Delete the Kubernetes object corresponding to the current node.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
@@ -621,6 +620,11 @@ var (
 // deleteSourceObject deletes the Kubernetes object corresponding to the node from the source management cluster, taking care of removing all the finalizers so
 // the objects gets immediately deleted (force delete).
 func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
+	// Don't delete cluster-wide nodes or nodes that are below a hierarchy that starts with a global object (e.g. a secrets owned by a global identity object).
+	if nodeToDelete.isGlobal || nodeToDelete.isGlobalHierarchy {
+		return nil
+	}
+
 	log := logf.Log
 	log.V(1).Info("Deleting", nodeToDelete.identity.Kind, nodeToDelete.identity.Name, "Namespace", nodeToDelete.identity.Namespace)
 

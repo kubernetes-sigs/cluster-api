@@ -19,5 +19,4 @@ spec:
       volumes:
       - name: cert
         secret:
-          defaultMode: 420
           secretName: $(SERVICE_NAME)-cert

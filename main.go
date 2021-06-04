@@ -225,8 +225,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
 	tracker, err := remote.NewClusterCacheTracker(
-		ctrl.Log.WithName("remote").WithName("ClusterCacheTracker"),
 		mgr,
+		remote.ClusterCacheTrackerOptions{Log: ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")},
 	)
 	if err != nil {
 		setupLog.Error(err, "unable to create cluster cache tracker")

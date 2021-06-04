@@ -25,7 +25,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -38,7 +37,7 @@ func TestMain(m *testing.M) {
 	fmt.Println("Creating new test environment")
 	env = envtest.New()
 
-	trckr, err := remote.NewClusterCacheTracker(log.NullLogger{}, env.Manager)
+	trckr, err := remote.NewClusterCacheTracker(env.Manager, remote.ClusterCacheTrackerOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create new cluster cache tracker: %v", err))
 	}

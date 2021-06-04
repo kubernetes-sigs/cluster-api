@@ -107,8 +107,8 @@ func TestGetWorkloadCluster(t *testing.T) {
 	badCrtEtcdSecret := etcdSecret.DeepCopy()
 	badCrtEtcdSecret.Data[secret.TLSCrtDataName] = []byte("bad cert")
 	tracker, err := remote.NewClusterCacheTracker(
-		log.Log,
 		env.Manager,
+		remote.ClusterCacheTrackerOptions{Log: log.Log},
 	)
 	g.Expect(err).ToNot(HaveOccurred())
 

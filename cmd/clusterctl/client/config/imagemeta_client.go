@@ -25,6 +25,9 @@ import (
 )
 
 const (
+	// CertManagerImageComponent define the name of the cert-manager component in image overrides.
+	CertManagerImageComponent = "cert-manager"
+
 	imagesConfigKey = "images"
 	allImageConfig  = "all"
 )

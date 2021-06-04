@@ -86,7 +86,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
 			builder.OnlyMetadata,
 			builder.WithPredicates(
-				resourcepredicates.AddonsSecretCreate(ctrl.LoggerFrom(ctx)),
+				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
 			),
 		).
 		WithOptions(options).

@@ -63,6 +63,9 @@ type ClusterProxy interface {
 	// GetRESTConfig returns the REST config for direct use with client-go if needed.
 	GetRESTConfig() *rest.Config
 
+	// GetLogCollector returns the machine log collector for the Kubernetes cluster.
+	GetLogCollector() ClusterLogCollector
+
 	// Apply to apply YAML to the Kubernetes cluster, `kubectl apply`.
 	Apply(ctx context.Context, resources []byte, args ...string) error
 
@@ -197,6 +200,10 @@ func (p *clusterProxy) GetRESTConfig() *rest.Config {
 
 	restConfig.UserAgent = "cluster-api-e2e"
 	return restConfig
+}
+
+func (p *clusterProxy) GetLogCollector() ClusterLogCollector {
+	return p.logCollector
 }
 
 // GetWorkloadCluster returns ClusterProxy for the workload cluster.

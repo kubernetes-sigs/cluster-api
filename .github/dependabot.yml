@@ -1,7 +1,14 @@
 version: 2
 updates:
-  # Daily updates for main go.mod
+  # Check daily for go.mod
   - package-ecosystem: "gomod"
+    # Unfortunately, we don't want automatic PRs until such a time
+    # that `make modules` and `make generate` can be run to update all
+    # of the go modules in one go and get passing PRs.
+    #
+    # Maintainers can continue to look at the log in
+    # https://github.com/kubernetes-sigs/cluster-api/network/updates/
+    open-pull-requests-limit: 0
     directory: "/"
     schedule:
       interval: "daily"
@@ -25,6 +32,7 @@ updates:
 
   - package-ecosystem: "gomod"
     directory: "/hack/tools"
+    open-pull-requests-limit: 0
     schedule:
       interval: "weekly"
     commit_message:
@@ -32,6 +40,7 @@ updates:
 
   - package-ecosystem: "gomod"
     directory: "/test"
+    open-pull-requests-limit: 0
     schedule:
       interval: "weekly"
     commit_message:

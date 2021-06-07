@@ -114,7 +114,7 @@ func (c *components) TargetNamespace() string {
 
 func (c *components) InventoryObject() clusterctlv1.Provider {
 	labels := getCommonLabels(c.Provider)
-	labels[clusterctlv1.ClusterctlCoreLabelName] = "inventory"
+	labels[clusterctlv1.ClusterctlCoreLabelName] = clusterctlv1.ClusterctlCoreLabelInventoryValue
 
 	return clusterctlv1.Provider{
 		TypeMeta: metav1.TypeMeta{

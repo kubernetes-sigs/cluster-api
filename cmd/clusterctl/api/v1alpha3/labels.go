@@ -25,6 +25,9 @@ const (
 	// ClusterctlCoreLabelName is applied to all the core objects managed by clusterctl.
 	ClusterctlCoreLabelName = "clusterctl.cluster.x-k8s.io/core"
 
+	// ClusterctlCoreLabelInventoryValue define the value for ClusterctlCoreLabelName to be used for inventory objects.
+	ClusterctlCoreLabelInventoryValue = "inventory"
+
 	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move but that are not part of a Cluster.
 	ClusterctlMoveLabelName = "clusterctl.cluster.x-k8s.io/move"
 

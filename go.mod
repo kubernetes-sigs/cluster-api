@@ -5,7 +5,8 @@ go 1.16
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/coredns/corefile-migration v1.0.11
+	github.com/caddyserver/caddy v1.0.3 // indirect
+	github.com/coredns/corefile-migration v1.0.12
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c

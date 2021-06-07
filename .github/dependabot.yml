@@ -5,25 +5,35 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    commit_message:
+      prefix: "🌱"
 
   # Weekly updates for everything else
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    commit_message:
+      prefix: "🌱"
 
   - package-ecosystem: "docker"
     directory: "/test/infrastructure/docker"
     schedule:
       interval: "weekly"
+    commit_message:
+      prefix: "🌱"
 
   - package-ecosystem: "gomod"
     directory: "/hack/tools"
     schedule:
       interval: "weekly"
+    commit_message:
+      prefix: "🌱"
 
   - package-ecosystem: "gomod"
     directory: "/test"
     schedule:
       interval: "weekly"
+    commit_message:
+      prefix: "🌱"
 

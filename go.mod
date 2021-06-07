@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/coredns/corefile-migration v1.0.11
+	github.com/coredns/corefile-migration v1.0.12
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/drone/envsubst v1.0.3-0.20200709223903-efdb65b94e5a

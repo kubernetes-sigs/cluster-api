@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	timeout              = time.Second * 20
+	timeout              = time.Second * 5
 	defaultNamespaceName = "default"
 )
 
@@ -255,7 +255,7 @@ metadata:
 		}, timeout).Should(BeTrue())
 	})
 
-	t.Run("Should reconcile a ClusterResourceSet when a resource is created that is part of ClusterResourceSet resources", func(t *testing.T) {
+	t.Run("Should reconcile a ClusterResourceSet when a ConfigMap resource is created that is part of ClusterResourceSet resources", func(t *testing.T) {
 		g := NewWithT(t)
 		setup(t, g)
 		defer teardown(t, g)
@@ -306,6 +306,10 @@ metadata:
 			return false
 		}, timeout).Should(BeTrue())
 
+		// Must sleep here to make sure resource is created after the previous reconcile.
+		// If the resource is created in between, predicates are not used as intended in this test.
+		time.Sleep(2 * time.Second)
+
 		newConfigmap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      newCMName,
@@ -338,6 +342,106 @@ metadata:
 				return nil
 			}
 			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, binding.Spec.Bindings)
+		}, timeout).Should(Succeed())
+
+		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
+		g.Expect(env.Delete(ctx, testCluster)).To(Succeed())
+
+		g.Eventually(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+			return apierrors.IsNotFound(err)
+		}, timeout).Should(BeTrue())
+	})
+
+	t.Run("Should reconcile a ClusterResourceSet when a Secret resource is created that is part of ClusterResourceSet resources", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+
+		newSecretName := fmt.Sprintf("test-secret-%s", util.RandomString(6))
+
+		crsInstance := &addonsv1.ClusterResourceSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterResourceSetName,
+				Namespace: defaultNamespaceName,
+			},
+			Spec: addonsv1.ClusterResourceSetSpec{
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: labels,
+				},
+				Resources: []addonsv1.ResourceRef{{Name: newSecretName, Kind: "Secret"}},
+			},
+		}
+		// Create the ClusterResourceSet.
+		g.Expect(env.Create(ctx, crsInstance)).To(Succeed())
+
+		testCluster.SetLabels(labels)
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		// Must sleep here to make sure resource is created after the previous reconcile.
+		// If the resource is created in between, predicates are not used as intended in this test.
+		time.Sleep(2 * time.Second)
+
+		t.Log("Verifying ClusterResourceSetBinding is created with cluster owner reference")
+		// Wait until ClusterResourceSetBinding is created for the Cluster
+		clusterResourceSetBindingKey := client.ObjectKey{
+			Namespace: testCluster.Namespace,
+			Name:      testCluster.Name,
+		}
+		g.Eventually(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+
+			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+			return err == nil
+		}, timeout).Should(BeTrue())
+
+		// Initially Secret is missing, so no resources in the binding.
+		g.Eventually(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+
+			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+			if err == nil {
+				if len(binding.Spec.Bindings) > 0 && len(binding.Spec.Bindings[0].Resources) == 0 {
+					return true
+				}
+			}
+			return false
+		}, timeout).Should(BeTrue())
+
+		newSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      newSecretName,
+				Namespace: defaultNamespaceName,
+			},
+			Type: addonsv1.ClusterResourceSetSecretType,
+			Data: map[string][]byte{},
+		}
+		g.Expect(env.Create(ctx, newSecret)).To(Succeed())
+		defer func() {
+			g.Expect(env.Delete(ctx, newSecret)).To(Succeed())
+		}()
+
+		cmKey := client.ObjectKey{
+			Namespace: defaultNamespaceName,
+			Name:      newSecretName,
+		}
+		g.Eventually(func() bool {
+			m := &corev1.Secret{}
+			err := env.Get(ctx, cmKey, m)
+			return err == nil
+		}, timeout).Should(BeTrue())
+
+		// When the Secret resource is created, CRS should get reconciled immediately.
+		g.Eventually(func() error {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+			if err := env.Get(ctx, clusterResourceSetBindingKey, binding); err != nil {
+				return err
+			}
+			if len(binding.Spec.Bindings[0].Resources) > 0 && binding.Spec.Bindings[0].Resources[0].Name == newSecretName {
+				return nil
+			}
+			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newSecretName, binding.Spec.Bindings)
 		}, timeout).Should(Succeed())
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")

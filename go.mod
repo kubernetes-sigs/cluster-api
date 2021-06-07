@@ -17,7 +17,7 @@ require (
 	github.com/google/go-github/v33 v33.0.0
 	github.com/google/gofuzz v1.2.0
 	github.com/gosuri/uitable v0.0.4
-	github.com/onsi/ginkgo v1.16.3
+	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.12.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.3

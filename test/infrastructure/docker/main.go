@@ -104,7 +104,7 @@ func main() {
 	ctrl.SetLogger(klogr.New())
 
 	restConfig := ctrl.GetConfigOrDie()
-	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-docker-controller")
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-docker-controller-manager")
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                 myscheme,
 		MetricsBindAddress:     metricsBindAddr,

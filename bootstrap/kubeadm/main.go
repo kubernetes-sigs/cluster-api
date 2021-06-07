@@ -140,7 +140,7 @@ func main() {
 	}
 
 	restConfig := ctrl.GetConfigOrDie()
-	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("kubeadm-bootstrap-manager")
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-kubeadm-bootstrap-manager")
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsBindAddr,

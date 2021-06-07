@@ -6,7 +6,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
 	github.com/joelanford/go-apidiff v0.1.0
-	github.com/onsi/ginkgo v1.16.3
+	github.com/onsi/ginkgo v1.16.4
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
 	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect

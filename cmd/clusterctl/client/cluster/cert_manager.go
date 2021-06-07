@@ -42,8 +42,7 @@ const (
 	waitCertManagerInterval       = 1 * time.Second
 	waitCertManagerDefaultTimeout = 10 * time.Minute
 
-	certManagerImageComponent = "cert-manager"
-	timeoutConfigKey          = "cert-manager-timeout"
+	timeoutConfigKey = "cert-manager-timeout"
 
 	certmanagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
 	certmanagerHashAnnotation    = "certmanager.clusterctl.cluster.x-k8s.io/hash"
@@ -346,7 +345,7 @@ func (cm *certManagerClient) getManifestObjs() ([]unstructured.Unstructured, err
 	}
 
 	objs, err = util.FixImages(objs, func(image string) (string, error) {
-		return cm.configClient.ImageMeta().AlterImage(certManagerImageComponent, image)
+		return cm.configClient.ImageMeta().AlterImage(config.CertManagerImageComponent, image)
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply image override to the cert-manager manifest")

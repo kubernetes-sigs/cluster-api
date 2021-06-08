@@ -1586,9 +1586,6 @@ spec:
                                   API Server to bind to. Defaults to 6443.
                                 format: int32
                                 type: integer
-                            required:
-                            - advertiseAddress
-                            - bindPort
                             type: object
                           nodeRegistration:
                             description: NodeRegistration holds fields that relate
@@ -1698,9 +1695,6 @@ spec:
                                       the API Server to bind to. Defaults to 6443.
                                     format: int32
                                     type: integer
-                                required:
-                                - advertiseAddress
-                                - bindPort
                                 type: object
                             type: object
                           discovery:
@@ -1747,7 +1741,6 @@ spec:
                                     type: boolean
                                 required:
                                 - token
-                                - unsafeSkipCAVerification
                                 type: object
                               file:
                                 description: File is used to specify a file or URL
@@ -1767,13 +1760,12 @@ spec:
                                 description: Timeout modifies the discovery timeout
                                 type: string
                               tlsBootstrapToken:
-                                description: 'TLSBootstrapToken is a token used for
+                                description: TLSBootstrapToken is a token used for
                                   TLS bootstrapping. If .BootstrapToken is set, this
                                   field is defaulted to .BootstrapToken.Token, but
                                   can be overridden. If .File is set, this field **must
                                   be set** in case the KubeConfigFile does not contain
-                                  any other authentication information TODO: revisit
-                                  when there is defaulting from k/k'
+                                  any other authentication information
                                 type: string
                             type: object
                           kind:

@@ -75,10 +75,12 @@ func runUpgradePlan() error {
 	if err != nil {
 		return err
 	}
-	if certManUpgradePlan.ShouldUpgrade {
-		fmt.Printf("Cert-Manager will be upgraded from %q to %q\n\n", certManUpgradePlan.From, certManUpgradePlan.To)
-	} else {
-		fmt.Printf("Cert-Manager is already up to date\n\n")
+	if !certManUpgradePlan.ExternallyManaged {
+		if certManUpgradePlan.ShouldUpgrade {
+			fmt.Printf("Cert-Manager will be upgraded from %q to %q\n\n", certManUpgradePlan.From, certManUpgradePlan.To)
+		} else {
+			fmt.Printf("Cert-Manager is already up to date\n\n")
+		}
 	}
 
 	upgradePlans, err := c.PlanUpgrade(client.PlanUpgradeOptions{

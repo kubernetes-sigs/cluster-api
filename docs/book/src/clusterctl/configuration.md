@@ -52,6 +52,43 @@ AWS_B64ENCODED_CREDENTIALS: XXXXXXXX
 In case a variable is defined both in the config file and as an OS environment variable,
 the environment variable takes precedence.
 
+## Cert-Manager configuration
+
+While doing init, clusterctl checks if there is a version of cert-manager already installed. If not, clusterctl will
+install a default version.
+
+By default, cert-manager will be fetched from `https://github.com/jetstack/cert-manager/releases`; however, if the user
+wants to use a different repository, it is possible to use the following configuration:
+
+```yaml
+cert-manager:
+  url: "/Users/foo/.cluster-api/dev-repository/cert-manager/latest/cert-manager.yaml"
+```
+
+Similarly, it is possible to override the default version installed by clusterctl by configuring:
+
+```yaml
+cert-manager:
+  ...
+  version: "v1.1.1"
+```
+
+For situations when resources are limited or the network is slow, the cert-manager wait time to be running can be customized by adding a field to the clusterctl config file, for example:
+
+```yaml
+
+```yaml
+cert-manager:
+  ...
+  timeout: 15m
+```
+
+The value string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+
+If no value is specified, or the format is invalid, the default value of 10 minutes will be used.
+
+Please note that the configuration above will be considered also when doing `clusterctl upgrade plan` or `clusterctl upgrade plan`.
+
 ## Overrides Layer
 
 `clusterctl` uses an overrides layer to read in injected provider components,
@@ -171,18 +208,6 @@ images:
   cert-manager/cert-manager-cainjector:
     tag: v1.1.0
 ```
-
-## Cert-Manager timeout override
-
-For situations when resources are limited or the network is slow, the cert-manager wait time to be running can be customized by adding a field to the clusterctl config file, for example:
-
-```yaml
-  cert-manager-timeout: 15m
-```
-
-The value string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-
-If no value is specified or the format is invalid, the default value of 10 minutes will be used.
 
 ## Debugging/Logging
 

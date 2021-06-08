@@ -11,7 +11,7 @@ require (
 	github.com/stretchr/testify v1.7.0 // indirect
 	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect
 	golang.org/x/tools v0.1.2
-	gotest.tools/gotestsum v1.6.3
+	gotest.tools/gotestsum v1.6.4
 	k8s.io/code-generator v0.21.1
 	sigs.k8s.io/controller-tools v0.6.0
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20200226075303-ed8438ec10a4

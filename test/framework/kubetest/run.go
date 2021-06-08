@@ -183,7 +183,7 @@ func parseKubetestConfig(kubetestConfigFile string) (kubetestConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to read kubetest config file %s: %w", kubetestConfigFile, err)
 	}
-	if err := yaml.Unmarshal(data, conf); err != nil {
+	if err := yaml.Unmarshal(data, &conf); err != nil {
 		return nil, fmt.Errorf("unable to parse kubetest config file %s as valid, non-nested YAML: %w", kubetestConfigFile, err)
 	}
 	return conf, nil

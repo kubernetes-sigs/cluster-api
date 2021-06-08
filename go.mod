@@ -10,7 +10,7 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
 	github.com/evanphx/json-patch v4.9.0+incompatible
-	github.com/fatih/color v1.10.0
+	github.com/fatih/color v1.12.0
 	github.com/go-logr/logr v0.4.0
 	github.com/gobuffalo/flect v0.2.2
 	github.com/google/go-cmp v0.5.5

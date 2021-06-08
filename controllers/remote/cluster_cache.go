@@ -68,10 +68,10 @@ type ClusterCacheTrackerOptions struct {
 	// Defaults to a no-op logger if it's not set.
 	Log logr.Logger
 
-	// ClientDisableCacheFor instructs the Client to never cache the following objects,
+	// ClientUncachedObjects instructs the Client to never cache the following objects,
 	// it'll instead query the API server directly.
 	// Defaults to never caching ConfigMap and Secret if not set.
-	ClientDisableCacheFor []client.Object
+	ClientUncachedObjects []client.Object
 }
 
 func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
@@ -79,8 +79,8 @@ func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
 		opts.Log = log.NullLogger{}
 	}
 
-	if len(opts.ClientDisableCacheFor) == 0 {
-		opts.ClientDisableCacheFor = []client.Object{
+	if len(opts.ClientUncachedObjects) == 0 {
+		opts.ClientUncachedObjects = []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
 		}
@@ -93,7 +93,7 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 
 	return &ClusterCacheTracker{
 		log:                   options.Log,
-		clientUncachedObjects: options.ClientDisableCacheFor,
+		clientUncachedObjects: options.ClientUncachedObjects,
 		client:                manager.GetClient(),
 		scheme:                manager.GetScheme(),
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),

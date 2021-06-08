@@ -20,6 +20,10 @@
 - The module is going to be tagged and versioned as part of the release.
 - Folks importing the test e2e framework or the docker infrastructure provider need to import the new module.
   - When imported, the test module version should always match the Cluster API one.
+  - Add the following line in `go.mod` to replace the cluster-api dependency in the test module (change the version to your current Cluster API version):
+  ```
+  replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.x
+  ```
 - The CAPD go module in test/infrastructure/docker has been removed.
 
 ## Upgrade kube-rbac-proxy to v0.8.0

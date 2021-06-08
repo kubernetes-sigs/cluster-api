@@ -25,8 +25,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/etcdserver/etcdserverpb"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"k8s.io/client-go/rest"
 

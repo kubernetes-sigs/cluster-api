@@ -343,7 +343,7 @@ metadata:
 				return nil
 			}
 			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, spew.Sprint(binding.Spec.Bindings))
-		}, timeout).Should(Succeed())
+		}, timeout*5).Should(Succeed())
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
 		g.Expect(env.Delete(ctx, testCluster)).To(Succeed())
@@ -443,7 +443,7 @@ metadata:
 				return nil
 			}
 			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newSecretName, spew.Sprint(binding.Spec.Bindings))
-		}, timeout).Should(Succeed())
+		}, timeout*5).Should(Succeed())
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
 		g.Expect(env.Delete(ctx, testCluster)).To(Succeed())

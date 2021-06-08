@@ -302,14 +302,13 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		}
 
 		// Since maps are not ordered, we need to order them to get the same hash at each reconcile.
-		keys := make([]string, 0)
-		data, ok := unstructuredObj.UnstructuredContent()["data"]
-		if !ok {
-			errList = append(errList, errors.New("failed to get data field from the resource"))
+		unstructuredData, _, err := unstructured.NestedMap(unstructuredObj.UnstructuredContent(), "data")
+		if err != nil {
+			errList = append(errList, errors.Wrapf(err, "failed to get data field from the resource %s", resource))
 			continue
 		}
 
-		unstructuredData := data.(map[string]interface{})
+		keys := make([]string, 0)
 		for key := range unstructuredData {
 			keys = append(keys, key)
 		}
@@ -319,7 +318,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		for _, key := range keys {
 			val, ok, err := unstructured.NestedString(unstructuredData, key)
 			if !ok || err != nil {
-				errList = append(errList, errors.New("failed to get value field from the resource"))
+				errList = append(errList, errors.Errorf("failed to get value field from the resource %s, key %s", resource, key))
 				continue
 			}
 

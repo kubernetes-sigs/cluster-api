@@ -145,8 +145,9 @@ func (c *components) Yaml() ([]byte, error) {
 type ComponentsOptions struct {
 	Version         string
 	TargetNamespace string
-	// Allows for skipping variable replacement in the component YAML
-	SkipVariables bool
+	// SkipTemplateProcess allows for skipping the call to the template processor, including also variable replacement in the component YAML.
+	// NOTE this works only if the rawYaml is a valid yaml by itself, like e.g when using envsubst/the simple processor.
+	SkipTemplateProcess bool
 }
 
 // ComponentsInput represents all the inputs required by NewComponents.
@@ -163,7 +164,7 @@ type ComponentsInput struct {
 // It is important to notice that clusterctl applies a set of processing steps to the “raw” component YAML read
 // from the provider repositories:
 // 1. Checks for all the variables in the component YAML file and replace with corresponding config values
-// 2. The variables replacement can be skipped using the SkipVariables flag in the input options
+// 2. The variables replacement can be skipped using the SkipTemplateProcess flag in the input options
 // 3. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
 // 4. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
 // 5. Adds labels to all the components in order to allow easy identification of the provider objects.
@@ -173,8 +174,10 @@ func NewComponents(input ComponentsInput) (Components, error) {
 		return nil, err
 	}
 
+	// If requested, we are skipping the call to the template processor; however, it is important to
+	// notice that this could work only if the rawYaml is a valid yaml by itself.
 	processedYaml := input.RawYaml
-	if !input.Options.SkipVariables {
+	if !input.Options.SkipTemplateProcess {
 		processedYaml, err = input.Processor.Process(input.RawYaml, input.ConfigClient.Variables().Get)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to perform variable substitution")

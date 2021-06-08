@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/envtest"
@@ -39,6 +40,11 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("Creating new test environment")
 	env = envtest.New([]client.Object{&corev1.ConfigMap{}, &corev1.Secret{}, &v1alpha4.ClusterResourceSetBinding{}}...)
+
+	// Set up the MachineNodeIndex
+	if err := noderefutil.AddMachineNodeIndex(ctx, env.Manager); err != nil {
+		panic(fmt.Sprintf("undable to setup machine node index: %v", err))
+	}
 
 	trckr, err := remote.NewClusterCacheTracker(env.Manager, remote.ClusterCacheTrackerOptions{})
 	if err != nil {

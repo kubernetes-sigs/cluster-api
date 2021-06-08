@@ -21,6 +21,7 @@ import (
 	"os"
 	"testing"
 
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -35,6 +36,11 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("Creating new test environment")
 	env = envtest.New()
+
+	// Set up the MachineNodeIndex
+	if err := noderefutil.AddMachineNodeIndex(ctx, env.Manager); err != nil {
+		panic(fmt.Sprintf("undable to setup machine node index: %v", err))
+	}
 
 	machinePoolReconciler := MachinePoolReconciler{
 		Client:   env,

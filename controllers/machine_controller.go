@@ -109,14 +109,6 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
 	}
 
-	// Add index to Machine for listing by Node reference.
-	if err := mgr.GetCache().IndexField(ctx, &clusterv1.Machine{},
-		clusterv1.MachineNodeNameIndex,
-		r.indexMachineByNodeName,
-	); err != nil {
-		return errors.Wrap(err, "error setting index fields")
-	}
-
 	r.controller = controller
 
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
@@ -687,19 +679,6 @@ func (r *MachineReconciler) nodeToMachine(o client.Object) []reconcile.Request {
 	}
 
 	return []reconcile.Request{{NamespacedName: util.ObjectKey(&machineList.Items[0])}}
-}
-
-func (r *MachineReconciler) indexMachineByNodeName(o client.Object) []string {
-	machine, ok := o.(*clusterv1.Machine)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
-	}
-
-	if machine.Status.NodeRef != nil {
-		return []string{machine.Status.NodeRef.Name}
-	}
-
-	return nil
 }
 
 // writer implements io.Writer interface as a pass-through for klog.

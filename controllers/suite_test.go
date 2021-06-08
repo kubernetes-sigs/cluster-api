@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,6 +49,11 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("Creating a new test environment")
 	env = envtest.New()
+
+	// Set up the MachineNodeIndex
+	if err := noderefutil.AddMachineNodeIndex(ctx, env.Manager); err != nil {
+		panic(fmt.Sprintf("undable to setup machine node index: %v", err))
+	}
 
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster

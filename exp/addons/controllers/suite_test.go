@@ -21,9 +21,12 @@ import (
 	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
@@ -35,7 +38,7 @@ var (
 
 func TestMain(m *testing.M) {
 	fmt.Println("Creating new test environment")
-	env = envtest.New()
+	env = envtest.New([]client.Object{&corev1.ConfigMap{}, &corev1.Secret{}, &v1alpha4.ClusterResourceSetBinding{}}...)
 
 	trckr, err := remote.NewClusterCacheTracker(env.Manager, remote.ClusterCacheTrackerOptions{})
 	if err != nil {

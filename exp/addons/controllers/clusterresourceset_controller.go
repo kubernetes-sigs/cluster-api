@@ -23,6 +23,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -75,7 +76,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 		).
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
-			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet(ctx)),
 			builder.OnlyMetadata,
 			builder.WithPredicates(
 				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
@@ -83,7 +84,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 		).
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
-			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet(ctx)),
 			builder.OnlyMetadata,
 			builder.WithPredicates(
 				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
@@ -235,6 +236,8 @@ func (r *ClusterResourceSetReconciler) getClustersByClusterResourceSetSelector(c
 func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) error {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
+	log.Info("FP:ApplyClusterResourceSet:Start")
+
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RemoteClusterClientFailedReason, clusterv1.ConditionSeverityError, err.Error())
@@ -254,9 +257,10 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	}
 
 	defer func() {
+		log.Info("FP:ApplyClusterResourceSet:DeferPatch", "clusterResourceSetBinding", spew.Sprint(clusterResourceSetBinding.Spec.Bindings))
 		// Always attempt to Patch the ClusterResourceSetBinding object after each reconciliation.
 		if err := patchHelper.Patch(ctx, clusterResourceSetBinding); err != nil {
-			log.Error(err, "failed to patch config")
+			log.Error(err, "failed to patch clusterResourceSetBinding")
 		}
 	}()
 
@@ -270,6 +274,8 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			continue
 		}
 
+		log.Info("FP:ApplyClusterResourceSet:ForResources", "resource", resource)
+
 		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
 		if err != nil {
 			if err == ErrSecretTypeNotSupported {
@@ -279,10 +285,12 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 
 				// Continue without adding the error to the aggregate if we can't find the resource.
 				if apierrors.IsNotFound(err) {
+					log.Info("FP:ApplyClusterResourceSet:ForResources:Continue1")
 					continue
 				}
 			}
 			errList = append(errList, err)
+			log.Info("FP:ApplyClusterResourceSet:ForResources:Continue2")
 			continue
 		}
 
@@ -305,6 +313,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		unstructuredData, _, err := unstructured.NestedMap(unstructuredObj.UnstructuredContent(), "data")
 		if err != nil {
 			errList = append(errList, errors.Wrapf(err, "failed to get data field from the resource %s", resource))
+			log.Info("FP:ApplyClusterResourceSet:ForResources:Continue3")
 			continue
 		}
 
@@ -365,6 +374,8 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 // Unsupported resource kinds are not denied by validation webhook, hence no need to check here.
 // Only supports Secrets/Configmaps as resource types and allow using resources in the same namespace with the cluster.
 func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resourceRef addonsv1.ResourceRef, namespace string) (*unstructured.Unstructured, error) {
+	log := ctrl.LoggerFrom(ctx, "resourceRef", resourceRef, "namespace", namespace)
+
 	resourceName := types.NamespacedName{Name: resourceRef.Name, Namespace: namespace}
 
 	var resourceInterface interface{}
@@ -372,6 +383,7 @@ func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resource
 	case string(addonsv1.ConfigMapClusterResourceSetResourceKind):
 		resourceConfigMap, err := getConfigMap(ctx, r.Client, resourceName)
 		if err != nil {
+			log.Info("FP:ApplyClusterResourceSet:getResource:getConfigMap", "err", err.Error())
 			return nil, err
 		}
 
@@ -379,10 +391,12 @@ func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resource
 	case string(addonsv1.SecretClusterResourceSetResourceKind):
 		resourceSecret, err := getSecret(ctx, r.Client, resourceName)
 		if err != nil {
+			log.Info("FP:ApplyClusterResourceSet:getResource:getSecret", "err", err.Error())
 			return nil, err
 		}
 
 		if resourceSecret.Type != addonsv1.ClusterResourceSetSecretType {
+			log.Info("FP:ApplyClusterResourceSet:getResource:getSecret", "err", ErrSecretTypeNotSupported)
 			return nil, ErrSecretTypeNotSupported
 		}
 		resourceInterface = resourceSecret.DeepCopyObject()
@@ -391,6 +405,7 @@ func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resource
 	raw := &unstructured.Unstructured{}
 	err := r.Client.Scheme().Convert(resourceInterface, raw, nil)
 	if err != nil {
+		log.Info("FP:ApplyClusterResourceSet:getResource:Convert", "err", err)
 		return nil, err
 	}
 
@@ -455,45 +470,50 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Obje
 }
 
 // resourceToClusterResourceSet is mapper function that maps resources to ClusterResourceSet.
-func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(o client.Object) []ctrl.Request {
-	result := []ctrl.Request{}
+func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(ctx context.Context) func(o client.Object) []ctrl.Request {
+	log := ctrl.LoggerFrom(ctx)
+	return func(o client.Object) []ctrl.Request {
+		result := []ctrl.Request{}
 
-	// Add all ClusterResourceSet owners.
-	for _, owner := range o.GetOwnerReferences() {
-		if owner.Kind == "ClusterResourceSet" {
-			name := client.ObjectKey{Namespace: o.GetNamespace(), Name: owner.Name}
-			result = append(result, ctrl.Request{NamespacedName: name})
-		}
-	}
-
-	// If there is any ClusterResourceSet owner, that means the resource is reconciled before,
-	// and existing owners are the only matching ClusterResourceSets to this resource, so no need to return all ClusterResourceSets.
-	if len(result) > 0 {
-		return result
-	}
-
-	// Only core group is accepted as resources group
-	if o.GetObjectKind().GroupVersionKind().Group != "" {
-		return result
-	}
-
-	crsList := &addonsv1.ClusterResourceSetList{}
-	if err := r.Client.List(context.TODO(), crsList, client.InNamespace(o.GetNamespace())); err != nil {
-		return nil
-	}
-	objKind, err := apiutil.GVKForObject(o, r.Client.Scheme())
-	if err != nil {
-		return nil
-	}
-	for _, crs := range crsList.Items {
-		for _, resource := range crs.Spec.Resources {
-			if resource.Kind == objKind.Kind && resource.Name == o.GetName() {
-				name := client.ObjectKey{Namespace: o.GetNamespace(), Name: crs.Name}
+		// Add all ClusterResourceSet owners.
+		for _, owner := range o.GetOwnerReferences() {
+			if owner.Kind == "ClusterResourceSet" {
+				name := client.ObjectKey{Namespace: o.GetNamespace(), Name: owner.Name}
 				result = append(result, ctrl.Request{NamespacedName: name})
-				break
 			}
 		}
-	}
 
-	return result
+		// If there is any ClusterResourceSet owner, that means the resource is reconciled before,
+		// and existing owners are the only matching ClusterResourceSets to this resource, so no need to return all ClusterResourceSets.
+		if len(result) > 0 {
+			log.Info("FP:resourceToCRS", "resource", o.GetName(), "result", result)
+			return result
+		}
+
+		// Only core group is accepted as resources group
+		if o.GetObjectKind().GroupVersionKind().Group != "" {
+			return result
+		}
+
+		crsList := &addonsv1.ClusterResourceSetList{}
+		if err := r.Client.List(context.TODO(), crsList, client.InNamespace(o.GetNamespace())); err != nil {
+			return nil
+		}
+		objKind, err := apiutil.GVKForObject(o, r.Client.Scheme())
+		if err != nil {
+			return nil
+		}
+		for _, crs := range crsList.Items {
+			for _, resource := range crs.Spec.Resources {
+				if resource.Kind == objKind.Kind && resource.Name == o.GetName() {
+					name := client.ObjectKey{Namespace: o.GetNamespace(), Name: crs.Name}
+					result = append(result, ctrl.Request{NamespacedName: name})
+					break
+				}
+			}
+		}
+
+		log.Info("FP:resourceToCRS", "resource", o.GetName(), "result", result)
+		return result
+	}
 }

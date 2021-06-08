@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
@@ -260,7 +261,7 @@ metadata:
 		setup(t, g)
 		defer teardown(t, g)
 
-		newCMName := fmt.Sprintf("test-configmap-%s", util.RandomString(6))
+		newCMName := fmt.Sprintf("flaky-test-configmap-%s", util.RandomString(6))
 
 		crsInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -341,7 +342,7 @@ metadata:
 			if len(binding.Spec.Bindings[0].Resources) > 0 && binding.Spec.Bindings[0].Resources[0].Name == newCMName {
 				return nil
 			}
-			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, binding.Spec.Bindings)
+			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, spew.Sprint(binding.Spec.Bindings))
 		}, timeout).Should(Succeed())
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
@@ -359,7 +360,7 @@ metadata:
 		setup(t, g)
 		defer teardown(t, g)
 
-		newSecretName := fmt.Sprintf("test-secret-%s", util.RandomString(6))
+		newSecretName := fmt.Sprintf("flaky-test-secret-%s", util.RandomString(6))
 
 		crsInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -441,7 +442,7 @@ metadata:
 			if len(binding.Spec.Bindings[0].Resources) > 0 && binding.Spec.Bindings[0].Resources[0].Name == newSecretName {
 				return nil
 			}
-			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newSecretName, binding.Spec.Bindings)
+			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newSecretName, spew.Sprint(binding.Spec.Bindings))
 		}, timeout).Should(Succeed())
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")

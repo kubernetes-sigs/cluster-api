@@ -28,6 +28,9 @@ const (
 	// ClusterctlCoreLabelInventoryValue define the value for ClusterctlCoreLabelName to be used for inventory objects.
 	ClusterctlCoreLabelInventoryValue = "inventory"
 
+	// ClusterctlCoreLabelCertManagerValue define the value for ClusterctlCoreLabelName to be used for cert-manager objects.
+	ClusterctlCoreLabelCertManagerValue = "cert-manager"
+
 	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move but that are not part of a Cluster.
 	ClusterctlMoveLabelName = "clusterctl.cluster.x-k8s.io/move"
 
@@ -41,8 +44,6 @@ const (
 // it's not meant to be used to describe each instance of a particular provider.
 func ManifestLabel(name string, providerType ProviderType) string {
 	switch providerType {
-	case CoreProviderType:
-		return name
 	case BootstrapProviderType:
 		return fmt.Sprintf("bootstrap-%s", name)
 	case ControlPlaneProviderType:
@@ -50,6 +51,6 @@ func ManifestLabel(name string, providerType ProviderType) string {
 	case InfrastructureProviderType:
 		return fmt.Sprintf("infrastructure-%s", name)
 	default:
-		return fmt.Sprintf("unknown-type-%s", name)
+		return name
 	}
 }

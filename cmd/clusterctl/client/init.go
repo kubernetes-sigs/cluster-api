@@ -104,11 +104,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	}
 
 	// Before installing the providers, ensure the cert-manager Webhook is in place.
-	certManager, err := clusterClient.CertManager()
-	if err != nil {
-		return nil, err
-	}
-
+	certManager := clusterClient.CertManager()
 	if err := certManager.EnsureInstalled(); err != nil {
 		return nil, err
 	}
@@ -165,12 +161,8 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 		return nil, err
 	}
 
-	certManager, err := clusterClient.CertManager()
-	if err != nil {
-		return nil, err
-	}
-
 	// Gets the list of container images required for the cert-manager (if not already installed).
+	certManager := clusterClient.CertManager()
 	images, err := certManager.Images()
 	if err != nil {
 		return nil, err

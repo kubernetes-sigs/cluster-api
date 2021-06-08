@@ -9,7 +9,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
-	github.com/evanphx/json-patch v4.9.0+incompatible
+	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/fatih/color v1.10.0
 	github.com/go-logr/logr v0.4.0
 	github.com/gobuffalo/flect v0.2.2
@@ -17,8 +17,8 @@ require (
 	github.com/google/go-github/v33 v33.0.0
 	github.com/google/gofuzz v1.2.0
 	github.com/gosuri/uitable v0.0.4
-	github.com/onsi/ginkgo v1.16.3
-	github.com/onsi/gomega v1.12.0
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.13.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
@@ -35,7 +35,7 @@ require (
 	k8s.io/component-base v0.21.1
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubectl v0.21.1
-	k8s.io/utils v0.0.0-20210517184530-5a248b5acedc
-	sigs.k8s.io/controller-runtime v0.9.0-beta.6
+	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
+	sigs.k8s.io/controller-runtime v0.9.0
 	sigs.k8s.io/yaml v1.2.0
 )

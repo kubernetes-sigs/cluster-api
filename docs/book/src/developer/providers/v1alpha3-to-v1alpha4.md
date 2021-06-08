@@ -129,16 +129,18 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
 1. Edit the `/config/manager/manager.yaml` file:
     - Add the following items to the `args` list for the `manager` container list
     ```
-    - "--metrics-bind-addr=localhost:8080"
+    - "--metrics-bind-addr=127.0.0.1:8080"
     ```
     - Verify that feature flags required by your container are properly set
       (as it was in `/config/webhook/manager_webhook_patch.yaml`).
+1. Edit the `/config/manager/manager_auth_proxy_patch.yaml` file:
+    - Remove the patch for the container with name `manager`
 1. Move the following files to the `/config/default` folder
+    - `/config/manager/manager_auth_proxy_patch.yaml`
     - `/config/manager/manager_image_patch.yaml`
     - `/config/manager/manager_pull_policy.yaml`
 
 **Changes in the `/config/default` folder:**
-1. Remove the file `config/default/manager_auth_proxy_patch.yaml` and the reference to it in `config/default/kustomization.yaml`
 1. Create a file named `/config/default/kustomizeconfig.yaml` with the following content:
    ```
    # This configuration is for teaching kustomize how to update name ref and var substitution
@@ -156,6 +158,7 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
       ```
     - Add the `patchesStrategicMerge:` list, with the following items:
       ```
+      - manager_auth_proxy_patch.yaml
       - manager_image_patch.yaml
       - manager_pull_policy.yaml
       - manager_webhook_patch.yaml
@@ -167,7 +170,6 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
       - kustomizeconfig.yaml
       ```
 
-
 **Changes in the `/config` folder:**
 
 1. Remove the `/config/kustomization.yaml` file
@@ -177,7 +179,6 @@ Provider's `/config` folder has the same structure of  `/config` folder in CAPI 
 
 1. Change default value for the flags `webhook-port` flag to `9443`
 1. Change your code so all the controllers and the webhooks are started no matter if the webhooks port selected.
-1. Change default value for the flags `metrics-bind-addr` flag to `localhost:8080`
 
 **Other changes:**
 
@@ -198,7 +199,7 @@ should be executed before this changes.
 **Changes in the `/config/certmanager` folder:**
 
 1. Edit the `/config/certmanager/certificates.yaml` file and replace all the occurrences of `cert-manager.io/v1alpha2`
-with `cert-manager.io/v1`
+   with `cert-manager.io/v1`
 
 **Changes in the `/config/default` folder:**
 
@@ -269,9 +270,9 @@ Only String values like "3%" or Int values e.g 3 are valid input values now. A s
 ## Required change to support externally managed infrastructure.
 
 - A new annotation `cluster.x-k8s.io/managed-by` has been introduced that allows cluster infrastructure to be managed
-externally.
+  externally.
 - When this annotation is added to an `InfraCluster` resource, the controller for these resources should not reconcile
-the resource.
+  the resource.
 - The `ResourceIsNotExternallyManaged` predicate is a useful helper to check for the annotation and the filter the resource easily:
   ```go
   c, err := ctrl.NewControllerManagedBy(mgr).
@@ -306,3 +307,27 @@ This function used to create a new fake client with the given scheme for testing
 and all the objects given as input were initialized with a resource version of "1".
 The behavior of having a resource version in fake client has been fixed in controller-runtime,
 and this function isn't needed anymore.
+
+## Required kustomize changes to remove Kubeadm-rbac-proxy
+
+NB. instructions assumes "Required kustomize changes to have a single manager watching all namespaces and answer to webhook calls"
+should be executed before this changes.
+
+**Changes in the `/config/default` folder:**
+1. Edit `/config/default/kustomization.yaml` and remove the `manager_auth_proxy_patch.yaml` item from the `patchesStrategicMerge` list.
+1. Delete the `/config/default/manager_auth_proxy_patch.yaml` file.
+
+**Changes in the `/config/manager` folder:**
+1. Edit `/config/manager/manager.yaml` and remove the `--metrics-bind-addr=127.0.0.1:8080` arg from the `args` list.
+
+**Changes in the `/config/rbac` folder:**
+1. Edit `/config/rbac/kustomization.yaml` and remove following items from the `resources` list.
+   - `auth_proxy_service.yaml`
+   - `auth_proxy_role.yaml`
+   - `auth_proxy_role_binding.yaml`
+1. Delete the `/config/rbac/auth_proxy_service.yaml` file.
+1. Delete the `/config/rbac/auth_proxy_role.yaml` file.
+1. Delete the `/config/rbac/auth_proxy_role_binding.yaml` file.
+
+**Changes in the `main.go` file:**
+1. Change the default value for the `metrics-bind-addr` from `:8080` to `localhost:8080`

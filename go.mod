@@ -2,6 +2,9 @@ module sigs.k8s.io/cluster-api
 
 go 1.16
 
+// Imported version of etcd is v3.4.13 with an additional patch matching
+// the imported version in Kubernetes v1.21.x
+
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/blang/semver v3.5.1+incompatible

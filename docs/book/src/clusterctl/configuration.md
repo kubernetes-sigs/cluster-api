@@ -132,7 +132,7 @@ provider repositories.
 For example, you can now do:
 
 ```bash
-clusterctl config cluster mycluster --flavor dev --infrastructure aws:v0.5.0 -v5
+clusterctl generate cluster mycluster --flavor dev --infrastructure aws:v0.5.0 -v5
 ```
 
 The `-v5` provides verbose logging which will confirm the usage of the

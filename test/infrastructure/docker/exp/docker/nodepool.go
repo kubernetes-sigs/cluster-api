@@ -53,9 +53,9 @@ type NodePool struct {
 }
 
 // NewNodePool creates a new node pool instances.
-func NewNodePool(kClient client.Client, cluster *clusterv1.Cluster, mp *clusterv1exp.MachinePool, dmp *infrav1exp.DockerMachinePool) (*NodePool, error) {
+func NewNodePool(c client.Client, cluster *clusterv1.Cluster, mp *clusterv1exp.MachinePool, dmp *infrav1exp.DockerMachinePool) (*NodePool, error) {
 	np := &NodePool{
-		client:            kClient,
+		client:            c,
 		cluster:           cluster,
 		machinePool:       mp,
 		dockerMachinePool: dmp,
@@ -320,14 +320,14 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 }
 
 // getBootstrapData fetches the bootstrap data for the machine pool.
-func getBootstrapData(ctx context.Context, kClient client.Client, machinePool *clusterv1exp.MachinePool) (string, error) {
+func getBootstrapData(ctx context.Context, c client.Client, machinePool *clusterv1exp.MachinePool) (string, error) {
 	if machinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		return "", errors.New("error retrieving bootstrap data: linked MachinePool's bootstrap.dataSecretName is nil")
 	}
 
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: machinePool.GetNamespace(), Name: *machinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
-	if err := kClient.Get(ctx, key, s); err != nil {
+	if err := c.Get(ctx, key, s); err != nil {
 		return "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachinePool instance %s/%s", machinePool.GetNamespace(), machinePool.GetName())
 	}
 

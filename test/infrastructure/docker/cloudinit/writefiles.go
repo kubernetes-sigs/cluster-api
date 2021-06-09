@@ -79,7 +79,7 @@ func (a *writeFilesAction) Commands() ([]Cmd, error) {
 		permissions := fixPermissions(f.Permissions)
 		content, err := fixContent(f.Content, encodings)
 		if path == kubeadmInitPath {
-			content = content + kubeproxyComponentConfig
+			content += kubeproxyComponentConfig
 		}
 		if err != nil {
 			return commands, errors.Wrapf(err, "error decoding content for %s", path)

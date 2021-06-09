@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMachineHealthCheckHasMatchingLabels(t *testing.T) {
+func TestHasMatchingLabels(t *testing.T) {
 	testCases := []struct {
 		name     string
 		selector metav1.LabelSelector
@@ -33,28 +33,24 @@ func TestMachineHealthCheckHasMatchingLabels(t *testing.T) {
 	}{
 		{
 			name: "selector matches labels",
-
 			selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"foo": "bar",
 				},
 			},
-
 			labels: map[string]string{
-				"foo": "bar",
+				"foo":  "bar",
+				"more": "labels",
 			},
-
 			expected: true,
 		},
 		{
 			name: "selector does not match labels",
-
 			selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"foo": "bar",
 				},
 			},
-
 			labels: map[string]string{
 				"no": "match",
 			},
@@ -67,7 +63,7 @@ func TestMachineHealthCheckHasMatchingLabels(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "seelctor is invalid",
+			name: "selector is invalid",
 			selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"foo": "bar",

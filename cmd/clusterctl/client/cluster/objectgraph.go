@@ -73,6 +73,10 @@ type node struct {
 	// tenantCRSs define the list of ClusterResourceSet which are tenant for the node, no matter if the node has a direct OwnerReference to the ClusterResourceSet or if
 	// the node is linked to a ClusterResourceSet indirectly in the OwnerReference chain.
 	tenantCRSs map[*node]empty
+
+	// rawObject holds the object that is referenced when creating the node.
+	// the object can then be referenced latter in a save / restore cycle
+	rawObject *unstructured.Unstructured
 }
 
 type discoveryTypeInfo struct {
@@ -160,6 +164,7 @@ func (o *objectGraph) ownerToVirtualNode(owner metav1.OwnerReference, namespace 
 		virtual:        true,
 		forceMove:      o.getForceMove(owner.Kind, owner.APIVersion, nil),
 		isGlobal:       isGlobal,
+		rawObject:      &unstructured.Unstructured{},
 	}
 
 	o.uidToNode[ownerNode.identity.UID] = ownerNode
@@ -178,6 +183,10 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 		// it is required to re-compute the forceMove flag when the real node is processed
 		// Without this, there is the risk that, forceMove will report false negatives depending on the discovery order
 		existingNode.forceMove = o.getForceMove(obj.GetKind(), obj.GetAPIVersion(), obj.GetLabels())
+
+		// Now that we've found the existing node, populate it's object field
+		existingNode.rawObject = obj.DeepCopy()
+
 		return existingNode
 	}
 
@@ -201,6 +210,7 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 		virtual:        false,
 		forceMove:      o.getForceMove(obj.GetKind(), obj.GetAPIVersion(), obj.GetLabels()),
 		isGlobal:       isGlobal,
+		rawObject:      obj.DeepCopy(),
 	}
 
 	o.uidToNode[newNode.identity.UID] = newNode
@@ -257,6 +267,41 @@ func (o *objectGraph) getDiscoveryTypes() error {
 				forceMove: forceMove,
 			}
 
+		}
+	}
+
+	secretTypeMeta := metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"}
+	o.types[getKindAPIString(secretTypeMeta)] = &discoveryTypeInfo{typeMeta: secretTypeMeta}
+
+	configMapTypeMeta := metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"}
+	o.types[getKindAPIString(configMapTypeMeta)] = &discoveryTypeInfo{typeMeta: configMapTypeMeta}
+
+	return nil
+}
+
+// getDiscoveryFileTypes returns the list of TypeMeta to be considered for a save / restore cycle.
+// This list includes all the types defined by a slice of objects populated from file
+func (o *objectGraph) getDiscoveryFileTypes(objs []unstructured.Unstructured) error {
+	o.types = make(map[string]*discoveryTypeInfo)
+
+	for _, obj := range objs {
+		labels := obj.GetLabels()
+		forceMove := false
+		if _, ok := labels[clusterctlv1.ClusterctlMoveLabelName]; ok {
+			forceMove = true
+		}
+
+		typeMeta := metav1.TypeMeta{
+			Kind: obj.GetKind(),
+			APIVersion: metav1.GroupVersion{
+				Group:   obj.GroupVersionKind().Group,
+				Version: obj.GroupVersionKind().Version,
+			}.String(),
+		}
+
+		o.types[getKindAPIString(typeMeta)] = &discoveryTypeInfo{
+			typeMeta:  typeMeta,
+			forceMove: forceMove,
 		}
 	}
 

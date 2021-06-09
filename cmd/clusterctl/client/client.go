@@ -50,6 +50,12 @@ type Client interface {
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 	Move(options MoveOptions) error
 
+	// Save saves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
+	Save(options SaveOptions) error
+
+	// Restore restores all the Cluster API objects existing in a configured directory based on a glob to a target management cluster.
+	Restore(options RestoreOptions) error
+
 	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster, and more specifically:
 	// - Each management group gets separated upgrade plans.
 	// - For each management group, an upgrade plan is generated for each API Version of Cluster API (contract) available, e.g.

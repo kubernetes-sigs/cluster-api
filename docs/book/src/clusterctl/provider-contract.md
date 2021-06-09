@@ -194,7 +194,7 @@ providers.
 
 ### Workload cluster templates
 
-An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl config cluster`.
+An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl generate cluster`.
 This is single YAML with _all_ the objects required to create a new workload cluster.
 
 The following rules apply:
@@ -205,7 +205,7 @@ Cluster templates MUST be stored in the same folder as the component YAML and fo
 1. The default cluster template should be named `cluster-template.yaml`.
 2. Additional cluster template should be named `cluster-template-{flavor}.yaml`. e.g `cluster-template-prod.yaml`
 
-`{flavor}` is the name the user can pass to the `clusterctl config cluster --flavor` flag to identify the specific template to use.
+`{flavor}` is the name the user can pass to the `clusterctl generate cluster --flavor` flag to identify the specific template to use.
 
 Each provider SHOULD create user facing documentation with the list of available cluster templates.
 
@@ -224,7 +224,7 @@ notes that are required to assist the user in defining the value for each variab
 
 ##### Common variables
 
-The `clusterctl config cluster` command allows user to set a small set of common variables via CLI flags or command arguments.
+The `clusterctl generate cluster` command allows user to set a small set of common variables via CLI flags or command arguments.
 
 Templates writers should use the common variables to ensure consistency across providers and a simpler user experience
 (if compared to the usage of OS environment variables or the `clusterctl` config file).
@@ -236,7 +236,7 @@ Templates writers should use the common variables to ensure consistency across p
 |`--controlplane-machine-count`| `${CONTROL_PLANE_MACHINE_COUNT}` | The number of control plane machines to be added to the workload cluster |
 |`--worker-machine-count`| `${WORKER_MACHINE_COUNT}` | The number of worker machines to be added to the workload cluster |
 
-Additionally, the value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will
+Additionally, the value of the command argument to `clusterctl generate cluster <cluster-name>` (`<cluster-name>` in this case), will
 be applied to every occurrence of the `${ CLUSTER_NAME }` variable.
 
 ## OwnerReferences chain

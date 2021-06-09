@@ -321,7 +321,7 @@ Your management cluster has been initialized successfully!
 
 You can now create your first workload cluster by running the following:
 
-  clusterctl config cluster [name] --kubernetes-version [version] | kubectl apply -f -
+  clusterctl generate cluster [name] --kubernetes-version [version] | kubectl apply -f -
 ```
 
 <aside class="note">
@@ -341,13 +341,13 @@ Once the management cluster is ready, you can create your first workload cluster
 
 #### Preparing the workload cluster configuration
 
-The `clusterctl config cluster` command returns a YAML template for creating a [workload cluster].
+The `clusterctl generate cluster` command returns a YAML template for creating a [workload cluster].
 
 <aside class="note">
 
 <h1> Which provider will be used for my cluster? </h1>
 
-The `clusterctl config cluster` command uses smart defaults in order to simplify the user experience; in this example,
+The `clusterctl generate cluster` command uses smart defaults in order to simplify the user experience; in this example,
 it detects that there is only an `aws` infrastructure provider and so it uses that when creating the cluster.
 
 </aside>
@@ -356,10 +356,10 @@ it detects that there is only an `aws` infrastructure provider and so it uses th
 
 <h1> What topology will be used for my cluster? </h1>
 
-The `clusterctl config cluster` command by default uses cluster templates which are provided by the infrastructure
+The `clusterctl generate cluster` command by default uses cluster templates which are provided by the infrastructure
 providers. See the provider's documentation for more information.
 
-See the `clusterctl config cluster` [command][clusterctl config cluster] documentation for
+See the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for
 details about how to use alternative sources. for cluster templates.
 
 </aside>
@@ -369,7 +369,7 @@ details about how to use alternative sources. for cluster templates.
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before configuring a cluster with Cluster API. Instructions are provided for common providers below.
 
-Otherwise, you can look at the `clusterctl config cluster` [command][clusterctl config cluster] documentation for details about how to
+Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
 {{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,GCP,vSphere,OpenStack,Metal3,Packet"}}
@@ -492,7 +492,7 @@ Depending on your OpenStack and underlying hypervisor the following options migh
 
 To see all required OpenStack environment variables execute:
 ```bash
-clusterctl config cluster --infrastructure openstack --list-variables capi-quickstart
+clusterctl generate cluster --infrastructure openstack --list-variables capi-quickstart
 ```
 
 The following script can be used to export some of them:
@@ -578,7 +578,7 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 {{#tab Azure|AWS|DigitalOcean|GCP|vSphere|OpenStack|Metal3|Packet}}
 
 ```bash
-clusterctl config cluster capi-quickstart \
+clusterctl generate cluster capi-quickstart \
   --kubernetes-version v1.19.7 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
@@ -597,7 +597,7 @@ The Docker provider is not designed for production use and is intended for devel
 </aside>
 
 ```bash
-clusterctl config cluster capi-quickstart --flavor development \
+clusterctl generate cluster capi-quickstart --flavor development \
   --kubernetes-version v1.19.7 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
@@ -612,7 +612,7 @@ Machine Deployments, etc.
 
 The file can be eventually modified using your editor of choice.
 
-See [clusterctl config cluster] for more details.
+See [clusterctl generate cluster] for more details.
 
 #### Apply the workload cluster
 
@@ -761,7 +761,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [capa]: https://cluster-api-aws.sigs.k8s.io
 [capv-upload-images]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-machine-images
 [clusterawsadm]: https://cluster-api-aws.sigs.k8s.io/clusterawsadm/clusterawsadm.html
-[clusterctl config cluster]: ../clusterctl/commands/config-cluster.md
+[clusterctl generate cluster]: ../clusterctl/commands/generate-cluster.md
 [clusterctl get kubeconfig]: ../clusterctl/commands/get-kubeconfig.md
 [clusterctl]: ../clusterctl/overview.md
 [Docker]: https://www.docker.com/

@@ -142,7 +142,7 @@ The user should ensure the variables required by a provider are set in advance.
 <h1> How can I known which variables a provider requires? </h1>
 
 Users can refer to the provider documentation for the list of variables to be set or use the
-`clusterctl config provider <provider-name>` command to get a list of expected variable names.
+`clusterctl generate provider <provider-name> --describe` command to get a list of expected variable names.
 
 </aside>
 

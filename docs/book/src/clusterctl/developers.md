@@ -106,7 +106,7 @@ The above config file changes the location of the [overrides layer] folder thus 
 you dev session isn't hijacked by other local artifacts.
 
 With the only exception of the docker provider, the local repository folder does not contain cluster templates,
-so the `clusterctl config cluster` command will fail.
+so the `clusterctl generate cluster` command will fail.
 
 </aside>
 

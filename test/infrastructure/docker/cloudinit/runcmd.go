@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Cmd.
+// Cmd defines a shell command.
 type Cmd struct {
 	Cmd   string
 	Args  []string

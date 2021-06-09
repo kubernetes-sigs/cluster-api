@@ -358,12 +358,10 @@ func (m *Machine) CheckForBootstrapSuccess(ctx context.Context) error {
 	cmd := m.container.Commander.Command("test", "-f", "/run/cluster-api/bootstrap-success.complete")
 	cmd.SetStderr(&outErr)
 	cmd.SetStdout(&outStd)
-	err := cmd.Run(ctx)
-	if err != nil {
+	if err := cmd.Run(ctx); err != nil {
 		log.Info("Failed running command", "command", "test -f /run/cluster-api/bootstrap-success.complete", "stdout", outStd.String(), "stderr", outErr.String())
 		return errors.Wrap(errors.WithStack(err), "failed to run bootstrap check")
 	}
-
 	return nil
 }
 
@@ -447,7 +445,7 @@ func (m *Machine) machineImage(version *string) string {
 		return defaultImage
 	}
 
-	//TODO(fp) make this smarter
+	// TODO(fp) make this smarter
 	// - allows usage of custom docker repository & image names
 	// - add v only for semantic versions
 	versionString := *version

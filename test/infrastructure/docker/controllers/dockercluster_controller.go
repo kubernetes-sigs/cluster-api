@@ -135,7 +135,7 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 }
 
 func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
-	//Create the docker container hosting the load balancer
+	// Create the docker container hosting the load balancer.
 	if err := externalLoadBalancer.Create(ctx); err != nil {
 		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, errors.Wrap(err, "failed to create load balancer")

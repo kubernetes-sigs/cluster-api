@@ -37,7 +37,7 @@ type Node struct {
 	InternalIP  string
 	Image       string
 	status      string
-	Commander   *containerCmder
+	Commander   *ContainerCmder
 }
 
 // NewNode returns a Node with defaults.
@@ -46,7 +46,7 @@ func NewNode(name, image, role string) *Node {
 		Name:        name,
 		Image:       image,
 		ClusterRole: role,
-		Commander:   ContainerCmder(name),
+		Commander:   GetContainerCmder(name),
 	}
 }
 
@@ -131,26 +131,26 @@ func (n *Node) Kill(ctx context.Context, signal string) error {
 	return errors.WithStack(cmd.Run())
 }
 
-type containerCmder struct {
+type ContainerCmder struct {
 	nameOrID string
 }
 
-func ContainerCmder(containerNameOrID string) *containerCmder {
-	return &containerCmder{
+func GetContainerCmder(containerNameOrID string) *ContainerCmder {
+	return &ContainerCmder{
 		nameOrID: containerNameOrID,
 	}
 }
 
-func (c *containerCmder) Command(command string, args ...string) *containerCmd {
-	return &containerCmd{
+func (c *ContainerCmder) Command(command string, args ...string) *ContainerCmd {
+	return &ContainerCmd{
 		nameOrID: c.nameOrID,
 		command:  command,
 		args:     args,
 	}
 }
 
-// containerCmd implements exec.Cmd for docker containers.
-type containerCmd struct {
+// ContainerCmd implements exec.Cmd for docker containers.
+type ContainerCmd struct {
 	nameOrID string // the container name or ID
 	command  string
 	args     []string
@@ -161,7 +161,7 @@ type containerCmd struct {
 }
 
 // RunLoggingOutputOnFail runs the cmd, logging error output if Run returns an error.
-func (c *containerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, error) {
+func (c *ContainerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, error) {
 	var buff bytes.Buffer
 	c.SetStdout(&buff)
 	c.SetStderr(&buff)
@@ -176,7 +176,7 @@ func (c *containerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, er
 	return out, errors.WithStack(err)
 }
 
-func (c *containerCmd) Run(ctx context.Context) error {
+func (c *ContainerCmd) Run(ctx context.Context) error {
 	args := []string{
 		"exec",
 		// run with privileges so we can remount etc..
@@ -218,18 +218,18 @@ func (c *containerCmd) Run(ctx context.Context) error {
 	return errors.WithStack(cmd.Run())
 }
 
-func (c *containerCmd) SetEnv(env ...string) {
+func (c *ContainerCmd) SetEnv(env ...string) {
 	c.env = env
 }
 
-func (c *containerCmd) SetStdin(r io.Reader) {
+func (c *ContainerCmd) SetStdin(r io.Reader) {
 	c.stdin = r
 }
 
-func (c *containerCmd) SetStdout(w io.Writer) {
+func (c *ContainerCmd) SetStdout(w io.Writer) {
 	c.stdout = w
 }
 
-func (c *containerCmd) SetStderr(w io.Writer) {
+func (c *ContainerCmd) SetStderr(w io.Writer) {
 	c.stderr = w
 }

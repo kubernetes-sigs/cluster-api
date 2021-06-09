@@ -59,7 +59,7 @@ For version v0.x.y:
 1. Create an annotated tag
    > NOTE: To use your GPG signature when pushing the tag, use `git tag -s [...]` instead)
    - `git tag -a v0.x.y -m v0.x.y`
-   - `git tag -a test/v0.x.y -m test/v0.x.y`
+   - `git tag test/v0.x.y` (:warning: MUST NOT be an annotated tag)
 1. Push the tag to the GitHub repository
    > NOTE: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
    - `git push origin v0.x.y`

@@ -42,7 +42,7 @@ func Test_newTemplate(t *testing.T) {
 		configVariablesClient config.VariablesClient
 		processor             yaml.Processor
 		targetNamespace       string
-		listVariablesOnly     bool
+		skipTemplateProcess   bool
 	}
 	type want struct {
 		variables       []string
@@ -61,7 +61,7 @@ func Test_newTemplate(t *testing.T) {
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 				processor:             yaml.NewSimpleProcessor(),
 				targetNamespace:       "ns1",
-				listVariablesOnly:     false,
+				skipTemplateProcess:   false,
 			},
 			want: want{
 				variables:       []string{variableName},
@@ -76,7 +76,7 @@ func Test_newTemplate(t *testing.T) {
 				configVariablesClient: test.NewFakeVariableClient(),
 				processor:             yaml.NewSimpleProcessor(),
 				targetNamespace:       "ns1",
-				listVariablesOnly:     true,
+				skipTemplateProcess:   true,
 			},
 			want: want{
 				variables:       []string{variableName},
@@ -94,7 +94,7 @@ func Test_newTemplate(t *testing.T) {
 				ConfigVariablesClient: tt.args.configVariablesClient,
 				Processor:             tt.args.processor,
 				TargetNamespace:       tt.args.targetNamespace,
-				ListVariablesOnly:     tt.args.listVariablesOnly,
+				SkipTemplateProcess:   tt.args.skipTemplateProcess,
 			})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -105,14 +105,14 @@ func Test_newTemplate(t *testing.T) {
 			g.Expect(got.Variables()).To(Equal(tt.want.variables))
 			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
-			if tt.args.listVariablesOnly {
+			if tt.args.skipTemplateProcess {
 				return
 			}
 
 			// check variable replaced in components
-			yaml, err := got.Yaml()
+			yml, err := got.Yaml()
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(yaml).To(ContainSubstring((fmt.Sprintf("variable: %s", variableValue))))
+			g.Expect(yml).To(ContainSubstring(fmt.Sprintf("variable: %s", variableValue)))
 		})
 	}
 }

@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -904,7 +905,7 @@ v3: ${VAR3:-default3}`
 				URLSource: &URLSourceOptions{
 					URL: templateFile,
 				},
-				ListVariablesOnly: false,
+				SkipTemplateProcess: false,
 			},
 			expectErr: false,
 			expectedYaml: `v1: default1
@@ -913,12 +914,12 @@ v3: default3`,
 			expectedVars: []string{"VAR1", "VAR2", "VAR3"},
 		},
 		{
-			name: "returns the expected variables only if ListVariablesOnly is set",
+			name: "returns the expected variables only if SkipTemplateProcess is set",
 			options: ProcessYAMLOptions{
 				URLSource: &URLSourceOptions{
 					URL: templateFile,
 				},
-				ListVariablesOnly: true,
+				SkipTemplateProcess: true,
 			},
 			expectErr:    false,
 			expectedYaml: ``,
@@ -935,7 +936,7 @@ v3: default3`,
 				ReaderSource: &ReaderSourceOptions{
 					Reader: inputReader,
 				},
-				ListVariablesOnly: false,
+				SkipTemplateProcess: false,
 			},
 			expectErr: false,
 			expectedYaml: `v1: default1
@@ -949,7 +950,7 @@ v3: default3`,
 				ReaderSource: &ReaderSourceOptions{
 					Reader: &errReader{},
 				},
-				ListVariablesOnly: false,
+				SkipTemplateProcess: false,
 			},
 			expectErr: true,
 		},

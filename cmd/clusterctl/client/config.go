@@ -20,10 +20,10 @@ import (
 	"io"
 	"strconv"
 
-	"k8s.io/utils/pointer"
-
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/utils/pointer"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -66,9 +66,9 @@ type ProcessYAMLOptions struct {
 	// URLSource to be used for reading the template
 	URLSource *URLSourceOptions
 
-	// ListVariablesOnly return the list of variables expected by the template
+	// SkipTemplateProcess return the list of variables expected by the template
 	// without executing any further processing.
-	ListVariablesOnly bool
+	SkipTemplateProcess bool
 }
 
 func (c *clusterctlClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error) {
@@ -84,7 +84,7 @@ func (c *clusterctlClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter,
 			ConfigVariablesClient: c.configClient.Variables(),
 			Processor:             yaml.NewSimpleProcessor(),
 			TargetNamespace:       "",
-			ListVariablesOnly:     options.ListVariablesOnly,
+			SkipTemplateProcess:   options.SkipTemplateProcess,
 		})
 	}
 
@@ -92,7 +92,7 @@ func (c *clusterctlClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter,
 	// leveraging the template client which exposes GetFromURL() is available
 	// on the cluster client so we create a cluster client with default
 	// configs to access it.
-	cluster, err := c.clusterClientFactory(
+	clstr, err := c.clusterClientFactory(
 		ClusterClientFactoryInput{
 			// use the default kubeconfig
 			Kubeconfig: Kubeconfig{},
@@ -103,7 +103,7 @@ func (c *clusterctlClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter,
 	}
 
 	if options.URLSource != nil {
-		return c.getTemplateFromURL(cluster, *options.URLSource, "", options.ListVariablesOnly)
+		return c.getTemplateFromURL(clstr, *options.URLSource, "", options.SkipTemplateProcess)
 	}
 
 	return nil, errors.New("unable to read custom template. Please specify a template source")

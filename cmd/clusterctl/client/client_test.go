@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -477,7 +478,7 @@ type fakeTemplateClient struct {
 	processor             yaml.Processor
 }
 
-func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOnly bool) (repository.Template, error) {
+func (f *fakeTemplateClient) Get(flavor, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	name := "cluster-template"
 	if flavor != "" {
 		name = fmt.Sprintf("%s-%s", name, flavor)
@@ -493,7 +494,7 @@ func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOn
 		ConfigVariablesClient: f.configVariablesClient,
 		Processor:             f.processor,
 		TargetNamespace:       targetNamespace,
-		ListVariablesOnly:     listVariablesOnly,
+		SkipTemplateProcess:   skipTemplateProcess,
 	})
 }
 

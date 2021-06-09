@@ -65,7 +65,7 @@ func newTemplateClient(input TemplateClientInput) *templateClient {
 // Get return the template for the flavor specified.
 // In case the template does not exists, an error is returned.
 // Get assumes the following naming convention for templates: cluster-template[-<flavor_name>].yaml.
-func (c *templateClient) Get(flavor, targetNamespace string, listVariablesOnly bool) (Template, error) {
+func (c *templateClient) Get(flavor, targetNamespace string, skipTemplateProcess bool) (Template, error) {
 	log := logf.Log
 
 	if targetNamespace == "" {
@@ -96,5 +96,11 @@ func (c *templateClient) Get(flavor, targetNamespace string, listVariablesOnly b
 		log.V(1).Info("Using", "Override", name, "Provider", c.provider.ManifestLabel(), "Version", version)
 	}
 
-	return NewTemplate(TemplateInput{rawArtifact, c.configVariablesClient, c.processor, targetNamespace, listVariablesOnly})
+	return NewTemplate(TemplateInput{
+		rawArtifact,
+		c.configVariablesClient,
+		c.processor,
+		targetNamespace,
+		skipTemplateProcess,
+	})
 }

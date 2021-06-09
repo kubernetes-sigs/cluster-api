@@ -37,10 +37,10 @@ import (
 // TemplateClient has methods to work with templates stored in the cluster/out of the provider repository.
 type TemplateClient interface {
 	// GetFromConfigMap returns a workload cluster template from the given ConfigMap.
-	GetFromConfigMap(namespace, name, dataKey, targetNamespace string, listVariablesOnly bool) (repository.Template, error)
+	GetFromConfigMap(namespace, name, dataKey, targetNamespace string, skipTemplateProcess bool) (repository.Template, error)
 
 	// GetFromURL returns a workload cluster template from the given URL.
-	GetFromURL(templateURL, targetNamespace string, listVariablesOnly bool) (repository.Template, error)
+	GetFromURL(templateURL, targetNamespace string, skipTemplateProcess bool) (repository.Template, error)
 }
 
 // templateClient implements TemplateClient.
@@ -71,7 +71,7 @@ func newTemplateClient(input TemplateClientInput) *templateClient {
 	}
 }
 
-func (t *templateClient) GetFromConfigMap(configMapNamespace, configMapName, configMapDataKey, targetNamespace string, listVariablesOnly bool) (repository.Template, error) {
+func (t *templateClient) GetFromConfigMap(configMapNamespace, configMapName, configMapDataKey, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	if configMapNamespace == "" {
 		return nil, errors.New("invalid GetFromConfigMap operation: missing configMapNamespace value")
 	}
@@ -104,11 +104,11 @@ func (t *templateClient) GetFromConfigMap(configMapNamespace, configMapName, con
 		ConfigVariablesClient: t.configClient.Variables(),
 		Processor:             t.processor,
 		TargetNamespace:       targetNamespace,
-		ListVariablesOnly:     listVariablesOnly,
+		SkipTemplateProcess:   skipTemplateProcess,
 	})
 }
 
-func (t *templateClient) GetFromURL(templateURL, targetNamespace string, listVariablesOnly bool) (repository.Template, error) {
+func (t *templateClient) GetFromURL(templateURL, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	if templateURL == "" {
 		return nil, errors.New("invalid GetFromURL operation: missing templateURL value")
 	}
@@ -123,7 +123,7 @@ func (t *templateClient) GetFromURL(templateURL, targetNamespace string, listVar
 		ConfigVariablesClient: t.configClient.Variables(),
 		Processor:             t.processor,
 		TargetNamespace:       targetNamespace,
-		ListVariablesOnly:     listVariablesOnly,
+		SkipTemplateProcess:   skipTemplateProcess,
 	})
 }
 

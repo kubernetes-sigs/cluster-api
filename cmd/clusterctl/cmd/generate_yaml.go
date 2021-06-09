@@ -83,7 +83,7 @@ func generateYAML(r io.Reader, w io.Writer) error {
 		return err
 	}
 	options := client.ProcessYAMLOptions{
-		ListVariablesOnly: gyOpts.listVariables,
+		SkipTemplateProcess: gyOpts.listVariables,
 	}
 	if gyOpts.url != "" {
 		if gyOpts.url == "-" {

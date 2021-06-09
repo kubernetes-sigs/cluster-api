@@ -19,6 +19,7 @@ package repository
 import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
@@ -34,7 +35,7 @@ type Template interface {
 	// This value is derived from the template YAML.
 	Variables() []string
 
-	// Variables used by the template with their default values. If the value is `nil`, there is no
+	// VariableMap used by the template with their default values. If the value is `nil`, there is no
 	// default and the variable is required.
 	// This value is derived from the template YAML.
 	VariableMap() map[string]*string
@@ -86,7 +87,7 @@ type TemplateInput struct {
 	ConfigVariablesClient config.VariablesClient
 	Processor             yaml.Processor
 	TargetNamespace       string
-	ListVariablesOnly     bool
+	SkipTemplateProcess   bool
 }
 
 // NewTemplate returns a new objects embedding a cluster template YAML file.
@@ -101,7 +102,7 @@ func NewTemplate(input TemplateInput) (Template, error) {
 		return nil, err
 	}
 
-	if input.ListVariablesOnly {
+	if input.SkipTemplateProcess {
 		return &template{
 			variables:       variables,
 			variableMap:     variableMap,

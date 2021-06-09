@@ -198,7 +198,7 @@ should be executed before this changes.
 
 **Changes in the `/config/certmanager` folder:**
 
-1. Edit the `/config/certmanager/certificates.yaml` file and replace all the occurrences of `cert-manager.io/v1alpha2`
+1. Edit the `/config/certmanager/certificate.yaml` file and replace all the occurrences of `cert-manager.io/v1alpha2`
    with `cert-manager.io/v1`
 
 **Changes in the `/config/default` folder:**
@@ -285,6 +285,7 @@ Only String values like "3%" or Int values e.g 3 are valid input values now. A s
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
   ```
+- Note: this annotation also has to be checked in other cases, e.g. when watching for the Cluster resource. 
 
 ## MachinePool API group changed to `cluster.x-k8s.io`
 
@@ -320,14 +321,10 @@ should be executed before this changes.
 **Changes in the `/config/manager` folder:**
 1. Edit `/config/manager/manager.yaml` and remove the `--metrics-bind-addr=127.0.0.1:8080` arg from the `args` list.
 
-**Changes in the `/config/rbac` folder:**
-1. Edit `/config/rbac/kustomization.yaml` and remove following items from the `resources` list.
-   - `auth_proxy_service.yaml`
-   - `auth_proxy_role.yaml`
-   - `auth_proxy_role_binding.yaml`
-1. Delete the `/config/rbac/auth_proxy_service.yaml` file.
-1. Delete the `/config/rbac/auth_proxy_role.yaml` file.
-1. Delete the `/config/rbac/auth_proxy_role_binding.yaml` file.
-
 **Changes in the `main.go` file:**
 1. Change the default value for the `metrics-bind-addr` from `:8080` to `localhost:8080`
+
+## Required cluster template changes
+
+`spec.infrastructureTemplate` has been moved to `machineTemplate.infrastructureRef`. Thus, cluster templates which include `KubeadmControlPlane`
+have to be adjusted accordingly.

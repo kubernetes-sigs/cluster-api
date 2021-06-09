@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -175,15 +176,17 @@ func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			clusterStatusKey: "apiEndpoints:\n" +
-				"  ip-10-0-0-1.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.1\n" +
-				"    bindPort: 6443\n" +
-				"  ip-10-0-0-2.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.2\n" +
-				"    bindPort: 6443\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterStatus\n",
+			clusterStatusKey: yaml.Raw(`
+				apiEndpoints:
+				  ip-10-0-0-1.ec2.internal:
+				    advertiseAddress: 10.0.0.1
+				    bindPort: 6443
+				  ip-10-0-0-2.ec2.internal:
+				    advertiseAddress: 10.0.0.2
+				    bindPort: 6443
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterStatus
+				`),
 		},
 		BinaryData: map[string][]byte{
 			"": nil,
@@ -238,12 +241,14 @@ func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 			machine:           machine,
 			objs:              []client.Object{kubeadmConfig},
 			expectErr:         false,
-			expectedEndpoints: "apiEndpoints:\n" +
-				"  ip-10-0-0-2.ec2.internal:\n" +
-				"    advertiseAddress: 10.0.0.2\n" +
-				"    bindPort: 6443\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterStatus\n",
+			expectedEndpoints: yaml.Raw(`
+				apiEndpoints:
+				  ip-10-0-0-2.ec2.internal:
+				    advertiseAddress: 10.0.0.2
+				    bindPort: 6443
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterStatus
+				`),
 		},
 		{
 			name:              "no op for Kubernetes version >= 1.22.0",
@@ -298,8 +303,10 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 					ResourceVersion: "some-resource-version",
 				},
 				Data: map[string]string{
-					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
-						"kind: KubeletConfiguration\n",
+					kubeletConfigKey: yaml.Raw(`
+						apiVersion: kubelet.config.k8s.io/v1beta1
+						kind: KubeletConfiguration
+						`),
 				},
 			}},
 			expectErr:          false,
@@ -315,8 +322,9 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 					ResourceVersion: "some-resource-version",
 				},
 				Data: map[string]string{
-					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
-						"kind: KubeletConfiguration\n",
+					kubeletConfigKey: yaml.Raw(`
+						apiVersion: kubelet.config.k8s.io/v1beta1
+						kind: KubeletConfiguration`),
 				},
 			}},
 			expectErr:          false,
@@ -332,9 +340,10 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 					ResourceVersion: "some-resource-version",
 				},
 				Data: map[string]string{
-					kubeletConfigKey: "apiVersion: kubelet.config.k8s.io/v1beta1\n" +
-						"kind: KubeletConfiguration\n" +
-						"cgroupDriver: foo\n",
+					kubeletConfigKey: yaml.Raw(`
+						apiVersion: kubelet.config.k8s.io/v1beta1
+						kind: KubeletConfiguration
+						cgroupDriver: foo`),
 				},
 			}},
 			expectErr:          false,
@@ -424,9 +433,11 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterConfigurationKey: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterConfiguration\n" +
-						"kubernetesVersion: v1.16.1\n",
+					clusterConfigurationKey: yaml.Raw(`
+						apiVersion: kubeadm.k8s.io/v1beta2
+						kind: ClusterConfiguration
+						kubernetesVersion: v1.16.1
+						`),
 				},
 			}},
 			mutator: func(c *bootstrapv1.ClusterConfiguration) {},
@@ -436,9 +447,11 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterConfigurationKey: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterConfiguration\n" +
-						"kubernetesVersion: v1.16.1\n",
+					clusterConfigurationKey: yaml.Raw(`
+						apiVersion: kubeadm.k8s.io/v1beta2
+						kind: ClusterConfiguration
+						kubernetesVersion: v1.16.1
+						`),
 				},
 			},
 		},
@@ -451,9 +464,11 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterConfigurationKey: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterConfiguration\n" +
-						"kubernetesVersion: v1.16.1\n",
+					clusterConfigurationKey: yaml.Raw(`
+						apiVersion: kubeadm.k8s.io/v1beta2
+						kind: ClusterConfiguration
+						kubernetesVersion: v1.16.1
+						`),
 				},
 			}},
 			mutator: func(c *bootstrapv1.ClusterConfiguration) {
@@ -465,15 +480,17 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterConfigurationKey: "apiServer: {}\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"controllerManager: {}\n" +
-						"dns: {}\n" +
-						"etcd: {}\n" +
-						"kind: ClusterConfiguration\n" +
-						"kubernetesVersion: v1.17.2\n" +
-						"networking: {}\n" +
-						"scheduler: {}\n",
+					clusterConfigurationKey: yaml.Raw(`
+						apiServer: {}
+						apiVersion: kubeadm.k8s.io/v1beta2
+						controllerManager: {}
+						dns: {}
+						etcd: {}
+						kind: ClusterConfiguration
+						kubernetesVersion: v1.17.2
+						networking: {}
+						scheduler: {}
+						`),
 				},
 			},
 		},
@@ -486,9 +503,11 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterConfigurationKey: "apiVersion: kubeadm.k8s.io/v1beta1\n" +
-						"kind: ClusterConfiguration\n" +
-						"kubernetesVersion: v1.16.1\n",
+					clusterConfigurationKey: yaml.Raw(`
+						apiVersion: kubeadm.k8s.io/v1beta1
+						kind: ClusterConfiguration
+						kubernetesVersion: v1.16.1
+						`),
 				},
 			}},
 			mutator: func(c *bootstrapv1.ClusterConfiguration) {
@@ -500,15 +519,17 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterConfigurationKey: "apiServer: {}\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"controllerManager: {}\n" +
-						"dns: {}\n" +
-						"etcd: {}\n" +
-						"kind: ClusterConfiguration\n" +
-						"kubernetesVersion: v1.17.2\n" +
-						"networking: {}\n" +
-						"scheduler: {}\n",
+					clusterConfigurationKey: yaml.Raw(`
+						apiServer: {}
+						apiVersion: kubeadm.k8s.io/v1beta2
+						controllerManager: {}
+						dns: {}
+						etcd: {}
+						kind: ClusterConfiguration
+						kubernetesVersion: v1.17.2
+						networking: {}
+						scheduler: {}
+						`),
 				},
 			},
 		},
@@ -590,12 +611,14 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterStatusKey: "apiEndpoints:\n" +
-						"  ip-10-0-0-1.ec2.internal:\n" +
-						"    advertiseAddress: 10.0.0.1\n" +
-						"    bindPort: 6443\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterStatus\n",
+					clusterStatusKey: yaml.Raw(`
+						apiEndpoints:
+						  ip-10-0-0-1.ec2.internal:
+						    advertiseAddress: 10.0.0.1
+						    bindPort: 6443
+						apiVersion: kubeadm.k8s.io/v1beta2
+						kind: ClusterStatus
+						`),
 				},
 			}},
 			mutator: func(status *bootstrapv1.ClusterStatus) {},
@@ -605,12 +628,14 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterStatusKey: "apiEndpoints:\n" +
-						"  ip-10-0-0-1.ec2.internal:\n" +
-						"    advertiseAddress: 10.0.0.1\n" +
-						"    bindPort: 6443\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterStatus\n",
+					clusterStatusKey: yaml.Raw(`
+						apiEndpoints:
+						  ip-10-0-0-1.ec2.internal:
+						    advertiseAddress: 10.0.0.1
+						    bindPort: 6443
+						apiVersion: kubeadm.k8s.io/v1beta2
+						kind: ClusterStatus
+						`),
 				},
 			},
 		},
@@ -623,12 +648,14 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterStatusKey: "apiEndpoints:\n" +
-						"  ip-10-0-0-1.ec2.internal:\n" +
-						"    advertiseAddress: 10.0.0.1\n" +
-						"    bindPort: 6443\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterStatus\n",
+					clusterStatusKey: yaml.Raw(`
+						apiEndpoints:
+						  ip-10-0-0-1.ec2.internal:
+						    advertiseAddress: 10.0.0.1
+						    bindPort: 6443
+						apiVersion: kubeadm.k8s.io/v1beta2
+						kind: ClusterStatus
+						`),
 				},
 			}},
 			mutator: func(status *bootstrapv1.ClusterStatus) {
@@ -640,13 +667,15 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterStatusKey: "apiEndpoints:\n" +
-						"  ip-10-0-0-1.ec2.internal:\n" +
-						"    advertiseAddress: 10.0.0.1\n" +
-						"    bindPort: 6443\n" +
-						"  ip-10-0-0-2.ec2.internal: {}\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterStatus\n",
+					clusterStatusKey: yaml.Raw(`
+						apiEndpoints:
+						  ip-10-0-0-1.ec2.internal:
+						    advertiseAddress: 10.0.0.1
+						    bindPort: 6443
+						  ip-10-0-0-2.ec2.internal: {}
+						apiVersion: kubeadm.k8s.io/v1beta2
+						kind: ClusterStatus
+						`),
 				},
 			},
 		},
@@ -659,12 +688,14 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterStatusKey: "apiEndpoints:\n" +
-						"  ip-10-0-0-1.ec2.internal:\n" +
-						"    advertiseAddress: 10.0.0.1\n" +
-						"    bindPort: 6443\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta1\n" +
-						"kind: ClusterStatus\n",
+					clusterStatusKey: yaml.Raw(`
+						apiEndpoints:
+						  ip-10-0-0-1.ec2.internal:
+						    advertiseAddress: 10.0.0.1
+						    bindPort: 6443
+						apiVersion: kubeadm.k8s.io/v1beta1
+						kind: ClusterStatus
+						`),
 				},
 			}},
 			mutator: func(status *bootstrapv1.ClusterStatus) {
@@ -676,13 +707,15 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 					Namespace: metav1.NamespaceSystem,
 				},
 				Data: map[string]string{
-					clusterStatusKey: "apiEndpoints:\n" +
-						"  ip-10-0-0-1.ec2.internal:\n" +
-						"    advertiseAddress: 10.0.0.1\n" +
-						"    bindPort: 6443\n" +
-						"  ip-10-0-0-2.ec2.internal: {}\n" +
-						"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-						"kind: ClusterStatus\n",
+					clusterStatusKey: yaml.Raw(`
+						apiEndpoints:
+						  ip-10-0-0-1.ec2.internal:
+						    advertiseAddress: 10.0.0.1
+						    bindPort: 6443
+						  ip-10-0-0-2.ec2.internal: {}
+						apiVersion: kubeadm.k8s.io/v1beta2
+						kind: ClusterStatus
+						`),
 				},
 			},
 		},
@@ -723,9 +756,10 @@ func TestUpdateKubernetesVersionInKubeadmConfigMap(t *testing.T) {
 		{
 			name:    "updates the config map and changes the kubeadm API version",
 			version: semver.MustParse("1.17.2"),
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta1\n" +
-				"kind: ClusterConfiguration\n" +
-				"kubernetesVersion: v1.16.1\n",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta1
+				kind: ClusterConfiguration
+				kubernetesVersion: v1.16.1`),
 		},
 	}
 
@@ -768,16 +802,18 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set the image repository",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration`),
 			newImageRepository:  "example.com/k8s",
 			wantImageRepository: "example.com/k8s",
 		},
 		{
 			name: "it should preserve the existing image repository if then new value is empty",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n" +
-				"imageRepository: foo.bar/baz.io\n",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				imageRepository: foo.bar/baz.io`),
 			newImageRepository:  "",
 			wantImageRepository: "foo.bar/baz.io",
 		},
@@ -822,8 +858,10 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set the api server config",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				`),
 			newAPIServer: bootstrapv1.APIServer{
 				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
 					ExtraArgs: map[string]string{
@@ -839,21 +877,23 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 					},
 				},
 			},
-			wantClusterConfiguration: "apiServer:\n" +
-				"  extraArgs:\n" +
-				"    bar: baz\n" +
-				"    someKey: someVal\n" +
-				"  extraVolumes:\n" +
-				"  - hostPath: /bar/baz\n" +
-				"    mountPath: /foo/bar\n" +
-				"    name: mount2\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"controllerManager: {}\n" +
-				"dns: {}\n" +
-				"etcd: {}\n" +
-				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
-				"scheduler: {}\n",
+			wantClusterConfiguration: yaml.Raw(`
+				apiServer:
+				  extraArgs:
+				    bar: baz
+				    someKey: someVal
+				  extraVolumes:
+				  - hostPath: /bar/baz
+				    mountPath: /foo/bar
+				    name: mount2
+				apiVersion: kubeadm.k8s.io/v1beta2
+				controllerManager: {}
+				dns: {}
+				etcd: {}
+				kind: ClusterConfiguration
+				networking: {}
+				scheduler: {}
+				`),
 		},
 	}
 
@@ -896,8 +936,10 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set the controller manager config",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				`),
 			newControllerManager: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{
 					"bar":     "baz",
@@ -911,21 +953,23 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 					},
 				},
 			},
-			wantClusterConfiguration: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"controllerManager:\n" +
-				"  extraArgs:\n" +
-				"    bar: baz\n" +
-				"    someKey: someVal\n" +
-				"  extraVolumes:\n" +
-				"  - hostPath: /bar/baz\n" +
-				"    mountPath: /foo/bar\n" +
-				"    name: mount2\n" +
-				"dns: {}\n" +
-				"etcd: {}\n" +
-				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
-				"scheduler: {}\n",
+			wantClusterConfiguration: yaml.Raw(`
+				apiServer: {}
+				apiVersion: kubeadm.k8s.io/v1beta2
+				controllerManager:
+				  extraArgs:
+				    bar: baz
+				    someKey: someVal
+				  extraVolumes:
+				  - hostPath: /bar/baz
+				    mountPath: /foo/bar
+				    name: mount2
+				dns: {}
+				etcd: {}
+				kind: ClusterConfiguration
+				networking: {}
+				scheduler: {}
+				`),
 		},
 	}
 
@@ -968,8 +1012,10 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set the scheduler config",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				`),
 			newScheduler: bootstrapv1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{
 					"bar":     "baz",
@@ -983,21 +1029,23 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 					},
 				},
 			},
-			wantClusterConfiguration: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"controllerManager: {}\n" +
-				"dns: {}\n" +
-				"etcd: {}\n" +
-				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
-				"scheduler:\n" +
-				"  extraArgs:\n" +
-				"    bar: baz\n" +
-				"    someKey: someVal\n" +
-				"  extraVolumes:\n" +
-				"  - hostPath: /bar/baz\n" +
-				"    mountPath: /foo/bar\n" +
-				"    name: mount2\n",
+			wantClusterConfiguration: yaml.Raw(`
+				apiServer: {}
+				apiVersion: kubeadm.k8s.io/v1beta2
+				controllerManager: {}
+				dns: {}
+				etcd: {}
+				kind: ClusterConfiguration
+				networking: {}
+				scheduler:
+				  extraArgs:
+				    bar: baz
+				    someKey: someVal
+				  extraVolumes:
+				  - hostPath: /bar/baz
+				    mountPath: /foo/bar
+				    name: mount2
+				`),
 		},
 	}
 	for _, tt := range tests {

@@ -442,7 +442,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
-	t.Run("Should set `Provisioned` when there is a NodeRef but infra is not ready ", func(t *testing.T) {
+	t.Run("Should set `Provisioned` when there is a ProviderID and there is no Node", func(t *testing.T) {
 		g := NewWithT(t)
 
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
@@ -457,29 +457,42 @@ func TestReconcileMachinePhases(t *testing.T) {
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		g.Expect(err).NotTo(HaveOccurred())
 
-		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+		// Set infra ready.
+		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		// Set Machine ProviderID.
+		machine.Spec.ProviderID = pointer.StringPtr("test://id-1")
+
+		// Set NodeRef to nil.
+		machine.Status.NodeRef = nil
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
 
+		cl := fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(defaultCluster,
+				defaultKubeconfigSecret,
+				machine,
+				external.TestGenericBootstrapCRD.DeepCopy(),
+				external.TestGenericInfrastructureCRD.DeepCopy(),
+				bootstrapConfig,
+				infraConfig,
+			).Build()
+
 		r := &MachineReconciler{
-			Client: fake.NewClientBuilder().
-				WithScheme(scheme.Scheme).
-				WithObjects(defaultCluster,
-					defaultKubeconfigSecret,
-					machine,
-					external.TestGenericBootstrapCRD.DeepCopy(),
-					external.TestGenericInfrastructureCRD.DeepCopy(),
-					bootstrapConfig,
-					infraConfig,
-				).Build(),
+			Client:  cl,
+			Tracker: remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.RequeueAfter).To(Equal(externalReadyWait))
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(ctx, machine)
 		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))

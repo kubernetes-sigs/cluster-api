@@ -10,6 +10,10 @@
 
 - The Controller Runtime version is now v0.9.+
 
+## Controller Tools version (if used)
+
+- The Controller Tools version is now v0.6.+
+
 ## Kind version
 
 - The KIND version used for this release is v0.11.x
@@ -93,14 +97,6 @@ For a `/config` folder reference, please use the testdata in the Kubebuilder pro
 **Pre-requisites**
 
 Provider's `/config` folder has the same structure of  `/config` folder in CAPI controllers.
-
-**Changes in the `/config/rbac` folder:**
-
-- Remove the `kube-rbac-proxy` configuration files:
-  - `auth_proxy_role.yaml`
-  - `auth_proxy_role_binding.yaml`
-  - `auth_proxy_service.yaml`
--  Remove the references to the above files in `config/rbac/kustomization.yaml`
 
 **Changes in the `/config/webhook` folder:**
 
@@ -198,7 +194,7 @@ should be executed before this changes.
 
 **Changes in the `/config/certmanager` folder:**
 
-1. Edit the `/config/certmanager/certificates.yaml` file and replace all the occurrences of `cert-manager.io/v1alpha2`
+1. Edit the `/config/certmanager/certificate.yaml` file and replace all the occurrences of `cert-manager.io/v1alpha2`
    with `cert-manager.io/v1`
 
 **Changes in the `/config/default` folder:**
@@ -285,6 +281,7 @@ Only String values like "3%" or Int values e.g 3 are valid input values now. A s
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
   ```
+- Note: this annotation also has to be checked in other cases, e.g. when watching for the Cluster resource. 
 
 ## MachinePool API group changed to `cluster.x-k8s.io`
 
@@ -331,3 +328,8 @@ should be executed before this changes.
 
 **Changes in the `main.go` file:**
 1. Change the default value for the `metrics-bind-addr` from `:8080` to `localhost:8080`
+
+## Required cluster template changes
+
+`spec.infrastructureTemplate` has been moved to `machineTemplate.infrastructureRef`. Thus, cluster templates which include `KubeadmControlPlane`
+have to be adjusted accordingly.

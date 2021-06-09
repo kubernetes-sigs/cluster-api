@@ -51,7 +51,7 @@ var (
 	myscheme = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	//flags.
+	// flags.
 	metricsBindAddr      string
 	enableLeaderElection bool
 	syncPeriod           time.Duration

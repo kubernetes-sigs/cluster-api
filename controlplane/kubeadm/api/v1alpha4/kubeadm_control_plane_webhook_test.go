@@ -268,6 +268,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 						},
 					},
 				},
+				NTP: &bootstrapv1.NTP{
+					Servers: []string{"test-server-1", "test-server-2"},
+					Enabled: pointer.BoolPtr(true),
+				},
 			},
 			Version: "v1.16.6",
 		},
@@ -520,6 +524,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	disallowedUpgrade118Prev := prevKCPWithVersion("v1.18.8")
 	disallowedUpgrade119Version := before.DeepCopy()
 	disallowedUpgrade119Version.Spec.Version = "v1.19.0"
+
+	updateNTPServers := before.DeepCopy()
+	updateNTPServers.Spec.KubeadmConfigSpec.NTP.Servers = []string{"new-server"}
+
+	disableNTPServers := before.DeepCopy()
+	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = pointer.BoolPtr(false)
 
 	tests := []struct {
 		name      string
@@ -796,6 +806,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    before,
 			kcp:       wrongReplicaCountForScaleIn,
+		},
+		{
+			name:      "should pass if NTP servers are updated",
+			expectErr: false,
+			before:    before,
+			kcp:       updateNTPServers,
+		},
+		{
+			name:      "should pass if NTP servers is disabled during update",
+			expectErr: false,
+			before:    before,
+			kcp:       disableNTPServers,
 		},
 	}
 

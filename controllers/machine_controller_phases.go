@@ -58,8 +58,8 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machi
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioning)
 	}
 
-	// Set the phase to "provisioned" if there is a NodeRef.
-	if m.Status.NodeRef != nil {
+	// Set the phase to "provisioned" if there is a provider ID.
+	if m.Spec.ProviderID != nil {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioned)
 	}
 

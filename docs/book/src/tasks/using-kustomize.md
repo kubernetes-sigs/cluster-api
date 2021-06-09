@@ -1,8 +1,8 @@
 # Using Kustomize with Workload Cluster Manifests
 
-Although the `clusterctl config cluster` command exposes a number of different configuration values 
+Although the `clusterctl generate cluster` command exposes a number of different configuration values 
 for customizing workload cluster YAML manifests, some users may need additional flexibility above 
-and beyond what `clusterctl config cluster` or the example "flavor" templates that some CAPI providers 
+and beyond what `clusterctl generate cluster` or the example "flavor" templates that some CAPI providers 
 supply (as an example, see [these flavor templates](https://github.com/kubernetes-sigs/cluster-api-provider-azure/tree/master/templates/flavors) 
 for the Cluster API Provider for Azure). In the future, a [templating solution](https://github.com/kubernetes-sigs/cluster-api/issues/3252) 
 may be integrated into `clusterctl` to help address this need, but in the meantime users can use 
@@ -26,7 +26,7 @@ assume that you are using a directory structure that looks something like this:
 ```
 
 In the overlay directories, the "base" (unmodified) Cluster API configuration (perhaps generated using 
-`clusterctl config cluster`) would be referenced as a resource in `kustomization.yaml` using `../../base`.
+`clusterctl generate cluster`) would be referenced as a resource in `kustomization.yaml` using `../../base`.
 
 ## Example: Using Kustomize to Specify Custom Images
 

@@ -22,6 +22,9 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"strings"
+
+	"github.com/MakeNowJust/heredoc"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -267,4 +270,9 @@ func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
 	}
 
 	return JoinYaml(ret...), nil
+}
+
+// Raw returns un-indented yaml string; it also remove the first empty line, if any.
+func Raw(raw string) string {
+	return strings.TrimPrefix(heredoc.Doc(raw), "\n")
 }

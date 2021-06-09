@@ -121,7 +121,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 		log.Info("")
 		log.Info("You can now create your first workload cluster by running the following:")
 		log.Info("")
-		log.Info("  clusterctl config cluster [name] --kubernetes-version [version] | kubectl apply -f -")
+		log.Info("  clusterctl generate cluster [name] --kubernetes-version [version] | kubectl apply -f -")
 		log.Info("")
 	}
 

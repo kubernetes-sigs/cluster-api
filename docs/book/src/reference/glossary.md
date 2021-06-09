@@ -50,6 +50,9 @@ Cluster API Google Cloud Provider
 ### CAPIBM
 Cluster API Provider IBM Cloud
 
+### CAPN
+Cluster API Provider Nested
+
 ### CAPO
 Cluster API Provider OpenStack
 

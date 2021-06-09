@@ -55,7 +55,7 @@ Using the config file it is possible to:
   - A list of additional files to be added to the provider repository, to be used e.g.
     to provide `cluster-templates.yaml` files.
 - Define the list of variables to be used when doing `clusterctl init` or
-  `clusterctl config cluster`.
+  `clusterctl generate cluster`.
 - Define a list of intervals to be used in the test specs for defining timeouts for the
   wait and `Eventually` methods.
 - Define the list of images to be loaded in the management cluster (this is specific to

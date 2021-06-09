@@ -21,7 +21,7 @@
 - [clusterctl CLI](./clusterctl/overview.md)
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)
-        - [config cluster](clusterctl/commands/config-cluster.md)
+        - [generate cluster](clusterctl/commands/generate-cluster.md)
         - [generate yaml](clusterctl/commands/generate-yaml.md)
         - [get kubeconfig](clusterctl/commands/get-kubeconfig.md)
         - [describe cluster](clusterctl/commands/describe-cluster.md)

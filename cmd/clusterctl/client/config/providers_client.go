@@ -39,6 +39,7 @@ const (
 	DOProviderName        = "digitalocean"
 	GCPProviderName       = "gcp"
 	Metal3ProviderName    = "metal3"
+	NestedProviderName    = "nested"
 	OpenStackProviderName = "openstack"
 	PacketProviderName    = "packet"
 	SideroProviderName    = "sidero"
@@ -57,6 +58,7 @@ const (
 	KubeadmControlPlaneProviderName = "kubeadm"
 	TalosControlPlaneProviderName   = "talos"
 	AWSEKSControlPlaneProviderName  = "aws-eks"
+	NestedControlPlaneProviderName  = "nested"
 )
 
 // Other.
@@ -142,6 +144,11 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
+			name:         NestedProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
 			name:         OpenStackProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
@@ -187,6 +194,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         AWSEKSControlPlaneProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-controlplane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         NestedControlPlaneProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 	}

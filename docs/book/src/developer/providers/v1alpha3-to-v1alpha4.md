@@ -98,14 +98,6 @@ For a `/config` folder reference, please use the testdata in the Kubebuilder pro
 
 Provider's `/config` folder has the same structure of  `/config` folder in CAPI controllers.
 
-**Changes in the `/config/rbac` folder:**
-
-- Remove the `kube-rbac-proxy` configuration files:
-  - `auth_proxy_role.yaml`
-  - `auth_proxy_role_binding.yaml`
-  - `auth_proxy_service.yaml`
--  Remove the references to the above files in `config/rbac/kustomization.yaml`
-
 **Changes in the `/config/webhook` folder:**
 
 1. Edit the `/config/webhook/kustomization.yaml` file:
@@ -324,6 +316,15 @@ should be executed before this changes.
 
 **Changes in the `/config/manager` folder:**
 1. Edit `/config/manager/manager.yaml` and remove the `--metrics-bind-addr=127.0.0.1:8080` arg from the `args` list.
+
+**Changes in the `/config/rbac` folder:**
+1. Edit `/config/rbac/kustomization.yaml` and remove following items from the `resources` list.
+   - `auth_proxy_service.yaml`
+   - `auth_proxy_role.yaml`
+   - `auth_proxy_role_binding.yaml`
+1. Delete the `/config/rbac/auth_proxy_service.yaml` file.
+1. Delete the `/config/rbac/auth_proxy_role.yaml` file.
+1. Delete the `/config/rbac/auth_proxy_role_binding.yaml` file.
 
 **Changes in the `main.go` file:**
 1. Change the default value for the `metrics-bind-addr` from `:8080` to `localhost:8080`

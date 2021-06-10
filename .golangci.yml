@@ -6,7 +6,6 @@ linters:
   - deadcode
   - depguard
   - dogsled
-  - exportloopref
   - errcheck
   - exportloopref
   - goconst
@@ -19,8 +18,8 @@ linters:
   - gosec
   - gosimple
   - govet
-  - importas
   - ifshort
+  - importas
   - ineffassign
   - misspell
   - nakedret
@@ -72,15 +71,21 @@ issues:
   exclude-use-default: false
   # List of regexps of issue texts to exclude, empty list by default.
   exclude:
-  - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
-  - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-  - "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
   # The following are being worked on to remove their exclusion. This list should be reduced or go away all together over time.
   # If it is decided they will not be addressed they should be moved above this comment.
   - Subprocess launch(ed with variable|ing should be audited)
   - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
   - (G104|G307)
   exclude-rules:
+  - linters:
+    - gosec
+    text: "G108: Profiling endpoint is automatically exposed on /debug/pprof"
+  - linters:
+    - revive
+    text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
+  - linters:
+    - errcheck
+    text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
   # With Go 1.16, the new embed directive can be used with an un-named import,
   # revive (previously, golint) only allows these to be imported in a main.go, which wouldn't work for us.
   # This directive allows the embed package to be imported with an underscore everywhere.

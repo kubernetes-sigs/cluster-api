@@ -1,9 +1,6 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-  - sig-cluster-lifecycle-leads
-  - cluster-api-admins
-  - cluster-api-maintainers
   - cluster-api-clusterctl-maintainers
 
 reviewers:

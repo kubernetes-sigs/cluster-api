@@ -10,6 +10,10 @@
 
 - The Controller Runtime version is now v0.9.+
 
+## Controller Tools version (if used)
+
+- The Controller Tools version is now v0.6.+
+
 ## Kind version
 
 - The KIND version used for this release is v0.11.x

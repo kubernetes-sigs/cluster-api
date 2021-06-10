@@ -8,6 +8,7 @@ title = "The Cluster API Book"
 [output.html]
 curly-quotes = true
 git-repository-url = "https://sigs.k8s.io/cluster-api"
+additional-css = ["theme/css/custom.css"]
 
 [output.html.redirect]
 "/tasks/upgrade.html" = "/tasks/upgrading-cluster-api-versions.html"
@@ -20,9 +21,3 @@ command = "./util-embed.sh"
 
 [preprocessor.releaselink]
 command = "./util-releaselink.sh"
-
-# [output.linkcheck]
-# optional = true
-
-# [output.linkcheck.http-headers]
-# 'github\.com' = ["Authorization: Bearer $GITHUB_TOKEN"]

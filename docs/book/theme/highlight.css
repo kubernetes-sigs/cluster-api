@@ -11,9 +11,14 @@
 
 .hljs {
   display: block;
-  background-color: #f7f7f7;
-  padding: 0.5em;
+  background-color: #f9fafa;
+  margin-bottom: 1.5em;
+  padding: 20px 30px 20px;
+  white-space: pre;
+  transform: translate3d(0, 0, 0);
   overflow-x: auto;
+  border: 1px solid #d2d2d7;
+  tab-size: 4;
 }
 
 .hljs-doctag,

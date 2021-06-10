@@ -1,3 +1,31 @@
+:root {
+    --content-max-width: 880px;
+}
+
+html {
+    font-family: -apple-system, "Helvetica", "Arial", sans-serif;
+    color: var(--fg);
+    background-color: var(--bg);
+    text-size-adjust: none;
+}
+
+code {
+    font-family: Menlo, monospace !important;
+    font-size: 14px;
+    line-height: 1.8em;
+    -webkit-font-smoothing: auto;
+    white-space: inherit;
+}
+
+
+/* Disable the big arrows left and right */
+.previous {
+    display: none;
+}
+.next {
+    display: none;
+}
+
 /* the target blob */
 .marker::before {
     content: "on " attr(data-target);
@@ -77,7 +105,7 @@
     font-size: 0.875em;
 }
 .marker .literal {
-    font-family: "Source Code Pro", Consolas, "Ubuntu Mono", Menlo, "DejaVu Sans Mono", monospace, monospace;
+    font-family: Menlo, monospace;
     font-size: 0.875em; /* please adjust the ace font size accordingly in editor.js */
 }
 .marker .argument.type::before {
@@ -366,7 +394,9 @@ cite.literate-source > a::before {
 .tabset > input:nth-child(9):checked ~ .tab-panels > .tab-panel:nth-child(5),
 .tabset > input:nth-child(11):checked ~ .tab-panels > .tab-panel:nth-child(6),
 .tabset > input:nth-child(13):checked ~ .tab-panels > .tab-panel:nth-child(7),
-.tabset > input:nth-child(15):checked ~ .tab-panels > .tab-panel:nth-child(8){
+.tabset > input:nth-child(15):checked ~ .tab-panels > .tab-panel:nth-child(8),
+.tabset > input:nth-child(17):checked ~ .tab-panels > .tab-panel:nth-child(9),
+.tabset > input:nth-child(19):checked ~ .tab-panels > .tab-panel:nth-child(10){
   display: block;
 }
 

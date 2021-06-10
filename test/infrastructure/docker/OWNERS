@@ -4,4 +4,5 @@ approvers:
   - cluster-api-provider-docker-maintainers
 
 reviewers:
-  - cluster-api-maintainers
+  - cluster-api-reviewers
+  - cluster-api-provider-docker-reviewers

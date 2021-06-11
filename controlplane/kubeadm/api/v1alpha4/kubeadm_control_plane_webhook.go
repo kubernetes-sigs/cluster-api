@@ -107,6 +107,7 @@ const (
 	apiServer            = "apiServer"
 	controllerManager    = "controllerManager"
 	scheduler            = "scheduler"
+	ntp                  = "ntp"
 )
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
@@ -130,6 +131,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, files},
 		{spec, kubeadmConfigSpec, "verbosity"},
 		{spec, kubeadmConfigSpec, users},
+		{spec, kubeadmConfigSpec, ntp, "*"},
 		{spec, "machineTemplate", "metadata"},
 		{spec, "machineTemplate", "infrastructureRef", "name"},
 		{spec, "replicas"},

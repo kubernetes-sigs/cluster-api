@@ -68,19 +68,19 @@ func getDockerClient() (*client.Client, error) {
 func (d *docker) SaveContainerImage(ctx context.Context, image, dest string) error {
 	reader, err := d.dockerClient.ImageSave(ctx, []string{image})
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to read image data: %v", err)
 	}
 	defer reader.Close()
 
 	tar, err := os.Create(dest)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create destination file %q: %v", dest, err)
 	}
 	defer tar.Close()
 
 	_, err = io.Copy(tar, reader)
 	if err != nil {
-		return err
+		return fmt.Errorf("failure writing image data to file: %v", err)
 	}
 
 	return nil
@@ -91,14 +91,14 @@ func (d *docker) SaveContainerImage(ctx context.Context, image, dest string) err
 func (d *docker) PullContainerImage(ctx context.Context, image string) error {
 	pullResp, err := d.dockerClient.ImagePull(ctx, image, types.ImagePullOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("failure pulling container image: %v", err)
 	}
 	defer pullResp.Close()
 
 	// Clients must read the ImagePull response to EOF to complete the pull
 	// operation or errors can occur.
 	if _, err = io.ReadAll(pullResp); err != nil {
-		return err
+		return fmt.Errorf("error while reading container image: %v", err)
 	}
 
 	return nil
@@ -109,7 +109,7 @@ func (d *docker) GetHostPort(ctx context.Context, name, portAndProtocol string) 
 	// Get details about the container
 	containerInfo, err := d.dockerClient.ContainerInspect(ctx, name)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error getting container information for %q: %v", name, err)
 	}
 
 	// Loop through the container port bindings and return the first HostPort
@@ -135,7 +135,7 @@ func (d *docker) ExecToFile(ctx context.Context, containerName string, fileOnHos
 
 	response, err := d.dockerClient.ContainerExecCreate(ctx, containerName, execConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating container exec: %v", err)
 	}
 
 	execID := response.ID
@@ -145,7 +145,7 @@ func (d *docker) ExecToFile(ctx context.Context, containerName string, fileOnHos
 
 	resp, err := d.dockerClient.ContainerExecAttach(ctx, execID, types.ExecStartCheck{})
 	if err != nil {
-		return err
+		return fmt.Errorf("error attaching to container exec: %v", err)
 	}
 	defer resp.Close()
 
@@ -160,7 +160,7 @@ func (d *docker) ExecToFile(ctx context.Context, containerName string, fileOnHos
 	select {
 	case err := <-outputErrors:
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading output from container exec: %v", err)
 		}
 
 	case <-ctx.Done():
@@ -251,7 +251,7 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 		"",
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating container: %v", err)
 	}
 
 	// Read out any output from the container
@@ -265,12 +265,12 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 	// Attach to the container so we can capture the output
 	containerOutput, err := d.dockerClient.ContainerAttach(ctx, resp.ID, attachOpts)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to attach to container: %v", err)
 	}
 
 	// Actually start the container
 	if err := d.dockerClient.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return err
+		return fmt.Errorf("error starting container: %v", err)
 	}
 
 	outputErrors := make(chan error)
@@ -286,11 +286,11 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 	select {
 	case err := <-errCh:
 		if err != nil {
-			return err
+			return fmt.Errorf("error waiting for container run: %v", err)
 		}
 	case err := <-outputErrors:
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading output from container run: %v", err)
 		}
 	case <-statusCh:
 	case <-ctx.Done():

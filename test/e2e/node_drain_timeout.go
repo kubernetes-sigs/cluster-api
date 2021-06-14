@@ -131,7 +131,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 
 		By("Scale down the controlplane of the workload cluster and make sure that nodes running workload can be deleted even the draining process is blocked.")
 		// When we scale down the KCP, controlplane machines are by default deleted one by one, so it requires more time.
-		nodeDrainTimeoutKCPInterval := convertDurationToInterval(controlplane.Spec.NodeDrainTimeout, controlPlaneReplicas)
+		nodeDrainTimeoutKCPInterval := convertDurationToInterval(controlplane.Spec.MachineTemplate.NodeDrainTimeout, controlPlaneReplicas)
 		framework.ScaleAndWaitControlPlane(ctx, framework.ScaleAndWaitControlPlaneInput{
 			ClusterProxy:        input.BootstrapClusterProxy,
 			Cluster:             cluster,

@@ -281,7 +281,7 @@ Only String values like "3%" or Int values e.g 3 are valid input values now. A s
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
   ```
-- Note: this annotation also has to be checked in other cases, e.g. when watching for the Cluster resource. 
+- Note: this annotation also has to be checked in other cases, e.g. when watching for the Cluster resource.
 
 ## MachinePool API group changed to `cluster.x-k8s.io`
 
@@ -331,5 +331,6 @@ should be executed before this changes.
 
 ## Required cluster template changes
 
-`spec.infrastructureTemplate` has been moved to `machineTemplate.infrastructureRef`. Thus, cluster templates which include `KubeadmControlPlane`
+- `spec.infrastructureTemplate` has been moved to `spec.machineTemplate.infrastructureRef`. Thus, cluster templates which include `KubeadmControlPlane`
 have to be adjusted accordingly.
+- `spec.nodeDrainTimeout` has been moved to `spec.machineTemplate.nodeDrainTimeout`.

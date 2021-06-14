@@ -76,12 +76,6 @@ type KubeadmControlPlaneSpec struct {
 	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
-	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
-	// The default value is 0, meaning that the node can be drained without any time limitations.
-	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
-	// +optional
-	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
-
 	// The RolloutStrategy to use to replace control plane machines with
 	// new ones.
 	// +optional
@@ -99,6 +93,12 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// InfrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
+
+	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
+	// The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// +optional
+	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 }
 
 // RolloutStrategy describes how to replace existing machines

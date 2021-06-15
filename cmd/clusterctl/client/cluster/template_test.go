@@ -67,11 +67,11 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 		configClient config.Client
 	}
 	type args struct {
-		configMapNamespace string
-		configMapName      string
-		configMapDataKey   string
-		targetNamespace    string
-		listVariablesOnly  bool
+		configMapNamespace  string
+		configMapName       string
+		configMapDataKey    string
+		targetNamespace     string
+		skipTemplateProcess bool
 	}
 	tests := []struct {
 		name    string
@@ -87,11 +87,11 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 				configClient: configClient,
 			},
 			args: args{
-				configMapNamespace: "ns1",
-				configMapName:      "my-template",
-				configMapDataKey:   "prod",
-				targetNamespace:    "",
-				listVariablesOnly:  false,
+				configMapNamespace:  "ns1",
+				configMapName:       "my-template",
+				configMapDataKey:    "prod",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
 			},
 			want:    template,
 			wantErr: false,
@@ -103,11 +103,11 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 				configClient: configClient,
 			},
 			args: args{
-				configMapNamespace: "ns1",
-				configMapName:      "something-else",
-				configMapDataKey:   "prod",
-				targetNamespace:    "",
-				listVariablesOnly:  false,
+				configMapNamespace:  "ns1",
+				configMapName:       "something-else",
+				configMapDataKey:    "prod",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
 			},
 			want:    "",
 			wantErr: true,
@@ -119,11 +119,11 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 				configClient: configClient,
 			},
 			args: args{
-				configMapNamespace: "ns1",
-				configMapName:      "my-template",
-				configMapDataKey:   "something-else",
-				targetNamespace:    "",
-				listVariablesOnly:  false,
+				configMapNamespace:  "ns1",
+				configMapName:       "my-template",
+				configMapDataKey:    "something-else",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
 			},
 			want:    "",
 			wantErr: true,
@@ -135,7 +135,7 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 
 			processor := yaml.NewSimpleProcessor()
 			tc := newTemplateClient(TemplateClientInput{tt.fields.proxy, tt.fields.configClient, processor})
-			got, err := tc.GetFromConfigMap(tt.args.configMapNamespace, tt.args.configMapName, tt.args.configMapDataKey, tt.args.targetNamespace, tt.args.listVariablesOnly)
+			got, err := tc.GetFromConfigMap(tt.args.configMapNamespace, tt.args.configMapName, tt.args.configMapDataKey, tt.args.targetNamespace, tt.args.skipTemplateProcess)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -147,7 +147,7 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 				ConfigVariablesClient: configClient.Variables(),
 				Processor:             processor,
 				TargetNamespace:       tt.args.targetNamespace,
-				ListVariablesOnly:     tt.args.listVariablesOnly,
+				SkipTemplateProcess:   tt.args.skipTemplateProcess,
 			})
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(got).To(Equal(wantTemplate))
@@ -308,9 +308,9 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
 
 	type args struct {
-		templateURL       string
-		targetNamespace   string
-		listVariablesOnly bool
+		templateURL         string
+		targetNamespace     string
+		skipTemplateProcess bool
 	}
 	tests := []struct {
 		name    string
@@ -321,9 +321,9 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		{
 			name: "Get from local file system",
 			args: args{
-				templateURL:       path,
-				targetNamespace:   "",
-				listVariablesOnly: false,
+				templateURL:         path,
+				targetNamespace:     "",
+				skipTemplateProcess: false,
 			},
 			want:    template,
 			wantErr: false,
@@ -331,9 +331,9 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		{
 			name: "Get from GitHub",
 			args: args{
-				templateURL:       "https://github.com/kubernetes-sigs/cluster-api/blob/master/config/default/cluster-template.yaml",
-				targetNamespace:   "",
-				listVariablesOnly: false,
+				templateURL:         "https://github.com/kubernetes-sigs/cluster-api/blob/master/config/default/cluster-template.yaml",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
 			},
 			want:    template,
 			wantErr: false,
@@ -351,7 +351,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 			// override the github client factory
 			c.gitHubClientFactory = gitHubClientFactory
 
-			got, err := c.GetFromURL(tt.args.templateURL, tt.args.targetNamespace, tt.args.listVariablesOnly)
+			got, err := c.GetFromURL(tt.args.templateURL, tt.args.targetNamespace, tt.args.skipTemplateProcess)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -364,7 +364,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 				ConfigVariablesClient: configClient.Variables(),
 				Processor:             processor,
 				TargetNamespace:       tt.args.targetNamespace,
-				ListVariablesOnly:     tt.args.listVariablesOnly,
+				SkipTemplateProcess:   tt.args.skipTemplateProcess,
 			})
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(got).To(Equal(wantTemplate))

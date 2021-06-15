@@ -139,7 +139,7 @@ func Test_templates_Get(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "pass if variables does not exists but listVariablesOnly flag is set",
+			name: "pass if variables does not exists but skipTemplateProcess flag is set",
 			fields: fields{
 				version:  "v1.0",
 				provider: p1,

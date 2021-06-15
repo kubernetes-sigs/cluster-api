@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -111,13 +112,14 @@ func TestUpdateCoreDNS(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			"ClusterConfiguration": `apiServer:
-apiVersion: kubeadm.k8s.io/v1beta2
-dns:
-  type: CoreDNS
-imageRepository: k8s.gcr.io
-kind: ClusterConfiguration
-`,
+			"ClusterConfiguration": yaml.Raw(`
+				apiServer:
+				apiVersion: kubeadm.k8s.io/v1beta2
+				dns:
+				  type: CoreDNS
+				imageRepository: k8s.gcr.io
+				kind: ClusterConfiguration
+				`),
 		},
 	}
 
@@ -886,24 +888,28 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set the DNS image config",
-			clusterConfigurationData: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: ClusterConfiguration\n",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				`),
 			newDNS: bootstrapv1.DNS{
 				ImageMeta: bootstrapv1.ImageMeta{
 					ImageRepository: "example.com/k8s",
 					ImageTag:        "v1.2.3",
 				},
 			},
-			wantClusterConfiguration: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"controllerManager: {}\n" +
-				"dns:\n" +
-				"  imageRepository: example.com/k8s\n" +
-				"  imageTag: v1.2.3\n" +
-				"etcd: {}\n" +
-				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
-				"scheduler: {}\n",
+			wantClusterConfiguration: yaml.Raw(`
+				apiServer: {}
+				apiVersion: kubeadm.k8s.io/v1beta2
+				controllerManager: {}
+				dns:
+				  imageRepository: example.com/k8s
+				  imageTag: v1.2.3
+				etcd: {}
+				kind: ClusterConfiguration
+				networking: {}
+				scheduler: {}
+				`),
 		},
 	}
 	for _, tt := range tests {

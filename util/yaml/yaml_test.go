@@ -466,3 +466,17 @@ func TestFromUnstructured(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(string(rawyaml)).To(Equal(string(convertedyaml)))
 }
+
+func TestRaw(t *testing.T) {
+	g := NewWithT(t)
+
+	input := `
+		apiVersion:v1
+		kind:newKind
+		spec:
+			param: abc
+	`
+	output := "apiVersion:v1\nkind:newKind\nspec:\n\tparam: abc\n"
+	result := Raw(input)
+	g.Expect(result).To(Equal(output))
+}

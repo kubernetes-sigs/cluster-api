@@ -24,7 +24,6 @@ import (
 	"os"
 	"path"
 	goruntime "runtime"
-	"strings"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -37,6 +36,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -314,7 +314,10 @@ func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, na
 }
 
 func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.Config) {
-	port, err := findLoadBalancerPort(ctx, name)
+	containerRuntime, err := container.NewDockerClient()
+	Expect(err).ToNot(HaveOccurred(), "Failed to get Docker runtime client")
+
+	port, err := containerRuntime.GetHostPort(ctx, name, "6443/tcp")
 	Expect(err).ToNot(HaveOccurred(), "Failed to get load balancer port")
 
 	controlPlaneURL := &url.URL{
@@ -323,21 +326,6 @@ func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.C
 	}
 	currentCluster := config.Contexts[config.CurrentContext].Cluster
 	config.Clusters[currentCluster].Server = controlPlaneURL.String()
-}
-
-func findLoadBalancerPort(ctx context.Context, name string) (string, error) {
-	loadBalancerName := name + "-lb"
-	portFormat := `{{index (index (index .NetworkSettings.Ports "6443/tcp") 0) "HostPort"}}`
-	getPathCmd := exec.NewCommand(
-		exec.WithCommand("docker"),
-		exec.WithArgs("inspect", loadBalancerName, "--format", portFormat),
-	)
-	stdout, _, err := getPathCmd.Run(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(stdout)), nil
 }
 
 // Dispose clusterProxy internal resources (the operation does not affects the Kubernetes cluster).

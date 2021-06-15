@@ -27,9 +27,9 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kind/pkg/errors"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 // DockerLogCollector collect logs from a CAPD workload cluster.
@@ -47,14 +47,14 @@ func machineContainerName(cluster, machine string) string {
 
 func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error {
 	containerName := machineContainerName(m.Spec.ClusterName, m.Name)
-	return k.collectLogsFromNode(outputPath, containerName)
+	return k.collectLogsFromNode(ctx, outputPath, containerName)
 }
 
 func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, managementClusterClient client.Client, m *expv1.MachinePool, outputPath string) error {
 	var errs []error
 	for _, instance := range m.Status.NodeRefs {
 		containerName := machineContainerName(m.Spec.ClusterName, instance.Name)
-		if err := k.collectLogsFromNode(filepath.Join(outputPath, instance.Name), containerName); err != nil {
+		if err := k.collectLogsFromNode(ctx, filepath.Join(outputPath, instance.Name), containerName); err != nil {
 			// collecting logs is best effort so we proceed to the next instance even if we encounter an error.
 			errs = append(errs, err)
 		}
@@ -62,7 +62,12 @@ func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, managemen
 	return kerrors.NewAggregate(errs)
 }
 
-func (k DockerLogCollector) collectLogsFromNode(outputPath string, containerName string) error {
+func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath string, containerName string) error {
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return errors.Wrap(err, "Failed to collect logs from node")
+	}
+
 	execToPathFn := func(outputFileName, command string, args ...string) func() error {
 		return func() error {
 			f, err := fileOnHost(filepath.Join(outputPath, outputFileName))
@@ -70,7 +75,7 @@ func (k DockerLogCollector) collectLogsFromNode(outputPath string, containerName
 				return err
 			}
 			defer f.Close()
-			return execOnContainer(containerName, f, command, args...)
+			return containerRuntime.ExecToFile(ctx, containerName, f, command, args...)
 		}
 	}
 	copyDirFn := func(containerDir, dirName string) func() error {
@@ -85,7 +90,8 @@ func (k DockerLogCollector) collectLogsFromNode(outputPath string, containerName
 
 			defer os.Remove(tempfileName)
 
-			err = execOnContainer(
+			err = containerRuntime.ExecToFile(
+				ctx,
 				containerName,
 				f,
 				"tar", "--hard-dereference", "--dereference", "--directory", containerDir, "--create", "--file", "-", ".",
@@ -139,35 +145,4 @@ func fileOnHost(path string) (*os.File, error) {
 		return nil, err
 	}
 	return os.Create(path)
-}
-
-// execOnContainer is an helper that runs a command on a CAPD node/container.
-func execOnContainer(containerName string, fileOnHost *os.File, command string, args ...string) error {
-	dockerArgs := []string{
-		"exec",
-		// run with privileges so we can remount etc..
-		// this might not make sense in the most general sense, but it is
-		// important to many kind commands
-		"--privileged",
-	}
-	// specify the container and command, after this everything will be
-	// args the the command in the container rather than to docker
-	dockerArgs = append(
-		dockerArgs,
-		containerName, // ... against the container
-		command,       // with the command specified
-	)
-	dockerArgs = append(
-		dockerArgs,
-		// finally, with the caller args
-		args...,
-	)
-
-	cmd := exec.Command("docker", dockerArgs...)
-	cmd.SetEnv("PATH", os.Getenv("PATH"))
-
-	cmd.SetStderr(fileOnHost)
-	cmd.SetStdout(fileOnHost)
-
-	return errors.WithStack(cmd.Run())
 }

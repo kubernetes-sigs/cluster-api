@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
@@ -87,8 +86,8 @@ func CreateJUnitReporterForProw(artifactsDirectory string) *reporters.JUnitRepor
 // CompleteCommand prints a command before running it. Acts as a helper function.
 // privateArgs when true will not print arguments.
 func CompleteCommand(cmd *exec.Cmd, desc string, privateArgs bool) *exec.Cmd {
-	cmd.Stderr = ginkgo.GinkgoWriter
-	cmd.Stdout = ginkgo.GinkgoWriter
+	cmd.Stderr = TestOutput
+	cmd.Stdout = TestOutput
 	if privateArgs {
 		Byf("%s: dir=%s, command=%s", desc, cmd.Dir, cmd)
 	} else {

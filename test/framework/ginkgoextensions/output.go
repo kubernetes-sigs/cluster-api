@@ -23,6 +23,10 @@ import (
 	"github.com/onsi/ginkgo"
 )
 
+// TestOutput can be used for writing testing output.
+var TestOutput = ginkgo.GinkgoWriter
+
+// Byf provides formatted output to the GinkoWriter.
 func Byf(format string, a ...interface{}) {
 	ginkgo.By(fmt.Sprintf(format, a...))
 }

@@ -65,21 +65,21 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) erro
 	// checks that all the required providers in place in the target cluster.
 	if !o.dryRun {
 		if err := o.checkTargetProviders(toCluster.ProviderInventory()); err != nil {
-			return err
+			return errors.Wrap(err, "failed to check providers in target cluster")
 		}
 	}
 
 	// Gets all the types defines by the CRDs installed by clusterctl plus the ConfigMap/Secret core types.
 	err := objectGraph.getDiscoveryTypes()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to retrieve discovery types")
 	}
 
 	// Discovery the object graph for the selected types:
 	// - Nodes are defined the Kubernetes objects (Clusters, Machines etc.) identified during the discovery process.
 	// - Edges are derived by the OwnerReferences between nodes.
 	if err := objectGraph.Discovery(namespace); err != nil {
-		return err
+		return errors.Wrap(err, "failed to discover the object graph")
 	}
 
 	// Checks if Cluster API has already completed the provisioning of the infrastructure for the objects involved in the move operation.
@@ -87,7 +87,7 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) erro
 	// not currently waiting for long-running reconciliation loops, and so we can safely rely on the pause field on the Cluster object
 	// for blocking any further object reconciliation on the source objects.
 	if err := o.checkProvisioningCompleted(objectGraph); err != nil {
-		return err
+		return errors.Wrap(err, "failed to check for provisioned infrastructure")
 	}
 
 	// Check whether nodes are not included in GVK considered for move
@@ -178,8 +178,8 @@ func getClusterObj(proxy Proxy, cluster *node, clusterObj *clusterv1.Cluster) er
 	}
 
 	if err := c.Get(ctx, clusterObjKey, clusterObj); err != nil {
-		return errors.Wrapf(err, "error reading %q %s/%s",
-			clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
+		return errors.Wrapf(err, "error reading Cluster %s/%s",
+			clusterObj.GetNamespace(), clusterObj.GetName())
 	}
 	return nil
 }
@@ -196,8 +196,8 @@ func getMachineObj(proxy Proxy, machine *node, machineObj *clusterv1.Machine) er
 	}
 
 	if err := c.Get(ctx, machineObjKey, machineObj); err != nil {
-		return errors.Wrapf(err, "error reading %q %s/%s",
-			machineObj.GroupVersionKind(), machineObj.GetNamespace(), machineObj.GetName())
+		return errors.Wrapf(err, "error reading Machine %s/%s",
+			machineObj.GetNamespace(), machineObj.GetName())
 	}
 	return nil
 }
@@ -362,13 +362,13 @@ func patchCluster(proxy Proxy, cluster *node, patch client.Patch) error {
 	}
 
 	if err := cFrom.Get(ctx, clusterObjKey, clusterObj); err != nil {
-		return errors.Wrapf(err, "error reading %q %s/%s",
-			clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
+		return errors.Wrapf(err, "error reading Cluster %s/%s",
+			clusterObj.GetNamespace(), clusterObj.GetName())
 	}
 
 	if err := cFrom.Patch(ctx, clusterObj, patch); err != nil {
-		return errors.Wrapf(err, "error patching %q %s/%s",
-			clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
+		return errors.Wrapf(err, "error patching Cluster %s/%s",
+			clusterObj.GetNamespace(), clusterObj.GetName())
 	}
 
 	return nil

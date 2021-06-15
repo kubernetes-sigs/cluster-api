@@ -39,8 +39,8 @@ func getMachineDeployment(proxy cluster.Proxy, name, namespace string) (*cluster
 		Name:      name,
 	}
 	if err := c.Get(ctx, mdObjKey, mdObj); err != nil {
-		return nil, errors.Wrapf(err, "error reading %q %s/%s",
-			mdObj.GroupVersionKind(), mdObjKey.Namespace, mdObjKey.Name)
+		return nil, errors.Wrapf(err, "error reading MachineDeployment %s/%s",
+			mdObjKey.Namespace, mdObjKey.Name)
 	}
 	return mdObj, nil
 }
@@ -57,11 +57,11 @@ func patchMachineDeployemt(proxy cluster.Proxy, name, namespace string, patch cl
 		Name:      name,
 	}
 	if err := cFrom.Get(ctx, mdObjKey, mdObj); err != nil {
-		return errors.Wrapf(err, "error reading %s/%s", mdObj.GetNamespace(), mdObj.GetName())
+		return errors.Wrapf(err, "error reading MachineDeployment %s/%s", mdObj.GetNamespace(), mdObj.GetName())
 	}
 
 	if err := cFrom.Patch(ctx, mdObj, patch); err != nil {
-		return errors.Wrapf(err, "error while patching %s/%s", mdObj.GetNamespace(), mdObj.GetName())
+		return errors.Wrapf(err, "error while patching MachineDeployment %s/%s", mdObj.GetNamespace(), mdObj.GetName())
 	}
 	return nil
 }
@@ -95,11 +95,11 @@ func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.Machine
 	}
 
 	if toRevision > 0 {
-		return nil, errors.Errorf("unable to find specified revision: %v", toRevision)
+		return nil, errors.Errorf("unable to find specified MachineDeployment revision: %v", toRevision)
 	}
 
 	if previousMachineSet == nil {
-		return nil, errors.Errorf("no rollout history found")
+		return nil, errors.Errorf("no rollout history found for MachineDeployment")
 	}
 	return previousMachineSet, nil
 }

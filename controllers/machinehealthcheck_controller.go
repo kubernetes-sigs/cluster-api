@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sort"
 	"strconv"
 	"strings"
@@ -497,7 +498,7 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o client.Object)
 	return r.machineToMachineHealthCheck(machine)
 }
 
-func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
+func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster) error {
 	// If there is no tracker, don't watch remote nodes
 	if r.Tracker == nil {
 		return nil
@@ -509,6 +510,7 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachineHealthCheck),
+		Predicates:   []predicate.Predicate{predicates.NodeConditionUpdated(logger)},
 	})
 }
 

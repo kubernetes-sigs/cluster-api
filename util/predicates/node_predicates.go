@@ -1,13 +1,13 @@
 package predicates
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-// NodeConditionUpdated returns a predicate that returns true for node condition updated
+// NodeConditionUpdated returns a predicate that returns true for node condition updated.
 func NodeConditionUpdated(logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {

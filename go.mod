@@ -31,7 +31,7 @@ require (
 	google.golang.org/grpc v1.29.1
 	k8s.io/api v0.21.1
 	k8s.io/apiextensions-apiserver v0.21.1
-	k8s.io/apimachinery v0.21.1
+	k8s.io/apimachinery v0.21.2
 	k8s.io/apiserver v0.21.1
 	k8s.io/client-go v0.21.1
 	k8s.io/cluster-bootstrap v0.21.1

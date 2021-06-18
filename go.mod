@@ -15,7 +15,7 @@ require (
 	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/fatih/color v1.12.0
 	github.com/go-logr/logr v0.4.0
-	github.com/gobuffalo/flect v0.2.2
+	github.com/gobuffalo/flect v0.2.3
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-github/v33 v33.0.0
 	github.com/google/gofuzz v1.2.0

@@ -121,9 +121,9 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 				defer GinkgoRecover()
 
 				logFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+".log"))
-				Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
+				Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
 
-				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 				Expect(err).NotTo(HaveOccurred())
 				defer f.Close()
 

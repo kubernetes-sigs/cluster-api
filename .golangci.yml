@@ -74,7 +74,6 @@ issues:
   # The following are being worked on to remove their exclusion. This list should be reduced or go away all together over time.
   # If it is decided they will not be addressed they should be moved above this comment.
   - Subprocess launch(ed with variable|ing should be audited)
-  - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
   - (G104|G307)
   exclude-rules:
   - linters:

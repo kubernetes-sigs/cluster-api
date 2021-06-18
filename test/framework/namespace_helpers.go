@@ -130,9 +130,9 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 	Expect(input.Name).NotTo(BeEmpty(), "input.Name is required for WatchNamespaceEvents")
 
 	logFile := filepath.Clean(path.Join(input.LogFolder, "resources", input.Name, "events.log"))
-	Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
+	Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
 
-	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	Expect(err).NotTo(HaveOccurred())
 	defer f.Close()
 
@@ -177,7 +177,7 @@ func CreateNamespaceAndWatchEvents(ctx context.Context, input CreateNamespaceAnd
 	Expect(input.Creator).ToNot(BeNil(), "Invalid argument. input.Creator can't be nil when calling CreateNamespaceAndWatchEvents")
 	Expect(input.ClientSet).ToNot(BeNil(), "Invalid argument. input.ClientSet can't be nil when calling ClientSet")
 	Expect(input.Name).ToNot(BeEmpty(), "Invalid argument. input.Name can't be empty when calling ClientSet")
-	Expect(os.MkdirAll(input.LogFolder, 0755)).To(Succeed(), "Invalid argument. input.LogFolder can't be created in CreateNamespaceAndWatchEvents")
+	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created in CreateNamespaceAndWatchEvents")
 
 	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name}, "40s", "10s")
 	Expect(namespace).ToNot(BeNil(), "Failed to create namespace %q", input.Name)

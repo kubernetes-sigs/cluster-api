@@ -8,12 +8,12 @@ require (
 	github.com/coredns/corefile-migration v1.0.12
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
+	github.com/drone/envsubst/v2 v2.0.0-20210615175204-7bf45dbf5372
 	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/fatih/color v1.12.0
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/go-logr/logr v0.4.0
-	github.com/gobuffalo/flect v0.2.2
+	github.com/gobuffalo/flect v0.2.3
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-github/v33 v33.0.0
@@ -25,21 +25,21 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.7.1
+	github.com/spf13/viper v1.8.0
 	go.etcd.io/etcd/api/v3 v3.5.0
 	go.etcd.io/etcd/client/v3 v3.5.0
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	golang.org/x/oauth2 v0.0.0-20210615190721-d04028783cf1
 	google.golang.org/grpc v1.38.0
-	k8s.io/api v0.21.1
-	k8s.io/apiextensions-apiserver v0.21.1
-	k8s.io/apimachinery v0.21.1
-	k8s.io/apiserver v0.21.1
-	k8s.io/client-go v0.21.1
-	k8s.io/cluster-bootstrap v0.21.1
-	k8s.io/component-base v0.21.1
+	k8s.io/api v0.21.2
+	k8s.io/apiextensions-apiserver v0.21.2
+	k8s.io/apimachinery v0.21.2
+	k8s.io/apiserver v0.21.2
+	k8s.io/client-go v0.21.2
+	k8s.io/cluster-bootstrap v0.21.2
+	k8s.io/component-base v0.21.2
 	k8s.io/klog/v2 v2.9.0
-	k8s.io/kubectl v0.21.1
+	k8s.io/kubectl v0.21.2
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
-	sigs.k8s.io/controller-runtime v0.9.0
+	sigs.k8s.io/controller-runtime v0.9.1
 	sigs.k8s.io/yaml v1.2.0
 )

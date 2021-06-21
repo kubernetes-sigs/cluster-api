@@ -20,13 +20,20 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	operatorv1alpha4 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	// +kubebuilder:scaffold:imports
+)
+
+const (
+	timeout = time.Second * 30
 )
 
 var (
@@ -46,6 +53,39 @@ func TestMain(m *testing.M) {
 	fmt.Println("Creating new test environment")
 
 	testEnv = helpers.NewTestEnvironment()
+
+	if err := (&GenericProviderReconciler{
+		Provider:     &operatorv1alpha4.CoreProvider{},
+		ProviderList: &operatorv1alpha4.CoreProviderList{},
+		Client:       testEnv,
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		panic(fmt.Sprintf("Failed to start CoreProviderReconciler: %v", err))
+	}
+
+	if err := (&GenericProviderReconciler{
+		Provider:     &operatorv1alpha4.InfrastructureProvider{},
+		ProviderList: &operatorv1alpha4.InfrastructureProviderList{},
+		Client:       testEnv,
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		panic(fmt.Sprintf("Failed to start InfrastructureProviderReconciler: %v", err))
+	}
+
+	if err := (&GenericProviderReconciler{
+		Provider:     &operatorv1alpha4.BootstrapProvider{},
+		ProviderList: &operatorv1alpha4.BootstrapProviderList{},
+		Client:       testEnv,
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		panic(fmt.Sprintf("Failed to start BootstrapProviderReconciler: %v", err))
+	}
+
+	if err := (&GenericProviderReconciler{
+		Provider:     &operatorv1alpha4.ControlPlaneProvider{},
+		ProviderList: &operatorv1alpha4.ControlPlaneProviderList{},
+		Client:       testEnv,
+	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		panic(fmt.Sprintf("Failed to start ControlPlaneProviderReconciler: %v", err))
+	}
+
 	go func() {
 		if err := testEnv.StartManager(ctx); err != nil {
 			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))

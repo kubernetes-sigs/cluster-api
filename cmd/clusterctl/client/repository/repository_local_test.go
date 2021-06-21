@@ -137,7 +137,7 @@ func createLocalTestProviderFile(t *testing.T, tmpDir, path, msg string) string 
 
 	dst := filepath.Join(tmpDir, path)
 	// Create all directories in the standard layout
-	g.Expect(os.MkdirAll(filepath.Dir(dst), 0755)).To(Succeed())
+	g.Expect(os.MkdirAll(filepath.Dir(dst), 0750)).To(Succeed())
 	g.Expect(os.WriteFile(dst, []byte(msg), 0600)).To(Succeed())
 
 	return dst

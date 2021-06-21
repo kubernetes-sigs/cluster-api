@@ -35,7 +35,7 @@ type CreateLogFileInput struct {
 
 func CreateLogFile(input CreateLogFileInput) *LogFile {
 	filePath := filepath.Join(input.LogFolder, input.Name)
-	Expect(os.MkdirAll(filepath.Dir(filePath), 0755)).To(Succeed(), "Failed to create log folder %s", filepath.Dir(filePath))
+	Expect(os.MkdirAll(filepath.Dir(filePath), 0750)).To(Succeed(), "Failed to create log folder %s", filepath.Dir(filePath))
 
 	f, err := os.Create(filePath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create log file %s", filePath)

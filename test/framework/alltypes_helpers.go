@@ -139,9 +139,9 @@ func dumpObject(resource runtime.Object, logPath string) {
 	name := metaObj.GetName()
 
 	resourceFilePath := filepath.Clean(path.Join(logPath, namespace, kind, name+".yaml"))
-	Expect(os.MkdirAll(filepath.Dir(resourceFilePath), 0755)).To(Succeed(), "Failed to create folder %s", filepath.Dir(resourceFilePath))
+	Expect(os.MkdirAll(filepath.Dir(resourceFilePath), 0750)).To(Succeed(), "Failed to create folder %s", filepath.Dir(resourceFilePath))
 
-	f, err := os.OpenFile(resourceFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(resourceFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	Expect(err).ToNot(HaveOccurred(), "Failed to open %s", resourceFilePath)
 	defer f.Close()
 

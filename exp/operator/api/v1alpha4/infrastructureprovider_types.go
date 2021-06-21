@@ -31,6 +31,7 @@ type InfrastructureProviderStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // InfrastructureProvider is the Schema for the infrastructureproviders API.
 type InfrastructureProvider struct {

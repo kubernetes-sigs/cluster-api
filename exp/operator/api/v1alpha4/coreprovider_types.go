@@ -31,6 +31,7 @@ type CoreProviderStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // CoreProvider is the Schema for the coreproviders API.
 type CoreProvider struct {

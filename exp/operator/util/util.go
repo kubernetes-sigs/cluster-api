@@ -14,19 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package util
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+import (
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
+)
 
-// TODO: NOTE: The API details will be incrementally added and will eventually
-// conform to the CAPI Provider CAEP.
-
-// ProProviderSpec is the desired state of the Provider.
-type ProviderSpec struct{}
-
-// ProProviderStatus defines the observed state of the Provider.
-type ProviderStatus struct {
-	// Conditions define the current service state of the provider.
-	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+func IsCoreProvider(p genericprovider.GenericProvider) bool {
+	_, ok := p.GetObject().(*operatorv1.CoreProvider)
+	return ok
 }

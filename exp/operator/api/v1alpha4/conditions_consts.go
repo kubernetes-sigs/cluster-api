@@ -18,15 +18,11 @@ package v1alpha4
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
-// TODO: NOTE: The API details will be incrementally added and will eventually
-// conform to the CAPI Provider CAEP.
+const (
+	// PreflightCheckCondition documents a Provider that has not passed preflight checks.
+	PreflightCheckCondition clusterv1.ConditionType = "PreflightCheckPassed"
 
-// ProProviderSpec is the desired state of the Provider.
-type ProviderSpec struct{}
-
-// ProProviderStatus defines the observed state of the Provider.
-type ProviderStatus struct {
-	// Conditions define the current service state of the provider.
-	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
-}
+	// MoreThanOneProviderInstanceExistsReason (Severity=Info) documents that more than one instance of provider
+	// exists in the cluster
+	MoreThanOneProviderInstanceExistsReason = "MoreThanOneExists"
+)

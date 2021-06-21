@@ -14,19 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package controllers
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+import "time"
 
-// TODO: NOTE: The API details will be incrementally added and will eventually
-// conform to the CAPI Provider CAEP.
-
-// ProProviderSpec is the desired state of the Provider.
-type ProviderSpec struct{}
-
-// ProProviderStatus defines the observed state of the Provider.
-type ProviderStatus struct {
-	// Conditions define the current service state of the provider.
-	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
-}
+const (
+	// preflightFailedRequeueAfter is how long to wait before trying to reconcile
+	// if some preflight check has failed.
+	preflightFailedRequeueAfter = 30 * time.Second
+)

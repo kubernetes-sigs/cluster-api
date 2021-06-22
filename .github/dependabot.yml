@@ -8,14 +8,13 @@ updates:
     #
     # Maintainers can continue to look at the log in
     # https://github.com/kubernetes-sigs/cluster-api/network/updates/
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 1
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     commit_message:
       prefix: "🌱"
 
-  # Weekly updates for everything else
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
@@ -32,7 +31,7 @@ updates:
 
   - package-ecosystem: "gomod"
     directory: "/hack/tools"
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 1
     schedule:
       interval: "weekly"
     commit_message:
@@ -40,7 +39,7 @@ updates:
 
   - package-ecosystem: "gomod"
     directory: "/test"
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 1
     schedule:
       interval: "weekly"
     commit_message:

@@ -37,13 +37,6 @@ failed=()
 outputs=()
 
 # run all verify scripts, optionally skipping any of them
-if [[ "${VERIFY_GOTEST:-true}" == "true" ]]; then
-  echo "[*] Verifying gotest..."
-  out=$(hack/verify-gotest.sh 2>&1)
-  failure $? "verify-gotest.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
 if [[ "${VERIFY_BUILD:-true}" == "true" ]]; then
   echo "[*] Verifying build..."
   out=$(hack/verify-build.sh 2>&1)

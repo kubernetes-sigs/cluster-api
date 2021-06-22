@@ -1,0 +1,43 @@
+name: dependabot
+
+on:
+  pull_request:
+    branches:
+      - dependabot/**
+  push:
+    branches:
+      - dependabot/**
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.16'
+      id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      name: Restore go cache
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Update all modules
+      run: make modules
+    - name: Update generated code
+      run: make generate
+    - uses: EndBug/add-and-commit@v7
+      name: Commit changes
+      with:
+        author_name: dependabot[bot]
+        author_email: 49699333+dependabot[bot]@users.noreply.github.com
+        default_author: github_actor
+        message: 'Update generated code'

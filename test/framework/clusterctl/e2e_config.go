@@ -482,8 +482,8 @@ func (c *E2EConfig) validateProviders() error {
 	}
 
 	// There should be one InfraProvider (pick your own).
-	if len(providersByType[clusterctlv1.InfrastructureProviderType]) != 1 {
-		return errInvalidArg("invalid config: it is required to have exactly one infrastructure-provider")
+	if len(providersByType[clusterctlv1.InfrastructureProviderType]) < 1 {
+		return errInvalidArg("invalid config: it is required to have at least one infrastructure-provider")
 	}
 	return nil
 }

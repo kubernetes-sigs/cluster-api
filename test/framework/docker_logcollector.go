@@ -75,7 +75,10 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 				return err
 			}
 			defer f.Close()
-			return containerRuntime.ExecToFile(ctx, containerName, f, command, args...)
+			execConfig := container.ExecContainerInput{
+				OutputBuffer: f,
+			}
+			return containerRuntime.ExecContainer(ctx, containerName, &execConfig, command, args...)
 		}
 	}
 	copyDirFn := func(containerDir, dirName string) func() error {
@@ -90,10 +93,13 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 
 			defer os.Remove(tempfileName)
 
-			err = containerRuntime.ExecToFile(
+			execConfig := container.ExecContainerInput{
+				OutputBuffer: f,
+			}
+			err = containerRuntime.ExecContainer(
 				ctx,
 				containerName,
-				f,
+				&execConfig,
 				"tar", "--hard-dereference", "--dereference", "--directory", containerDir, "--create", "--file", "-", ".",
 			)
 			if err != nil {

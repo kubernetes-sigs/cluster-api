@@ -178,8 +178,8 @@ When selecting the `--kubernetes-version`, ensure that the `kindest/node`
 image is available.
 
 For example, on [docker hub][kind-docker-hub] there is no
-image for version `v1.19.2`, therefore creating a CAPD workload cluster with
-`--kubernetes-version=v1.19.2` will fail. See [issue 3795] for more details.
+image for version `v1.21.2`, therefore creating a CAPD workload cluster with
+`--kubernetes-version=v1.21.2` will fail. See [issue 3795] for more details.
 
 ### Get the kubeconfig for the workload cluster
 

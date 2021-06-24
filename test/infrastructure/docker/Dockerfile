@@ -53,7 +53,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # Gets additional CAPD dependencies
 WORKDIR /tmp
 
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.19.2/bin/linux/amd64/kubectl && \
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.21.2/bin/linux/amd64/kubectl && \
     chmod +x ./kubectl && \
     mv ./kubectl /usr/bin/kubectl
 

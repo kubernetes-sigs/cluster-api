@@ -16,6 +16,8 @@ limitations under the License.
 package yamlprocessor
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -272,6 +274,25 @@ func TestSimpleProcessor_Process(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestIsMissingVariables(t *testing.T) {
+	errTests := []struct {
+		desc string
+		err  error
+		want bool
+	}{
+		{desc: "normal string error", err: errors.New("test error"), want: false},
+		{desc: "missing variables error", err: &errMissingVariables{Missing: []string{"testing"}}, want: true},
+		{desc: "wrapped error", err: fmt.Errorf("wrapped error: %w", &errMissingVariables{Missing: []string{"testing"}}), want: true},
+	}
+	for _, tt := range errTests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if v := IsMissingVariables(tt.err); v != tt.want {
+				t.Errorf("IsMissingVariables got %v, want %v for %v", v, tt.want, tt.err)
+			}
 		})
 	}
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package yamlprocessor
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -127,12 +128,23 @@ type errMissingVariables struct {
 	Missing []string
 }
 
+func (e *errMissingVariables) Is(target error) bool {
+	_, ok := target.(*errMissingVariables)
+	return ok
+}
+
 func (e *errMissingVariables) Error() string {
 	sort.Strings(e.Missing)
 	return fmt.Sprintf(
 		"value for variables [%s] is not set. Please set the value using os environment variables or the clusterctl config file",
 		strings.Join(e.Missing, ", "),
 	)
+}
+
+// IsMissingVariables returns true if the provided error indicates missing
+// variables when processing a template.
+func IsMissingVariables(err error) bool {
+	return errors.Is(err, &errMissingVariables{})
 }
 
 // inspectVariables parses through the yaml and returns a map of the variable

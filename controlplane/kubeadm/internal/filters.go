@@ -213,13 +213,15 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 
 	// If KCP JoinConfiguration.ControlPlane is not present, set machine join configuration to nil (nothing can trigger rollout here).
 	// NOTE: this is required because CABPK applies an empty joinConfiguration.ControlPlane in case no one is provided.
-	if kcpConfig.JoinConfiguration != nil && kcpConfig.JoinConfiguration.ControlPlane == nil {
+	if kcpConfig.JoinConfiguration != nil && kcpConfig.JoinConfiguration.ControlPlane == nil &&
+		machineConfig.Spec.JoinConfiguration != nil {
 		machineConfig.Spec.JoinConfiguration.ControlPlane = nil
 	}
 
 	// If KCP's join NodeRegistration is empty, set machine's node registration to empty as no changes should trigger rollout.
 	emptyNodeRegistration := bootstrapv1.NodeRegistrationOptions{}
-	if kcpConfig.JoinConfiguration != nil && reflect.DeepEqual(kcpConfig.JoinConfiguration.NodeRegistration, emptyNodeRegistration) {
+	if kcpConfig.JoinConfiguration != nil && reflect.DeepEqual(kcpConfig.JoinConfiguration.NodeRegistration, emptyNodeRegistration) &&
+		machineConfig.Spec.JoinConfiguration != nil {
 		machineConfig.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
 	}
 

@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/sergi/go-diff v1.2.0 // indirect
 	golang.org/x/exp v0.0.0-20210607182018-cd2df34ff7e5 // indirect
-	golang.org/x/tools v0.1.3
+	golang.org/x/tools v0.1.4
 	gotest.tools/gotestsum v1.6.4
 	k8s.io/code-generator v0.21.2
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210621185250-484f82a4a92d

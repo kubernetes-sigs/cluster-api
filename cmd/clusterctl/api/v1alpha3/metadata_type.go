@@ -60,3 +60,14 @@ func (m *Metadata) GetReleaseSeriesForVersion(version *version.Version) *Release
 
 	return nil
 }
+
+// GetReleaseSeriesForContract returns the release series for a given API Version, e.g. `v1alpha4`.
+func (m *Metadata) GetReleaseSeriesForContract(contract string) *ReleaseSeries {
+	for _, releaseSeries := range m.ReleaseSeries {
+		if contract == releaseSeries.Contract {
+			return &releaseSeries
+		}
+	}
+
+	return nil
+}

@@ -174,7 +174,7 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 	}
 
 	if releaseSeries.Contract != clusterv1.GroupVersion.Version {
-		return "", errors.Errorf("current version of clusterctl could install only %s providers, detected %s for provider %s", clusterv1.GroupVersion.Version, releaseSeries.Contract, provider.ManifestLabel())
+		return "", errors.Errorf("current version of clusterctl is only compatible with %s providers, detected %s for provider %s", clusterv1.GroupVersion.Version, releaseSeries.Contract, provider.ManifestLabel())
 	}
 
 	providerInstanceContracts[provider.InstanceName()] = releaseSeries.Contract

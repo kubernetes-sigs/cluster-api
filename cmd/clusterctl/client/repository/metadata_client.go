@@ -26,6 +26,8 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
+const metadataFile = "metadata.yaml"
+
 // MetadataClient has methods to work with metadata hosted on a provider repository.
 // Metadata are yaml files providing additional information about provider's assets like e.g the version compatibility Matrix.
 type MetadataClient interface {
@@ -59,25 +61,24 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 
 	// gets the metadata file from the repository
 	version := f.version
-	name := "metadata.yaml"
 
 	file, err := getLocalOverride(&newOverrideInput{
 		configVariablesClient: f.configVarClient,
 		provider:              f.provider,
 		version:               version,
-		filePath:              name,
+		filePath:              metadataFile,
 	})
 	if err != nil {
 		return nil, err
 	}
 	if file == nil {
-		log.V(5).Info("Fetching", "File", name, "Provider", f.provider.Name(), "Type", f.provider.Type(), "Version", version)
-		file, err = f.repository.GetFile(version, name)
+		log.V(5).Info("Fetching", "File", metadataFile, "Provider", f.provider.Name(), "Type", f.provider.Type(), "Version", version)
+		file, err = f.repository.GetFile(version, metadataFile)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", name, f.provider.ManifestLabel())
+			return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", metadataFile, f.provider.ManifestLabel())
 		}
 	} else {
-		log.V(1).Info("Using", "Override", name, "Provider", f.provider.ManifestLabel(), "Version", version)
+		log.V(1).Info("Using", "Override", metadataFile, "Provider", f.provider.ManifestLabel(), "Version", version)
 	}
 
 	// Convert the yaml into a typed object
@@ -85,7 +86,7 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
 
 	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, obj); err != nil {
-		return nil, errors.Wrapf(err, "error decoding %q for provider %q", name, f.provider.ManifestLabel())
+		return nil, errors.Wrapf(err, "error decoding %q for provider %q", metadataFile, f.provider.ManifestLabel())
 	}
 
 	//TODO: consider if to add metadata validation (TBD)

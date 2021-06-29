@@ -11,8 +11,8 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 * [Developer guide](./developer/guide.md)
 * [Contributing](./CONTRIBUTING.md)
 
-**Using Cluster API v1alpha2?** See the [legacy
-documentation](https://release-0-2.cluster-api.sigs.k8s.io).
+**Using Cluster API v1alpha3?** See the [legacy
+documentation](https://release-0-3.cluster-api.sigs.k8s.io).
 
 ## Why build Cluster API?
 

@@ -20,9 +20,14 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"net/http"
 	"net/url"
 	"path/filepath"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 	"strings"
 
 	"github.com/google/go-github/github"
@@ -171,7 +176,7 @@ func newGitHubRepository(providerConfig config.Provider, configVariablesClient c
 	}
 
 	if defaultVersion == githubLatestReleaseLabel {
-		repo.defaultVersion, err = repo.getLatestRelease()
+		repo.defaultVersion, err = repo.getLatestContractRelease(clusterv1.GroupVersion.Version)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get GitHub latest version")
 		}
@@ -238,9 +243,53 @@ func (g *gitHubRepository) getVersions() ([]string, error) {
 	return versions, nil
 }
 
+// getLatestContractRelease returns the latest patch release for a github repository for the current API contract, according to
+// semantic version order of the release tag name.
+func (g *gitHubRepository) getLatestContractRelease(contract string) (string, error) {
+	latest, err := g.getLatestRelease()
+	if err != nil {
+		return latest, err
+	}
+	// Attempt to check if the latest release satisfies the API Contract
+	// This is a best-effort attempt to find the latest release for an older API contract if it's not the latest Github release.
+	// If an error occurs, we just return the latest release.
+	file, err := g.GetFile(latest, metadataFile)
+	if err != nil {
+		// if we can't get the metadata file from the release, we return latest.
+		return latest, nil
+	}
+	latestMetadata := &clusterctlv1.Metadata{}
+	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
+	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, latestMetadata); err != nil {
+		return latest, nil // nolint:nilerr
+	}
+
+	releaseSeries := latestMetadata.GetReleaseSeriesForContract(contract)
+	if releaseSeries == nil {
+		return latest, nil
+	}
+
+	sv, err := version.ParseSemantic(latest)
+	if err != nil {
+		return latest, nil // nolint:nilerr
+	}
+
+	// If the Major or Minor version of the latest release doesn't match the release series for the current contract,
+	// return the latest patch release of the desired Major/Minor version.
+	if sv.Major() != releaseSeries.Major || sv.Minor() != releaseSeries.Minor {
+		return g.getLatestPatchRelease(&releaseSeries.Major, &releaseSeries.Minor)
+	}
+	return latest, nil
+}
+
 // getLatestRelease returns the latest release for a github repository, according to
 // semantic version order of the release tag name.
 func (g *gitHubRepository) getLatestRelease() (string, error) {
+	return g.getLatestPatchRelease(nil, nil)
+}
+
+// getLatestRelease returns the latest patch release for a given Major and Minor version.
+func (g *gitHubRepository) getLatestPatchRelease(major, minor *uint) (string, error) {
 	versions, err := g.getVersions()
 	if err != nil {
 		return "", g.handleGithubErr(err, "failed to get the list of versions")
@@ -258,6 +307,11 @@ func (g *gitHubRepository) getLatestRelease() (string, error) {
 		sv, err := version.ParseSemantic(v)
 		if err != nil {
 			// discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases)
+			continue
+		}
+
+		if (major != nil && sv.Major() != *major) || (minor != nil && sv.Minor() != *minor) {
+			// skip versions that don't match the desired Major.Minor version.
 			continue
 		}
 

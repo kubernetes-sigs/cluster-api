@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -68,6 +69,7 @@ var (
 	leaderElectionLeaseDuration    time.Duration
 	leaderElectionRenewDeadline    time.Duration
 	leaderElectionRetryPeriod      time.Duration
+	watchFilterValue               string
 	watchNamespace                 string
 	profilerAddress                string
 	kubeadmControlPlaneConcurrency int
@@ -105,6 +107,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
+
+	fs.StringVar(&watchFilterValue, "watch-filter", "",
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
@@ -193,17 +198,19 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 	if err := (&remote.ClusterCacheReconciler{
-		Client:  mgr.GetClient(),
-		Log:     ctrl.Log.WithName("remote").WithName("ClusterCacheReconciler"),
-		Tracker: tracker,
+		Client:           mgr.GetClient(),
+		Log:              ctrl.Log.WithName("remote").WithName("ClusterCacheReconciler"),
+		Tracker:          tracker,
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
 	}
 
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-		Client:  mgr.GetClient(),
-		Tracker: tracker,
+		Client:           mgr.GetClient(),
+		Tracker:          tracker,
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)

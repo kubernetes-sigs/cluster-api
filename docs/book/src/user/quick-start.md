@@ -397,9 +397,17 @@ Make sure you choose a VM size which is available in the desired location for yo
 </aside>
 
 ```bash
-# Name of the Azure datacenter location. Change this value to your desired location.
+# Name of the Azure region. Change this value to your desired location.
 export AZURE_LOCATION="centralus"
 
+# Resource group to use. Will be created if it does not exist.
+# If variable not set, Resource group will default to name of cluster
+export AZURE_RESOURCE_GROUP="<Resource Group>"
+
+# Optional, set VNET to use.
+# If variable not set, a VNET will be created
+# export AZURE_VNET_NAME="<VNET name>"
+   
 # Select VM types.
 export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"
 export AZURE_NODE_MACHINE_TYPE="Standard_D2s_v3"

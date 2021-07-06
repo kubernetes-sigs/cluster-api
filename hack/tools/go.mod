@@ -8,11 +8,11 @@ require (
 	github.com/joelanford/go-apidiff v0.1.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/sergi/go-diff v1.2.0 // indirect
-	golang.org/x/exp v0.0.0-20210607182018-cd2df34ff7e5 // indirect
-	golang.org/x/tools v0.1.3
+	golang.org/x/exp v0.0.0-20210625193404-fa9d1d177d71 // indirect
+	golang.org/x/tools v0.1.4
 	gotest.tools/gotestsum v1.6.4
 	k8s.io/code-generator v0.21.2
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210621185250-484f82a4a92d
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210706144019-ef5c8a3ffd28
 	sigs.k8s.io/controller-tools v0.6.1
-	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20210608144043-e4ae397dd4af
+	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20210702145813-742983631190
 )

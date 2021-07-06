@@ -47,6 +47,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - dockerclusters/finalizers
   - dockerclusters/status
   verbs:
   - get
@@ -67,6 +68,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - dockermachinepools/finalizers
   - dockermachinepools/status
   verbs:
   - get
@@ -87,6 +89,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - dockermachines/finalizers
   - dockermachines/status
   verbs:
   - get

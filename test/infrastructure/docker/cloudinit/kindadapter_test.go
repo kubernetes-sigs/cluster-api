@@ -100,7 +100,7 @@ write_files:
         \ 0\nnodeRegistration:\n  criSocket: /var/run/containerd/containerd.sock\n\
         \  kubeletExtraArgs:\n    cloud-provider: aws\n  name: 'ip-10-0-0-223.us-west-2.compute.internal'\n"
     owner: root:root
-    path: /tmp/kubeadm.yaml
+    path: /run/kubeadm/kubeadm.yaml
     permissions: '0640'
 `)
 
@@ -133,10 +133,10 @@ write_files:
 		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
 		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/sa.key /dev/stdin"}},
 		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/sa.key"}},
-		// /tmp/kubeadm.yaml
-		{Cmd: "mkdir", Args: []string{"-p", "/tmp"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /tmp/kubeadm.yaml /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0640", "/tmp/kubeadm.yaml"}},
+		// /run/kubeadm/kubeadm.yaml
+		{Cmd: "mkdir", Args: []string{"-p", "/run/kubeadm"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /run/kubeadm/kubeadm.yaml /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0640", "/run/kubeadm/kubeadm.yaml"}},
 	}
 
 	commands, err := Commands(cloudData)

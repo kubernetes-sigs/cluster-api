@@ -23,7 +23,7 @@ import (
 const (
 	controlPlaneCloudInit = `{{.Header}}
 {{template "files" .WriteFiles}}
--   path: /tmp/kubeadm.yaml
+-   path: /run/kubeadm/kubeadm.yaml
     owner: root:root
     permissions: '0640'
     content: |
@@ -33,7 +33,7 @@ const (
 {{.InitConfiguration | Indent 6}}
 runcmd:
 {{- template "commands" .PreKubeadmCommands }}
-  - 'kubeadm init --config /tmp/kubeadm.yaml {{.KubeadmVerbosity}}'
+  - 'kubeadm init --config /run/kubeadm/kubeadm.yaml {{.KubeadmVerbosity}}'
 {{- template "commands" .PostKubeadmCommands }}
 {{- template "ntp" .NTP }}
 {{- template "users" .Users }}

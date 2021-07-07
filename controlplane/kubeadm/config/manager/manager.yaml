@@ -20,6 +20,7 @@ spec:
         - /manager
         args:
         - "--leader-elect"
+        - "--metrics-bind-addr=localhost:8080"
         image: controller:latest
         name: manager
         ports:

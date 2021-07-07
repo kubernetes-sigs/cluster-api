@@ -1,0 +1,45 @@
+@startuml
+title Figure 2. Cluster update with ClusterClass process
+actor User
+
+' -- GROUPS START ---
+
+box #LightGreen
+participant "API Server"
+end box
+
+box #LightBlue
+participant "Cluster Controller"
+end box
+
+' -- GROUPS END ---
+
+User -> "API Server" : Update Cluster object with\n""Cluster.Spec.Class""
+"API Server" --> "Cluster Controller": Existing Cluster
+opt Required only if Cluster.Spec.Class is set
+  "Cluster Controller" -> "Cluster Controller": Fetches the control plane object\nset in Cluster.Spec.ControlPlaneRef
+  opt Update the ControlPlaneRef
+    "Cluster Controller" -> "Cluster Controller": Updates the number of replicas
+    "Cluster Controller" -> "Cluster Controller": Updates the k8s version
+    "Cluster Controller" -> "API Server": Updates control plane object
+  end
+
+  "Cluster Controller" -> "API Server": Fetches the MDs for worker node pools
+  opt For each worker node pool
+    alt If worker node pool was removed from Managed
+      "Cluster Controller" -> "API Server": Delete Machine Deployment
+    else If new worker node pool was added to Managed
+      "Cluster Controller" -> "API Server": Create Machine Deployment
+    end
+  end
+  opt For the remaining worker node pools
+    loop For each worker
+      "Cluster Controller" -> "Cluster Controller": Updates replicas, labels and version\n for MachineDeployment
+      "Cluster Controller" -> "API Server": Updates MachineDeployment
+    end
+  end
+end
+
+
+hide footbox
+@enduml

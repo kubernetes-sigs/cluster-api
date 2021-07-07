@@ -1,0 +1,44 @@
+@startuml
+title Figure 1. Cluster with ClusterClass Provisioning process
+actor User
+
+' -- GROUPS START ---
+
+box #LightGreen
+participant "API Server"
+end box
+
+box #LightBlue
+participant "Cluster Controller"
+end box
+
+' -- GROUPS END ---
+
+User -> "API Server" : Create Cluster object with\n""Cluster.Spec.Managed.Class""
+"API Server" --> "Cluster Controller": New Cluster
+opt Required only if Cluster.Spec.Managed.Class is set
+"Cluster Controller" --> "API Server": Creates the infrastructure cluster
+"Cluster Controller" -> "Cluster Controller": Checks for\nCluster.Spec.ControlPlaneRef
+opt Required only if Cluster.Spec.ControlPlaneRef is not set
+  "Cluster Controller" -> "Cluster Controller": Initializes the control plane \noject using the template
+  "Cluster Controller" -> "Cluster Controller": Sets the name of the object to <cluster.Name>
+  "Cluster Controller" -> "Cluster Controller": Sets the replicas & k8s version
+  "Cluster Controller" -> "API Server": Saves the control plane object
+  "Cluster Controller" -> "Cluster Controller": Updates the Cluster.Spec.ControlPlaneRef
+  "Cluster Controller" -> "API Server": Updates Cluster
+end
+loop For each deployment in\n""cluster.Spec.Managed.Worker.Deployments"" list
+  "Cluster Controller" -> "API Server": Check for MachineDeployment object\nwith name\n<cluster.Name>-<deployment.Name>
+  opt If MachineDeployment not found
+    "Cluster Controller" -> "Cluster Controller": Initializes new MachineDeployment object
+    "Cluster Controller" -> "Cluster Controller": Sets the name of MD to\n<cluster.Name>-<deployment.Name>
+    "Cluster Controller" -> "Cluster Controller": Sets the replicas & k8s version
+    "Cluster Controller" -> "API Server": Saves MachineDeployment
+  end
+end
+end
+
+
+
+hide footbox
+@enduml

@@ -69,6 +69,7 @@
     - [Ports](./reference/ports.md)
     - [Code of Conduct](./code-of-conduct.md)
     - [Contributing](./CONTRIBUTING.md)
+    - [Jobs](./reference/jobs.md)
     - [Code Review in Cluster API](./REVIEWING.md)
     - [Version Support](./reference/versions.md)
     - [Roadmap](./roadmap.md)

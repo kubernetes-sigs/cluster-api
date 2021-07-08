@@ -2,6 +2,14 @@
 
 In this tutorial we'll cover the basics of how to use Cluster API to create one or more Kubernetes clusters.
 
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+If using a [provider] that does not yet support v1alpha4, please follow [the release 0.3 quickstart instructions](https://release-0-3.cluster-api.sigs.k8s.io/user/quick-start.html) instead.
+
+</aside>
+
 ## Installation
 
 ### Common Prerequisites
@@ -90,9 +98,9 @@ The clusterctl CLI tool handles the lifecycle of a Cluster API management cluste
 {{#tab linux}}
 
 #### Install clusterctl binary with curl on linux
-Download the latest release; for example, to download version v0.3.0 on linux, type:
+Download the latest release; on linux, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"0.3.x"}} -o clusterctl
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"0.4.x"}} -o clusterctl
 ```
 Make the clusterctl binary executable.
 ```
@@ -111,9 +119,9 @@ clusterctl version
 {{#tab macOS}}
 
 ##### Install clusterctl binary with curl on macOS
-Download the latest release; for example, to download version v0.3.0 on macOS, type:
+Download the latest release; on macOS, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"0.3.x"}} -o clusterctl
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"0.4.x"}} -o clusterctl
 ```
 Make the clusterctl binary executable.
 ```
@@ -310,12 +318,12 @@ The output of `clusterctl init` is similar to this:
 
 ```shell
 Fetching providers
-Installing cert-manager
+Installing cert-manager Version="v1.1.0"
 Waiting for cert-manager to be available...
-Installing Provider="cluster-api" Version="v0.3.0" TargetNamespace="capi-system"
-Installing Provider="bootstrap-kubeadm" Version="v0.3.0" TargetNamespace="capi-kubeadm-bootstrap-system"
-Installing Provider="control-plane-kubeadm" Version="v0.3.0" TargetNamespace="capi-kubeadm-control-plane-system"
-Installing Provider="infrastructure-aws" Version="v0.5.0" TargetNamespace="capa-system"
+Installing Provider="cluster-api" Version="v0.4.0" TargetNamespace="capi-system"
+Installing Provider="bootstrap-kubeadm" Version="v0.4.0" TargetNamespace="capi-kubeadm-bootstrap-system"
+Installing Provider="control-plane-kubeadm" Version="v0.4.0" TargetNamespace="capi-kubeadm-control-plane-system"
+Installing Provider="infrastructure-docker" Version="v0.4.0" TargetNamespace="capd-system"
 
 Your management cluster has been initialized successfully!
 
@@ -679,15 +687,6 @@ clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 
 <h1>Warning</h1>
 
-The `clusterctl get kubeconfig` command is available on for clusterctl v0.3.9 or newer. See [clusterctl get kubeconfig] for more details. If you are running older
-version you can use the following command:
-
-```bash
-kubectl --namespace=default get secret capi-quickstart-kubeconfig \
-   -o jsonpath={.data.value} | base64 --decode \
-   > capi-quickstart.kubeconfig
-```
-
 If you are using docker on MacOS, you will need to do a couple of additional
 steps to get the correct kubeconfig for a workload cluster created with the docker provider.
 See [Additional Notes for the Docker Provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
@@ -774,6 +773,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
 [Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
 [Packet getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-packet#using
+[provider]:../reference/providers.md
 [provider components]: ../reference/glossary.md#provider-components
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md
 [workload cluster]: ../reference/glossary.md#workload-cluster

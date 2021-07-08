@@ -380,6 +380,7 @@ func generateTempVersionFilePath(g *WithT) (string, func()) {
 	tmpVersionFile := filepath.Join(dir, "clusterctl", "state.yaml")
 
 	return tmpVersionFile, func() {
-		os.RemoveAll(dir)
+		// We don't want to fail if the deletion of the temp file fails, so we ignore the error here
+		_ = os.RemoveAll(dir)
 	}
 }

@@ -17,7 +17,7 @@ If using a [provider] that does not yet support v1alpha4, please follow [the rel
 - Install and setup [kubectl] in your local environment
 - Install [Kind] and [Docker]
 
-### Install and/or configure a kubernetes cluster
+### Install and/or configure a Kubernetes cluster
 
 Cluster API requires an existing Kubernetes cluster accessible via kubectl. During the installation process the
 Kubernetes cluster will be transformed into a [management cluster] by installing the Cluster API [provider components], so it
@@ -53,11 +53,11 @@ Choose one of the options below:
    [kind] can be used for creating a local Kubernetes cluster for development environments or for
    the creation of a temporary [bootstrap cluster] used to provision a target [management cluster] on the selected infrastructure provider.
 
-   The installation procedure depends on the version of kind; if you are planning to use the docker infrastructure provider,
+   The installation procedure depends on the version of kind; if you are planning to use the Docker infrastructure provider,
    please follow the additional instructions in the dedicated tab:
 
-   {{#tabs name:"install-kind" tabs:"v0.9.x,Docker"}}
-   {{#tab v0.9.x}}
+   {{#tabs name:"install-kind" tabs:"Default,Docker"}}
+   {{#tab Default}}
 
    Create the kind cluster:
    ```bash
@@ -118,7 +118,7 @@ clusterctl version
 {{#/tab }}
 {{#tab macOS}}
 
-##### Install clusterctl binary with curl on macOS
+#### Install clusterctl binary with curl on macOS
 Download the latest release; on macOS, type:
 ```
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"0.4.x"}} -o clusterctl
@@ -138,7 +138,7 @@ clusterctl version
 {{#/tab }}
 {{#tab homebrew}}
 
-##### Install clusterctl with homebrew on macOS and linux
+#### Install clusterctl with homebrew on macOS and linux
 
 Install the latest release using homebrew:
 
@@ -245,7 +245,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 </aside>
 
-The docker provider does not require additional prerequisites.
+The Docker provider does not require additional prerequisites.
 You can run:
 
 ```
@@ -355,8 +355,8 @@ The `clusterctl generate cluster` command returns a YAML template for creating a
 
 <h1> Which provider will be used for my cluster? </h1>
 
-The `clusterctl generate cluster` command uses smart defaults in order to simplify the user experience; in this example,
-it detects that there is only an `aws` infrastructure provider and so it uses that when creating the cluster.
+The `clusterctl generate cluster` command uses smart defaults in order to simplify the user experience; for example,
+if only the `aws` infrastructure provider is deployed, it detects and uses that when creating the cluster.
 
 </aside>
 
@@ -439,7 +439,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 </aside>
 
-The docker provider does not require additional configurations for cluster templates.
+The Docker provider does not require additional configurations for cluster templates.
 
 However, if you require special network settings you can set the following environment variables:
 
@@ -587,7 +587,7 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.19.7 \
+  --kubernetes-version v1.19.11 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -606,7 +606,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.19.7 \
+  --kubernetes-version v1.19.11 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -647,7 +647,7 @@ kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io/capi-quickstart-md-0 created
 The cluster will now start provisioning. You can check status with:
 
 ```bash
-kubectl get cluster --all-namespaces
+kubectl get cluster
 ```
 
 You can also get an "at glance" view of the cluster and its resources by running:
@@ -659,21 +659,21 @@ clusterctl describe cluster capi-quickstart
 To verify the first control plane is up:
 
 ```bash
-kubectl get kubeadmcontrolplane --all-namespaces
+kubectl get kubeadmcontrolplane
 ```
 
 You should see an output is similar to this:
 
 ```bash
 NAME                            INITIALIZED   API SERVER AVAILABLE   VERSION   REPLICAS   READY   UPDATED   UNAVAILABLE
-capi-quickstart-control-plane   true                                 v1.19.7   3                  3         3
+capi-quickstart-control-plane   true                                 v1.19.11   3                  3         3
 ```
 
 <aside class="note warning">
 
 <h1> Warning </h1>
 
-The control planes won't be `Ready` until we install a CNI in the next step.
+The control plane won't be `Ready` until we install a CNI in the next step.
 
 </aside>
 
@@ -687,8 +687,8 @@ clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 
 <h1>Warning</h1>
 
-If you are using docker on MacOS, you will need to do a couple of additional
-steps to get the correct kubeconfig for a workload cluster created with the docker provider.
+If you are using Docker on MacOS, you will need to do a couple of additional
+steps to get the correct kubeconfig for a workload cluster created with the Docker provider.
 See [Additional Notes for the Docker Provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
 
 </aside>
@@ -702,7 +702,7 @@ Calico is used here as an example.
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://docs.projectcalico.org/v3.15/manifests/calico.yaml
+  apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
 ```
 
 After a short while, our nodes should be running and in `Ready` state,

@@ -273,7 +273,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
-	isDeleteNodeAllowed := err == nil // nolint:ifshort
+	isDeleteNodeAllowed := err == nil //nolint:ifshort
 	if err != nil {
 		switch err {
 		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted, errControlPlaneIsBeingDeleted:

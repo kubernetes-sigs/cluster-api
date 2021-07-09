@@ -20,16 +20,30 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
+	"time"
 
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	configclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
+	clusterctllog "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
+	"sigs.k8s.io/cluster-api/exp/operator/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -40,6 +54,7 @@ type GenericProviderReconciler struct {
 }
 
 func (r *GenericProviderReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+	clusterctllog.SetLogger(mgr.GetLogger())
 	return ctrl.NewControllerManagedBy(mgr).
 		For(r.Provider).
 		WithOptions(options).
@@ -47,7 +62,7 @@ func (r *GenericProviderReconciler) SetupWithManager(mgr ctrl.Manager, options c
 }
 
 func (r *GenericProviderReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
-	typedProvider, err := r.NewGenericProvider()
+	typedProvider, err := r.newGenericProvider()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -91,17 +106,196 @@ func (r *GenericProviderReconciler) Reconcile(ctx context.Context, req reconcile
 	return r.reconcile(ctx, typedProvider, typedProviderList)
 }
 
-func (r *GenericProviderReconciler) reconcile(ctx context.Context, genericProvider genericprovider.GenericProvider, genericProviderList genericprovider.GenericProviderList) (_ ctrl.Result, reterr error) {
+func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider genericprovider.GenericProvider, genericProviderList genericprovider.GenericProviderList) (_ ctrl.Result, reterr error) {
 	// Run preflight checks to ensure that core provider can be installed properly
-	result, err := preflightChecks(ctx, r.Client, genericProvider, genericProviderList)
+	result, err := preflightChecks(ctx, r.Client, provider, genericProviderList)
 	if err != nil || !result.IsZero() {
 		return result, err
 	}
 
+	// TODO how much of the stuff below should we add to preflight checks?
+	// 1. if we add it, we will have to rerun much of the code again
+	// 2. unit testing is going to be a pain
+	reader, err := r.secretReader(ctx, provider)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	cfg, err := configclient.New("", configclient.InjectReader(reader))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	providerConfig, err := cfg.Providers().Get(provider.GetName(), util.ClusterctlProviderType(provider))
+	if err != nil {
+		conditions.Set(provider, conditions.FalseCondition(
+			operatorv1.PreflightCheckCondition,
+			operatorv1.UnknownProviderReason,
+			clusterv1.ConditionSeverityWarning,
+			fmt.Sprintf(unknownProviderMessage, provider.GetName()),
+		))
+		// we don't want to reconcile again until the CR has been fixed.
+		// TODO although, not the user could have fixed the secret...
+		// 1. add annotation to the secret
+		// 2. watch secrets and map the secret back to the provider?
+		return ctrl.Result{}, nil // nolint:nilerr
+	}
+
+	spec := provider.GetSpec()
+
+	var repo repository.Repository
+	if spec.FetchConfig != nil && spec.FetchConfig.Selector != nil {
+		repo, err = r.configmapRepository(ctx, provider)
+	} else {
+		repo, err = repository.NewGitHubRepository(providerConfig, cfg.Variables())
+	}
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	options := repository.ComponentsOptions{
+		TargetNamespace: provider.GetNamespace(),
+		Version:         repo.DefaultVersion(),
+	}
+	if spec.Version != nil {
+		options.Version = *spec.Version
+	}
+
+	componentsFile, err := repo.GetFile(options.Version, repo.ComponentsPath())
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to read %q from provider's repository %q", repo.ComponentsPath(), providerConfig.ManifestLabel())
+	}
+
+	components, err := repository.NewComponents(repository.ComponentsInput{
+		Provider:     providerConfig,
+		ConfigClient: cfg,
+		Processor:    yamlprocessor.NewSimpleProcessor(),
+		RawYaml:      componentsFile,
+		ObjModifier:  customizeObjectsFn(provider),
+		Options:      options})
+	if err != nil {
+		conditions.Set(provider, conditions.FalseCondition(
+			clusterv1.ReadyCondition,
+			operatorv1.ComponentsFetchErrorReason,
+			clusterv1.ConditionSeverityWarning,
+			err.Error(),
+		))
+
+		return ctrl.Result{}, err
+	}
+
+	clusterClient := cluster.New(cluster.Kubeconfig{}, cfg)
+	installer := clusterClient.ProviderInstaller()
+	installer.Add(components)
+
+	// ensure the custom resource definitions required by clusterctl are in place
+	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isCertManagerRequired(ctx, components) {
+		// NOTE: this can block for a while..
+		if err := clusterClient.CertManager().EnsureInstalled(); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	_, err = installer.Install(cluster.InstallOptions{
+		WaitProviders:       true,
+		WaitProviderTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		conditions.Set(provider, conditions.FalseCondition(
+			clusterv1.ReadyCondition,
+			"Install failed",
+			clusterv1.ConditionSeverityError,
+			err.Error(),
+		))
+		return ctrl.Result{}, err
+	}
+
+	conditions.Set(provider, conditions.TrueCondition(clusterv1.ReadyCondition))
 	return ctrl.Result{}, nil
 }
 
-func (r *GenericProviderReconciler) NewGenericProvider() (genericprovider.GenericProvider, error) {
+func (r *GenericProviderReconciler) secretReader(ctx context.Context, provider genericprovider.GenericProvider) (configclient.Reader, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	mr := configclient.NewMemoryReader()
+	err := mr.Init("")
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: maybe set a shorter default, so we don't block when installing cert-manager.
+	//mr.Set("cert-manager-timeout", "120s")
+
+	if provider.GetSpec().SecretName != nil {
+		secret := &corev1.Secret{}
+		key := types.NamespacedName{Namespace: provider.GetNamespace(), Name: *provider.GetSpec().SecretName}
+		if err := r.Client.Get(ctx, key, secret); err != nil {
+			return nil, err
+		}
+		for k, v := range secret.Data {
+			mr.Set(k, string(v))
+		}
+	} else {
+		log.Info("no configuration secret was specified")
+	}
+
+	if provider.GetSpec().FetchConfig != nil && provider.GetSpec().FetchConfig.URL != nil {
+		return mr.AddProvider(provider.GetName(), util.ClusterctlProviderType(provider), *provider.GetSpec().FetchConfig.URL)
+	}
+
+	return mr, nil
+}
+
+func (r *GenericProviderReconciler) configmapRepository(ctx context.Context, provider genericprovider.GenericProvider) (repository.Repository, error) {
+	mr := repository.NewMemoryRepository()
+	mr.WithPaths("", "components.yaml")
+
+	cml := &corev1.ConfigMapList{}
+	selector, err := metav1.LabelSelectorAsSelector(provider.GetSpec().FetchConfig.Selector)
+	if err != nil {
+		return nil, err
+	}
+	err = r.Client.List(ctx, cml, &client.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return nil, err
+	}
+	if len(cml.Items) == 0 {
+		return nil, fmt.Errorf("no ConfigMaps found with selector %s", provider.GetSpec().FetchConfig.Selector.String())
+	}
+	for _, cm := range cml.Items {
+		metadata, ok := cm.Data["metadata"]
+		if !ok {
+			return nil, fmt.Errorf("ConfigMap %s/%s has no metadata", cm.Namespace, cm.Name)
+		}
+		mr.WithFile(cm.Name, "metadata.yaml", []byte(metadata))
+		components, ok := cm.Data["components"]
+		if !ok {
+			return nil, fmt.Errorf("ConfigMap %s/%s has no components", cm.Namespace, cm.Name)
+		}
+		mr.WithFile(cm.Name, mr.ComponentsPath(), []byte(components))
+	}
+
+	return mr, nil
+}
+
+func isCertManagerRequired(ctx context.Context, components repository.Components) bool {
+	log := ctrl.LoggerFrom(ctx)
+
+	for _, obj := range components.Objs() {
+		if strings.Contains(obj.GetAPIVersion(), "cert-manager.io/") {
+			log.V(2).Info("cert-manager is required by", "kind", obj.GetKind(), "namespace", obj.GetNamespace(), "name", obj.GetName())
+			return true
+		}
+	}
+	log.V(2).Info("cert-manager not required")
+	return false
+}
+
+func (r *GenericProviderReconciler) newGenericProvider() (genericprovider.GenericProvider, error) {
 	switch r.Provider.(type) {
 	case *operatorv1.CoreProvider:
 		return &genericprovider.CoreProviderWrapper{CoreProvider: &operatorv1.CoreProvider{}}, nil

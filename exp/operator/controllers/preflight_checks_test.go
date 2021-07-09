@@ -25,10 +25,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestPreflightChecks(t *testing.T) {
@@ -47,7 +48,7 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.CoreProviderWrapper{
 					CoreProvider: &operatorv1.CoreProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "core-1",
+							Name:      "cluster-api",
 							Namespace: namespaceName1,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -71,7 +72,7 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.CoreProviderWrapper{
 					CoreProvider: &operatorv1.CoreProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "core-2",
+							Name:      "cluster-api",
 							Namespace: namespaceName1,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -110,7 +111,7 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.CoreProviderWrapper{
 					CoreProvider: &operatorv1.CoreProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "core-4",
+							Name:      "cluster-api",
 							Namespace: namespaceName1,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -122,7 +123,7 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.CoreProviderWrapper{
 					CoreProvider: &operatorv1.CoreProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "core-4",
+							Name:      "cluster-api",
 							Namespace: namespaceName2,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -149,12 +150,35 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.InfrastructureProviderWrapper{
 					InfrastructureProvider: &operatorv1.InfrastructureProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "infra-42",
+							Name:      "aws",
 							Namespace: namespaceName1,
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
 							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
+						},
+					},
+				},
+				&genericprovider.CoreProviderWrapper{
+					CoreProvider: &operatorv1.CoreProvider{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "cluster-api",
+							Namespace: namespaceName2,
+						},
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "CoreProvider",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+						},
+						Status: operatorv1.CoreProviderStatus{
+							ProviderStatus: operatorv1.ProviderStatus{
+								Conditions: []clusterv1.Condition{
+									{
+										Type:               clusterv1.ReadyCondition,
+										Status:             corev1.ConditionTrue,
+										LastTransitionTime: metav1.Now(),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -173,7 +197,7 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.InfrastructureProviderWrapper{
 					InfrastructureProvider: &operatorv1.InfrastructureProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "infra-1",
+							Name:      "metal3",
 							Namespace: namespaceName1,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -185,12 +209,35 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.InfrastructureProviderWrapper{
 					InfrastructureProvider: &operatorv1.InfrastructureProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "infra-2",
+							Name:      "aws",
 							Namespace: namespaceName1,
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
 							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
+						},
+					},
+				},
+				&genericprovider.CoreProviderWrapper{
+					CoreProvider: &operatorv1.CoreProvider{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "cluster-api",
+							Namespace: namespaceName2,
+						},
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "CoreProvider",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+						},
+						Status: operatorv1.CoreProviderStatus{
+							ProviderStatus: operatorv1.ProviderStatus{
+								Conditions: []clusterv1.Condition{
+									{
+										Type:               clusterv1.ReadyCondition,
+										Status:             corev1.ConditionTrue,
+										LastTransitionTime: metav1.Now(),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -209,7 +256,7 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.InfrastructureProviderWrapper{
 					InfrastructureProvider: &operatorv1.InfrastructureProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "infra-3",
+							Name:      "metal3",
 							Namespace: namespaceName1,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -221,12 +268,35 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.InfrastructureProviderWrapper{
 					InfrastructureProvider: &operatorv1.InfrastructureProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "infra-4",
+							Name:      "aws",
 							Namespace: namespaceName2,
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
 							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
+						},
+					},
+				},
+				&genericprovider.CoreProviderWrapper{
+					CoreProvider: &operatorv1.CoreProvider{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "cluster-api",
+							Namespace: namespaceName2,
+						},
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "CoreProvider",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+						},
+						Status: operatorv1.CoreProviderStatus{
+							ProviderStatus: operatorv1.ProviderStatus{
+								Conditions: []clusterv1.Condition{
+									{
+										Type:               clusterv1.ReadyCondition,
+										Status:             corev1.ConditionTrue,
+										LastTransitionTime: metav1.Now(),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -245,7 +315,7 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.InfrastructureProviderWrapper{
 					InfrastructureProvider: &operatorv1.InfrastructureProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "infra-3",
+							Name:      "aws",
 							Namespace: namespaceName1,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -257,7 +327,7 @@ func TestPreflightChecks(t *testing.T) {
 				&genericprovider.InfrastructureProviderWrapper{
 					InfrastructureProvider: &operatorv1.InfrastructureProvider{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "infra-3",
+							Name:      "aws",
 							Namespace: namespaceName2,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -271,7 +341,7 @@ func TestPreflightChecks(t *testing.T) {
 				Type:     operatorv1.PreflightCheckCondition,
 				Reason:   operatorv1.MoreThanOneProviderInstanceExistsReason,
 				Severity: clusterv1.ConditionSeverityWarning,
-				Message:  fmt.Sprintf(moreThanOneProviderInstanceExistsMessage, "infra-3", namespaceName2),
+				Message:  fmt.Sprintf(moreThanOneProviderInstanceExistsMessage, "aws", namespaceName2),
 				Status:   corev1.ConditionFalse,
 			},
 			providerList: &genericprovider.InfrastructureProviderListWrapper{

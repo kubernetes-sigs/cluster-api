@@ -19,15 +19,19 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 	"sigs.k8s.io/cluster-api/exp/operator/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -37,7 +41,28 @@ const (
 var (
 	moreThanOneCoreProviderInstanceExistsMessage = "CoreProvider already exists in the cluster. Only one is allowed."
 	moreThanOneProviderInstanceExistsMessage     = "There is already a %s with name %s in the cluster. Only one is allowed."
+	unknownProviderMessage                       = "The provider \"%s\" does not exist."
+	waitingForCoreProviderReadyMessage           = "waiting for the core provider to install."
 )
+
+func coreProviderIsReady(ctx context.Context, c client.Client) (bool, error) {
+	cpl := &operatorv1.CoreProviderList{}
+	err := c.List(ctx, cpl)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	for _, cp := range cpl.Items {
+		for _, cond := range cp.Status.Conditions {
+			if cond.Type == clusterv1.ReadyCondition && cond.Status == corev1.ConditionTrue {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
 
 func preflightChecks(ctx context.Context, c client.Client, provider genericprovider.GenericProvider, providerList genericprovider.GenericProviderList) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -57,7 +82,7 @@ func preflightChecks(ctx context.Context, c client.Client, provider genericprovi
 		preflightFalseCondition := conditions.FalseCondition(
 			operatorv1.PreflightCheckCondition,
 			operatorv1.MoreThanOneProviderInstanceExistsReason,
-			v1beta1.ConditionSeverityWarning,
+			clusterv1.ConditionSeverityWarning,
 			"",
 		)
 
@@ -75,6 +100,24 @@ func preflightChecks(ctx context.Context, c client.Client, provider genericprovi
 			preflightFalseCondition.Message = fmt.Sprintf(moreThanOneProviderInstanceExistsMessage, p.GetName(), p.GetNamespace())
 			conditions.Set(provider, preflightFalseCondition)
 			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+		}
+	}
+
+	if !util.IsCoreProvider(provider) {
+		// the core provider must be ready before we install other providers.
+		ready, err := coreProviderIsReady(ctx, c)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to get coreProvider ready condition")
+		}
+		if !ready {
+			log.V(4).Info(waitingForCoreProviderReadyMessage)
+			conditions.Set(provider, conditions.FalseCondition(
+				operatorv1.PreflightCheckCondition,
+				operatorv1.WaitingForCoreProviderReadyReason,
+				clusterv1.ConditionSeverityInfo,
+				waitingForCoreProviderReadyMessage,
+			))
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 	}
 

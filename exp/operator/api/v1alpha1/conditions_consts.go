@@ -25,4 +25,13 @@ const (
 	// MoreThanOneProviderInstanceExistsReason (Severity=Info) documents that more than one instance of provider
 	// exists in the cluster.
 	MoreThanOneProviderInstanceExistsReason = "MoreThanOneExists"
+
+	// UnknownProviderReason documents that the provider name is not the name of a know provider.
+	UnknownProviderReason = "UnknownProvider"
+
+	// ComponentsFetchErrorReason documents that an error occurred fetching the componets.
+	ComponentsFetchErrorReason = "ComponentsFetchError"
+
+	// WaitingForCoreProviderReadyReason documents that the provider is waiting for the core provider to be ready.
+	WaitingForCoreProviderReadyReason = "WaitingForCoreProviderReady"
 )

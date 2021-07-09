@@ -482,6 +482,15 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 		}
 	}
 
+	containerJSON, err := d.dockerClient.ContainerInspect(ctx, resp.ID)
+	if err != nil {
+		return fmt.Errorf("error inspecting container %s: %v", resp.ID, err)
+	}
+
+	if containerJSON.ContainerJSONBase.State.ExitCode != 0 {
+		return fmt.Errorf("error container run failed with exit code %d", containerJSON.ContainerJSONBase.State.ExitCode)
+	}
+
 	return nil
 }
 

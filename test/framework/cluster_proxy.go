@@ -317,7 +317,8 @@ func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.C
 	containerRuntime, err := container.NewDockerClient()
 	Expect(err).ToNot(HaveOccurred(), "Failed to get Docker runtime client")
 
-	port, err := containerRuntime.GetHostPort(ctx, name, "6443/tcp")
+	lbContainerName := name + "-lb"
+	port, err := containerRuntime.GetHostPort(ctx, lbContainerName, "6443/tcp")
 	Expect(err).ToNot(HaveOccurred(), "Failed to get load balancer port")
 
 	controlPlaneURL := &url.URL{

@@ -192,7 +192,7 @@ clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 ### Fix kubeconfig (when using docker on MacOS)
 
 When using docker on MacOS, you will need to do a couple of additional
-steps to get the correct kubeconfig for a workload cluster created with the docker provider:
+steps to get the correct kubeconfig for a workload cluster created with the Docker provider:
 
 ```bash
 # Point the kubeconfig to the exposed port of the load balancer, rather than the inaccessible container IP.

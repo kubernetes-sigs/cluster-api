@@ -82,7 +82,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	}
 
 	// Get the Node references.
-	nodeRefsResult, err := r.getNodeReferences(ctx, clusterClient, mp.Spec.ProviderIDList)
+	nodeRefsResult, err := r.getNodeReferences(ctx, clusterClient, mp.Spec.ProviderIDList, mp.Name)
 	if err != nil {
 		if err == errNoAvailableNodes {
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
@@ -173,50 +173,55 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	return nil
 }
 
-func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.Client, providerIDList []string) (getNodeReferencesResult, error) {
+func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.Client, providerIDList []string, owner string) (getNodeReferencesResult, error) {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 
-	var ready, available int
-	nodeRefsMap := make(map[string]corev1.Node)
-	nodeList := corev1.NodeList{}
-	for {
-		if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
-			return getNodeReferencesResult{}, errors.Wrapf(err, "failed to List nodes")
-		}
-
-		for _, node := range nodeList.Items {
-			nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
-			if err != nil {
-				log.V(2).Info("Failed to parse ProviderID, skipping", "err", err, "providerID", node.Spec.ProviderID)
-				continue
-			}
-
-			nodeRefsMap[nodeProviderID.ID()] = node
-		}
-
-		if nodeList.Continue == "" {
-			break
-		}
-	}
-
-	var nodeRefs []corev1.ObjectReference
+	providerIDMap := map[string]bool{}
 	for _, providerID := range providerIDList {
 		pid, err := noderefutil.NewProviderID(providerID)
 		if err != nil {
 			log.V(2).Info("Failed to parse ProviderID, skipping", "err", err, "providerID", providerID)
 			continue
 		}
-		if node, ok := nodeRefsMap[pid.ID()]; ok {
-			available++
-			if nodeIsReady(&node) {
-				ready++
+		providerIDMap[pid.ID()] = true
+	}
+
+	var ready, available int
+	var nodeRefs []corev1.ObjectReference
+	nodeList := corev1.NodeList{}
+	for {
+		if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
+			return getNodeReferencesResult{}, errors.Wrapf(err, "failed to List nodes")
+		}
+
+		for idx := range nodeList.Items {
+			node := nodeList.Items[idx]
+			if node.ObjectMeta.Annotations[clusterv1.OwnerKindAnnotation] != "MachinePool" || node.ObjectMeta.Annotations[clusterv1.OwnerNameAnnotation] != owner {
+				continue
 			}
-			nodeRefs = append(nodeRefs, corev1.ObjectReference{
-				Kind:       node.Kind,
-				APIVersion: node.APIVersion,
-				Name:       node.Name,
-				UID:        node.UID,
-			})
+
+			nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
+			if err != nil {
+				log.V(2).Info("Failed to parse ProviderID, skipping", "err", err, "providerID", node.Spec.ProviderID)
+				continue
+			}
+
+			if ok := providerIDMap[nodeProviderID.ID()]; ok {
+				available++
+				if nodeIsReady(&node) {
+					ready++
+				}
+				nodeRefs = append(nodeRefs, corev1.ObjectReference{
+					Kind:       node.Kind,
+					APIVersion: node.APIVersion,
+					Name:       node.Name,
+					UID:        node.UID,
+				})
+			}
+		}
+
+		if nodeList.Continue == "" {
+			break
 		}
 	}
 

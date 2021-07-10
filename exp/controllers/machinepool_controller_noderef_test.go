@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -38,6 +39,10 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-1",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/owner-kind": "MachinePool",
+					"cluster.x-k8s.io/owner-name": "owner",
+				},
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-east-1/id-node-1",
@@ -46,6 +51,10 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-2",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/owner-kind": "MachinePool",
+					"cluster.x-k8s.io/owner-name": "owner",
+				},
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-west-2/id-node-2",
@@ -54,6 +63,10 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "gce-node-2",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/owner-kind": "MachinePool",
+					"cluster.x-k8s.io/owner-name": "owner",
+				},
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "gce://us-central1/gce-id-node-2",
@@ -62,9 +75,48 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "azure-node-4",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/owner-kind": "MachinePool",
+					"cluster.x-k8s.io/owner-name": "owner",
+				},
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "azure://westus2/id-node-4",
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "azure-node-5",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/owner-kind": "MachinePool",
+					"cluster.x-k8s.io/owner-name": "owner2",
+				},
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "azure:///subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool0/virtualMachines/0",
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "azure-node-6",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/owner-kind": "MachinePool",
+					"cluster.x-k8s.io/owner-name": "owner2",
+				},
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "azure:///subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool1/virtualMachines/0",
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "azure-node-7",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/owner-kind": "MachinePool",
+				},
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "azure:///subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool0/virtualMachines/0",
 			},
 		},
 	}
@@ -76,6 +128,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		providerIDList []string
 		expected       *getNodeReferencesResult
 		err            error
+		owner          string
 	}{
 		{
 			name:           "valid provider id, valid aws node",
@@ -85,6 +138,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "node-1"},
 				},
 			},
+			owner: "owner",
 		},
 		{
 			name:           "valid provider id, valid aws node",
@@ -94,6 +148,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "node-2"},
 				},
 			},
+			owner: "owner",
 		},
 		{
 			name:           "valid provider id, valid gce node",
@@ -103,6 +158,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "gce-node-2"},
 				},
 			},
+			owner: "owner",
 		},
 		{
 			name:           "valid provider id, valid azure node",
@@ -112,6 +168,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "azure-node-4"},
 				},
 			},
+			owner: "owner",
 		},
 		{
 			name:           "valid provider ids, valid azure and aws nodes",
@@ -122,12 +179,25 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "azure-node-4"},
 				},
 			},
+			owner: "owner",
 		},
 		{
 			name:           "valid provider id, no node found",
 			providerIDList: []string{"aws:///id-node-100"},
 			expected:       nil,
 			err:            errNoAvailableNodes,
+			owner:          "owner",
+		},
+		{
+			name:           "distinguishes same instance id between different machine pools",
+			providerIDList: []string{"azure:///subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool0/virtualMachines/0", "azure:///subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool1/virtualMachines/0"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{
+					{Name: "azure-node-5"},
+					{Name: "azure-node-6"},
+				},
+			},
+			owner: "owner2",
 		},
 	}
 
@@ -135,7 +205,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result, err := r.getNodeReferences(ctx, client, test.providerIDList)
+			result, err := r.getNodeReferences(ctx, client, test.providerIDList, test.owner)
 			if test.err == nil {
 				g.Expect(err).To(BeNil())
 			} else {
@@ -149,9 +219,26 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 
 			g.Expect(len(result.references)).To(Equal(len(test.expected.references)), "Expected NodeRef count to be %v, got %v", len(result.references), len(test.expected.references))
 
+			expected := map[string]corev1.ObjectReference{}
+			for _, want := range test.expected.references {
+				expected[want.Name] = want
+			}
+
 			for n := range test.expected.references {
-				g.Expect(result.references[n].Name).To(Equal(test.expected.references[n].Name), "Expected NodeRef's name to be %v, got %v", result.references[n].Name, test.expected.references[n].Name)
-				g.Expect(result.references[n].Namespace).To(Equal(test.expected.references[n].Namespace), "Expected NodeRef's namespace to be %v, got %v", result.references[n].Namespace, test.expected.references[n].Namespace)
+				got := test.expected.references[n]
+				want, exists := expected[got.Name]
+				g.Expect(exists).To(BeTrue())
+				g.Expect(got.Name).To(Equal(want.Name), "Expected NodeRef's name to be %v, got %v", got.Name, want.Name)
+				g.Expect(got.Namespace).To(Equal(want.Namespace), "Expected NodeRef's namespace to be %v, got %v", got.Namespace, want.Namespace)
+				delete(expected, got.Name)
+			}
+
+			if len(expected) > 0 {
+				extraNodeRefs := []string{}
+				for name := range expected {
+					extraNodeRefs = append(extraNodeRefs, name)
+					g.Expect(len(expected)).To(Equal(0), "Got additional unexpected nodeRefs: '%s'", strings.Join(extraNodeRefs, ","))
+				}
 			}
 		})
 	}

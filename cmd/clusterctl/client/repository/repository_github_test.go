@@ -291,16 +291,17 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 	mux.HandleFunc("/repos/o/r1/releases", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `[`)
-		fmt.Fprint(w, `{"id":1, "tag_name": "v0.4.0", "assets": [{"id": 1, "name": "metadata.yaml"}]},`)
-		fmt.Fprint(w, `{"id":2, "tag_name": "v0.3.2", "assets": [{"id": 1, "name": "metadata.yaml"}]},`)
-		fmt.Fprint(w, `{"id":3, "tag_name": "v0.3.1", "assets": [{"id": 1, "name": "metadata.yaml"}]}`)
+		fmt.Fprint(w, `{"id":1, "tag_name": "v0.5.0", "assets": [{"id": 1, "name": "metadata.yaml"}]},`)
+		fmt.Fprint(w, `{"id":2, "tag_name": "v0.4.0", "assets": [{"id": 1, "name": "metadata.yaml"}]},`)
+		fmt.Fprint(w, `{"id":3, "tag_name": "v0.3.2", "assets": [{"id": 1, "name": "metadata.yaml"}]},`)
+		fmt.Fprint(w, `{"id":4, "tag_name": "v0.3.1", "assets": [{"id": 1, "name": "metadata.yaml"}]}`)
 		fmt.Fprint(w, `]`)
 	})
 
 	// test.NewFakeGitHub and handler for returning a fake release
-	mux.HandleFunc("/repos/o/r1/releases/tags/v0.4.0", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/o/r1/releases/tags/v0.5.0", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		fmt.Fprint(w, `{"id":13, "tag_name": "v0.4.0", "assets": [{"id": 1, "name": "metadata.yaml"}] }`)
+		fmt.Fprint(w, `{"id":13, "tag_name": "v0.5.0", "assets": [{"id": 1, "name": "metadata.yaml"}] }`)
 	})
 
 	// test.NewFakeGitHub an handler for returning a fake release metadata file
@@ -308,7 +309,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Disposition", "attachment; filename=metadata.yaml")
-		fmt.Fprint(w, "apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\nreleaseSeries:\n  - major: 0\n    minor: 4\n    contract: v1alpha4\n  - major: 0\n    minor: 3\n    contract: v1alpha3\n")
+		fmt.Fprint(w, "apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\nreleaseSeries:\n  - major: 0\n    minor: 4\n    contract: v1alpha4\n  - major: 0\n    minor: 5\n    contract: v1alpha4\n  - major: 0\n    minor: 3\n    contract: v1alpha3\n")
 	})
 
 	configVariablesClient := test.NewFakeVariableClient()
@@ -329,7 +330,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/latest/path", clusterctlv1.CoreProviderType),
 			},
 			contract: "v1alpha4",
-			want:     "v0.4.0",
+			want:     "v0.5.0",
 			wantErr:  false,
 		},
 		{
@@ -346,7 +347,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 			field: field{
 				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/latest/path", clusterctlv1.CoreProviderType),
 			},
-			want:     "v0.4.0",
+			want:     "v0.5.0",
 			contract: "foo",
 			wantErr:  false,
 		},

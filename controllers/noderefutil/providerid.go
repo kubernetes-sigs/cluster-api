@@ -35,6 +35,7 @@ var (
 // Format: cloudProvider://optional/segments/etc/id
 type ProviderID struct {
 	original      string
+	normalized    string
 	cloudProvider string
 	id            string
 }
@@ -60,6 +61,27 @@ func NewProviderID(id string) (*ProviderID, error) {
 	colonIndex := strings.Index(id, ":")
 	cloudProvider := id[0:colonIndex]
 
+	// Strip all slashes, but keep two empty slashes in the middle of the providerID
+	tokens := strings.Split(id[colonIndex+1:], "/")
+	cursor := 0
+	// when we find the first non-empty token, this should be true so we include interspersed empty tokens
+	foundValue := false
+	for i := range tokens {
+		token := tokens[i]
+		if token != "" {
+			foundValue = true
+			tokens[cursor] = token
+			cursor++
+		} else {
+			if foundValue {
+				tokens[cursor] = token
+				cursor++
+			}
+		}
+	}
+	tokens = tokens[:cursor]
+	normalized := strings.Join(tokens, "/")
+
 	lastSlashIndex := strings.LastIndex(id, "/")
 	instance := id[lastSlashIndex+1:]
 
@@ -67,6 +89,7 @@ func NewProviderID(id string) (*ProviderID, error) {
 		original:      id,
 		cloudProvider: cloudProvider,
 		id:            instance,
+		normalized:    normalized,
 	}
 
 	if !res.Validate() {
@@ -86,14 +109,19 @@ func (p *ProviderID) ID() string {
 	return p.id
 }
 
-// Equals returns true if both the CloudProvider and ID match.
+// Equals returns true if both the CloudProvider and normalized suffix of the ID match.
 func (p *ProviderID) Equals(o *ProviderID) bool {
-	return p.CloudProvider() == o.CloudProvider() && p.ID() == o.ID()
+	return p.CloudProvider() == o.CloudProvider() && p.Normalized() == o.Normalized()
 }
 
 // String returns the string representation of this object.
 func (p *ProviderID) String() string {
 	return p.original
+}
+
+// Normalized returns the normalized string representation of this object, stripping cloud provider for separate comparison.
+func (p *ProviderID) Normalized() string {
+	return p.normalized
 }
 
 // Validate returns true if the provider id is valid.

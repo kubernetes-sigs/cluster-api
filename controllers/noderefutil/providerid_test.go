@@ -22,7 +22,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const aws = "aws"
+const (
+	aws   = "aws"
+	azure = "azure"
+)
 
 func TestNewProviderID(t *testing.T) {
 	tests := []struct {
@@ -115,7 +118,7 @@ func TestInvalidProviderID(t *testing.T) {
 func TestProviderIDEquals(t *testing.T) {
 	g := NewWithT(t)
 
-	input1 := "aws:////instance-id1"
+	input1 := "aws:////us-west-1/instance-id1"
 	parsed1, err := NewProviderID(input1)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(parsed1.String()).To(Equal(input1))
@@ -129,5 +132,32 @@ func TestProviderIDEquals(t *testing.T) {
 	g.Expect(parsed2.ID()).To(Equal("instance-id1"))
 	g.Expect(parsed2.CloudProvider()).To(Equal(aws))
 
+	input3 := "aws:////instance-id1"
+	parsed3, err := NewProviderID(input3)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsed3.String()).To(Equal(input3))
+	g.Expect(parsed3.ID()).To(Equal("instance-id1"))
+	g.Expect(parsed3.CloudProvider()).To(Equal(aws))
+
 	g.Expect(parsed1.Equals(parsed2)).To(BeTrue())
+	g.Expect(parsed1.Equals(parsed3)).To(BeFalse())
+	g.Expect(parsed2.Equals(parsed3)).To(BeFalse())
+
+	input4 := "azure:///subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool0/virtualMachines/0"
+	parsed4, err := NewProviderID(input4)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsed4.String()).To(Equal(input4))
+	g.Expect(parsed4.ID()).To(Equal("0"))
+	g.Expect(parsed4.Normalized()).To(Equal("subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool0/virtualMachines/0"))
+	g.Expect(parsed4.CloudProvider()).To(Equal(azure))
+
+	input5 := "azure:///subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool1/virtualMachines/0"
+	parsed5, err := NewProviderID(input2)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsed5.String()).To(Equal(input5))
+	g.Expect(parsed5.ID()).To(Equal("0"))
+	g.Expect(parsed5.Normalized()).To(Equal("subscriptions/foo/resourceGroups/bar/providers/Microsoft.Compute/virtualMachineScaleSets/agentpool1/virtualMachines/0"))
+	g.Expect(parsed5.CloudProvider()).To(Equal(azure))
+
+	g.Expect(parsed4.Equals(parsed5)).To(BeFalse())
 }

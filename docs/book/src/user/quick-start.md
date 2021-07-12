@@ -210,6 +210,12 @@ export AZURE_TENANT_ID="<Tenant>"
 export AZURE_CLIENT_ID="<AppId>"
 export AZURE_CLIENT_SECRET="<Password>"
 
+# Base64 encode the variables
+export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
+export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
+
 # Settings needed for AzureClusterIdentity used by the AzureCluster
 export AZURE_CLUSTER_IDENTITY_SECRET_NAME="cluster-identity-secret"
 export CLUSTER_IDENTITY_NAME="cluster-identity"

@@ -24,7 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	operatorv1alpha4 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -55,32 +55,32 @@ func TestMain(m *testing.M) {
 	testEnv = helpers.NewTestEnvironment()
 
 	if err := (&GenericProviderReconciler{
-		Provider:     &operatorv1alpha4.CoreProvider{},
-		ProviderList: &operatorv1alpha4.CoreProviderList{},
+		Provider:     &operatorv1.CoreProvider{},
+		ProviderList: &operatorv1.CoreProviderList{},
 		Client:       testEnv,
 	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start CoreProviderReconciler: %v", err))
 	}
 
 	if err := (&GenericProviderReconciler{
-		Provider:     &operatorv1alpha4.InfrastructureProvider{},
-		ProviderList: &operatorv1alpha4.InfrastructureProviderList{},
+		Provider:     &operatorv1.InfrastructureProvider{},
+		ProviderList: &operatorv1.InfrastructureProviderList{},
 		Client:       testEnv,
 	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start InfrastructureProviderReconciler: %v", err))
 	}
 
 	if err := (&GenericProviderReconciler{
-		Provider:     &operatorv1alpha4.BootstrapProvider{},
-		ProviderList: &operatorv1alpha4.BootstrapProviderList{},
+		Provider:     &operatorv1.BootstrapProvider{},
+		ProviderList: &operatorv1.BootstrapProviderList{},
 		Client:       testEnv,
 	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start BootstrapProviderReconciler: %v", err))
 	}
 
 	if err := (&GenericProviderReconciler{
-		Provider:     &operatorv1alpha4.ControlPlaneProvider{},
-		ProviderList: &operatorv1alpha4.ControlPlaneProviderList{},
+		Provider:     &operatorv1.ControlPlaneProvider{},
+		ProviderList: &operatorv1.ControlPlaneProviderList{},
 		Client:       testEnv,
 	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start ControlPlaneProviderReconciler: %v", err))

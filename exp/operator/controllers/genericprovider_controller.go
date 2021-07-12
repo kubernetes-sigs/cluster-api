@@ -25,7 +25,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 
-	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 

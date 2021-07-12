@@ -14,43 +14,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ControlPlaneProviderSpec defines the desired state of ControlPlaneProvider.
-type ControlPlaneProviderSpec struct {
+// BootstrapProviderSpec defines the desired state of BootstrapProvider.
+type BootstrapProviderSpec struct {
 	ProviderSpec `json:",inline"`
 }
 
-// ControlPlaneProviderStatus defines the observed state of ControlPlaneProvider.
-type ControlPlaneProviderStatus struct {
+// BootstrapProviderStatus defines the observed state of BootstrapProvider.
+type BootstrapProviderStatus struct {
 	ProviderStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// ControlPlaneProvider is the Schema for the controlplaneproviders API.
-type ControlPlaneProvider struct {
+// BootstrapProvider is the Schema for the bootstrapproviders API.
+type BootstrapProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ControlPlaneProviderSpec   `json:"spec,omitempty"`
-	Status ControlPlaneProviderStatus `json:"status,omitempty"`
+	Spec   BootstrapProviderSpec   `json:"spec,omitempty"`
+	Status BootstrapProviderStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// ControlPlaneProviderList contains a list of ControlPlaneProvider.
-type ControlPlaneProviderList struct {
+// BootstrapProviderList contains a list of BootstrapProvider.
+type BootstrapProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ControlPlaneProvider `json:"items"`
+	Items           []BootstrapProvider `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ControlPlaneProvider{}, &ControlPlaneProviderList{})
+	SchemeBuilder.Register(&BootstrapProvider{}, &BootstrapProviderList{})
 }

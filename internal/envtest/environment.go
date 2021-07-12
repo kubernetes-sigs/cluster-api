@@ -48,7 +48,7 @@ import (
 	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	addonv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
-	operatorv1alpha4 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -74,7 +74,7 @@ func init() {
 	utilruntime.Must(addonv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(kcpv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(operatorv1alpha4.AddToScheme(scheme.Scheme))
+	utilruntime.Must(operatorv1.AddToScheme(scheme.Scheme))
 }
 
 var (

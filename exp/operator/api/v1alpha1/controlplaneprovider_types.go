@@ -14,43 +14,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// InfrastructureProviderSpec defines the desired state of InfrastructureProvider.
-type InfrastructureProviderSpec struct {
+// ControlPlaneProviderSpec defines the desired state of ControlPlaneProvider.
+type ControlPlaneProviderSpec struct {
 	ProviderSpec `json:",inline"`
 }
 
-// InfrastructureProviderStatus defines the observed state of InfrastructureProvider.
-type InfrastructureProviderStatus struct {
+// ControlPlaneProviderStatus defines the observed state of ControlPlaneProvider.
+type ControlPlaneProviderStatus struct {
 	ProviderStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// InfrastructureProvider is the Schema for the infrastructureproviders API.
-type InfrastructureProvider struct {
+// ControlPlaneProvider is the Schema for the controlplaneproviders API.
+type ControlPlaneProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   InfrastructureProviderSpec   `json:"spec,omitempty"`
-	Status InfrastructureProviderStatus `json:"status,omitempty"`
+	Spec   ControlPlaneProviderSpec   `json:"spec,omitempty"`
+	Status ControlPlaneProviderStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// InfrastructureProviderList contains a list of InfrastructureProvider.
-type InfrastructureProviderList struct {
+// ControlPlaneProviderList contains a list of ControlPlaneProvider.
+type ControlPlaneProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []InfrastructureProvider `json:"items"`
+	Items           []ControlPlaneProvider `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&InfrastructureProvider{}, &InfrastructureProviderList{})
+	SchemeBuilder.Register(&ControlPlaneProvider{}, &ControlPlaneProviderList{})
 }

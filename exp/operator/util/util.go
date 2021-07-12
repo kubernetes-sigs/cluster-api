@@ -17,7 +17,7 @@ limitations under the License.
 package util
 
 import (
-	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 )
 

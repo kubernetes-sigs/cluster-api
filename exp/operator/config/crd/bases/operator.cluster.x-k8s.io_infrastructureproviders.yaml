@@ -16,7 +16,7 @@ spec:
     singular: infrastructureprovider
   scope: Namespaced
   versions:
-  - name: v1alpha4
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: InfrastructureProvider is the Schema for the infrastructureproviders API.

@@ -17,7 +17,7 @@ limitations under the License.
 package genericprovider
 
 import (
-	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

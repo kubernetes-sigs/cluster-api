@@ -16,7 +16,7 @@ spec:
     singular: controlplaneprovider
   scope: Namespaced
   versions:
-  - name: v1alpha4
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: ControlPlaneProvider is the Schema for the controlplaneproviders API.

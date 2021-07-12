@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 
 	"sigs.k8s.io/cluster-api/test/helpers"
@@ -54,7 +54,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "CoreProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -78,7 +78,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "CoreProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -90,7 +90,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "CoreProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -117,7 +117,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "CoreProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -129,7 +129,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "CoreProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -156,7 +156,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -180,7 +180,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -192,7 +192,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -216,7 +216,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -228,7 +228,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -252,7 +252,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},
@@ -264,7 +264,7 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "InfrastructureProvider",
-							APIVersion: "operator.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "operator.cluster.x-k8s.io/v1alpha1",
 						},
 					},
 				},

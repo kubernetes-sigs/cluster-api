@@ -14,43 +14,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// BootstrapProviderSpec defines the desired state of BootstrapProvider.
-type BootstrapProviderSpec struct {
+// CoreProviderSpec defines the desired state of CoreProvider.
+type CoreProviderSpec struct {
 	ProviderSpec `json:",inline"`
 }
 
-// BootstrapProviderStatus defines the observed state of BootstrapProvider.
-type BootstrapProviderStatus struct {
+// CoreProviderStatus defines the observed state of CoreProvider.
+type CoreProviderStatus struct {
 	ProviderStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// BootstrapProvider is the Schema for the bootstrapproviders API.
-type BootstrapProvider struct {
+// CoreProvider is the Schema for the coreproviders API.
+type CoreProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BootstrapProviderSpec   `json:"spec,omitempty"`
-	Status BootstrapProviderStatus `json:"status,omitempty"`
+	Spec   CoreProviderSpec   `json:"spec,omitempty"`
+	Status CoreProviderStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// BootstrapProviderList contains a list of BootstrapProvider.
-type BootstrapProviderList struct {
+// CoreProviderList contains a list of CoreProvider.
+type CoreProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []BootstrapProvider `json:"items"`
+	Items           []CoreProvider `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&BootstrapProvider{}, &BootstrapProviderList{})
+	SchemeBuilder.Register(&CoreProvider{}, &CoreProviderList{})
 }

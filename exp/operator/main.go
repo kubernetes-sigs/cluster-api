@@ -32,7 +32,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	operatorv1alpha4 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/version"
@@ -66,7 +66,7 @@ func init() {
 	klog.InitFlags(nil)
 
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = operatorv1alpha4.AddToScheme(scheme)
+	_ = operatorv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -177,8 +177,8 @@ func setupChecks(mgr ctrl.Manager) {
 
 func setupReconcilers(mgr ctrl.Manager) {
 	if err := (&controllers.GenericProviderReconciler{
-		Provider:     &operatorv1alpha4.CoreProvider{},
-		ProviderList: &operatorv1alpha4.CoreProviderList{},
+		Provider:     &operatorv1.CoreProvider{},
+		ProviderList: &operatorv1.CoreProviderList{},
 		Client:       mgr.GetClient(),
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoreProvider")
@@ -186,8 +186,8 @@ func setupReconcilers(mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.GenericProviderReconciler{
-		Provider:     &operatorv1alpha4.InfrastructureProvider{},
-		ProviderList: &operatorv1alpha4.InfrastructureProviderList{},
+		Provider:     &operatorv1.InfrastructureProvider{},
+		ProviderList: &operatorv1.InfrastructureProviderList{},
 		Client:       mgr.GetClient(),
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "InfrastructureProvider")
@@ -195,8 +195,8 @@ func setupReconcilers(mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.GenericProviderReconciler{
-		Provider:     &operatorv1alpha4.BootstrapProvider{},
-		ProviderList: &operatorv1alpha4.BootstrapProviderList{},
+		Provider:     &operatorv1.BootstrapProvider{},
+		ProviderList: &operatorv1.BootstrapProviderList{},
 		Client:       mgr.GetClient(),
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BootstrapProvider")
@@ -204,8 +204,8 @@ func setupReconcilers(mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.GenericProviderReconciler{
-		Provider:     &operatorv1alpha4.ControlPlaneProvider{},
-		ProviderList: &operatorv1alpha4.ControlPlaneProviderList{},
+		Provider:     &operatorv1.ControlPlaneProvider{},
+		ProviderList: &operatorv1.ControlPlaneProviderList{},
 		Client:       mgr.GetClient(),
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ControlPlaneProvider")

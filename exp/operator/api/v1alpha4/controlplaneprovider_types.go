@@ -31,6 +31,7 @@ type ControlPlaneProviderStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // ControlPlaneProvider is the Schema for the controlplaneproviders API.
 type ControlPlaneProvider struct {

@@ -176,29 +176,37 @@ func setupChecks(mgr ctrl.Manager) {
 }
 
 func setupReconcilers(mgr ctrl.Manager) {
-	if err := (&controllers.CoreProviderReconciler{
-		Client: mgr.GetClient(),
+	if err := (&controllers.GenericProviderReconciler{
+		Provider:     &operatorv1alpha4.CoreProvider{},
+		ProviderList: &operatorv1alpha4.CoreProviderList{},
+		Client:       mgr.GetClient(),
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoreProvider")
 		os.Exit(1)
 	}
 
-	if err := (&controllers.InfrastructureProviderReconciler{
-		Client: mgr.GetClient(),
+	if err := (&controllers.GenericProviderReconciler{
+		Provider:     &operatorv1alpha4.InfrastructureProvider{},
+		ProviderList: &operatorv1alpha4.InfrastructureProviderList{},
+		Client:       mgr.GetClient(),
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "InfrastructureProvider")
 		os.Exit(1)
 	}
 
-	if err := (&controllers.BootstrapProviderReconciler{
-		Client: mgr.GetClient(),
+	if err := (&controllers.GenericProviderReconciler{
+		Provider:     &operatorv1alpha4.BootstrapProvider{},
+		ProviderList: &operatorv1alpha4.BootstrapProviderList{},
+		Client:       mgr.GetClient(),
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BootstrapProvider")
 		os.Exit(1)
 	}
 
-	if err := (&controllers.ControlPlaneProviderReconciler{
-		Client: mgr.GetClient(),
+	if err := (&controllers.GenericProviderReconciler{
+		Provider:     &operatorv1alpha4.ControlPlaneProvider{},
+		ProviderList: &operatorv1alpha4.ControlPlaneProviderList{},
+		Client:       mgr.GetClient(),
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ControlPlaneProvider")
 		os.Exit(1)

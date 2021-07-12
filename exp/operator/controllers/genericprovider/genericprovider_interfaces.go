@@ -14,19 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package genericprovider
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+import (
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
-// TODO: NOTE: The API details will be incrementally added and will eventually
-// conform to the CAPI Provider CAEP.
+type GenericProvider interface {
+	client.Object
+	conditions.Setter
+	GetSpec() operatorv1.ProviderSpec
+	SetSpec(in operatorv1.ProviderSpec)
+	GetStatus() operatorv1.ProviderStatus
+	SetStatus(in operatorv1.ProviderStatus)
+	GetObject() client.Object
+}
 
-// ProProviderSpec is the desired state of the Provider.
-type ProviderSpec struct{}
-
-// ProProviderStatus defines the observed state of the Provider.
-type ProviderStatus struct {
-	// Conditions define the current service state of the provider.
-	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+type GenericProviderList interface {
+	client.ObjectList
+	GetObject() client.ObjectList
+	GetItems() []GenericProvider
 }

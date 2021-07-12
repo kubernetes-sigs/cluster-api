@@ -31,6 +31,7 @@ type BootstrapProviderStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // BootstrapProvider is the Schema for the bootstrapproviders API.
 type BootstrapProvider struct {

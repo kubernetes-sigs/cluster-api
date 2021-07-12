@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"github.com/blang/semver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 )
@@ -46,6 +47,12 @@ type ReleaseSeries struct {
 	Contract string `json:"contract,omitempty"`
 }
 
+func (rs ReleaseSeries) newer(release ReleaseSeries) bool {
+	v := semver.Version{Major: uint64(rs.Major), Minor: uint64(rs.Minor)}
+	ver := semver.Version{Major: uint64(release.Major), Minor: uint64(release.Minor)}
+	return v.GTE(ver)
+}
+
 func init() {
 	SchemeBuilder.Register(&Metadata{})
 }
@@ -62,12 +69,21 @@ func (m *Metadata) GetReleaseSeriesForVersion(version *version.Version) *Release
 }
 
 // GetReleaseSeriesForContract returns the release series for a given API Version, e.g. `v1alpha4`.
+// If more than one release series use the same contract then the latest newer release series is
+// returned.
 func (m *Metadata) GetReleaseSeriesForContract(contract string) *ReleaseSeries {
+	var rs ReleaseSeries
+	var found bool
 	for _, releaseSeries := range m.ReleaseSeries {
 		if contract == releaseSeries.Contract {
-			return &releaseSeries
+			found = true
+			if releaseSeries.newer(rs) {
+				rs = releaseSeries
+			}
 		}
 	}
-
-	return nil
+	if !found {
+		return nil
+	}
+	return &rs
 }

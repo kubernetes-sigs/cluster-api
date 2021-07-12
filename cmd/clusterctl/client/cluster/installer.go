@@ -17,14 +17,23 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
+	"time"
+
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ProviderInstaller defines methods for enforcing consistency rules for provider installation.
@@ -35,7 +44,7 @@ type ProviderInstaller interface {
 	Add(repository.Components)
 
 	// Install performs the installation of the providers ready in the install queue.
-	Install() ([]repository.Components, error)
+	Install(InstallOptions) ([]repository.Components, error)
 
 	// Validate performs steps to validate a management cluster by looking at the current state and the providers in the queue.
 	// The following checks are performed in order to ensure a fully operational cluster:
@@ -45,6 +54,12 @@ type ProviderInstaller interface {
 
 	// Images returns the list of images required for installing the providers ready in the install queue.
 	Images() []string
+}
+
+// InstallOptions defines the options used to configure installation.
+type InstallOptions struct {
+	WaitProviders       bool
+	WaitProviderTimeout time.Duration
 }
 
 // providerInstaller implements ProviderInstaller.
@@ -63,7 +78,7 @@ func (i *providerInstaller) Add(components repository.Components) {
 	i.installQueue = append(i.installQueue, components)
 }
 
-func (i *providerInstaller) Install() ([]repository.Components, error) {
+func (i *providerInstaller) Install(opts InstallOptions) ([]repository.Components, error) {
 	ret := make([]repository.Components, 0, len(i.installQueue))
 	for _, components := range i.installQueue {
 		if err := installComponentsAndUpdateInventory(components, i.providerComponents, i.providerInventory); err != nil {
@@ -72,7 +87,8 @@ func (i *providerInstaller) Install() ([]repository.Components, error) {
 
 		ret = append(ret, components)
 	}
-	return ret, nil
+
+	return ret, i.waitForProvidersReady(opts)
 }
 
 func installComponentsAndUpdateInventory(components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {
@@ -88,6 +104,57 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 
 	log.V(1).Info("Creating inventory entry", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
 	return providerInventory.Create(inventoryObject)
+}
+
+// waitForProvidersReady waits till the installed components are ready.
+func (i *providerInstaller) waitForProvidersReady(opts InstallOptions) error {
+	// If we dont have to wait for providers to be installed
+	// return early.
+	if !opts.WaitProviders {
+		return nil
+	}
+
+	log := logf.Log
+	log.Info("Waiting for providers to be available...")
+
+	return i.waitManagerDeploymentsReady(opts)
+}
+
+// waitManagerDeploymentsReady waits till the installed manager deployments are ready.
+func (i *providerInstaller) waitManagerDeploymentsReady(opts InstallOptions) error {
+	for _, components := range i.installQueue {
+		for _, obj := range components.Objs() {
+			if util.IsDeploymentWithManager(obj) {
+				if err := i.waitDeploymentReady(obj, opts.WaitProviderTimeout); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (i *providerInstaller) waitDeploymentReady(deployment unstructured.Unstructured, timeout time.Duration) error {
+	return wait.Poll(100*time.Millisecond, timeout, func() (bool, error) {
+		c, err := i.proxy.NewClient()
+		if err != nil {
+			return false, err
+		}
+		key := client.ObjectKey{
+			Namespace: deployment.GetNamespace(),
+			Name:      deployment.GetName(),
+		}
+		dep := &appsv1.Deployment{}
+		if err := c.Get(context.TODO(), key, dep); err != nil {
+			return false, err
+		}
+		for _, c := range dep.Status.Conditions {
+			if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
 }
 
 func (i *providerInstaller) Validate() error {

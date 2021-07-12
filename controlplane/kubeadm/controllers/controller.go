@@ -235,6 +235,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 			controlplanev1.AvailableCondition,
 			controlplanev1.CertificatesAvailableCondition,
 		}},
+		patch.WithStatusObservedGeneration{},
 	)
 }
 

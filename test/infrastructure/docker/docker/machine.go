@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,7 +43,7 @@ import (
 
 const (
 	defaultImageName = "kindest/node"
-	defaultImageTag  = "v1.19.11"
+	defaultImageTag  = "v1.21.2"
 )
 
 type nodeCreator interface {
@@ -250,7 +251,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 		})
 		if err != nil {
 			log.Info("Failed running command", "command", "crictl ps")
-			logContainerDebugInfo(ctx, m.ContainerName())
+			logContainerDebugInfo(log, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run crictl ps")
 		}
 		return nil
@@ -342,7 +343,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 		err := cmd.Run(ctx)
 		if err != nil {
 			log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
-			logContainerDebugInfo(ctx, m.ContainerName())
+			logContainerDebugInfo(log, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
 		}
 	}
@@ -464,8 +465,11 @@ func (m *Machine) machineImage(version *string) string {
 	return fmt.Sprintf("%s:%s", defaultImageName, versionString)
 }
 
-func logContainerDebugInfo(ctx context.Context, name string) {
-	log := ctrl.LoggerFrom(ctx)
+func logContainerDebugInfo(log logr.Logger, name string) {
+	// let's use our own context, so we are able to get debug information even
+	// when the context used in the layers above is already timed out
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
 
 	containerRuntime, err := container.NewDockerClient()
 	if err != nil {

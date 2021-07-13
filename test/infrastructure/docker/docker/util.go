@@ -17,30 +17,19 @@ limitations under the License.
 package docker
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 const clusterLabelKey = "io.x-k8s.kind.cluster"
 const nodeRoleLabelKey = "io.x-k8s.kind.role"
-
-// clusterLabel returns the label applied to all the containers in a cluster.
-func clusterLabel(name string) string {
-	return toLabel(clusterLabelKey, name)
-}
-
-// roleLabel returns the label applied to all the containers with a specific role.
-func roleLabel(role string) string {
-	return toLabel(nodeRoleLabelKey, role)
-}
-
-func toLabel(key, val string) string {
-	return fmt.Sprintf("%s=%s", key, val)
-}
+const filterLabel = "label"
+const filterName = "name"
 
 func machineContainerName(cluster, machine string) string {
 	if strings.HasPrefix(machine, cluster) {
@@ -54,19 +43,9 @@ func machineFromContainerName(cluster, containerName string) string {
 	return strings.TrimPrefix(machine, "-")
 }
 
-// withName returns a filter on name for listContainers & getContainer.
-func withName(name string) string {
-	return fmt.Sprintf("name=^%s$", name)
-}
-
-// withLabel returns a filter on labels for listContainers & getContainer.
-func withLabel(label string) string {
-	return fmt.Sprintf("label=%s", label)
-}
-
 // listContainers returns the list of docker containers matching filters.
-func listContainers(filters ...string) ([]*types.Node, error) {
-	n, err := List(filters...)
+func listContainers(filters container.FilterBuilder) ([]*types.Node, error) {
+	n, err := List(filters)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list containers")
 	}
@@ -74,8 +53,8 @@ func listContainers(filters ...string) ([]*types.Node, error) {
 }
 
 // getContainer returns the docker container matching filters.
-func getContainer(filters ...string) (*types.Node, error) {
-	n, err := listContainers(filters...)
+func getContainer(filters container.FilterBuilder) (*types.Node, error) {
+	n, err := listContainers(filters)
 	if err != nil {
 		return nil, err
 	}
@@ -93,43 +72,36 @@ func getContainer(filters ...string) (*types.Node, error) {
 // List returns the list of container IDs for the kind "nodes", optionally
 // filtered by docker ps filters
 // https://docs.docker.com/engine/reference/commandline/ps/#filtering
-func List(filters ...string) ([]*types.Node, error) {
+func List(filters container.FilterBuilder) ([]*types.Node, error) {
 	res := []*types.Node{}
 	visit := func(cluster string, node *types.Node) {
 		res = append(res, node)
 	}
-	return res, list(visit, filters...)
+	return res, list(visit, filters)
 }
 
-func list(visit func(string, *types.Node), filters ...string) error {
-	args := []string{
-		"ps",
-		"-q",         // quiet output for parsing
-		"-a",         // show stopped nodes
-		"--no-trunc", // don't truncate
-		// filter for nodes with the cluster label
-		"--filter", "label=" + clusterLabelKey,
-		// format to include friendly name and the cluster name
-		"--format", fmt.Sprintf(`{{.Names}}\t{{.Label "%s"}}\t{{.Image}}\t{{.Status}}`, clusterLabelKey),
-	}
-	for _, filter := range filters {
-		args = append(args, "--filter", filter)
-	}
-	cmd := exec.Command("docker", args...)
-	lines, err := exec.CombinedOutputLines(cmd)
+func list(visit func(string, *types.Node), filters container.FilterBuilder) error {
+	ctx := context.TODO()
+	containerRuntime, err := container.NewDockerClient()
 	if err != nil {
-		return errors.Wrapf(err, "failed to list nodes. Output: %s", lines)
+		return errors.Wrap(err, "failed to connect to container runtime")
 	}
-	for _, line := range lines {
-		parts := strings.Split(line, "\t")
-		if len(parts) != 4 {
-			return errors.Errorf("invalid output when listing nodes: %s", line)
-		}
-		names := strings.Split(parts[0], ",")
-		cluster := parts[1]
-		image := parts[2]
-		status := parts[3]
-		visit(cluster, types.NewNode(names[0], image, "undetermined").WithStatus(status))
+
+	// We also need our cluster label key to the list of filter
+	filters.AddKeyValue("label", clusterLabelKey)
+
+	containers, err := containerRuntime.ListContainers(ctx, filters)
+	if err != nil {
+		return errors.Wrap(err, "failed to list containers")
 	}
+
+	for _, cntr := range containers {
+		name := cntr.Name
+		cluster := clusterLabelKey
+		image := cntr.Image
+		status := cntr.Status
+		visit(cluster, types.NewNode(name, image, "undetermined").WithStatus(status))
+	}
+
 	return nil
 }

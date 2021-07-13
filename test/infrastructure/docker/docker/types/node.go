@@ -26,7 +26,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/kind/pkg/exec"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 )
 
 // Node can be thought of as a logical component of Kubernetes.
@@ -69,22 +69,18 @@ func (n *Node) Role() (string, error) {
 // IP gets the docker ipv4 and ipv6 of the node.
 func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
 	// retrieve the IP address of the node using docker inspect
-	cmd := exec.CommandContext(ctx, "docker", "inspect",
-		"-f", "{{range .NetworkSettings.Networks}}{{.IPAddress}},{{.GlobalIPv6Address}}{{end}}",
-		n.Name, // ... against the "node" container
-	)
-	lines, err := exec.CombinedOutputLines(cmd)
+	containerRuntime, err := container.NewDockerClient()
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get container details")
+		return "", "", errors.Wrap(err, "failed to connect to container runtime")
 	}
-	if len(lines) != 1 {
-		return "", "", errors.Errorf("file should only be one line, got %d lines", len(lines))
+
+	// retrieve the IP address of the node's container from the runtime
+	ipv4, ipv6, err = containerRuntime.GetContainerIPs(ctx, n.Name)
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to get node IPs from runtime")
 	}
-	ips := strings.Split(lines[0], ",")
-	if len(ips) != 2 {
-		return "", "", errors.Errorf("container addresses should have 2 values, got %d values", len(ips))
-	}
-	return ips[0], ips[1], nil
+
+	return ipv4, ipv6, nil
 }
 
 // IsRunning returns if the container is running.
@@ -94,18 +90,17 @@ func (n *Node) IsRunning() bool {
 
 // Delete removes the container.
 func (n *Node) Delete(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx,
-		"docker",
-		append(
-			[]string{
-				"rm",
-				"-f", // force the container to be delete now
-				"-v", // delete volumes
-			},
-			n.Name,
-		)...,
-	)
-	return cmd.Run()
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to container runtime")
+	}
+
+	err = containerRuntime.DeleteContainer(ctx, n.Name)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete container %q", n.Name)
+	}
+
+	return nil
 }
 
 // WriteFile puts a file inside a running container.
@@ -123,12 +118,17 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 
 // Kill sends the named signal to the container.
 func (n *Node) Kill(ctx context.Context, signal string) error {
-	cmd := exec.CommandContext(ctx,
-		"docker", "kill",
-		"-s", signal,
-		n.Name,
-	)
-	return errors.WithStack(cmd.Run())
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to container runtime")
+	}
+
+	err = containerRuntime.KillContainer(ctx, n.Name, signal)
+	if err != nil {
+		return errors.Wrapf(err, "failed to kill container %q", n.Name)
+	}
+
+	return nil
 }
 
 type ContainerCmder struct {
@@ -177,45 +177,24 @@ func (c *ContainerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, er
 }
 
 func (c *ContainerCmd) Run(ctx context.Context) error {
-	args := []string{
-		"exec",
-		// run with privileges so we can remount etc..
-		// this might not make sense in the most general sense, but it is
-		// important to many kind commands
-		"--privileged",
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to container runtime")
 	}
-	if c.stdin != nil {
-		args = append(args,
-			"-i", // interactive so we can supply input
-		)
+
+	execConfig := container.ExecContainerInput{
+		OutputBuffer:    c.stdout,
+		ErrorBuffer:     c.stderr,
+		InputBuffer:     c.stdin,
+		EnvironmentVars: c.env,
 	}
-	// set env
-	for _, env := range c.env {
-		args = append(args, "-e", env)
+
+	err = containerRuntime.ExecContainer(ctx, c.nameOrID, &execConfig, c.command, c.args...)
+	if err != nil {
+		return errors.WithStack(err)
 	}
-	// specify the container and command, after this everything will be
-	// args the the command in the container rather than to docker
-	args = append(
-		args,
-		c.nameOrID, // ... against the container
-		c.command,  // with the command specified
-	)
-	args = append(
-		args,
-		// finally, with the caller args
-		c.args...,
-	)
-	cmd := exec.CommandContext(ctx, "docker", args...)
-	if c.stdin != nil {
-		cmd.SetStdin(c.stdin)
-	}
-	if c.stderr != nil {
-		cmd.SetStderr(c.stderr)
-	}
-	if c.stdout != nil {
-		cmd.SetStdout(c.stdout)
-	}
-	return errors.WithStack(cmd.Run())
+
+	return nil
 }
 
 func (c *ContainerCmd) SetEnv(env ...string) {

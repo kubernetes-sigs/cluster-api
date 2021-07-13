@@ -57,16 +57,11 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.21.2/b
     chmod +x ./kubectl && \
     mv ./kubectl /usr/bin/kubectl
 
-RUN curl -LO https://download.docker.com/linux/static/stable/x86_64/docker-19.03.1.tgz && \
-    tar zxvf docker-19.03.1.tgz --strip 1 -C /usr/bin docker/docker && \
-    rm docker-19.03.1.tgz
-
 # NOTE: CAPD can't use non-root because docker requires access to the docker socket
 FROM gcr.io/distroless/static:latest
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
 COPY --from=builder /usr/bin/kubectl /usr/bin/kubectl
-COPY --from=builder /usr/bin/docker /usr/bin/docker
 
 ENTRYPOINT ["/manager"]

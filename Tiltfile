@@ -82,10 +82,8 @@ providers = {
         ],
         "additional_docker_helper_commands": """
 RUN wget -qO- https://dl.k8s.io/v1.21.2/kubernetes-client-linux-amd64.tar.gz | tar xvz
-RUN wget -qO- https://get.docker.com | sh
 """,
         "additional_docker_build_commands": """
-COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
 COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 """,
     },

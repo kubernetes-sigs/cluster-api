@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.16.5
+FROM golang:1.16.6
 
 # ALERT ################################################################
 # This is an unusual dockerfile. The expected build context is all of  #
@@ -38,8 +38,8 @@ RUN go mod download
 
 # Allow containerd to restart pods by calling /restart.sh (mostly for tilt + fast dev cycles)
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
-    wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
-    chmod +x /start.sh && chmod +x /restart.sh
+  wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
+  chmod +x /start.sh && chmod +x /restart.sh
 
 RUN go build -v -o manager main.go
 RUN mv manager /manager

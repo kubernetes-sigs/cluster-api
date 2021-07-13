@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
@@ -522,6 +523,277 @@ func TestValidateCoreDNSImageTag(t *testing.T) {
 				g.Expect(err.Error()).To(ContainSubstring(tt.expectErrSubStr))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestUpdateCoreDNSClusterRole(t *testing.T) {
+	coreDNS180PolicyRules := []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"list", "watch"},
+			APIGroups: []string{""},
+			Resources: []string{"endpoints", "services", "pods", "namespaces"},
+		},
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{""},
+			Resources: []string{"nodes"},
+		},
+	}
+
+	tests := []struct {
+		name                     string
+		kubernetesVersion        semver.Version
+		coreDNSVersion           string
+		coreDNSPolicyRules       []rbacv1.PolicyRule
+		expectErr                bool
+		expectCoreDNSPolicyRules []rbacv1.PolicyRule
+	}{
+		{
+			name:               "does not patch ClusterRole: invalid CoreDNS tag",
+			kubernetesVersion:  semver.Version{Major: 1, Minor: 22, Patch: 0},
+			coreDNSVersion:     "no-semver",
+			coreDNSPolicyRules: coreDNS180PolicyRules,
+			expectErr:          true,
+		},
+		{
+			name:                     "does not patch ClusterRole: Kubernetes < 1.22",
+			kubernetesVersion:        semver.Version{Major: 1, Minor: 21, Patch: 0},
+			coreDNSVersion:           "1.8.4",
+			coreDNSPolicyRules:       coreDNS180PolicyRules,
+			expectCoreDNSPolicyRules: coreDNS180PolicyRules,
+		},
+		{
+			name:                     "does not patch ClusterRole: CoreDNS < 1.8.1",
+			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 0},
+			coreDNSVersion:           "1.8.0",
+			coreDNSPolicyRules:       coreDNS180PolicyRules,
+			expectCoreDNSPolicyRules: coreDNS180PolicyRules,
+		},
+		{
+			name:                     "patch ClusterRole: Kubernetes == 1.22 and CoreDNS == 1.8.1",
+			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 0},
+			coreDNSVersion:           "1.8.1",
+			coreDNSPolicyRules:       coreDNS180PolicyRules,
+			expectCoreDNSPolicyRules: coreDNS181PolicyRules,
+		},
+		{
+			name:                     "patch ClusterRole: Kubernetes > 1.22 and CoreDNS > 1.8.1",
+			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 2},
+			coreDNSVersion:           "1.8.5",
+			coreDNSPolicyRules:       coreDNS180PolicyRules,
+			expectCoreDNSPolicyRules: coreDNS181PolicyRules,
+		},
+		{
+			name:                     "patch ClusterRole: Kubernetes > 1.22 and CoreDNS > 1.8.1: no-op",
+			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 2},
+			coreDNSVersion:           "1.8.5",
+			coreDNSPolicyRules:       coreDNS181PolicyRules,
+			expectCoreDNSPolicyRules: coreDNS181PolicyRules,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cr := &rbacv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      coreDNSClusterRoleName,
+					Namespace: metav1.NamespaceSystem,
+				},
+				Rules: tt.coreDNSPolicyRules,
+			}
+			fakeClient := fake.NewClientBuilder().WithObjects(cr).Build()
+
+			w := &Workload{
+				Client: fakeClient,
+			}
+
+			err := w.updateCoreDNSClusterRole(ctx, tt.kubernetesVersion, &coreDNSInfo{ToImageTag: tt.coreDNSVersion})
+
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			var actualClusterRole rbacv1.ClusterRole
+			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: coreDNSClusterRoleName, Namespace: metav1.NamespaceSystem}, &actualClusterRole)).To(Succeed())
+
+			g.Expect(actualClusterRole.Rules).To(Equal(tt.expectCoreDNSPolicyRules))
+		})
+	}
+}
+
+func TestSemanticallyDeepEqualPolicyRules(t *testing.T) {
+	tests := []struct {
+		name string
+		r1   []rbacv1.PolicyRule
+		r2   []rbacv1.PolicyRule
+		want bool
+	}{
+		{
+			name: "equal: identical arrays",
+			r1: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "services", "pods", "namespaces"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+			},
+			r2: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "services", "pods", "namespaces"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "equal: arrays with different order",
+			r1: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "services", "pods", "namespaces"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+			},
+			r2: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"watch", "list"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "pods", "services", "namespaces"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "equal: separate rules but same semantic",
+			r1: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "services", "pods", "namespaces"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+			},
+			r2: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"watch", "list"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "pods"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"services"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"namespaces"},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "not equal: one array has additional rules",
+			r1: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "services", "pods", "namespaces"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+			},
+			r2: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "services", "pods", "namespaces"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+				{
+					Verbs:     []string{"get"},
+					APIGroups: []string{""},
+					Resources: []string{"nodes"},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "not equal: one array has additional verbs",
+			r1: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "services", "pods", "namespaces"},
+				},
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+			},
+			r2: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"endpoints", "services", "pods", "namespaces"},
+				},
+				{
+					Verbs:     []string{"list", "watch", "get", "update"},
+					APIGroups: []string{"discovery.k8s.io"},
+					Resources: []string{"endpointslices"},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := semanticDeepEqualPolicyRules(tt.r1, tt.r2); got != tt.want {
+				t.Errorf("semanticDeepEqualPolicyRules() = %v, want %v", got, tt.want)
 			}
 		})
 	}

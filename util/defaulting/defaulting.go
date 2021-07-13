@@ -49,6 +49,7 @@ func DefaultValidateTest(object DefaultingValidator) func(*testing.T) {
 		t.Run("validate-on-update", func(t *testing.T) {
 			g := gomega.NewWithT(t)
 			defaultingUpdateCopy.Default()
+			updateCopy.Default()
 			g.Expect(defaultingUpdateCopy.ValidateUpdate(updateCopy)).To(gomega.Succeed())
 		})
 		t.Run("validate-on-delete", func(t *testing.T) {

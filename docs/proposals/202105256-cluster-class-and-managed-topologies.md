@@ -385,7 +385,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
    ```
 3. The Cluster controller checks for the presence of the `spec.topology.class` field. If the field is missing, the Cluster controller behaves in the existing way. Otherwise the controller starts the creation process of the topology defined in the steps below.
 4. Cluster and Control plane object creation
-    1. Creates the infrastructure specific/provider cluster using the cluster template referenced in the `ClusterClass.spec.infrastructure.ref` field.
+    1. Creates the infrastructure provider specific cluster using the cluster template referenced in the `ClusterClass.spec.infrastructure.ref` field.
     1. Add the topology label to the provider cluster object:
        ```yaml
         cluster.x-k8s.io/topology: <cluster-name>
@@ -399,7 +399,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
         cluster.x-k8s.io/topology: <cluster-name>
        ```
     1. Creates the control plane object.
-    1. Sets the `spec.controlPlaneRef` field for the Cluster object.
+    1. Sets the `spec.infrastructureRef` and `spec.controlPlaneRef` fields for the Cluster object.
     1. Saves the cluster object in the API server.
 5. Machine deployment object creation
     1. For each `spec.topology.worker.machineDeployments` item in the list

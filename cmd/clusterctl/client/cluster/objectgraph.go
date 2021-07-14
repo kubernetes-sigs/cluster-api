@@ -78,6 +78,10 @@ type node struct {
 	// tenant define the list of objects which are tenant for the node, no matter if the node has a direct OwnerReference to the object or if
 	// the node is linked to a object indirectly in the OwnerReference chain.
 	tenant map[*node]empty
+
+	// restoreObject holds the object that is referenced when creating a node during restore from file.
+	// the object can then be referenced latter when restoring objects to a target management cluster
+	restoreObject *unstructured.Unstructured
 }
 
 type discoveryTypeInfo struct {
@@ -110,6 +114,10 @@ func (n *node) isSoftOwnedBy(other *node) bool {
 	return ok
 }
 
+func (n *node) getFilename() string {
+	return n.identity.Kind + "_" + n.identity.Namespace + "_" + n.identity.Name + ".yaml"
+}
+
 // objectGraph manages the Kubernetes object graph that is generated during the discovery phase for the move operation.
 type objectGraph struct {
 	proxy             Proxy
@@ -132,14 +140,40 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) {
 	// Adds the node to the Graph.
 	newNode := o.objToNode(obj)
 
-	// Process OwnerReferences; if the owner object doe not exists yet, create a virtual node as a placeholder for it.
+	// Process OwnerReferences; if the owner object does not exists yet, create a virtual node as a placeholder for it.
+	o.processOwnerReferences(obj, newNode)
+}
+
+// addRestoredObj adds a Kubernetes object to the object graph from file that is generated during a restore
+// Populates the restoredObject field to be referenced during restore
+// During add, OwnerReferences are processed in order to create the dependency graph.
+func (o *objectGraph) addRestoredObj(obj *unstructured.Unstructured) error {
+	// Add object to graph
+	o.objToNode(obj)
+
+	// Check to ensure node has been added to graph
+	node, found := o.uidToNode[obj.GetUID()]
+	if !found {
+		return errors.Errorf("error adding obj %v with id %v to object graph", obj.GetName(), obj.GetUID())
+	}
+
+	// Copy the raw object yaml to be referenced when restoring object
+	node.restoreObject = obj.DeepCopy()
+
+	// Process OwnerReferences; if the owner object does not exists yet, create a virtual node as a placeholder for it.
+	o.processOwnerReferences(obj, node)
+
+	return nil
+}
+
+func (o *objectGraph) processOwnerReferences(obj *unstructured.Unstructured, node *node) {
 	for _, ownerReference := range obj.GetOwnerReferences() {
 		ownerNode, ok := o.uidToNode[ownerReference.UID]
 		if !ok {
 			ownerNode = o.ownerToVirtualNode(ownerReference)
 		}
 
-		newNode.addOwner(ownerNode, ownerReferenceAttributes{
+		node.addOwner(ownerNode, ownerReferenceAttributes{
 			Controller:         ownerReference.Controller,
 			BlockOwnerDeletion: ownerReference.BlockOwnerDeletion,
 		})
@@ -180,6 +214,7 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 		// it is required to re-compute the forceMove and forceMoveHierarchy field when the real node is processed.
 		// Without this, there is the risk that those fields could report false negatives depending on the discovery order.
 		o.objMetaToNode(obj, existingNode)
+
 		return existingNode
 	}
 

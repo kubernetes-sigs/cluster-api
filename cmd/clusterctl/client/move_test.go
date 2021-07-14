@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -94,6 +96,132 @@ func Test_clusterctlClient_Move(t *testing.T) {
 	}
 }
 
+func Test_clusterctlClient_Backup(t *testing.T) {
+	dir, err := ioutil.TempDir("/tmp", "cluster-api")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	type fields struct {
+		client *fakeClient
+	}
+	// These tests are checking the Backup scaffolding
+	// The internal library handles the backup logic and tests can be found there
+	type args struct {
+		options BackupOptions
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "does not return error if cluster client is found",
+			fields: fields{
+				client: fakeClientForMove(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+			},
+			args: args{
+				options: BackupOptions{
+					FromKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Directory:      dir,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "returns an error if from cluster client is not found",
+			fields: fields{
+				client: fakeClientForMove(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+			},
+			args: args{
+				options: BackupOptions{
+					FromKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "does-not-exist"},
+					Directory:      dir,
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := tt.fields.client.Backup(tt.args.options)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}
+
+func Test_clusterctlClient_Restore(t *testing.T) {
+	dir, err := ioutil.TempDir("/tmp", "cluster-api")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	type fields struct {
+		client *fakeClient
+	}
+	// These tests are checking the Restore scaffolding
+	// The internal library handles the restore logic and tests can be found there
+	type args struct {
+		options RestoreOptions
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "does not return error if cluster client is found",
+			fields: fields{
+				client: fakeClientForMove(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+			},
+			args: args{
+				options: RestoreOptions{
+					ToKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Directory:    dir,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "returns an error if to cluster client is not found",
+			fields: fields{
+				client: fakeClientForMove(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+			},
+			args: args{
+				options: RestoreOptions{
+					ToKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "does-not-exist"},
+					Directory:    dir,
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := tt.fields.client.Restore(tt.args.options)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}
+
 func fakeClientForMove() *fakeClient {
 	core := config.NewProvider("cluster-api", "https://somewhere.com", clusterctlv1.CoreProviderType)
 	infra := config.NewProvider("infra", "https://somewhere.com", clusterctlv1.InfrastructureProviderType)
@@ -122,9 +250,19 @@ func fakeClientForMove() *fakeClient {
 }
 
 type fakeObjectMover struct {
-	moveErr error
+	moveErr    error
+	backupErr  error
+	restoerErr error
 }
 
 func (f *fakeObjectMover) Move(namespace string, toCluster cluster.Client, dryRun bool) error {
 	return f.moveErr
+}
+
+func (f *fakeObjectMover) Backup(namespace string, directory string) error {
+	return f.backupErr
+}
+
+func (f *fakeObjectMover) Restore(toCluster cluster.Client, directory string) error {
+	return f.restoerErr
 }

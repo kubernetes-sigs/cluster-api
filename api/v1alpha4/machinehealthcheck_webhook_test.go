@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -30,10 +31,14 @@ import (
 func TestMachineHealthCheckDefault(t *testing.T) {
 	g := NewWithT(t)
 	mhc := &MachineHealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
 		Spec: MachineHealthCheckSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},
 			},
+			RemediationTemplate: &corev1.ObjectReference{},
 		},
 	}
 	t.Run("for MachineHealthCheck", utildefaulting.DefaultValidateTest(mhc))
@@ -43,6 +48,7 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 	g.Expect(mhc.Spec.MaxUnhealthy.String()).To(Equal("100%"))
 	g.Expect(mhc.Spec.NodeStartupTimeout).ToNot(BeNil())
 	g.Expect(*mhc.Spec.NodeStartupTimeout).To(Equal(metav1.Duration{Duration: 10 * time.Minute}))
+	g.Expect(mhc.Spec.RemediationTemplate.Namespace).To(Equal(mhc.Namespace))
 }
 
 func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
@@ -289,4 +295,47 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 	g.Expect(mhc.validate(nil)).To(Succeed())
 	delete(mhc.Spec.Selector.MatchLabels, ClusterLabelName)
 	g.Expect(mhc.validate(nil)).To(Succeed())
+}
+
+func TestMachineHealthCheckRemediationTemplateNamespaceValidation(t *testing.T) {
+	valid := &MachineHealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
+		Spec: MachineHealthCheckSpec{
+			Selector:            metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+			RemediationTemplate: &corev1.ObjectReference{Namespace: "foo"},
+		},
+	}
+	invalid := valid.DeepCopy()
+	invalid.Spec.RemediationTemplate.Namespace = "bar"
+
+	tests := []struct {
+		name      string
+		expectErr bool
+		c         *MachineHealthCheck
+	}{
+		{
+			name:      "should return error when MachineHealthCheck namespace and RemediationTemplate ref namespace mismatch",
+			expectErr: true,
+			c:         invalid,
+		},
+		{
+			name:      "should succeed when namespaces match",
+			expectErr: false,
+			c:         valid,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			if tt.expectErr {
+				g.Expect(tt.c.validate(nil)).NotTo(Succeed())
+			} else {
+				g.Expect(tt.c.validate(nil)).To(Succeed())
+			}
+		})
+	}
 }

@@ -211,6 +211,10 @@ type MachineDeploymentStatus struct {
 	// Phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional
 	Phase string `json:"phase,omitempty"`
+
+	// Conditions defines current service state of the MachineDeployment.
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachineDeploymentStatus
@@ -286,4 +290,14 @@ type MachineDeploymentList struct {
 
 func init() {
 	SchemeBuilder.Register(&MachineDeployment{}, &MachineDeploymentList{})
+}
+
+// GetConditions returns the set of conditions for the machinedeployment.
+func (m *MachineDeployment) GetConditions() Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions updates the set of conditions on the machinedeployment.
+func (m *MachineDeployment) SetConditions(conditions Conditions) {
+	m.Status.Conditions = conditions
 }

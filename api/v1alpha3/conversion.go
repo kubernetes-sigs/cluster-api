@@ -137,9 +137,9 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Strategy.RollingUpdate = &v1alpha4.MachineRollingUpdateDeployment{}
 		}
 		dst.Spec.Strategy.RollingUpdate.DeletePolicy = restored.Spec.Strategy.RollingUpdate.DeletePolicy
-
 	}
 
+	dst.Status.Conditions = restored.Status.Conditions
 	return nil
 }
 
@@ -156,6 +156,11 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	return nil
+}
+
+// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
+func Convert_v1alpha4_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *v1alpha4.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
+	return autoConvert_v1alpha4_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in, out, s)
 }
 
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {

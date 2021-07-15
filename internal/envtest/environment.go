@@ -234,7 +234,9 @@ func (e *Environment) WaitForWebhooks() {
 			klog.V(2).Infof("Webhook port is not ready, will retry in %v: %s", timeout, err)
 			continue
 		}
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			klog.V(2).Infof("Closing connection when testing if webhook port is ready failed: %v", err)
+		}
 		klog.V(2).Info("Webhook port is now open. Continuing with tests...")
 		return
 	}

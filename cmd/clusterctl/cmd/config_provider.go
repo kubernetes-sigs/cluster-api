@@ -187,8 +187,10 @@ func printComponents(c client.Components, output string) error {
 		if _, err := os.Stdout.Write(yaml); err != nil {
 			return errors.Wrap(err, "failed to write yaml to Stdout")
 		}
-		os.Stdout.WriteString("\n")
-		return err
+		if _, err := os.Stdout.WriteString("\n"); err != nil {
+			return errors.Wrap(err, "failed to write trailing new line of yaml to Stdout")
+		}
+		return nil
 	}
 	return nil
 }

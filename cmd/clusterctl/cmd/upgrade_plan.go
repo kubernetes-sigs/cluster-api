@@ -116,7 +116,9 @@ func runUpgradePlan() error {
 				upgradeAvailable = true
 			}
 		}
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return err
+		}
 		fmt.Println("")
 
 		if upgradeAvailable {

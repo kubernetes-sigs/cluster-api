@@ -129,7 +129,9 @@ func printVariablesOutput(template client.Template, options client.GetClusterTem
 		for _, v := range optionalVariables {
 			fmt.Fprintf(w, "  - %s\t(defaults to %s)\n", v, *variableMap[v])
 		}
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println()

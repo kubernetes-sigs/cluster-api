@@ -693,6 +693,7 @@ func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelVal
 // DeepHashObject writes specified object to hash using the spew library
 // which follows pointers and prints actual values of the nested objects
 // ensuring the hash does not change when a pointer changes.
+// Deprecated: Please use controllers/mdutil SpewHashObject(hasher, objectToWrite).
 func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 	hasher.Reset()
 	printer := spew.ConfigState{
@@ -701,14 +702,44 @@ func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 		DisableMethods: true,
 		SpewKeys:       true,
 	}
-	printer.Fprintf(hasher, "%#v", objectToWrite)
+	// We ignore the returned error because there is no way to return the error without
+	// breaking API compatibility. Please use SpewHashObject instead.
+	_, _ = printer.Fprintf(hasher, "%#v", objectToWrite)
 }
 
-// ComputeHash computes the has of a MachineTemplateSpec.
+// SpewHashObject writes specified object to hash using the spew library
+// which follows pointers and prints actual values of the nested objects
+// ensuring the hash does not change when a pointer changes.
+func SpewHashObject(hasher hash.Hash, objectToWrite interface{}) error {
+	hasher.Reset()
+	printer := spew.ConfigState{
+		Indent:         " ",
+		SortKeys:       true,
+		DisableMethods: true,
+		SpewKeys:       true,
+	}
+
+	if _, err := printer.Fprintf(hasher, "%#v", objectToWrite); err != nil {
+		return fmt.Errorf("failed to write object to hasher")
+	}
+	return nil
+}
+
+// ComputeHash computes the hash of a MachineTemplateSpec using the spew library.
+// Deprecated: Please use controllers/mdutil ComputeSpewHash(template).
 func ComputeHash(template *clusterv1.MachineTemplateSpec) uint32 {
 	machineTemplateSpecHasher := fnv.New32a()
 	DeepHashObject(machineTemplateSpecHasher, *template)
 	return machineTemplateSpecHasher.Sum32()
+}
+
+// ComputeSpewHash computes the hash of a MachineTemplateSpec using the spew library.
+func ComputeSpewHash(template *clusterv1.MachineTemplateSpec) (uint32, error) {
+	machineTemplateSpecHasher := fnv.New32a()
+	if err := SpewHashObject(machineTemplateSpecHasher, *template); err != nil {
+		return 0, err
+	}
+	return machineTemplateSpecHasher.Sum32(), nil
 }
 
 // GetDeletingMachineCount gets the number of machines that are in the process of being deleted

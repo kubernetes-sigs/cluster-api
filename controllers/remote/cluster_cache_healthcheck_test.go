@@ -168,7 +168,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			l, err := net.ListenTCP("tcp", addr)
 			g.Expect(err).NotTo(HaveOccurred())
-			l.Close()
+			g.Expect(l.Close()).To(Succeed())
 
 			config := rest.CopyConfig(env.Config)
 			config.Host = fmt.Sprintf("http://127.0.0.1:%d", l.Addr().(*net.TCPAddr).Port)

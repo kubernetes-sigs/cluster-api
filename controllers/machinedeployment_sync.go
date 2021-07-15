@@ -137,7 +137,11 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, d *c
 
 	// new MachineSet does not exist, create one.
 	newMSTemplate := *d.Spec.Template.DeepCopy()
-	machineTemplateSpecHash := fmt.Sprintf("%d", mdutil.ComputeHash(&newMSTemplate))
+	hash, err := mdutil.ComputeSpewHash(&newMSTemplate)
+	if err != nil {
+		return nil, err
+	}
+	machineTemplateSpecHash := fmt.Sprintf("%d", hash)
 	newMSTemplate.Labels = mdutil.CloneAndAddLabel(d.Spec.Template.Labels,
 		mdutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
 

@@ -219,7 +219,7 @@ kind: ClusterResourceBinding
 metadata:
   name: <cluster-name>
   namespace: <cluster-namespace>
- ownerReferences:
+  ownerReferences:
   - apiVersion: cluster.x-k8s.io/v1alpha3
     kind: Cluster
     name: <cluster-name>

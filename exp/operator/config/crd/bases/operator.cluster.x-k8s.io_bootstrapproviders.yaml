@@ -16,7 +16,7 @@ spec:
     singular: bootstrapprovider
   scope: Namespaced
   versions:
-  - name: v1alpha4
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: BootstrapProvider is the Schema for the bootstrapproviders API.

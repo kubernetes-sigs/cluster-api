@@ -14,43 +14,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CoreProviderSpec defines the desired state of CoreProvider.
-type CoreProviderSpec struct {
+// InfrastructureProviderSpec defines the desired state of InfrastructureProvider.
+type InfrastructureProviderSpec struct {
 	ProviderSpec `json:",inline"`
 }
 
-// CoreProviderStatus defines the observed state of CoreProvider.
-type CoreProviderStatus struct {
+// InfrastructureProviderStatus defines the observed state of InfrastructureProvider.
+type InfrastructureProviderStatus struct {
 	ProviderStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// CoreProvider is the Schema for the coreproviders API.
-type CoreProvider struct {
+// InfrastructureProvider is the Schema for the infrastructureproviders API.
+type InfrastructureProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CoreProviderSpec   `json:"spec,omitempty"`
-	Status CoreProviderStatus `json:"status,omitempty"`
+	Spec   InfrastructureProviderSpec   `json:"spec,omitempty"`
+	Status InfrastructureProviderStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// CoreProviderList contains a list of CoreProvider.
-type CoreProviderList struct {
+// InfrastructureProviderList contains a list of InfrastructureProvider.
+type InfrastructureProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []CoreProvider `json:"items"`
+	Items           []InfrastructureProvider `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&CoreProvider{}, &CoreProviderList{})
+	SchemeBuilder.Register(&InfrastructureProvider{}, &InfrastructureProviderList{})
 }

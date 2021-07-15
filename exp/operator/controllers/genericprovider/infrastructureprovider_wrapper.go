@@ -18,7 +18,7 @@ package genericprovider
 
 import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha4"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

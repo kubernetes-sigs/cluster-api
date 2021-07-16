@@ -80,7 +80,7 @@ type WorkloadCluster interface {
 	UpdateSchedulerInKubeadmConfigMap(ctx context.Context, scheduler kubeadmv1.ControlPlaneComponent) error
 	UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
-	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
+	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine, version semver.Version) error
 	RemoveNodeFromKubeadmConfigMap(ctx context.Context, nodeName string, version semver.Version) error

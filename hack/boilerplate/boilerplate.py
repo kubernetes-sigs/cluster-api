@@ -101,6 +101,8 @@ def file_passes(filename, refs, regexs):
 
     # remove extra content from the top of files
     if extension == "go" or extension == "generatego":
+        p = regexs["go_build_gen_constraints"]
+        (data, found) = p.subn("", data, 1)
         p = regexs["go_build_constraints"]
         (data, found) = p.subn("", data, 1)
     elif extension == "sh":
@@ -209,8 +211,10 @@ def get_regexs():
     # get_dates return 2014, 2015, 2016, 2017, or 2018 until the current year as a regex like: "(2014|2015|2016|2017|2018)";
     # company holder names can be anything
     regexs["date"] = re.compile(get_dates())
-    # strip // +build \n\n build constraints
+    # strip // +build.*\n\n build constraints (used in test/e2e and hack/tools)
     regexs["go_build_constraints"] = re.compile(r"^(// \+build.*\n)+\n", re.MULTILINE)
+    # strip //go:build.*\n// +build.*\n\n build constraints (used in generated files)
+    regexs["go_build_gen_constraints"] = re.compile(r"^(//go:build.*\n// \+build.*\n)+\n", re.MULTILINE)
     # strip #!.* from shell scripts
     regexs["shebang"] = re.compile(r"^(#!.*\n)\n*", re.MULTILINE)
     # Search for generated files

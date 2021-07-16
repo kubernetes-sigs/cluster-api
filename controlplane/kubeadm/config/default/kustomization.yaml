@@ -23,6 +23,8 @@ patchesStrategicMerge:
   - manager_webhook_patch.yaml
   # Inject certificate in the webhook definition.
   - webhookcainjection_patch.yaml
+  # Enable aggregated ClusterRole aggregation
+  - manager_role_aggregation_patch.yaml
 
 vars:
   - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR

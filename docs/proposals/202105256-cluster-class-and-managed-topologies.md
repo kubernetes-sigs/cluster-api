@@ -417,7 +417,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
       Note: The topology label needs to be set on the individual Machine objects as well.
     1. Creates the Machine Deployment object in the API server.
 
-![Creation of cluster with ClusterClass][./images/cluster-class/create.png]
+![Creation of cluster with ClusterClass](./images/cluster-class/create.png)
 
 ##### Update an existing Cluster using ClusterClass
 This section talks about updating a cluster which was created using a `ClusterClass` object.
@@ -432,7 +432,7 @@ This section talks about updating a cluster which was created using a `ClusterCl
     1. Comparing and updating the k8s version for the MD, if necessary.
     1. Updating the Machine Deployment object in the API server.
 
-![Update cluster with ClusterClass][./images/cluster-class/update.png]
+![Update cluster with ClusterClass](./images/cluster-class/update.png)
 
 #### Provider implementation
 ##### For infrastructure providers

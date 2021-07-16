@@ -31,7 +31,7 @@ verify_kubectl_version() {
         mkdir -p "${GOPATH_BIN}"
       fi
       echo 'kubectl not found, installing'
-      curl -sLo "${GOPATH_BIN}/kubectl" https://storage.googleapis.com/kubernetes-release/release/${MINIMUM_KUBECTL_VERSION}/bin/linux/amd64/kubectl
+      curl -sLo "${GOPATH_BIN}/kubectl" https://dl.k8s.io/release/${MINIMUM_KUBECTL_VERSION}/bin/linux/amd64/kubectl
       chmod +x "${GOPATH_BIN}/kubectl"
     else
       echo "Missing required binary in path: kubectl"

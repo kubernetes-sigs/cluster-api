@@ -74,7 +74,7 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
   echo "* testing CI version $${KUBERNETES_VERSION}"
   # Check for semver
   if [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    CI_URL="https://storage.googleapis.com/kubernetes-release/release/$${KUBERNETES_VERSION}/bin/linux/amd64"
+    CI_URL="https://dl.k8s.io/release/$${KUBERNETES_VERSION}/bin/linux/amd64"
     VERSION_WITHOUT_PREFIX="$${KUBERNETES_VERSION#v}"
     export DEBIAN_FRONTEND=noninteractive
     # sometimes the network is not immediately available, so we have to retry the apt-get update
@@ -91,7 +91,7 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
       apt-get install -y "$${CI_PACKAGE}=$${PACKAGE_VERSION}"
     done
   else
-    CI_URL="https://storage.googleapis.com/k8s-release-dev/ci/$${KUBERNETES_VERSION}/bin/linux/amd64"
+    CI_URL="https://dl.k8s.io/ci/$${KUBERNETES_VERSION}/bin/linux/amd64"
     for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
       # Browser: https://console.cloud.google.com/storage/browser/k8s-release-dev?project=k8s-release-dev
       # e.g.: https://storage.googleapis.com/k8s-release-dev/ci/v1.21.0-beta.1.378+cf3374e43491c5/bin/linux/amd64/kubectl
@@ -103,8 +103,10 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
     systemctl restart kubelet
   fi
   for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do
-    # Browser: https://console.cloud.google.com/storage/browser/kubernetes-release?project=kubernetes-release
-    # e.g.: https://storage.googleapis.com/kubernetes-release/release/v1.20.4/bin/linux/amd64/kube-apiserver.tar
+    # Redirect: https://dl.k8s.io/release/{path}
+    # e.g. https://dl.k8s.io/release/v1.20.4/bin/linux/amd64/kube-apiserver.tar
+    # Browser: https://gcsweb.k8s.io/gcs/kubernetes-release/
+    # e.g. https://gcsweb.k8s.io/gcs/kubernetes-release/release/v1.20.4/bin/linux/amd64
     echo "* downloading package: $${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
     wget "$${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}" -O "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
     $${SUDO} ctr -n k8s.io images import "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}" || echo "* ignoring expected 'ctr images import' result"

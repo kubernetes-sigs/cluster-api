@@ -19,33 +19,57 @@ package internal
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/blang/semver"
-	"sigs.k8s.io/cluster-api/util/version"
-
 	"github.com/coredns/corefile-migration/migration"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/version"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	corefileKey       = "Corefile"
-	corefileBackupKey = "Corefile-backup"
-	coreDNSKey        = "coredns"
-	coreDNSVolumeKey  = "config-volume"
+	corefileKey            = "Corefile"
+	corefileBackupKey      = "Corefile-backup"
+	coreDNSKey             = "coredns"
+	coreDNSVolumeKey       = "config-volume"
+	coreDNSClusterRoleName = "system:coredns"
 
 	kubernetesImageRepository = "k8s.gcr.io"
 	oldCoreDNSImageName       = "coredns"
 	coreDNSImageName          = "coredns/coredns"
+)
+
+var (
+	// Source: https://github.com/kubernetes/kubernetes/blob/v1.22.0-beta.1/cmd/kubeadm/app/phases/addons/dns/manifests.go#L178-L207
+	coreDNS181PolicyRules = []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"list", "watch"},
+			APIGroups: []string{""},
+			Resources: []string{"endpoints", "services", "pods", "namespaces"},
+		},
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{""},
+			Resources: []string{"nodes"},
+		},
+		{
+			Verbs:     []string{"list", "watch"},
+			APIGroups: []string{"discovery.k8s.io"},
+			Resources: []string{"endpointslices"},
+		},
+	}
 )
 
 type coreDNSMigrator interface {
@@ -115,6 +139,9 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 		return err
 	}
 	if err := w.updateCoreDNSCorefile(ctx, info); err != nil {
+		return err
+	}
+	if err := w.updateCoreDNSClusterRole(ctx, version, info); err != nil {
 		return err
 	}
 	if err := w.updateCoreDNSDeployment(ctx, info); err != nil {
@@ -203,7 +230,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 	}, nil
 }
 
-// UpdateCoreDNSDeployment will patch the deployment image to the
+// updateCoreDNSDeployment will patch the deployment image to the
 // imageRepo:imageTag in the KCP dns. It will also ensure the volume of the
 // deployment uses the Corefile key of the coredns configmap.
 func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInfo) error {
@@ -218,12 +245,77 @@ func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInf
 	return helper.Patch(ctx, info.Deployment)
 }
 
-// UpdateCoreDNSImageInfoInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
+// updateCoreDNSImageInfoInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
 func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context, dns *bootstrapv1.DNS, version semver.Version) error {
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		c.DNS.ImageRepository = dns.ImageRepository
 		c.DNS.ImageTag = dns.ImageTag
 	}, version)
+}
+
+// updateCoreDNSClusterRole updates the CoreDNS ClusterRole when necessary.
+// CoreDNS >= 1.8.1 uses EndpointSlices. kubeadm < 1.22 doesn't include the EndpointSlice rule in the CoreDNS ClusterRole.
+// To support Kubernetes clusters >= 1.22 (which have been initialized with kubeadm < 1.22) with CoreDNS versions >= 1.8.1
+// we have to update the ClusterRole accordingly.
+func (w *Workload) updateCoreDNSClusterRole(ctx context.Context, kubernetesVersion semver.Version, info *coreDNSInfo) error {
+	// Do nothing for Kubernetes < 1.22.
+	if kubernetesVersion.LT(semver.Version{Major: 1, Minor: 22, Patch: 0}) {
+		return nil
+	}
+
+	// Do nothing for CoreDNS < 1.8.1.
+	targetCoreDNSVersion, err := extractImageVersion(info.ToImageTag)
+	if err != nil {
+		return err
+	}
+	if targetCoreDNSVersion.LT(semver.Version{Major: 1, Minor: 8, Patch: 1}) {
+		return nil
+	}
+
+	key := ctrlclient.ObjectKey{Name: coreDNSClusterRoleName, Namespace: metav1.NamespaceSystem}
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		currentClusterRole := &rbacv1.ClusterRole{}
+		if err := w.Client.Get(ctx, key, currentClusterRole); err != nil {
+			return fmt.Errorf("failed to get ClusterRole %q", coreDNSClusterRoleName)
+		}
+
+		if !semanticDeepEqualPolicyRules(currentClusterRole.Rules, coreDNS181PolicyRules) {
+			currentClusterRole.Rules = coreDNS181PolicyRules
+			if err := w.Client.Update(ctx, currentClusterRole); err != nil {
+				return errors.Wrapf(err, "failed to update ClusterRole %q", coreDNSClusterRoleName)
+			}
+		}
+		return nil
+	})
+}
+
+func semanticDeepEqualPolicyRules(r1, r2 []rbacv1.PolicyRule) bool {
+	return reflect.DeepEqual(generateClusterRolePolicies(r1), generateClusterRolePolicies(r2))
+}
+
+// generateClusterRolePolicies generates a nested map with the full data of an array of PolicyRules so it can
+// be compared with reflect.DeepEqual. If we would use reflect.DeepEqual directly on the PolicyRule array,
+// differences in the order of the array elements would lead to the arrays not being considered equal.
+func generateClusterRolePolicies(policyRules []rbacv1.PolicyRule) map[string]map[string]map[string]struct{} {
+	policies := map[string]map[string]map[string]struct{}{}
+	for _, policyRule := range policyRules {
+		for _, apiGroup := range policyRule.APIGroups {
+			if _, ok := policies[apiGroup]; !ok {
+				policies[apiGroup] = map[string]map[string]struct{}{}
+			}
+
+			for _, resource := range policyRule.Resources {
+				if _, ok := policies[apiGroup][resource]; !ok {
+					policies[apiGroup][resource] = map[string]struct{}{}
+				}
+
+				for _, verb := range policyRule.Verbs {
+					policies[apiGroup][resource][verb] = struct{}{}
+				}
+			}
+		}
+	}
+	return policies
 }
 
 // updateCoreDNSCorefile migrates the coredns corefile if there is an increase
@@ -302,7 +394,7 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 func extractImageVersion(tag string) (semver.Version, error) {
 	ver, err := version.ParseMajorMinorPatchTolerant(tag)
 	if err != nil {
-		return semver.Version{}, err
+		return semver.Version{}, errors.Wrapf(err, "error parsing semver from %q", tag)
 	}
 	return ver, nil
 }

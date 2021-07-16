@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	dockerContainer "github.com/docker/docker/api/types/container"
-	dockerFilters "github.com/docker/docker/api/types/filters"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	dockerfilters "github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -91,9 +91,23 @@ func (d *docker) SaveContainerImage(ctx context.Context, image, dest string) err
 	return nil
 }
 
-// PullContainerImage triggers the Docker engine to pull an image if it is not
-// already present.
-func (d *docker) PullContainerImage(ctx context.Context, image string) error {
+// PullContainerImageIfNotExists triggers the Docker engine to pull an image, but only if it doesn't
+// already exist. This is important when we're using locally build images in CI which
+// do not exist remotely.
+func (d *docker) PullContainerImageIfNotExists(ctx context.Context, image string) error {
+	filters := dockerfilters.NewArgs()
+	filters.Add("reference", image)
+	images, err := d.dockerClient.ImageList(ctx, types.ImageListOptions{
+		Filters: filters,
+	})
+	if err != nil {
+		return fmt.Errorf("failure listing container images: %v", err)
+	}
+	// Nothing to do as the image already exists locally.
+	if len(images) > 0 {
+		return nil
+	}
+
 	pullResp, err := d.dockerClient.ImagePull(ctx, image, types.ImagePullOptions{})
 	if err != nil {
 		return fmt.Errorf("failure pulling container image: %v", err)
@@ -229,7 +243,7 @@ func (d *docker) ListContainers(ctx context.Context, filters FilterBuilder) ([]C
 	listOptions := types.ContainerListOptions{
 		All:     true,
 		Limit:   -1,
-		Filters: dockerFilters.NewArgs(),
+		Filters: dockerfilters.NewArgs(),
 	}
 
 	// Construct our filtering options
@@ -350,7 +364,7 @@ func (crc *RunContainerInput) environmentVariables() []string {
 
 // RunContainer will run a docker container with the given settings and arguments, returning any errors.
 func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput, output io.Writer) error {
-	containerConfig := dockerContainer.Config{
+	containerConfig := dockercontainer.Config{
 		Tty:          true,           // allocate a tty for entrypoint logs
 		Hostname:     runConfig.Name, // make hostname match container name
 		Labels:       runConfig.Labels,
@@ -363,7 +377,7 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 		Volumes:      map[string]struct{}{},
 	}
 
-	hostConfig := dockerContainer.HostConfig{
+	hostConfig := dockercontainer.HostConfig{
 		// Running containers in a container requires privileges.
 		// NOTE: we could try to replicate this with --cap-add, and use less
 		// privileges, but this flag also changes some mounts that are necessary
@@ -371,7 +385,7 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 		// for now this is what we want. in the future we may revisit this.
 		Privileged:   true,
 		SecurityOpt:  []string{"seccomp=unconfined"}, // ignore seccomp
-		NetworkMode:  dockerContainer.NetworkMode(runConfig.Network),
+		NetworkMode:  dockercontainer.NetworkMode(runConfig.Network),
 		Tmpfs:        runConfig.Tmpfs,
 		PortBindings: nat.PortMap{},
 	}
@@ -417,7 +431,7 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 	}
 
 	// Make sure we have the image
-	if err := d.PullContainerImage(ctx, runConfig.Image); err != nil {
+	if err := d.PullContainerImageIfNotExists(ctx, runConfig.Image); err != nil {
 		return err
 	}
 
@@ -466,7 +480,7 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 		defer containerOutput.Close()
 
 		// Wait for the run to complete
-		statusCh, errCh := d.dockerClient.ContainerWait(ctx, resp.ID, dockerContainer.WaitConditionNotRunning)
+		statusCh, errCh := d.dockerClient.ContainerWait(ctx, resp.ID, dockercontainer.WaitConditionNotRunning)
 		select {
 		case err := <-errCh:
 			if err != nil {
@@ -528,7 +542,7 @@ func environmentVariables(crc *RunContainerInput) []string {
 	return envVars
 }
 
-func configureVolumes(crc *RunContainerInput, config *dockerContainer.Config, hostConfig *dockerContainer.HostConfig) {
+func configureVolumes(crc *RunContainerInput, config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig) {
 	seLinux := isSELinuxEnforcing()
 
 	for source, dest := range crc.Volumes {
@@ -643,7 +657,7 @@ func isSELinuxEnforcing() bool {
 	return string(dat) == "1"
 }
 
-func configurePortMappings(portMappings []PortMapping, config *dockerContainer.Config, hostConfig *dockerContainer.HostConfig) {
+func configurePortMappings(portMappings []PortMapping, config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig) {
 	exposedPorts := nat.PortSet{}
 	for _, pm := range portMappings {
 		protocol := pm.Protocol

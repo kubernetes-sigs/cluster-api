@@ -14,6 +14,9 @@ resources:
   kind: MachineDeployment
   version: v1alpha3
 - group: cluster
+  kind: ClusterClass
+  version: v1alpha4
+- group: cluster
   kind: Cluster
   version: v1alpha4
 - group: cluster

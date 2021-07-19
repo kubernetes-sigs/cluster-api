@@ -152,60 +152,63 @@ type ClusterClass struct {
 
 // ClusterClassSpec describes the desired state of the ClusterClass.
 type ClusterClassSpec struct {
-  // ControlPlane is a reference to a local struct that holds the details
-  // for provisioning the Control Plane for the Cluster.
-  ControlPlane LocalObjectTemplate `json:"controlPlane,omitempty"`
-
-  // Worker describes the worker nodes for the cluster.
-  // It is a collection of node types which can be used to create
-  // the worker nodes of the cluster.
-  // +optional
-  Worker WorkerClass `json:"worker,omitempty"`
-
   // Infrastructure is a reference to a provider-specific template that holds
   // the details for provisioning infrastructure specific cluster
   // for the underlying provider.
   // The underlying provider is responsible for the implementation
   // of the template to an infrastructure cluster.
   Infrastructure LocalObjectTemplate `json:"infrastructure,omitempty"`
+
+  // ControlPlane is a reference to a local struct that holds the details
+  // for provisioning the Control Plane for the Cluster.
+  ControlPlane LocalObjectTemplate `json:"controlPlane,omitempty"`
+
+  // Workers describes the worker nodes for the cluster.
+  // It is a collection of node types which can be used to create
+  // the worker nodes of the cluster.
+  // +optional
+  Workers WorkersClass `json:"workers,omitempty"`
 }
 
-// WorkerClass is a collection of deployment classes which pronounce
-//
-type WorkerClass struct {
-  // Deployments is a list of machine deployment types that can be used to create
-  // a set of worker plane nodes.
-  Deployments []DeploymentClass `json:"deployments,omitempty"`
+// WorkersClass is a collection of deployment classes.
+type WorkersClass struct {
+  // MachineDeployments is a list of machine deployment classes that can be used to create
+  // a set of worker nodes.
+  MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 }
 
-
-// DeploymentClass serves as a template to define a set of worker nodes of the cluster
+// MachineDeploymentClass serves as a template to define a set of worker nodes of the cluster
 // provisioned using the `ClusterClass`.
-type DeploymentClass struct {
-  // Class denotes a type of worker node present in the cluster
-  Class string `json:"class,omitempty"`
+type MachineDeploymentClass struct {
+  // Class denotes a type of worker node present in the cluster,
+  // this name MUST be unique within a ClusterClass and can be referenced
+  // in the Cluster to create a managed MachineDeployment.
+  Class string `json:"class"`
 
   // Template is a local struct containing a collection of templates for creation of
   // MachineDeployment objects representing a set of worker nodes.
-  Template DeploymentTemplateClass `json:"template"`
+  Template MachineDeploymentClassTemplate `json:"template"`
 }
 
-type DeploymentTemplateClass struct {
+// MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass
+// should look like.
+type MachineDeploymentClassTemplate struct {
   Metadata ObjectMeta `json:"metadata,omitempty"`
 
-  // Bootstrap contains the bootstrap template references to be used
+  // Bootstrap contains the bootstrap template reference to be used
   // for the creation of worker Machines.
-  Bootstrap LocalObjectTemplate `json:"bootstrap,omitempty"`
+  Bootstrap LocalObjectTemplate `json:"bootstrap"`
 
-  // Infrastructure contains the infrastructure template references to be used
+  // Infrastructure contains the infrastructure template reference to be used
   // for the creation of worker Machines.
-  Infrastructure LocalObjectTemplate `json:"infrastructure,omitempty"`
+  Infrastructure LocalObjectTemplate `json:"infrastructure"`
 }
 
+// LocalObjectTemplate defines a template for a topology Class.
 type LocalObjectTemplate struct {
   // Ref is a required reference to a custom resource
-  // offered by a bootstrap provider.
-  Ref corev1.ObjectReference `json:"ref"`
+  // offered by a provider.
+  Ref *corev1.ObjectReference `json:"ref"`
 }
 ```
 
@@ -214,69 +217,77 @@ type LocalObjectTemplate struct {
 1.  Add `Cluster.Spec.Topology` defined as
     ```golang
     // This encapsulates the topology for the cluster.
-    // +optional
-    Topology *Topology `json:"topology,omitempty"`
+	// NOTE: This feature is alpha; it is required to enable the ClusterTopology
+	// feature gate flag to activate managed topologies support.
+	// +optional
+	Topology *Topology `json:"topology,omitempty"`
     ```
 1.  The `Topology` object has the following definition:
     ```golang
     // Topology encapsulates the information of the managed resources.
     type Topology struct {
       // The name of the ClusterClass object to create the topology.
-      Class string `json:"class,omitempty"`
+      Class string `json:"class"`
 
-      // The kubernetes version of the cluster.
-      Version string `json:"version"`
+	  // The kubernetes version of the cluster.
+	  Version string `json:"version"`
 
-      // RolloutAfter performs a rollout of the entire cluster one component at a time [...]
-      // +optional
-      RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
+	  // RolloutAfter performs a rollout of the entire cluster one component at a time,
+	  // control plane first and then machine deployments.
+	  // +optional
+	  RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
-      // The information for the Control plane of the cluster.
-      ControlPlane ControlPlane `json:"controlPlane"`
+	  // The information for the Control plane of the cluster.
+	  ControlPlane ControlPlaneTopology `json:"controlPlane"`
 
-      // Worker encapsulates the different constructs that form the worker nodes
-      // for the cluster.
-      // +optional
-      Worker *Worker `json:"worker,omitempty"`
+	  // Workers encapsulates the different constructs that form the worker nodes
+	  // for the cluster.
+	  // +optional
+	  Workers *WorkersTopology `json:"workers,omitempty"`
     }
     ```
-1.  The `ControlPlane` object contains the parameters for the control plane nodes of the topology.
+1.  The `ControlPlaneTopology` object contains the parameters for the control plane nodes of the topology.
     ```golang
-    // ControlPlane specifies the parameters for the control plane nodes in the cluster.
-    type ControlPlane struct {
+    // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
+    type ControlPlaneTopology struct {
       Metadata ObjectMeta `json:"metadata,omitempty"`
-
+    
       // The number of control plane nodes.
       Replicas int `json:"replicas"`
     }
     ```
-1.  The `Worker` object represents the sets of worker nodes of the topology.
+1.  The `WorkersTopology` object represents the sets of worker nodes of the topology.
 
     **Note**: In this proposal, a set of worker nodes is handled by a MachineDeployment object. In the future, this can be extended to include Machine Pools as another backing mechanism for managing worker node sets.
     ```golang
-    // Worker represents the different sets of worker nodes in the cluster.
-    type Worker struct {
-      MachineDeployments []ManagedMachineDeployment `json:”machineDeployments,omitempty”`
-    }
+    // WorkersTopology represents the different sets of worker nodes in the cluster.
+    type WorkersTopology struct {
+      // MachineDeployments is a list of machine deployment in the cluster.
+      MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
+    }   
     ```
-1.  The `ManagedMachineDeployment` object represents a single set of worker nodes of the topology.
+1.  The `MachineDeploymentTopology` object represents a single set of worker nodes of the topology.
     ```golang
-    // ManagedMachineDeployment specifies the different parameters for a set of worker nodes in the topology.
+    // MachineDeploymentTopology specifies the different parameters for a set of worker nodes in the topology.
     // This set of nodes is managed by a MachineDeployment object whose lifecycle is managed by the Cluster controller.
-    type ManagedMachineDeployment struct {
-      Metadata ObjectMeta `json:"metadata,omitempty"`
-
-      // Class is the name of the DeploymentClass used to create the set of worker nodes.
+    type MachineDeploymentTopology struct {
+    Metadata ObjectMeta `json:"metadata,omitempty"`
+    
+      // Class is the name of the MachineDeploymentClass used to create the set of worker nodes.
       // This should match one of the deployment classes defined in the ClusterClass object
       // mentioned in the `Cluster.Spec.Class` field.
       Class string `json:"class"`
-
-      // Name refers to the name of the set of worker nodes.
+    
+      // Name is the unique identifier for this MachineDeploymentTopology.
+      // The value is used with other unique identifiers to create a MachineDeployment's Name
+      // (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
+      // the values are hashed together.
       Name string `json:"name"`
-
+    
       // The number of worker nodes belonging to this set.
-      // If not specified, the cluster autoscaler for CAPI would be responsible
-      // for maintaining a min/max number of replicas.
+      // If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to zero)
+      // and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
+      // of this value.
       // +optional
       Replicas *int `json:"replicas,omitempty"`
     }
@@ -285,23 +296,28 @@ type LocalObjectTemplate struct {
 #### Validations
 ##### ClusterClass
 - For object creation:
-  - `spec.worker.deployments[i].class` field must be unique within a ClusterClass.
+  - (defaulting) if namespace field is empty for a reference, default it to `metadata.Namespace`
+  - all the reference must be in the same namespace of `metadata.Namespace`  
+  - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
 - For object updates:
-  - `spec.worker.deployments` supports adding new deployment classes.
+  - all the reference must be in the same namespace of `metadata.Namespace`
+  - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
+  - `spec.workers.machineDeployments` supports adding new deployment classes.
 
 ##### Cluster
 - For object creation:
+  - `spec.topology` and `spec.infrastructureRef` cannot be simultaneously set.
   - `spec.topology` and `spec.controlPlaneRef` cannot be simultaneously set.
-  - If `spec.topology.class` is set, `spec.topology.version` cannot be empty and must be a valid semver.
-
+  - If `spec.topology` is set, `spec.topology.class` cannot be empty.
+  - If `spec.topology` is set, `spec.topology.version` cannot be empty and must be a valid semver.  
+  - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
+  
 - For object updates:
-  - If spec.topology.class is in use, it cannot be unset or modified.
-  - spec.topology.version cannot be unset and must be a valid semver, if being updated.
+  - If `spec.topology.class` is set, it cannot be unset or modified.
+  - `spec.topology.version` cannot be unset and must be a valid semver, if being updated.
   - `spec.topology.version` cannot be downgraded.
-  - `spec.topology.controlPlane.replicas` can be updated.
-  - `spec.topology.worker.machineDeployments[i].replicas` can be updated.
-  - `spec.topology.worker.machineDeployments[i].name` field must be unique within a Cluster
-  - A set of worker nodes can be added to or removed from the `spec.topology.worker.machineDeployments` list.
+  - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
+  - A set of worker nodes can be added to or removed from the `spec.topology.workers.machineDeployments` list.
 
 #### Behaviors
 This section lists out the behavior for Cluster objects using `ClusterClass` in case of creates and updates.
@@ -320,7 +336,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
           apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
           kind: KubeadmControlPlaneTemplate
           name: vsphere-prod-cluster-template-kcp
-      worker:
+      workers:
         deployments:
         - class: linux-worker
           template:
@@ -367,7 +383,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
           replicas: 3
           labels: {}
           annotations: {}
-        worker:
+        workers:
           machineDeployments:
           - class: linux-worker
             name: big-pool-of-machines-1
@@ -402,15 +418,15 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
     1. Sets the `spec.infrastructureRef` and `spec.controlPlaneRef` fields for the Cluster object.
     1. Saves the cluster object in the API server.
 5. Machine deployment object creation
-    1. For each `spec.topology.worker.machineDeployments` item in the list
+    1. For each `spec.topology.workers.machineDeployments` item in the list
     1. Create a name `<cluster-name>-<worker-set-name>` (if too long, hash it)
     1. Initializes a new MachineDeployment object.
     1. Sets the `clusterName` field on the MD object
     1. Sets the `replicas` field on the MD object using `replicas` field for the set of worker nodes.
     1. Sets the `version` field on the MD object from the `spec.topology.version`.
-    1. Sets the `spec.template.spec.bootstrap` on the MD object from the `ClusterClass.spec.worker.machineDeployments[i].template.bootstrap.ref` field.
-    1. Sets the `spec.template.spec.infrastructureRef` on the MD object from the `ClusterClass.spec.worker.machineDeployments[i].template.infrastructure.ref` field.
-    1. Generates the set of labels to be set on the MD object. The labels are additive to the class' labels list, and the value in the `spec.topology.worker.machineDeployments[i].labels` takes precedence over any set by the ClusterClass. Also, include the topology label stated below:
+    1. Sets the `spec.template.spec.bootstrap` on the MD object from the `ClusterClass.spec.workers.machineDeployments[i].template.bootstrap.ref` field.
+    1. Sets the `spec.template.spec.infrastructureRef` on the MD object from the `ClusterClass.spec.workers.machineDeployments[i].template.infrastructure.ref` field.
+    1. Generates the set of labels to be set on the MD object. The labels are additive to the class' labels list, and the value in the `spec.topology.workers.machineDeployments[i].labels` takes precedence over any set by the ClusterClass. Also, include the topology label stated below:
        ```yaml
         cluster.x-k8s.io/topology: <cluster-name>-<worker-set-name>
        ```

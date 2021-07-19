@@ -33,8 +33,8 @@ brew install kustomize
 
 ```bash
 # Install kubectl
-KUBECTL_VERSION=$(curl -sf https://storage.googleapis.com/kubernetes-release/release/stable.txt)
-curl -fLO https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl
+KUBECTL_VERSION=$(curl -sf https://dl.k8s.io/release/stable.txt)
+curl -fLO https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl
 
 # Install kustomize
 OS_TYPE=linux

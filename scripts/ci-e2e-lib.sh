@@ -87,9 +87,9 @@ k8s::resolveVersion() {
   fi
 
   if [[ "$version" =~ ^ci/ ]]; then
-    resolveVersion=$(curl -LsS "http://gcsweb.k8s.io/gcs/kubernetes-release-dev/ci/${version#ci/}.txt")
+    resolveVersion=$(curl -LsS "http://dl.k8s.io/ci/${version#ci/}.txt")
   else
-    resolveVersion=$(curl -LsS "http://gcsweb.k8s.io/gcs/kubernetes-release/release/${version}.txt")
+    resolveVersion=$(curl -LsS "http://dl.k8s.io/release/${version}.txt")
   fi
   echo "+ $variableName=\"$version\" resolved to \"$resolveVersion\""
 }

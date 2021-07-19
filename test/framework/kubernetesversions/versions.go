@@ -27,7 +27,7 @@ import (
 
 const (
 	ciVersionURL     = "https://dl.k8s.io/ci/latest.txt"
-	stableVersionURL = "https://storage.googleapis.com/kubernetes-release/release/stable-%d.%d.txt"
+	stableVersionURL = "https://dl.k8s.io/release/stable-%d.%d.txt"
 	tagPrefix        = "v"
 )
 

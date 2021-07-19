@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,7 +86,15 @@ func TestClusterCacheTracker(t *testing.T) {
 			k8sClient = mgr.GetClient()
 
 			t.Log("Setting up a ClusterCacheTracker")
-			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{})
+			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{
+				Indexes: []Index{
+					{
+						Object:       &corev1.Node{},
+						Field:        noderefutil.NodeProviderIDIndex,
+						ExtractValue: noderefutil.IndexNodeByProviderID,
+					},
+				},
+			})
 			g.Expect(err).NotTo(HaveOccurred())
 
 			t.Log("Creating a namespace for the test")

@@ -20,16 +20,15 @@ import (
 	"context"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -170,29 +169,41 @@ func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string)
 
 func (r *MachineReconciler) getNode(ctx context.Context, c client.Reader, providerID *noderefutil.ProviderID) (*corev1.Node, error) {
 	log := ctrl.LoggerFrom(ctx, "providerID", providerID)
-
 	nodeList := corev1.NodeList{}
-	for {
-		if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
-			return nil, err
-		}
-
-		for _, node := range nodeList.Items {
-			nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
-			if err != nil {
-				log.Error(err, "Failed to parse ProviderID", "node", node.Name)
-				continue
+	if err := c.List(ctx, &nodeList, client.MatchingFields{noderefutil.NodeProviderIDIndex: providerID.IndexKey()}); err != nil {
+		return nil, err
+	}
+	if len(nodeList.Items) == 0 {
+		// If for whatever reason the index isn't registered or available, we fallback to loop over the whole list.
+		nl := corev1.NodeList{}
+		for {
+			if err := c.List(ctx, &nl, client.Continue(nl.Continue)); err != nil {
+				return nil, err
 			}
 
-			if providerID.Equals(nodeProviderID) {
-				return &node, nil
+			for key, node := range nl.Items {
+				nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
+				if err != nil {
+					log.Error(err, "Failed to parse ProviderID", "node", client.ObjectKeyFromObject(&nl.Items[key]).String())
+					continue
+				}
+
+				if providerID.Equals(nodeProviderID) {
+					return &node, nil
+				}
+			}
+
+			if nl.Continue == "" {
+				break
 			}
 		}
 
-		if nodeList.Continue == "" {
-			break
-		}
+		return nil, ErrNodeNotFound
 	}
 
-	return nil, ErrNodeNotFound
+	if len(nodeList.Items) != 1 {
+		return nil, fmt.Errorf("unexpectedly found more than one Node matching the providerID %s", providerID.String())
+	}
+
+	return &nodeList.Items[0], nil
 }

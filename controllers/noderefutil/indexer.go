@@ -22,9 +22,16 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	// NodeProviderIDIndex is used to index Nodes by ProviderID. Remote caches use this to find Nodes in a workload cluster
+	// out of management cluster machine.spec.providerID.
+	NodeProviderIDIndex = "spec.providerID"
 )
 
 // AddMachineNodeIndex adds the machine node name index to the
@@ -48,5 +55,24 @@ func indexMachineByNodeName(o client.Object) []string {
 	if machine.Status.NodeRef != nil {
 		return []string{machine.Status.NodeRef.Name}
 	}
+	return nil
+}
+
+// IndexNodeByProviderID contains the logic to index Nodes by ProviderID.
+func IndexNodeByProviderID(o client.Object) []string {
+	node, ok := o.(*corev1.Node)
+	if !ok {
+		panic(fmt.Sprintf("Expected a Node but got a %T", o))
+	}
+
+	if node.Spec.ProviderID != "" {
+		providerID, err := NewProviderID(node.Spec.ProviderID)
+		if err != nil {
+			// Failed to create providerID, skipping.
+			return nil
+		}
+		return []string{providerID.IndexKey()}
+	}
+
 	return nil
 }

@@ -427,6 +427,172 @@ spec:
                 description: Paused can be used to prevent controllers from processing
                   the Cluster and all its associated objects.
                 type: boolean
+              topology:
+                description: 'This encapsulates the topology for the cluster. NOTE:
+                  It is required to enable the ClusterTopology feature gate flag to
+                  activate managed topologies support; this feature is highly experimental,
+                  and parts of it might still be not implemented.'
+                properties:
+                  class:
+                    description: The name of the ClusterClass object to create the
+                      topology.
+                    type: string
+                  controlPlane:
+                    description: ControlPlane describes the cluster control plane.
+                    properties:
+                      metadata:
+                        description: "ObjectMeta is metadata that all persisted resources
+                          must have, which includes all objects users must create.
+                          This is a copy of customizable fields from metav1.ObjectMeta.
+                          \n ObjectMeta is embedded in `Machine.Spec`, `MachineDeployment.Template`
+                          and `MachineSet.Template`, which are not top-level Kubernetes
+                          objects. Given that metav1.ObjectMeta has lots of special
+                          cases and read-only fields which end up in the generated
+                          CRD validation, having it as a subset simplifies the API
+                          and some issues that can impact user experience. \n During
+                          the [upgrade to controller-tools@v2](https://github.com/kubernetes-sigs/cluster-api/pull/1054)
+                          for v1alpha2, we noticed a failure would occur running Cluster
+                          API test suite against the new CRDs, specifically `spec.metadata.creationTimestamp
+                          in body must be of type string: \"null\"`. The investigation
+                          showed that `controller-tools@v2` behaves differently than
+                          its previous version when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1)
+                          package. \n In more details, we found that embedded (non-top
+                          level) types that embedded `metav1.ObjectMeta` had validation
+                          properties, including for `creationTimestamp` (metav1.Time).
+                          The `metav1.Time` type specifies a custom json marshaller
+                          that, when IsZero() is true, returns `null` which breaks
+                          validation because the field isn't marked as nullable. \n
+                          In future versions, controller-tools@v2 might allow overriding
+                          the type and validation for embedded types. When that happens,
+                          this hack should be revisited."
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: 'Annotations is an unstructured key value
+                              map stored with a resource that may be set by external
+                              tools to store and retrieve arbitrary metadata. They
+                              are not queryable and should be preserved when modifying
+                              objects. More info: http://kubernetes.io/docs/user-guide/annotations'
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: 'Map of string keys and values that can be
+                              used to organize and categorize (scope and select) objects.
+                              May match selectors of replication controllers and services.
+                              More info: http://kubernetes.io/docs/user-guide/labels'
+                            type: object
+                        type: object
+                      replicas:
+                        description: Replicas is the number of control plane nodes.
+                        type: integer
+                    required:
+                    - replicas
+                    type: object
+                  rolloutAfter:
+                    description: RolloutAfter performs a rollout of the entire cluster
+                      one component at a time, control plane first and then machine
+                      deployments.
+                    format: date-time
+                    type: string
+                  version:
+                    description: The Kubernetes version of the cluster.
+                    type: string
+                  workers:
+                    description: Workers encapsulates the different constructs that
+                      form the worker nodes for the cluster.
+                    properties:
+                      machineDeployments:
+                        description: MachineDeployments is a list of machine deployments
+                          in the cluster.
+                        items:
+                          description: MachineDeploymentTopology specifies the different
+                            parameters for a set of worker nodes in the topology.
+                            This set of nodes is managed by a MachineDeployment object
+                            whose lifecycle is managed by the Cluster controller.
+                          properties:
+                            class:
+                              description: Class is the name of the MachineDeploymentClass
+                                used to create the set of worker nodes. This should
+                                match one of the deployment classes defined in the
+                                ClusterClass object mentioned in the `Cluster.Spec.Class`
+                                field.
+                              type: string
+                            metadata:
+                              description: "ObjectMeta is metadata that all persisted
+                                resources must have, which includes all objects users
+                                must create. This is a copy of customizable fields
+                                from metav1.ObjectMeta. \n ObjectMeta is embedded
+                                in `Machine.Spec`, `MachineDeployment.Template` and
+                                `MachineSet.Template`, which are not top-level Kubernetes
+                                objects. Given that metav1.ObjectMeta has lots of
+                                special cases and read-only fields which end up in
+                                the generated CRD validation, having it as a subset
+                                simplifies the API and some issues that can impact
+                                user experience. \n During the [upgrade to controller-tools@v2](https://github.com/kubernetes-sigs/cluster-api/pull/1054)
+                                for v1alpha2, we noticed a failure would occur running
+                                Cluster API test suite against the new CRDs, specifically
+                                `spec.metadata.creationTimestamp in body must be of
+                                type string: \"null\"`. The investigation showed that
+                                `controller-tools@v2` behaves differently than its
+                                previous version when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1)
+                                package. \n In more details, we found that embedded
+                                (non-top level) types that embedded `metav1.ObjectMeta`
+                                had validation properties, including for `creationTimestamp`
+                                (metav1.Time). The `metav1.Time` type specifies a
+                                custom json marshaller that, when IsZero() is true,
+                                returns `null` which breaks validation because the
+                                field isn't marked as nullable. \n In future versions,
+                                controller-tools@v2 might allow overriding the type
+                                and validation for embedded types. When that happens,
+                                this hack should be revisited."
+                              properties:
+                                annotations:
+                                  additionalProperties:
+                                    type: string
+                                  description: 'Annotations is an unstructured key
+                                    value map stored with a resource that may be set
+                                    by external tools to store and retrieve arbitrary
+                                    metadata. They are not queryable and should be
+                                    preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations'
+                                  type: object
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  description: 'Map of string keys and values that
+                                    can be used to organize and categorize (scope
+                                    and select) objects. May match selectors of replication
+                                    controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+                                  type: object
+                              type: object
+                            name:
+                              description: Name is the unique identifier for this
+                                MachineDeploymentTopology. The value is used with
+                                other unique identifiers to create a MachineDeployment's
+                                Name (e.g. cluster's name, etc). In case the name
+                                is greater than the allowed maximum length, the values
+                                are hashed together.
+                              type: string
+                            replicas:
+                              description: Replicas is the number of worker nodes
+                                belonging to this set. If the value is nil, the MachineDeployment
+                                is created without the number of Replicas (defaulting
+                                to zero) and it's assumed that an external entity
+                                (like cluster autoscaler) is responsible for the management
+                                of this value.
+                              type: integer
+                          required:
+                          - class
+                          - name
+                          type: object
+                        type: array
+                    type: object
+                required:
+                - class
+                - controlPlane
+                - version
+                type: object
             type: object
           status:
             description: ClusterStatus defines the observed state of Cluster.

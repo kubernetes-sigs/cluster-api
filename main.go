@@ -332,6 +332,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
+	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
+	// is going to prevent creating or updating new objects in case the feature flag is disabled.
+	if err := (&clusterv1.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterClass")
+		os.Exit(1)
+	}
+
+	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
+	// is going to prevent usage of Cluster.Topology in case the feature flag is disabled.
 	if err := (&clusterv1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
 		os.Exit(1)

@@ -53,7 +53,7 @@ If you choose not to use GCR, you'll need to set the `REGISTRY` environment vari
 You'll need to [install `kustomize`][kustomize].
 There is a version of `kustomize` built into kubectl, but it does not have all the features of `kustomize` v3 and will not work.
 
-[kustomize]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md
+[kustomize]: https://kubectl.docs.kubernetes.io/installation/kustomize/
 
 ### Kubebuilder
 

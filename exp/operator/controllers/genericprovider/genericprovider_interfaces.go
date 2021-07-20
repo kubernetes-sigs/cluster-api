@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package genericprovider provider generic interface and wrapper for different providers.
 package genericprovider
 
 import (
@@ -22,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// GenericProvider is the interface that represents all providers.
 type GenericProvider interface {
 	client.Object
 	conditions.Setter
@@ -32,7 +34,8 @@ type GenericProvider interface {
 	GetObject() client.Object
 }
 
-type GenericProviderList interface {
+// GenericProviderList is the interface that represents all provider lists.
+type GenericProviderList interface { //nolint
 	client.ObjectList
 	GetObject() client.ObjectList
 	GetItems() []GenericProvider

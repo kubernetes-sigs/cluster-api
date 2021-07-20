@@ -136,13 +136,12 @@ func TestNewGenericProvider(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			g := NewWithT(t)
 			r := GenericProviderReconciler{
 				Provider: tc.provider,
 			}
 
-			genericProvider, err := r.NewGenericProvider()
+			genericProvider, err := r.newGenericProvider()
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -190,13 +189,12 @@ func TestNewGenericProviderList(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			g := NewWithT(t)
 			r := GenericProviderReconciler{
 				ProviderList: tc.providerList,
 			}
 
-			genericProviderList, err := r.NewGenericProviderList()
+			genericProviderList, err := r.newGenericProviderList()
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

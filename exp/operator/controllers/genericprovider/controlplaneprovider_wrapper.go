@@ -23,55 +23,69 @@ import (
 )
 
 const (
-	ControlPlaneProviderKind     = "ControlPlaneProvider"
+	// ControlPlaneProviderKind is the kind of the control plane provider.
+	ControlPlaneProviderKind = "ControlPlaneProvider"
+	// ControlPlaneProviderListKind is the kind of the control plane provider list.
 	ControlPlaneProviderListKind = "ControlPlaneProviderList"
 )
 
+// ControlPlaneProviderWrapper wrapper for ControlPlaneProvider.
 type ControlPlaneProviderWrapper struct {
 	*operatorv1.ControlPlaneProvider
 }
 
+// GetConditions returns provider conditions.
 func (c *ControlPlaneProviderWrapper) GetConditions() clusterv1.Conditions {
 	return c.Status.Conditions
 }
 
+// SetConditions sets conditions for the provider.
 func (c *ControlPlaneProviderWrapper) SetConditions(conditions clusterv1.Conditions) {
 	c.Status.Conditions = conditions
 }
 
+// GetSpec returns spec for provider.
 func (c *ControlPlaneProviderWrapper) GetSpec() operatorv1.ProviderSpec {
 	return c.Spec.ProviderSpec
 }
 
+// SetSpec sets spec for provider.
 func (c *ControlPlaneProviderWrapper) SetSpec(in operatorv1.ProviderSpec) {
 	c.Spec.ProviderSpec = in
 }
 
+// GetStatus gets the status for provider.
 func (c *ControlPlaneProviderWrapper) GetStatus() operatorv1.ProviderStatus {
 	return c.Status.ProviderStatus
 }
 
+// SetStatus sets the status for provider.
 func (c *ControlPlaneProviderWrapper) SetStatus(in operatorv1.ProviderStatus) {
 	c.Status.ProviderStatus = in
 }
 
+// GetObject get provider object.
 func (c *ControlPlaneProviderWrapper) GetObject() client.Object {
 	return c.ControlPlaneProvider
 }
 
+// ControlPlaneProviderListWrapper is a wrapper for the ControlPlaneProviderList.
 type ControlPlaneProviderListWrapper struct {
 	*operatorv1.ControlPlaneProviderList
 }
 
+// GetItems returns items from provider list.
 func (c *ControlPlaneProviderListWrapper) GetItems() []GenericProvider {
 	providers := []GenericProvider{}
-	for _, provider := range c.Items {
-		providers = append(providers, &ControlPlaneProviderWrapper{&provider})
+	for i := range c.Items {
+		p := &c.Items[i]
+		providers = append(providers, &ControlPlaneProviderWrapper{p})
 	}
 
 	return providers
 }
 
+// GetObject get list object.
 func (c *ControlPlaneProviderListWrapper) GetObject() client.ObjectList {
 	return c.ControlPlaneProviderList
 }

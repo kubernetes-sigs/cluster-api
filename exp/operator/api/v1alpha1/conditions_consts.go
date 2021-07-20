@@ -22,7 +22,6 @@ const (
 	// PreflightCheckCondition documents a Provider that has not passed preflight checks.
 	PreflightCheckCondition clusterv1.ConditionType = "PreflightCheckPassed"
 
-	// MoreThanOneProviderInstanceExistsReason (Severity=Info) documents that more than one instance of provider
-	// exists in the cluster
+	// MoreThanOneProviderInstanceExistsReason (Severity=Info) documents that more than one instance of provider exists in the cluster.
 	MoreThanOneProviderInstanceExistsReason = "MoreThanOneExists"
 )

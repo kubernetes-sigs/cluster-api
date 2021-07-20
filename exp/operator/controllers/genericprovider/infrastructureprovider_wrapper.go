@@ -23,55 +23,69 @@ import (
 )
 
 const (
-	InfrastructureProviderKind     = "InfrastructureProvider"
+	// InfrastructureProviderKind is the kind of infrastructure provider.
+	InfrastructureProviderKind = "InfrastructureProvider"
+	// InfrastructureProviderListKind is the kind of infrastructure provider list.
 	InfrastructureProviderListKind = "InfrastructureProviderList"
 )
 
+// InfrastructureProviderWrapper wrapper for InfrastructureProvider.
 type InfrastructureProviderWrapper struct {
 	*operatorv1.InfrastructureProvider
 }
 
+// GetConditions returns provider conditions.
 func (i *InfrastructureProviderWrapper) GetConditions() clusterv1.Conditions {
 	return i.Status.Conditions
 }
 
+// SetConditions sets conditions for the provider.
 func (i *InfrastructureProviderWrapper) SetConditions(conditions clusterv1.Conditions) {
 	i.Status.Conditions = conditions
 }
 
+// GetSpec returns spec for provider.
 func (i *InfrastructureProviderWrapper) GetSpec() operatorv1.ProviderSpec {
 	return i.Spec.ProviderSpec
 }
 
+// SetSpec sets spec for provider.
 func (i *InfrastructureProviderWrapper) SetSpec(in operatorv1.ProviderSpec) {
 	i.Spec.ProviderSpec = in
 }
 
+// GetStatus gets the status for provider.
 func (i *InfrastructureProviderWrapper) GetStatus() operatorv1.ProviderStatus {
 	return i.Status.ProviderStatus
 }
 
+// SetStatus sets the status for provider.
 func (i *InfrastructureProviderWrapper) SetStatus(in operatorv1.ProviderStatus) {
 	i.Status.ProviderStatus = in
 }
 
+// GetObject get provider object.
 func (i *InfrastructureProviderWrapper) GetObject() client.Object {
 	return i.InfrastructureProvider
 }
 
+// InfrastructureProviderListWrapper is a wrapper for InfrastructureProviderList.
 type InfrastructureProviderListWrapper struct {
 	*operatorv1.InfrastructureProviderList
 }
 
+// GetItems returns items from provider list.
 func (i *InfrastructureProviderListWrapper) GetItems() []GenericProvider {
 	providers := []GenericProvider{}
-	for _, provider := range i.Items {
-		providers = append(providers, &InfrastructureProviderWrapper{&provider})
+	for j := range i.Items {
+		p := &i.Items[j]
+		providers = append(providers, &InfrastructureProviderWrapper{p})
 	}
 
 	return providers
 }
 
+// GetObject get list object.
 func (i *InfrastructureProviderListWrapper) GetObject() client.ObjectList {
 	return i.InfrastructureProviderList
 }

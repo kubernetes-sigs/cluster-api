@@ -23,55 +23,69 @@ import (
 )
 
 const (
-	CoreProviderKind     = "CoreProvider"
+	// CoreProviderKind is the kind for core provider.
+	CoreProviderKind = "CoreProvider"
+	// CoreProviderListKind is the kind for core provider list.
 	CoreProviderListKind = "CoreProviderList"
 )
 
+// CoreProviderWrapper wrapper for CoreProvider.
 type CoreProviderWrapper struct {
 	*operatorv1.CoreProvider
 }
 
+// GetConditions returns provider conditions.
 func (c *CoreProviderWrapper) GetConditions() clusterv1.Conditions {
 	return c.Status.Conditions
 }
 
+// SetConditions sets conditions for the provider.
 func (c *CoreProviderWrapper) SetConditions(conditions clusterv1.Conditions) {
 	c.Status.Conditions = conditions
 }
 
+// GetSpec returns spec for provider.
 func (c *CoreProviderWrapper) GetSpec() operatorv1.ProviderSpec {
 	return c.Spec.ProviderSpec
 }
 
+// SetSpec sets spec for provider.
 func (c *CoreProviderWrapper) SetSpec(in operatorv1.ProviderSpec) {
 	c.Spec.ProviderSpec = in
 }
 
+// GetStatus gets the status for provider.
 func (c *CoreProviderWrapper) GetStatus() operatorv1.ProviderStatus {
 	return c.Status.ProviderStatus
 }
 
+// SetStatus sets the status for provider.
 func (c *CoreProviderWrapper) SetStatus(in operatorv1.ProviderStatus) {
 	c.Status.ProviderStatus = in
 }
 
+// GetObject get provider object.
 func (c *CoreProviderWrapper) GetObject() client.Object {
 	return c.CoreProvider
 }
 
+// CoreProviderListWrapper is a wrapper for CoreProviderList.
 type CoreProviderListWrapper struct {
 	*operatorv1.CoreProviderList
 }
 
+// GetItems returns items from provider list.
 func (c *CoreProviderListWrapper) GetItems() []GenericProvider {
 	providers := []GenericProvider{}
-	for _, provider := range c.Items {
-		providers = append(providers, &CoreProviderWrapper{&provider})
+	for i := range c.Items {
+		p := &c.Items[i]
+		providers = append(providers, &CoreProviderWrapper{p})
 	}
 
 	return providers
 }
 
+// GetObject get list object.
 func (c *CoreProviderListWrapper) GetObject() client.ObjectList {
 	return c.CoreProviderList
 }

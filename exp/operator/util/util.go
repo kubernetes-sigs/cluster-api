@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package util is a collection of utility functions for use by the operator.
 package util
 
 import (
@@ -21,6 +22,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 )
 
+// IsCoreProvider return true if provider is core provider.
 func IsCoreProvider(p genericprovider.GenericProvider) bool {
 	_, ok := p.GetObject().(*operatorv1.CoreProvider)
 	return ok

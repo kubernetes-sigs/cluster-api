@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// GenericProviderReconciler implements the controller.Reconciler interface.
 type GenericProviderReconciler struct {
 	Provider     client.Object
 	ProviderList client.ObjectList
@@ -48,12 +49,12 @@ func (r *GenericProviderReconciler) SetupWithManager(mgr ctrl.Manager, options c
 }
 
 func (r *GenericProviderReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
-	typedProvider, err := r.NewGenericProvider()
+	typedProvider, err := r.newGenericProvider()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	typedProviderList, err := r.NewGenericProviderList()
+	typedProviderList, err := r.newGenericProviderList()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -102,7 +103,7 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, genericProvid
 	return ctrl.Result{}, nil
 }
 
-func (r *GenericProviderReconciler) NewGenericProvider() (genericprovider.GenericProvider, error) {
+func (r *GenericProviderReconciler) newGenericProvider() (genericprovider.GenericProvider, error) {
 	switch r.Provider.(type) {
 	case *operatorv1.CoreProvider:
 		return &genericprovider.CoreProviderWrapper{CoreProvider: &operatorv1.CoreProvider{}}, nil
@@ -119,7 +120,7 @@ func (r *GenericProviderReconciler) NewGenericProvider() (genericprovider.Generi
 	}
 }
 
-func (r *GenericProviderReconciler) NewGenericProviderList() (genericprovider.GenericProviderList, error) {
+func (r *GenericProviderReconciler) newGenericProviderList() (genericprovider.GenericProviderList, error) {
 	switch r.ProviderList.(type) {
 	case *operatorv1.CoreProviderList:
 		return &genericprovider.CoreProviderListWrapper{CoreProviderList: &operatorv1.CoreProviderList{}}, nil

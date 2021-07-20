@@ -14,19 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
-
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-
-// TODO: NOTE: The API details will be incrementally added and will eventually
-// conform to the CAPI Provider CAEP.
-
-// ProviderSpec is the desired state of the Provider.
-type ProviderSpec struct{}
-
-// ProviderStatus defines the observed state of the Provider.
-type ProviderStatus struct {
-	// Conditions define the current service state of the provider.
-	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
-}
+// Package controllers implements controllers for the operator.
+package controllers

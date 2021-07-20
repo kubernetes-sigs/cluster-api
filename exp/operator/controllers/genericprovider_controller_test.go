@@ -33,10 +33,10 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "provider-test"}}
 
-	g.Expect(testEnv.Create(ctx, namespace)).To(Succeed())
+	g.Expect(env.Create(ctx, namespace)).To(Succeed())
 
 	defer func() {
-		g.Expect(testEnv.Delete(ctx, namespace)).To(Succeed())
+		g.Expect(env.Delete(ctx, namespace)).To(Succeed())
 	}()
 
 	testCases := []struct {
@@ -71,10 +71,10 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			gs.Expect(testEnv.Create(ctx, tc.provider.GetObject())).To(Succeed())
+			gs.Expect(env.Create(ctx, tc.provider.GetObject())).To(Succeed())
 
 			g.Eventually(func() bool {
-				if err := testEnv.Get(ctx, client.ObjectKeyFromObject(tc.provider.GetObject()), tc.provider.GetObject()); err != nil {
+				if err := env.Get(ctx, client.ObjectKeyFromObject(tc.provider.GetObject()), tc.provider.GetObject()); err != nil {
 					return false
 				}
 
@@ -95,7 +95,7 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 				return true
 			}, timeout).Should(BeEquivalentTo(true))
 
-			gs.Expect(testEnv.Delete(ctx, tc.provider.GetObject())).To(Succeed())
+			gs.Expect(env.Delete(ctx, tc.provider.GetObject())).To(Succeed())
 		})
 	}
 }

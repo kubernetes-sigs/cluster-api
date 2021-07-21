@@ -43,10 +43,17 @@ BIN_DIR := bin
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
+#
+# Kubebuilder.
+#
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.21.2
+
+
 # Binaries.
 # Need to use abspath so we can invoke these from subdirectories
+SETUP_ENVTEST := $(abspath hack/tools/bin/setup-envtest)
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
 
 # Define Docker related variables. Releases should modify and double check these vars.
@@ -77,9 +84,11 @@ help:  ## Display this help
 ## Testing
 ## --------------------------------------
 
+KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+
 .PHONY: test
-test: ## Run tests.
-	source $(ROOT)/scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test ./... $(TEST_ARGS)
+test: $(SETUP_ENVTEST) ## Run tests.
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
 .PHONY: test-verbose
 test-verbose: ## Run tests with verbose settings.
@@ -93,11 +102,14 @@ test-verbose: ## Run tests with verbose settings.
 operator: ## Build operator binary
 	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/operator sigs.k8s.io/cluster-api/exp/operator
 
+$(SETUP_ENVTEST): hack/tools/go.mod # Build setup-envtest from tools folder.
+	cd hack/tools; go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
+
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
-$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+$(GOLANGCI_LINT):
+	$(MAKE) -C $(ROOT) $(GOLANGCI_LINT)
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
 	$(ROOT)/hack/ensure-kustomize.sh
@@ -264,7 +276,7 @@ clean: ## Remove all generated files
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
 	rm -rf bin
-	rm -rf $(TOOLS_BIN_DIR)
+	rm -rf $(TOOLS_BIN_DIR) $(PWD)/hack/tools/bin
 
 .PHONY: clean-release
 clean-release: ## Remove the release folder

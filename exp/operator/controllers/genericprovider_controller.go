@@ -23,15 +23,14 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
-
-	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 type GenericProviderReconciler struct {

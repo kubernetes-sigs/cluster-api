@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 )
 
+// IsCoreProvider return true if provider is a core provider.
 func IsCoreProvider(p genericprovider.GenericProvider) bool {
 	_, ok := p.GetObject().(*operatorv1.CoreProvider)
 	return ok

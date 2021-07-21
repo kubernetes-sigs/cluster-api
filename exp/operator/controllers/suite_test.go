@@ -24,11 +24,13 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/test/helpers"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
+
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/exp/operator/internal/envtest"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -37,8 +39,8 @@ const (
 )
 
 var (
-	testEnv *helpers.TestEnvironment
-	ctx     = ctrl.SetupSignalHandler()
+	env *envtest.Environment
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func TestAPIs(t *testing.T) {
@@ -52,52 +54,51 @@ func TestAPIs(t *testing.T) {
 func TestMain(m *testing.M) {
 	fmt.Println("Creating new test environment")
 
-	testEnv = helpers.NewTestEnvironment()
+	env = envtest.New()
 
 	if err := (&GenericProviderReconciler{
 		Provider:     &operatorv1.CoreProvider{},
 		ProviderList: &operatorv1.CoreProviderList{},
-		Client:       testEnv,
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		Client:       env,
+	}).SetupWithManager(env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start CoreProviderReconciler: %v", err))
 	}
 
 	if err := (&GenericProviderReconciler{
 		Provider:     &operatorv1.InfrastructureProvider{},
 		ProviderList: &operatorv1.InfrastructureProviderList{},
-		Client:       testEnv,
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		Client:       env,
+	}).SetupWithManager(env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start InfrastructureProviderReconciler: %v", err))
 	}
 
 	if err := (&GenericProviderReconciler{
 		Provider:     &operatorv1.BootstrapProvider{},
 		ProviderList: &operatorv1.BootstrapProviderList{},
-		Client:       testEnv,
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		Client:       env,
+	}).SetupWithManager(env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start BootstrapProviderReconciler: %v", err))
 	}
 
 	if err := (&GenericProviderReconciler{
 		Provider:     &operatorv1.ControlPlaneProvider{},
 		ProviderList: &operatorv1.ControlPlaneProviderList{},
-		Client:       testEnv,
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		Client:       env,
+	}).SetupWithManager(env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		panic(fmt.Sprintf("Failed to start ControlPlaneProviderReconciler: %v", err))
 	}
 
 	go func() {
-		if err := testEnv.StartManager(ctx); err != nil {
+		if err := env.Start(ctx); err != nil {
 			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
 		}
 	}()
-	<-testEnv.Manager.Elected()
-	testEnv.WaitForWebhooks()
+	<-env.Manager.Elected()
 
 	// Run tests
 	code := m.Run()
 	// Tearing down the test environment
-	if err := testEnv.Stop(); err != nil {
+	if err := env.Stop(); err != nil {
 		panic(fmt.Sprintf("Failed to stop the envtest: %v", err))
 	}
 

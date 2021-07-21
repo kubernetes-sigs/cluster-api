@@ -25,12 +25,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
-
-	"sigs.k8s.io/cluster-api/test/helpers"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestPreflightChecks(t *testing.T) {
@@ -286,9 +284,7 @@ func TestPreflightChecks(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			fakeclient := helpers.NewFakeClientWithScheme(
-				scheme.Scheme,
-			)
+			fakeclient := fake.NewClientBuilder().WithObjects().Build()
 
 			for _, c := range tc.providers {
 				gs.Expect(fakeclient.Create(ctx, c.GetObject())).To(Succeed())

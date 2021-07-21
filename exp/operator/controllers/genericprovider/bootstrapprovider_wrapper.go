@@ -17,7 +17,7 @@ limitations under the License.
 package genericprovider
 
 import (
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -65,8 +65,9 @@ type BootstrapProviderListWrapper struct {
 
 func (b *BootstrapProviderListWrapper) GetItems() []GenericProvider {
 	providers := []GenericProvider{}
-	for _, provider := range b.Items {
-		providers = append(providers, &BootstrapProviderWrapper{&provider})
+	for i := range b.Items {
+		p := b.Items[i]
+		providers = append(providers, &BootstrapProviderWrapper{&p})
 	}
 
 	return providers

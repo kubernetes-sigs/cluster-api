@@ -112,7 +112,7 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitHub, err := newGitHubRepository(tt.field.providerConfig, tt.field.variableClient)
+			gitHub, err := NewGitHubRepository(tt.field.providerConfig, tt.field.variableClient)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -212,7 +212,7 @@ func Test_githubRepository_getFile(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitHub, err := newGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
+			gitHub, err := NewGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
 
 			got, err := gitHub.GetFile(tt.release, tt.fileName)
@@ -268,10 +268,10 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitHub, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
+			gitHub, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
 
-			got, err := gitHub.getVersions()
+			got, err := gitHub.(*gitHubRepository).getVersions()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -357,7 +357,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gRepo, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
+			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
 
 			got, err := latestContractRelease(gRepo, tt.contract)
@@ -443,7 +443,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gRepo, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
+			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
 
 			got, err := latestRelease(gRepo)
@@ -453,7 +453,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 			}
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
-			g.Expect(gRepo.defaultVersion).To(Equal(tt.want))
+			g.Expect(gRepo.(*gitHubRepository).defaultVersion).To(Equal(tt.want))
 		})
 	}
 }
@@ -525,7 +525,7 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gRepo, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
+			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
 
 			got, err := latestPatchRelease(gRepo, tt.major, tt.minor)
@@ -584,10 +584,10 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
+			gRepo, err := NewGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
 
-			got, err := gRepo.getReleaseByTag(tt.args.tag)
+			got, err := gRepo.(*gitHubRepository).getReleaseByTag(tt.args.tag)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -690,10 +690,10 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gRepo, err := newGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
+			gRepo, err := NewGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
 
-			got, err := gRepo.downloadFilesFromRelease(tt.args.release, tt.args.fileName)
+			got, err := gRepo.(*gitHubRepository).downloadFilesFromRelease(tt.args.release, tt.args.fileName)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

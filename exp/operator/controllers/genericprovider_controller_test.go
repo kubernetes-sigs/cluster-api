@@ -33,10 +33,10 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "provider-test"}}
 
-	g.Expect(testEnv.Create(ctx, namespace)).To(Succeed())
+	g.Expect(env.Create(ctx, namespace)).To(Succeed())
 
 	defer func() {
-		g.Expect(testEnv.Delete(ctx, namespace)).To(Succeed())
+		g.Expect(env.Delete(ctx, namespace)).To(Succeed())
 	}()
 
 	testCases := []struct {
@@ -71,31 +71,23 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			gs.Expect(testEnv.Create(ctx, tc.provider.GetObject())).To(Succeed())
+			gs.Expect(env.Create(ctx, tc.provider.GetObject())).To(Succeed())
 
 			g.Eventually(func() bool {
-				if err := testEnv.Get(ctx, client.ObjectKeyFromObject(tc.provider.GetObject()), tc.provider.GetObject()); err != nil {
+				if err := env.Get(ctx, client.ObjectKeyFromObject(tc.provider.GetObject()), tc.provider.GetObject()); err != nil {
 					return false
 				}
 
-				conditions := tc.provider.GetStatus().Conditions
-
-				if len(conditions) == 0 {
-					return false
+				for _, cond := range tc.provider.GetStatus().Conditions {
+					if cond.Type == operatorv1.PreflightCheckCondition && cond.Status == corev1.ConditionTrue {
+						return true
+					}
 				}
 
-				if conditions[0].Type != operatorv1.PreflightCheckCondition {
-					return false
-				}
-
-				if conditions[0].Status != corev1.ConditionTrue {
-					return false
-				}
-
-				return true
+				return false
 			}, timeout).Should(BeEquivalentTo(true))
 
-			gs.Expect(testEnv.Delete(ctx, tc.provider.GetObject())).To(Succeed())
+			gs.Expect(env.Delete(ctx, tc.provider.GetObject())).To(Succeed())
 		})
 	}
 }
@@ -136,7 +128,6 @@ func TestNewGenericProvider(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			g := NewWithT(t)
 			r := GenericProviderReconciler{
 				Provider: tc.provider,
@@ -190,7 +181,6 @@ func TestNewGenericProviderList(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			g := NewWithT(t)
 			r := GenericProviderReconciler{
 				ProviderList: tc.providerList,

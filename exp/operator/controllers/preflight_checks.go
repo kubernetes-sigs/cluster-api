@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 	"sigs.k8s.io/cluster-api/exp/operator/util"
@@ -57,7 +57,7 @@ func preflightChecks(ctx context.Context, c client.Client, provider genericprovi
 		preflightFalseCondition := conditions.FalseCondition(
 			operatorv1.PreflightCheckCondition,
 			operatorv1.MoreThanOneProviderInstanceExistsReason,
-			v1alpha4.ConditionSeverityWarning,
+			v1beta1.ConditionSeverityWarning,
 			"",
 		)
 

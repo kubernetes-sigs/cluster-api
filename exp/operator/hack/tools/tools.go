@@ -1,3 +1,5 @@
+// +build tools
+
 /*
 Copyright 2021 The Kubernetes Authors.
 
@@ -14,15 +16,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+// This package imports things required by build scripts, to force `go mod` to see them as dependencies
+package tools
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
-const (
-	// PreflightCheckCondition documents a Provider that has not passed preflight checks.
-	PreflightCheckCondition clusterv1.ConditionType = "PreflightCheckPassed"
-
-	// MoreThanOneProviderInstanceExistsReason (Severity=Info) documents that more than one instance of provider
-	// exists in the cluster.
-	MoreThanOneProviderInstanceExistsReason = "MoreThanOneExists"
+import (
+	_ "sigs.k8s.io/controller-runtime/tools/setup-envtest"
 )

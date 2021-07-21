@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // TODO: NOTE: The API details will be incrementally added and will eventually
 // conform to the CAPI Provider CAEP.

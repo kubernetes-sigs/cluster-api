@@ -144,6 +144,25 @@ func (c *components) Yaml() ([]byte, error) {
 	return utilyaml.FromUnstructured(c.objs)
 }
 
+// ComponentsAlterFn defines the function that is used to alter the components.Objs().
+type ComponentsAlterFn func(objs []unstructured.Unstructured) ([]unstructured.Unstructured, error)
+
+// AlterComponents provides a mechanism to alter the component.Objs from outside
+// the repository module.
+func AlterComponents(comps Components, alterFn ComponentsAlterFn) error {
+	c, ok := comps.(*components)
+	if !ok {
+		return errors.New("could not alter components as Components is not of the correct type")
+	}
+
+	alteredObjs, err := alterFn(c.Objs())
+	if err != nil {
+		return err
+	}
+	c.objs = alteredObjs
+	return nil
+}
+
 // ComponentsOptions represents specific inputs that are passed in to
 // clusterctl library. These are user specified inputs.
 type ComponentsOptions struct {

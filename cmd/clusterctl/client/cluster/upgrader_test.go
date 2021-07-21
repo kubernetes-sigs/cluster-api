@@ -47,14 +47,14 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1").
 						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -92,14 +92,14 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0-alpha.0").
 						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -143,7 +143,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -151,7 +151,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -203,7 +203,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -211,7 +211,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -263,7 +263,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -271,7 +271,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0"). // no new releases available for the infra provider (only the current release exists)
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -353,14 +353,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1").
 						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -401,14 +401,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1").
 						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -449,7 +449,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -457,7 +457,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -507,7 +507,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -515,7 +515,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -549,7 +549,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -557,7 +557,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -591,7 +591,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -599,7 +599,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -633,7 +633,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -641,7 +641,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -675,7 +675,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -683,7 +683,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -721,7 +721,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -729,7 +729,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infra": test.NewFakeRepository().
+					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -821,7 +821,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -829,7 +829,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -857,7 +857,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -865,7 +865,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -935,7 +935,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -943,7 +943,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -980,7 +980,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
-					"cluster-api": test.NewFakeRepository().
+					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -988,7 +988,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
 						}),
-					"infrastructure-infra": test.NewFakeRepository().
+					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{

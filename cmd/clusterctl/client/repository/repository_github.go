@@ -173,7 +173,7 @@ func newGitHubRepository(providerConfig config.Provider, configVariablesClient c
 	}
 
 	if defaultVersion == githubLatestReleaseLabel {
-		repo.defaultVersion, err = LatestContractRelease(repo, clusterv1.GroupVersion.Version)
+		repo.defaultVersion, err = latestContractRelease(repo, clusterv1.GroupVersion.Version)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get GitHub latest version")
 		}

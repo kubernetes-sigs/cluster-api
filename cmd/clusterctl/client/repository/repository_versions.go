@@ -1,3 +1,19 @@
+/*
+Copyright 2021 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package repository
 
 import (
@@ -9,15 +25,19 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 )
 
-// LatestContractRelease returns the latest patch release for a github repository for the current API contract, according to
+const (
+	latestVersionTag = "latest"
+)
+
+// latestContractRelease returns the latest patch release for a repository for the current API contract, according to
 // semantic version order of the release tag name.
-func LatestContractRelease(repo Repository, contract string) (string, error) {
-	latest, err := LatestRelease(repo)
+func latestContractRelease(repo Repository, contract string) (string, error) {
+	latest, err := latestRelease(repo)
 	if err != nil {
 		return latest, err
 	}
 	// Attempt to check if the latest release satisfies the API Contract
-	// This is a best-effort attempt to find the latest release for an older API contract if it's not the latest Github release.
+	// This is a best-effort attempt to find the latest release for an older API contract if it's not the latest release.
 	// If an error occurs, we just return the latest release.
 	file, err := repo.GetFile(latest, metadataFile)
 	if err != nil {
@@ -43,19 +63,19 @@ func LatestContractRelease(repo Repository, contract string) (string, error) {
 	// If the Major or Minor version of the latest release doesn't match the release series for the current contract,
 	// return the latest patch release of the desired Major/Minor version.
 	if sv.Major() != releaseSeries.Major || sv.Minor() != releaseSeries.Minor {
-		return LatestPatchRelease(repo, &releaseSeries.Major, &releaseSeries.Minor)
+		return latestPatchRelease(repo, &releaseSeries.Major, &releaseSeries.Minor)
 	}
 	return latest, nil
 }
 
-// LatestRelease returns the latest release for a github repository, according to
+// latestRelease returns the latest release for a repository, according to
 // semantic version order of the release tag name.
-func LatestRelease(repo Repository) (string, error) {
-	return LatestPatchRelease(repo, nil, nil)
+func latestRelease(repo Repository) (string, error) {
+	return latestPatchRelease(repo, nil, nil)
 }
 
-// LatestPatchRelease returns the latest patch release for a given Major and Minor version.
-func LatestPatchRelease(repo Repository, major, minor *uint) (string, error) {
+// latestPatchRelease returns the latest patch release for a given Major and Minor version.
+func latestPatchRelease(repo Repository, major, minor *uint) (string, error) {
 	versions, err := repo.GetVersions()
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get repository versions")

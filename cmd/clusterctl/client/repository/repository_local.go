@@ -30,10 +30,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
 
-const (
-	latestVersionTag = "latest"
-)
-
 // localRepository provides support for providers located on the local filesystem.
 // As part of the provider object, the URL is expected to contain the absolute
 // path to the components yaml on the local filesystem.
@@ -90,7 +86,7 @@ func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
 	var err error
 
 	if version == latestVersionTag {
-		version, err = LatestRelease(r)
+		version, err = latestRelease(r)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get the latest release")
 		}
@@ -194,7 +190,7 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 	}
 
 	if defaultVersion == latestVersionTag {
-		repo.defaultVersion, err = LatestContractRelease(repo, clusterv1.GroupVersion.Version)
+		repo.defaultVersion, err = latestContractRelease(repo, clusterv1.GroupVersion.Version)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get latest version")
 		}

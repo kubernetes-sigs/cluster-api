@@ -22,7 +22,6 @@ import (
 
 	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,7 +56,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "foo.cluster.x-k8s.io/v1alpha4",
 						Kind:       "TestMachine",
 						Name:       "infra-1",
@@ -86,7 +85,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "bar.cluster.x-k8s.io/v1alpha4",
 						Kind:       "TestMachine",
 						Name:       "bar-1",
@@ -128,7 +127,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
+					InfrastructureRef: &clusterv1.LocalObjectReference{
 						APIVersion: "foo.cluster.x-k8s.io/v1alpha4",
 						Kind:       "TestCluster",
 						Name:       "infra-1",
@@ -157,7 +156,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
+					InfrastructureRef: &clusterv1.LocalObjectReference{
 						APIVersion: "bar.cluster.x-k8s.io/v1alpha4",
 						Kind:       "TestCluster",
 						Name:       "bar-1",

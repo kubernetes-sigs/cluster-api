@@ -23,7 +23,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
@@ -89,7 +88,7 @@ func TestControlPlane(t *testing.T) {
 		})
 
 		t.Run("Should generate a new machine with a controller reference", func(t *testing.T) {
-			machine := controlPlane.NewMachine(&corev1.ObjectReference{Namespace: "foobar"}, &corev1.ObjectReference{Namespace: "foobar"}, pointer.StringPtr("failureDomain"))
+			machine := controlPlane.NewMachine(&clusterv1.LocalObjectReference{}, &clusterv1.LocalObjectReference{}, pointer.StringPtr("failureDomain"))
 			g.Expect(machine.OwnerReferences[0].Controller).ToNot(BeNil())
 		})
 	})

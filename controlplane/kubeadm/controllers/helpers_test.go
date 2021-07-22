@@ -358,11 +358,10 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       genericMachineTemplate.GetKind(),
 					APIVersion: genericMachineTemplate.GetAPIVersion(),
 					Name:       genericMachineTemplate.GetName(),
-					Namespace:  cluster.Namespace,
 				},
 			},
 			Version: "v1.16.6",
@@ -390,17 +389,15 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		g.Expect(m.Name).NotTo(BeEmpty())
 		g.Expect(m.Name).To(HavePrefix(kcp.Name))
 
-		infraObj, err := external.Get(ctx, r.Client, &m.Spec.InfrastructureRef, m.Spec.InfrastructureRef.Namespace)
+		infraObj, err := external.Get(ctx, r.Client, &m.Spec.InfrastructureRef, m.Namespace)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericMachineTemplate.GroupVersionKind().GroupKind().String()))
 
-		g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(cluster.Namespace))
 		g.Expect(m.Spec.InfrastructureRef.Name).To(HavePrefix(genericMachineTemplate.GetName()))
 		g.Expect(m.Spec.InfrastructureRef.APIVersion).To(Equal(genericMachineTemplate.GetAPIVersion()))
 		g.Expect(m.Spec.InfrastructureRef.Kind).To(Equal("GenericMachine"))
 
-		g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(cluster.Namespace))
 		g.Expect(m.Spec.Bootstrap.ConfigRef.Name).To(HavePrefix(kcp.Name))
 		g.Expect(m.Spec.Bootstrap.ConfigRef.APIVersion).To(Equal(bootstrapv1.GroupVersion.String()))
 		g.Expect(m.Spec.Bootstrap.ConfigRef.Kind).To(Equal("KubeadmConfig"))
@@ -442,11 +439,10 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       genericMachineTemplate.GetKind(),
 					APIVersion: genericMachineTemplate.GetAPIVersion(),
 					Name:       genericMachineTemplate.GetName(),
-					Namespace:  cluster.Namespace,
 				},
 			},
 			Version: "v1.16.6",
@@ -497,17 +493,15 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 		},
 	}
 
-	infraRef := &corev1.ObjectReference{
+	infraRef := &clusterv1.LocalObjectReference{
 		Kind:       "InfraKind",
 		APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 		Name:       "infra",
-		Namespace:  cluster.Namespace,
 	}
-	bootstrapRef := &corev1.ObjectReference{
+	bootstrapRef := &clusterv1.LocalObjectReference{
 		Kind:       "BootstrapKind",
 		APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 		Name:       "bootstrap",
-		Namespace:  cluster.Namespace,
 	}
 	expectedMachineSpec := clusterv1.MachineSpec{
 		ClusterName: cluster.Name,

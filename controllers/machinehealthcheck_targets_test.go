@@ -440,7 +440,7 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 			InfrastructureReady: true,
 			BootstrapReady:      true,
 			Phase:               string(clusterv1.MachinePhaseRunning),
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.PinnedObjectReference{
 				Name: nodeName,
 			},
 		},

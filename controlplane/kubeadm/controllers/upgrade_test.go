@@ -25,7 +25,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
@@ -155,7 +154,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
+					ConfigRef: &clusterv1.LocalObjectReference{
 						APIVersion: bootstrapv1.GroupVersion.String(),
 						Kind:       "KubeadmConfig",
 						Name:       name,

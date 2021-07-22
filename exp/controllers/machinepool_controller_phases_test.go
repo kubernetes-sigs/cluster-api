@@ -60,13 +60,13 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
@@ -211,7 +211,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
-		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+		machinepool.Status.NodeRefs = []clusterv1.LocalObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
@@ -266,7 +266,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
-		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+		machinepool.Status.NodeRefs = []clusterv1.LocalObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
@@ -299,7 +299,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
-		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+		machinepool.Status.NodeRefs = []clusterv1.LocalObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
@@ -339,7 +339,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
-		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+		machinepool.Status.NodeRefs = []clusterv1.LocalObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
@@ -387,7 +387,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Spec.Replicas = pointer.Int32Ptr(4)
 
 		// Set NodeRef.
-		machinepool.Status.NodeRefs = []corev1.ObjectReference{
+		machinepool.Status.NodeRefs = []clusterv1.LocalObjectReference{
 			{Kind: "Node", Name: "machinepool-test-node-0"},
 			{Kind: "Node", Name: "machinepool-test-node-1"},
 			{Kind: "Node", Name: "machinepool-test-node-2"},
@@ -447,7 +447,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
-		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+		machinepool.Status.NodeRefs = []clusterv1.LocalObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		// Set Deletion Timestamp.
 		machinepool.SetDeletionTimestamp(&deletionTimestamp)
@@ -478,7 +478,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
@@ -619,7 +619,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &corev1.ObjectReference{
+								ConfigRef: &clusterv1.LocalObjectReference{
 									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
@@ -663,7 +663,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &corev1.ObjectReference{
+								ConfigRef: &clusterv1.LocalObjectReference{
 									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
@@ -725,13 +725,13 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
@@ -804,13 +804,13 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &corev1.ObjectReference{
+								ConfigRef: &clusterv1.LocalObjectReference{
 									APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
 							},
-							InfrastructureRef: corev1.ObjectReference{
+							InfrastructureRef: clusterv1.LocalObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
@@ -821,7 +821,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				Status: expv1.MachinePoolStatus{
 					BootstrapReady:      true,
 					InfrastructureReady: true,
-					NodeRefs:            []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}},
+					NodeRefs:            []clusterv1.LocalObjectReference{{Kind: "Node", Name: "machinepool-test-node"}},
 				},
 			},
 			bootstrapConfig: map[string]interface{}{

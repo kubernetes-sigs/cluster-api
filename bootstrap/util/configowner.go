@@ -21,7 +21,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -121,7 +120,7 @@ func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*C
 
 		for _, gk := range allowedGKs {
 			if refGVK.Group == gk.Group && refGVK.Kind == gk.Kind {
-				return GetOwnerByRef(ctx, c, &corev1.ObjectReference{
+				return GetOwnerByRef(ctx, c, &clusterv1.ObjectReference{
 					APIVersion: ref.APIVersion,
 					Kind:       ref.Kind,
 					Name:       ref.Name,
@@ -134,8 +133,8 @@ func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*C
 }
 
 // GetOwnerByRef finds and returns the owner by looking at the object reference.
-func GetOwnerByRef(ctx context.Context, c client.Client, ref *corev1.ObjectReference) (*ConfigOwner, error) {
-	obj, err := external.Get(ctx, c, ref, ref.Namespace)
+func GetOwnerByRef(ctx context.Context, c client.Client, ref *clusterv1.ObjectReference) (*ConfigOwner, error) {
+	obj, err := external.Get(ctx, c, ref.ToLocal(), ref.Namespace)
 	if err != nil {
 		return nil, err
 	}

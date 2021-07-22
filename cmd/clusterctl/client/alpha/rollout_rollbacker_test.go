@@ -64,7 +64,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test",
 					Version:     &currentVersion,
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureMachineTemplate",
 						Name:       "md-template",
@@ -143,7 +143,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 								Spec: clusterv1.MachineSpec{
 									ClusterName: "test",
 									Version:     &rollbackVersion,
-									InfrastructureRef: corev1.ObjectReference{
+									InfrastructureRef: clusterv1.LocalObjectReference{
 										APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 										Kind:       "InfrastructureMachineTemplate",
 										Name:       "md-template-rollback",

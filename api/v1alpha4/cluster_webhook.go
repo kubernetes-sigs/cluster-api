@@ -45,14 +45,6 @@ var _ webhook.Validator = &Cluster{}
 
 // Default satisfies the defaulting webhook interface.
 func (c *Cluster) Default() {
-	if c.Spec.InfrastructureRef != nil && len(c.Spec.InfrastructureRef.Namespace) == 0 {
-		c.Spec.InfrastructureRef.Namespace = c.Namespace
-	}
-
-	if c.Spec.ControlPlaneRef != nil && len(c.Spec.ControlPlaneRef.Namespace) == 0 {
-		c.Spec.ControlPlaneRef.Namespace = c.Namespace
-	}
-
 	// If the Cluster uses a managed topology
 	if c.Spec.Topology != nil {
 		// tolerate version strings without a "v" prefix: prepend it if it's not there
@@ -83,27 +75,6 @@ func (c *Cluster) ValidateDelete() error {
 
 func (c *Cluster) validate(old *Cluster) error {
 	var allErrs field.ErrorList
-	if c.Spec.InfrastructureRef != nil && c.Spec.InfrastructureRef.Namespace != c.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "infrastructureRef", "namespace"),
-				c.Spec.InfrastructureRef.Namespace,
-				"must match metadata.namespace",
-			),
-		)
-	}
-
-	if c.Spec.ControlPlaneRef != nil && c.Spec.ControlPlaneRef.Namespace != c.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "controlPlaneRef", "namespace"),
-				c.Spec.ControlPlaneRef.Namespace,
-				"must match metadata.namespace",
-			),
-		)
-	}
 
 	// Validate the managed topology, if defined.
 	if c.Spec.Topology != nil {

@@ -120,7 +120,7 @@ func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Contex
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref *clusterv1.LocalObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
 		return nil
 	}
@@ -186,7 +186,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 
 	// Only proceed to generating the Machine if we haven't encountered an error
 	if len(errs) == 0 {
-		if err := r.generateMachine(ctx, kcp, cluster, infraRef, bootstrapRef, failureDomain); err != nil {
+		if err := r.generateMachine(ctx, kcp, cluster, infraRef, bootstrapRef.ToLocal(), failureDomain); err != nil {
 			conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedCondition, controlplanev1.MachineGenerationFailedReason,
 				clusterv1.ConditionSeverityError, err.Error())
 			errs = append(errs, errors.Wrap(err, "failed to create Machine"))
@@ -195,7 +195,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 
 	// If we encountered any errors, attempt to clean up any dangling resources
 	if len(errs) > 0 {
-		if err := r.cleanupFromGeneration(ctx, infraRef, bootstrapRef); err != nil {
+		if err := r.cleanupFromGeneration(ctx, infraRef.ToRef(kcp.Namespace), bootstrapRef); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to cleanup generated resources"))
 		}
 
@@ -205,7 +205,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Context, remoteRefs ...*corev1.ObjectReference) error {
+func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Context, remoteRefs ...*clusterv1.ObjectReference) error {
 	var errs []error
 
 	for _, ref := range remoteRefs {
@@ -225,7 +225,7 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 	return kerrors.NewAggregate(errs)
 }
 
-func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec) (*corev1.ObjectReference, error) {
+func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec) (*clusterv1.ObjectReference, error) {
 	// Create an owner reference without a controller reference because the owning controller is the machine controller
 	owner := metav1.OwnerReference{
 		APIVersion: controlplanev1.GroupVersion.String(),
@@ -249,18 +249,18 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 		return nil, errors.Wrap(err, "Failed to create bootstrap configuration")
 	}
 
-	bootstrapRef := &corev1.ObjectReference{
+	bootstrapRef := &clusterv1.ObjectReference{
 		APIVersion: bootstrapv1.GroupVersion.String(),
 		Kind:       "KubeadmConfig",
 		Name:       bootstrapConfig.GetName(),
 		Namespace:  bootstrapConfig.GetNamespace(),
-		UID:        bootstrapConfig.GetUID(),
+		// UID:        bootstrapConfig.GetUID(),
 	}
 
 	return bootstrapRef, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string) error {
+func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *clusterv1.LocalObjectReference, failureDomain *string) error {
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),

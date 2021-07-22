@@ -476,7 +476,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o client.Ob
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
 	if controlPlaneRef != nil && controlPlaneRef.Kind == "KubeadmControlPlane" {
-		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}}}
+		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: controlPlaneRef.Name}}}
 	}
 
 	return nil
@@ -591,8 +591,8 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 		}
 
 		// TODO instead of returning error here, we should instead Event and add a watch on potentially adoptable Machines
-		if ref.Namespace != "" && ref.Namespace != kcp.Namespace {
-			return errors.Errorf("could not adopt resources from KubeadmConfig %v/%v: cannot adopt across namespaces", ref.Namespace, ref.Name)
+		if m.Namespace != "" && m.Namespace != kcp.Namespace {
+			return errors.Errorf("could not adopt resources from KubeadmConfig %v/%v: cannot adopt across namespaces", m.Namespace, ref.Name)
 		}
 
 		if m.Spec.Version == nil {

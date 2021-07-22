@@ -57,7 +57,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
 					Name:       "foo",
@@ -113,7 +113,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
 					Name:       "foo",
@@ -178,7 +178,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
 					Name:       "foo",
@@ -251,7 +251,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
 					Name:       "foo",
@@ -324,7 +324,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 			Version:  "v1.16.6",
 			Replicas: pointer.Int32Ptr(3),
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
 					Name:       "foo",

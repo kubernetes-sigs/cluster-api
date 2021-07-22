@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -81,7 +82,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			name:           "valid provider id, valid aws node",
 			providerIDList: []string{"aws://us-east-1/id-node-1"},
 			expected: &getNodeReferencesResult{
-				references: []corev1.ObjectReference{
+				references: []clusterv1.LocalObjectReference{
 					{Name: "node-1"},
 				},
 			},
@@ -90,7 +91,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			name:           "valid provider id, valid aws node",
 			providerIDList: []string{"aws://us-west-2/id-node-2"},
 			expected: &getNodeReferencesResult{
-				references: []corev1.ObjectReference{
+				references: []clusterv1.LocalObjectReference{
 					{Name: "node-2"},
 				},
 			},
@@ -99,7 +100,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			name:           "valid provider id, valid gce node",
 			providerIDList: []string{"gce://us-central1/gce-id-node-2"},
 			expected: &getNodeReferencesResult{
-				references: []corev1.ObjectReference{
+				references: []clusterv1.LocalObjectReference{
 					{Name: "gce-node-2"},
 				},
 			},
@@ -108,7 +109,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			name:           "valid provider id, valid azure node",
 			providerIDList: []string{"azure://westus2/id-node-4"},
 			expected: &getNodeReferencesResult{
-				references: []corev1.ObjectReference{
+				references: []clusterv1.LocalObjectReference{
 					{Name: "azure-node-4"},
 				},
 			},
@@ -117,7 +118,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			name:           "valid provider ids, valid azure and aws nodes",
 			providerIDList: []string{"aws://us-east-1/id-node-1", "azure://westus2/id-node-4"},
 			expected: &getNodeReferencesResult{
-				references: []corev1.ObjectReference{
+				references: []clusterv1.LocalObjectReference{
 					{Name: "node-1"},
 					{Name: "azure-node-4"},
 				},
@@ -151,7 +152,6 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 
 			for n := range test.expected.references {
 				g.Expect(result.references[n].Name).To(Equal(test.expected.references[n].Name), "Expected NodeRef's name to be %v, got %v", result.references[n].Name, test.expected.references[n].Name)
-				g.Expect(result.references[n].Namespace).To(Equal(test.expected.references[n].Namespace), "Expected NodeRef's namespace to be %v, got %v", result.references[n].Namespace, test.expected.references[n].Namespace)
 			}
 		})
 	}

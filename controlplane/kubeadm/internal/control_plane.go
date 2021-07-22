@@ -21,7 +21,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -108,7 +107,7 @@ func (c *ControlPlane) Version() *string {
 }
 
 // MachineInfrastructureTemplateRef returns the KubeadmControlPlane's infrastructure template for Machines.
-func (c *ControlPlane) MachineInfrastructureTemplateRef() *corev1.ObjectReference {
+func (c *ControlPlane) MachineInfrastructureTemplateRef() *clusterv1.LocalObjectReference {
 	return &c.KCP.Spec.MachineTemplate.InfrastructureRef
 }
 
@@ -215,7 +214,7 @@ func (c *ControlPlane) GenerateKubeadmConfig(spec *bootstrapv1.KubeadmConfigSpec
 }
 
 // NewMachine returns a machine configured to be a part of the control plane.
-func (c *ControlPlane) NewMachine(infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string) *clusterv1.Machine {
+func (c *ControlPlane) NewMachine(infraRef, bootstrapRef *clusterv1.LocalObjectReference, failureDomain *string) *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        names.SimpleNameGenerator.GenerateName(c.KCP.Name + "-"),

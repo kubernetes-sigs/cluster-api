@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -56,11 +55,10 @@ func TestGetResourceFound(t *testing.T) {
 	testResource.SetNamespace(testNamespace)
 	testResource.SetResourceVersion(testResourceVersion)
 
-	testResourceReference := &corev1.ObjectReference{
+	testResourceReference := &clusterv1.LocalObjectReference{
 		Kind:       testResourceKind,
 		APIVersion: testResourceAPIVersion,
 		Name:       testResourceName,
-		Namespace:  testNamespace,
 	}
 
 	fakeClient := fake.NewClientBuilder().WithObjects(testResource.DeepCopy()).Build()
@@ -74,11 +72,10 @@ func TestGetResourceNotFound(t *testing.T) {
 
 	namespace := "test"
 
-	testResourceReference := &corev1.ObjectReference{
+	testResourceReference := &clusterv1.LocalObjectReference{
 		Kind:       "BlueTemplate",
 		APIVersion: "blue.io/v1",
 		Name:       "blueTemplate",
-		Namespace:  namespace,
 	}
 
 	fakeClient := fake.NewClientBuilder().Build()
@@ -92,11 +89,10 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 
 	testClusterName := "bar"
 
-	testResourceReference := &corev1.ObjectReference{
+	testResourceReference := &clusterv1.LocalObjectReference{
 		Kind:       "OrangeTemplate",
 		APIVersion: "orange.io/v1",
 		Name:       "orangeTemplate",
-		Namespace:  testNamespace,
 	}
 
 	fakeClient := fake.NewClientBuilder().Build()
@@ -145,11 +141,10 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 		},
 	}
 
-	templateRef := corev1.ObjectReference{
+	templateRef := clusterv1.LocalObjectReference{
 		Kind:       templateKind,
 		APIVersion: templateAPIVersion,
 		Name:       templateName,
-		Namespace:  testNamespace,
 	}
 
 	owner := metav1.OwnerReference{
@@ -191,14 +186,13 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	g.Expect(ref).NotTo(BeNil())
 	g.Expect(ref.Kind).To(Equal(expectedKind))
 	g.Expect(ref.APIVersion).To(Equal(expectedAPIVersion))
-	g.Expect(ref.Namespace).To(Equal(testNamespace))
 	g.Expect(ref.Name).To(HavePrefix(templateRef.Name))
 
 	clone := &unstructured.Unstructured{}
 	clone.SetKind(expectedKind)
 	clone.SetAPIVersion(expectedAPIVersion)
 
-	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
+	key := client.ObjectKey{Name: ref.Name, Namespace: testNamespace}
 	g.Expect(fakeClient.Get(ctx, key, clone)).To(Succeed())
 	g.Expect(clone.GetOwnerReferences()).To(HaveLen(1))
 	g.Expect(clone.GetOwnerReferences()).To(ContainElement(owner))
@@ -246,11 +240,10 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 		},
 	}
 
-	templateRef := &corev1.ObjectReference{
+	templateRef := &clusterv1.LocalObjectReference{
 		Kind:       templateKind,
 		APIVersion: templateAPIVersion,
 		Name:       templateName,
-		Namespace:  testNamespace,
 	}
 
 	expectedKind := "Yellow"
@@ -274,13 +267,12 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	g.Expect(ref).NotTo(BeNil())
 	g.Expect(ref.Kind).To(Equal(expectedKind))
 	g.Expect(ref.APIVersion).To(Equal(expectedAPIVersion))
-	g.Expect(ref.Namespace).To(Equal(testNamespace))
 	g.Expect(ref.Name).To(HavePrefix(templateRef.Name))
 
 	clone := &unstructured.Unstructured{}
 	clone.SetKind(expectedKind)
 	clone.SetAPIVersion(expectedAPIVersion)
-	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
+	key := client.ObjectKey{Name: ref.Name, Namespace: testNamespace}
 	g.Expect(fakeClient.Get(ctx, key, clone)).To(Succeed())
 	g.Expect(clone.GetLabels()).To(Equal(expectedLabels))
 	g.Expect(clone.GetOwnerReferences()).To(BeEmpty())
@@ -309,11 +301,10 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 		},
 	}
 
-	templateRef := &corev1.ObjectReference{
+	templateRef := &clusterv1.LocalObjectReference{
 		Kind:       templateKind,
 		APIVersion: templateAPIVersion,
 		Name:       templateName,
-		Namespace:  testNamespace,
 	}
 
 	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()

@@ -25,7 +25,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -178,12 +177,12 @@ func TestEqualMachineTemplate(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "MachineBootstrap",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 						Kind:       "MachineInfrastructure",
 					},
@@ -195,12 +194,12 @@ func TestEqualMachineTemplate(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "MachineBootstrap",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "MachineInfrastructure",
 					},
@@ -216,12 +215,12 @@ func TestEqualMachineTemplate(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "MachineBootstrap1",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 						Kind:       "MachineInfrastructure",
 					},
@@ -233,12 +232,12 @@ func TestEqualMachineTemplate(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "MachineBootstrap2",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "MachineInfrastructure",
 					},

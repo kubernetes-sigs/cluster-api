@@ -337,7 +337,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 
 			// Clone and set the infrastructure and bootstrap references.
 			var (
-				infraRef, bootstrapRef *corev1.ObjectReference
+				infraRef, bootstrapRef *clusterv1.LocalObjectReference
 				err                    error
 			)
 
@@ -374,11 +374,11 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				errs = append(errs, err)
 
 				// Try to cleanup the external objects if the Machine creation failed.
-				if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*infraRef)); !apierrors.IsNotFound(err) {
+				if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*infraRef.ToRef(""))); !apierrors.IsNotFound(err) {
 					log.Error(err, "Failed to cleanup infrastructure configuration object after Machine creation error")
 				}
 				if bootstrapRef != nil {
-					if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*bootstrapRef)); !apierrors.IsNotFound(err) {
+					if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*bootstrapRef.ToRef(""))); !apierrors.IsNotFound(err) {
 						log.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error")
 					}
 				}
@@ -666,7 +666,7 @@ func (r *MachineSetReconciler) getMachineNode(ctx context.Context, cluster *clus
 	return node, nil
 }
 
-func reconcileExternalTemplateReference(ctx context.Context, c client.Client, restConfig *rest.Config, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+func reconcileExternalTemplateReference(ctx context.Context, c client.Client, restConfig *rest.Config, cluster *clusterv1.Cluster, ref *clusterv1.LocalObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
 		return nil
 	}

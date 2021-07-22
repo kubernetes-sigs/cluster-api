@@ -55,14 +55,6 @@ func (m *MachinePool) Default() {
 	if m.Spec.MinReadySeconds == nil {
 		m.Spec.MinReadySeconds = pointer.Int32Ptr(0)
 	}
-
-	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
-		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
-	}
-
-	if len(m.Spec.Template.Spec.InfrastructureRef.Namespace) == 0 {
-		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
-	}
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
@@ -92,28 +84,6 @@ func (m *MachinePool) validate(old *MachinePool) error {
 			field.Required(
 				field.NewPath("spec", "template", "spec", "bootstrap", "data"),
 				"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
-			),
-		)
-	}
-
-	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace != m.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "template", "spec", "bootstrap", "configRef", "namespace"),
-				m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace,
-				"must match metadata.namespace",
-			),
-		)
-	}
-
-	if m.Spec.Template.Spec.InfrastructureRef.Namespace != m.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "infrastructureRef", "namespace"),
-				m.Spec.Template.Spec.InfrastructureRef.Namespace,
-				"must match metadata.namespace",
 			),
 		)
 	}

@@ -21,7 +21,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/errors"
@@ -127,7 +126,7 @@ func (in *MachinePoolStatus) DeepCopyInto(out *MachinePoolStatus) {
 	*out = *in
 	if in.NodeRefs != nil {
 		in, out := &in.NodeRefs, &out.NodeRefs
-		*out = make([]v1.ObjectReference, len(*in))
+		*out = make([]apiv1alpha4.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	if in.FailureReason != nil {

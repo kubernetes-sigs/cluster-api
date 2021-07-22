@@ -61,9 +61,8 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: "test"})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
+		ControlPlaneRef: &clusterv1.LocalObjectReference{
 			Kind:       "KubeadmControlPlane",
-			Namespace:  "test",
 			Name:       "kcp-foo",
 			APIVersion: controlplanev1.GroupVersion.String(),
 		},
@@ -72,7 +71,7 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 	expectedResult := []ctrl.Request{
 		{
 			NamespacedName: client.ObjectKey{
-				Namespace: cluster.Spec.ControlPlaneRef.Namespace,
+				Namespace: cluster.Namespace,
 				Name:      cluster.Spec.ControlPlaneRef.Name},
 		},
 	}
@@ -107,9 +106,8 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: "test"})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
+		ControlPlaneRef: &clusterv1.LocalObjectReference{
 			Kind:       "OtherControlPlane",
-			Namespace:  "test",
 			Name:       "other-foo",
 			APIVersion: controlplanev1.GroupVersion.String(),
 		},
@@ -214,11 +212,10 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       "UnknownInfraMachine",
 					APIVersion: "test/v1alpha1",
 					Name:       "foo",
-					Namespace:  "test",
 				},
 			},
 		},
@@ -252,11 +249,10 @@ func TestReconcileNoKCP(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       "UnknownInfraMachine",
 					APIVersion: "test/v1alpha1",
 					Name:       "foo",
-					Namespace:  "test",
 				},
 			},
 		},
@@ -290,11 +286,10 @@ func TestReconcileNoCluster(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       "UnknownInfraMachine",
 					APIVersion: "test/v1alpha1",
 					Name:       "foo",
-					Namespace:  "test",
 				},
 			},
 		},
@@ -339,11 +334,10 @@ func TestReconcilePaused(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       "UnknownInfraMachine",
 					APIVersion: "test/v1alpha1",
 					Name:       "foo",
-					Namespace:  "test",
 				},
 			},
 		},
@@ -392,11 +386,10 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       "UnknownInfraMachine",
 					APIVersion: "test/v1alpha1",
 					Name:       "foo",
-					Namespace:  "test",
 				},
 			},
 		},
@@ -465,7 +458,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: bootstrapv1.GroupVersion.String(),
 							Kind:       "KubeadmConfig",
 							Name:       name,
@@ -528,7 +521,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: bootstrapv1.GroupVersion.String(),
 							Kind:       "KubeadmConfig",
 							Name:       name,
@@ -636,7 +629,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: bootstrapv1.GroupVersion.String(),
 							Kind:       "KubeadmConfig",
 							Name:       name,
@@ -693,7 +686,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: &corev1.ObjectReference{
+							ConfigRef: &clusterv1.LocalObjectReference{
 								APIVersion: bootstrapv1.GroupVersion.String(),
 								Kind:       "KubeadmConfig",
 							},
@@ -774,11 +767,10 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       genericMachineTemplate.GetKind(),
 					APIVersion: genericMachineTemplate.GetAPIVersion(),
 					Name:       genericMachineTemplate.GetName(),
-					Namespace:  cluster.Namespace,
 				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
@@ -906,7 +898,7 @@ kubernetesVersion: metav1.16.1`,
 	machine := machineList.Items[0]
 	g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 	// Newly cloned infra objects should have the infraref annotation.
-	infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Spec.InfrastructureRef.Namespace)
+	infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericMachineTemplate.GetName()))
 	g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericMachineTemplate.GroupVersionKind().GroupKind().String()))
@@ -1385,9 +1377,8 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 	namespace := "default"
 	cluster := newCluster(&types.NamespacedName{Name: kcpName, Namespace: namespace})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
+		ControlPlaneRef: &clusterv1.LocalObjectReference{
 			Kind:       "KubeadmControlPlane",
-			Namespace:  namespace,
 			Name:       kcpName,
 			APIVersion: controlplanev1.GroupVersion.String(),
 		},
@@ -1412,9 +1403,8 @@ func createClusterWithControlPlane() (*clusterv1.Cluster, *controlplanev1.Kubead
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					Kind:       "GenericMachineTemplate",
-					Namespace:  namespace,
 					Name:       "infra-foo",
 					APIVersion: "generic.io/v1",
 				},
@@ -1478,15 +1468,14 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
+			InfrastructureRef: clusterv1.LocalObjectReference{
 				Kind:       external.TestGenericInfrastructureCRD.Kind,
 				APIVersion: external.TestGenericInfrastructureCRD.APIVersion,
 				Name:       external.TestGenericInfrastructureCRD.Name,
-				Namespace:  external.TestGenericInfrastructureCRD.Namespace,
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.PinnedObjectReference{
 				Kind:       "Node",
 				APIVersion: corev1.SchemeGroupVersion.String(),
 				Name:       name,

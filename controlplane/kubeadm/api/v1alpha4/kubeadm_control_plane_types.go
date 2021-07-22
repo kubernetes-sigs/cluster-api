@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -92,7 +91,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 
 	// InfrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
-	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
+	InfrastructureRef clusterv1.LocalObjectReference `json:"infrastructureRef"`
 
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.

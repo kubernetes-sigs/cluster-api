@@ -48,7 +48,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 					Host: "1.2.3.4",
 					Port: 8443,
 				},
-				InfrastructureRef: &corev1.ObjectReference{
+				InfrastructureRef: &clusterv1.LocalObjectReference{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 					Kind:       "InfrastructureMachine",
 					Name:       "test",
@@ -261,7 +261,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.LocalObjectReference{},
 				},
 			},
 
@@ -277,7 +277,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 					InfrastructureReady: true,
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.LocalObjectReference{},
 				},
 			},
 
@@ -290,7 +290,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 					Name: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.LocalObjectReference{},
 					ControlPlaneEndpoint: clusterv1.APIEndpoint{
 						Host: "1.2.3.4",
 						Port: 8443,
@@ -314,7 +314,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 					FailureReason:       &createClusterError,
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.LocalObjectReference{},
 				},
 			},
 
@@ -331,7 +331,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 					FailureMessage:      &failureMsg,
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.LocalObjectReference{},
 				},
 			},
 
@@ -348,7 +348,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 					InfrastructureReady: true,
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.LocalObjectReference{},
 				},
 			},
 

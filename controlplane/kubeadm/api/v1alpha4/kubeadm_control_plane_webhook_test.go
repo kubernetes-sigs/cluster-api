@@ -21,10 +21,10 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
@@ -39,7 +39,7 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 		Spec: KubeadmControlPlaneSpec{
 			Version: "v1.18.3",
 			MachineTemplate: KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
 					Name:       "foo",
@@ -50,16 +50,14 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 	}
 	updateDefaultingValidationKCP := kcp.DeepCopy()
 	updateDefaultingValidationKCP.Spec.Version = "v1.18.3"
-	updateDefaultingValidationKCP.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{
+	updateDefaultingValidationKCP.Spec.MachineTemplate.InfrastructureRef = clusterv1.LocalObjectReference{
 		APIVersion: "test/v1alpha1",
 		Kind:       "UnknownInfraMachine",
 		Name:       "foo",
-		Namespace:  "foo",
 	}
 	t.Run("for KubeadmControlPLane", utildefaulting.DefaultValidateTest(updateDefaultingValidationKCP))
 	kcp.Default()
 
-	g.Expect(kcp.Spec.MachineTemplate.InfrastructureRef.Namespace).To(Equal(kcp.Namespace))
 	g.Expect(kcp.Spec.Version).To(Equal("v1.18.3"))
 	g.Expect(kcp.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
 	g.Expect(kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
@@ -73,10 +71,9 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 		},
 		Spec: KubeadmControlPlaneSpec{
 			MachineTemplate: KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
-					Namespace:  "foo",
 					Name:       "infraTemplate",
 				},
 			},
@@ -95,9 +92,6 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 
 	invalidMaxSurge := valid.DeepCopy()
 	invalidMaxSurge.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(3)
-
-	invalidNamespace := valid.DeepCopy()
-	invalidNamespace.Spec.MachineTemplate.InfrastructureRef.Namespace = "bar"
 
 	missingReplicas := valid.DeepCopy()
 	missingReplicas.Spec.Replicas = nil
@@ -135,11 +129,6 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name:      "should succeed when given a valid config",
 			expectErr: false,
 			kcp:       valid,
-		},
-		{
-			name:      "should return error when kubeadmControlPlane namespace and infrastructureTemplate  namespace mismatch",
-			expectErr: true,
-			kcp:       invalidNamespace,
 		},
 		{
 			name:      "should return error when replicas is nil",
@@ -204,10 +193,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 		Spec: KubeadmControlPlaneSpec{
 			MachineTemplate: KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
-					Namespace:  "foo",
 					Name:       "infraTemplate",
 				},
 			},
@@ -331,9 +319,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	scaleToEven := before.DeepCopy()
 	scaleToEven.Spec.Replicas = pointer.Int32Ptr(2)
-
-	invalidNamespace := before.DeepCopy()
-	invalidNamespace.Spec.MachineTemplate.InfrastructureRef.Namespace = "bar"
 
 	missingReplicas := before.DeepCopy()
 	missingReplicas.Spec.Replicas = nil
@@ -584,12 +569,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    before,
 			kcp:       scaleToEven,
-		},
-		{
-			name:      "should return error when trying to reference cross namespace",
-			expectErr: true,
-			before:    before,
-			kcp:       invalidNamespace,
 		},
 		{
 			name:      "should return error when trying to scale to nil",
@@ -844,10 +823,9 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 		Spec: KubeadmControlPlaneSpec{
 			Version: "v1.19.0",
 			MachineTemplate: KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
+				InfrastructureRef: clusterv1.LocalObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
-					Namespace:  "foo",
 					Name:       "infraTemplate",
 				},
 			},
@@ -879,7 +857,6 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
-				g.Expect(tt.kcp.Spec.MachineTemplate.InfrastructureRef.Namespace).To(Equal(tt.before.Namespace))
 				g.Expect(tt.kcp.Spec.Version).To(Equal("v1.19.0"))
 				g.Expect(tt.kcp.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
 				g.Expect(tt.kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))

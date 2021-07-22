@@ -38,7 +38,7 @@ func intOrStrPtr(i int32) *intstr.IntOrString {
 	return &res
 }
 
-func fakeBootstrapRefReady(ref corev1.ObjectReference, base map[string]interface{}, g *WithT) {
+func fakeBootstrapRefReady(ref clusterv1.ObjectReference, base map[string]interface{}, g *WithT) {
 	bref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
 		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, bref)
@@ -61,7 +61,7 @@ func fakeBootstrapRefReady(ref corev1.ObjectReference, base map[string]interface
 	g.Expect(env.Status().Patch(ctx, bref, brefPatch)).To(Succeed())
 }
 
-func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]interface{}, g *WithT) string {
+func fakeInfrastructureRefReady(ref clusterv1.ObjectReference, base map[string]interface{}, g *WithT) string {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
 		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
@@ -115,7 +115,7 @@ func fakeMachineNodeRef(m *clusterv1.Machine, pid string, g *WithT) {
 	g.Expect(env.Patch(ctx, m, patchMachine)).To(Succeed())
 
 	patchMachine = client.MergeFrom(m.DeepCopy())
-	m.Status.NodeRef = &corev1.ObjectReference{
+	m.Status.NodeRef = &clusterv1.PinnedObjectReference{
 		APIVersion: node.APIVersion,
 		Kind:       node.Kind,
 		Name:       node.Name,

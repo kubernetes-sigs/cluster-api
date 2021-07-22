@@ -527,7 +527,7 @@ func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.
 }
 
 // ObjectReferenceToUnstructured converts an object reference to an unstructured object.
-func ObjectReferenceToUnstructured(in corev1.ObjectReference) *unstructured.Unstructured {
+func ObjectReferenceToUnstructured(in clusterv1.ObjectReference) *unstructured.Unstructured {
 	out := &unstructured.Unstructured{}
 	out.SetKind(in.Kind)
 	out.SetAPIVersion(in.APIVersion)

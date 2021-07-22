@@ -77,10 +77,6 @@ func (m *MachineHealthCheck) Default() {
 	if m.Spec.NodeStartupTimeout == nil {
 		m.Spec.NodeStartupTimeout = &DefaultNodeStartupTimeout
 	}
-
-	if m.Spec.RemediationTemplate != nil && len(m.Spec.RemediationTemplate.Namespace) == 0 {
-		m.Spec.RemediationTemplate.Namespace = m.Namespace
-	}
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
@@ -151,17 +147,6 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 				field.Invalid(field.NewPath("spec", "maxUnhealthy"), m.Spec.MaxUnhealthy, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
-	}
-
-	if m.Spec.RemediationTemplate != nil && m.Spec.RemediationTemplate.Namespace != m.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "remediationTemplate", "namespace"),
-				m.Spec.RemediationTemplate.Namespace,
-				"must match metadata.namespace",
-			),
-		)
 	}
 
 	if len(allErrs) == 0 {

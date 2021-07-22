@@ -92,8 +92,8 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).NotTo(HaveOccurred())
-			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
-			cluster.Spec.ControlPlaneRef = &corev1.ObjectReference{Name: "test-too"}
+			cluster.Spec.InfrastructureRef = &clusterv1.LocalObjectReference{Name: "test"}
+			cluster.Spec.ControlPlaneRef = &clusterv1.LocalObjectReference{Name: "test-too"}
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -184,7 +184,7 @@ func TestClusterReconciler(t *testing.T) {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
-			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
+			cluster.Spec.InfrastructureRef = &clusterv1.LocalObjectReference{Name: "test"}
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -365,7 +365,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				ClusterName: "test-cluster",
 			},
 			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
+				NodeRef: &clusterv1.PinnedObjectReference{
 					Kind:      "Node",
 					Namespace: "test-node",
 				},
@@ -402,7 +402,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				ClusterName: "test-cluster",
 			},
 			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
+				NodeRef: &clusterv1.PinnedObjectReference{
 					Kind:      "Node",
 					Namespace: "test-node",
 				},
@@ -725,9 +725,8 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 			Name: "c",
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &corev1.ObjectReference{
+			ControlPlaneRef: &clusterv1.LocalObjectReference{
 				APIVersion: "test.io/v1",
-				Namespace:  "test",
 				Name:       "foo",
 			},
 		},

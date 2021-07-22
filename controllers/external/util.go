@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -37,7 +36,7 @@ const (
 )
 
 // Get uses the client and reference to get an external, unstructured object.
-func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+func Get(ctx context.Context, c client.Client, ref *clusterv1.LocalObjectReference, namespace string) (*unstructured.Unstructured, error) {
 	obj := new(unstructured.Unstructured)
 	obj.SetAPIVersion(ref.APIVersion)
 	obj.SetKind(ref.Kind)
@@ -57,7 +56,7 @@ type CloneTemplateInput struct {
 
 	// TemplateRef is a reference to the template that needs to be cloned.
 	// +required
-	TemplateRef *corev1.ObjectReference
+	TemplateRef *clusterv1.LocalObjectReference
 
 	// Namespace is the Kubernetes namespace the cloned object should be created into.
 	// +required
@@ -81,7 +80,7 @@ type CloneTemplateInput struct {
 }
 
 // CloneTemplate uses the client and the reference to create a new object from the template.
-func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectReference, error) {
+func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*clusterv1.LocalObjectReference, error) {
 	from, err := Get(ctx, in.Client, in.TemplateRef, in.Namespace)
 	if err != nil {
 		return nil, err
@@ -116,7 +115,7 @@ type GenerateTemplateInput struct {
 
 	// TemplateRef is a reference to the template that needs to be cloned.
 	// +required
-	TemplateRef *corev1.ObjectReference
+	TemplateRef *clusterv1.LocalObjectReference
 
 	// Namespace is the Kubernetes namespace the cloned object should be created into.
 	// +required
@@ -198,13 +197,20 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 }
 
 // GetObjectReference converts an unstructured into object reference.
-func GetObjectReference(obj *unstructured.Unstructured) *corev1.ObjectReference {
-	return &corev1.ObjectReference{
+// func GetObjectReference(obj *unstructured.Unstructured) *clusterv1.PinnedObjectReference {
+// 	return &clusterv1.PinnedObjectReference{
+// 		APIVersion: obj.GetAPIVersion(),
+// 		Kind:       obj.GetKind(),
+// 		Name:       obj.GetName(),
+// 		Namespace:  obj.GetNamespace(),
+// 		UID:        obj.GetUID(),
+// 	}
+// }
+func GetObjectReference(obj *unstructured.Unstructured) *clusterv1.LocalObjectReference {
+	return &clusterv1.LocalObjectReference{
 		APIVersion: obj.GetAPIVersion(),
 		Kind:       obj.GetKind(),
 		Name:       obj.GetName(),
-		Namespace:  obj.GetNamespace(),
-		UID:        obj.GetUID(),
 	}
 }
 

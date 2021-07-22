@@ -79,7 +79,7 @@ func (r *MachineReconciler) reconcileNode(ctx context.Context, cluster *clusterv
 
 	// Set the Machine NodeRef.
 	if machine.Status.NodeRef == nil {
-		machine.Status.NodeRef = &corev1.ObjectReference{
+		machine.Status.NodeRef = &clusterv1.PinnedObjectReference{
 			Kind:       node.Kind,
 			APIVersion: node.APIVersion,
 			Name:       node.Name,

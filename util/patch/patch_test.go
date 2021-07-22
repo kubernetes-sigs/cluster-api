@@ -586,10 +586,9 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Updating the object spec")
 			obj.Spec.Paused = true
-			obj.Spec.InfrastructureRef = &corev1.ObjectReference{
-				Kind:      "test-kind",
-				Name:      "test-ref",
-				Namespace: "default",
+			obj.Spec.InfrastructureRef = &clusterv1.LocalObjectReference{
+				Kind: "test-kind",
+				Name: "test-ref",
 			}
 
 			t.Log("Patching the object")
@@ -670,10 +669,9 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Updating the object spec")
 			obj.Spec.Paused = true
-			obj.Spec.InfrastructureRef = &corev1.ObjectReference{
-				Kind:      "test-kind",
-				Name:      "test-ref",
-				Namespace: "default",
+			obj.Spec.InfrastructureRef = &clusterv1.LocalObjectReference{
+				Kind: "test-kind",
+				Name: "test-ref",
 			}
 
 			t.Log("Updating the object status")

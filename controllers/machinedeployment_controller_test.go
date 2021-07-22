@@ -101,7 +101,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: testCluster.Name,
 						Version:     &version,
-						InfrastructureRef: corev1.ObjectReference{
+						InfrastructureRef: clusterv1.LocalObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 							Kind:       "InfrastructureMachineTemplate",
 							Name:       "md-template",
@@ -314,7 +314,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				if !metav1.IsControlledBy(&m, thirdMachineSet) {
 					continue
 				}
-				providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+				providerID := fakeInfrastructureRefReady(*m.Spec.InfrastructureRef.ToRef(m.Namespace), infraResource, g)
 				fakeMachineNodeRef(&m, providerID, g)
 			}
 
@@ -369,7 +369,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				if !metav1.IsControlledBy(&m, &newms) {
 					continue
 				}
-				providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+				providerID := fakeInfrastructureRefReady(*m.Spec.InfrastructureRef.ToRef(m.Namespace), infraResource, g)
 				fakeMachineNodeRef(&m, providerID, g)
 			}
 

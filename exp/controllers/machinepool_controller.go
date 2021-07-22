@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -247,7 +246,7 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
 func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *expv1.MachinePool) (bool, error) {
 	objects := []*unstructured.Unstructured{}
-	references := []*corev1.ObjectReference{
+	references := []*clusterv1.LocalObjectReference{
 		m.Spec.Template.Spec.Bootstrap.ConfigRef,
 		&m.Spec.Template.Spec.InfrastructureRef,
 	}

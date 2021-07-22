@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +21,6 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/api/v1alpha4"
 )
-
-func (*DockerCluster) Hub()     {}
-func (*DockerClusterList) Hub() {}
 
 func Convert_v1_ObjectReference_To_v1alpha4_LocalObjectReference(in *v1.ObjectReference, out *v1alpha4.LocalObjectReference, s apiconversion.Scope) error {
 	return v1alpha4.Convert_v1_ObjectReference_To_v1alpha4_LocalObjectReference(in, out, s)

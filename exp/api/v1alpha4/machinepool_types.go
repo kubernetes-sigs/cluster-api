@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -67,7 +66,7 @@ type MachinePoolSpec struct {
 type MachinePoolStatus struct {
 	// NodeRefs will point to the corresponding Nodes if it they exist.
 	// +optional
-	NodeRefs []corev1.ObjectReference `json:"nodeRefs,omitempty"`
+	NodeRefs []clusterv1.LocalObjectReference `json:"nodeRefs,omitempty"`
 
 	// Replicas is the most recently observed number of replicas.
 	// +optional

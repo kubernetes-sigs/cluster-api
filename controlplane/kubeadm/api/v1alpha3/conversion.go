@@ -17,8 +17,11 @@ limitations under the License.
 package v1alpha3
 
 import (
+	v1 "k8s.io/api/core/v1"
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -69,14 +72,26 @@ func (dest *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in *v1alpha4.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apiconversion.Scope) error {
 	out.UpgradeAfter = in.RolloutAfter
-	out.InfrastructureTemplate = in.MachineTemplate.InfrastructureRef
+	out.InfrastructureTemplate = v1.ObjectReference{}
+	if err := apiv1alpha4.Convert_v1alpha4_LocalObjectReference_To_v1_ObjectReference(&in.MachineTemplate.InfrastructureRef, &out.InfrastructureTemplate, s); err != nil {
+		return err
+	}
 	out.NodeDrainTimeout = in.MachineTemplate.NodeDrainTimeout
 	return autoConvert_v1alpha4_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s)
 }
 
 func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, out *v1alpha4.KubeadmControlPlaneSpec, s apiconversion.Scope) error {
 	out.RolloutAfter = in.UpgradeAfter
-	out.MachineTemplate.InfrastructureRef = in.InfrastructureTemplate
+	out.MachineTemplate.InfrastructureRef = apiv1alpha4.LocalObjectReference{}
+	if err := apiv1alpha4.Convert_v1_ObjectReference_To_v1alpha4_LocalObjectReference(&in.InfrastructureTemplate, &out.MachineTemplate.InfrastructureRef, s); err != nil {
+		return err
+	}
 	out.MachineTemplate.NodeDrainTimeout = in.NodeDrainTimeout
 	return autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in, out, s)
+}
+
+func Convert_v1alpha4_KubeadmControlPlane_To_v1alpha3_KubeadmControlPlane(in *v1alpha4.KubeadmControlPlane, out *KubeadmControlPlane, s apiconversion.Scope) error {
+	err := autoConvert_v1alpha4_KubeadmControlPlane_To_v1alpha3_KubeadmControlPlane(in, out, s)
+	out.Spec.InfrastructureTemplate.Namespace = out.ObjectMeta.Namespace
+	return err
 }

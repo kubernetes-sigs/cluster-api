@@ -20,32 +20,11 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/cluster-api/feature"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
-
-func TestClusterDefaultNamespaces(t *testing.T) {
-	g := NewWithT(t)
-
-	c := &Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "fooboo",
-		},
-		Spec: ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{},
-			ControlPlaneRef:   &corev1.ObjectReference{},
-		},
-	}
-
-	t.Run("for Cluster", utildefaulting.DefaultValidateTest(c))
-	c.Default()
-
-	g.Expect(c.Spec.InfrastructureRef.Namespace).To(Equal(c.Namespace))
-	g.Expect(c.Spec.ControlPlaneRef.Namespace).To(Equal(c.Namespace))
-}
 
 func TestClusterDefaultTopologyVersion(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
@@ -82,40 +61,6 @@ func TestClusterValidation(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			name:      "should return error when cluster namespace and infrastructure ref namespace mismatch",
-			expectErr: true,
-			in: &Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
-						Namespace: "bar",
-					},
-					ControlPlaneRef: &corev1.ObjectReference{
-						Namespace: "foo",
-					},
-				},
-			},
-		},
-		{
-			name:      "should return error when cluster namespace and controlplane ref namespace mismatch",
-			expectErr: true,
-			in: &Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
-						Namespace: "foo",
-					},
-					ControlPlaneRef: &corev1.ObjectReference{
-						Namespace: "bar",
-					},
-				},
-			},
-		},
-		{
 			name:      "should succeed when namespaces match",
 			expectErr: false,
 			in: &Cluster{
@@ -123,12 +68,8 @@ func TestClusterValidation(t *testing.T) {
 					Namespace: "foo",
 				},
 				Spec: ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{
-						Namespace: "foo",
-					},
-					InfrastructureRef: &corev1.ObjectReference{
-						Namespace: "foo",
-					},
+					ControlPlaneRef:   &LocalObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
 				},
 			},
 		},
@@ -140,13 +81,9 @@ func TestClusterValidation(t *testing.T) {
 					Namespace: "foo",
 				},
 				Spec: ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{
-						Namespace: "foo",
-					},
-					InfrastructureRef: &corev1.ObjectReference{
-						Namespace: "foo",
-					},
-					Topology: &Topology{},
+					ControlPlaneRef:   &LocalObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
+					Topology:          &Topology{},
 				},
 			},
 		},
@@ -247,7 +184,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			expectErr: true,
 			in: &Cluster{
 				Spec: ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{},
+					ControlPlaneRef: &LocalObjectReference{},
 					Topology: &Topology{
 						Class:   "foo",
 						Version: "v1.19.1",
@@ -260,7 +197,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			expectErr: true,
 			in: &Cluster{
 				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
 					Topology: &Topology{
 						Class:   "foo",
 						Version: "v1.19.1",
@@ -273,7 +210,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			expectErr: true,
 			old: &Cluster{
 				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
 					Topology: &Topology{
 						Class:   "foo",
 						Version: "v1.19.1",
@@ -282,7 +219,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			},
 			in: &Cluster{
 				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
 					Topology: &Topology{
 						Class:   "bar",
 						Version: "v1.19.1",
@@ -295,7 +232,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			expectErr: true,
 			old: &Cluster{
 				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
 					Topology: &Topology{
 						Class:   "foo",
 						Version: "v1.19.1",
@@ -304,7 +241,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			},
 			in: &Cluster{
 				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
 					Topology: &Topology{
 						Class:   "foo",
 						Version: "v1.19.0",
@@ -317,7 +254,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			expectErr: false,
 			old: &Cluster{
 				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
 					Topology: &Topology{
 						Class:   "foo",
 						Version: "v1.19.1",
@@ -336,7 +273,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			},
 			in: &Cluster{
 				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &LocalObjectReference{},
 					Topology: &Topology{
 						Class:   "foo",
 						Version: "v1.19.2",

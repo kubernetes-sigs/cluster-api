@@ -48,14 +48,6 @@ func (m *Machine) Default() {
 	}
 	m.Labels[ClusterLabelName] = m.Spec.ClusterName
 
-	if m.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
-		m.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
-	}
-
-	if len(m.Spec.InfrastructureRef.Namespace) == 0 {
-		m.Spec.InfrastructureRef.Namespace = m.Namespace
-	}
-
 	if m.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Version, "v") {
 		normalizedVersion := "v" + *m.Spec.Version
 		m.Spec.Version = &normalizedVersion
@@ -89,28 +81,6 @@ func (m *Machine) validate(old *Machine) error {
 			field.Required(
 				field.NewPath("spec", "bootstrap", "data"),
 				"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
-			),
-		)
-	}
-
-	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.Namespace != m.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "bootstrap", "configRef", "namespace"),
-				m.Spec.Bootstrap.ConfigRef.Namespace,
-				"must match metadata.namespace",
-			),
-		)
-	}
-
-	if m.Spec.InfrastructureRef.Namespace != m.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "infrastructureRef", "namespace"),
-				m.Spec.InfrastructureRef.Namespace,
-				"must match metadata.namespace",
 			),
 		)
 	}

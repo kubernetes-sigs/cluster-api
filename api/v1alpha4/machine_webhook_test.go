@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
@@ -35,7 +34,7 @@ func TestMachineDefault(t *testing.T) {
 			Namespace: "foobar",
 		},
 		Spec: MachineSpec{
-			Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+			Bootstrap: Bootstrap{ConfigRef: &LocalObjectReference{}},
 			Version:   pointer.StringPtr("1.17.5"),
 		},
 	}
@@ -43,8 +42,6 @@ func TestMachineDefault(t *testing.T) {
 	m.Default()
 
 	g.Expect(m.Labels[ClusterLabelName]).To(Equal(m.Spec.ClusterName))
-	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
-	g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(*m.Spec.Version).To(Equal("v1.17.5"))
 }
 
@@ -66,7 +63,7 @@ func TestMachineBootstrapValidation(t *testing.T) {
 		},
 		{
 			name:      "should not return error if config ref is set",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}, DataSecretName: nil},
+			bootstrap: Bootstrap{ConfigRef: &LocalObjectReference{}, DataSecretName: nil},
 			expectErr: false,
 		},
 	}
@@ -77,64 +74,6 @@ func TestMachineBootstrapValidation(t *testing.T) {
 			m := &Machine{
 				Spec: MachineSpec{Bootstrap: tt.bootstrap},
 			}
-			if tt.expectErr {
-				g.Expect(m.ValidateCreate()).NotTo(Succeed())
-				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
-			} else {
-				g.Expect(m.ValidateCreate()).To(Succeed())
-				g.Expect(m.ValidateUpdate(m)).To(Succeed())
-			}
-		})
-	}
-}
-
-func TestMachineNamespaceValidation(t *testing.T) {
-	tests := []struct {
-		name      string
-		expectErr bool
-		bootstrap Bootstrap
-		infraRef  corev1.ObjectReference
-		namespace string
-	}{
-		{
-			name:      "should succeed if all namespaces match",
-			expectErr: false,
-			namespace: "foobar",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
-			infraRef:  corev1.ObjectReference{Namespace: "foobar"},
-		},
-		{
-			name:      "should return error if namespace and bootstrap namespace don't match",
-			expectErr: true,
-			namespace: "foobar",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar123"}},
-			infraRef:  corev1.ObjectReference{Namespace: "foobar"},
-		},
-		{
-			name:      "should return error if namespace and infrastructure ref namespace don't match",
-			expectErr: true,
-			namespace: "foobar",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
-			infraRef:  corev1.ObjectReference{Namespace: "foobar123"},
-		},
-		{
-			name:      "should return error if no namespaces match",
-			expectErr: true,
-			namespace: "foobar1",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar2"}},
-			infraRef:  corev1.ObjectReference{Namespace: "foobar3"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			m := &Machine{
-				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
-				Spec:       MachineSpec{Bootstrap: tt.bootstrap, InfrastructureRef: tt.infraRef},
-			}
-
 			if tt.expectErr {
 				g.Expect(m.ValidateCreate()).NotTo(Succeed())
 				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
@@ -174,13 +113,13 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 			newMachine := &Machine{
 				Spec: MachineSpec{
 					ClusterName: tt.newClusterName,
-					Bootstrap:   Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Bootstrap:   Bootstrap{ConfigRef: &LocalObjectReference{}},
 				},
 			}
 			oldMachine := &Machine{
 				Spec: MachineSpec{
 					ClusterName: tt.oldClusterName,
-					Bootstrap:   Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Bootstrap:   Bootstrap{ConfigRef: &LocalObjectReference{}},
 				},
 			}
 

@@ -1022,7 +1022,7 @@ func fakeMachine(name string, options ...fakeMachineOption) *clusterv1.Machine {
 
 func withNodeRef(ref string) fakeMachineOption {
 	return func(machine *clusterv1.Machine) {
-		machine.Status.NodeRef = &corev1.ObjectReference{
+		machine.Status.NodeRef = &clusterv1.PinnedObjectReference{
 			Kind: "Node",
 			Name: ref,
 		}

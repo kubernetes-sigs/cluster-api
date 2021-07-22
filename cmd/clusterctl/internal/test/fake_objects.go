@@ -121,11 +121,10 @@ func (f *FakeCluster) Objs() []client.Object {
 			// Labels: cluster.x-k8s.io/cluster-name=cluster MISSING??
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
+			InfrastructureRef: &clusterv1.LocalObjectReference{
 				APIVersion: clusterInfrastructure.APIVersion,
 				Kind:       clusterInfrastructure.Kind,
 				Name:       clusterInfrastructure.Name,
-				Namespace:  clusterInfrastructure.Namespace,
 			},
 		},
 	}
@@ -340,10 +339,9 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
 	setUID(controlPlane)
 
 	// sets the reference from the cluster to the plane object
-	cluster.Spec.ControlPlaneRef = &corev1.ObjectReference{
+	cluster.Spec.ControlPlaneRef = &clusterv1.LocalObjectReference{
 		APIVersion: controlPlane.APIVersion,
 		Kind:       controlPlane.Kind,
-		Namespace:  controlPlane.Namespace,
 		Name:       controlPlane.Name,
 	}
 
@@ -467,18 +465,16 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 		Spec: expv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: machinePoolInfrastructure.APIVersion,
 						Kind:       machinePoolInfrastructure.Kind,
 						Name:       machinePoolInfrastructure.Name,
-						Namespace:  machinePoolInfrastructure.Namespace,
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: machinePoolBootstrap.APIVersion,
 							Kind:       machinePoolBootstrap.Kind,
 							Name:       machinePoolBootstrap.Name,
-							Namespace:  machinePoolBootstrap.Namespace,
 						},
 					},
 				},
@@ -599,18 +595,16 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []client.Object
 		Spec: clusterv1.MachineDeploymentSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: machineDeploymentInfrastructure.APIVersion,
 						Kind:       machineDeploymentInfrastructure.Kind,
 						Name:       machineDeploymentInfrastructure.Name,
-						Namespace:  machineDeploymentInfrastructure.Namespace,
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: machineDeploymentBootstrap.APIVersion,
 							Kind:       machineDeploymentBootstrap.Kind,
 							Name:       machineDeploymentBootstrap.Name,
-							Namespace:  machineDeploymentBootstrap.Namespace,
 						},
 					},
 				},
@@ -725,11 +719,10 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 		)
 		setUID(machineSetInfrastructure)
 
-		machineSet.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+		machineSet.Spec.Template.Spec.InfrastructureRef = clusterv1.LocalObjectReference{
 			APIVersion: machineSetInfrastructure.APIVersion,
 			Kind:       machineSetInfrastructure.Kind,
 			Name:       machineSetInfrastructure.Name,
-			Namespace:  machineSetInfrastructure.Namespace,
 		}
 
 		machineSetBootstrap := &fakebootstrap.GenericBootstrapConfigTemplate{
@@ -753,11 +746,10 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 		}
 
 		machineSet.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{
-			ConfigRef: &corev1.ObjectReference{
+			ConfigRef: &clusterv1.LocalObjectReference{
 				APIVersion: machineSetBootstrap.APIVersion,
 				Kind:       machineSetBootstrap.Kind,
 				Name:       machineSetBootstrap.Name,
-				Namespace:  machineSetBootstrap.Namespace,
 			},
 		}
 
@@ -856,18 +848,16 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
+			InfrastructureRef: clusterv1.LocalObjectReference{
 				APIVersion: machineInfrastructure.APIVersion,
 				Kind:       machineInfrastructure.Kind,
 				Name:       machineInfrastructure.Name,
-				Namespace:  cluster.Namespace,
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
+				ConfigRef: &clusterv1.LocalObjectReference{
 					APIVersion: machineBootstrap.APIVersion,
 					Kind:       machineBootstrap.Kind,
 					Name:       machineBootstrap.Name,
-					Namespace:  cluster.Namespace,
 				},
 				DataSecretName: &bootstrapDataSecretName,
 			},

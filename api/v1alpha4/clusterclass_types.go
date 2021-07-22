@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -91,7 +90,7 @@ type MachineDeploymentClassTemplate struct {
 type LocalObjectTemplate struct {
 	// Ref is a required reference to a custom resource
 	// offered by a provider.
-	Ref *corev1.ObjectReference `json:"ref"`
+	Ref *LocalObjectReference `json:"ref"`
 }
 
 // +kubebuilder:object:root=true

@@ -26,7 +26,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -43,7 +42,7 @@ func ExtractClusterReferences(out *ParseOutput, c *clusterv1.Cluster) (res []*un
 	if c.Spec.InfrastructureRef == nil {
 		return nil
 	}
-	if obj := out.FindUnstructuredReference(c.Spec.InfrastructureRef); obj != nil {
+	if obj := out.FindUnstructuredReference(c.Spec.InfrastructureRef.ToRef(c.GetNamespace())); obj != nil {
 		res = append(res, obj)
 	}
 	return
@@ -51,11 +50,11 @@ func ExtractClusterReferences(out *ParseOutput, c *clusterv1.Cluster) (res []*un
 
 // ExtractMachineReferences returns the references in a Machine object.
 func ExtractMachineReferences(out *ParseOutput, m *clusterv1.Machine) (res []*unstructured.Unstructured) {
-	if obj := out.FindUnstructuredReference(&m.Spec.InfrastructureRef); obj != nil {
+	if obj := out.FindUnstructuredReference(m.Spec.InfrastructureRef.ToRef(m.GetNamespace())); obj != nil {
 		res = append(res, obj)
 	}
 	if m.Spec.Bootstrap.ConfigRef != nil {
-		if obj := out.FindUnstructuredReference(m.Spec.Bootstrap.ConfigRef); obj != nil {
+		if obj := out.FindUnstructuredReference(m.Spec.Bootstrap.ConfigRef.ToRef(m.GetNamespace())); obj != nil {
 			res = append(res, obj)
 		}
 	}
@@ -82,7 +81,7 @@ func (p *ParseOutput) Add(o *ParseOutput) *ParseOutput {
 }
 
 // FindUnstructuredReference takes in an ObjectReference and tries to find an Unstructured object.
-func (p *ParseOutput) FindUnstructuredReference(ref *corev1.ObjectReference) *unstructured.Unstructured {
+func (p *ParseOutput) FindUnstructuredReference(ref *clusterv1.ObjectReference) *unstructured.Unstructured {
 	for _, obj := range p.UnstructuredObjects {
 		if obj.GroupVersionKind() == ref.GroupVersionKind() &&
 			ref.Namespace == obj.GetNamespace() &&

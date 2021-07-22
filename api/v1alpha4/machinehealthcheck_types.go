@@ -68,7 +68,7 @@ type MachineHealthCheckSpec struct {
 	// creates a new object from the template referenced and hands off remediation of the machine to
 	// a controller that lives outside of Cluster API.
 	// +optional
-	RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
+	RemediationTemplate *LocalObjectReference `json:"remediationTemplate,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCHeckSpec

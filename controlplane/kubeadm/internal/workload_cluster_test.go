@@ -165,7 +165,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 	machine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.PinnedObjectReference{
 				Name: "ip-10-0-0-1.ec2.internal",
 			},
 		},

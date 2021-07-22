@@ -40,3 +40,11 @@ func Convert_v1alpha3_MachinePool_To_v1alpha4_MachinePool(in *MachinePool, out *
 
 	return nil
 }
+
+func Convert_v1alpha4_MachinePool_To_v1alpha3_MachinePool(in *v1alpha4.MachinePool, out *MachinePool, s conversion.Scope) error {
+	err := autoConvert_v1alpha4_MachinePool_To_v1alpha3_MachinePool(in, out, s)
+	for k := range out.Status.NodeRefs {
+		out.Status.NodeRefs[k].Namespace = out.ObjectMeta.Namespace
+	}
+	return err
+}

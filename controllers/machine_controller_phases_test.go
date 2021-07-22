@@ -67,13 +67,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: defaultCluster.Name,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
+				ConfigRef: &clusterv1.LocalObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 					Kind:       "BootstrapMachine",
 					Name:       "bootstrap-config1",
 				},
 			},
-			InfrastructureRef: corev1.ObjectReference{
+			InfrastructureRef: clusterv1.LocalObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 				Kind:       "InfrastructureMachine",
 				Name:       "infra-config1",
@@ -259,7 +259,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+		machine.Status.NodeRef = &clusterv1.PinnedObjectReference{Kind: "Node", Name: "machine-test-node"}
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
@@ -325,7 +325,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+		machine.Status.NodeRef = &clusterv1.PinnedObjectReference{Kind: "Node", Name: "machine-test-node"}
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
@@ -402,7 +402,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+		machine.Status.NodeRef = &clusterv1.PinnedObjectReference{Kind: "Node", Name: "machine-test-node"}
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
@@ -545,7 +545,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		machineSecond.Labels[clusterv1.ClusterLabelName] = machine.Spec.ClusterName
 		machineSecond.Name = "SecondMachine"
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+		machine.Status.NodeRef = &clusterv1.PinnedObjectReference{Kind: "Node", Name: "machine-test-node"}
 
 		// Set Deletion Timestamp.
 		machine.SetDeletionTimestamp(&deletionTimestamp)
@@ -600,7 +600,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
+				ConfigRef: &clusterv1.LocalObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 					Kind:       "BootstrapMachine",
 					Name:       "bootstrap-config1",
@@ -741,7 +741,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapMachine",
 							Name:       "bootstrap-config1",
@@ -790,7 +790,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapMachine",
 							Name:       "bootstrap-config1",
@@ -837,7 +837,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapMachine",
 							Name:       "bootstrap-config1",
@@ -900,13 +900,13 @@ func TestReconcileInfrastructure(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
+				ConfigRef: &clusterv1.LocalObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 					Kind:       "BootstrapMachine",
 					Name:       "bootstrap-config1",
 				},
 			},
-			InfrastructureRef: corev1.ObjectReference{
+			InfrastructureRef: clusterv1.LocalObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 				Kind:       "InfrastructureMachine",
 				Name:       "infra-config1",
@@ -983,13 +983,13 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapMachine",
 							Name:       "bootstrap-config1",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureMachine",
 						Name:       "infra-config1",
@@ -998,7 +998,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				Status: clusterv1.MachineStatus{
 					BootstrapReady:      true,
 					InfrastructureReady: true,
-					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
+					NodeRef:             &clusterv1.PinnedObjectReference{Kind: "Node", Name: "machine-test-node"},
 				},
 			},
 			bootstrapConfig: map[string]interface{}{

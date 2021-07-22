@@ -498,7 +498,7 @@ var backupRestoreTests = []struct {
 			objs: test.NewFakeCluster("ns1", "foo").Objs(),
 		},
 		files: map[string]string{
-			"Cluster_ns1_foo.yaml":                      `{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"foo","namespace":"ns1","resourceVersion":"999","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","name":"foo","namespace":"ns1"}},"status":{"infrastructureReady":false}}` + "\n",
+			"Cluster_ns1_foo.yaml":                      `{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"foo","namespace":"ns1","resourceVersion":"999","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","name":"foo"}},"status":{"infrastructureReady":false}}` + "\n",
 			"Secret_ns1_foo-kubeconfig.yaml":            `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"foo-kubeconfig","namespace":"ns1","ownerReferences":[{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","name":"foo","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo"}],"resourceVersion":"999","uid":"/v1, Kind=Secret, ns1/foo-kubeconfig"}}` + "\n",
 			"Secret_ns1_foo-ca.yaml":                    `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"foo-ca","namespace":"ns1","resourceVersion":"999","uid":"/v1, Kind=Secret, ns1/foo-ca"}}` + "\n",
 			"GenericInfrastructureCluster_ns1_foo.yaml": `{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","metadata":{"creationTimestamp":null,"labels":{"cluster.x-k8s.io/cluster-name":"foo"},"name":"foo","namespace":"ns1","ownerReferences":[{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","name":"foo","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo"}],"resourceVersion":"999","uid":"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/foo"}}` + "\n",
@@ -516,11 +516,11 @@ var backupRestoreTests = []struct {
 			}(),
 		},
 		files: map[string]string{
-			"Cluster_ns1_foo.yaml":                      `{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"foo","namespace":"ns1","resourceVersion":"999","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","name":"foo","namespace":"ns1"}},"status":{"infrastructureReady":false}}` + "\n",
+			"Cluster_ns1_foo.yaml":                      `{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"foo","namespace":"ns1","resourceVersion":"999","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","name":"foo"}},"status":{"infrastructureReady":false}}` + "\n",
 			"Secret_ns1_foo-kubeconfig.yaml":            `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"foo-kubeconfig","namespace":"ns1","ownerReferences":[{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","name":"foo","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo"}],"resourceVersion":"999","uid":"/v1, Kind=Secret, ns1/foo-kubeconfig"}}` + "\n",
 			"Secret_ns1_foo-ca.yaml":                    `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"foo-ca","namespace":"ns1","resourceVersion":"999","uid":"/v1, Kind=Secret, ns1/foo-ca"}}` + "\n",
 			"GenericInfrastructureCluster_ns1_foo.yaml": `{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","metadata":{"creationTimestamp":null,"labels":{"cluster.x-k8s.io/cluster-name":"foo"},"name":"foo","namespace":"ns1","ownerReferences":[{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","name":"foo","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/foo"}],"resourceVersion":"999","uid":"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/foo"}}` + "\n",
-			"Cluster_ns2_bar.yaml":                      `{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"bar","namespace":"ns2","resourceVersion":"999","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/bar"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","name":"bar","namespace":"ns2"}},"status":{"infrastructureReady":false}}` + "\n",
+			"Cluster_ns2_bar.yaml":                      `{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"bar","namespace":"ns2","resourceVersion":"999","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/bar"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","name":"bar"}},"status":{"infrastructureReady":false}}` + "\n",
 			"Secret_ns2_bar-kubeconfig.yaml":            `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"bar-kubeconfig","namespace":"ns2","ownerReferences":[{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","name":"bar","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/bar"}],"resourceVersion":"999","uid":"/v1, Kind=Secret, ns2/bar-kubeconfig"}}` + "\n",
 			"Secret_ns2_bar-ca.yaml":                    `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"bar-ca","namespace":"ns2","resourceVersion":"999","uid":"/v1, Kind=Secret, ns2/bar-ca"}}` + "\n",
 			"GenericInfrastructureCluster_ns2_bar.yaml": `{"apiVersion":"infrastructure.cluster.x-k8s.io/v1alpha4","kind":"GenericInfrastructureCluster","metadata":{"creationTimestamp":null,"labels":{"cluster.x-k8s.io/cluster-name":"bar"},"name":"bar","namespace":"ns2","ownerReferences":[{"apiVersion":"cluster.x-k8s.io/v1alpha4","kind":"Cluster","name":"bar","uid":"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns2/bar"}],"resourceVersion":"999","uid":"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns2/bar"}}` + "\n",
@@ -1207,7 +1207,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Spec: clusterv1.ClusterSpec{
-							ControlPlaneRef: &corev1.ObjectReference{},
+							ControlPlaneRef: &clusterv1.LocalObjectReference{},
 						},
 						Status: clusterv1.ClusterStatus{
 							InfrastructureReady: true,
@@ -1306,7 +1306,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							},
 						},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{},
+							NodeRef: &clusterv1.PinnedObjectReference{},
 						},
 					},
 				},

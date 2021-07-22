@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -63,7 +62,7 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
-func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *clusterv1.LocalObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := utilconversion.ConvertReferenceAPIContract(ctx, r.Client, r.restConfig, ref); err != nil {

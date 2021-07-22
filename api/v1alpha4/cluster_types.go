@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
@@ -54,12 +53,12 @@ type ClusterSpec struct {
 	// ControlPlaneRef is an optional reference to a provider-specific resource that holds
 	// the details for provisioning the Control Plane for a Cluster.
 	// +optional
-	ControlPlaneRef *corev1.ObjectReference `json:"controlPlaneRef,omitempty"`
+	ControlPlaneRef *LocalObjectReference `json:"controlPlaneRef,omitempty"`
 
 	// InfrastructureRef is a reference to a provider-specific resource that holds the details
 	// for provisioning infrastructure for a cluster in said provider.
 	// +optional
-	InfrastructureRef *corev1.ObjectReference `json:"infrastructureRef,omitempty"`
+	InfrastructureRef *LocalObjectReference `json:"infrastructureRef,omitempty"`
 
 	// This encapsulates the topology for the cluster.
 	// NOTE: It is required to enable the ClusterTopology

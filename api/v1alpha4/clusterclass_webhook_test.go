@@ -20,67 +20,18 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/cluster-api/feature"
-
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
-
-func TestClusterClassDefaultNamespaces(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
-	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
-
-	namespace := "default"
-	ref := &corev1.ObjectReference{
-		APIVersion: "foo",
-		Kind:       "bar",
-		Name:       "baz",
-	}
-	in := &ClusterClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
-		Spec: ClusterClassSpec{
-			Infrastructure: LocalObjectTemplate{Ref: ref},
-			ControlPlane:   LocalObjectTemplate{Ref: ref},
-			Workers: WorkersClass{
-				MachineDeployments: []MachineDeploymentClass{
-					{
-						Class: "aa",
-						Template: MachineDeploymentClassTemplate{
-							Bootstrap:      LocalObjectTemplate{Ref: ref},
-							Infrastructure: LocalObjectTemplate{Ref: ref},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	t.Run("for ClusterClass", utildefaulting.DefaultValidateTest(in))
-	in.Default()
-
-	// Namespace defaulted on references
-	g := NewWithT(t)
-	g.Expect(in.Spec.Infrastructure.Ref.Namespace).To(Equal(namespace))
-	g.Expect(in.Spec.ControlPlane.Ref.Namespace).To(Equal(namespace))
-	for i := range in.Spec.Workers.MachineDeployments {
-		g.Expect(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace).To(Equal(namespace))
-		g.Expect(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace).To(Equal(namespace))
-	}
-}
 
 func TestClusterClassValidationFeatureGated(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 
-	ref := &corev1.ObjectReference{
+	ref := &LocalObjectReference{
 		APIVersion: "foo",
 		Kind:       "bar",
 		Name:       "baz",
-		Namespace:  "default",
 	}
 	tests := []struct {
 		name      string
@@ -176,17 +127,10 @@ func TestClusterClassValidation(t *testing.T) {
 	// Enabling the feature flag temporarily for this test.
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
 
-	ref := &corev1.ObjectReference{
+	ref := &LocalObjectReference{
 		APIVersion: "foo",
 		Kind:       "bar",
 		Name:       "baz",
-		Namespace:  "default",
-	}
-	refInAnotherNamespace := &corev1.ObjectReference{
-		APIVersion: "foo",
-		Kind:       "bar",
-		Name:       "baz",
-		Namespace:  "another-namespace",
 	}
 	tests := []struct {
 		name      string
@@ -224,102 +168,6 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 			},
 			expectErr: false,
-		},
-		{
-			name: "create fail in infrastructure has inconsistent namespace",
-			in: &ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: ClusterClassSpec{
-					Infrastructure: LocalObjectTemplate{Ref: refInAnotherNamespace},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
-					Workers: WorkersClass{
-						MachineDeployments: []MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: MachineDeploymentClassTemplate{
-									Bootstrap:      LocalObjectTemplate{Ref: ref},
-									Infrastructure: LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectErr: true,
-		},
-		{
-			name: "create fail in control plane has inconsistent namespace",
-			in: &ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: ClusterClassSpec{
-					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: refInAnotherNamespace},
-					Workers: WorkersClass{
-						MachineDeployments: []MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: MachineDeploymentClassTemplate{
-									Bootstrap:      LocalObjectTemplate{Ref: ref},
-									Infrastructure: LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectErr: true,
-		},
-		{
-			name: "create fail in machine deployment / bootstrap has inconsistent namespace",
-			in: &ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: ClusterClassSpec{
-					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
-					Workers: WorkersClass{
-						MachineDeployments: []MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: MachineDeploymentClassTemplate{
-									Bootstrap:      LocalObjectTemplate{Ref: refInAnotherNamespace},
-									Infrastructure: LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectErr: true,
-		},
-		{
-			name: "create fail in machine deployment / infrastructure has inconsistent namespace",
-			in: &ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: ClusterClassSpec{
-					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
-					Workers: WorkersClass{
-						MachineDeployments: []MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: MachineDeploymentClassTemplate{
-									Bootstrap:      LocalObjectTemplate{Ref: ref},
-									Infrastructure: LocalObjectTemplate{Ref: refInAnotherNamespace},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectErr: true,
 		},
 		{
 			name: "create fail if duplicated DeploymentClasses",
@@ -425,11 +273,10 @@ func TestClusterClassValidation(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: ClusterClassSpec{
-					Infrastructure: LocalObjectTemplate{Ref: &corev1.ObjectReference{
+					Infrastructure: LocalObjectTemplate{Ref: &LocalObjectReference{
 						APIVersion: "foox",
 						Kind:       "barx",
 						Name:       "bazx",
-						Namespace:  "default",
 					}},
 					ControlPlane: LocalObjectTemplate{Ref: ref},
 					Workers: WorkersClass{
@@ -477,11 +324,10 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane: LocalObjectTemplate{Ref: &corev1.ObjectReference{
+					ControlPlane: LocalObjectTemplate{Ref: &LocalObjectReference{
 						APIVersion: "foox",
 						Kind:       "barx",
 						Name:       "bazx",
-						Namespace:  "default",
 					}},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
@@ -535,11 +381,10 @@ func TestClusterClassValidation(t *testing.T) {
 								Class: "aa",
 								Template: MachineDeploymentClassTemplate{
 									Metadata: ObjectMeta{},
-									Bootstrap: LocalObjectTemplate{Ref: &corev1.ObjectReference{
+									Bootstrap: LocalObjectTemplate{Ref: &LocalObjectReference{
 										APIVersion: "foox",
 										Kind:       "barx",
 										Name:       "bazx",
-										Namespace:  "default",
 									}},
 									Infrastructure: LocalObjectTemplate{Ref: ref},
 								},

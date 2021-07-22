@@ -40,7 +40,7 @@ var (
 )
 
 type getNodeReferencesResult struct {
-	references []corev1.ObjectReference
+	references []clusterv1.LocalObjectReference
 	available  int
 	ready      int
 }
@@ -139,7 +139,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 // deleteRetiredNodes deletes nodes that don't have a corresponding ProviderID in Spec.ProviderIDList.
 // A MachinePool infrastructure provider indicates an instance in the set has been deleted by
 // removing its ProviderID from the slice.
-func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string) error {
+func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []clusterv1.LocalObjectReference, providerIDList []string) error {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 	nodeRefsMap := make(map[string]*corev1.Node, len(nodeRefs))
 	for _, nodeRef := range nodeRefs {
@@ -199,7 +199,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 		}
 	}
 
-	var nodeRefs []corev1.ObjectReference
+	var nodeRefs []clusterv1.LocalObjectReference
 	for _, providerID := range providerIDList {
 		pid, err := noderefutil.NewProviderID(providerID)
 		if err != nil {
@@ -211,11 +211,11 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 			if nodeIsReady(&node) {
 				ready++
 			}
-			nodeRefs = append(nodeRefs, corev1.ObjectReference{
+			nodeRefs = append(nodeRefs, clusterv1.LocalObjectReference{
 				Kind:       node.Kind,
 				APIVersion: node.APIVersion,
 				Name:       node.Name,
-				UID:        node.UID,
+				// UID:        node.UID,
 			})
 		}
 	}

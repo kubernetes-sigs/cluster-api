@@ -314,7 +314,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 
-							InfrastructureRef: corev1.ObjectReference{
+							InfrastructureRef: clusterv1.LocalObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
@@ -326,7 +326,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Status: expv1.MachinePoolStatus{
 					Replicas:      1,
 					ReadyReplicas: 1,
-					NodeRefs: []corev1.ObjectReference{
+					NodeRefs: []clusterv1.LocalObjectReference{
 						{Name: "test"},
 					},
 					ObservedGeneration: 1,
@@ -350,7 +350,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Replicas:       pointer.Int32Ptr(1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							InfrastructureRef: corev1.ObjectReference{
+							InfrastructureRef: clusterv1.LocalObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
@@ -362,7 +362,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Status: expv1.MachinePoolStatus{
 					Replicas:      1,
 					ReadyReplicas: 1,
-					NodeRefs: []corev1.ObjectReference{
+					NodeRefs: []clusterv1.LocalObjectReference{
 						{Name: "test"},
 					},
 					ObservedGeneration: 1,
@@ -389,7 +389,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Replicas:    pointer.Int32Ptr(1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							InfrastructureRef: corev1.ObjectReference{
+							InfrastructureRef: clusterv1.LocalObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
@@ -470,13 +470,13 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			Replicas:    pointer.Int32Ptr(1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureConfig",
 						Name:       "delete-infra",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapConfig",
 							Name:       "delete-bootstrap",
@@ -573,7 +573,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 			Replicas:    pointer.Int32Ptr(1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
@@ -650,13 +650,13 @@ func TestMachinePoolConditions(t *testing.T) {
 			Replicas:    pointer.Int32Ptr(2),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
+					InfrastructureRef: clusterv1.LocalObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra1",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
+						ConfigRef: &clusterv1.LocalObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap1",
@@ -705,7 +705,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
 				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
 				mp.Status = expv1.MachinePoolStatus{
-					NodeRefs: []corev1.ObjectReference{
+					NodeRefs: []clusterv1.LocalObjectReference{
 						{Name: "node-1"},
 						{Name: "azure-node-4"},
 					},
@@ -804,7 +804,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			bootstrapReady: true,
 			expectError:    true,
 			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
-				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+				mp.Spec.Template.Spec.InfrastructureRef = clusterv1.LocalObjectReference{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 					Kind:       "InfrastructureConfig",
 					Name:       "does-not-exist",

@@ -76,14 +76,13 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
+			InfrastructureRef: clusterv1.LocalObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 				Kind:       "InfrastructureMachine",
 				Name:       "infra-config1",
-				Namespace:  ns.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
+				ConfigRef: &clusterv1.LocalObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 					Kind:       "BootstrapMachine",
 					Name:       "bootstrap-config1",
@@ -91,7 +90,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.PinnedObjectReference{
 				Name: "node-1",
 			},
 		},

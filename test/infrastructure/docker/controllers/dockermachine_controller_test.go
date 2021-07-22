@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
@@ -73,9 +72,8 @@ func newCluster(clusterName string, dockerCluster *infrav1.DockerCluster) *clust
 		},
 	}
 	if dockerCluster != nil {
-		cluster.Spec.InfrastructureRef = &corev1.ObjectReference{
+		cluster.Spec.InfrastructureRef = &clusterv1.LocalObjectReference{
 			Name:       dockerCluster.Name,
-			Namespace:  dockerCluster.Namespace,
 			Kind:       dockerCluster.Kind,
 			APIVersion: dockerCluster.GroupVersionKind().GroupVersion().String(),
 		}
@@ -109,9 +107,8 @@ func newMachine(clusterName, machineName string, dockerMachine *infrav1.DockerMa
 		},
 	}
 	if dockerMachine != nil {
-		machine.Spec.InfrastructureRef = corev1.ObjectReference{
+		machine.Spec.InfrastructureRef = clusterv1.LocalObjectReference{
 			Name:       dockerMachine.Name,
-			Namespace:  dockerMachine.Namespace,
 			Kind:       dockerMachine.Kind,
 			APIVersion: dockerMachine.GroupVersionKind().GroupVersion().String(),
 		}

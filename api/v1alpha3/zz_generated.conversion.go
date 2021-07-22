@@ -59,11 +59,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.Cluster)(nil), (*Cluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_Cluster_To_v1alpha3_Cluster(a.(*v1alpha4.Cluster), b.(*Cluster), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ClusterList)(nil), (*v1alpha4.ClusterList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_ClusterList_To_v1alpha4_ClusterList(a.(*ClusterList), b.(*v1alpha4.ClusterList), scope)
 	}); err != nil {
@@ -116,11 +111,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*Machine)(nil), (*v1alpha4.Machine)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_Machine_To_v1alpha4_Machine(a.(*Machine), b.(*v1alpha4.Machine), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.Machine)(nil), (*Machine)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_Machine_To_v1alpha3_Machine(a.(*v1alpha4.Machine), b.(*Machine), scope)
 	}); err != nil {
 		return err
 	}
@@ -181,11 +171,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*MachineHealthCheck)(nil), (*v1alpha4.MachineHealthCheck)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_MachineHealthCheck_To_v1alpha4_MachineHealthCheck(a.(*MachineHealthCheck), b.(*v1alpha4.MachineHealthCheck), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.MachineHealthCheck)(nil), (*MachineHealthCheck)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(a.(*v1alpha4.MachineHealthCheck), b.(*MachineHealthCheck), scope)
 	}); err != nil {
 		return err
 	}
@@ -344,6 +329,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1alpha4.Cluster)(nil), (*Cluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Cluster_To_v1alpha3_Cluster(a.(*v1alpha4.Cluster), b.(*Cluster), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1alpha4.MachineDeploymentStatus)(nil), (*MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(a.(*v1alpha4.MachineDeploymentStatus), b.(*MachineDeploymentStatus), scope)
 	}); err != nil {
@@ -354,8 +344,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1alpha4.MachineHealthCheck)(nil), (*MachineHealthCheck)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(a.(*v1alpha4.MachineHealthCheck), b.(*MachineHealthCheck), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1alpha4.MachineRollingUpdateDeployment)(nil), (*MachineRollingUpdateDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(a.(*v1alpha4.MachineRollingUpdateDeployment), b.(*MachineRollingUpdateDeployment), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.Machine)(nil), (*Machine)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Machine_To_v1alpha3_Machine(a.(*v1alpha4.Machine), b.(*Machine), scope)
 	}); err != nil {
 		return err
 	}
@@ -385,14 +385,30 @@ func Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint(in *v1alpha4.APIEndpoi
 }
 
 func autoConvert_v1alpha3_Bootstrap_To_v1alpha4_Bootstrap(in *Bootstrap, out *v1alpha4.Bootstrap, s conversion.Scope) error {
-	out.ConfigRef = (*v1.ObjectReference)(unsafe.Pointer(in.ConfigRef))
+	if in.ConfigRef != nil {
+		in, out := &in.ConfigRef, &out.ConfigRef
+		*out = new(v1alpha4.LocalObjectReference)
+		if err := v1alpha4.Convert_v1_ObjectReference_To_v1alpha4_LocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ConfigRef = nil
+	}
 	// WARNING: in.Data requires manual conversion: does not exist in peer-type
 	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
 	return nil
 }
 
 func autoConvert_v1alpha4_Bootstrap_To_v1alpha3_Bootstrap(in *v1alpha4.Bootstrap, out *Bootstrap, s conversion.Scope) error {
-	out.ConfigRef = (*v1.ObjectReference)(unsafe.Pointer(in.ConfigRef))
+	if in.ConfigRef != nil {
+		in, out := &in.ConfigRef, &out.ConfigRef
+		*out = new(v1.ObjectReference)
+		if err := v1alpha4.Convert_v1alpha4_LocalObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ConfigRef = nil
+	}
 	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
 	return nil
 }
@@ -427,11 +443,6 @@ func autoConvert_v1alpha4_Cluster_To_v1alpha3_Cluster(in *v1alpha4.Cluster, out 
 		return err
 	}
 	return nil
-}
-
-// Convert_v1alpha4_Cluster_To_v1alpha3_Cluster is an autogenerated conversion function.
-func Convert_v1alpha4_Cluster_To_v1alpha3_Cluster(in *v1alpha4.Cluster, out *Cluster, s conversion.Scope) error {
-	return autoConvert_v1alpha4_Cluster_To_v1alpha3_Cluster(in, out, s)
 }
 
 func autoConvert_v1alpha3_ClusterList_To_v1alpha4_ClusterList(in *ClusterList, out *v1alpha4.ClusterList, s conversion.Scope) error {
@@ -508,8 +519,24 @@ func autoConvert_v1alpha3_ClusterSpec_To_v1alpha4_ClusterSpec(in *ClusterSpec, o
 	if err := Convert_v1alpha3_APIEndpoint_To_v1alpha4_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.ControlPlaneRef = (*v1.ObjectReference)(unsafe.Pointer(in.ControlPlaneRef))
-	out.InfrastructureRef = (*v1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(v1alpha4.LocalObjectReference)
+		if err := v1alpha4.Convert_v1_ObjectReference_To_v1alpha4_LocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ControlPlaneRef = nil
+	}
+	if in.InfrastructureRef != nil {
+		in, out := &in.InfrastructureRef, &out.InfrastructureRef
+		*out = new(v1alpha4.LocalObjectReference)
+		if err := v1alpha4.Convert_v1_ObjectReference_To_v1alpha4_LocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InfrastructureRef = nil
+	}
 	return nil
 }
 
@@ -524,8 +551,24 @@ func autoConvert_v1alpha4_ClusterSpec_To_v1alpha3_ClusterSpec(in *v1alpha4.Clust
 	if err := Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.ControlPlaneRef = (*v1.ObjectReference)(unsafe.Pointer(in.ControlPlaneRef))
-	out.InfrastructureRef = (*v1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(v1.ObjectReference)
+		if err := v1alpha4.Convert_v1alpha4_LocalObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ControlPlaneRef = nil
+	}
+	if in.InfrastructureRef != nil {
+		in, out := &in.InfrastructureRef, &out.InfrastructureRef
+		*out = new(v1.ObjectReference)
+		if err := v1alpha4.Convert_v1alpha4_LocalObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InfrastructureRef = nil
+	}
 	// WARNING: in.Topology requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -637,11 +680,6 @@ func autoConvert_v1alpha4_Machine_To_v1alpha3_Machine(in *v1alpha4.Machine, out 
 		return err
 	}
 	return nil
-}
-
-// Convert_v1alpha4_Machine_To_v1alpha3_Machine is an autogenerated conversion function.
-func Convert_v1alpha4_Machine_To_v1alpha3_Machine(in *v1alpha4.Machine, out *Machine, s conversion.Scope) error {
-	return autoConvert_v1alpha4_Machine_To_v1alpha3_Machine(in, out, s)
 }
 
 func autoConvert_v1alpha3_MachineAddress_To_v1alpha4_MachineAddress(in *MachineAddress, out *v1alpha4.MachineAddress, s conversion.Scope) error {
@@ -891,11 +929,6 @@ func autoConvert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(in *
 	return nil
 }
 
-// Convert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck is an autogenerated conversion function.
-func Convert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(in *v1alpha4.MachineHealthCheck, out *MachineHealthCheck, s conversion.Scope) error {
-	return autoConvert_v1alpha4_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(in, out, s)
-}
-
 func autoConvert_v1alpha3_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(in *MachineHealthCheckList, out *v1alpha4.MachineHealthCheckList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
@@ -944,7 +977,15 @@ func autoConvert_v1alpha3_MachineHealthCheckSpec_To_v1alpha4_MachineHealthCheckS
 	out.UnhealthyConditions = *(*[]v1alpha4.UnhealthyCondition)(unsafe.Pointer(&in.UnhealthyConditions))
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.NodeStartupTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
-	out.RemediationTemplate = (*v1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
+	if in.RemediationTemplate != nil {
+		in, out := &in.RemediationTemplate, &out.RemediationTemplate
+		*out = new(v1alpha4.LocalObjectReference)
+		if err := v1alpha4.Convert_v1_ObjectReference_To_v1alpha4_LocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RemediationTemplate = nil
+	}
 	return nil
 }
 
@@ -960,7 +1001,15 @@ func autoConvert_v1alpha4_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckS
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	// WARNING: in.UnhealthyRange requires manual conversion: does not exist in peer-type
 	out.NodeStartupTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
-	out.RemediationTemplate = (*v1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
+	if in.RemediationTemplate != nil {
+		in, out := &in.RemediationTemplate, &out.RemediationTemplate
+		*out = new(v1.ObjectReference)
+		if err := v1alpha4.Convert_v1alpha4_LocalObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RemediationTemplate = nil
+	}
 	return nil
 }
 
@@ -1201,7 +1250,9 @@ func autoConvert_v1alpha3_MachineSpec_To_v1alpha4_MachineSpec(in *MachineSpec, o
 	if err := Convert_v1alpha3_Bootstrap_To_v1alpha4_Bootstrap(&in.Bootstrap, &out.Bootstrap, s); err != nil {
 		return err
 	}
-	out.InfrastructureRef = in.InfrastructureRef
+	if err := v1alpha4.Convert_v1_ObjectReference_To_v1alpha4_LocalObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
+		return err
+	}
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
@@ -1219,7 +1270,9 @@ func autoConvert_v1alpha4_MachineSpec_To_v1alpha3_MachineSpec(in *v1alpha4.Machi
 	if err := Convert_v1alpha4_Bootstrap_To_v1alpha3_Bootstrap(&in.Bootstrap, &out.Bootstrap, s); err != nil {
 		return err
 	}
-	out.InfrastructureRef = in.InfrastructureRef
+	if err := v1alpha4.Convert_v1alpha4_LocalObjectReference_To_v1_ObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
+		return err
+	}
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
@@ -1233,7 +1286,15 @@ func Convert_v1alpha4_MachineSpec_To_v1alpha3_MachineSpec(in *v1alpha4.MachineSp
 }
 
 func autoConvert_v1alpha3_MachineStatus_To_v1alpha4_MachineStatus(in *MachineStatus, out *v1alpha4.MachineStatus, s conversion.Scope) error {
-	out.NodeRef = (*v1.ObjectReference)(unsafe.Pointer(in.NodeRef))
+	if in.NodeRef != nil {
+		in, out := &in.NodeRef, &out.NodeRef
+		*out = new(v1alpha4.PinnedObjectReference)
+		if err := v1alpha4.Convert_v1_ObjectReference_To_v1alpha4_PinnedObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.NodeRef = nil
+	}
 	out.LastUpdated = (*metav1.Time)(unsafe.Pointer(in.LastUpdated))
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
@@ -1253,7 +1314,15 @@ func Convert_v1alpha3_MachineStatus_To_v1alpha4_MachineStatus(in *MachineStatus,
 }
 
 func autoConvert_v1alpha4_MachineStatus_To_v1alpha3_MachineStatus(in *v1alpha4.MachineStatus, out *MachineStatus, s conversion.Scope) error {
-	out.NodeRef = (*v1.ObjectReference)(unsafe.Pointer(in.NodeRef))
+	if in.NodeRef != nil {
+		in, out := &in.NodeRef, &out.NodeRef
+		*out = new(v1.ObjectReference)
+		if err := v1alpha4.Convert_v1alpha4_PinnedObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.NodeRef = nil
+	}
 	out.LastUpdated = (*metav1.Time)(unsafe.Pointer(in.LastUpdated))
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))

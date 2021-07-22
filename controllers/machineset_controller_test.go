@@ -94,13 +94,13 @@ func TestMachineSetReconciler(t *testing.T) {
 						ClusterName: testCluster.Name,
 						Version:     &version,
 						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: &corev1.ObjectReference{
+							ConfigRef: &clusterv1.LocalObjectReference{
 								APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
 								Kind:       "BootstrapMachineTemplate",
 								Name:       "ms-template",
 							},
 						},
-						InfrastructureRef: corev1.ObjectReference{
+						InfrastructureRef: clusterv1.LocalObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
 							Kind:       "InfrastructureMachineTemplate",
 							Name:       "ms-template",
@@ -219,8 +219,8 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
-			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
-			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef.ToRef(m.Namespace), bootstrapResource, g)
+			fakeInfrastructureRefReady(*m.Spec.InfrastructureRef.ToRef(m.Namespace), infraResource, g)
 		}
 
 		// Try to delete 1 machine and check the MachineSet scales back up.
@@ -261,8 +261,8 @@ func TestMachineSetReconciler(t *testing.T) {
 
 			g.Expect(m.Spec.Version).ToNot(BeNil())
 			g.Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
-			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
-			providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef.ToRef(m.Namespace), bootstrapResource, g)
+			providerID := fakeInfrastructureRefReady(*m.Spec.InfrastructureRef.ToRef(m.Namespace), infraResource, g)
 			fakeMachineNodeRef(&m, providerID, g)
 		}
 

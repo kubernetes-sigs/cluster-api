@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
@@ -65,7 +64,7 @@ type MachineSpec struct {
 
 	// InfrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
-	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
+	InfrastructureRef LocalObjectReference `json:"infrastructureRef"`
 
 	// Version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.
@@ -105,7 +104,7 @@ type MachineSpec struct {
 type MachineStatus struct {
 	// NodeRef will point to the corresponding Node if it exists.
 	// +optional
-	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
+	NodeRef *PinnedObjectReference `json:"nodeRef,omitempty"`
 
 	// LastUpdated identifies when the phase of the Machine last transitioned.
 	// +optional
@@ -217,7 +216,7 @@ type Bootstrap struct {
 	// allow users/operators to specify Bootstrap.DataSecretName without
 	// the need of a controller.
 	// +optional
-	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
+	ConfigRef *LocalObjectReference `json:"configRef,omitempty"`
 
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.

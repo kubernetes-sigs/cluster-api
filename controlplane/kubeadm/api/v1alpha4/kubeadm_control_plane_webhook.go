@@ -54,10 +54,6 @@ func (in *KubeadmControlPlane) Default() {
 		in.Spec.Replicas = &replicas
 	}
 
-	if in.Spec.MachineTemplate.InfrastructureRef.Namespace == "" {
-		in.Spec.MachineTemplate.InfrastructureRef.Namespace = in.Namespace
-	}
-
 	if !strings.HasPrefix(in.Spec.Version, "v") {
 		in.Spec.Version = "v" + in.Spec.Version
 	}
@@ -294,16 +290,6 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 				field.NewPath("spec", "machineTemplate", "infrastructure", "kind"),
 				in.Spec.MachineTemplate.InfrastructureRef.Kind,
 				"cannot be empty",
-			),
-		)
-	}
-	if in.Spec.MachineTemplate.InfrastructureRef.Namespace != in.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "machineTemplate", "infrastructure", "namespace"),
-				in.Spec.MachineTemplate.InfrastructureRef.Namespace,
-				"must match metadata.namespace",
 			),
 		)
 	}

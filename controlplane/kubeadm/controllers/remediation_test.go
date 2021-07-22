@@ -770,7 +770,7 @@ func withUnhealthyEtcdMember() machineOption {
 
 func withNodeRef(ref string) machineOption {
 	return func(machine *clusterv1.Machine) {
-		machine.Status.NodeRef = &corev1.ObjectReference{
+		machine.Status.NodeRef = &clusterv1.PinnedObjectReference{
 			Kind: "Node",
 			Name: ref,
 		}

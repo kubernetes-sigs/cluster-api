@@ -19,9 +19,11 @@ package v1alpha4
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api/feature"
@@ -44,17 +46,19 @@ var _ webhook.Defaulter = &ClusterClass{}
 // Default satisfies the defaulting webhook interface.
 func (in *ClusterClass) Default() {
 	// Default all namespaces in the references to the object namespace.
-	if len(in.Spec.Infrastructure.Ref.Namespace) == 0 {
+	if in.Spec.Infrastructure.Ref != nil && len(in.Spec.Infrastructure.Ref.Namespace) == 0 {
 		in.Spec.Infrastructure.Ref.Namespace = in.Namespace
 	}
-	if len(in.Spec.ControlPlane.Ref.Namespace) == 0 {
+	if in.Spec.ControlPlane.Ref != nil && len(in.Spec.ControlPlane.Ref.Namespace) == 0 {
 		in.Spec.ControlPlane.Ref.Namespace = in.Namespace
 	}
 	for i := range in.Spec.Workers.MachineDeployments {
-		if len(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace) == 0 {
+		if in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref != nil &&
+			len(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace) == 0 {
 			in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace = in.Namespace
 		}
-		if len(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace) == 0 {
+		if in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref != nil &&
+			len(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace) == 0 {
 			in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace = in.Namespace
 		}
 	}
@@ -91,89 +95,50 @@ func (in *ClusterClass) validate(old *ClusterClass) error {
 
 	var allErrs field.ErrorList
 
-	// ensure all the references are within the same namespace
-	if in.Spec.Infrastructure.Ref != nil && in.Spec.Infrastructure.Ref.Namespace != in.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "infrastructure", "ref", "namespace"),
-				in.Spec.Infrastructure.Ref.Namespace,
-				"must match metadata.namespace",
-			),
-		)
+	// Ensure all references are valid.
+	allErrs = append(allErrs, in.validateAllRefs()...)
+
+	// Ensure all MachineDeployment classes are unique.
+	allErrs = append(allErrs, in.Spec.Workers.validateUniqueClasses(field.NewPath("spec", "workers"))...)
+
+	// Ensure spec changes are compatible.
+	allErrs = append(allErrs, in.validateCompatibleSpecChanges(old)...)
+
+	if len(allErrs) > 0 {
+		return apierrors.NewInvalid(GroupVersion.WithKind("ClusterClass").GroupKind(), in.Name, allErrs)
 	}
-	if in.Spec.ControlPlane.Ref != nil && in.Spec.ControlPlane.Ref.Namespace != in.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "controlPlane", "ref", "namespace"),
-				in.Spec.ControlPlane.Ref.Namespace,
-				"must match metadata.namespace",
-			),
-		)
-	}
-	for _, class := range in.Spec.Workers.MachineDeployments {
-		if class.Template.Bootstrap.Ref != nil && class.Template.Bootstrap.Ref.Namespace != in.Namespace {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "workers", "machineDeployments", "template", "bootstrap", "ref", "namespace"),
-					class.Template.Bootstrap.Ref.Namespace,
-					"must match metadata.namespace",
-				),
-			)
-		}
-		if class.Template.Infrastructure.Ref != nil && class.Template.Infrastructure.Ref.Namespace != in.Namespace {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "workers", "machineDeployments", "template", "infrastructure", "ref", "namespace"),
-					class.Template.Infrastructure.Ref.Namespace,
-					"must match metadata.namespace",
-				),
-			)
-		}
+	return nil
+}
+
+func (in ClusterClass) validateAllRefs() field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, in.Spec.Infrastructure.validate(in.Namespace, field.NewPath("spec", "infrastructure"))...)
+	allErrs = append(allErrs, in.Spec.ControlPlane.LocalObjectTemplate.validate(in.Namespace, field.NewPath("spec", "controlPlane"))...)
+	if in.Spec.ControlPlane.MachineInfrastructure != nil {
+		allErrs = append(allErrs, in.Spec.ControlPlane.MachineInfrastructure.validate(in.Namespace, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
 	}
 
-	// Ensure MachineDeployment class are unique.
-	classNames := sets.String{}
-	for _, class := range in.Spec.Workers.MachineDeployments {
-		if classNames.Has(class.Class) {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "workers", "machineDeployments"),
-					class,
-					fmt.Sprintf("MachineDeployment class should be unique. MachineDeployment with class %q is defined more than once.", class.Class),
-				),
-			)
-		}
-		classNames.Insert(class.Class)
+	for i, class := range in.Spec.Workers.MachineDeployments {
+		allErrs = append(allErrs, class.Template.Bootstrap.validate(in.Namespace, field.NewPath("spec", "workers", fmt.Sprintf("machineDeployments[%v]", i), "template", "bootstrap"))...)
+		allErrs = append(allErrs, class.Template.Infrastructure.validate(in.Namespace, field.NewPath("spec", "workers", fmt.Sprintf("machineDeployments[%v]", i), "template", "infrastructure"))...)
 	}
 
-	// in case of create, we are done.
+	return allErrs
+}
+
+func (in ClusterClass) validateCompatibleSpecChanges(old *ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// in case of create, no changes to verify
+	// return early.
 	if old == nil {
-		if len(allErrs) > 0 {
-			return apierrors.NewInvalid(GroupVersion.WithKind("ClusterClass").GroupKind(), in.Name, allErrs)
-		}
 		return nil
 	}
 
-	// Otherwise, In case of updates:
+	// Ensure that the old MachineDeployments still exist.
+	allErrs = append(allErrs, in.validateMachineDeploymentsChanges(old)...)
 
-	// Makes sure all the old MachineDeployment classes are still there (only MachineDeployment class addition are allowed).
-	oldClassNames := sets.String{}
-	for _, oldClass := range old.Spec.Workers.MachineDeployments {
-		if !classNames.Has(oldClass.Class) {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "workers", "machineDeployments"),
-					in.Spec.Workers.MachineDeployments,
-					fmt.Sprintf("The %q MachineDeployment class can't be removed.", oldClass.Class),
-				),
-			)
-		}
-		oldClassNames.Insert(oldClass.Class)
-	}
-
-	// Makes sure no additional changes were applied.
 	if !reflect.DeepEqual(in.Spec.Infrastructure, old.Spec.Infrastructure) {
 		allErrs = append(allErrs,
 			field.Invalid(
@@ -194,6 +159,27 @@ func (in *ClusterClass) validate(old *ClusterClass) error {
 		)
 	}
 
+	return allErrs
+}
+
+func (in ClusterClass) validateMachineDeploymentsChanges(old *ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Ensure no MachineDeployment class was removed.
+	classes := in.Spec.Workers.classNames()
+	for _, oldClass := range old.Spec.Workers.MachineDeployments {
+		if !classes.Has(oldClass.Class) {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("spec", "workers", "machineDeployments"),
+					in.Spec.Workers.MachineDeployments,
+					fmt.Sprintf("The %q MachineDeployment class can't be removed.", oldClass.Class),
+				),
+			)
+		}
+	}
+
+	// Ensure no previous MachineDeployment class was modified.
 	for _, class := range in.Spec.Workers.MachineDeployments {
 		for _, oldClass := range old.Spec.Workers.MachineDeployments {
 			if class.Class == oldClass.Class && !reflect.DeepEqual(class, oldClass) {
@@ -208,8 +194,95 @@ func (in *ClusterClass) validate(old *ClusterClass) error {
 		}
 	}
 
-	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("ClusterClass").GroupKind(), in.Name, allErrs)
+	return allErrs
+}
+
+func (r LocalObjectTemplate) validate(namespace string, pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// check if a name is provided
+	if r.Ref.Name == "" {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "name"),
+				r.Ref.Name,
+				"cannot be empty",
+			),
+		)
 	}
-	return nil
+
+	// validate if namespace matches the provided namespace
+	if namespace != "" && r.Ref.Namespace != namespace {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "namespace"),
+				r.Ref.Namespace,
+				fmt.Sprintf("must be '%s'", namespace),
+			),
+		)
+	}
+
+	// check if kind is a template
+	if len(r.Ref.Kind) <= len(TemplateSuffix) || !strings.HasSuffix(r.Ref.Kind, TemplateSuffix) {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "kind"),
+				r.Ref.Kind,
+				fmt.Sprintf("kind must be of form '<name>%s'", TemplateSuffix),
+			),
+		)
+	}
+
+	// check if apiVersion is valid
+	gv, err := schema.ParseGroupVersion(r.Ref.APIVersion)
+	if err != nil {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "apiVersion"),
+				r.Ref.APIVersion,
+				fmt.Sprintf("must be a valid apiVersion: %v", err),
+			),
+		)
+	}
+	if err == nil && gv.Empty() {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "apiVersion"),
+				r.Ref.APIVersion,
+				"cannot be empty",
+			),
+		)
+	}
+
+	return allErrs
+}
+
+// classNames returns the set of MachineDeployment class names.
+func (w WorkersClass) classNames() sets.String {
+	classes := sets.NewString()
+	for _, class := range w.MachineDeployments {
+		classes.Insert(class.Class)
+	}
+	return classes
+}
+
+func (w WorkersClass) validateUniqueClasses(pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	classes := sets.NewString()
+	for i, class := range w.MachineDeployments {
+		if classes.Has(class.Class) {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child(fmt.Sprintf("machineDeployments[%v]", i), "class"),
+					class.Class,
+					fmt.Sprintf("MachineDeployment class should be unique. MachineDeployment with class %q is defined more than once.", class.Class),
+				),
+			)
+		}
+		classes.Insert(class.Class)
+	}
+
+	return allErrs
 }

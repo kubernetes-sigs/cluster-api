@@ -33,6 +33,7 @@ import (
 const (
 	// TemplateSuffix is the object kind suffix used by infrastructure references associated
 	// with MachineSet or MachineDeployments.
+	// Deprecated: use api/v1alpha4.TemplatePrefix instead.
 	TemplateSuffix = "Template"
 )
 
@@ -192,7 +193,7 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 
 	// Set the object Kind and strip the word "Template" if it's a suffix.
 	if to.GetKind() == "" {
-		to.SetKind(strings.TrimSuffix(in.Template.GetKind(), TemplateSuffix))
+		to.SetKind(strings.TrimSuffix(in.Template.GetKind(), clusterv1.TemplateSuffix))
 	}
 	return to, nil
 }

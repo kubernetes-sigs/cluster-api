@@ -586,7 +586,7 @@ func unhealthyMachineCount(mhc *clusterv1.MachineHealthCheck) int {
 func (r *MachineHealthCheckReconciler) getExternalRemediationRequest(ctx context.Context, m *clusterv1.MachineHealthCheck, machineName string) (*unstructured.Unstructured, error) {
 	remediationRef := &corev1.ObjectReference{
 		APIVersion: m.Spec.RemediationTemplate.APIVersion,
-		Kind:       strings.TrimSuffix(m.Spec.RemediationTemplate.Kind, external.TemplateSuffix),
+		Kind:       strings.TrimSuffix(m.Spec.RemediationTemplate.Kind, clusterv1.TemplateSuffix),
 		Name:       machineName,
 	}
 	remediationReq, err := external.Get(ctx, r.Client, remediationRef, m.Namespace)

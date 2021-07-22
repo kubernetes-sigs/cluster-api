@@ -44,13 +44,30 @@ type ClusterClassSpec struct {
 
 	// ControlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
-	ControlPlane LocalObjectTemplate `json:"controlPlane,omitempty"`
+	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty"`
 
 	// Workers describes the worker nodes for the cluster.
 	// It is a collection of node types which can be used to create
 	// the worker nodes of the cluster.
 	// +optional
 	Workers WorkersClass `json:"workers,omitempty"`
+}
+
+// ControlPlaneClass defines the class for the control plane.
+type ControlPlaneClass struct {
+	Metadata ObjectMeta `json:"metadata,omitempty"`
+
+	// LocalObjectTemplate contains the reference to the control plane provider.
+	LocalObjectTemplate `json:",inline"`
+
+	// MachineTemplate defines the metadata and infrastructure information
+	// for control plane machines.
+	//
+	// This field is supported if and only if the control plane provider template
+	// referenced above is Machine based and supports setting replicas.
+	//
+	// +optional
+	MachineInfrastructure *LocalObjectTemplate `json:"machineInfrastructure,omitempty"`
 }
 
 // WorkersClass is a collection of deployment classes.

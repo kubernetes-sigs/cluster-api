@@ -248,13 +248,6 @@ type Watcher interface {
 	Watch(src source.Source, eventHandler handler.EventHandler, predicates ...predicate.Predicate) error
 }
 
-// Index is a helper to model the info passed to cache.IndexField.
-type Index struct {
-	Object       client.Object
-	Field        string
-	ExtractValue client.IndexerFunc
-}
-
 // WatchInput specifies the parameters used to establish a new watch for a remote cluster.
 type WatchInput struct {
 	// Name represents a unique watch request for the specified Cluster.

@@ -101,10 +101,12 @@ var (
 
 const (
 	// MachineNodeNameIndex is used by the Machine Controller to index Machines by Node name, and add a watch on Nodes.
+	// Deprecated: Use api/v1alpha4/index.MachineNodeNameField instead.
 	MachineNodeNameIndex = "status.nodeRef.name"
 
 	// MachineProviderIDIndex is used to index Machines by ProviderID. It's useful to find Machines
 	// in a management cluster from Nodes in a workload cluster.
+	// Deprecated: Use api/v1alpha4/index.MachineProviderIDField instead.
 	MachineProviderIDIndex = "spec.providerID"
 )
 

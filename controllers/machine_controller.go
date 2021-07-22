@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -705,7 +706,7 @@ func (r *MachineReconciler) nodeToMachine(o client.Object) []reconcile.Request {
 	if err := r.Client.List(
 		context.TODO(),
 		machineList,
-		append(filters, client.MatchingFields{clusterv1.MachineNodeNameIndex: node.Name})...); err != nil {
+		append(filters, client.MatchingFields{index.MachineNodeNameField: node.Name})...); err != nil {
 		return nil
 	}
 
@@ -724,7 +725,7 @@ func (r *MachineReconciler) nodeToMachine(o client.Object) []reconcile.Request {
 	if err := r.Client.List(
 		context.TODO(),
 		machineList,
-		append(filters, client.MatchingFields{clusterv1.MachineProviderIDIndex: nodeProviderID.IndexKey()})...); err != nil {
+		append(filters, client.MatchingFields{index.MachineProviderIDField: nodeProviderID.IndexKey()})...); err != nil {
 		return nil
 	}
 

@@ -253,7 +253,11 @@ type LocalObjectTemplate struct {
       Metadata ObjectMeta `json:"metadata,omitempty"`
     
       // The number of control plane nodes.
-      Replicas int `json:"replicas"`
+      // If the value is nil, the ControlPlane object is created without the number of Replicas
+      // and it's assumed that the control plane controller does not implement support for this field.
+      // When specified against a control plane provider that lacks support for this field, this value will be ignored.
+      // +optional
+      Replicas *int `json:"replicas,omitempty"`
     }
     ```
 1.  The `WorkersTopology` object represents the sets of worker nodes of the topology.
@@ -408,7 +412,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
        ```
     1. For the ControlPlane object in `cluster.spec.topology.controlPlane`
     1. Initializes a control plane object using the control plane template defined in the `ClusterClass.spec.controlPlane.ref field`. Use the name `<cluster-name>`.
-    1. Sets the number of replicas on the control plane object from `spec.topology.controlPlane.replicas`.
+    1. If `spec.topology.controlPlane.replicas` is set, set the number of replicas on the control plane object to that value.
     1. Sets the k8s version on the control plane object from the `spec.topology.version`.
     1. Add the following labels to the control plane object:
        ```yaml
@@ -461,7 +465,7 @@ The proposal calls for the implementation of an infrastructure cluster template 
 ##### For Control plane providers
 Similarly, a control plane provider should also create a template for use of creation for the control plane objects. For instance, the kubeadm control plane provider should introduce the notion of a KubeadmControlPlaneTemplate for use by the cluster controller to create a managed Kubeadm Control plane object.
 
-The CAPI Cluster Controller would use this template to instantiate a control plane object for the topology. The current CRD contract mandates that the control plane provider supports `replicas` in the `spec` fields. With the introduction of ClusterClass which is responsible for handling the kubernetes version too, the current contract needs to be expanded to include the support for `version` in the `spec` fields.
+The CAPI Cluster Controller would use this template to instantiate a control plane object for the topology. With the introduction of ClusterClass which is responsible for handling the kubernetes version too, the current contract needs to be expanded to include the support for `version` in the `spec` fields. The control plane templates can optinally also support `replicas` in `spec` and its value will be set to `cluster.spec.topology.controlPlane.replicas`.
 
 ### Risks and Mitigations
 

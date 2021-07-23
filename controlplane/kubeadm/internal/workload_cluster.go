@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -70,6 +71,7 @@ type WorkloadCluster interface {
 	EtcdMembers(ctx context.Context) ([]string, error)
 
 	// Upgrade related tasks.
+	IsKubernetesVersionSupported(ctx context.Context, version semver.Version) (bool, error)
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error
 	ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error
 	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error
@@ -117,6 +119,33 @@ func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.Object
 		return nil, errors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMap.Namespace, configMap.Name)
 	}
 	return original.DeepCopy(), nil
+}
+
+var managementClusterVersionCeiling = semver.MustParse("1.22.0")
+
+// IsKubernetesVersionSupported checks if the Kubernetes version is supported.
+// Kubernetes versions >= v1.22.0 for management clusters are not supported.
+// Management clusters are identified by the existence of the KubeadmControlPlane CRD.
+func (w *Workload) IsKubernetesVersionSupported(ctx context.Context, version semver.Version) (bool, error) {
+	// Kubernetes version is < v1.22.0.
+	if version.LT(managementClusterVersionCeiling) {
+		return true, nil
+	}
+
+	// Try to get *metav1.PartialObjectMetadata of KubeadmControlPlane CRD.
+	out := &metav1.PartialObjectMetadata{}
+	out.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
+	key := ctrlclient.ObjectKey{Name: "kubeadmcontrolplanes.controlplane.cluster.x-k8s.io"}
+	if err := w.Client.Get(ctx, key, out); err != nil {
+		if apierrors.IsNotFound(err) {
+			// KubeadmControlPlane CRD could not be found on the workload cluster (and thus it's not a management cluster).
+			return true, nil
+		}
+		// Get *metav1.PartialObjectMetadata request for KubeadmControlPlane CRD failed.
+		return false, err
+	}
+	// Request did not fail, that means we found the KubeadmControlPlane CRD (and thus a management cluster).
+	return false, nil
 }
 
 // UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -48,6 +49,15 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
+	}
+
+	supported, err := workloadCluster.IsKubernetesVersionSupported(ctx, parsedVersion)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to check if Kubernetes version is supported")
+	}
+	if !supported {
+		logger.Info(fmt.Sprintf("Kubernetes version %q is not supported for management clusters", kcp.Spec.Version))
+		return ctrl.Result{}, nil
 	}
 
 	if err := workloadCluster.ReconcileKubeletRBACRole(ctx, parsedVersion); err != nil {

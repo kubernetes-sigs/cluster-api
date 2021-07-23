@@ -45,6 +45,95 @@ spec:
                 description: ControlPlane is a reference to a local struct that holds
                   the details for provisioning the Control Plane for the Cluster.
                 properties:
+                  machineInfrastructure:
+                    description: "MachineTemplate defines the metadata and infrastructure
+                      information for control plane machines. \n This field is supported
+                      if and only if the control plane provider template referenced
+                      above is Machine based and supports setting replicas."
+                    properties:
+                      ref:
+                        description: Ref is a required reference to a custom resource
+                          offered by a provider.
+                        properties:
+                          apiVersion:
+                            description: API version of the referent.
+                            type: string
+                          fieldPath:
+                            description: 'If referring to a piece of an object instead
+                              of an entire object, this string should contain a valid
+                              JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                              For example, if the object reference is to a container
+                              within a pod, this would take on a value like: "spec.containers{name}"
+                              (where "name" refers to the name of the container that
+                              triggered the event) or if no container name is specified
+                              "spec.containers[2]" (container with index 2 in this
+                              pod). This syntax is chosen only to have some well-defined
+                              way of referencing a part of an object. TODO: this design
+                              is not final and this field is subject to change in
+                              the future.'
+                            type: string
+                          kind:
+                            description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                            type: string
+                          namespace:
+                            description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                            type: string
+                          resourceVersion:
+                            description: 'Specific resourceVersion to which this reference
+                              is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                            type: string
+                          uid:
+                            description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                            type: string
+                        type: object
+                    required:
+                    - ref
+                    type: object
+                  metadata:
+                    description: "ObjectMeta is metadata that all persisted resources
+                      must have, which includes all objects users must create. This
+                      is a copy of customizable fields from metav1.ObjectMeta. \n
+                      ObjectMeta is embedded in `Machine.Spec`, `MachineDeployment.Template`
+                      and `MachineSet.Template`, which are not top-level Kubernetes
+                      objects. Given that metav1.ObjectMeta has lots of special cases
+                      and read-only fields which end up in the generated CRD validation,
+                      having it as a subset simplifies the API and some issues that
+                      can impact user experience. \n During the [upgrade to controller-tools@v2](https://github.com/kubernetes-sigs/cluster-api/pull/1054)
+                      for v1alpha2, we noticed a failure would occur running Cluster
+                      API test suite against the new CRDs, specifically `spec.metadata.creationTimestamp
+                      in body must be of type string: \"null\"`. The investigation
+                      showed that `controller-tools@v2` behaves differently than its
+                      previous version when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1)
+                      package. \n In more details, we found that embedded (non-top
+                      level) types that embedded `metav1.ObjectMeta` had validation
+                      properties, including for `creationTimestamp` (metav1.Time).
+                      The `metav1.Time` type specifies a custom json marshaller that,
+                      when IsZero() is true, returns `null` which breaks validation
+                      because the field isn't marked as nullable. \n In future versions,
+                      controller-tools@v2 might allow overriding the type and validation
+                      for embedded types. When that happens, this hack should be revisited."
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: 'Annotations is an unstructured key value map
+                          stored with a resource that may be set by external tools
+                          to store and retrieve arbitrary metadata. They are not queryable
+                          and should be preserved when modifying objects. More info:
+                          http://kubernetes.io/docs/user-guide/annotations'
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: 'Map of string keys and values that can be used
+                          to organize and categorize (scope and select) objects. May
+                          match selectors of replication controllers and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        type: object
+                    type: object
                   ref:
                     description: Ref is a required reference to a custom resource
                       offered by a provider.

@@ -45,7 +45,9 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 		},
 		Spec: ClusterClassSpec{
 			Infrastructure: LocalObjectTemplate{Ref: ref},
-			ControlPlane:   LocalObjectTemplate{Ref: ref},
+			ControlPlane: ControlPlaneClass{
+				LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+			},
 			Workers: WorkersClass{
 				MachineDeployments: []MachineDeploymentClass{
 					{
@@ -96,7 +98,9 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -120,7 +124,9 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -140,7 +146,9 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -202,7 +210,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -233,7 +243,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: refInAnotherNamespace},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -257,7 +269,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: refInAnotherNamespace},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: refInAnotherNamespace},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -281,7 +295,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -305,7 +321,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -329,7 +347,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -360,7 +380,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -380,7 +402,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -405,7 +429,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -431,7 +457,9 @@ func TestClusterClassValidation(t *testing.T) {
 						Name:       "bazx",
 						Namespace:  "default",
 					}},
-					ControlPlane: LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -456,7 +484,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -477,12 +507,14 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane: LocalObjectTemplate{Ref: &corev1.ObjectReference{
-						APIVersion: "foox",
-						Kind:       "barx",
-						Name:       "bazx",
-						Namespace:  "default",
-					}},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: &corev1.ObjectReference{
+							APIVersion: "foox",
+							Kind:       "barx",
+							Name:       "bazx",
+							Namespace:  "default",
+						}},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -507,7 +539,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -528,7 +562,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -558,7 +594,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -578,7 +616,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -609,7 +649,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -629,7 +671,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -660,7 +704,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{
@@ -687,7 +733,9 @@ func TestClusterClassValidation(t *testing.T) {
 				},
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
-					ControlPlane:   LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
 							{

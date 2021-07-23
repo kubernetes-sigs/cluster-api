@@ -161,13 +161,30 @@ type ClusterClassSpec struct {
 
   // ControlPlane is a reference to a local struct that holds the details
   // for provisioning the Control Plane for the Cluster.
-  ControlPlane LocalObjectTemplate `json:"controlPlane,omitempty"`
+  ControlPlane ControlPlaneClass `json:"controlPlane,omitempty"`
 
   // Workers describes the worker nodes for the cluster.
   // It is a collection of node types which can be used to create
   // the worker nodes of the cluster.
   // +optional
   Workers WorkersClass `json:"workers,omitempty"`
+}
+
+// ControlPlaneClass defines the class for the control plane.
+type ControlPlaneClass struct {
+	Metadata ObjectMeta `json:"metadata,omitempty"`
+
+	// LocalObjectTemplate contains the reference to the control plane provider.
+	LocalObjectTemplate `json:",inline"`
+
+	// MachineTemplate defines the metadata and infrastructure information
+	// for control plane machines.
+	//
+	// This field is supported if and only if the control plane provider template
+	// referenced above is Machine based and supports setting replicas.
+	//
+	// +optional
+	MachineInfrastructure *LocalObjectTemplate `json:"machineInfrastructure,omitempty"`
 }
 
 // WorkersClass is a collection of deployment classes.
@@ -251,7 +268,7 @@ type LocalObjectTemplate struct {
     // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
     type ControlPlaneTopology struct {
       Metadata ObjectMeta `json:"metadata,omitempty"`
-    
+
       // The number of control plane nodes.
       Replicas int `json:"replicas"`
     }
@@ -264,7 +281,7 @@ type LocalObjectTemplate struct {
     type WorkersTopology struct {
       // MachineDeployments is a list of machine deployment in the cluster.
       MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
-    }   
+    }
     ```
 1.  The `MachineDeploymentTopology` object represents a single set of worker nodes of the topology.
     ```golang
@@ -272,18 +289,18 @@ type LocalObjectTemplate struct {
     // This set of nodes is managed by a MachineDeployment object whose lifecycle is managed by the Cluster controller.
     type MachineDeploymentTopology struct {
     Metadata ObjectMeta `json:"metadata,omitempty"`
-    
+
       // Class is the name of the MachineDeploymentClass used to create the set of worker nodes.
       // This should match one of the deployment classes defined in the ClusterClass object
       // mentioned in the `Cluster.Spec.Class` field.
       Class string `json:"class"`
-    
+
       // Name is the unique identifier for this MachineDeploymentTopology.
       // The value is used with other unique identifiers to create a MachineDeployment's Name
       // (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
       // the values are hashed together.
       Name string `json:"name"`
-    
+
       // The number of worker nodes belonging to this set.
       // If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to zero)
       // and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
@@ -297,7 +314,7 @@ type LocalObjectTemplate struct {
 ##### ClusterClass
 - For object creation:
   - (defaulting) if namespace field is empty for a reference, default it to `metadata.Namespace`
-  - all the reference must be in the same namespace of `metadata.Namespace`  
+  - all the reference must be in the same namespace of `metadata.Namespace`
   - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
 - For object updates:
   - all the reference must be in the same namespace of `metadata.Namespace`
@@ -309,9 +326,9 @@ type LocalObjectTemplate struct {
   - `spec.topology` and `spec.infrastructureRef` cannot be simultaneously set.
   - `spec.topology` and `spec.controlPlaneRef` cannot be simultaneously set.
   - If `spec.topology` is set, `spec.topology.class` cannot be empty.
-  - If `spec.topology` is set, `spec.topology.version` cannot be empty and must be a valid semver.  
+  - If `spec.topology` is set, `spec.topology.version` cannot be empty and must be a valid semver.
   - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
-  
+
 - For object updates:
   - If `spec.topology.class` is set, it cannot be unset or modified.
   - `spec.topology.version` cannot be unset and must be a valid semver, if being updated.

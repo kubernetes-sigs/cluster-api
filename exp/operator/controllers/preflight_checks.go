@@ -42,6 +42,7 @@ var (
 	moreThanOneCoreProviderInstanceExistsMessage = "CoreProvider already exists in the cluster. Only one is allowed."
 	moreThanOneProviderInstanceExistsMessage     = "There is already a %s with name %s in the cluster. Only one is allowed."
 	unknownProviderMessage                       = "The provider \"%s\" does not exist."
+	capiVersionIncompatibilityMessage            = "capi operator is only compatible with %s providers, detected %s for provider %s."
 	waitingForCoreProviderReadyMessage           = "waiting for the core provider to install."
 )
 

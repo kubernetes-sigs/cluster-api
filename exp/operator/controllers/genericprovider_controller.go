@@ -27,14 +27,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/kubectl/pkg/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	configclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -47,6 +52,9 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+const metadataFile = "metadata.yaml"
+
+// GenericProviderReconciler implements the controller.Reconciler interface.
 type GenericProviderReconciler struct {
 	Provider     client.Object
 	ProviderList client.ObjectList
@@ -161,6 +169,17 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 		options.Version = *spec.Version
 	}
 
+	err = validateRepoCAPIVersion(repo, provider.GetName(), options.Version)
+	if err != nil {
+		conditions.Set(provider, conditions.FalseCondition(
+			operatorv1.PreflightCheckCondition,
+			operatorv1.CAPIVersionIncompatibilityReason,
+			clusterv1.ConditionSeverityWarning,
+			err.Error(),
+		))
+		return ctrl.Result{}, err
+	}
+
 	componentsFile, err := repo.GetFile(options.Version, repo.ComponentsPath())
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to read %q from provider's repository %q", repo.ComponentsPath(), providerConfig.ManifestLabel())
@@ -194,7 +213,8 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 	}
 
 	if isCertManagerRequired(ctx, components) {
-		// NOTE: this can block for a while..
+		// TODO: maybe set a shorter default, so we don't block when installing cert-manager.
+		// reader.Set("cert-manager-timeout", "120s")
 		if err := clusterClient.CertManager().EnsureInstalled(); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -218,6 +238,37 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 	return ctrl.Result{}, nil
 }
 
+func validateRepoCAPIVersion(repo repository.Repository, name, ver string) error {
+	file, err := repo.GetFile(ver, metadataFile)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read %q from the repository for provider %q", metadataFile, name)
+	}
+
+	// Convert the yaml into a typed object
+	latestMetadata := &clusterctlv1.Metadata{}
+	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
+
+	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, latestMetadata); err != nil {
+		return errors.Wrapf(err, "error decoding %q for provider %q", metadataFile, name)
+	}
+
+	// Gets the contract for the current release.
+	currentVersion, err := version.ParseSemantic(ver)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse current version for the %s provider", name)
+	}
+
+	releaseSeries := latestMetadata.GetReleaseSeriesForVersion(currentVersion)
+	if releaseSeries == nil {
+		return errors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", ver, name)
+	}
+
+	if releaseSeries.Contract != clusterv1.GroupVersion.Version {
+		return errors.Errorf(capiVersionIncompatibilityMessage, clusterv1.GroupVersion.Version, releaseSeries.Contract, name)
+	}
+	return nil
+}
+
 func (r *GenericProviderReconciler) secretReader(ctx context.Context, provider genericprovider.GenericProvider) (configclient.Reader, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -226,9 +277,6 @@ func (r *GenericProviderReconciler) secretReader(ctx context.Context, provider g
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO: maybe set a shorter default, so we don't block when installing cert-manager.
-	//mr.Set("cert-manager-timeout", "120s")
 
 	if provider.GetSpec().SecretName != nil {
 		secret := &corev1.Secret{}
@@ -271,7 +319,7 @@ func (r *GenericProviderReconciler) configmapRepository(ctx context.Context, pro
 		if !ok {
 			return nil, fmt.Errorf("ConfigMap %s/%s has no metadata", cm.Namespace, cm.Name)
 		}
-		mr.WithFile(cm.Name, "metadata.yaml", []byte(metadata))
+		mr.WithFile(cm.Name, metadataFile, []byte(metadata))
 		components, ok := cm.Data["components"]
 		if !ok {
 			return nil, fmt.Errorf("ConfigMap %s/%s has no components", cm.Namespace, cm.Name)

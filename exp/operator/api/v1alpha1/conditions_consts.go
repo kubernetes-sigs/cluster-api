@@ -29,6 +29,9 @@ const (
 	// UnknownProviderReason documents that the provider name is not the name of a know provider.
 	UnknownProviderReason = "UnknownProvider"
 
+	// CAPIVersionIncompatibility documents that the provider version is incompatible with operator.
+	CAPIVersionIncompatibilityReason = "CAPIVersionIncompatibility"
+
 	// ComponentsFetchErrorReason documents that an error occurred fetching the componets.
 	ComponentsFetchErrorReason = "ComponentsFetchError"
 

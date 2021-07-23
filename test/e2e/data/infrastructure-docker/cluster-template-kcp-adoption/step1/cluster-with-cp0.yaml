@@ -49,11 +49,19 @@ spec:
   initConfiguration:
     nodeRegistration:
       criSocket: /var/run/containerd/containerd.sock
-      kubeletExtraArgs: {eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'}
+      kubeletExtraArgs:
+        # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+        # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+        cgroup-driver: cgroupfs
+        eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
   joinConfiguration:
     nodeRegistration:
       criSocket: /var/run/containerd/containerd.sock
-      kubeletExtraArgs: {eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'}
+      kubeletExtraArgs:
+        # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+        # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+        cgroup-driver: cgroupfs
+        eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 ---
 # cp0 Machine
 apiVersion: cluster.x-k8s.io/v1alpha3

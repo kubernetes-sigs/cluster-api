@@ -230,6 +230,10 @@ func setupWebhooks(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 		os.Exit(1)
 	}
+
+	if err := (&kubeadmcontrolplanev1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager((mgr)); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlaneTemplate")
+	}
 }
 
 func concurrency(c int) controller.Options {

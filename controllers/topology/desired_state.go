@@ -26,6 +26,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // computeDesiredState computes the desired state of the cluster topology.
@@ -136,13 +137,79 @@ func computeControlPlane(class *clusterTopologyClass, current *clusterTopologySt
 		}
 	}
 
+	// Computes the desired Kubernetes version for the control plane.
+	controlPlaneVersion, err := computeControlPlaneVersion(current)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compute spec.version for the ControlPlane object")
+	}
+
 	// Sets the desired Kubernetes version for the control plane.
-	// TODO: improve this logic by adding support for version upgrade component by component
-	if err := unstructured.SetNestedField(controlPlane.UnstructuredContent(), current.cluster.Spec.Topology.Version, "spec", "version"); err != nil {
+	if err := unstructured.SetNestedField(controlPlane.UnstructuredContent(), controlPlaneVersion, "spec", "version"); err != nil {
 		return nil, errors.Wrap(err, "failed to set spec.version in the ControlPlane object")
 	}
 
 	return controlPlane, nil
+}
+
+// computeControlPlaneVersion computes the ControlPlane version based on the current clusterTopologyState.
+// TODO: we also have to handle the following cases:
+// * ControlPlane.spec.version != ControlPlane.status.version, i.e. ControlPLane rollout is already in progress.
+// * ControlPlane.spec.version != MachineDeployment[].spec.template.spec.version, i.e. one of the MachineDeployments has
+//   a different version then the ControlPlane.
+func computeControlPlaneVersion(current *clusterTopologyState) (string, error) {
+	currentTopologyVersion := current.cluster.Spec.Topology.Version
+
+	// ControlPlane does not exist yet, use currentTopologyVersion for new ControlPlane.
+	if current.controlPlane.object == nil {
+		return currentTopologyVersion, nil
+	}
+
+	currentControlPlaneVersion, err := getControlPlaneVersion(current.controlPlane.object)
+	if err != nil {
+		return "", err
+	}
+
+	// ControlPlane already has the currentTopologyVersion.
+	if currentControlPlaneVersion == currentTopologyVersion {
+		return currentTopologyVersion, nil
+	}
+
+	// ControlPlane downgrade is not allowed.
+	if err := detectDowngrade(currentControlPlaneVersion, currentTopologyVersion); err != nil {
+		return "", err
+	}
+
+	// ControlPlane will be upgraded.
+	return currentTopologyVersion, nil
+}
+
+// getControlPlaneVersion gets the .spec.version of a ControlPlane.
+func getControlPlaneVersion(controlPlane *unstructured.Unstructured) (string, error) {
+	controlPlaneVersion, ok, err := unstructured.NestedString(controlPlane.UnstructuredContent(), "spec", "version")
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get spec.version from ControlPlane")
+	}
+	if !ok {
+		return "", errors.New("failed to get spec.version from ControlPlane: not found")
+	}
+	return controlPlaneVersion, nil
+}
+
+// detectDowngrade compares currentVersion and desiredVersion and returns an error if they either cannot be parsed
+// or if a downgrade is detected.
+func detectDowngrade(currentVersion, desiredVersion string) error {
+	currentVersionParsed, err := version.ParseMajorMinorPatch(currentVersion)
+	if err != nil {
+		return errors.Errorf("failed to parse current version %q: %v", currentVersion, err)
+	}
+	desiredVersionParsed, err := version.ParseMajorMinorPatch(desiredVersion)
+	if err != nil {
+		return errors.Errorf("failed to parse desired version %q: %v", desiredVersion, err)
+	}
+	if desiredVersionParsed.LT(currentVersionParsed) {
+		return errors.Errorf("downgrade from %s to %s is not supported", currentVersion, desiredVersion)
+	}
+	return nil
 }
 
 // computeCluster computes the desired state for the Cluster object.

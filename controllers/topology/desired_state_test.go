@@ -381,6 +381,86 @@ func TestComputeControlPlane(t *testing.T) {
 	})
 }
 
+func TestComputeControlPlaneVersion(t *testing.T) {
+	tests := []struct {
+		name                string
+		topologyVersion     string
+		currentControlPlane *unstructured.Unstructured
+		want                string
+		wantErr             bool
+	}{
+		{
+			name:                "ControlPlane does not exist",
+			topologyVersion:     "v1.21.0",
+			currentControlPlane: nil,
+			want:                "v1.21.0",
+		},
+		{
+			name:                "ControlPlane does exist, but without version",
+			topologyVersion:     "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").Obj(),
+			wantErr:             true,
+		},
+		{
+			name:                "ControlPlane does exist, with same version (no-op)",
+			topologyVersion:     "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.21.0").Obj(),
+			want:                "v1.21.0",
+		},
+		{
+			name:                "ControlPlane does exist, with newer version (downgrade)",
+			topologyVersion:     "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.22.0").Obj(),
+			wantErr:             true,
+		},
+		{
+			name:                "ControlPlane does exist, with invalid version",
+			topologyVersion:     "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("invalid-version").Obj(),
+			wantErr:             true,
+		},
+		{
+			name:                "ControlPlane does exist, with valid version but invalid topology version",
+			topologyVersion:     "invalid-version",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.21.0").Obj(),
+			wantErr:             true,
+		},
+		{
+			name:                "ControlPlane does exist, with older version (upgrade)",
+			topologyVersion:     "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.20.0").Obj(),
+			want:                "v1.21.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			current := &clusterTopologyState{
+				cluster: &clusterv1.Cluster{
+					Spec: clusterv1.ClusterSpec{
+						Topology: &clusterv1.Topology{
+							Version: tt.topologyVersion,
+						},
+					},
+				},
+				controlPlane: controlPlaneTopologyState{
+					object: tt.currentControlPlane,
+				},
+			}
+
+			got, err := computeControlPlaneVersion(current)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
 func TestComputeCluster(t *testing.T) {
 	// generated objects
 	infrastructureCluster := newFakeInfrastructureCluster(metav1.NamespaceDefault, "infrastructureCluster1").Obj()

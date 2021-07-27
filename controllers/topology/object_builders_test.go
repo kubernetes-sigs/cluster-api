@@ -395,6 +395,7 @@ type fakeControlPlane struct {
 	namespace                     string
 	name                          string
 	infrastructureMachineTemplate *unstructured.Unstructured
+	version                       *string
 }
 
 func newFakeControlPlane(namespace, name string) *fakeControlPlane {
@@ -406,6 +407,11 @@ func newFakeControlPlane(namespace, name string) *fakeControlPlane {
 
 func (f *fakeControlPlane) WithInfrastructureMachineTemplate(t *unstructured.Unstructured) *fakeControlPlane {
 	f.infrastructureMachineTemplate = t
+	return f
+}
+
+func (f *fakeControlPlane) WithVersion(version string) *fakeControlPlane {
+	f.version = &version
 	return f
 }
 
@@ -425,6 +431,12 @@ func (f *fakeControlPlane) Obj() *unstructured.Unstructured {
 
 	if f.infrastructureMachineTemplate != nil {
 		if err := setNestedRef(obj, f.infrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef"); err != nil {
+			panic(err)
+		}
+	}
+
+	if f.version != nil {
+		if err := unstructured.SetNestedField(obj.UnstructuredContent(), *f.version, "spec", "version"); err != nil {
 			panic(err)
 		}
 	}

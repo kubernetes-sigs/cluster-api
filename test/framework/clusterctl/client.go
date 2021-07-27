@@ -94,7 +94,7 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 		strings.Join(input.InfrastructureProviders, ","),
 	)
 
-	cmd := exec.Command(binary, "init",
+	cmd := exec.Command(binary, "init", //nolint:gosec // We don't care about command injection here.
 		"--core", input.CoreProvider,
 		"--bootstrap", strings.Join(input.BootstrapProviders, ","),
 		"--control-plane", strings.Join(input.ControlPlaneProviders, ","),
@@ -202,7 +202,7 @@ func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, inp
 		valueOrDefault(input.Flavor),
 	)
 
-	cmd := exec.Command(clusterctlBinaryPath, "config", "cluster",
+	cmd := exec.Command(clusterctlBinaryPath, "config", "cluster", //nolint:gosec // We don't care about command injection here.
 		input.ClusterName,
 		"--infrastructure", input.InfrastructureProvider,
 		"--kubernetes-version", input.KubernetesVersion,

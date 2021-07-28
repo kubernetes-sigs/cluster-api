@@ -77,7 +77,7 @@ but is the final step in fully upgrading a Cluster API managed cluster.
 It is recommended to manage machines with one or more `MachineDeployment`s. `MachineDeployment`s will
 transparently manage `MachineSet`s and `Machine`s to allow for a seamless scaling experience. A modification to the
 `MachineDeployment`s spec will begin a rolling update of the machines. Follow
-[these instructions](./change-machine-template.md) for changing the
+[these instructions](updating-machine-templates.md) for changing the
 template for an existing `MachineDeployment`.
 
 `MachineDeployment`s support different strategies for rolling out changes to `Machines`:

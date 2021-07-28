@@ -13,7 +13,7 @@
     - [Upgrading Cluster API components](./tasks/upgrading-cluster-api-versions.md)
     - [Configure a MachineHealthCheck](./tasks/healthcheck.md)
     - [Kubeadm based control plane management](./tasks/kubeadm-control-plane.md)
-    - [Changing a Machine Template](./tasks/change-machine-template.md)
+    - [Updating Machine Infrastructure and Bootstrap Templates](tasks/updating-machine-templates.md)
     - [Using the Cluster Autoscaler](./tasks/cluster-autoscaler.md)
     - [Experimental Features](./tasks/experimental-features/experimental-features.md)
         - [MachinePools](./tasks/experimental-features/machine-pools.md)

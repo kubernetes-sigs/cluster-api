@@ -30,13 +30,31 @@ package collections
 import (
 	"sort"
 
+	"github.com/blang/semver"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // Machines is a set of Machines.
 type Machines map[string]*clusterv1.Machine
+
+// MachinesByVersion sorts the list of Machine by spec.version, using their names as tie breaker.
+// machines with no version are placed lower in the order.
+type machinesByVersion []*clusterv1.Machine
+
+func (v machinesByVersion) Len() int      { return len(v) }
+func (v machinesByVersion) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
+func (v machinesByVersion) Less(i, j int) bool {
+	vi, _ := semver.ParseTolerant(*v[i].Spec.Version)
+	vj, _ := semver.ParseTolerant(*v[j].Spec.Version)
+	comp := version.CompareWithBuildIdentifiers(vi, vj)
+	if comp == 0 {
+		return v[i].Name < v[j].Name
+	}
+	return comp == -1
+}
 
 // New creates an empty Machines.
 func New() Machines {
@@ -175,4 +193,26 @@ func (s Machines) Names() []string {
 		names = append(names, m.Name)
 	}
 	return names
+}
+
+// SortedByVersion returns the machines sorted by version.
+func (s Machines) sortedByVersion() []*clusterv1.Machine {
+	res := make(machinesByVersion, 0, len(s))
+	for _, value := range s {
+		res = append(res, value)
+	}
+	sort.Sort(res)
+	return res
+}
+
+// LowestVersion returns the lowest version among all the machine with
+// defined versions. If no machine has a defined version it returns an
+// empty string.
+func (s Machines) LowestVersion() *string {
+	machines := s.Filter(WithVersion())
+	if len(machines) == 0 {
+		return nil
+	}
+	m := machines.sortedByVersion()[0]
+	return m.Spec.Version
 }

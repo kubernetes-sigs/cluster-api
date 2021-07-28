@@ -66,6 +66,12 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		return nil
 	}
 
+	machinesWithHealthAPIServer := ownedMachines.Filter(collections.HealthyAPIServer())
+	lowestVersion := machinesWithHealthAPIServer.LowestVersion()
+	if lowestVersion != nil {
+		kcp.Status.Version = lowestVersion
+	}
+
 	switch {
 	// We are scaling up
 	case replicas < desiredReplicas:

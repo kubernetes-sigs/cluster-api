@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -30,14 +31,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/envtest"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -59,86 +58,76 @@ func init() {
 }
 
 func TestMain(m *testing.M) {
-	fmt.Println("Creating a new test environment")
-	env = envtest.New()
-
-	if err := index.AddDefaultIndexes(ctx, env.Manager); err != nil {
-		panic(fmt.Sprintf("unable to setup index: %v", err))
-	}
-
-	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
-	// requiring a connection to a remote cluster
-	tracker, err := remote.NewClusterCacheTracker(
-		env.Manager,
-		remote.ClusterCacheTrackerOptions{
-			Log:     log.Log,
-			Indexes: remote.DefaultIndexes,
-		},
-	)
-	if err != nil {
-		panic(fmt.Sprintf("unable to create cluster cache tracker: %v", err))
-	}
-	if err := (&remote.ClusterCacheReconciler{
-		Client:  env,
-		Log:     log.Log,
-		Tracker: tracker,
-	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
-	}
-	if err := (&ClusterReconciler{
-		Client:   env,
-		recorder: env.GetEventRecorderFor("cluster-controller"),
-	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
-	}
-	if err := (&MachineReconciler{
-		Client:   env,
-		Tracker:  tracker,
-		recorder: env.GetEventRecorderFor("machine-controller"),
-	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
-	}
-	if err := (&MachineSetReconciler{
-		Client:   env,
-		Tracker:  tracker,
-		recorder: env.GetEventRecorderFor("machineset-controller"),
-	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
-	}
-	if err := (&MachineDeploymentReconciler{
-		Client:   env,
-		recorder: env.GetEventRecorderFor("machinedeployment-controller"),
-	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to start MMachineDeploymentReconciler: %v", err))
-	}
-	if err := (&MachineHealthCheckReconciler{
-		Client:   env,
-		Tracker:  tracker,
-		recorder: env.GetEventRecorderFor("machinehealthcheck-controller"),
-	}).SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to start MachineHealthCheckReconciler : %v", err))
-	}
-
-	go func() {
-		fmt.Println("Starting the test environment manager")
-		if err := env.Start(ctx); err != nil {
-			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
+	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
+		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
+			panic(fmt.Sprintf("unable to setup index: %v", err))
 		}
-	}()
-	<-env.Manager.Elected()
-	env.WaitForWebhooks()
+	}
+
+	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+		// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
+		// requiring a connection to a remote cluster
+		tracker, err := remote.NewClusterCacheTracker(
+			mgr,
+			remote.ClusterCacheTrackerOptions{
+				Log:     ctrl.Log.WithName("remote").WithName("ClusterCacheTracker"),
+				Indexes: remote.DefaultIndexes,
+			},
+		)
+		if err != nil {
+			panic(fmt.Sprintf("unable to create cluster cache tracker: %v", err))
+		}
+		if err := (&remote.ClusterCacheReconciler{
+			Client:  mgr.GetClient(),
+			Log:     ctrl.Log.WithName("remote").WithName("ClusterCacheReconciler"),
+			Tracker: tracker,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
+		}
+		if err := (&ClusterReconciler{
+			Client:   mgr.GetClient(),
+			recorder: mgr.GetEventRecorderFor("cluster-controller"),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
+		}
+		if err := (&MachineReconciler{
+			Client:   mgr.GetClient(),
+			Tracker:  tracker,
+			recorder: mgr.GetEventRecorderFor("machine-controller"),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
+		}
+		if err := (&MachineSetReconciler{
+			Client:   mgr.GetClient(),
+			Tracker:  tracker,
+			recorder: mgr.GetEventRecorderFor("machineset-controller"),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
+		}
+		if err := (&MachineDeploymentReconciler{
+			Client:   mgr.GetClient(),
+			recorder: mgr.GetEventRecorderFor("machinedeployment-controller"),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start MMachineDeploymentReconciler: %v", err))
+		}
+		if err := (&MachineHealthCheckReconciler{
+			Client:   mgr.GetClient(),
+			Tracker:  tracker,
+			recorder: mgr.GetEventRecorderFor("machinehealthcheck-controller"),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start MachineHealthCheckReconciler : %v", err))
+		}
+	}
 
 	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
 	SetDefaultEventuallyTimeout(timeout)
 
-	code := m.Run()
-
-	fmt.Println("Stopping the test environment")
-	if err := env.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop the test environment: %v", err))
-	}
-
-	os.Exit(code)
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M:                m,
+		SetupEnv:         func(e *envtest.Environment) { env = e },
+		SetupIndexes:     setupIndexes,
+		SetupReconcilers: setupReconcilers,
+	}))
 }
 
 func ContainRefOfGroupKind(group, kind string) types.GomegaMatcher {

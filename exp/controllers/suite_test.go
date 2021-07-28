@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -34,37 +35,27 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	fmt.Println("Creating new test environment")
-	env = envtest.New()
-
-	if err := index.AddDefaultIndexes(ctx, env.Manager); err != nil {
-		panic(fmt.Sprintf("unable to setup index: %v", err))
-	}
-
-	machinePoolReconciler := MachinePoolReconciler{
-		Client:   env,
-		recorder: env.GetEventRecorderFor("machinepool-controller"),
-	}
-	err := machinePoolReconciler.SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1})
-	if err != nil {
-		panic(fmt.Sprintf("Failed to set up machine pool reconciler: %v", err))
-	}
-
-	go func() {
-		fmt.Println("Starting the manager")
-		if err := env.Start(ctx); err != nil {
-			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
+	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
+		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
+			panic(fmt.Sprintf("unable to setup index: %v", err))
 		}
-	}()
-	<-env.Manager.Elected()
-	env.WaitForWebhooks()
-
-	code := m.Run()
-
-	fmt.Println("Tearing down test suite")
-	if err := env.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop envtest: %v", err))
 	}
 
-	os.Exit(code)
+	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+		machinePoolReconciler := MachinePoolReconciler{
+			Client:   mgr.GetClient(),
+			recorder: mgr.GetEventRecorderFor("machinepool-controller"),
+		}
+		err := machinePoolReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1})
+		if err != nil {
+			panic(fmt.Sprintf("Failed to set up machine pool reconciler: %v", err))
+		}
+	}
+
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M:                m,
+		SetupEnv:         func(e *envtest.Environment) { env = e },
+		SetupIndexes:     setupIndexes,
+		SetupReconcilers: setupReconcilers,
+	}))
 }

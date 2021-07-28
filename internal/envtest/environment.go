@@ -20,11 +20,12 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
 	"strconv"
-	"sync"
+	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -75,6 +76,52 @@ func init() {
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 }
 
+// RunInput is the input for Run.
+type RunInput struct {
+	M                   *testing.M
+	ManagerUncachedObjs []client.Object
+	SetupIndexes        func(ctx context.Context, mgr ctrl.Manager)
+	SetupReconcilers    func(ctx context.Context, mgr ctrl.Manager)
+	SetupEnv            func(e *Environment)
+}
+
+// Run executes the tests of the given testing.M in a test environment.
+// Note: The environment will be created in this func and should not be created before. This func takes a *Environment
+//       because our tests require access to the *Environment. We use this field to make the created Environment available
+//       to the consumer.
+// Note: Test environment creation can be skipped by setting the environment variable `CAPI_DISABLE_TEST_ENV`. This only
+//       makes sense when executing tests which don't require the test environment, e.g. tests using only the fake client.
+func Run(ctx context.Context, input RunInput) int {
+	if os.Getenv("CAPI_DISABLE_TEST_ENV") != "" {
+		return input.M.Run()
+	}
+
+	// Bootstrapping test environment
+	env := new(input.ManagerUncachedObjs...)
+
+	if input.SetupIndexes != nil {
+		input.SetupIndexes(ctx, env.Manager)
+	}
+	if input.SetupReconcilers != nil {
+		input.SetupReconcilers(ctx, env.Manager)
+	}
+
+	// Start the environment.
+	env.start(ctx)
+
+	// Expose the environment.
+	input.SetupEnv(env)
+
+	// Run tests
+	code := input.M.Run()
+
+	// Tearing down the test environment
+	if err := env.stop(); err != nil {
+		panic(fmt.Sprintf("Failed to stop the test environment: %v", err))
+	}
+	return code
+}
+
 var (
 	cacheSyncBackoff = wait.Backoff{
 		Duration: 100 * time.Millisecond,
@@ -82,9 +129,6 @@ var (
 		Steps:    8,
 		Jitter:   0.4,
 	}
-
-	errAlreadyStarted = errors.New("environment has already been started")
-	errAlreadyStopped = errors.New("environment has already been stopped")
 )
 
 // Environment encapsulates a Kubernetes local test environment.
@@ -94,16 +138,14 @@ type Environment struct {
 	Config *rest.Config
 
 	env           *envtest.Environment
-	startOnce     sync.Once
-	stopOnce      sync.Once
 	cancelManager context.CancelFunc
 }
 
-// New creates a new environment spinning up a local api-server.
+// new creates a new environment spinning up a local api-server.
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func New(uncachedObjs ...client.Object) *Environment {
+func new(uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
 	root := path.Join(path.Dir(filename), "..", "..")
@@ -205,25 +247,26 @@ func New(uncachedObjs ...client.Object) *Environment {
 	}
 }
 
-// Start starts the manager.
-func (e *Environment) Start(ctx context.Context) error {
-	err := errAlreadyStarted
-	e.startOnce.Do(func() {
-		ctx, cancel := context.WithCancel(ctx)
-		e.cancelManager = cancel
-		err = e.Manager.Start(ctx)
-	})
-	return err
+// start starts the manager.
+func (e *Environment) start(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	e.cancelManager = cancel
+
+	go func() {
+		fmt.Println("Starting the test environment manager")
+		if err := e.Manager.Start(ctx); err != nil {
+			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
+		}
+	}()
+	e.Manager.Elected()
+	e.WaitForWebhooks()
 }
 
-// Stop stops the test environment.
-func (e *Environment) Stop() error {
-	err := errAlreadyStopped
-	e.stopOnce.Do(func() {
-		e.cancelManager()
-		err = e.env.Stop()
-	})
-	return err
+// stop stops the test environment.
+func (e *Environment) stop() error {
+	fmt.Println("Stopping the test environment")
+	e.cancelManager()
+	return e.env.Stop()
 }
 
 // WaitForWebhooks waits for the webhook server to be available.

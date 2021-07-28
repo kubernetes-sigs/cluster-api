@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -34,24 +33,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	// Bootstrapping test environment
 	utilruntime.Must(AddToScheme(scheme.Scheme))
-	env = envtest.New()
-	go func() {
-		if err := env.Start(ctx); err != nil {
-			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
-		}
-	}()
-	<-env.Manager.Elected()
-	env.WaitForWebhooks()
 
-	// Run tests
-	code := m.Run()
-	// Tearing down the test environment
-	if err := env.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop the envtest: %v", err))
-	}
-
-	// Report exit code
-	os.Exit(code)
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M:        m,
+		SetupEnv: func(e *envtest.Environment) { env = e },
+	}))
 }

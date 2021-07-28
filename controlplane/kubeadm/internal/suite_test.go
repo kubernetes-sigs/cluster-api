@@ -17,7 +17,6 @@ limitations under the License.
 package internal
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -31,20 +30,8 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	env = envtest.New()
-	go func() {
-		if err := env.Start(ctx); err != nil {
-			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
-		}
-	}()
-	<-env.Manager.Elected()
-	env.WaitForWebhooks()
-
-	code := m.Run()
-
-	if err := env.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop envtest: %v", err))
-	}
-
-	os.Exit(code)
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M:        m,
+		SetupEnv: func(e *envtest.Environment) { env = e },
+	}))
 }

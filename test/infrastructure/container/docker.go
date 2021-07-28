@@ -383,11 +383,12 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 		// privileges, but this flag also changes some mounts that are necessary
 		// including some ones docker would otherwise do by default.
 		// for now this is what we want. in the future we may revisit this.
-		Privileged:   true,
-		SecurityOpt:  []string{"seccomp=unconfined"}, // ignore seccomp
-		NetworkMode:  dockercontainer.NetworkMode(runConfig.Network),
-		Tmpfs:        runConfig.Tmpfs,
-		PortBindings: nat.PortMap{},
+		Privileged:    true,
+		SecurityOpt:   []string{"seccomp=unconfined"}, // ignore seccomp
+		NetworkMode:   dockercontainer.NetworkMode(runConfig.Network),
+		Tmpfs:         runConfig.Tmpfs,
+		PortBindings:  nat.PortMap{},
+		RestartPolicy: dockercontainer.RestartPolicy{Name: "unless-stopped"},
 	}
 	networkConfig := network.NetworkingConfig{}
 

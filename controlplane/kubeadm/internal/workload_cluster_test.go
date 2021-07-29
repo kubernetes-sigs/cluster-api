@@ -986,6 +986,77 @@ func TestClusterStatus(t *testing.T) {
 	}
 }
 
+func TestIsKubernetesVersionSupported(t *testing.T) {
+	tests := []struct {
+		name         string
+		kcpVersion   string
+		kcpCRDExists bool
+		want         bool
+	}{
+		{
+			name:         "workload cluster and version < v1.22.0",
+			kcpVersion:   "v1.21.0",
+			kcpCRDExists: false,
+			want:         true,
+		},
+		{
+			name:         "workload cluster and version >= v1.22.0",
+			kcpVersion:   "v1.22.0",
+			kcpCRDExists: false,
+			want:         true,
+		},
+		{
+			name:         "management cluster and version < v1.22.0",
+			kcpVersion:   "v1.21.0",
+			kcpCRDExists: true,
+			want:         true,
+		},
+		{
+			name:         "management cluster and version >= v1.22.0",
+			kcpVersion:   "v1.22.0",
+			kcpCRDExists: true,
+			want:         false,
+		}, {
+			name:         "management cluster and version >= v1.23.0",
+			kcpVersion:   "v1.23.5",
+			kcpCRDExists: true,
+			want:         false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			objs := []runtime.Object{}
+			if tt.kcpCRDExists {
+				objs = append(objs, &metav1.PartialObjectMetadata{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "apiextensions.k8s.io/v1",
+						Kind:       "CustomResourceDefinition",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "kubeadmcontrolplanes.controlplane.cluster.x-k8s.io",
+					},
+				})
+			}
+			fakeScheme := runtime.NewScheme()
+			_ = metav1.AddMetaToScheme(fakeScheme)
+			client := fake.NewFakeClientWithScheme(fakeScheme, objs...)
+
+			w := &Workload{
+				Client: client,
+			}
+
+			parsedVersion, err := semver.ParseTolerant(tt.kcpVersion)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			got, err := w.IsKubernetesVersionSupported(context.Background(), parsedVersion)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
 func getProxyImageInfo(ctx context.Context, client ctrlclient.Client) (string, error) {
 	ds := &appsv1.DaemonSet{}
 

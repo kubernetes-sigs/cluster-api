@@ -62,6 +62,9 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 		if err != nil {
 			return err
 		}
+		if err := toCluster.Proxy().ValidateKubernetesMaxVersion(); err != nil {
+			return err
+		}
 
 		// Ensure this command only runs against management clusters with the current Cluster API contract.
 		if err := toCluster.ProviderInventory().CheckCAPIContract(); err != nil {

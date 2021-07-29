@@ -124,7 +124,10 @@ func NewTemplate(input TemplateInput) (Template, error) {
 	// Ensures all the template components are deployed in the target namespace (applies only to namespaced objects)
 	// This is required in order to ensure a cluster and all the related objects are in a single namespace, that is a requirement for
 	// the clusterctl move operation (and also for many controller reconciliation loops).
-	objs = fixTargetNamespace(objs, input.TargetNamespace)
+	objs, err = fixTargetNamespace(objs, input.TargetNamespace)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to set the TargetNamespace in the template")
+	}
 
 	return &template{
 		variables:       variables,

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -199,6 +200,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 				Field:        noderefutil.NodeProviderIDIndex,
 				ExtractValue: noderefutil.IndexNodeByProviderID,
 			},
+		},
+		ClientUncachedObjects: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+			&corev1.Pod{},
+			&appsv1.Deployment{},
+			&appsv1.DaemonSet{},
 		},
 	})
 	if err != nil {

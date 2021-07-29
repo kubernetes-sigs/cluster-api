@@ -12,7 +12,7 @@ mis-configurations or in managing day 2 operations such as upgrades.
 * use [`clusterctl upgrade`](commands/upgrade.md) to upgrade Cluster API providers
 * use [`clusterctl delete`](commands/delete.md) to delete Cluster API providers
 
-* use [`clusterctl generate cluster`](commands/config-cluster.md) to spec out workload clusters
+* use [`clusterctl generate cluster`](commands/generate-cluster.md) to spec out workload clusters
 * use [`clusterctl generate yaml`](commands/generate-yaml.md) to process yaml
 * use [`clusterctl get kubeconfig`](commands/get-kubeconfig.md) to get the kubeconfig of an existing workload cluster.
   using clusterctl's internal yaml processor.

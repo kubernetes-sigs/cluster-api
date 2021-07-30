@@ -53,6 +53,9 @@ type DeleteOptions struct {
 
 	// IncludeCRDs forces the deletion of the provider's CRDs (and of all the related objects).
 	IncludeCRDs bool
+
+	// SkipInventory forces the deletion of the inventory items used by clusterctl to track providers.
+	SkipInventory bool
 }
 
 func (c *clusterctlClient) Delete(options DeleteOptions) error {
@@ -110,9 +113,9 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 		}
 	}
 
-	// Delete the selected providers
+	// Delete the selected providers.
 	for _, provider := range providersToDelete {
-		if err := clusterClient.ProviderComponents().Delete(cluster.DeleteOptions{Provider: provider, IncludeNamespace: options.IncludeNamespace, IncludeCRDs: options.IncludeCRDs}); err != nil {
+		if err := clusterClient.ProviderComponents().Delete(cluster.DeleteOptions{Provider: provider, IncludeNamespace: options.IncludeNamespace, IncludeCRDs: options.IncludeCRDs, SkipInventory: options.SkipInventory}); err != nil {
 			return err
 		}
 	}

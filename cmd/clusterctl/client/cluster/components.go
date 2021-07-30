@@ -39,6 +39,7 @@ const (
 	validatingWebhookConfigurationKind = "ValidatingWebhookConfiguration"
 	mutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
 	customResourceDefinitionKind       = "CustomResourceDefinition"
+	providerGroupKind                  = "Provider.clusterctl.cluster.x-k8s.io"
 )
 
 // DeleteOptions holds options for ComponentsClient.Delete func.
@@ -46,6 +47,7 @@ type DeleteOptions struct {
 	Provider         clusterctlv1.Provider
 	IncludeNamespace bool
 	IncludeCRDs      bool
+	SkipInventory    bool
 }
 
 // ComponentsClient has methods to work with provider components in the cluster.
@@ -152,7 +154,6 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 		if !options.IncludeCRDs && isCRD {
 			continue
 		}
-
 		// If the resource is a namespace
 		isNamespace := obj.GroupVersionKind().Kind == namespaceKind
 		if isNamespace {
@@ -168,6 +169,14 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 			namespacesToDelete.Insert(obj.GetName())
 		}
 
+		// If the resource is part of the inventory for clusterctl don't delete it at this point as losing this information makes the
+		// upgrade function non-reentrant. Instead keep the inventory objects around until the upgrade is finished and working and
+		// delete them at the end of the upgrade flow.
+		isInventory := obj.GroupVersionKind().GroupKind().String() == providerGroupKind
+		if isInventory && options.SkipInventory {
+			continue
+		}
+
 		// If the resource is a cluster resource, skip it if the resource name does not start with the instance prefix.
 		// This is required because there are cluster resources like e.g. ClusterRoles and ClusterRoleBinding, which are instance specific;
 		// During the installation, clusterctl adds the instance namespace prefix to such resources (see fixRBAC), and so we can rely
@@ -175,12 +184,12 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 		// NOTE: namespace and CRD are special case managed above; webhook instead goes hand by hand with the controller they
 		// should always be deleted.
 		isWebhook := obj.GroupVersionKind().Kind == validatingWebhookConfigurationKind || obj.GroupVersionKind().Kind == mutatingWebhookConfigurationKind
+
 		if util.IsClusterResource(obj.GetKind()) &&
 			!isNamespace && !isCRD && !isWebhook &&
 			!strings.HasPrefix(obj.GetName(), instanceNamespacePrefix) {
 			continue
 		}
-
 		resourcesToDelete = append(resourcesToDelete, obj)
 	}
 

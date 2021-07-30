@@ -40,6 +40,7 @@ type ClusterUpgradeConformanceSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
+	SkipConformanceTests  bool
 }
 
 // ClusterUpgradeConformanceSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
@@ -149,20 +150,22 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
-		By("Running conformance tests")
+		if !input.SkipConformanceTests {
+			By("Running conformance tests")
+			// Start running the conformance test suite.
+			err := kubetest.Run(
+				ctx,
+				kubetest.RunInput{
+					ClusterProxy:       workloadProxy,
+					NumberOfNodes:      int(workerMachineCount),
+					ArtifactsDirectory: input.ArtifactFolder,
+					ConfigFilePath:     kubetestConfigFilePath,
+					GinkgoNodes:        int(workerMachineCount),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")
+		}
 
-		// Start running the conformance test suite.
-		err := kubetest.Run(
-			ctx,
-			kubetest.RunInput{
-				ClusterProxy:       workloadProxy,
-				NumberOfNodes:      int(workerMachineCount),
-				ArtifactsDirectory: input.ArtifactFolder,
-				ConfigFilePath:     kubetestConfigFilePath,
-				GinkgoNodes:        int(workerMachineCount),
-			},
-		)
-		Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")
 		By("PASSED!")
 	})
 

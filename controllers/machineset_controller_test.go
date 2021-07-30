@@ -100,7 +100,7 @@ func TestMachineSetReconciler(t *testing.T) {
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: &corev1.ObjectReference{
 								APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-								Kind:       "BootstrapMachineTemplate",
+								Kind:       "BootstrapTemplate",
 								Name:       "ms-template",
 							},
 						},
@@ -116,7 +116,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Create bootstrap template resource.
 		bootstrapResource := map[string]interface{}{
-			"kind":       "BootstrapMachine",
+			"kind":       "Bootstrap",
 			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata":   map[string]interface{}{},
 		}
@@ -127,7 +127,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				},
 			},
 		}
-		bootstrapTmpl.SetKind("BootstrapMachineTemplate")
+		bootstrapTmpl.SetKind("BootstrapTemplate")
 		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha4")
 		bootstrapTmpl.SetName("ms-template")
 		bootstrapTmpl.SetNamespace(namespace.Name)

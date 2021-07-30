@@ -26,11 +26,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"sigs.k8s.io/cluster-api/internal/test"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {
@@ -128,11 +129,11 @@ func TestClusterReconcilePhases(t *testing.T) {
 				if tt.infraRef != nil {
 					infraConfig := &unstructured.Unstructured{Object: tt.infraRef}
 					c = fake.NewClientBuilder().
-						WithObjects(external.TestGenericInfrastructureCRD.DeepCopy(), tt.cluster, infraConfig).
+						WithObjects(test.InfrastructureMachineCRD.DeepCopy(), tt.cluster, infraConfig).
 						Build()
 				} else {
 					c = fake.NewClientBuilder().
-						WithObjects(external.TestGenericInfrastructureCRD.DeepCopy(), tt.cluster).
+						WithObjects(test.InfrastructureMachineCRD.DeepCopy(), tt.cluster).
 						Build()
 				}
 				r := &ClusterReconciler{

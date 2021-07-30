@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/test"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -72,7 +72,7 @@ func TestWatches(t *testing.T) {
 
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "BootstrapMachine",
+			"kind":       "Bootstrap",
 			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config-machinereconcile",
@@ -141,7 +141,7 @@ func TestWatches(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-					Kind:       "BootstrapMachine",
+					Kind:       "Bootstrap",
 					Name:       "bootstrap-config-machinereconcile",
 				},
 			}},
@@ -199,7 +199,7 @@ func TestMachine_Reconcile(t *testing.T) {
 
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "BootstrapMachine",
+			"kind":       "Bootstrap",
 			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config-machinereconcile",
@@ -241,7 +241,7 @@ func TestMachine_Reconcile(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-					Kind:       "BootstrapMachine",
+					Kind:       "Bootstrap",
 					Name:       "bootstrap-config-machinereconcile",
 				},
 			}},
@@ -715,7 +715,7 @@ func TestReconcileRequest(t *testing.T) {
 				node,
 				&testCluster,
 				&tc.machine,
-				external.TestGenericInfrastructureCRD.DeepCopy(),
+				test.InfrastructureMachineCRD.DeepCopy(),
 				&infraConfig,
 			).Build()
 
@@ -771,7 +771,7 @@ func TestMachineConditions(t *testing.T) {
 		}
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
-				"kind":       "BootstrapMachine",
+				"kind":       "Bootstrap",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -809,7 +809,7 @@ func TestMachineConditions(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-					Kind:       "BootstrapMachine",
+					Kind:       "Bootstrap",
 					Name:       "bootstrap-config1",
 				},
 			},
@@ -957,9 +957,9 @@ func TestMachineConditions(t *testing.T) {
 			clientFake := fake.NewClientBuilder().WithObjects(
 				&testCluster,
 				m,
-				external.TestGenericInfrastructureCRD.DeepCopy(),
+				test.InfrastructureMachineCRD.DeepCopy(),
 				infra,
-				external.TestGenericBootstrapCRD.DeepCopy(),
+				test.BootstrapCRD.DeepCopy(),
 				bootstrap,
 				node,
 			).Build()
@@ -1646,7 +1646,7 @@ func TestNodeToMachine(t *testing.T) {
 
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "BootstrapMachine",
+			"kind":       "Bootstrap",
 			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config-machinereconcile",
@@ -1731,7 +1731,7 @@ func TestNodeToMachine(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-					Kind:       "BootstrapMachine",
+					Kind:       "Bootstrap",
 					Name:       "bootstrap-config-machinereconcile",
 				},
 			}},
@@ -1770,7 +1770,7 @@ func TestNodeToMachine(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-					Kind:       "BootstrapMachine",
+					Kind:       "Bootstrap",
 					Name:       "bootstrap-config-machinereconcile",
 				},
 			}},

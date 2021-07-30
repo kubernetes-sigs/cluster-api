@@ -37,7 +37,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/internal/test"
+	"sigs.k8s.io/cluster-api/internal/testtypes"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
@@ -70,13 +70,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-					Kind:       "Bootstrap",
+					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
 				},
 			},
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-				Kind:       "InfrastructureMachine",
+				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 			},
 		},
@@ -84,7 +84,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "Bootstrap",
+			"kind":       "GenericBootstrapConfig",
 			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config1",
@@ -97,7 +97,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 	defaultInfra := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "InfrastructureMachine",
+			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
@@ -122,8 +122,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 				WithObjects(defaultCluster,
 					defaultKubeconfigSecret,
 					machine,
-					test.BootstrapCRD.DeepCopy(),
-					test.InfrastructureMachineCRD.DeepCopy(),
+					testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+					testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 					bootstrapConfig,
 					infraConfig,
 				).Build(),
@@ -160,8 +160,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 				WithObjects(defaultCluster,
 					defaultKubeconfigSecret,
 					machine,
-					test.BootstrapCRD.DeepCopy(),
-					test.InfrastructureMachineCRD.DeepCopy(),
+					testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+					testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 					bootstrapConfig,
 					infraConfig,
 				).Build(),
@@ -203,8 +203,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 				WithObjects(defaultCluster,
 					defaultKubeconfigSecret,
 					machine,
-					test.BootstrapCRD.DeepCopy(),
-					test.InfrastructureMachineCRD.DeepCopy(),
+					testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+					testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 					bootstrapConfig,
 					infraConfig,
 				).Build(),
@@ -278,8 +278,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 			WithObjects(defaultCluster,
 				machine,
 				node,
-				test.BootstrapCRD.DeepCopy(),
-				test.InfrastructureMachineCRD.DeepCopy(),
+				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
@@ -344,8 +344,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 			WithObjects(defaultCluster,
 				machine,
 				node,
-				test.BootstrapCRD.DeepCopy(),
-				test.InfrastructureMachineCRD.DeepCopy(),
+				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
@@ -420,8 +420,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 			WithObjects(defaultCluster,
 				machine,
 				node,
-				test.BootstrapCRD.DeepCopy(),
-				test.InfrastructureMachineCRD.DeepCopy(),
+				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
@@ -480,8 +480,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 			WithObjects(defaultCluster,
 				defaultKubeconfigSecret,
 				machine,
-				test.BootstrapCRD.DeepCopy(),
-				test.InfrastructureMachineCRD.DeepCopy(),
+				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 			).Build()
@@ -562,8 +562,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 				defaultKubeconfigSecret,
 				machine,
 				machineSecond,
-				test.BootstrapCRD.DeepCopy(),
-				test.InfrastructureMachineCRD.DeepCopy(),
+				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 			).Build()
@@ -603,7 +603,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-					Kind:       "Bootstrap",
+					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
 				},
 			},
@@ -628,7 +628,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		{
 			name: "new machine, bootstrap config ready with data",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -651,7 +651,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		{
 			name: "new machine, bootstrap config ready with no data",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -672,7 +672,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		{
 			name: "new machine, bootstrap config not ready",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -690,7 +690,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		{
 			name: "new machine, bootstrap config is not found",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -708,7 +708,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		{
 			name: "new machine, no bootstrap config or data",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -723,7 +723,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		{
 			name: "existing machine, bootstrap data should not change",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -744,7 +744,7 @@ func TestReconcileBootstrap(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-							Kind:       "Bootstrap",
+							Kind:       "GenericBootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 						DataSecretName: pointer.StringPtr("secret-data"),
@@ -764,7 +764,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		{
 			name: "existing machine, bootstrap provider is not ready, and ownerref updated",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -793,7 +793,7 @@ func TestReconcileBootstrap(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-							Kind:       "Bootstrap",
+							Kind:       "GenericBootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
@@ -811,7 +811,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		{
 			name: "existing machine, machineset owner and version v1alpha2, and ownerref updated",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -840,7 +840,7 @@ func TestReconcileBootstrap(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
-							Kind:       "Bootstrap",
+							Kind:       "GenericBootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
@@ -869,8 +869,8 @@ func TestReconcileBootstrap(t *testing.T) {
 			r := &MachineReconciler{
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
-						test.BootstrapCRD.DeepCopy(),
-						test.InfrastructureMachineCRD.DeepCopy(),
+						testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+						testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 						bootstrapConfig,
 					).Build(),
 			}
@@ -903,13 +903,13 @@ func TestReconcileInfrastructure(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-					Kind:       "Bootstrap",
+					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
 				},
 			},
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-				Kind:       "InfrastructureMachine",
+				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 			},
 		},
@@ -935,7 +935,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 		{
 			name: "new machine, infrastructure config ready",
 			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureMachine",
+				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
@@ -986,13 +986,13 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-							Kind:       "Bootstrap",
+							Kind:       "GenericBootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-						Kind:       "InfrastructureMachine",
+						Kind:       "GenericInfrastructureMachine",
 						Name:       "infra-config1",
 					},
 				},
@@ -1003,7 +1003,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 			},
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
@@ -1016,7 +1016,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 			},
 			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureMachine",
+				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 				"metadata":   map[string]interface{}{},
 			},
@@ -1032,7 +1032,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 		{
 			name: "infrastructure ref is paused",
 			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureMachine",
+				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
@@ -1079,8 +1079,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			r := &MachineReconciler{
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
-						test.BootstrapCRD.DeepCopy(),
-						test.InfrastructureMachineCRD.DeepCopy(),
+						testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+						testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
 						infraConfig,
 					).Build(),
 			}

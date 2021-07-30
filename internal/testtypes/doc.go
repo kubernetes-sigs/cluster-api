@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package test implements types we can use in all of our unit tests.
-package test
+// Package testtypes implements types we can use in all of our unit tests.
+package testtypes

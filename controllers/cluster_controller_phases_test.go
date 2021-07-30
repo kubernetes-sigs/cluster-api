@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"sigs.k8s.io/cluster-api/internal/test"
+	"sigs.k8s.io/cluster-api/internal/testtypes"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {
@@ -51,7 +51,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				},
 				InfrastructureRef: &corev1.ObjectReference{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-					Kind:       "InfrastructureMachine",
+					Kind:       "GenericInfrastructureMachine",
 					Name:       "test",
 				},
 			},
@@ -79,7 +79,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				name:    "returns no error if infra config is marked for deletion",
 				cluster: cluster,
 				infraRef: map[string]interface{}{
-					"kind":       "InfrastructureMachine",
+					"kind":       "GenericInfrastructureMachine",
 					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 					"metadata": map[string]interface{}{
 						"name":              "test",
@@ -93,7 +93,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				name:    "returns no error if infrastructure is marked ready on cluster",
 				cluster: cluster,
 				infraRef: map[string]interface{}{
-					"kind":       "InfrastructureMachine",
+					"kind":       "GenericInfrastructureMachine",
 					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 					"metadata": map[string]interface{}{
 						"name":              "test",
@@ -107,7 +107,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				name:    "returns error if infrastructure has the paused annotation",
 				cluster: cluster,
 				infraRef: map[string]interface{}{
-					"kind":       "InfrastructureMachine",
+					"kind":       "GenericInfrastructureMachine",
 					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 					"metadata": map[string]interface{}{
 						"name":      "test",
@@ -129,11 +129,11 @@ func TestClusterReconcilePhases(t *testing.T) {
 				if tt.infraRef != nil {
 					infraConfig := &unstructured.Unstructured{Object: tt.infraRef}
 					c = fake.NewClientBuilder().
-						WithObjects(test.InfrastructureMachineCRD.DeepCopy(), tt.cluster, infraConfig).
+						WithObjects(testtypes.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster, infraConfig).
 						Build()
 				} else {
 					c = fake.NewClientBuilder().
-						WithObjects(test.InfrastructureMachineCRD.DeepCopy(), tt.cluster).
+						WithObjects(testtypes.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster).
 						Build()
 				}
 				r := &ClusterReconciler{

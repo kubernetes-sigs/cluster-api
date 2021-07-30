@@ -1197,7 +1197,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
-			"kind":       "InfrastructureMachine",
+			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
@@ -1211,7 +1211,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				},
 			},
 		}
-		infraTmpl.SetKind("InfrastructureMachineTemplate")
+		infraTmpl.SetKind("GenericInfrastructureMachineTemplate")
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
 		infraTmpl.SetGenerateName("mhc-ms-template-")
 		infraTmpl.SetNamespace(mhc.Namespace)
@@ -1238,7 +1238,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 						},
 						InfrastructureRef: corev1.ObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-							Kind:       "InfrastructureMachineTemplate",
+							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       infraTmpl.GetName(),
 						},
 					},
@@ -1460,8 +1460,8 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 		// Create remediation template resource.
 		infraRemediationResource := map[string]interface{}{
-			"kind":       "InfrastructureRemediation",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+			"kind":       "GenericExternalRemediation",
+			"apiVersion": "remediation.external.io/v1alpha3",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size": "3xlarge",
@@ -1474,15 +1474,15 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				},
 			},
 		}
-		infraRemediationTmpl.SetKind("InfrastructureRemediationTemplate")
-		infraRemediationTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
+		infraRemediationTmpl.SetKind("GenericExternalRemediationTemplate")
+		infraRemediationTmpl.SetAPIVersion("remediation.external.io/v1alpha3")
 		infraRemediationTmpl.SetGenerateName("remediation-template-name-")
 		infraRemediationTmpl.SetNamespace(cluster.Namespace)
 		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
 
 		remediationTemplate := &corev1.ObjectReference{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-			Kind:       "InfrastructureRemediationTemplate",
+			APIVersion: "remediation.external.io/v1alpha3",
+			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
 		}
 
@@ -1581,8 +1581,8 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}).Should(Equal(1))
 
 		ref := corev1.ObjectReference{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-			Kind:       "InfrastructureRemediation",
+			APIVersion: "remediation.external.io/v1alpha3",
+			Kind:       "GenericExternalRemediation",
 		}
 
 		obj := util.ObjectReferenceToUnstructured(ref)
@@ -1608,8 +1608,8 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 		// Create remediation template resource.
 		infraRemediationResource := map[string]interface{}{
-			"kind":       "InfrastructureRemediation",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+			"kind":       "GenericExternalRemediation",
+			"apiVersion": "remediation.external.io/v1alpha3",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size": "3xlarge",
@@ -1622,15 +1622,15 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				},
 			},
 		}
-		infraRemediationTmpl.SetKind("InfrastructureRemediationTemplate")
-		infraRemediationTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
+		infraRemediationTmpl.SetKind("GenericExternalRemediationTemplate")
+		infraRemediationTmpl.SetAPIVersion("remediation.external.io/v1alpha3")
 		infraRemediationTmpl.SetGenerateName("remediation-template-name-")
 		infraRemediationTmpl.SetNamespace(cluster.Namespace)
 		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
 
 		remediationTemplate := &corev1.ObjectReference{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-			Kind:       "InfrastructureRemediationTemplate",
+			APIVersion: "remediation.external.io/v1alpha3",
+			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
 		}
 
@@ -1780,8 +1780,8 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}).Should(Equal(0))
 
 		ref := corev1.ObjectReference{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-			Kind:       "InfrastructureRemediation",
+			APIVersion: "remediation.external.io/v1alpha3",
+			Kind:       "GenericExternalRemediation",
 		}
 
 		obj := util.ObjectReferenceToUnstructured(ref)
@@ -2320,7 +2320,7 @@ func newInfraMachine(machine *clusterv1.Machine) (*unstructured.Unstructured, st
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
-			"kind":       "InfrastructureMachine",
+			"kind":       "GenericInfrastructureMachine",
 			"metadata": map[string]interface{}{
 				"generateName": "test-mhc-machine-infra-",
 				"namespace":    machine.Namespace,

@@ -47,7 +47,7 @@ import (
 	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	addonv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/internal/test"
+	"sigs.k8s.io/cluster-api/internal/testtypes"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -117,16 +117,16 @@ func New(uncachedObjs ...client.Object) *Environment {
 			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 		},
 		CRDs: []client.Object{
-			test.BootstrapCRD.DeepCopy(),
-			test.BootstrapTemplateCRD.DeepCopy(),
-			test.ControlPlaneCRD.DeepCopy(),
-			test.ControlPlaneTemplateCRD.DeepCopy(),
-			test.InfrastructureMachineCRD.DeepCopy(),
-			test.InfrastructureMachineTemplateCRD.DeepCopy(),
-			test.InfrastructureClusterCRD.DeepCopy(),
-			test.InfrastructureClusterTemplateCRD.DeepCopy(),
-			test.InfrastructureRemediationCRD.DeepCopy(),
-			test.InfrastructureRemediationTemplateCRD.DeepCopy(),
+			testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+			testtypes.GenericBootstrapConfigTemplateCRD.DeepCopy(),
+			testtypes.GenericControlPlaneCRD.DeepCopy(),
+			testtypes.GenericControlPlaneTemplateCRD.DeepCopy(),
+			testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+			testtypes.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
+			testtypes.GenericInfrastructureClusterCRD.DeepCopy(),
+			testtypes.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
+			testtypes.GenericRemediationCRD.DeepCopy(),
+			testtypes.GenericRemediationTemplateCRD.DeepCopy(),
 		},
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.

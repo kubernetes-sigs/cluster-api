@@ -49,7 +49,7 @@ func TestPatchHelper(t *testing.T) {
 	t.Run("should patch an unstructured object", func(t *testing.T) {
 		obj := &unstructured.Unstructured{
 			Object: map[string]interface{}{
-				"kind":       "Bootstrap",
+				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 				"metadata": map[string]interface{}{
 					"generateName": "test-bootstrap-",

@@ -100,13 +100,13 @@ func TestMachineSetReconciler(t *testing.T) {
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: &corev1.ObjectReference{
 								APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-								Kind:       "BootstrapTemplate",
+								Kind:       "GenericBootstrapConfigTemplate",
 								Name:       "ms-template",
 							},
 						},
 						InfrastructureRef: corev1.ObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-							Kind:       "InfrastructureMachineTemplate",
+							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       "ms-template",
 						},
 					},
@@ -116,7 +116,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Create bootstrap template resource.
 		bootstrapResource := map[string]interface{}{
-			"kind":       "Bootstrap",
+			"kind":       "GenericBootstrapConfig",
 			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
 			"metadata":   map[string]interface{}{},
 		}
@@ -127,7 +127,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				},
 			},
 		}
-		bootstrapTmpl.SetKind("BootstrapTemplate")
+		bootstrapTmpl.SetKind("GenericBootstrapConfigTemplate")
 		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha4")
 		bootstrapTmpl.SetName("ms-template")
 		bootstrapTmpl.SetNamespace(namespace.Name)
@@ -135,11 +135,11 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
-			"kind":       "InfrastructureMachine",
+			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"annotations": map[string]interface{}{
-					"precedence": "InfrastructureMachineTemplate",
+					"precedence": "GenericInfrastructureMachineTemplate",
 				},
 			},
 			"spec": map[string]interface{}{
@@ -153,7 +153,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				},
 			},
 		}
-		infraTmpl.SetKind("InfrastructureMachineTemplate")
+		infraTmpl.SetKind("GenericInfrastructureMachineTemplate")
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
 		infraTmpl.SetName("ms-template")
 		infraTmpl.SetNamespace(namespace.Name)
@@ -208,7 +208,7 @@ func TestMachineSetReconciler(t *testing.T) {
 		t.Log("Creating a InfrastructureMachine for each Machine")
 		infraMachines := &unstructured.UnstructuredList{}
 		infraMachines.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
-		infraMachines.SetKind("InfrastructureMachine")
+		infraMachines.SetKind("GenericInfrastructureMachine")
 		g.Eventually(func() int {
 			if err := env.List(ctx, infraMachines, client.InNamespace(namespace.Name)); err != nil {
 				return -1

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package test
+package testtypes
 
 import (
 	"fmt"
@@ -26,44 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-)
-
-var (
-	bootstrapGroupVersion = schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1alpha4"}
-
-	// BootstrapCRD is a generic boostrap CRD.
-	BootstrapCRD = generateCRD(bootstrapGroupVersion.WithKind("Bootstrap"))
-
-	// BootstrapTemplateCRD is a generic boostrap template CRD.
-	BootstrapTemplateCRD = generateCRD(bootstrapGroupVersion.WithKind("BootstrapTemplate"))
-
-	controlPlaneGroupVersion = schema.GroupVersion{Group: "controlplane.cluster.x-k8s.io", Version: "v1alpha4"}
-
-	// ControlPlaneCRD is a generic control plane CRD.
-	ControlPlaneCRD = generateCRD(controlPlaneGroupVersion.WithKind("ControlPlane"))
-
-	// ControlPlaneTemplateCRD is a generic control plane template CRD.
-	ControlPlaneTemplateCRD = generateCRD(controlPlaneGroupVersion.WithKind("ControlPlaneTemplate"))
-
-	infrastructureGroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha4"}
-
-	// InfrastructureMachineCRD is a generic infrastructure machine CRD.
-	InfrastructureMachineCRD = generateCRD(infrastructureGroupVersion.WithKind("InfrastructureMachine"))
-
-	// InfrastructureMachineTemplateCRD is a generic infrastructure machine template CRD.
-	InfrastructureMachineTemplateCRD = generateCRD(infrastructureGroupVersion.WithKind("InfrastructureMachineTemplate"))
-
-	// InfrastructureClusterCRD is a generic infrastructure machine CRD.
-	InfrastructureClusterCRD = generateCRD(infrastructureGroupVersion.WithKind("InfrastructureCluster"))
-
-	// InfrastructureClusterTemplateCRD is a generic infrastructure machine template CRD.
-	InfrastructureClusterTemplateCRD = generateCRD(infrastructureGroupVersion.WithKind("InfrastructureClusterTemplate"))
-
-	// InfrastructureRemediationCRD is a generic infrastructure remediation CRD.
-	InfrastructureRemediationCRD = generateCRD(infrastructureGroupVersion.WithKind("InfrastructureRemediation"))
-
-	// InfrastructureRemediationTemplateCRD is a generic infrastructure remediation template CRD.
-	InfrastructureRemediationTemplateCRD = generateCRD(infrastructureGroupVersion.WithKind("InfrastructureRemediationTemplate"))
 )
 
 func generateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {

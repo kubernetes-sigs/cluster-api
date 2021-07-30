@@ -44,7 +44,7 @@ type MachinePoolInput struct {
 	SkipCleanup           bool
 }
 
-// MachinePoolSpec implements a test that verifies MachinePool scale up, down and version update
+// MachinePoolSpec implements a test that verifies MachinePool create, scale up and scale down.
 func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 	var (
 		specName         = "machine-pool"
@@ -107,15 +107,6 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 			Replicas:                  workerMachineCount - 1,
 			MachinePools:              clusterResources.MachinePools,
 			WaitForMachinePoolToScale: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
-		})
-
-		By("Upgrading the instances")
-		framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
-			ClusterProxy:                   input.BootstrapClusterProxy,
-			Cluster:                        clusterResources.Cluster,
-			UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
-			MachinePools:                   clusterResources.MachinePools,
 		})
 
 		By("PASSED!")

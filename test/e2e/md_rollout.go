@@ -33,8 +33,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// MachineDeploymentUpgradesSpecInput is the input for MachineDeploymentUpgradesSpec.
-type MachineDeploymentUpgradesSpecInput struct {
+// MachineDeploymentRolloutSpecInput is the input for MachineDeploymentRolloutSpec.
+type MachineDeploymentRolloutSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -42,11 +42,11 @@ type MachineDeploymentUpgradesSpecInput struct {
 	SkipCleanup           bool
 }
 
-// MachineDeploymentUpgradesSpec implements a test that verifies that MachineDeployment upgrades are successful.
-func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() MachineDeploymentUpgradesSpecInput) {
+// MachineDeploymentRolloutSpec implements a test that verifies that MachineDeployment rolling updates are successful.
+func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() MachineDeploymentRolloutSpecInput) {
 	var (
-		specName         = "md-upgrades"
-		input            MachineDeploymentUpgradesSpecInput
+		specName         = "md-rollout"
+		input            MachineDeploymentRolloutSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -89,15 +89,6 @@ func MachineDeploymentUpgradesSpec(ctx context.Context, inputGetter func() Machi
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
-
-		By("Upgrading MachineDeployment's Kubernetes version to a valid version")
-		framework.UpgradeMachineDeploymentsAndWait(ctx, framework.UpgradeMachineDeploymentsAndWaitInput{
-			ClusterProxy:                input.BootstrapClusterProxy,
-			Cluster:                     clusterResources.Cluster,
-			UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersion),
-			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			MachineDeployments:          clusterResources.MachineDeployments,
-		})
 
 		By("Upgrading MachineDeployment Infrastructure ref and wait for rolling upgrade")
 		framework.UpgradeMachineDeploymentInfrastructureRefAndWait(ctx, framework.UpgradeMachineDeploymentInfrastructureRefAndWaitInput{

@@ -22,10 +22,10 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing MachineDeployment upgrades", func() {
+var _ = Describe("When testing MachineDeployment rolling upgrades", func() {
 
-	MachineDeploymentUpgradesSpec(ctx, func() MachineDeploymentUpgradesSpecInput {
-		return MachineDeploymentUpgradesSpecInput{
+	MachineDeploymentRolloutSpec(ctx, func() MachineDeploymentRolloutSpecInput {
+		return MachineDeploymentRolloutSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

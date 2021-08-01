@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -321,6 +322,21 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 			conditions.MarkTrue(m, clusterv1.DrainingSucceededCondition)
 			r.recorder.Eventf(m, corev1.EventTypeNormal, "SuccessfulDrainNode", "success draining Machine's node %q", m.Status.NodeRef.Name)
+
+			// After node draining, make sure volumes are detached before deleting the Node.
+			if conditions.Get(m, clusterv1.VolumeDetachSucceededCondition) == nil {
+				conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededCondition, clusterv1.WaitingForVolumeDetachReason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
+			}
+			if ok, err := r.shouldWaitForNodeVolumes(ctx, cluster, m.Status.NodeRef.Name, m.Name); ok || err != nil {
+				if err != nil {
+					r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedWaitForVolumeDetach", "error wait for volume detach, node %q: %v", m.Status.NodeRef.Name, err)
+					return ctrl.Result{}, err
+				}
+				log.Info("Waiting for node volumes to be detached", "node", m.Status.NodeRef.Name)
+				return ctrl.Result{}, nil
+			}
+			conditions.MarkTrue(m, clusterv1.VolumeDetachSucceededCondition)
+			r.recorder.Eventf(m, corev1.EventTypeNormal, "NodeVolumesDetached", "success waiting for node volumes detach Machine's node %q", m.Status.NodeRef.Name)
 		}
 	}
 
@@ -532,6 +548,31 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 
 	log.Info("Drain successful")
 	return ctrl.Result{}, nil
+}
+
+// shouldWaitForNodeVolumes returns true if node status still have volumes attached
+// pod deletion and volume detach happen asynchronously, so pod could be deleted before volume detached from the node
+// this could cause issue for some storage provisioner, for example, vsphere-volume this is problematic
+// because if the node is deleted before detach success, then the underline VMDK will be deleted together with the Machine
+// so after node draining we need to check if all volumes are detached before deleting the node.
+func (r *MachineReconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clusterv1.Cluster, nodeName string, machineName string) (bool, error) {
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name, "node", nodeName, "machine", machineName)
+
+	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	if err != nil {
+		return true, err
+	}
+
+	node := &corev1.Node{}
+	if err := remoteClient.Get(ctx, types.NamespacedName{Name: nodeName}, node); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Error(err, "Could not find node from noderef, it may have already been deleted")
+			return false, nil
+		}
+		return true, err
+	}
+
+	return len(node.Status.VolumesAttached) != 0, nil
 }
 
 func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {

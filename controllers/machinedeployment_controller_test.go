@@ -110,7 +110,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 						Version:     &version,
 						InfrastructureRef: corev1.ObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-							Kind:       "InfrastructureMachineTemplate",
+							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       "md-template",
 						},
 						Bootstrap: clusterv1.Bootstrap{
@@ -127,7 +127,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
-			"kind":       "InfrastructureMachine",
+			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
@@ -141,7 +141,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				},
 			},
 		}
-		infraTmpl.SetKind("InfrastructureMachineTemplate")
+		infraTmpl.SetKind("GenericInfrastructureMachineTemplate")
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha4")
 		infraTmpl.SetName("md-template")
 		infraTmpl.SetNamespace(namespace.Name)

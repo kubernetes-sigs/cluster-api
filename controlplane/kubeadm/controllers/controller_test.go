@@ -53,6 +53,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"sigs.k8s.io/cluster-api/internal/testtypes"
 )
 
 func TestClusterToKubeadmControlPlane(t *testing.T) {
@@ -1491,10 +1493,10 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
-				Kind:       external.TestGenericInfrastructureCRD.Kind,
-				APIVersion: external.TestGenericInfrastructureCRD.APIVersion,
-				Name:       external.TestGenericInfrastructureCRD.Name,
-				Namespace:  external.TestGenericInfrastructureCRD.Namespace,
+				Kind:       testtypes.GenericInfrastructureMachineCRD.Kind,
+				APIVersion: testtypes.GenericInfrastructureMachineCRD.APIVersion,
+				Name:       testtypes.GenericInfrastructureMachineCRD.Name,
+				Namespace:  testtypes.GenericInfrastructureMachineCRD.Namespace,
 			},
 		},
 		Status: clusterv1.MachineStatus{

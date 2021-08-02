@@ -26,8 +26,11 @@ import (
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -45,9 +48,16 @@ const (
 )
 
 var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
+	env        *envtest.Environment
+	ctx        = ctrl.SetupSignalHandler()
+	fakeScheme = runtime.NewScheme()
 )
+
+func init() {
+	_ = clientgoscheme.AddToScheme(fakeScheme)
+	_ = clusterv1.AddToScheme(fakeScheme)
+	_ = apiextensionsv1.AddToScheme(fakeScheme)
+}
 
 func TestMain(m *testing.M) {
 	fmt.Println("Creating a new test environment")

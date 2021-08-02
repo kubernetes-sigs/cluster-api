@@ -22,28 +22,32 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // clusterTopologyClass holds all the objects required for computing the desired state of a managed Cluster topology.
 type clusterTopologyClass struct {
-	clusterClass                  *clusterv1.ClusterClass                   //nolint:structcheck
-	infrastructureClusterTemplate *unstructured.Unstructured                //nolint:structcheck
-	controlPlane                  controlPlaneTopologyClass                 //nolint:structcheck
-	machineDeployments            map[string]machineDeploymentTopologyClass //nolint:structcheck
+	clusterClass                  *clusterv1.ClusterClass
+	infrastructureClusterTemplate *unstructured.Unstructured
+	controlPlane                  controlPlaneTopologyClass
+	machineDeployments            map[string]machineDeploymentTopologyClass
 }
 
 // controlPlaneTopologyClass holds the templates required for computing the desired state of a managed control plane.
 type controlPlaneTopologyClass struct {
-	template                      *unstructured.Unstructured //nolint:structcheck
-	infrastructureMachineTemplate *unstructured.Unstructured //nolint:structcheck
+	template                      *unstructured.Unstructured
+	infrastructureMachineTemplate *unstructured.Unstructured
 }
 
 // machineDeploymentTopologyClass holds the templates required for computing the desired state of a managed deployment.
 type machineDeploymentTopologyClass struct {
-	bootstrapTemplate             *unstructured.Unstructured //nolint:structcheck
-	infrastructureMachineTemplate *unstructured.Unstructured //nolint:structcheck
+	bootstrapTemplate             *unstructured.Unstructured
+	infrastructureMachineTemplate *unstructured.Unstructured
 }
 
 // clusterTopologyState holds all the objects representing the state of a managed Cluster topology.
@@ -69,10 +73,88 @@ type machineDeploymentTopologyState struct {
 	infrastructureMachineTemplate *unstructured.Unstructured   //nolint:structcheck
 }
 
-// Gets the ClusterClass and the referenced templates to be used for a managed Cluster topology.
-func (r *ClusterTopologyReconciler) getClass(ctx context.Context, cluster *clusterv1.Cluster) (*clusterTopologyClass, error) {
-	// TODO: add get class logic; also remove nolint exception from clusterTopologyClass and machineDeploymentTopologyClass
-	return nil, nil
+// getClass gets the ClusterClass and the referenced templates to be used for a managed Cluster topology. It also converts
+// and patches all ObjectReferences in ClusterClass and ControlPlane to the latest apiVersion of the current contract.
+// NOTE: This function assumes that cluster.Spec.Topology.Class is set.
+func (r *ClusterTopologyReconciler) getClass(ctx context.Context, cluster *clusterv1.Cluster) (_ *clusterTopologyClass, reterr error) {
+	class := &clusterTopologyClass{
+		clusterClass:       &clusterv1.ClusterClass{},
+		machineDeployments: map[string]machineDeploymentTopologyClass{},
+	}
+
+	// Get ClusterClass.
+	key := client.ObjectKey{Name: cluster.Spec.Topology.Class, Namespace: cluster.Namespace}
+	if err := r.Client.Get(ctx, key, class.clusterClass); err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve ClusterClass %q in namespace %q", cluster.Spec.Topology.Class, cluster.Namespace)
+	}
+
+	// We use the patchHelper to patch potential changes to the ObjectReferences in ClusterClass.
+	patchHelper, err := patch.NewHelper(class.clusterClass, r.Client)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err := patchHelper.Patch(ctx, class.clusterClass); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to patch ClusterClass %q in namespace %q", class.clusterClass.Name, class.clusterClass.Namespace)})
+		}
+	}()
+
+	// Get ClusterClass.spec.infrastructure.
+	class.infrastructureClusterTemplate, err = r.getTemplate(ctx, class.clusterClass.Spec.Infrastructure.Ref)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get ClusterClass.spec.controlPlane.
+	class.controlPlane.template, err = r.getTemplate(ctx, class.clusterClass.Spec.ControlPlane.Ref)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if ClusterClass.spec.ControlPlane.MachineInfrastructure is set, as it's optional.
+	if class.clusterClass.Spec.ControlPlane.MachineInfrastructure != nil && class.clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref != nil {
+		// Get ClusterClass.spec.controlPlane.machineInfrastructure.
+		class.controlPlane.infrastructureMachineTemplate, err = r.getTemplate(ctx, class.clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, mdc := range class.clusterClass.Spec.Workers.MachineDeployments {
+		mdTopologyClass := machineDeploymentTopologyClass{}
+
+		mdTopologyClass.infrastructureMachineTemplate, err = r.getTemplate(ctx, mdc.Template.Infrastructure.Ref)
+		if err != nil {
+			return nil, err
+		}
+
+		mdTopologyClass.bootstrapTemplate, err = r.getTemplate(ctx, mdc.Template.Bootstrap.Ref)
+		if err != nil {
+			return nil, err
+		}
+
+		class.machineDeployments[mdc.Class] = mdTopologyClass
+	}
+
+	return class, nil
+}
+
+// getTemplate gets the object referenced in ref.
+// If necessary, it updates the ref to the latest apiVersion of the current contract.
+func (r *ClusterTopologyReconciler) getTemplate(ctx context.Context, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+	if ref == nil {
+		return nil, errors.New("reference is not set")
+	}
+	if err := utilconversion.ConvertReferenceAPIContract(ctx, r.Client, r.restConfig, ref); err != nil {
+		return nil, err
+	}
+
+	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, ref.Namespace)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve %s %q in namespace %q", ref.Kind, ref.Name, ref.Namespace)
+	}
+	return obj, nil
 }
 
 // Gets the current state of the Cluster topology.

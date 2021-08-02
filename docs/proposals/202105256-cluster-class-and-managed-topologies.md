@@ -472,17 +472,92 @@ This section talks about updating a cluster which was created using a `ClusterCl
 ![Update cluster with ClusterClass](./images/cluster-class/update.png)
 
 #### Provider implementation
-##### For infrastructure providers
-With the introduction of ClusterClass, we are extending the responsibility of the Cluster controller to create/update the actual objects from the collection of templates. Following this pattern, a template is required to create the actual infrastructure cluster object as part of the topology. For starter, the template should consist the InfraClusterSpec object. It can be enhanced to include other fields such as labels/annotations in the future.
 
-The proposal calls for the implementation of an infrastructure cluster template to be referenced by the `ClusterClass` object. This is a required field for the `ClusterClass` object. This template would be used to create an infrastructure cluster object. Currently, this responsibility is assumed by the cluster operator/end user.
+**Impact on the bootstrap providers**:
+- None.
 
-**Note:** As per this proposal, the definition of ClusterClass is immutable. The CC definition consists of infrastructure object references, say AWSMachineTemplate, which could be immutable. For such immutable infrastructure objects, hard-coding the image identifiers leads to those templates being tied to a particular kubernetes version, thus making kubernetes version upgrades impossible. Hence, when using CC, infrastructure objects MUST NOT have mandatory static fields whose values prohibit version upgrades.
+**Impact on the controlPlane providers**:
+- the provider implementers are required to implement the ControlPlaneTemplate type (e.g. `KubeadmControlPlaneTemplate` etc.).
+- it is also important to notice that:
+    - ClusterClass and managed topologies can work **only** with control plane providers implementing support for the `spec.version` field;
+      Additionally, it is required to provide support for the `status.version` field reporting the minimum
+      API server version in the cluster as required by the control plane contract.
+    - ClusterClass and managed topologies can work both with control plane providers implementing support for
+      machine infrastructures and with control plane providers not supporting this feature.
+      Please refer to the control plane for the list of well known fields where the machine template
+      should be defined (in case this feature is supported).
+    - ClusterClass and managed topologies can work both with control plane providers implementing support for
+      `spec.replicas` and with control plane provider not supporting this feature.
 
-##### For Control plane providers
-Similarly, a control plane provider should also create a template for use of creation for the control plane objects. For instance, the kubeadm control plane provider should introduce the notion of a KubeadmControlPlaneTemplate for use by the cluster controller to create a managed Kubeadm Control plane object.
+**Impact on the infrastructure providers**:
 
-The CAPI Cluster Controller would use this template to instantiate a control plane object for the topology. With the introduction of ClusterClass which is responsible for handling the kubernetes version too, the current contract needs to be expanded to include the support for `version` in the `spec` fields. The control plane templates can optinally also support `replicas` in `spec` and its value will be set to `cluster.spec.topology.controlPlane.replicas`.
+- the provider implementers are required to implement the InfrastructureClusterTemplate type (e.g. `AWSClusterTemplate`, `AzureClusterTemplate` etc.).
+
+#### Conventions for template types implementation
+
+Given that it is required to implement new templates, let's remind the conventions used for
+defining templates and the corresponding objects:
+
+Templates:
+
+- Template fields must match or be a subset of the corresponding generated object.
+- A template can't accept values which are not valid for the corresponding generated object,
+  otherwise creating an object derived from a template will fail.
+  
+Objects generated from the template:
+
+- For the fields existing both in the object and in the corresponding template:
+    - The object can't have additional validation rules than the template,
+      otherwise creating an object derived from a template could fail.
+    - It is recommended to use the same defaulting rules implemented in the template,
+      thus avoiding confusion in the users.
+- For the fields existing only in the object but not in the corresponding template:
+    - Fields must be optional or a default value must be automatically assigned,
+      otherwise creating an object derived from a template will fail.
+
+**Note:** The existing InfrastructureMachineTemplate and BootstrapMachineTemplate objects already
+comply those conventions via explicit rules implemented in the code or via operational practices
+(otherwise creating machines would not be working already today).
+
+**Note:** As per this proposal, the definition of ClusterClass is immutable. The CC definition consists 
+of infrastructure object references, say AWSMachineTemplate, which could be immutable. For such immutable
+infrastructure objects, hard-coding the image identifiers leads to those templates being tied to a particular
+Kubernetes version, thus making Kubernetes version upgrades impossible. Hence, when using CC, infrastructure
+objects MUST NOT have mandatory static fields whose values prohibit version upgrades.
+
+#### Notes on template <-> object reconciliation
+
+One of the key points of this proposal is that cluster topologies are continuously
+reconciled with the original templates to ensure consistency over time and to support changing the generated
+topology when necessary.
+
+Cluster Class and managed topologies reconciliation leverages on the conventions for template types documented in the previous
+paragraph and on the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
+in order to reconcile objects in the cluster with the corresponding templates in the ClusterClass.
+
+The reconciliation process enforces that all the fields in the template for which a value is defined are reflected in the object.
+
+In practice:
+- If a field has a value in the template, but the users/another controller changes the value for this field in the object, the reconcile
+  topology process will restore the field value from the template; please note that due to how merge patches works internally:
+    - In case the field is a map, the reconcile process enforces the map entries from the template, but additional map entries
+      are preserved.
+    - In case the field is a slice, the reconcile process enforces the slice entries from the template, while additional values
+      are deleted.
+
+Please note that:
+- If a field does not have a value in the template, but the users/another controller sets this value in the object,
+  the reconcile topology process will preserve the field value.
+- If a field does not exist in the template, but it exists only in the object, and the users/another controller
+  sets this field's value, the reconcile topology process will preserve it.
+- If a field is defined as `omitempty` but the field type is not a pointer or a type that has a built-in nil value, 
+  e.g a `Field1 bool 'json:"field1,omitempty"'`, it won't be possible to enforce the zero value in the template for the field, 
+  e.g `field1: false`, because the field is going to be removed and technically there is no way to distinguishing
+  unset from the zero value for that type.
+  NOTE: this is a combination not compliant with the recommendations in the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#optional-vs-required)).
+- If a field is defined as `omitempty` and the field type is a pointer or a type that has a built-in nil value,
+  e.g a `Field1 *bool 'json:"field1,omitempty"'`, it will be possible to enforce the zero value in the template 
+  for the field, e.g `field1: false` (but it won't be possible to enforce `field1: null`).
 
 ### Risks and Mitigations
 

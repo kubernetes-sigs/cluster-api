@@ -20,19 +20,55 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	kubeadmbootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmbootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts this KubeadmConfig to the Hub version (v1alpha4).
 func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfig)
-	return Convert_v1alpha3_KubeadmConfig_To_v1alpha4_KubeadmConfig(src, dst, nil)
+
+	if err := Convert_v1alpha3_KubeadmConfig_To_v1alpha4_KubeadmConfig(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &kubeadmbootstrapv1alpha4.KubeadmConfig{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.JoinConfiguration != nil && restored.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
+		if dst.Spec.JoinConfiguration == nil {
+			dst.Spec.JoinConfiguration = &kubeadmbootstrapv1alpha4.JoinConfiguration{}
+		}
+		dst.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
+	}
+
+	if restored.Spec.InitConfiguration != nil && restored.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
+		if dst.Spec.InitConfiguration == nil {
+			dst.Spec.InitConfiguration = &kubeadmbootstrapv1alpha4.InitConfiguration{}
+		}
+		dst.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
+	}
+
+	return nil
 }
 
 // ConvertFrom converts from the KubeadmConfig Hub version (v1alpha4) to this version.
 func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfig)
-	return Convert_v1alpha4_KubeadmConfig_To_v1alpha3_KubeadmConfig(src, dst, nil)
+
+	if err := Convert_v1alpha4_KubeadmConfig_To_v1alpha3_KubeadmConfig(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts this KubeadmConfigList to the Hub version (v1alpha4).
@@ -50,13 +86,48 @@ func (dst *KubeadmConfigList) ConvertFrom(srcRaw conversion.Hub) error {
 // ConvertTo converts this KubeadmConfigTemplate to the Hub version (v1alpha4).
 func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfigTemplate)
-	return Convert_v1alpha3_KubeadmConfigTemplate_To_v1alpha4_KubeadmConfigTemplate(src, dst, nil)
+
+	if err := Convert_v1alpha3_KubeadmConfigTemplate_To_v1alpha4_KubeadmConfigTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &kubeadmbootstrapv1alpha4.KubeadmConfigTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.Template.Spec.JoinConfiguration != nil && restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
+		if dst.Spec.Template.Spec.JoinConfiguration == nil {
+			dst.Spec.Template.Spec.JoinConfiguration = &kubeadmbootstrapv1alpha4.JoinConfiguration{}
+		}
+		dst.Spec.Template.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
+	}
+
+	if restored.Spec.Template.Spec.InitConfiguration != nil && restored.Spec.Template.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
+		if dst.Spec.Template.Spec.InitConfiguration == nil {
+			dst.Spec.Template.Spec.InitConfiguration = &kubeadmbootstrapv1alpha4.InitConfiguration{}
+		}
+		dst.Spec.Template.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.Template.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
+	}
+
+	return nil
 }
 
 // ConvertFrom converts from the KubeadmConfigTemplate Hub version (v1alpha4) to this version.
 func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*kubeadmbootstrapv1alpha4.KubeadmConfigTemplate)
-	return Convert_v1alpha4_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(src, dst, nil)
+
+	if err := Convert_v1alpha4_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts this KubeadmConfigTemplateList to the Hub version (v1alpha3).
@@ -89,4 +160,24 @@ func Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in *k
 	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported; the information will be left to empty (kubeadm defaults it to CoredDNS);
 	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
 	return kubeadmbootstrapv1beta1.Convert_v1beta1_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in, out, s)
+}
+
+func Convert_v1alpha4_InitConfiguration_To_v1beta1_InitConfiguration(in *kubeadmbootstrapv1alpha4.InitConfiguration, out *kubeadmbootstrapv1beta1.InitConfiguration, s apiconversion.Scope) error {
+	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
+	return kubeadmbootstrapv1beta1.Convert_v1alpha4_InitConfiguration_To_v1beta1_InitConfiguration(in, out, s)
+}
+
+func Convert_v1beta1_InitConfiguration_To_v1alpha4_InitConfiguration(in *kubeadmbootstrapv1beta1.InitConfiguration, out *kubeadmbootstrapv1alpha4.InitConfiguration, s apiconversion.Scope) error {
+	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
+	return kubeadmbootstrapv1beta1.Convert_v1beta1_InitConfiguration_To_v1alpha4_InitConfiguration(in, out, s)
+}
+
+func Convert_v1alpha4_JoinConfiguration_To_v1beta1_JoinConfiguration(in *kubeadmbootstrapv1alpha4.JoinConfiguration, out *kubeadmbootstrapv1beta1.JoinConfiguration, s apiconversion.Scope) error {
+	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
+	return kubeadmbootstrapv1beta1.Convert_v1alpha4_JoinConfiguration_To_v1beta1_JoinConfiguration(in, out, s)
+}
+
+func Convert_v1beta1_JoinConfiguration_To_v1alpha4_JoinConfiguration(in *kubeadmbootstrapv1beta1.JoinConfiguration, out *kubeadmbootstrapv1alpha4.JoinConfiguration, s apiconversion.Scope) error {
+	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
+	return kubeadmbootstrapv1beta1.Convert_v1beta1_JoinConfiguration_To_v1alpha4_JoinConfiguration(in, out, s)
 }

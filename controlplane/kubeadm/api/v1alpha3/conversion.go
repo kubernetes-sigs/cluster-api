@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	kubeadmbootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -38,6 +39,20 @@ func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {
 
 	dest.Spec.RolloutStrategy = restored.Spec.RolloutStrategy
 	dest.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
+
+	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
+		if dest.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
+			dest.Spec.KubeadmConfigSpec.JoinConfiguration = &kubeadmbootstrapv1alpha4.JoinConfiguration{}
+		}
+		dest.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
+	}
+
+	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil && restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
+		if dest.Spec.KubeadmConfigSpec.InitConfiguration == nil {
+			dest.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmbootstrapv1alpha4.InitConfiguration{}
+		}
+		dest.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
+	}
 
 	return nil
 }

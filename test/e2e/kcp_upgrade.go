@@ -44,7 +44,7 @@ type KCPUpgradeSpecInput struct {
 	Flavor                   string
 }
 
-// KCPUpgradeSpec implements a test that verifies KCP to properly upgrade a control plane with 3 machines.
+// KCPUpgradeSpec implements a test that verifies KCP to properly upgrade a control plane.
 func KCPUpgradeSpec(ctx context.Context, inputGetter func() KCPUpgradeSpecInput) {
 	var (
 		specName         = "kcp-upgrade"

@@ -621,8 +621,10 @@ clusterctl generate cluster capi-quickstart --flavor development \
 {{#/tab }}
 {{#/tabs }}
 
-This creates a YAML file named `capi-quickstart.yaml` with a predefined list of Cluster API objects; Cluster, Machines,
+This creates a YAML file named [capi-quickstart.yaml] with a predefined list of Cluster API objects; Cluster, Machines,
 Machine Deployments, etc.
+
+The sample file can be seen here 
 
 The file can be eventually modified using your editor of choice.
 
@@ -764,6 +766,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [Azure Provider Prerequisites]: https://capz.sigs.k8s.io/topics/getting-started.html#prerequisites
 [bootstrap cluster]: ../reference/glossary.md#bootstrap-cluster
 [capa]: https://cluster-api-aws.sigs.k8s.io
+[capi-quickstart.yaml]:  ../reference/samples.md
 [capv-upload-images]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-machine-images
 [clusterawsadm]: https://cluster-api-aws.sigs.k8s.io/clusterawsadm/clusterawsadm.html
 [clusterctl generate cluster]: ../clusterctl/commands/generate-cluster.md

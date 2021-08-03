@@ -149,6 +149,7 @@ func New(uncachedObjs ...client.Object) *Environment {
 		CertDir:               env.WebhookInstallOptions.LocalServingCertDir,
 		Port:                  env.WebhookInstallOptions.LocalServingPort,
 		ClientDisableCacheFor: objs,
+		Host:                  "localhost",
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)

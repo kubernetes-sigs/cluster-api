@@ -18,23 +18,31 @@ package controllers
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/kubectl/pkg/scheme"
 	"k8s.io/utils/pointer"
 
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
+	oputil "sigs.k8s.io/cluster-api/exp/operator/util"
 	"sigs.k8s.io/cluster-api/util"
 )
 
 const (
 	deploymentKind = "Deployment"
 	namespaceKind  = "Namespace"
+)
+
+var (
+	bool2Str = map[bool]string{true: "true", false: "false"}
 )
 
 func imageMetaToURL(im *operatorv1.ImageMeta) string {
@@ -49,8 +57,7 @@ func customizeContainer(cSpec operatorv1.ContainerSpec, d *appsv1.Deployment) {
 	for j, c := range d.Spec.Template.Spec.Containers {
 		if c.Name == cSpec.Name {
 			for an, av := range cSpec.Args {
-				c.Args = removeArg(c.Args, an)
-				c.Args = append(c.Args, fmt.Sprintf("%s=%s", an, av))
+				c.Args = setArg(c.Args, an, av)
 			}
 			for _, se := range cSpec.Env {
 				c.Env = removeEnv(c.Env, se.Name)
@@ -67,6 +74,123 @@ func customizeContainer(cSpec operatorv1.ContainerSpec, d *appsv1.Deployment) {
 	}
 }
 
+func leaderElectionArgs(lec *configv1alpha1.LeaderElectionConfiguration, args []string) []string {
+	args = setArg(args, "--enable-leader-election", bool2Str[*lec.LeaderElect])
+
+	if *lec.LeaderElect {
+		if lec.ResourceName != "" && lec.ResourceNamespace != "" {
+			args = setArg(args, "--leader-election-id", lec.ResourceNamespace+"/"+lec.ResourceName)
+		}
+		leaseDuration := int(lec.LeaseDuration.Duration.Round(time.Second).Seconds())
+		if leaseDuration > 0 {
+			args = setArg(args, "--leader-elect-lease-duration", fmt.Sprintf("%ds", leaseDuration))
+		}
+		renewDuration := int(lec.RenewDeadline.Duration.Round(time.Second).Seconds())
+		if renewDuration > 0 {
+			args = setArg(args, "--leader-elect-renew-deadline", fmt.Sprintf("%ds", renewDuration))
+		}
+		retryDuration := int(lec.RetryPeriod.Duration.Round(time.Second).Seconds())
+		if retryDuration > 0 {
+			args = setArg(args, "--leader-elect-retry-period", fmt.Sprintf("%ds", retryDuration))
+		}
+	}
+	return args
+}
+
+func customizeManager(mSpec *operatorv1.ManagerSpec, c *corev1.Container) *corev1.Container {
+	// ControllerManagerConfigurationSpec fields
+	if mSpec.Controller != nil {
+		// TODO can't find an arg for CacheSyncTimeout
+		for k, v := range mSpec.Controller.GroupKindConcurrency {
+			c.Args = setArg(c.Args, "--"+strings.ToLower(k)+"-concurrency", fmt.Sprint(v))
+		}
+	}
+	if mSpec.MaxConcurrentReconciles != nil {
+		c.Args = setArg(c.Args, "--max-concurrent-reconciles", fmt.Sprint(*mSpec.MaxConcurrentReconciles))
+	}
+
+	if mSpec.CacheNamespace != "" {
+		c.Args = setArg(c.Args, "--namespace", mSpec.CacheNamespace)
+	}
+
+	//TODO can't find an arg for GracefulShutdownTimeout
+
+	if mSpec.Health.HealthProbeBindAddress != "" {
+		c.Args = setArg(c.Args, "--health-addr", mSpec.Health.HealthProbeBindAddress)
+	}
+	if mSpec.Health.LivenessEndpointName != "" && c.LivenessProbe != nil && c.LivenessProbe.HTTPGet != nil {
+		c.LivenessProbe.HTTPGet.Path = "/" + mSpec.Health.LivenessEndpointName
+	}
+	if mSpec.Health.ReadinessEndpointName != "" && c.ReadinessProbe != nil && c.ReadinessProbe.HTTPGet != nil {
+		c.ReadinessProbe.HTTPGet.Path = "/" + mSpec.Health.ReadinessEndpointName
+	}
+
+	if mSpec.LeaderElection != nil && mSpec.LeaderElection.LeaderElect != nil {
+		c.Args = leaderElectionArgs(mSpec.LeaderElection, c.Args)
+	}
+
+	if mSpec.Metrics.BindAddress != "" {
+		// TODO or --metrics-bind-addr
+		c.Args = setArg(c.Args, "--metrics-addr", mSpec.Metrics.BindAddress)
+	}
+
+	// webhooks
+	if mSpec.Webhook.Host != "" {
+		c.Args = setArg(c.Args, "--webhook-host", mSpec.Webhook.Host)
+	}
+	if mSpec.Webhook.Port != nil {
+		c.Args = setArg(c.Args, "--webhook-port", fmt.Sprint(*mSpec.Webhook.Port))
+	}
+	if mSpec.Webhook.CertDir != "" {
+		c.Args = setArg(c.Args, "--webhook-cert-dir", mSpec.Webhook.CertDir)
+	}
+
+	// top level fields
+	if mSpec.SyncPeriod != nil {
+		syncPeriod := int(mSpec.SyncPeriod.Duration.Round(time.Second).Seconds())
+		if syncPeriod > 0 {
+			c.Args = setArg(c.Args, "--sync-period", fmt.Sprintf("%ds", syncPeriod))
+		}
+	}
+
+	if mSpec.ProfilerAddress != nil {
+		c.Args = setArg(c.Args, "--profiler-address", *mSpec.ProfilerAddress)
+	}
+
+	if mSpec.Verbosity != 1 {
+		c.Args = setArg(c.Args, "--v", fmt.Sprint(mSpec.Verbosity))
+	}
+
+	if mSpec.Debug {
+		c.Args = setArg(c.Args, "--v", fmt.Sprint(oputil.Max(5, mSpec.Verbosity)))
+		if mSpec.ProfilerAddress == nil { // don't override ProfilerAddress if set.
+			c.Args = setArg(c.Args, "--profiler-address", "localhost:6060")
+		}
+	}
+
+	if len(mSpec.FeatureGates) > 0 {
+		fgValue := []string{}
+		for fg, val := range mSpec.FeatureGates {
+			fgValue = append(fgValue, fg+"="+bool2Str[val])
+		}
+		sort.Strings(fgValue)
+		c.Args = setArg(c.Args, "--feature-gates", strings.Join(fgValue, ","))
+	}
+
+	return c
+}
+
+func setArg(args []string, name, value string) []string {
+	for i, a := range args {
+		if strings.HasPrefix(a, name+"=") {
+			args[i] = name + "=" + value
+			return args
+		}
+	}
+
+	return append(args, name+"="+value)
+}
+
 func removeEnv(envs []corev1.EnvVar, name string) []corev1.EnvVar {
 	for i, a := range envs {
 		if a.Name == name {
@@ -78,33 +202,33 @@ func removeEnv(envs []corev1.EnvVar, name string) []corev1.EnvVar {
 	return envs
 }
 
-func removeArg(args []string, name string) []string {
-	for i, a := range args {
-		if strings.HasPrefix(a, name+"=") {
-			copy(args[i:], args[i+1:])
-			return args[:len(args)-1]
+func customizeDeployment(pSpec operatorv1.ProviderSpec, d *appsv1.Deployment) {
+	if pSpec.Deployment != nil {
+		dSpec := pSpec.Deployment
+		if dSpec.Replicas != nil {
+			d.Spec.Replicas = pointer.Int32Ptr(int32(*dSpec.Replicas))
+		}
+		if dSpec.Affinity != nil {
+			d.Spec.Template.Spec.Affinity = dSpec.Affinity
+		}
+		if dSpec.NodeSelector != nil {
+			d.Spec.Template.Spec.NodeSelector = dSpec.NodeSelector
+		}
+		if dSpec.Tolerations != nil {
+			d.Spec.Template.Spec.Tolerations = dSpec.Tolerations
+		}
+
+		for _, pc := range dSpec.Containers {
+			customizeContainer(pc, d)
 		}
 	}
-
-	return args
-}
-
-func customizeDeployment(dSpec *operatorv1.DeploymentSpec, d *appsv1.Deployment) {
-	if dSpec.Replicas != nil {
-		d.Spec.Replicas = pointer.Int32Ptr(int32(*dSpec.Replicas))
-	}
-	if dSpec.Affinity != nil {
-		d.Spec.Template.Spec.Affinity = dSpec.Affinity
-	}
-	if dSpec.NodeSelector != nil {
-		d.Spec.Template.Spec.NodeSelector = dSpec.NodeSelector
-	}
-	if dSpec.Tolerations != nil {
-		d.Spec.Template.Spec.Tolerations = dSpec.Tolerations
-	}
-
-	for _, pc := range dSpec.Containers {
-		customizeContainer(pc, d)
+	// run the customizeManager last so it overrides anything in the deploymentSpec.
+	if pSpec.Manager != nil {
+		for ic, c := range d.Spec.Template.Spec.Containers {
+			if c.Name == "manager" {
+				d.Spec.Template.Spec.Containers[ic] = *customizeManager(pSpec.Manager, &d.Spec.Template.Spec.Containers[ic])
+			}
+		}
 	}
 }
 
@@ -128,15 +252,12 @@ func customizeObjectsFn(provider genericprovider.GenericProvider) func(objs []un
 			}))
 
 			if provider.GetSpec().Deployment != nil && o.GetKind() == deploymentKind {
-				// TODO one question i have is matching on deployment name
-				// what if there is more than one deployment and the container names are the same..
-
 				// Convert Unstructured into a typed object
 				d := &appsv1.Deployment{}
 				if err := scheme.Scheme.Convert(&o, d, nil); err != nil {
 					return nil, err
 				}
-				customizeDeployment(provider.GetSpec().Deployment, d)
+				customizeDeployment(provider.GetSpec(), d)
 
 				// Convert Deployment back to Unstructured
 				if err := scheme.Scheme.Convert(d, &o, nil); err != nil {

@@ -19,18 +19,20 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrlconfigv1alpha1 "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
-
-// TODO: NOTE: The API details will be incrementally added and will eventually
-// conform to the CAPI Provider CAEP.
 
 // ProviderSpec is the desired state of the Provider.
 type ProviderSpec struct {
 	// Version indicates the provider version.
 	// +optional
 	Version *string `json:"version,omitempty"`
+
+	// Manager defines the properties that can be enabled on the controller manager for the provider.
+	// +optional
+	Manager *ManagerSpec `json:"manager,omitempty"`
 
 	// Deployment defines the properties that can be enabled on the deployment for the provider.
 	// +optional
@@ -55,10 +57,48 @@ type ProviderSpec struct {
 	FetchConfig *FetchConfiguration `json:"fetchConfig,omitempty"`
 }
 
+// ManagerSpec defines the properties that can be enabled on the controller manager for the provider.
+type ManagerSpec struct {
+	// ControllerManagerConfigurationSpec defines the desired state of GenericControllerManagerConfiguration.
+	ctrlconfigv1alpha1.ControllerManagerConfigurationSpec `json:",inline"`
+
+	// ProfilerAddress defines the bind address to expose the pprof profiler (e.g. localhost:6060).
+	// Default empty, meaning the profiler is disabled.
+	// Controller Manager flag is --profiler-address.
+	// +optional
+	ProfilerAddress *string `json:"profilerAddress,omitempty"`
+
+	// MaxConcurrentReconciles is the maximum number of concurrent Reconciles
+	// which can be run. Defaults to 10.
+	// +optional
+	// +kubebuilder:default=10
+	// +kubebuilder:validation:Minimum=1
+	MaxConcurrentReconciles *int `json:"maxConcurrentReconciles,omitempty"`
+
+	// Verbosity set the logs verbosity. Defaults to 1.
+	// Controller Manager flag is --verbosity.
+	// +optional
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=0
+	Verbosity int `json:"verbosity,omitempty"`
+
+	// Debug, if set, will override a set of fields with opinionated values for
+	// a debugging session. (Verbosity=5, ProfilerAddress=localhost:6060)
+	// +optional
+	// +kubebuilder:default=false
+	Debug bool `json:"debug,omitempty"`
+
+	// FeatureGates define provider specific feature flags that will be passed
+	// in as container args to the provider's controller manager.
+	// Controller Manager flag is --feature-gates.
+	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+}
+
 // DeploymentSpec defines the properties that can be enabled on the Deployment for the provider.
 type DeploymentSpec struct {
 	// Number of desired pods. This is a pointer to distinguish between explicit zero and not specified. Defaults to 1.
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int `json:"replicas,omitempty"`
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.

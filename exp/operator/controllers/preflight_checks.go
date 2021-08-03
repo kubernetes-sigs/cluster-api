@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -118,7 +117,7 @@ func preflightChecks(ctx context.Context, c client.Client, provider genericprovi
 				clusterv1.ConditionSeverityInfo,
 				waitingForCoreProviderReadyMessage,
 			))
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
+			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 		}
 	}
 

@@ -121,9 +121,6 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 		return result, err
 	}
 
-	// TODO how much of the stuff below should we add to preflight checks?
-	// 1. if we add it, we will have to rerun much of the code again
-	// 2. unit testing is going to be a pain
 	reader, err := r.secretReader(ctx, provider)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -142,11 +139,7 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 			clusterv1.ConditionSeverityWarning,
 			fmt.Sprintf(unknownProviderMessage, provider.GetName()),
 		))
-		// we don't want to reconcile again until the CR has been fixed.
-		// TODO although, not the user could have fixed the secret...
-		// 1. add annotation to the secret
-		// 2. watch secrets and map the secret back to the provider?
-		return ctrl.Result{}, nil // nolint:nilerr
+		return ctrl.Result{}, err
 	}
 
 	spec := provider.GetSpec()

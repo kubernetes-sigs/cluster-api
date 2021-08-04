@@ -33,7 +33,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/internal/testtypes"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 var _ reconcile.Reconciler = &MachineSetReconciler{}
@@ -279,6 +281,33 @@ func TestMachineSetReconciler(t *testing.T) {
 			return instance.Status.AvailableReplicas
 		}, timeout).Should(BeEquivalentTo(replicas))
 
+		t.Log("Verifying MachineSet has MachinesCreatedCondition")
+		g.Eventually(func() bool {
+			key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
+			if err := env.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return conditions.IsTrue(instance, clusterv1.MachinesCreatedCondition)
+		}, timeout).Should(BeTrue())
+
+		t.Log("Verifying MachineSet has ResizedCondition")
+		g.Eventually(func() bool {
+			key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
+			if err := env.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return conditions.IsTrue(instance, clusterv1.ResizedCondition)
+		}, timeout).Should(BeTrue())
+
+		t.Log("Verifying MachineSet has MachinesReadyCondition")
+		g.Eventually(func() bool {
+			key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
+			if err := env.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return conditions.IsTrue(instance, clusterv1.MachinesReadyCondition)
+		}, timeout).Should(BeTrue())
+
 		// Validate that the controller set the cluster name label in selector.
 		g.Expect(instance.Status.Selector).To(ContainSubstring(testCluster.Name))
 	})
@@ -290,9 +319,9 @@ func TestMachineSetOwnerReference(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: testClusterName},
 	}
 
-	ms1 := newMachineSet("machineset1", "valid-cluster")
-	ms2 := newMachineSet("machineset2", "invalid-cluster")
-	ms3 := newMachineSet("machineset3", "valid-cluster")
+	ms1 := newMachineSet("machineset1", "valid-cluster", int32(0))
+	ms2 := newMachineSet("machineset2", "invalid-cluster", int32(0))
+	ms3 := newMachineSet("machineset3", "valid-cluster", int32(0))
 	ms3.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -407,7 +436,7 @@ func TestMachineSetReconcile(t *testing.T) {
 	t.Run("records event if reconcile fails", func(t *testing.T) {
 		g := NewWithT(t)
 
-		ms := newMachineSet("machineset1", testClusterName)
+		ms := newMachineSet("machineset1", testClusterName, int32(0))
 		ms.Spec.Selector.MatchLabels = map[string]string{
 			"--$-invalid": "true",
 		}
@@ -428,7 +457,7 @@ func TestMachineSetReconcile(t *testing.T) {
 	t.Run("reconcile successfully when labels are missing", func(t *testing.T) {
 		g := NewWithT(t)
 
-		ms := newMachineSet("machineset1", testClusterName)
+		ms := newMachineSet("machineset1", testClusterName, int32(0))
 		ms.Labels = nil
 		ms.Spec.Selector.MatchLabels = nil
 		ms.Spec.Template.Labels = nil
@@ -681,8 +710,7 @@ func TestAdoptOrphan(t *testing.T) {
 	}
 }
 
-func newMachineSet(name, cluster string) *clusterv1.MachineSet {
-	var replicas int32
+func newMachineSet(name, cluster string, replicas int32) *clusterv1.MachineSet {
 	return &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -707,5 +735,130 @@ func newMachineSet(name, cluster string) *clusterv1.MachineSet {
 				},
 			},
 		},
+	}
+}
+
+func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testing.T) {
+	g := NewWithT(t)
+	replicas := int32(1)
+	version := "v1.21.0"
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	ms := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ms-foo",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name,
+			},
+		},
+		Spec: clusterv1.MachineSetSpec{
+			ClusterName: cluster.ObjectMeta.Name,
+			Replicas:    &replicas,
+			Template: clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: cluster.Name,
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						Kind:       testtypes.GenericInfrastructureMachineTemplateCRD.Kind,
+						APIVersion: testtypes.GenericInfrastructureMachineTemplateCRD.APIVersion,
+						// Try to break Infra Cloning
+						Name:      "something_invalid",
+						Namespace: cluster.Namespace,
+					},
+					Version: &version,
+				},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					clusterv1.ClusterLabelName: cluster.Name,
+				},
+			},
+		},
+	}
+
+	key := util.ObjectKey(ms)
+	request := reconcile.Request{
+		NamespacedName: key,
+	}
+	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, testtypes.GenericInfrastructureMachineTemplateCRD.DeepCopy()).Build()
+
+	msr := &MachineSetReconciler{
+		Client:   fakeClient,
+		recorder: record.NewFakeRecorder(32),
+	}
+	_, err := msr.Reconcile(ctx, request)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(fakeClient.Get(ctx, key, ms)).To(Succeed())
+	gotCond := conditions.Get(ms, clusterv1.MachinesCreatedCondition)
+	g.Expect(gotCond).ToNot(BeNil())
+	g.Expect(gotCond.Status).To(Equal(corev1.ConditionFalse))
+	g.Expect(gotCond.Reason).To(Equal(clusterv1.InfrastructureTemplateCloningFailedReason))
+}
+
+func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	testCases := []struct {
+		name            string
+		machineSet      *clusterv1.MachineSet
+		machines        []*clusterv1.Machine
+		expectedReason  string
+		expectedMessage string
+	}{
+		{
+			name:            "MachineSet should have ResizedCondition=false on scale up",
+			machineSet:      newMachineSet("ms-scale-up", cluster.Name, int32(1)),
+			machines:        []*clusterv1.Machine{},
+			expectedReason:  clusterv1.ScalingUpReason,
+			expectedMessage: "Scaling up MachineSet to 1 replicas (actual 0)",
+		},
+		{
+			name:       "MachineSet should have ResizedCondition=false on scale down",
+			machineSet: newMachineSet("ms-scale-down", cluster.Name, int32(0)),
+			machines: []*clusterv1.Machine{{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-a",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: cluster.Name,
+					},
+				},
+			},
+			},
+			expectedReason:  clusterv1.ScalingDownReason,
+			expectedMessage: "Scaling down MachineSet to 0 replicas (actual 1)",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			msr := &MachineSetReconciler{
+				Client:   fake.NewClientBuilder().WithObjects().Build(),
+				recorder: record.NewFakeRecorder(32),
+			}
+			err := msr.updateStatus(ctx, cluster, tc.machineSet, tc.machines)
+			g.Expect(err).NotTo(HaveOccurred())
+			gotCond := conditions.Get(tc.machineSet, clusterv1.ResizedCondition)
+			g.Expect(gotCond).ToNot(BeNil())
+			g.Expect(gotCond.Status).To(Equal(corev1.ConditionFalse))
+			g.Expect(gotCond.Reason).To(Equal(tc.expectedReason))
+			g.Expect(gotCond.Message).To(Equal(tc.expectedMessage))
+		})
 	}
 }

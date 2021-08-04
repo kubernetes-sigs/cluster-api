@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -143,7 +144,7 @@ func (r *MachineSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	defer func() {
 		// Always attempt to patch the object and status after each reconciliation.
-		if err := patchHelper.Patch(ctx, machineSet); err != nil {
+		if err := patchMachineSet(ctx, patchHelper, machineSet); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
@@ -160,6 +161,28 @@ func (r *MachineSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
 	return result, err
+}
+
+func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet *clusterv1.MachineSet, options ...patch.Option) error {
+	// Always update the readyCondition by summarizing the state of other conditions.
+	conditions.SetSummary(machineSet,
+		conditions.WithConditions(
+			clusterv1.MachinesCreatedCondition,
+			clusterv1.ResizedCondition,
+			clusterv1.MachinesReadyCondition,
+		),
+	)
+
+	// Patch the object, ignoring conflicts on the conditions owned by this controller.
+	options = append(options,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			clusterv1.MachinesCreatedCondition,
+			clusterv1.ResizedCondition,
+			clusterv1.MachinesReadyCondition,
+		}},
+	)
+	return patchHelper.Patch(ctx, machineSet, options...)
 }
 
 func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
@@ -350,6 +373,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 					Labels:      machine.Labels,
 				})
 				if err != nil {
+					conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.BootstrapTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
 					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 				}
 				machine.Spec.Bootstrap.ConfigRef = bootstrapRef
@@ -364,6 +388,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				Annotations: machine.Annotations,
 			})
 			if err != nil {
+				conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.InfrastructureTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
 				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 			}
 			machine.Spec.InfrastructureRef = *infraRef
@@ -372,6 +397,8 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				log.Error(err, "Unable to create Machine", "machine", machine.Name)
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
 				errs = append(errs, err)
+				conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.MachineCreationFailedReason,
+					clusterv1.ConditionSeverityError, err.Error())
 
 				// Try to cleanup the external objects if the Machine creation failed.
 				if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*infraRef)); !apierrors.IsNotFound(err) {
@@ -601,6 +628,7 @@ func (r *MachineSetReconciler) updateStatus(ctx context.Context, cluster *cluste
 	fullyLabeledReplicasCount := 0
 	readyReplicasCount := 0
 	availableReplicasCount := 0
+	desiredReplicas := *ms.Spec.Replicas
 	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
 
 	for _, machine := range filteredMachines {
@@ -644,12 +672,35 @@ func (r *MachineSetReconciler) updateStatus(ctx context.Context, cluster *cluste
 		newStatus.DeepCopyInto(&ms.Status)
 
 		log.V(4).Info(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
-			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, *ms.Spec.Replicas) +
+			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, desiredReplicas) +
 			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", ms.Status.FullyLabeledReplicas, newStatus.FullyLabeledReplicas) +
 			fmt.Sprintf("readyReplicas %d->%d, ", ms.Status.ReadyReplicas, newStatus.ReadyReplicas) +
 			fmt.Sprintf("availableReplicas %d->%d, ", ms.Status.AvailableReplicas, newStatus.AvailableReplicas) +
 			fmt.Sprintf("sequence No: %v->%v", ms.Status.ObservedGeneration, newStatus.ObservedGeneration))
 	}
+	switch {
+	// We are scaling up
+	case newStatus.Replicas < desiredReplicas:
+		conditions.MarkFalse(ms, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
+	// We are scaling down
+	case newStatus.Replicas > desiredReplicas:
+		conditions.MarkFalse(ms, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
+		// This means that there was no error in generating the desired number of machine objects
+		conditions.MarkTrue(ms, clusterv1.MachinesCreatedCondition)
+	default:
+		// Make sure last resize operation is marked as completed.
+		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
+		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
+		if newStatus.ReadyReplicas == newStatus.Replicas {
+			conditions.MarkTrue(ms, clusterv1.ResizedCondition)
+		}
+		// This means that there was no error in generating the desired number of machine objects
+		conditions.MarkTrue(ms, clusterv1.MachinesCreatedCondition)
+	}
+
+	// Aggregate the operational state of all the machines; while aggregating we are adding the
+	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
+	conditions.SetAggregate(ms, clusterv1.MachinesReadyCondition, collections.FromMachines(filteredMachines...).ConditionGetters(), conditions.AddSourceRef(), conditions.WithStepCounterIf(false))
 
 	return nil
 }

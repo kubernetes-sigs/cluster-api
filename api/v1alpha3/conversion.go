@@ -130,13 +130,35 @@ func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.MachineSet)
 
-	return Convert_v1alpha3_MachineSet_To_v1alpha4_MachineSet(src, dst, nil)
+	if err := Convert_v1alpha3_MachineSet_To_v1alpha4_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+	// Manually restore data.
+	restored := &v1alpha4.MachineSet{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Status.Conditions = restored.Status.Conditions
+	return nil
 }
 
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.MachineSet)
 
-	return Convert_v1alpha4_MachineSet_To_v1alpha3_MachineSet(src, dst, nil)
+	if err := Convert_v1alpha4_MachineSet_To_v1alpha3_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
+func Convert_v1alpha4_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *v1alpha4.MachineSetStatus, out *MachineSetStatus, s apiconversion.Scope) error {
+	return autoConvert_v1alpha4_MachineSetStatus_To_v1alpha3_MachineSetStatus(in, out, s)
 }
 
 func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {

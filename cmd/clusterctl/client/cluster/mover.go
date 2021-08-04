@@ -366,7 +366,7 @@ func (o *objectMover) backup(graph *objectGraph, directory string) error {
 	moveSequence := getMoveSequence(graph)
 
 	// Save all objects group by group
-	log.Info("Saving files to %s", directory)
+	log.Info(fmt.Sprintf("Saving files to %s", directory))
 	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
 		if err := o.backupGroup(moveSequence.getGroup(groupIndex), directory); err != nil {
 			return err

@@ -48,6 +48,11 @@ type ProviderID struct {
 */
 var providerIDRegex = regexp.MustCompile("^[^:]+://.*[^/]$")
 
+const (
+	aws   = "aws"
+	azure = "azure"
+)
+
 // NewProviderID parses the input string and returns a new ProviderID.
 func NewProviderID(id string) (*ProviderID, error) {
 	if id == "" {
@@ -61,8 +66,15 @@ func NewProviderID(id string) (*ProviderID, error) {
 	colonIndex := strings.Index(id, ":")
 	cloudProvider := id[0:colonIndex]
 
-	lastSlashIndex := strings.LastIndex(id, "/")
-	instance := id[lastSlashIndex+1:]
+	instance := ""
+
+	switch cloudProvider {
+	case azure:
+		instance = strings.ToLower(id)
+	default:
+		lastSlashIndex := strings.LastIndex(id, "/")
+		instance = id[lastSlashIndex+1:]
+	}
 
 	res := &ProviderID{
 		original:      id,

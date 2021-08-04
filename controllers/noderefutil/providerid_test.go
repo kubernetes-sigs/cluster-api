@@ -22,33 +22,42 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const aws = "aws"
-
 func TestNewProviderID(t *testing.T) {
 	tests := []struct {
-		name       string
-		input      string
-		expectedID string
+		name          string
+		input         string
+		cloudProvider string
+		expectedID    string
 	}{
 		{
-			name:       "2 slashes after colon, one segment",
-			input:      "aws://instance-id",
-			expectedID: "instance-id",
+			name:          "2 slashes after colon, one segment",
+			input:         "aws://instance-id",
+			cloudProvider: aws,
+			expectedID:    "instance-id",
 		},
 		{
-			name:       "more than 2 slashes after colon, one segment",
-			input:      "aws:////instance-id",
-			expectedID: "instance-id",
+			name:          "more than 2 slashes after colon, one segment",
+			input:         "aws:////instance-id",
+			cloudProvider: aws,
+			expectedID:    "instance-id",
 		},
 		{
-			name:       "multiple filled-in segments (aws format)",
-			input:      "aws:///zone/instance-id",
-			expectedID: "instance-id",
+			name:          "multiple filled-in segments (aws format)",
+			input:         "aws:///zone/instance-id",
+			cloudProvider: aws,
+			expectedID:    "instance-id",
 		},
 		{
-			name:       "multiple filled-in segments",
-			input:      "aws://bar/baz/instance-id",
-			expectedID: "instance-id",
+			name:          "multiple filled-in segments",
+			input:         "aws://bar/baz/instance-id",
+			cloudProvider: aws,
+			expectedID:    "instance-id",
+		},
+		{
+			name:          "multiple filled-in segments (aks format)",
+			input:         "azure:///subscriptions/<subscription-id>/resourceGroups/SPC_MC_-rg_capz-managed-aks_eastus/providers/Microsoft.Compute/virtualMachineScaleSets/aks-workerpool0-39475182-vmss/virtualMachines/0",
+			cloudProvider: azure,
+			expectedID:    "azure:///subscriptions/<subscription-id>/resourceGroups/SPC_MC_-rg_capz-managed-aks_eastus/providers/Microsoft.Compute/virtualMachineScaleSets/aks-workerpool0-39475182-vmss/virtualMachines/0",
 		},
 	}
 
@@ -58,7 +67,7 @@ func TestNewProviderID(t *testing.T) {
 
 			id, err := NewProviderID(tc.input)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(id.CloudProvider()).To(Equal(aws))
+			g.Expect(id.CloudProvider()).To(Equal(tc.cloudProvider))
 			g.Expect(id.ID()).To(Equal(tc.expectedID))
 		})
 	}

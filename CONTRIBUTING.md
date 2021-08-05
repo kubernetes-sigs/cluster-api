@@ -61,7 +61,7 @@ avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewCom
 
 The documentation is published in form of a book at:
 
-- [Latest released version](https://cluster-api.sigs.k8s.io)
+- [Stable release](https://cluster-api.sigs.k8s.io)
 - [Tip of the main branch](https://tip.cluster-api.sigs.k8s.io/)
 
 The source for the book is [this folder](https://github.com/kubernetes-sigs/cluster-api/tree/master/docs/book/src) containing markdown files

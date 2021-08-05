@@ -69,7 +69,7 @@ and we use [mdBook](https://github.com/rust-lang/mdBook) to build it into a stat
 
 After making changes locally you can run `make serve-book` which will build the HTML version
 and start a web server so you can preview if the changes render correctly at
-http://localhost:3000/.
+http://localhost:3000; the preview auto-updates when changes are detected.
 
 When submitting the PR remember to label it with the 📖 (:book:) icon.
 

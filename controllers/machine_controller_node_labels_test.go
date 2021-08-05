@@ -44,7 +44,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 
 	infraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "InfrastructureMachine",
+			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
@@ -78,7 +78,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 			ClusterName: cluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-				Kind:       "InfrastructureMachine",
+				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  ns.Name,
 			},
@@ -110,7 +110,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
-	}(cluster, node, infraMachine, machine)
+	}(cluster, ns, node, infraMachine, machine)
 
 	r := &MachineReconciler{
 		Client:   env.Client,

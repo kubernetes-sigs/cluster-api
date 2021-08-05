@@ -23,7 +23,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	kubeadmbootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -45,6 +47,18 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		KubeadmConfigStatusFuzzer,
 		dnsFuzzer,
 		clusterConfigurationFuzzer,
+		// This custom functions are needed when ConvertTo/ConvertFrom functions
+		// uses the json package to unmarshal the bootstrap token string.
+		//
+		// The Kubeadm BootstrapTokenString type ships with a custom
+		// json string representation, in particular it supplies a customized
+		// UnmarshalJSON function that can return an error if the string
+		// isn't in the correct form.
+		//
+		// This function effectively disables any fuzzing for the token by setting
+		// the values for ID and Secret to working alphanumeric values.
+		kubeadmBootstrapTokenStringFuzzerV1beta1,
+		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
 	}
 }
 
@@ -67,4 +81,14 @@ func clusterConfigurationFuzzer(obj *v1beta1.ClusterConfiguration, c fuzz.Contin
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> v1alpha4 --> v1beta1 round trip errors.
 	obj.UseHyperKubeImage = false
+}
+
+func kubeadmBootstrapTokenStringFuzzerV1beta1(in *kubeadmv1beta1.BootstrapTokenString, c fuzz.Continue) {
+	in.ID = "abcdef"
+	in.Secret = "abcdef0123456789"
+}
+
+func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *kubeadmbootstrapv1alpha4.BootstrapTokenString, c fuzz.Continue) {
+	in.ID = "abcdef"
+	in.Secret = "abcdef0123456789"
 }

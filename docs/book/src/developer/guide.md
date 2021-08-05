@@ -53,7 +53,7 @@ If you choose not to use GCR, you'll need to set the `REGISTRY` environment vari
 You'll need to [install `kustomize`][kustomize].
 There is a version of `kustomize` built into kubectl, but it does not have all the features of `kustomize` v3 and will not work.
 
-[kustomize]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md
+[kustomize]: https://kubectl.docs.kubernetes.io/installation/kustomize/
 
 ### Kubebuilder
 
@@ -81,7 +81,7 @@ The generated binary can be found at ./hack/tools/bin/envsubst
 You'll need to deploy [cert-manager] components on your [management cluster][mcluster], using `kubectl`
 
 ```bash
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.yaml
 ```
 
 Ensure the cert-manager webhook service is ready before creating the Cluster API components.

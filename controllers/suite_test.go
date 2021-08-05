@@ -26,26 +26,38 @@ import (
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/envtest"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	// +kubebuilder:scaffold:imports
 )
 
 const (
-	timeout = time.Second * 30
+	timeout         = time.Second * 30
+	testClusterName = "test-cluster"
 )
 
 var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
+	env        *envtest.Environment
+	ctx        = ctrl.SetupSignalHandler()
+	fakeScheme = runtime.NewScheme()
 )
+
+func init() {
+	_ = clientgoscheme.AddToScheme(fakeScheme)
+	_ = clusterv1.AddToScheme(fakeScheme)
+	_ = apiextensionsv1.AddToScheme(fakeScheme)
+}
 
 func TestMain(m *testing.M) {
 	fmt.Println("Creating a new test environment")
@@ -53,7 +65,12 @@ func TestMain(m *testing.M) {
 
 	// Set up the MachineNodeIndex
 	if err := noderefutil.AddMachineNodeIndex(ctx, env.Manager); err != nil {
-		panic(fmt.Sprintf("undable to setup machine node index: %v", err))
+		panic(fmt.Sprintf("unable to setup machine node index: %v", err))
+	}
+
+	// Set up the MachineProviderIDIndex
+	if err := noderefutil.AddMachineProviderIDIndex(ctx, env.Manager); err != nil {
+		panic(fmt.Sprintf("unable to setup machine providerID index: %v", err))
 	}
 
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers

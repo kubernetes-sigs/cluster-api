@@ -178,6 +178,16 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 
 // reconcile handles cluster reconciliation.
 func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+
+	if cluster.Spec.Topology != nil {
+		if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.InfrastructureRef == nil {
+			// TODO: add a condition to surface this scenario
+			log.Info("Waiting for the topology to be generated")
+			return ctrl.Result{}, nil
+		}
+	}
+
 	phases := []func(context.Context, *clusterv1.Cluster) (ctrl.Result, error){
 		r.reconcileInfrastructure,
 		r.reconcileControlPlane,

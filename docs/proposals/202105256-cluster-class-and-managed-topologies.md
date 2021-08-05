@@ -161,13 +161,30 @@ type ClusterClassSpec struct {
 
   // ControlPlane is a reference to a local struct that holds the details
   // for provisioning the Control Plane for the Cluster.
-  ControlPlane LocalObjectTemplate `json:"controlPlane,omitempty"`
+  ControlPlane ControlPlaneClass `json:"controlPlane,omitempty"`
 
   // Workers describes the worker nodes for the cluster.
   // It is a collection of node types which can be used to create
   // the worker nodes of the cluster.
   // +optional
   Workers WorkersClass `json:"workers,omitempty"`
+}
+
+// ControlPlaneClass defines the class for the control plane.
+type ControlPlaneClass struct {
+	Metadata ObjectMeta `json:"metadata,omitempty"`
+
+	// LocalObjectTemplate contains the reference to the control plane provider.
+	LocalObjectTemplate `json:",inline"`
+
+	// MachineTemplate defines the metadata and infrastructure information
+	// for control plane machines.
+	//
+	// This field is supported if and only if the control plane provider template
+	// referenced above is Machine based and supports setting replicas.
+	//
+	// +optional
+	MachineInfrastructure *LocalObjectTemplate `json:"machineInfrastructure,omitempty"`
 }
 
 // WorkersClass is a collection of deployment classes.
@@ -251,9 +268,13 @@ type LocalObjectTemplate struct {
     // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
     type ControlPlaneTopology struct {
       Metadata ObjectMeta `json:"metadata,omitempty"`
-    
+
       // The number of control plane nodes.
-      Replicas int `json:"replicas"`
+      // If the value is nil, the ControlPlane object is created without the number of Replicas
+      // and it's assumed that the control plane controller does not implement support for this field.
+      // When specified against a control plane provider that lacks support for this field, this value will be ignored.
+      // +optional
+      Replicas *int `json:"replicas,omitempty"`
     }
     ```
 1.  The `WorkersTopology` object represents the sets of worker nodes of the topology.
@@ -264,7 +285,7 @@ type LocalObjectTemplate struct {
     type WorkersTopology struct {
       // MachineDeployments is a list of machine deployment in the cluster.
       MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
-    }   
+    }
     ```
 1.  The `MachineDeploymentTopology` object represents a single set of worker nodes of the topology.
     ```golang
@@ -272,18 +293,18 @@ type LocalObjectTemplate struct {
     // This set of nodes is managed by a MachineDeployment object whose lifecycle is managed by the Cluster controller.
     type MachineDeploymentTopology struct {
     Metadata ObjectMeta `json:"metadata,omitempty"`
-    
+
       // Class is the name of the MachineDeploymentClass used to create the set of worker nodes.
       // This should match one of the deployment classes defined in the ClusterClass object
       // mentioned in the `Cluster.Spec.Class` field.
       Class string `json:"class"`
-    
+
       // Name is the unique identifier for this MachineDeploymentTopology.
       // The value is used with other unique identifiers to create a MachineDeployment's Name
       // (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
       // the values are hashed together.
       Name string `json:"name"`
-    
+
       // The number of worker nodes belonging to this set.
       // If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to zero)
       // and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
@@ -297,7 +318,7 @@ type LocalObjectTemplate struct {
 ##### ClusterClass
 - For object creation:
   - (defaulting) if namespace field is empty for a reference, default it to `metadata.Namespace`
-  - all the reference must be in the same namespace of `metadata.Namespace`  
+  - all the reference must be in the same namespace of `metadata.Namespace`
   - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
 - For object updates:
   - all the reference must be in the same namespace of `metadata.Namespace`
@@ -309,9 +330,9 @@ type LocalObjectTemplate struct {
   - `spec.topology` and `spec.infrastructureRef` cannot be simultaneously set.
   - `spec.topology` and `spec.controlPlaneRef` cannot be simultaneously set.
   - If `spec.topology` is set, `spec.topology.class` cannot be empty.
-  - If `spec.topology` is set, `spec.topology.version` cannot be empty and must be a valid semver.  
+  - If `spec.topology` is set, `spec.topology.version` cannot be empty and must be a valid semver.
   - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
-  
+
 - For object updates:
   - If `spec.topology.class` is set, it cannot be unset or modified.
   - `spec.topology.version` cannot be unset and must be a valid semver, if being updated.
@@ -408,7 +429,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
        ```
     1. For the ControlPlane object in `cluster.spec.topology.controlPlane`
     1. Initializes a control plane object using the control plane template defined in the `ClusterClass.spec.controlPlane.ref field`. Use the name `<cluster-name>`.
-    1. Sets the number of replicas on the control plane object from `spec.topology.controlPlane.replicas`.
+    1. If `spec.topology.controlPlane.replicas` is set, set the number of replicas on the control plane object to that value.
     1. Sets the k8s version on the control plane object from the `spec.topology.version`.
     1. Add the following labels to the control plane object:
        ```yaml
@@ -451,17 +472,92 @@ This section talks about updating a cluster which was created using a `ClusterCl
 ![Update cluster with ClusterClass](./images/cluster-class/update.png)
 
 #### Provider implementation
-##### For infrastructure providers
-With the introduction of ClusterClass, we are extending the responsibility of the Cluster controller to create/update the actual objects from the collection of templates. Following this pattern, a template is required to create the actual infrastructure cluster object as part of the topology. For starter, the template should consist the InfraClusterSpec object. It can be enhanced to include other fields such as labels/annotations in the future.
 
-The proposal calls for the implementation of an infrastructure cluster template to be referenced by the `ClusterClass` object. This is a required field for the `ClusterClass` object. This template would be used to create an infrastructure cluster object. Currently, this responsibility is assumed by the cluster operator/end user.
+**Impact on the bootstrap providers**:
+- None.
 
-**Note:** As per this proposal, the definition of ClusterClass is immutable. The CC definition consists of infrastructure object references, say AWSMachineTemplate, which could be immutable. For such immutable infrastructure objects, hard-coding the image identifiers leads to those templates being tied to a particular kubernetes version, thus making kubernetes version upgrades impossible. Hence, when using CC, infrastructure objects MUST NOT have mandatory static fields whose values prohibit version upgrades.
+**Impact on the controlPlane providers**:
+- the provider implementers are required to implement the ControlPlaneTemplate type (e.g. `KubeadmControlPlaneTemplate` etc.).
+- it is also important to notice that:
+    - ClusterClass and managed topologies can work **only** with control plane providers implementing support for the `spec.version` field;
+      Additionally, it is required to provide support for the `status.version` field reporting the minimum
+      API server version in the cluster as required by the control plane contract.
+    - ClusterClass and managed topologies can work both with control plane providers implementing support for
+      machine infrastructures and with control plane providers not supporting this feature.
+      Please refer to the control plane for the list of well known fields where the machine template
+      should be defined (in case this feature is supported).
+    - ClusterClass and managed topologies can work both with control plane providers implementing support for
+      `spec.replicas` and with control plane provider not supporting this feature.
 
-##### For Control plane providers
-Similarly, a control plane provider should also create a template for use of creation for the control plane objects. For instance, the kubeadm control plane provider should introduce the notion of a KubeadmControlPlaneTemplate for use by the cluster controller to create a managed Kubeadm Control plane object.
+**Impact on the infrastructure providers**:
 
-The CAPI Cluster Controller would use this template to instantiate a control plane object for the topology. The current CRD contract mandates that the control plane provider supports `replicas` in the `spec` fields. With the introduction of ClusterClass which is responsible for handling the kubernetes version too, the current contract needs to be expanded to include the support for `version` in the `spec` fields.
+- the provider implementers are required to implement the InfrastructureClusterTemplate type (e.g. `AWSClusterTemplate`, `AzureClusterTemplate` etc.).
+
+#### Conventions for template types implementation
+
+Given that it is required to implement new templates, let's remind the conventions used for
+defining templates and the corresponding objects:
+
+Templates:
+
+- Template fields must match or be a subset of the corresponding generated object.
+- A template can't accept values which are not valid for the corresponding generated object,
+  otherwise creating an object derived from a template will fail.
+  
+Objects generated from the template:
+
+- For the fields existing both in the object and in the corresponding template:
+    - The object can't have additional validation rules than the template,
+      otherwise creating an object derived from a template could fail.
+    - It is recommended to use the same defaulting rules implemented in the template,
+      thus avoiding confusion in the users.
+- For the fields existing only in the object but not in the corresponding template:
+    - Fields must be optional or a default value must be automatically assigned,
+      otherwise creating an object derived from a template will fail.
+
+**Note:** The existing InfrastructureMachineTemplate and BootstrapMachineTemplate objects already
+comply those conventions via explicit rules implemented in the code or via operational practices
+(otherwise creating machines would not be working already today).
+
+**Note:** As per this proposal, the definition of ClusterClass is immutable. The CC definition consists 
+of infrastructure object references, say AWSMachineTemplate, which could be immutable. For such immutable
+infrastructure objects, hard-coding the image identifiers leads to those templates being tied to a particular
+Kubernetes version, thus making Kubernetes version upgrades impossible. Hence, when using CC, infrastructure
+objects MUST NOT have mandatory static fields whose values prohibit version upgrades.
+
+#### Notes on template <-> object reconciliation
+
+One of the key points of this proposal is that cluster topologies are continuously
+reconciled with the original templates to ensure consistency over time and to support changing the generated
+topology when necessary.
+
+Cluster Class and managed topologies reconciliation leverages on the conventions for template types documented in the previous
+paragraph and on the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
+in order to reconcile objects in the cluster with the corresponding templates in the ClusterClass.
+
+The reconciliation process enforces that all the fields in the template for which a value is defined are reflected in the object.
+
+In practice:
+- If a field has a value in the template, but the users/another controller changes the value for this field in the object, the reconcile
+  topology process will restore the field value from the template; please note that due to how merge patches works internally:
+    - In case the field is a map, the reconcile process enforces the map entries from the template, but additional map entries
+      are preserved.
+    - In case the field is a slice, the reconcile process enforces the slice entries from the template, while additional values
+      are deleted.
+
+Please note that:
+- If a field does not have a value in the template, but the users/another controller sets this value in the object,
+  the reconcile topology process will preserve the field value.
+- If a field does not exist in the template, but it exists only in the object, and the users/another controller
+  sets this field's value, the reconcile topology process will preserve it.
+- If a field is defined as `omitempty` but the field type is not a pointer or a type that has a built-in nil value, 
+  e.g a `Field1 bool 'json:"field1,omitempty"'`, it won't be possible to enforce the zero value in the template for the field, 
+  e.g `field1: false`, because the field is going to be removed and technically there is no way to distinguishing
+  unset from the zero value for that type.
+  NOTE: this is a combination not compliant with the recommendations in the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#optional-vs-required)).
+- If a field is defined as `omitempty` and the field type is a pointer or a type that has a built-in nil value,
+  e.g a `Field1 *bool 'json:"field1,omitempty"'`, it will be possible to enforce the zero value in the template 
+  for the field, e.g `field1: false` (but it won't be possible to enforce `field1: null`).
 
 ### Risks and Mitigations
 

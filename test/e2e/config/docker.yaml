@@ -17,11 +17,11 @@ images:
   loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-cainjector:v1.1.0
+- name: quay.io/jetstack/cert-manager-cainjector:v1.4.0
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-webhook:v1.1.0
+- name: quay.io/jetstack/cert-manager-webhook:v1.4.0
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-controller:v1.1.0
+- name: quay.io/jetstack/cert-manager-controller:v1.4.0
   loadBehavior: tryLoad
 
 providers:
@@ -125,7 +125,7 @@ variables:
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   # NOTE: INIT_WITH_BINARY is used only by the clusterctl upgrade test to initialize the management cluster to be upgraded
-  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.22/clusterctl-{OS}-{ARCH}"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

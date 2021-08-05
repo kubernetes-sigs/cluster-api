@@ -66,5 +66,5 @@ export PATH=$PATH:/usr/local/kubebuilder/bin
 
 [kubebuilder-book]: https://book.kubebuilder.io/
 [kubectl-install]: http://kubernetes.io/docs/user-guide/prereqs/
-[install-kustomize]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md
+[install-kustomize]: https://kubectl.docs.kubernetes.io/installation/kustomize/
 [install-kubebuilder]:  https://book.kubebuilder.io/quick-start.html#installation

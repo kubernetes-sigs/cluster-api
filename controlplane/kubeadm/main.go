@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -44,7 +45,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -179,12 +179,12 @@ func main() {
 }
 
 func setupChecks(mgr ctrl.Manager) {
-	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to create ready check")
 		os.Exit(1)
 	}
 
-	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to create health check")
 		os.Exit(1)
 	}
@@ -200,6 +200,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 				Field:        noderefutil.NodeProviderIDIndex,
 				ExtractValue: noderefutil.IndexNodeByProviderID,
 			},
+		},
+		ClientUncachedObjects: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+			&corev1.Pod{},
+			&appsv1.Deployment{},
+			&appsv1.DaemonSet{},
 		},
 	})
 	if err != nil {
@@ -230,6 +237,10 @@ func setupWebhooks(mgr ctrl.Manager) {
 	if err := (&kubeadmcontrolplanev1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 		os.Exit(1)
+	}
+
+	if err := (&kubeadmcontrolplanev1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager((mgr)); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlaneTemplate")
 	}
 }
 

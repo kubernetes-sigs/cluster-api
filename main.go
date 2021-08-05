@@ -49,7 +49,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -66,6 +65,7 @@ var (
 	watchNamespace                string
 	watchFilterValue              string
 	profilerAddress               string
+	clusterTopologyConcurrency    int
 	clusterConcurrency            int
 	machineConcurrency            int
 	machineSetConcurrency         int
@@ -118,6 +118,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
+
+	fs.IntVar(&clusterTopologyConcurrency, "clustertopology-concurrency", 10,
+		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
 		"Number of clusters to process simultaneously")
@@ -214,12 +217,12 @@ func main() {
 }
 
 func setupChecks(mgr ctrl.Manager) {
-	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to create ready check")
 		os.Exit(1)
 	}
 
-	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to create health check")
 		os.Exit(1)
 	}
@@ -227,6 +230,11 @@ func setupChecks(mgr ctrl.Manager) {
 
 func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	if err := noderefutil.AddMachineNodeIndex(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to setup index")
+		os.Exit(1)
+	}
+
+	if err := noderefutil.AddMachineProviderIDIndex(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to setup index")
 		os.Exit(1)
 	}
@@ -262,6 +270,31 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	if feature.Gates.Enabled(feature.ClusterTopology) {
+		unstructuredCachingClient, err := client.NewDelegatingClient(
+			client.NewDelegatingClientInput{
+				// Use the default client for write operations.
+				Client: mgr.GetClient(),
+				// For read operations, use the same cache used by all the controllers but ensure
+				// unstructured objects will be also cached (this does not happen with the default client).
+				CacheReader:       mgr.GetCache(),
+				CacheUnstructured: true,
+			},
+		)
+		if err != nil {
+			setupLog.Error(err, "unable to create unstructured caching client", "controller", "ClusterTopology")
+			os.Exit(1)
+		}
+
+		if err := (&controllers.ClusterTopologyReconciler{
+			Client:                    mgr.GetClient(),
+			UnstructuredCachingClient: unstructuredCachingClient,
+			WatchFilterValue:          watchFilterValue,
+		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
+			os.Exit(1)
+		}
+	}
 	if err := (&controllers.ClusterReconciler{
 		Client:           mgr.GetClient(),
 		WatchFilterValue: watchFilterValue,

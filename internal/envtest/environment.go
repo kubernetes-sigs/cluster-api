@@ -44,10 +44,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	addonv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/internal/testtypes"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -117,12 +117,16 @@ func New(uncachedObjs ...client.Object) *Environment {
 			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 		},
 		CRDs: []client.Object{
-			external.TestGenericBootstrapCRD.DeepCopy(),
-			external.TestGenericBootstrapTemplateCRD.DeepCopy(),
-			external.TestGenericInfrastructureCRD.DeepCopy(),
-			external.TestGenericInfrastructureTemplateCRD.DeepCopy(),
-			external.TestGenericInfrastructureRemediationCRD.DeepCopy(),
-			external.TestGenericInfrastructureRemediationTemplateCRD.DeepCopy(),
+			testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+			testtypes.GenericBootstrapConfigTemplateCRD.DeepCopy(),
+			testtypes.GenericControlPlaneCRD.DeepCopy(),
+			testtypes.GenericControlPlaneTemplateCRD.DeepCopy(),
+			testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+			testtypes.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
+			testtypes.GenericInfrastructureClusterCRD.DeepCopy(),
+			testtypes.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
+			testtypes.GenericRemediationCRD.DeepCopy(),
+			testtypes.GenericRemediationTemplateCRD.DeepCopy(),
 		},
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.
@@ -145,6 +149,7 @@ func New(uncachedObjs ...client.Object) *Environment {
 		CertDir:               env.WebhookInstallOptions.LocalServingCertDir,
 		Port:                  env.WebhookInstallOptions.LocalServingPort,
 		ClientDisableCacheFor: objs,
+		Host:                  "localhost",
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)

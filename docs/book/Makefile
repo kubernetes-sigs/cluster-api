@@ -36,7 +36,7 @@ $(RELEASELINK): $(TOOLS_DIR)/go.mod
 
 MDBOOK := $(TOOLS_BIN_DIR)/mdbook
 $(MDBOOK):
-	$(CRATE_INSTALL) --git rust-lang/mdBook --tag v0.4.10 --to $(TOOLS_BIN_DIR) --force
+	$(CRATE_INSTALL) --git rust-lang/mdBook --tag v0.4.11 --to $(TOOLS_BIN_DIR) --force
 
 MDBOOK_LINKCHECK := $(TOOLS_BIN_DIR)/mdbook-linkcheck
 $(MDBOOK_LINKCHECK):

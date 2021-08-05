@@ -56,9 +56,10 @@ const metadataFile = "metadata.yaml"
 
 // GenericProviderReconciler implements the controller.Reconciler interface.
 type GenericProviderReconciler struct {
-	Provider     client.Object
-	ProviderList client.ObjectList
-	Client       client.Client
+	Provider             client.Object
+	ProviderList         client.ObjectList
+	Client               client.Client
+	CertManagerInstaller SingletonInstaller
 }
 
 func (r *GenericProviderReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -115,6 +116,8 @@ func (r *GenericProviderReconciler) Reconcile(ctx context.Context, req reconcile
 }
 
 func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider genericprovider.GenericProvider, genericProviderList genericprovider.GenericProviderList) (_ ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Run preflight checks to ensure that core provider can be installed properly
 	result, err := preflightChecks(ctx, r.Client, provider, genericProviderList)
 	if err != nil || !result.IsZero() {
@@ -208,9 +211,15 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 	if isCertManagerRequired(ctx, components) {
 		// TODO: maybe set a shorter default, so we don't block when installing cert-manager.
 		// reader.Set("cert-manager-timeout", "120s")
-		if err := clusterClient.CertManager().EnsureInstalled(); err != nil {
-			return ctrl.Result{}, err
+		status, err := r.CertManagerInstaller.Install(func() error {
+			return clusterClient.CertManager().EnsureInstalled()
+		})
+		if err != nil || status == InstallStatusInstalling || status == InstallStatusUnknown {
+			// try later as we there was either an error or another provider is installing it.
+			log.Info("cert-manager defering install", "status", status.String(), "error", err)
+			return reconcile.Result{RequeueAfter: time.Minute}, err
 		}
+		log.Info("cert-manager install ready")
 	}
 
 	_, err = installer.Install(cluster.InstallOptions{

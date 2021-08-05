@@ -158,7 +158,8 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
-	setupReconcilers(mgr)
+	certManagerInstaller := controllers.NewSingletonInstaller()
+	setupReconcilers(mgr, certManagerInstaller)
 
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager", "version", version.Get().String())
@@ -180,38 +181,42 @@ func setupChecks(mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(mgr ctrl.Manager) {
+func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.SingletonInstaller) {
 	if err := (&controllers.GenericProviderReconciler{
-		Provider:     &operatorv1.CoreProvider{},
-		ProviderList: &operatorv1.CoreProviderList{},
-		Client:       mgr.GetClient(),
+		Provider:             &operatorv1.CoreProvider{},
+		ProviderList:         &operatorv1.CoreProviderList{},
+		Client:               mgr.GetClient(),
+		CertManagerInstaller: certManagerInstaller,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoreProvider")
 		os.Exit(1)
 	}
 
 	if err := (&controllers.GenericProviderReconciler{
-		Provider:     &operatorv1.InfrastructureProvider{},
-		ProviderList: &operatorv1.InfrastructureProviderList{},
-		Client:       mgr.GetClient(),
+		Provider:             &operatorv1.InfrastructureProvider{},
+		ProviderList:         &operatorv1.InfrastructureProviderList{},
+		Client:               mgr.GetClient(),
+		CertManagerInstaller: certManagerInstaller,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "InfrastructureProvider")
 		os.Exit(1)
 	}
 
 	if err := (&controllers.GenericProviderReconciler{
-		Provider:     &operatorv1.BootstrapProvider{},
-		ProviderList: &operatorv1.BootstrapProviderList{},
-		Client:       mgr.GetClient(),
+		Provider:             &operatorv1.BootstrapProvider{},
+		ProviderList:         &operatorv1.BootstrapProviderList{},
+		Client:               mgr.GetClient(),
+		CertManagerInstaller: certManagerInstaller,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BootstrapProvider")
 		os.Exit(1)
 	}
 
 	if err := (&controllers.GenericProviderReconciler{
-		Provider:     &operatorv1.ControlPlaneProvider{},
-		ProviderList: &operatorv1.ControlPlaneProviderList{},
-		Client:       mgr.GetClient(),
+		Provider:             &operatorv1.ControlPlaneProvider{},
+		ProviderList:         &operatorv1.ControlPlaneProviderList{},
+		Client:               mgr.GetClient(),
+		CertManagerInstaller: certManagerInstaller,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ControlPlaneProvider")
 		os.Exit(1)

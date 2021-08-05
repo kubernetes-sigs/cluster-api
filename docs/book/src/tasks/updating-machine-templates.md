@@ -1,4 +1,6 @@
-# Changing Infrastructure Machine Templates
+# Updating Machine Infrastructure and Bootstrap Templates
+
+## Updating Infrastructure Machine Templates
 
 Several different components of Cluster API leverage _infrastructure machine templates_,
 including `KubeadmControlPlane`, `MachineDeployment`, and `MachineSet`. These
@@ -38,3 +40,31 @@ modifications of certain infrastructure machine template fields. This may be use
 if an infrastructure provider is able to make changes to running instances/machines,
 such as updating allocated memory or CPU capacity. In such cases, however, Cluster
 API **will not** trigger a rolling update.
+
+## Updating Bootstrap Templates
+
+Several different components of Cluster API leverage _bootstrap templates_,
+including `MachineDeployment`, and `MachineSet`. When used in `MachineDeployment` or 
+`MachineSet` changes to those templates do not trigger rollouts of already existing `Machines`.
+New `Machines` are created based on the current version of the bootstrap template.
+
+The correct process for modifying a bootstrap template is as follows:
+
+1. Duplicate an existing template.
+   Users can use `kubectl get <BootstrapTemplateType> <name> -o yaml > file.yaml`
+   to retrieve a template configuration from a running cluster to serve as a starting
+   point.
+2. Update the desired fields.
+3. Give the newly-modified template a new name by modifying the `metadata.name` field
+   (or by using `metadata.generateName`).
+4. Create the new bootstrap template on the API server using `kubectl`.
+   (If the template was initially created using the command in step 1, be sure to clear
+   out any extraneous metadata, including the `resourceVersion` field, before trying to
+   send it to the API server.)
+
+Once the new bootstrap template has been persisted, users may modify
+the object that was referencing the bootstrap template. For example,
+to modify the bootstrap template for the `MachineDeployment` object,
+users would modify the `spec.template.spec.bootstrap.configRef.name` field.
+The `name` field should be updated to point to the newly-modified
+bootstrap template. This will trigger a rolling update.

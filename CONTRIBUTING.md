@@ -64,14 +64,21 @@ The documentation is published in form of a book at:
 - [Stable release](https://cluster-api.sigs.k8s.io)
 - [Tip of the main branch](https://tip.cluster-api.sigs.k8s.io/)
 
-The source for the book is [this folder](https://github.com/kubernetes-sigs/cluster-api/tree/master/docs/book/src) containing markdown files
-and we use [mdBook](https://github.com/rust-lang/mdBook) to build it into a static website.
+The source for the book is [this folder](https://github.com/kubernetes-sigs/cluster-api/tree/master/docs/book/src)
+containing markdown files and we use [mdBook][] to build it into a static
+website.
 
 After making changes locally you can run `make serve-book` which will build the HTML version
 and start a web server so you can preview if the changes render correctly at
 http://localhost:3000; the preview auto-updates when changes are detected.
 
+Note: you don't need to have [mdBook][] installed, `make serve-book` will ensure
+appropriate binaries for mdBook and any used plugins are downloaded into
+`hack/tools/bin/` directory.
+
 When submitting the PR remember to label it with the 📖 (:book:) icon.
+
+[mdBook]: https://github.com/rust-lang/mdBook
 
 ## Releases
 

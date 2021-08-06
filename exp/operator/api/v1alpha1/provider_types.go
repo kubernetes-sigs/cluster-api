@@ -182,7 +182,16 @@ type FetchConfiguration struct {
 
 // ProProviderStatus defines the observed state of the Provider.
 type ProviderStatus struct {
+	// Contract will contain the core provider contract that the provider is
+	// abiding by, like e.g. v1alpha4.
+	// +optional
+	Contract *string `json:"contract,omitempty"`
+
 	// Conditions define the current service state of the provider.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// ObservedGeneration is the latest generation observed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }

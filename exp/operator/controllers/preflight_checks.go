@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,7 +41,6 @@ const (
 var (
 	moreThanOneCoreProviderInstanceExistsMessage = "CoreProvider already exists in the cluster. Only one is allowed."
 	moreThanOneProviderInstanceExistsMessage     = "There is already a %s with name %s in the cluster. Only one is allowed."
-	unknownProviderMessage                       = "The provider \"%s\" does not exist."
 	capiVersionIncompatibilityMessage            = "capi operator is only compatible with %s providers, detected %s for provider %s."
 	waitingForCoreProviderReadyMessage           = "waiting for the core provider to install."
 )
@@ -68,6 +68,31 @@ func preflightChecks(ctx context.Context, c client.Client, provider genericprovi
 	log := ctrl.LoggerFrom(ctx)
 
 	log.V(4).Info("Performing preflight checks.")
+
+	spec := provider.GetSpec()
+	if spec.Version != nil {
+		_, err := version.ParseSemantic(*spec.Version)
+		if err != nil {
+			conditions.Set(provider, conditions.FalseCondition(
+				operatorv1.PreflightCheckCondition,
+				operatorv1.IncorrectVersionFormatReason,
+				clusterv1.ConditionSeverityWarning,
+				err.Error(),
+			))
+			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+		}
+	}
+
+	if spec.FetchConfig != nil && spec.FetchConfig.Selector != nil && spec.FetchConfig.URL != nil {
+		// If FetchConfiguration is not nil, exactly one of `URL` or `Selector` must be specified.
+		conditions.Set(provider, conditions.FalseCondition(
+			operatorv1.PreflightCheckCondition,
+			operatorv1.FetchConfigValidationErrorReason,
+			clusterv1.ConditionSeverityWarning,
+			"Only one of Selector and URL must be provided, not both",
+		))
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+	}
 
 	if err := c.List(ctx, providerList.GetObject()); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to list providers")

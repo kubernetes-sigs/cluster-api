@@ -39,14 +39,16 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 func init() {
@@ -64,6 +66,7 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(operatorv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(clusterctlv1.AddToScheme(scheme.Scheme))
 }
 
 var (
@@ -106,6 +109,7 @@ func New(uncachedObjs ...client.Object) *Environment {
 		//CRDInstallOptions:     envtest.CRDInstallOptions{CleanUpAfterUse: true},
 		CRDDirectoryPaths: []string{
 			filepath.Join(root, "config", "crd", "bases"),
+			filepath.Join(root, "..", "..", "cmd", "clusterctl", "config", "crd", "bases"),
 		},
 	}
 

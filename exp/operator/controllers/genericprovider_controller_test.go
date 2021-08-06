@@ -26,12 +26,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestReconcilerPreflightConditions(t *testing.T) {
@@ -227,12 +230,9 @@ func TestNewGenericProviderList(t *testing.T) {
 
 func setupScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	if err := corev1.AddToScheme(scheme); err != nil {
-		panic(err)
-	}
-	if err := operatorv1.AddToScheme(scheme); err != nil {
-		panic(err)
-	}
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(operatorv1.AddToScheme(scheme))
+	utilruntime.Must(clusterctlv1.AddToScheme(scheme))
 	return scheme
 }
 
@@ -412,16 +412,15 @@ metadata:
 			g := NewWithT(t)
 
 			fakeclient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(provider.GetObject()).Build()
-			r := &GenericProviderReconciler{
-				Provider: provider,
-				Client:   fakeclient,
+			inst := &reconciler{
+				ctrlClient: fakeclient,
 			}
 
 			for i := range tt.configMaps {
 				g.Expect(fakeclient.Create(ctx, &tt.configMaps[i])).To(Succeed())
 			}
 
-			got, err := r.configmapRepository(context.TODO(), provider)
+			got, err := inst.configmapRepository(context.TODO(), provider)
 			if len(tt.wantErr) > 0 {
 				g.Expect(err).Should(MatchError(tt.wantErr))
 				return

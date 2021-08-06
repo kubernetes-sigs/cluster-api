@@ -16,7 +16,14 @@ spec:
     singular: coreprovider
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.version
+      name: Version
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: CoreProvider is the Schema for the coreproviders API.
@@ -851,6 +858,13 @@ spec:
                   - type
                   type: object
                 type: array
+              contract:
+                description: Contract will contain the core provider contract that the provider is abiding by, like e.g. v1alpha4.
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed by the controller.
+                format: int64
+                type: integer
             type: object
         type: object
     served: true

@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -37,8 +39,14 @@ import (
 )
 
 const (
-	deploymentKind = "Deployment"
-	namespaceKind  = "Namespace"
+	deploymentKind       = "Deployment"
+	daemonSetKind        = "DaemonSet"
+	namespaceKind        = "Namespace"
+	managerContainerName = "manager"
+	// specHashAnnotation is added automatically to Deployments and DaemonSets.
+	// the value is the hash of the Spec. This is done so that if the Spec is updated
+	// then the annotation will also be updated, causing the pods to be rotated.
+	specHashAnnotation = "cluster.x-k8s.io/spec-hash"
 )
 
 var (
@@ -57,7 +65,12 @@ func customizeContainer(cSpec operatorv1.ContainerSpec, d *appsv1.Deployment) {
 	for j, c := range d.Spec.Template.Spec.Containers {
 		if c.Name == cSpec.Name {
 			for an, av := range cSpec.Args {
-				c.Args = setArg(c.Args, an, av)
+				// The `ContainerSpec.Args` will ignore the key `namespace` since the operator
+				// enforces a deployment model where all the providers should be configured to
+				// watch all the namespaces.
+				if an != "namespace" {
+					c.Args = setArg(c.Args, an, av)
+				}
 			}
 			for _, se := range cSpec.Env {
 				c.Env = removeEnv(c.Env, se.Name)
@@ -110,6 +123,10 @@ func customizeManager(mSpec *operatorv1.ManagerSpec, c *corev1.Container) *corev
 	}
 
 	if mSpec.CacheNamespace != "" {
+		// This field seems somewhat in confilict with:
+		// The `ContainerSpec.Args` will ignore the key `namespace` since the operator
+		// enforces a deployment model where all the providers should be configured to
+		// watch all the namespaces.
 		c.Args = setArg(c.Args, "--namespace", mSpec.CacheNamespace)
 	}
 
@@ -225,11 +242,26 @@ func customizeDeployment(pSpec operatorv1.ProviderSpec, d *appsv1.Deployment) {
 	// run the customizeManager last so it overrides anything in the deploymentSpec.
 	if pSpec.Manager != nil {
 		for ic, c := range d.Spec.Template.Spec.Containers {
-			if c.Name == "manager" {
+			if c.Name == managerContainerName {
 				d.Spec.Template.Spec.Containers[ic] = *customizeManager(pSpec.Manager, &d.Spec.Template.Spec.Containers[ic])
 			}
 		}
 	}
+}
+
+// setSpecHashAnnotation computes the hash of the provided spec and sets an annotation of the
+// hash on the provided ObjectMeta.
+func setSpecHashAnnotation(objMeta *metav1.ObjectMeta, spec interface{}) error {
+	jsonBytes, err := json.Marshal(spec)
+	if err != nil {
+		return err
+	}
+	specHash := fmt.Sprintf("%x", sha256.Sum256(jsonBytes))
+	if objMeta.Annotations == nil {
+		objMeta.Annotations = map[string]string{}
+	}
+	objMeta.Annotations[specHashAnnotation] = specHash
+	return nil
 }
 
 func customizeObjectsFn(provider genericprovider.GenericProvider) func(objs []unstructured.Unstructured) ([]unstructured.Unstructured, error) {
@@ -251,15 +283,29 @@ func customizeObjectsFn(provider genericprovider.GenericProvider) func(objs []un
 				UID:        provider.GetUID(),
 			}))
 
-			if provider.GetSpec().Deployment != nil && o.GetKind() == deploymentKind {
-				// Convert Unstructured into a typed object
+			if o.GetKind() == daemonSetKind {
+				d := &appsv1.DaemonSet{}
+				if err := scheme.Scheme.Convert(&o, d, nil); err != nil {
+					return nil, err
+				}
+				if err := setSpecHashAnnotation(&d.ObjectMeta, d.Spec); err != nil {
+					return nil, err
+				}
+				if err := scheme.Scheme.Convert(d, &o, nil); err != nil {
+					return nil, err
+				}
+			}
+			if o.GetKind() == deploymentKind {
 				d := &appsv1.Deployment{}
 				if err := scheme.Scheme.Convert(&o, d, nil); err != nil {
 					return nil, err
 				}
-				customizeDeployment(provider.GetSpec(), d)
-
-				// Convert Deployment back to Unstructured
+				if err := setSpecHashAnnotation(&d.ObjectMeta, d.Spec); err != nil {
+					return nil, err
+				}
+				if provider.GetSpec().Deployment != nil {
+					customizeDeployment(provider.GetSpec(), d)
+				}
 				if err := scheme.Scheme.Convert(d, &o, nil); err != nil {
 					return nil, err
 				}

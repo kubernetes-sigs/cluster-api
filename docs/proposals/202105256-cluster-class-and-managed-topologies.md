@@ -425,7 +425,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
     1. Creates the infrastructure provider specific cluster using the cluster template referenced in the `ClusterClass.spec.infrastructure.ref` field.
     1. Add the topology label to the provider cluster object:
        ```yaml
-        cluster.x-k8s.io/topology: <cluster-name>
+        cluster.x-k8s.io/topology: ""
        ```
     1. For the ControlPlane object in `cluster.spec.topology.controlPlane`
     1. Initializes a control plane object using the control plane template defined in the `ClusterClass.spec.controlPlane.ref field`. Use the name `<cluster-name>`.
@@ -433,7 +433,7 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
     1. Sets the k8s version on the control plane object from the `spec.topology.version`.
     1. Add the following labels to the control plane object:
        ```yaml
-        cluster.x-k8s.io/topology: <cluster-name>
+        cluster.x-k8s.io/topology: ""
        ```
     1. Creates the control plane object.
     1. Sets the `spec.infrastructureRef` and `spec.controlPlaneRef` fields for the Cluster object.

@@ -117,6 +117,88 @@ func TestUpdateEtcdVersionInKubeadmConfigMap(t *testing.T) {
 	}
 }
 
+func TestUpdateEtcdExtraArgsInKubeadmConfigMap(t *testing.T) {
+	tests := []struct {
+		name                     string
+		clusterConfigurationData string
+		newExtraArgs             map[string]string
+		wantClusterConfiguration string
+	}{
+		{
+			name: "it should set etcd extraArgs when local etcd",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				etcd:
+				  local: {}
+				`),
+			newExtraArgs: map[string]string{
+				"foo": "bar",
+			},
+			wantClusterConfiguration: yaml.Raw(`
+				apiServer: {}
+				apiVersion: kubeadm.k8s.io/v1beta2
+				controllerManager: {}
+				dns: {}
+				etcd:
+				  local:
+				    extraArgs:
+				      foo: bar
+				kind: ClusterConfiguration
+				networking: {}
+				scheduler: {}
+				`),
+		},
+		{
+			name: "no op when external etcd",
+			clusterConfigurationData: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				etcd:
+				  external: {}
+				`),
+			newExtraArgs: map[string]string{
+				"foo": "bar",
+			},
+			wantClusterConfiguration: yaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				etcd:
+				  external: {}
+				`),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      kubeadmConfigKey,
+					Namespace: metav1.NamespaceSystem,
+				},
+				Data: map[string]string{
+					clusterConfigurationKey: tt.clusterConfigurationData,
+				},
+			}).Build()
+
+			w := &Workload{
+				Client: fakeClient,
+			}
+			err := w.UpdateEtcdExtraArgsInKubeadmConfigMap(ctx, tt.newExtraArgs, semver.MustParse("1.19.1"))
+			g.Expect(err).ToNot(HaveOccurred())
+
+			var actualConfig corev1.ConfigMap
+			g.Expect(w.Client.Get(
+				ctx,
+				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+				&actualConfig,
+			)).To(Succeed())
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
+		})
+	}
+}
+
 func TestRemoveEtcdMemberForMachine(t *testing.T) {
 	machine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{

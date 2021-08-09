@@ -92,6 +92,15 @@ func (w *Workload) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imag
 	}, version)
 }
 
+// UpdateEtcdExtraArgsInKubeadmConfigMap sets extraArgs in the kubeadm config map.
+func (w *Workload) UpdateEtcdExtraArgsInKubeadmConfigMap(ctx context.Context, extraArgs map[string]string, version semver.Version) error {
+	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
+		if c.Etcd.Local != nil {
+			c.Etcd.Local.ExtraArgs = extraArgs
+		}
+	}, version)
+}
+
 // RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.
 // Removing the last remaining member of the cluster is not supported.
 func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error {

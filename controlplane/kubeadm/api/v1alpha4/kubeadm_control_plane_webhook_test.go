@@ -730,8 +730,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       localServerCertSANs,
 		},
 		{
-			name:      "should fail when making a change to the cluster config's local etcd's configuration localExtraArgs field",
-			expectErr: true,
+			name:      "should succeed when making a change to the cluster config's local etcd's configuration localExtraArgs field",
+			expectErr: false,
 			before:    before,
 			kcp:       localExtraArgs,
 		},

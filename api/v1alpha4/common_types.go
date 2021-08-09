@@ -94,6 +94,11 @@ const (
 	ManagedByAnnotation = "cluster.x-k8s.io/managed-by"
 )
 
+const (
+	// TemplateSuffix is the object kind suffix used by template types.
+	TemplateSuffix = "Template"
+)
+
 var (
 	// ZeroDuration is a zero value of the metav1.Duration type.
 	ZeroDuration = metav1.Duration{}

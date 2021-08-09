@@ -260,6 +260,16 @@ func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string
 			),
 		)
 	}
+	if s.MachineTemplate.InfrastructureRef.Name == "" {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				pathPrefix.Child("machineTemplate", "infrastructure", "name"),
+				s.MachineTemplate.InfrastructureRef.Name,
+				"cannot be empty",
+			),
+		)
+	}
 	if s.MachineTemplate.InfrastructureRef.Namespace != namespace {
 		allErrs = append(
 			allErrs,

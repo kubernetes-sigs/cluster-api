@@ -208,6 +208,7 @@ type fakeClusterClass struct {
 }
 
 type fakeClusterClassMachineDeploymentTemplates struct {
+	clusterv1.ObjectMeta
 	infrastructureMachineTemplate *unstructured.Unstructured
 	bootstrapTemplate             *unstructured.Unstructured
 }
@@ -242,11 +243,15 @@ func (f *fakeClusterClass) WithControlPlaneInfrastructureMachineTemplate(t *unst
 	return f
 }
 
-func (f *fakeClusterClass) WithWorkerMachineDeploymentTemplates(class string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured) *fakeClusterClass {
+func (f *fakeClusterClass) WithWorkerMachineDeploymentClass(class string, labels, annotations map[string]string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured) *fakeClusterClass {
 	if f.workerMachineDeploymentTemplates == nil {
 		f.workerMachineDeploymentTemplates = map[string]fakeClusterClassMachineDeploymentTemplates{}
 	}
 	f.workerMachineDeploymentTemplates[class] = fakeClusterClassMachineDeploymentTemplates{
+		ObjectMeta: clusterv1.ObjectMeta{
+			Labels:      labels,
+			Annotations: annotations,
+		},
 		infrastructureMachineTemplate: infrastructureMachineTemplate,
 		bootstrapTemplate:             bootstrapTemplate,
 	}
@@ -291,7 +296,10 @@ func (f *fakeClusterClass) Obj() *clusterv1.ClusterClass {
 			obj.Spec.Workers.MachineDeployments = append(obj.Spec.Workers.MachineDeployments, clusterv1.MachineDeploymentClass{
 				Class: class,
 				Template: clusterv1.MachineDeploymentClassTemplate{
-					Metadata: clusterv1.ObjectMeta{},
+					Metadata: clusterv1.ObjectMeta{
+						Labels:      mdt.Labels,
+						Annotations: mdt.Annotations,
+					},
 					Bootstrap: clusterv1.LocalObjectTemplate{
 						Ref: objToRef(mdt.bootstrapTemplate),
 					},

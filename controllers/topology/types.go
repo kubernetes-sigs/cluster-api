@@ -37,6 +37,7 @@ type controlPlaneTopologyClass struct {
 
 // machineDeploymentTopologyClass holds the templates required for computing the desired state of a managed deployment.
 type machineDeploymentTopologyClass struct {
+	metadata                      clusterv1.ObjectMeta
 	bootstrapTemplate             *unstructured.Unstructured
 	infrastructureMachineTemplate *unstructured.Unstructured
 }

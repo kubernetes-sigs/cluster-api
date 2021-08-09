@@ -77,6 +77,8 @@ func (r *ClusterReconciler) getClass(ctx context.Context, cluster *clusterv1.Clu
 	for _, mdc := range class.clusterClass.Spec.Workers.MachineDeployments {
 		mdTopologyClass := machineDeploymentTopologyClass{}
 
+		mdc.Template.Metadata.DeepCopyInto(&mdTopologyClass.metadata)
+
 		mdTopologyClass.infrastructureMachineTemplate, err = r.getReference(ctx, mdc.Template.Infrastructure.Ref)
 		if err != nil {
 			return nil, err

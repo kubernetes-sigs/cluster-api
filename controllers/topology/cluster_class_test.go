@@ -47,6 +47,11 @@ func TestGetClass(t *testing.T) {
 	workerInfrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "workerinframachinetemplate1").Obj()
 	workerBootstrapTemplate := newFakeBootstrapTemplate(metav1.NamespaceDefault, "workerbootstraptemplate1").Obj()
 
+	var (
+		labels      map[string]string
+		annotations map[string]string
+	)
+
 	tests := []struct {
 		name         string
 		clusterClass *clusterv1.ClusterClass
@@ -147,7 +152,7 @@ func TestGetClass(t *testing.T) {
 			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentTemplates("workerclass1", workerInfrastructureMachineTemplate, workerBootstrapTemplate).
+				WithWorkerMachineDeploymentClass("workerclass1", map[string]string{"foo": "bar"}, map[string]string{"a": "b"}, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
 				Obj(),
 			objects: []client.Object{
 				infraClusterTemplate,
@@ -159,7 +164,7 @@ func TestGetClass(t *testing.T) {
 				clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplate).
-					WithWorkerMachineDeploymentTemplates("workerclass1", workerInfrastructureMachineTemplate, workerBootstrapTemplate).
+					WithWorkerMachineDeploymentClass("workerclass1", map[string]string{"foo": "bar"}, map[string]string{"a": "b"}, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
 					Obj(),
 				infrastructureClusterTemplate: infraClusterTemplate,
 				controlPlane: controlPlaneTopologyClass{
@@ -167,6 +172,10 @@ func TestGetClass(t *testing.T) {
 				},
 				machineDeployments: map[string]machineDeploymentTopologyClass{
 					"workerclass1": {
+						metadata: clusterv1.ObjectMeta{
+							Labels:      map[string]string{"foo": "bar"},
+							Annotations: map[string]string{"a": "b"},
+						},
 						infrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 						bootstrapTemplate:             workerBootstrapTemplate,
 					},
@@ -178,7 +187,7 @@ func TestGetClass(t *testing.T) {
 			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentTemplates("workerclass1", workerInfrastructureMachineTemplate, workerBootstrapTemplate).
+				WithWorkerMachineDeploymentClass("workerclass1", labels, annotations, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
 				Obj(),
 			objects: []client.Object{
 				infraClusterTemplate,
@@ -192,7 +201,7 @@ func TestGetClass(t *testing.T) {
 			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentTemplates("workerclass1", workerInfrastructureMachineTemplate, workerBootstrapTemplate).
+				WithWorkerMachineDeploymentClass("workerclass1", labels, annotations, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
 				Obj(),
 			objects: []client.Object{
 				infraClusterTemplate,

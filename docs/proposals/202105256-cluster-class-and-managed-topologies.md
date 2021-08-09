@@ -447,9 +447,10 @@ This section lists out the behavior for Cluster objects using `ClusterClass` in 
     1. Sets the `version` field on the MD object from the `spec.topology.version`.
     1. Sets the `spec.template.spec.bootstrap` on the MD object from the `ClusterClass.spec.workers.machineDeployments[i].template.bootstrap.ref` field.
     1. Sets the `spec.template.spec.infrastructureRef` on the MD object from the `ClusterClass.spec.workers.machineDeployments[i].template.infrastructure.ref` field.
-    1. Generates the set of labels to be set on the MD object. The labels are additive to the class' labels list, and the value in the `spec.topology.workers.machineDeployments[i].labels` takes precedence over any set by the ClusterClass. Also, include the topology label stated below:
+    1. Generates the set of labels to be set on the MD object. The labels are additive to the class' labels list, and the value in the `spec.topology.workers.machineDeployments[i].labels` takes precedence over any set by the ClusterClass. Include the topology label as well as a label to track the name of the MachineDeployment topology:
        ```yaml
-        cluster.x-k8s.io/topology: <cluster-name>-<worker-set-name>
+        cluster.x-k8s.io/topology: ""
+        cluster.x-k8s.io/topology/deployment-name: <machine-deployment-topology-name>
        ```
       Note: The topology label needs to be set on the individual Machine objects as well.
     1. Creates the Machine Deployment object in the API server.

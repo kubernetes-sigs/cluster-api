@@ -109,15 +109,14 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			LogPath:    filepath.Join(input.LogFolder, "controllers"),
 		})
 
-		if input.DisableMetricsCollection {
-			return
+		if !input.DisableMetricsCollection {
+			framework.WatchPodMetrics(ctx, framework.WatchPodMetricsInput{
+				GetLister:   client,
+				ClientSet:   input.ClusterProxy.GetClientSet(),
+				Deployment:  deployment,
+				MetricsPath: filepath.Join(input.LogFolder, "controllers"),
+			})
 		}
-		framework.WatchPodMetrics(ctx, framework.WatchPodMetricsInput{
-			GetLister:   client,
-			ClientSet:   input.ClusterProxy.GetClientSet(),
-			Deployment:  deployment,
-			MetricsPath: filepath.Join(input.LogFolder, "controllers"),
-		})
 	}
 }
 

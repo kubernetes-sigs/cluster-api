@@ -23,6 +23,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -50,6 +51,15 @@ var _ webhook.Validator = &KubeadmControlPlaneTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *KubeadmControlPlaneTemplate) ValidateCreate() error {
+	// NOTE: KubeadmControlPlaneTemplate is behind ClusterTopology feature gate flag; the web hook
+	// must prevent creating new objects in case the feature flag is disabled.
+	if !feature.Gates.Enabled(feature.ClusterTopology) {
+		return field.Forbidden(
+			field.NewPath("spec"),
+			"can be set only if the ClusterTopology feature flag is enabled",
+		)
+	}
+
 	spec := r.Spec.Template.Spec
 	allErrs := validateKubeadmControlPlaneSpec(spec, r.Namespace, field.NewPath("spec", "template", "spec"))
 	allErrs = append(allErrs, validateEtcd(&spec, nil)...)

@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -171,7 +172,7 @@ func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string)
 func (r *MachineReconciler) getNode(ctx context.Context, c client.Reader, providerID *noderefutil.ProviderID) (*corev1.Node, error) {
 	log := ctrl.LoggerFrom(ctx, "providerID", providerID)
 	nodeList := corev1.NodeList{}
-	if err := c.List(ctx, &nodeList, client.MatchingFields{noderefutil.NodeProviderIDIndex: providerID.IndexKey()}); err != nil {
+	if err := c.List(ctx, &nodeList, client.MatchingFields{index.NodeProviderIDField: providerID.IndexKey()}); err != nil {
 		return nil, err
 	}
 	if len(nodeList.Items) == 0 {

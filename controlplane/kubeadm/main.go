@@ -36,7 +36,6 @@ import (
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	kubeadmcontrolplanev1old "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	kubeadmcontrolplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
@@ -194,13 +193,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Set up a ClusterCacheTracker to provide to controllers
 	// requiring a connection to a remote cluster
 	tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{
-		Indexes: []remote.Index{
-			{
-				Object:       &corev1.Node{},
-				Field:        noderefutil.NodeProviderIDIndex,
-				ExtractValue: noderefutil.IndexNodeByProviderID,
-			},
-		},
+		Indexes: remote.DefaultIndexes,
 		ClientUncachedObjects: []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},

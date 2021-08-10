@@ -35,8 +35,8 @@ import (
 	"k8s.io/klog/v2/klogr"
 	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
 	"sigs.k8s.io/cluster-api/controllers"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	addonsv1old "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
@@ -229,13 +229,8 @@ func setupChecks(mgr ctrl.Manager) {
 }
 
 func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
-	if err := noderefutil.AddMachineNodeIndex(ctx, mgr); err != nil {
-		setupLog.Error(err, "unable to setup index")
-		os.Exit(1)
-	}
-
-	if err := noderefutil.AddMachineProviderIDIndex(ctx, mgr); err != nil {
-		setupLog.Error(err, "unable to setup index")
+	if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to setup indexes")
 		os.Exit(1)
 	}
 }
@@ -246,14 +241,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	tracker, err := remote.NewClusterCacheTracker(
 		mgr,
 		remote.ClusterCacheTrackerOptions{
-			Log: ctrl.Log.WithName("remote").WithName("ClusterCacheTracker"),
-			Indexes: []remote.Index{
-				{
-					Object:       &corev1.Node{},
-					Field:        noderefutil.NodeProviderIDIndex,
-					ExtractValue: noderefutil.IndexNodeByProviderID,
-				},
-			},
+			Log:     ctrl.Log.WithName("remote").WithName("ClusterCacheTracker"),
+			Indexes: remote.DefaultIndexes,
 		},
 	)
 	if err != nil {

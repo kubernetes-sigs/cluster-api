@@ -24,8 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// GetMachineFromNode retrieves the machine with a nodeRef to nodeName
-// There should at most one machine with a given nodeRef, returns an error otherwise.
+// GetMachineFromNode retrieves the machine with a nodeRef to nodeName. There should
+// at most one machine with a given nodeRef, returns an error otherwise.
+// Deprecated: this function will be removed in a future iteration.
 func GetMachineFromNode(ctx context.Context, c client.Client, nodeName string) (*clusterv1.Machine, error) {
 	machineList := &clusterv1.MachineList{}
 	if err := c.List(

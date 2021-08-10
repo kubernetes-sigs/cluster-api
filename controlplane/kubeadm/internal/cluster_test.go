@@ -35,7 +35,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -108,14 +107,8 @@ func TestGetWorkloadCluster(t *testing.T) {
 	tracker, err := remote.NewClusterCacheTracker(
 		env.Manager,
 		remote.ClusterCacheTrackerOptions{
-			Log: log.Log,
-			Indexes: []remote.Index{
-				{
-					Object:       &corev1.Node{},
-					Field:        noderefutil.NodeProviderIDIndex,
-					ExtractValue: noderefutil.IndexNodeByProviderID,
-				},
-			},
+			Log:     log.Log,
+			Indexes: remote.DefaultIndexes,
 		},
 	)
 	g.Expect(err).ToNot(HaveOccurred())

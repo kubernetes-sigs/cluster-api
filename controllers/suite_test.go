@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	// +kubebuilder:scaffold:imports
@@ -63,14 +62,8 @@ func TestMain(m *testing.M) {
 	fmt.Println("Creating a new test environment")
 	env = envtest.New()
 
-	// Set up the MachineNodeIndex
-	if err := noderefutil.AddMachineNodeIndex(ctx, env.Manager); err != nil {
-		panic(fmt.Sprintf("unable to setup machine node index: %v", err))
-	}
-
-	// Set up the MachineProviderIDIndex
-	if err := noderefutil.AddMachineProviderIDIndex(ctx, env.Manager); err != nil {
-		panic(fmt.Sprintf("unable to setup machine providerID index: %v", err))
+	if err := index.AddDefaultIndexes(ctx, env.Manager); err != nil {
+		panic(fmt.Sprintf("unable to setup index: %v", err))
 	}
 
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
@@ -78,14 +71,8 @@ func TestMain(m *testing.M) {
 	tracker, err := remote.NewClusterCacheTracker(
 		env.Manager,
 		remote.ClusterCacheTrackerOptions{
-			Log: log.Log,
-			Indexes: []remote.Index{
-				{
-					Object:       &corev1.Node{},
-					Field:        noderefutil.NodeProviderIDIndex,
-					ExtractValue: noderefutil.IndexNodeByProviderID,
-				},
-			},
+			Log:     log.Log,
+			Indexes: remote.DefaultIndexes,
 		},
 	)
 	if err != nil {

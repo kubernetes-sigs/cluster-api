@@ -175,6 +175,8 @@ Download the latest binary of `clusterawsadm` from the [AWS provider releases] a
 
 The [clusterawsadm] command line utility assists with identity and access management (IAM) for [Cluster API Provider AWS][capa].
 
+> The AWS provider additionaly allows you to create EKS based clusters. If you don't plan to use EKS then please see the [disabling EKS documentation](https://cluster-api-aws.sigs.k8s.io/topics/eks/disabling.html) before proceeding.
+
 ```bash
 export AWS_REGION=us-east-1 # This is used to help encode your environment variables
 export AWS_ACCESS_KEY_ID=<your-access-key>

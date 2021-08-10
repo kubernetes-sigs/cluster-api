@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package topology
 
 import (
 	"context"
@@ -40,8 +40,8 @@ import (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusterclasses;machinedeployments,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
-// ClusterTopologyReconciler reconciles a managed topology for a Cluster object.
-type ClusterTopologyReconciler struct {
+// ClusterReconciler reconciles a managed topology for a Cluster object.
+type ClusterReconciler struct {
 	Client           client.Client
 	WatchFilterValue string
 
@@ -53,7 +53,7 @@ type ClusterTopologyReconciler struct {
 	externalTracker external.ObjectTracker
 }
 
-func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		Watches(
@@ -79,7 +79,7 @@ func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ct
 	return nil
 }
 
-func (r *ClusterTopologyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the Cluster instance.
@@ -117,7 +117,7 @@ func (r *ClusterTopologyReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 }
 
 // reconcile handles cluster reconciliation.
-func (r *ClusterTopologyReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	// Gets the ClusterClass and the referenced templates.
 	class, err := r.getClass(ctx, cluster)
 	if err != nil {
@@ -146,7 +146,7 @@ func (r *ClusterTopologyReconciler) reconcile(ctx context.Context, cluster *clus
 
 // clusterClassToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update when its own ClusterClass gets updated.
-func (r *ClusterTopologyReconciler) clusterClassToCluster(o client.Object) []ctrl.Request {
+func (r *ClusterReconciler) clusterClassToCluster(o client.Object) []ctrl.Request {
 	_, ok := o.(*clusterv1.ClusterClass)
 	if !ok {
 		panic(fmt.Sprintf("Expected a ClusterClass but got a %T", o))
@@ -159,7 +159,7 @@ func (r *ClusterTopologyReconciler) clusterClassToCluster(o client.Object) []ctr
 
 // machineDeploymentToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update when one of its own MachineDeployments gets updated.
-func (r *ClusterTopologyReconciler) machineDeploymentToCluster(o client.Object) []ctrl.Request {
+func (r *ClusterReconciler) machineDeploymentToCluster(o client.Object) []ctrl.Request {
 	md, ok := o.(*clusterv1.MachineDeployment)
 	if !ok {
 		panic(fmt.Sprintf("Expected a MachineDeployment but got a %T", o))

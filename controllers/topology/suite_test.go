@@ -14,12 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package topology
 
-import "context"
+import (
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 
-// reconcileState reconciles the current and desired state of the managed Cluster topology.
-func (r *ClusterTopologyReconciler) reconcileState(ctx context.Context, current, desired *clusterTopologyState) error {
-	// TODO: add reconcile logic
-	return nil
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+)
+
+var (
+	ctx        = ctrl.SetupSignalHandler()
+	fakeScheme = runtime.NewScheme()
+)
+
+func init() {
+	_ = clientgoscheme.AddToScheme(fakeScheme)
+	_ = clusterv1.AddToScheme(fakeScheme)
+	_ = apiextensionsv1.AddToScheme(fakeScheme)
 }

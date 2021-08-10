@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -38,46 +39,42 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	fmt.Println("Creating new test environment")
-	env = envtest.New([]client.Object{&corev1.ConfigMap{}, &corev1.Secret{}, &v1alpha4.ClusterResourceSetBinding{}}...)
-
-	if err := index.AddDefaultIndexes(ctx, env.Manager); err != nil {
-		panic(fmt.Sprintf("unable to setup index: %v", err))
-	}
-
-	trckr, err := remote.NewClusterCacheTracker(env.Manager, remote.ClusterCacheTrackerOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create new cluster cache tracker: %v", err))
-	}
-	reconciler := ClusterResourceSetReconciler{
-		Client:  env,
-		Tracker: trckr,
-	}
-	if err = reconciler.SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to set up cluster resource set reconciler: %v", err))
-	}
-	bindingReconciler := ClusterResourceSetBindingReconciler{
-		Client: env,
-	}
-	if err = bindingReconciler.SetupWithManager(ctx, env.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to set up cluster resource set binding reconciler: %v", err))
-	}
-
-	go func() {
-		fmt.Println("Starting the manager")
-		if err := env.Start(ctx); err != nil {
-			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
+	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
+		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
+			panic(fmt.Sprintf("unable to setup index: %v", err))
 		}
-	}()
-	<-env.Manager.Elected()
-	env.WaitForWebhooks()
-
-	code := m.Run()
-
-	fmt.Println("Tearing down test suite")
-	if err := env.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop envtest: %v", err))
 	}
 
-	os.Exit(code)
+	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+		tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
+		if err != nil {
+			panic(fmt.Sprintf("Failed to create new cluster cache tracker: %v", err))
+		}
+
+		reconciler := ClusterResourceSetReconciler{
+			Client:  mgr.GetClient(),
+			Tracker: tracker,
+		}
+		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to set up cluster resource set reconciler: %v", err))
+		}
+		bindingReconciler := ClusterResourceSetBindingReconciler{
+			Client: mgr.GetClient(),
+		}
+		if err = bindingReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to set up cluster resource set binding reconciler: %v", err))
+		}
+	}
+
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M:        m,
+		SetupEnv: func(e *envtest.Environment) { env = e },
+		ManagerUncachedObjs: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+			&v1alpha4.ClusterResourceSetBinding{},
+		},
+		SetupIndexes:     setupIndexes,
+		SetupReconcilers: setupReconcilers,
+	}))
 }

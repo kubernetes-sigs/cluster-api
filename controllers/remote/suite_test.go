@@ -17,7 +17,6 @@ limitations under the License.
 package remote
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -37,24 +36,8 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	fmt.Println("Creating a new test environment")
-	env = envtest.New()
-
-	go func() {
-		fmt.Println("Starting the test environment manager")
-		if err := env.Start(ctx); err != nil {
-			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
-		}
-	}()
-	<-env.Manager.Elected()
-	env.WaitForWebhooks()
-
-	code := m.Run()
-
-	fmt.Println("Stopping the test environment")
-	if err := env.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop the test environment: %v", err))
-	}
-
-	os.Exit(code)
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M:        m,
+		SetupEnv: func(e *envtest.Environment) { env = e },
+	}))
 }

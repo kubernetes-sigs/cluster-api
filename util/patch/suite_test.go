@@ -17,7 +17,6 @@ limitations under the License.
 package patch
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -37,24 +36,8 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	fmt.Println("Creating new test environment")
-	env = envtest.New()
-
-	go func() {
-		fmt.Println("Starting the manager")
-		if err := env.Start(ctx); err != nil {
-			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
-		}
-	}()
-	<-env.Manager.Elected()
-	env.WaitForWebhooks()
-
-	code := m.Run()
-
-	fmt.Println("Tearing down test suite")
-	if err := env.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop envtest: %v", err))
-	}
-
-	os.Exit(code)
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M:        m,
+		SetupEnv: func(e *envtest.Environment) { env = e },
+	}))
 }

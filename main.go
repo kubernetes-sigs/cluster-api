@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/topology"
 	addonsv1old "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
@@ -286,7 +287,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			os.Exit(1)
 		}
 
-		if err := (&controllers.ClusterTopologyReconciler{
+		if err := (&topology.ClusterReconciler{
 			Client:                    mgr.GetClient(),
 			UnstructuredCachingClient: unstructuredCachingClient,
 			WatchFilterValue:          watchFilterValue,

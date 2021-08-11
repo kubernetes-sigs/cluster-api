@@ -20,6 +20,7 @@ package index
 import (
 	"context"
 
+	"sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -29,9 +30,14 @@ func AddDefaultIndexes(ctx context.Context, mgr ctrl.Manager) error {
 		return err
 	}
 
-	//nolint:revive
 	if err := ByMachineProviderID(ctx, mgr); err != nil {
 		return err
+	}
+
+	if feature.Gates.Enabled(feature.ClusterTopology) {
+		if err := ByClusterClassName(ctx, mgr); err != nil {
+			return err
+		}
 	}
 
 	return nil

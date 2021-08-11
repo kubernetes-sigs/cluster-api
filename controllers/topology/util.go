@@ -28,9 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// getTemplate gets the object referenced in ref.
+// getReference gets the object referenced in ref.
 // If necessary, it updates the ref to the latest apiVersion of the current contract.
-func (r *ClusterReconciler) getTemplate(ctx context.Context, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *ClusterReconciler) getReference(ctx context.Context, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if ref == nil {
 		return nil, errors.New("reference is not set")
 	}

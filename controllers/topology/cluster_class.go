@@ -54,13 +54,13 @@ func (r *ClusterReconciler) getClass(ctx context.Context, cluster *clusterv1.Clu
 	}()
 
 	// Get ClusterClass.spec.infrastructure.
-	class.infrastructureClusterTemplate, err = r.getTemplate(ctx, class.clusterClass.Spec.Infrastructure.Ref)
+	class.infrastructureClusterTemplate, err = r.getReference(ctx, class.clusterClass.Spec.Infrastructure.Ref)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get ClusterClass.spec.controlPlane.
-	class.controlPlane.template, err = r.getTemplate(ctx, class.clusterClass.Spec.ControlPlane.Ref)
+	class.controlPlane.template, err = r.getReference(ctx, class.clusterClass.Spec.ControlPlane.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (r *ClusterReconciler) getClass(ctx context.Context, cluster *clusterv1.Clu
 	// Check if ClusterClass.spec.ControlPlane.MachineInfrastructure is set, as it's optional.
 	if class.clusterClass.Spec.ControlPlane.MachineInfrastructure != nil && class.clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref != nil {
 		// Get ClusterClass.spec.controlPlane.machineInfrastructure.
-		class.controlPlane.infrastructureMachineTemplate, err = r.getTemplate(ctx, class.clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref)
+		class.controlPlane.infrastructureMachineTemplate, err = r.getReference(ctx, class.clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -77,12 +77,12 @@ func (r *ClusterReconciler) getClass(ctx context.Context, cluster *clusterv1.Clu
 	for _, mdc := range class.clusterClass.Spec.Workers.MachineDeployments {
 		mdTopologyClass := machineDeploymentTopologyClass{}
 
-		mdTopologyClass.infrastructureMachineTemplate, err = r.getTemplate(ctx, mdc.Template.Infrastructure.Ref)
+		mdTopologyClass.infrastructureMachineTemplate, err = r.getReference(ctx, mdc.Template.Infrastructure.Ref)
 		if err != nil {
 			return nil, err
 		}
 
-		mdTopologyClass.bootstrapTemplate, err = r.getTemplate(ctx, mdc.Template.Bootstrap.Ref)
+		mdTopologyClass.bootstrapTemplate, err = r.getReference(ctx, mdc.Template.Bootstrap.Ref)
 		if err != nil {
 			return nil, err
 		}

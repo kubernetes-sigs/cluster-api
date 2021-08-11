@@ -125,7 +125,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	// Gets the current state of the Cluster.
-	currentState, err := r.getCurrentState(ctx, cluster)
+	currentState, err := r.getCurrentState(ctx, cluster, class.clusterClass)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reading current state of the Cluster topology")
 	}

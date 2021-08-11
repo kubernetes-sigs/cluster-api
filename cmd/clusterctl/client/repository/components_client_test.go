@@ -96,7 +96,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "successfully gets the components",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
@@ -117,7 +117,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "successfully gets the components even with SkipTemplateProcess defined",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
@@ -139,7 +139,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "targetNamespace overrides default targetNamespace",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
@@ -160,7 +160,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "Fails if components file does not exists",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0"),
 			},
@@ -174,7 +174,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "Fails if default targetNamespace does not exists",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(controllerYaml, configMapYaml)),
@@ -189,7 +189,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "Pass if default targetNamespace does not exists but a target targetNamespace is set",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(controllerYaml, configMapYaml)),
@@ -210,7 +210,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "Fails if requested version does not exists",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(controllerYaml, configMapYaml)),
@@ -225,7 +225,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "Fails if yaml processor cannot get Variables",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
@@ -241,7 +241,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			name: "Fails if yaml processor cannot process the raw yaml",
 			fields: fields{
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),

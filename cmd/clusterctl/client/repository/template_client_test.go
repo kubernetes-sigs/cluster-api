@@ -60,7 +60,7 @@ func Test_templates_Get(t *testing.T) {
 			fields: fields{
 				version:  "v1.0",
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0").
 					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
@@ -83,7 +83,7 @@ func Test_templates_Get(t *testing.T) {
 			fields: fields{
 				version:  "v1.0",
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0").
 					WithFile("v1.0", "cluster-template-prod.yaml", templateMapYaml),
@@ -106,7 +106,7 @@ func Test_templates_Get(t *testing.T) {
 			fields: fields{
 				version:  "v1.0",
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0"),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
@@ -124,7 +124,7 @@ func Test_templates_Get(t *testing.T) {
 			fields: fields{
 				version:  "v1.0",
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0").
 					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
@@ -143,7 +143,7 @@ func Test_templates_Get(t *testing.T) {
 			fields: fields{
 				version:  "v1.0",
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0").
 					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
@@ -166,7 +166,7 @@ func Test_templates_Get(t *testing.T) {
 			fields: fields{
 				version:  "v1.0",
 				provider: p1,
-				repository: test.NewFakeRepository().
+				repository: NewMemoryRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0").
 					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),

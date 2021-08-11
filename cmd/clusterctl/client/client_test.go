@@ -394,7 +394,7 @@ func (f *fakeConfigClient) WithProvider(provider config.Provider) *fakeConfigCli
 // The implementation stores configuration settings in a map; you can use
 // the WithPaths or WithDefaultVersion methods to configure the repository and WithFile to set the map values.
 func newFakeRepository(provider config.Provider, configClient config.Client) *fakeRepositoryClient {
-	fakeRepository := test.NewFakeRepository()
+	fakeRepository := repository.NewMemoryRepository()
 
 	if configClient == nil {
 		configClient = newFakeConfig()
@@ -411,7 +411,7 @@ func newFakeRepository(provider config.Provider, configClient config.Client) *fa
 type fakeRepositoryClient struct {
 	config.Provider
 	configClient   config.Client
-	fakeRepository *test.FakeRepository
+	fakeRepository *repository.MemoryRepository
 	processor      yaml.Processor
 }
 
@@ -481,7 +481,7 @@ func (f *fakeRepositoryClient) WithFile(version, path string, content []byte) *f
 // fakeTemplateClient provides a super simple TemplateClient (e.g. without support for local overrides).
 type fakeTemplateClient struct {
 	version               string
-	fakeRepository        *test.FakeRepository
+	fakeRepository        *repository.MemoryRepository
 	configVariablesClient config.VariablesClient
 	processor             yaml.Processor
 }
@@ -509,7 +509,7 @@ func (f *fakeTemplateClient) Get(flavor, targetNamespace string, skipTemplatePro
 // fakeMetadataClient provides a super simple MetadataClient (e.g. without support for local overrides/embedded metadata).
 type fakeMetadataClient struct {
 	version        string
-	fakeRepository *test.FakeRepository
+	fakeRepository *repository.MemoryRepository
 }
 
 func (f *fakeMetadataClient) Get() (*clusterctlv1.Metadata, error) {
@@ -530,7 +530,7 @@ func (f *fakeMetadataClient) Get() (*clusterctlv1.Metadata, error) {
 // fakeComponentClient provides a super simple ComponentClient (e.g. without support for local overrides).
 type fakeComponentClient struct {
 	provider       config.Provider
-	fakeRepository *test.FakeRepository
+	fakeRepository *repository.MemoryRepository
 	configClient   config.Client
 	processor      yaml.Processor
 }

@@ -75,7 +75,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "successfully gets the cert-manager components",
 			fields: fields{
 				configClient: defaultConfigClient,
-				repository: test.NewFakeRepository().
+				repository: repository.NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion(config.CertManagerDefaultVersion).
 					WithFile(config.CertManagerDefaultVersion, "components.yaml", utilyaml.JoinYaml(certManagerNamespaceYaml, certManagerDeploymentYaml)),
@@ -86,7 +86,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "fails if the file does not exists",
 			fields: fields{
 				configClient: defaultConfigClient,
-				repository: test.NewFakeRepository().
+				repository: repository.NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0"),
 			},
@@ -96,7 +96,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "fails if the file does not exists for the desired version",
 			fields: fields{
 				configClient: defaultConfigClient,
-				repository: test.NewFakeRepository().
+				repository: repository.NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v99.0.0").
 					WithFile("v99.0.0", "components.yaml", utilyaml.JoinYaml(certManagerNamespaceYaml, certManagerDeploymentYaml)),
@@ -111,7 +111,7 @@ func Test_getManifestObjs(t *testing.T) {
 					g.Expect(err).ToNot(HaveOccurred())
 					return configClient
 				}(),
-				repository: test.NewFakeRepository().
+				repository: repository.NewMemoryRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion(config.CertManagerDefaultVersion).
 					WithFile(config.CertManagerDefaultVersion, "components.yaml", utilyaml.JoinYaml(certManagerNamespaceYaml, certManagerDeploymentYaml)),

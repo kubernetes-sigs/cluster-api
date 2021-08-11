@@ -35,7 +35,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		WithProvider("infra2", clusterctlv1.InfrastructureProviderType, "https://somewhere.com")
 
 	repositoryMap := map[string]repository.Repository{
-		"cluster-api": test.NewFakeRepository().
+		"cluster-api": repository.NewMemoryRepository().
 			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
 			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -55,7 +55,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 					{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 				},
 			}),
-		"infrastructure-infra1": test.NewFakeRepository().
+		"infrastructure-infra1": repository.NewMemoryRepository().
 			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
 			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -75,7 +75,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 					{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
 				},
 			}),
-		"infrastructure-infra2": test.NewFakeRepository().
+		"infrastructure-infra2": repository.NewMemoryRepository().
 			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
 			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{

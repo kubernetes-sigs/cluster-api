@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 // Client is used to interact with provider repositories.
@@ -147,8 +146,6 @@ type Repository interface {
 	// GetVersion return the list of versions that are available in a provider repository
 	GetVersions() ([]string, error)
 }
-
-var _ Repository = &test.FakeRepository{}
 
 // repositoryFactory returns the repository implementation corresponding to the provider URL.
 func repositoryFactory(providerConfig config.Provider, configVariablesClient config.VariablesClient) (Repository, error) {

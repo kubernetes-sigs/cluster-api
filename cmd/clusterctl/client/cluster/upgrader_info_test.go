@@ -31,8 +31,8 @@ import (
 
 func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 	type fields struct {
-		reader     config.Reader
-		repository repository.Repository
+		reader config.Reader
+		repo   repository.Repository
 	}
 	type args struct {
 		provider clusterctlv1.Provider
@@ -49,7 +49,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository().
+				repo: repository.NewMemoryRepository().
 					WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
 					WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -87,7 +87,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository().
+				repo: repository.NewMemoryRepository().
 					WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
 					WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -125,7 +125,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository().
+				repo: repository.NewMemoryRepository().
 					WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
 					WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -163,7 +163,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository(). // without metadata
+				repo: repository.NewMemoryRepository(). // without metadata
 									WithVersions("v1.0.0", "v1.0.1"),
 			},
 			args: args{
@@ -177,7 +177,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository(). // with metadata but only for versions <= current version (not for next versions)
+				repo: repository.NewMemoryRepository(). // with metadata but only for versions <= current version (not for next versions)
 									WithVersions("v1.0.0", "v1.0.1").
 									WithMetadata("v1.0.0", &clusterctlv1.Metadata{}),
 			},
@@ -192,7 +192,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository(). // without metadata
+				repo: repository.NewMemoryRepository(). // without metadata
 									WithVersions("v1.0.0", "v1.0.1").
 									WithMetadata("v1.0.1", &clusterctlv1.Metadata{}),
 			},
@@ -207,7 +207,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().
 					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				repository: test.NewFakeRepository(). // without metadata
+				repo: repository.NewMemoryRepository(). // without metadata
 									WithVersions("v1.0.0", "v1.0.1", "v1.1.1").
 									WithMetadata("v1.1.1", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
@@ -232,7 +232,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			u := &providerUpgrader{
 				configClient: configClient,
 				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository))
+					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repo))
 				},
 			}
 			got, err := u.getUpgradeInfo(tt.args.provider)

@@ -213,8 +213,14 @@ func TestGetClass(t *testing.T) {
 			cluster := newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj()
 
 			if tt.clusterClass != nil {
-				cluster.Spec.Topology.Class = tt.clusterClass.Name
+				cluster.Spec.Topology = &clusterv1.Topology{
+					Class: tt.clusterClass.Name,
+				}
 				objs = append(objs, tt.clusterClass)
+			} else {
+				cluster.Spec.Topology = &clusterv1.Topology{
+					Class: "foo",
+				}
 			}
 
 			fakeClient := fake.NewClientBuilder().

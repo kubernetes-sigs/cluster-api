@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/internal/testtypes"
 )
 
 // TODO: move under internal/testtypes
@@ -106,8 +107,10 @@ var (
 )
 
 type fakeCluster struct {
-	namespace string
-	name      string
+	namespace             string
+	name                  string
+	infrastructureCluster *unstructured.Unstructured
+	controlPlane          *unstructured.Unstructured
 }
 
 func newFakeCluster(namespace, name string) *fakeCluster {
@@ -115,6 +118,16 @@ func newFakeCluster(namespace, name string) *fakeCluster {
 		namespace: namespace,
 		name:      name,
 	}
+}
+
+func (f *fakeCluster) WithInfrastructureCluster(t *unstructured.Unstructured) *fakeCluster {
+	f.infrastructureCluster = t
+	return f
+}
+
+func (f *fakeCluster) WithControlPlane(t *unstructured.Unstructured) *fakeCluster {
+	f.controlPlane = t
+	return f
 }
 
 func (f *fakeCluster) Obj() *clusterv1.Cluster {
@@ -130,9 +143,12 @@ func (f *fakeCluster) Obj() *clusterv1.Cluster {
 			// added to the fakeClient and expected objects easier.
 			ResourceVersion: "999",
 		},
-		Spec: clusterv1.ClusterSpec{
-			Topology: &clusterv1.Topology{},
-		},
+	}
+	if f.infrastructureCluster != nil {
+		obj.Spec.InfrastructureRef = objToRef(f.infrastructureCluster)
+	}
+	if f.controlPlane != nil {
+		obj.Spec.ControlPlaneRef = objToRef(f.controlPlane)
 	}
 	return obj
 }
@@ -376,8 +392,8 @@ func newFakeInfrastructureCluster(namespace, name string) *fakeInfrastructureClu
 
 func (f *fakeInfrastructureCluster) Obj() *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
-	obj.SetAPIVersion(fakeControlPlaneProviderGroupVersion.String())
-	obj.SetKind("FakeInfrastructureCluster")
+	obj.SetAPIVersion(testtypes.InfrastructureGroupVersion.String())
+	obj.SetKind("GenericInfrastructureCluster")
 	obj.SetNamespace(f.namespace)
 	obj.SetName(f.name)
 	// Nb. This is set to the same resourceVersion the fakeClient uses internally to make comparison between objects

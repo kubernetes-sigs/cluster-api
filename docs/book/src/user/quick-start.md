@@ -593,7 +593,7 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.21.2 \
+  --kubernetes-version v1.22.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -612,7 +612,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.21.2 \
+  --kubernetes-version v1.22.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml

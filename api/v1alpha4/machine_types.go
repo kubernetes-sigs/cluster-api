@@ -107,6 +107,11 @@ type MachineStatus struct {
 	// +optional
 	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
 
+	// NodeInfo is a set of ids/uuids to uniquely identify the node.
+	// More info: https://kubernetes.io/docs/concepts/nodes/node/#info
+	// +optional
+	NodeInfo *corev1.NodeSystemInfo `json:"nodeInfo,omitempty"`
+
 	// LastUpdated identifies when the phase of the Machine last transitioned.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`

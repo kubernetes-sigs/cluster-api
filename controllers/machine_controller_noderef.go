@@ -91,6 +91,9 @@ func (r *MachineReconciler) reconcileNode(ctx context.Context, cluster *clusterv
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetNodeRef", machine.Status.NodeRef.Name)
 	}
 
+	// Set the NodeSystemInfo.
+	machine.Status.NodeInfo = &node.Status.NodeInfo
+
 	// Reconcile node annotations.
 	patchHelper, err := patch.NewHelper(node, remoteClient)
 	if err != nil {

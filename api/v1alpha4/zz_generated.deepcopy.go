@@ -1050,6 +1050,11 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 		*out = new(v1.ObjectReference)
 		**out = **in
 	}
+	if in.NodeInfo != nil {
+		in, out := &in.NodeInfo, &out.NodeInfo
+		*out = new(v1.NodeSystemInfo)
+		**out = **in
+	}
 	if in.LastUpdated != nil {
 		in, out := &in.LastUpdated, &out.LastUpdated
 		*out = (*in).DeepCopy()

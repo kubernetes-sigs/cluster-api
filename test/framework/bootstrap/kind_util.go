@@ -34,13 +34,16 @@ import (
 
 // CreateKindBootstrapClusterAndLoadImagesInput is the input for CreateKindBootstrapClusterAndLoadImages.
 type CreateKindBootstrapClusterAndLoadImagesInput struct {
-	// Name of the cluster
+	// Name of the cluster.
 	Name string
 
-	// RequiresDockerSock defines if the cluster requires the docker sock
+	// Image of the cluster.
+	Image string
+
+	// RequiresDockerSock defines if the cluster requires the docker sock.
 	RequiresDockerSock bool
 
-	// Images to be loaded in the cluster (this is kind specific)
+	// Images to be loaded in the cluster.
 	Images []clusterctl.ContainerImage
 
 	// IPFamily is either ipv4 or ipv6. Default is ipv4.
@@ -55,6 +58,9 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	log.Logf("Creating a kind cluster with name %q", input.Name)
 
 	options := []KindClusterOption{}
+	if input.Image != "" {
+		options = append(options, WithNodeImage(input.Image))
+	}
 	if input.RequiresDockerSock {
 		options = append(options, WithDockerSockMount())
 	}

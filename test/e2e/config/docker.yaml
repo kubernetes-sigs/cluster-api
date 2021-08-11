@@ -110,6 +110,7 @@ providers:
 variables:
   # default variables for the e2e test; those values could be overridden via env variables, thus
   # allowing the same e2e config file to be re-used in different prow jobs e.g. each one with a K8s version permutation
+  MANAGEMENT_CLUSTER_IMAGE: "kindest/node:v1.22.0"
   KUBERNETES_VERSION: "v1.22.0"
   ETCD_VERSION_UPGRADE_TO: "3.5.0-0"
   COREDNS_VERSION_UPGRADE_TO: "1.8.4"

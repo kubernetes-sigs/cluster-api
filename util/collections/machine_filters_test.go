@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 )
 
 func falseFilter(_ *clusterv1.Machine) bool {
@@ -280,6 +281,73 @@ func TestMatchesKubernetesVersion(t *testing.T) {
 			},
 		}
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(machine)).To(BeFalse())
+	})
+}
+
+func TestWithVersion(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(collections.WithVersion()(nil)).To(BeFalse())
+	})
+
+	t.Run("nil machine.Spec.Version returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				Version: nil,
+			},
+		}
+		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
+	})
+
+	t.Run("empty machine.Spec.Version returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				Version: pointer.String(""),
+			},
+		}
+		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
+	})
+
+	t.Run("invalid machine.Spec.Version returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				Version: pointer.String("1..20"),
+			},
+		}
+		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
+	})
+
+	t.Run("valid machine.Spec.Version returns true", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				Version: pointer.String("1.20"),
+			},
+		}
+		g.Expect(collections.WithVersion()(machine)).To(BeTrue())
+	})
+}
+
+func TestHealtyAPIServer(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(collections.HealthyAPIServer()(nil)).To(BeFalse())
+	})
+
+	t.Run("unhealthy machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		g.Expect(collections.HealthyAPIServer()(machine)).To(BeFalse())
+	})
+
+	t.Run("healthy machine returns true", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		conditions.Set(machine, conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition))
+		g.Expect(collections.HealthyAPIServer()(machine)).To(BeTrue())
 	})
 }
 

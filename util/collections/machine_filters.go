@@ -17,10 +17,12 @@ limitations under the License.
 package collections
 
 import (
+	"github.com/blang/semver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -212,5 +214,32 @@ func MatchesKubernetesVersion(kubernetesVersion string) Func {
 			return false
 		}
 		return *machine.Spec.Version == kubernetesVersion
+	}
+}
+
+// WithVersion returns a filter to find machine that have a non empty and valid version.
+func WithVersion() Func {
+	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
+		if machine.Spec.Version == nil {
+			return false
+		}
+		if _, err := semver.ParseTolerant(*machine.Spec.Version); err != nil {
+			return false
+		}
+		return true
+	}
+}
+
+// HealthyAPIServer returns a filter to find all machines that have a MachineAPIServerPodHealthyCondition
+// set to true.
+func HealthyAPIServer() Func {
+	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
+		return conditions.IsTrue(machine, controlplanev1.MachineAPIServerPodHealthyCondition)
 	}
 }

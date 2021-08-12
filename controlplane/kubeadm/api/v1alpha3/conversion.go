@@ -39,6 +39,7 @@ func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {
 
 	dest.Spec.RolloutStrategy = restored.Spec.RolloutStrategy
 	dest.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
+	dest.Status.Version = restored.Status.Version
 
 	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
 		if dest.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
@@ -87,6 +88,11 @@ func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpe
 	out.InfrastructureTemplate = in.MachineTemplate.InfrastructureRef
 	out.NodeDrainTimeout = in.MachineTemplate.NodeDrainTimeout
 	return autoConvert_v1alpha4_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s)
+}
+
+func Convert_v1alpha4_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in *v1alpha4.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s apiconversion.Scope) error {
+	// NOTE: custom conversion func is required because status.Version does not exist in v1alpha3.
+	return autoConvert_v1alpha4_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in, out, s)
 }
 
 func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, out *v1alpha4.KubeadmControlPlaneSpec, s apiconversion.Scope) error {

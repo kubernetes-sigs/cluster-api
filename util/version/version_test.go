@@ -123,3 +123,152 @@ func TestParseMajorMinorPatchTolerant(t *testing.T) {
 		})
 	}
 }
+
+func TestCompareWithBuildIdentifiers(t *testing.T) {
+	tests := []struct {
+		name     string
+		a        semver.Version
+		b        semver.Version
+		expected int
+	}{
+		{
+			name: "compare with no build identifiers",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.2")
+				return v
+			}(),
+			expected: -1,
+		},
+		{
+			name: "compare with pre release versions and no build identifiers",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1-alpha.1")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1-alpha.2")
+				return v
+			}(),
+			expected: -1,
+		},
+		{
+			name: "compare with pre release versions and  build identifiers",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1-alpha.1+xyz.1")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1-alpha.1+xyz.2")
+				return v
+			}(),
+			expected: -1,
+		},
+		{
+			name: "compare with build identifiers - smaller",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.2")
+				return v
+			}(),
+			expected: -1,
+		},
+		{
+			name: "compare with build identifiers - equal",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1")
+				return v
+			}(),
+			expected: 0,
+		},
+		{
+			name: "compare with build identifiers - greater",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.3")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.2")
+				return v
+			}(),
+			expected: 1,
+		},
+		{
+			name: "compare with build identifiers - smaller by sub version",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1.0")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1.1")
+				return v
+			}(),
+			expected: -1,
+		},
+		{
+			name: "compare with build identifiers - smaller - different version lengths",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1.1")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.2")
+				return v
+			}(),
+			expected: -1,
+		},
+		{
+			name: "compare with build identifiers - greater by length",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1.1")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1")
+				return v
+			}(),
+			expected: 1,
+		},
+		{
+			name: "compare with build identifiers - smaller non numeric",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.a")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.b")
+				return v
+			}(),
+			expected: -1,
+		},
+		{
+			name: "compare with build identifiers - smaller - a is numeric b is not",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.1")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.abc")
+				return v
+			}(),
+			expected: -1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(CompareWithBuildIdentifiers(tt.a, tt.b)).To(Equal(tt.expected))
+		})
+	}
+}

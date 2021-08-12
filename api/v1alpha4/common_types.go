@@ -29,6 +29,10 @@ const (
 	// ClusterTopologyLabelName is the label set on all the object which are managed as part of a ClusterTopology.
 	ClusterTopologyLabelName = "cluster.x-k8s.io/topology"
 
+	// ClusterTopologyMachineDeploymentLabelName is the label set on the generated  MachineDeployment objects
+	// to track the name of the machine deployment topology it represents.
+	ClusterTopologyMachineDeploymentLabelName = "cluster.x-k8s.io/topology/deployment-name"
+
 	// ProviderLabelName is the label set on components in the provider manifest.
 	// This label allows to easily identify all the components belonging to a provider; the clusterctl
 	// tool uses this label for implementing provider's lifecycle operations.

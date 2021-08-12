@@ -31,7 +31,42 @@ var (
 	fakeInfrastructureProviderGroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha4"}
 	fakeControlPlaneProviderGroupVersion   = schema.GroupVersion{Group: "controlplane.cluster.x-k8s.io", Version: "v1alpha4"}
 	fakeBootstrapProviderGroupVersion      = schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1alpha4"}
-
+	fakeInfrastuctureClusterCRD            = &apiextensionsv1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+			Kind:       "CustomResourceDefinition",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "genericinfrastructurecluster.infrastructure.cluster.x-k8s.io",
+			Labels: map[string]string{
+				"cluster.x-k8s.io/v1alpha4": "v1alpha4",
+			},
+		},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: fakeInfrastructureProviderGroupVersion.Group,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Kind: "GenericInfrastructureCluster",
+			},
+		},
+	}
+	fakeControlPlaneCRD = &apiextensionsv1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+			Kind:       "CustomResourceDefinition",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "fakecontrolplane.infrastructure.cluster.x-k8s.io",
+			Labels: map[string]string{
+				"cluster.x-k8s.io/v1alpha4": "v1alpha4",
+			},
+		},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: fakeControlPlaneProviderGroupVersion.Group,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Kind: "FakeControlPlane",
+			},
+		},
+	}
 	fakeInfrastructureClusterTemplateCRD = &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
@@ -109,6 +144,7 @@ var (
 type fakeCluster struct {
 	namespace             string
 	name                  string
+	class                 clusterv1.ClusterClass
 	infrastructureCluster *unstructured.Unstructured
 	controlPlane          *unstructured.Unstructured
 }
@@ -130,6 +166,11 @@ func (f *fakeCluster) WithControlPlane(t *unstructured.Unstructured) *fakeCluste
 	return f
 }
 
+func (f *fakeCluster) WithClass(class clusterv1.ClusterClass) *fakeCluster {
+	f.class = class
+	return f
+}
+
 func (f *fakeCluster) Obj() *clusterv1.Cluster {
 	obj := &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
@@ -142,6 +183,9 @@ func (f *fakeCluster) Obj() *clusterv1.Cluster {
 			// Nb. This is set to the same resourceVersion the fakeClient uses internally to make comparison between objects
 			// added to the fakeClient and expected objects easier.
 			ResourceVersion: "999",
+		},
+		Spec: clusterv1.ClusterSpec{
+			Topology: &clusterv1.Topology{Class: f.class.Name},
 		},
 	}
 	if f.infrastructureCluster != nil {
@@ -443,6 +487,64 @@ func (f *fakeControlPlane) Obj() *unstructured.Unstructured {
 		if err := setNestedRef(obj, f.infrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef"); err != nil {
 			panic(err)
 		}
+	}
+	return obj
+}
+
+type fakeMachineDeployment struct {
+	namespace              string
+	name                   string
+	bootstrapTemplate      *unstructured.Unstructured
+	infrastructureTemplate *unstructured.Unstructured
+	labels                 map[string]string
+}
+
+func newFakeMachineDeployment(namespace string, name string) *fakeMachineDeployment {
+	return &fakeMachineDeployment{
+		name:      name,
+		namespace: namespace,
+	}
+}
+
+func (f *fakeMachineDeployment) WithBootstrapRef(ref *unstructured.Unstructured) *fakeMachineDeployment {
+	f.bootstrapTemplate = ref
+	return f
+}
+
+func (f *fakeMachineDeployment) WithInfraTemplateRef(ref *unstructured.Unstructured) *fakeMachineDeployment {
+	f.infrastructureTemplate = ref
+	return f
+}
+
+func (f *fakeMachineDeployment) WithLabels(labels map[string]string) *fakeMachineDeployment {
+	f.labels = labels
+	return f
+}
+
+func (f *fakeMachineDeployment) Obj() *clusterv1.MachineDeployment {
+	obj := &clusterv1.MachineDeployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachineDeployment",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      f.name,
+			Namespace: f.namespace,
+			Labels:    f.labels,
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{},
+				},
+			},
+		},
+	}
+	if f.bootstrapTemplate != nil {
+		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(f.bootstrapTemplate)
+	}
+	if f.infrastructureTemplate != nil {
+		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(f.infrastructureTemplate)
 	}
 	return obj
 }

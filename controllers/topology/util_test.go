@@ -99,7 +99,7 @@ func TestGetTemplate(t *testing.T) {
 				Client:                    fakeClient,
 				UnstructuredCachingClient: fakeClient,
 			}
-			got, err := r.getTemplate(ctx, tt.ref)
+			got, err := r.getReference(ctx, tt.ref)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

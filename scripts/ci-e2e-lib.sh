@@ -43,6 +43,13 @@ capi:buildDockerImages () {
 # k8s::prepareKindestImages checks all the e2e test variables representing a Kubernetes version,
 # and makes sure a corresponding kindest/node image is available locally.
 k8s::prepareKindestImages() {
+  if [ -n "${MANAGEMENT_KUBERNETES_VERSION:-}" ]; then
+    k8s::resolveVersion "MANAGEMENT_KUBERNETES_VERSION" "$MANAGEMENT_KUBERNETES_VERSION"
+    export MANAGEMENT_KUBERNETES_VERSION=$resolveVersion
+
+    kind::prepareKindestImage "$resolveVersion"
+  fi
+
   if [ -n "${KUBERNETES_VERSION:-}" ]; then
     k8s::resolveVersion "KUBERNETES_VERSION" "$KUBERNETES_VERSION"
     export KUBERNETES_VERSION=$resolveVersion

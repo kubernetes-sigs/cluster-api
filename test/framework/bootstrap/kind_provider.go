@@ -29,8 +29,11 @@ import (
 )
 
 const (
-	// DefaultNodeImage is the default node image to be used for for testing.
-	DefaultNodeImage = "kindest/node:v1.22.0"
+	// DefaultNodeImageRepository is the default node image repository to be used for testing.
+	DefaultNodeImageRepository = "kindest/node"
+
+	// DefaultNodeImage is the default node image to be used for testing.
+	DefaultNodeImage = DefaultNodeImageRepository + ":v1.22.0"
 )
 
 // KindClusterOption is a NewKindClusterProvider option.

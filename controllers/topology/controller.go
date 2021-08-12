@@ -25,7 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -147,14 +149,27 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 // clusterClassToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update when its own ClusterClass gets updated.
 func (r *ClusterReconciler) clusterClassToCluster(o client.Object) []ctrl.Request {
-	_, ok := o.(*clusterv1.ClusterClass)
+	clusterClass, ok := o.(*clusterv1.ClusterClass)
 	if !ok {
 		panic(fmt.Sprintf("Expected a ClusterClass but got a %T", o))
 	}
 
-	// TODO: use the custom cache index for Cluster.Topology.Class to retry all the Cluster using a given ClusterClass
+	clusterList := &clusterv1.ClusterList{}
+	if err := r.Client.List(
+		context.TODO(),
+		clusterList,
+		client.MatchingFields{index.ClusterClassNameField: clusterClass.Name},
+	); err != nil {
+		return nil
+	}
 
-	return nil
+	// There can be more than one cluster using the same cluster class.
+	// create a request for each of the clusters.
+	requests := []ctrl.Request{}
+	for i := range clusterList.Items {
+		requests = append(requests, ctrl.Request{NamespacedName: util.ObjectKey(&clusterList.Items[i])})
+	}
+	return requests
 }
 
 // machineDeploymentToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation

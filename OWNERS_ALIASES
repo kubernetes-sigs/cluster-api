@@ -30,6 +30,14 @@ aliases:
   - enxebre
 
   # -----------------------------------------------------------
+  # OWNER_ALIASES for controllers/topology
+  # -----------------------------------------------------------
+
+  cluster-api-topology-maintainers:
+  cluster-api-topology-reviewers:
+  - ykakarap
+
+  # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm
   # -----------------------------------------------------------
 

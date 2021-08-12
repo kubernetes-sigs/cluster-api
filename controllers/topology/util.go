@@ -39,6 +39,11 @@ func infrastructureMachineTemplateNamePrefix(clusterName, machineDeploymentTopol
 	return fmt.Sprintf("%s-%s-infra-", clusterName, machineDeploymentTopologyName)
 }
 
+// infrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
+func controlPlaneInfrastructureMachineTemplateNamePrefix(clusterName string) string {
+	return fmt.Sprintf("%s-controlplane-", clusterName)
+}
+
 // getReference gets the object referenced in ref.
 // If necessary, it updates the ref to the latest apiVersion of the current contract.
 func (r *ClusterReconciler) getReference(ctx context.Context, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
@@ -102,4 +107,20 @@ func objToRef(obj client.Object) *corev1.ObjectReference {
 		Namespace:  obj.GetNamespace(),
 		Name:       obj.GetName(),
 	}
+}
+
+// refToUnstructured returns an unstructured object with details from an ObjectReference.
+func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
+	uns := &unstructured.Unstructured{}
+	uns.SetAPIVersion(ref.APIVersion)
+	uns.SetKind(ref.Kind)
+	uns.SetNamespace(ref.Namespace)
+	uns.SetName(ref.Name)
+	return uns
+}
+
+// HasInfrastructureMachine checks whether the clusterClass mandates the controlPlane has infrastructureMachines
+// This function is in the wrong place for now - waiting on agreement for implmentation.
+func (c *controlPlaneTopologyClass) HasInfrastructureMachine() bool {
+	return c.infrastructureMachineTemplate != nil
 }

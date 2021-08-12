@@ -18,13 +18,13 @@ package topology
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/storage/names"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -33,13 +33,16 @@ import (
 // NOTE: We are assuming all the required objects are provided as input; also, in case of any error,
 // the entire reconcile operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
-func (r *ClusterReconciler) reconcileState(ctx context.Context, current, desired *clusterTopologyState) error {
+func (r *ClusterReconciler) reconcileState(ctx context.Context, cpClass controlPlaneTopologyClass, current, desired *clusterTopologyState) error {
 	// Reconcile desired state of the InfrastructureCluster object.
 	if err := r.reconcileInfrastructureCluster(ctx, current, desired); err != nil {
 		return err
 	}
 
-	// TODO: reconcile control plane
+	// Reconcile desired state of the ControlPlane object.
+	if err := r.reconcileControlPlane(ctx, cpClass, current, desired); err != nil {
+		return err
+	}
 
 	// Reconcile desired state of the InfrastructureCluster object.
 	if err := r.reconcileCluster(ctx, current, desired); err != nil {
@@ -53,6 +56,57 @@ func (r *ClusterReconciler) reconcileState(ctx context.Context, current, desired
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
 func (r *ClusterReconciler) reconcileInfrastructureCluster(ctx context.Context, current, desired *clusterTopologyState) error {
 	return r.reconcileReferencedObject(ctx, current.infrastructureCluster, desired.infrastructureCluster)
+}
+
+// reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
+// updating the cluster where needed.
+func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, class controlPlaneTopologyClass, current, desired *clusterTopologyState) error {
+	log := ctrl.LoggerFrom(ctx)
+	// Set a default nil return function for the cleanup operation.
+	cleanup := func() error { return nil }
+
+	// If the ControlPlane requires an InfrastructureMachineTemplate
+	// TODO: Check to ensure this is in the clusterclass - make this a common function.
+	// There's a possible issue with using get here - getControlPlaneState uses a class passed to it.
+	// This function also adds a side effect as it's a network call to an outside component - makes testing much more difficult.
+	if class.HasInfrastructureMachine() {
+		cpInfraRef, err := getNestedRef(desired.controlPlane.object, "spec", "machineTemplate", "infrastructureRef")
+		if err != nil {
+			return errors.Wrapf(err, "failed to update the %s object,", desired.controlPlane.infrastructureMachineTemplate.GetKind())
+		}
+
+		// Create or update the MachineInfrastructureTemplate of the control plane.
+		log.Info("Updating", desired.controlPlane.infrastructureMachineTemplate.GroupVersionKind().String(), desired.controlPlane.infrastructureMachineTemplate.GetName())
+		cleanup, err = r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+			ref:                  cpInfraRef,
+			current:              current.controlPlane.infrastructureMachineTemplate,
+			desired:              desired.controlPlane.infrastructureMachineTemplate,
+			compatibilityChecker: checkReferencedObjectsAreCompatible,
+			templateNamer: func() string {
+				return controlPlaneInfrastructureMachineTemplateNamePrefix(current.controlPlane.object.GetClusterName())
+			},
+		},
+		)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update the %s object", desired.controlPlane.infrastructureMachineTemplate.GetKind())
+		}
+
+		// The controlPlaneObject.Spec.machineTemplate.infrastructureRef has to be updated in the desired object
+		err = setNestedRef(desired.controlPlane.object, refToUnstructured(cpInfraRef), "spec", "machineTemplate", "infrastructureRef")
+		if err != nil {
+			return kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to update the %s object", desired.controlPlane.object.GetKind()), cleanup()})
+		}
+	}
+
+	// Create or update the ControlPlaneObject for the controlPlaneTopologyState.
+	log.Info("updating", desired.controlPlane.object.GroupVersionKind().String(), desired.controlPlane.object.GetName())
+	if err := r.reconcileReferencedObject(ctx, current.controlPlane.object, desired.controlPlane.object); err != nil {
+		return kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to update the %s object", desired.controlPlane.object.GetKind()), cleanup()})
+	}
+
+	// At this point we've updated the ControlPlane object and, where required, the ControlPlane InfrastructureMachineTemplate
+	// without error. Run the cleanup in order to delete the old InfrastructureMachineTemplate if template rotation was done during update.
+	return cleanup()
 }
 
 // reconcileCluster reconciles the desired state of the Cluster object.
@@ -295,10 +349,10 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 		// Create the new template.
 
 		// NOTE: it is required to assign a new name, because during compute the desired object name is enforced to be equal to the current one.
-		newName := in.templateNamer()
+		newName := names.SimpleNameGenerator.GenerateName(in.templateNamer())
 		in.desired.SetName(newName)
 
-		log.Info(fmt.Sprintf("rotating %s from %s to %s", in.desired.GroupVersionKind(), in.current.GetName(), newName))
+		log.Info("Rotating template", "gvk", in.desired.GroupVersionKind(), "current", in.current.GetName(), "desired", newName)
 
 		log.Info("creating", in.desired.GroupVersionKind().String(), in.desired.GetName())
 		if err := r.Client.Create(ctx, in.desired.DeepCopy()); err != nil {

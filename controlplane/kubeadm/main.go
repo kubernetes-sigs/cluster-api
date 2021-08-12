@@ -40,6 +40,7 @@ import (
 	kubeadmcontrolplanev1old "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	kubeadmcontrolplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -119,6 +120,8 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
+
+	feature.MutableGates.AddFlag(fs)
 }
 func main() {
 	rand.Seed(time.Now().UnixNano())

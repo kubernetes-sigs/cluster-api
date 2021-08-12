@@ -46,7 +46,8 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 		Spec: ClusterClassSpec{
 			Infrastructure: LocalObjectTemplate{Ref: ref},
 			ControlPlane: ControlPlaneClass{
-				LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+				LocalObjectTemplate:   LocalObjectTemplate{Ref: ref},
+				MachineInfrastructure: &LocalObjectTemplate{Ref: ref},
 			},
 			Workers: WorkersClass{
 				MachineDeployments: []MachineDeploymentClass{
@@ -69,6 +70,7 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 	g := NewWithT(t)
 	g.Expect(in.Spec.Infrastructure.Ref.Namespace).To(Equal(namespace))
 	g.Expect(in.Spec.ControlPlane.Ref.Namespace).To(Equal(namespace))
+	g.Expect(in.Spec.ControlPlane.MachineInfrastructure.Ref.Namespace).To(Equal(namespace))
 	for i := range in.Spec.Workers.MachineDeployments {
 		g.Expect(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace).To(Equal(namespace))
 		g.Expect(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace).To(Equal(namespace))

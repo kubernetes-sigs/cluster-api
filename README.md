@@ -5,7 +5,7 @@
 <a href="https://godoc.org/sigs.k8s.io/cluster-api"><img src="https://godoc.org/sigs.k8s.io/cluster-api?status.svg"></a>
 </p>
 
-# Cluster API
+# Cluster API 
 
 ### 👋 Welcome to our project! Our [Book](https://cluster-api.sigs.k8s.io) can help you get started and provides lots of in-depth information.
 
@@ -14,7 +14,7 @@
 - [Feature proposals](./docs/proposals)
 - [Reference use cases](./docs/staging-use-cases.md)
 - [Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html)
-
+ 
 ## ✨ What is the Cluster API?
 
 Cluster API is a Kubernetes sub-project focused on providing declarative APIs and tooling to simplify provisioning, upgrading, and operating multiple Kubernetes clusters.
@@ -63,4 +63,4 @@ Participation in the Kubernetes community is governed by the [Kubernetes Code of
 [Good first issue]: https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
 [Help wanted]: https://github.com/kubernetes-sigs/cluster-api/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+
 
-<!-- ANCHOR_END: Community -->
+<!-- ANCHOR_END: Community --> 

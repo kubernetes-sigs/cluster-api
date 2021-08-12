@@ -21,6 +21,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 )
 
@@ -172,4 +173,21 @@ func fixContainersImage(containers []corev1.Container, alterImageFunc func(image
 		container.Image = image
 	}
 	return nil
+}
+
+// IsDeploymentWithManager return true if obj is a deployment containing a pod with at least one container named 'manager',
+// that according to the clusterctl contract, identifies the provider's controller.
+func IsDeploymentWithManager(obj unstructured.Unstructured) bool {
+	if obj.GroupVersionKind().Kind == deploymentKind {
+		var dep appsv1.Deployment
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &dep); err != nil {
+			return false
+		}
+		for _, c := range dep.Spec.Template.Spec.Containers {
+			if c.Name == controllerContainerName {
+				return true
+			}
+		}
+	}
+	return false
 }

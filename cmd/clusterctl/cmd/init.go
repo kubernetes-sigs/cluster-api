@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -32,6 +33,8 @@ type initOptions struct {
 	infrastructureProviders []string
 	targetNamespace         string
 	listImages              bool
+	waitProviders           bool
+	waitProviderTimeout     int
 }
 
 var initOpts = &initOptions{}
@@ -100,6 +103,10 @@ func init() {
 		"Control plane providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
 	initCmd.Flags().StringVar(&initOpts.targetNamespace, "target-namespace", "",
 		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
+	initCmd.Flags().BoolVar(&initOpts.waitProviders, "wait-providers", false,
+		"Wait for providers to be installed.")
+	initCmd.Flags().IntVar(&initOpts.waitProviderTimeout, "wait-provider-timeout", 5*60,
+		"Wait timeout per provider installation in seconds. This value is ignored if --wait-providers is false")
 
 	// TODO: Move this to a sub-command or similar, it shouldn't really be a flag.
 	initCmd.Flags().BoolVar(&initOpts.listImages, "list-images", false,
@@ -122,6 +129,8 @@ func runInit() error {
 		InfrastructureProviders: initOpts.infrastructureProviders,
 		TargetNamespace:         initOpts.targetNamespace,
 		LogUsageInstructions:    true,
+		WaitProviders:           initOpts.waitProviders,
+		WaitProviderTimeout:     time.Duration(initOpts.waitProviderTimeout) * time.Second,
 	}
 
 	if initOpts.listImages {

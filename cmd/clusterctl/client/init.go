@@ -18,6 +18,7 @@ package client
 
 import (
 	"sort"
+	"time"
 
 	"github.com/pkg/errors"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -57,6 +58,12 @@ type InitOptions struct {
 
 	// LogUsageInstructions instructs the init command to print the usage instructions in case of first run.
 	LogUsageInstructions bool
+
+	// WaitProviders instructs the init command to wait till the providers are installed.
+	WaitProviders bool
+
+	// WaitProviderTimeout sets the timeout per provider wait installation
+	WaitProviderTimeout time.Duration
 
 	// SkipTemplateProcess allows for skipping the call to the template processor, including also variable replacement in the component YAML.
 	// NOTE this works only if the rawYaml is a valid yaml by itself, like e.g when using envsubst/the simple processor.
@@ -109,7 +116,11 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 		return nil, err
 	}
 
-	components, err := installer.Install()
+	installOpts := cluster.InstallOptions{
+		WaitProviders:       options.WaitProviders,
+		WaitProviderTimeout: options.WaitProviderTimeout,
+	}
+	components, err := installer.Install(installOpts)
 	if err != nil {
 		return nil, err
 	}

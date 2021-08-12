@@ -86,13 +86,33 @@ func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.Machine)
 
-	return Convert_v1alpha3_Machine_To_v1alpha4_Machine(src, dst, nil)
+	if err := Convert_v1alpha3_Machine_To_v1alpha4_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1alpha4.Machine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Status.NodeInfo = restored.Status.NodeInfo
+	return nil
 }
 
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.Machine)
 
-	return Convert_v1alpha4_Machine_To_v1alpha3_Machine(src, dst, nil)
+	if err := Convert_v1alpha4_Machine_To_v1alpha3_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
@@ -260,4 +280,8 @@ func Convert_v1alpha3_ClusterStatus_To_v1alpha4_ClusterStatus(in *ClusterStatus,
 
 func Convert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(in *ObjectMeta, out *v1alpha4.ObjectMeta, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(in, out, s)
+}
+
+func Convert_v1alpha4_MachineStatus_To_v1alpha3_MachineStatus(in *v1alpha4.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
+	return autoConvert_v1alpha4_MachineStatus_To_v1alpha3_MachineStatus(in, out, s)
 }

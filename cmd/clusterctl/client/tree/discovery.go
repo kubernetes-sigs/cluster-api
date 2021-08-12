@@ -18,7 +18,6 @@ package tree
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -68,11 +67,11 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 
 	// Adds control plane
 	if cluster.Spec.ControlPlaneRef == nil {
-		return nil, errors.New(fmt.Sprintf("spec.controlPlaneRef for Cluster %v is nil, this is unexpected", client.ObjectKeyFromObject(cluster)))
+		return nil, errors.Errorf("spec.controlPlaneRef for Cluster %v is nil, this is unexpected", client.ObjectKeyFromObject(cluster))
 	}
 	controlPlane, err := external.Get(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to get controlplane for cluster %v", client.ObjectKeyFromObject(cluster)))
+		return nil, errors.Wrapf(err, "failed to get controlplane for cluster %v", client.ObjectKeyFromObject(cluster))
 	}
 	tree.Add(cluster, controlPlane, ObjectMetaName("ControlPlane"), GroupingObject(true))
 

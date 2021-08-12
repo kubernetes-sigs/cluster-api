@@ -402,34 +402,66 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			wantErr:             true,
 		},
 		{
-			name:                "ControlPlane does exist, with same version (no-op)",
-			topologyVersion:     "v1.21.0",
-			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.21.0").Obj(),
-			want:                "v1.21.0",
+			name:            "ControlPlane does exist, with same version (no-op)",
+			topologyVersion: "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").
+				WithVersion("v1.21.0").
+				WithStatusVersion("v1.21.0").
+				Obj(),
+			want: "v1.21.0",
 		},
 		{
-			name:                "ControlPlane does exist, with newer version (downgrade)",
-			topologyVersion:     "v1.21.0",
-			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.22.0").Obj(),
-			wantErr:             true,
+			name:            "ControlPlane does exist, with newer version (downgrade)",
+			topologyVersion: "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").
+				WithVersion("v1.22.0").
+				WithStatusVersion("v1.22.0").
+				Obj(),
+			wantErr: true,
 		},
 		{
-			name:                "ControlPlane does exist, with invalid version",
-			topologyVersion:     "v1.21.0",
-			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("invalid-version").Obj(),
-			wantErr:             true,
+			name:            "ControlPlane does exist, with invalid version",
+			topologyVersion: "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").
+				WithVersion("invalid-version").
+				WithStatusVersion("invalid-version").
+				Obj(),
+			wantErr: true,
 		},
 		{
-			name:                "ControlPlane does exist, with valid version but invalid topology version",
-			topologyVersion:     "invalid-version",
-			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.21.0").Obj(),
-			wantErr:             true,
+			name:            "ControlPlane does exist, with valid version but invalid topology version",
+			topologyVersion: "invalid-version",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").
+				WithVersion("v1.21.0").
+				WithStatusVersion("v1.21.0").
+				Obj(),
+			wantErr: true,
 		},
 		{
-			name:                "ControlPlane does exist, with older version (upgrade)",
-			topologyVersion:     "v1.21.0",
-			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.20.0").Obj(),
-			want:                "v1.21.0",
+			name:            "ControlPlane does exist, with older version (upgrade)",
+			topologyVersion: "v1.21.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").
+				WithVersion("v1.20.0").
+				WithStatusVersion("v1.20.0").
+				Obj(),
+			want: "v1.21.0",
+		},
+		{
+			name:            "ControlPlane does exist, with older version (upgrade) but another upgrade is already in progress (.status.version has older version)",
+			topologyVersion: "v1.22.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").
+				WithVersion("v1.21.0").
+				WithStatusVersion("v1.20.0").
+				Obj(),
+			want: "v1.21.0",
+		},
+		{
+			name:            "ControlPlane does exist, with older version (upgrade) but another upgrade is already in progress (.status.version is not set)",
+			topologyVersion: "v1.22.0",
+			currentControlPlane: newFakeControlPlane(metav1.NamespaceDefault, "cp").
+				WithVersion("v1.21.0").
+				Obj(),
+			want: "v1.21.0",
 		},
 	}
 

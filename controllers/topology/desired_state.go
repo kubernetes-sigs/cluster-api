@@ -19,6 +19,7 @@ package topology
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -153,51 +154,56 @@ func computeControlPlane(class *clusterTopologyClass, current *clusterTopologySt
 
 // computeControlPlaneVersion computes the ControlPlane version based on the current clusterTopologyState.
 // TODO: we also have to handle the following cases:
-// * ControlPlane.spec.version != ControlPlane.status.version, i.e. ControlPLane rollout is already in progress.
 // * ControlPlane.spec.version != MachineDeployment[].spec.template.spec.version, i.e. one of the MachineDeployments has
 //   a different version then the ControlPlane.
 func computeControlPlaneVersion(current *clusterTopologyState) (string, error) {
-	currentTopologyVersion := current.cluster.Spec.Topology.Version
+	topologyVersion := current.cluster.Spec.Topology.Version
 
-	// ControlPlane does not exist yet, use currentTopologyVersion for new ControlPlane.
+	// ControlPlane does not exist yet, use topologyVersion for new ControlPlane.
 	if current.controlPlane.object == nil {
-		return currentTopologyVersion, nil
+		return topologyVersion, nil
 	}
 
-	currentControlPlaneVersion, err := getControlPlaneVersion(current.controlPlane.object)
+	controlPlaneVersion, ok, err := getControlPlaneVersion(current.controlPlane.object, "spec", "version")
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", errors.Errorf("failed to get .spec.version from ControlPlane: not found")
+	}
+	controlPlaneStatusVersion, statusVersionSet, err := getControlPlaneVersion(current.controlPlane.object, "status", "version")
 	if err != nil {
 		return "", err
 	}
 
-	// ControlPlane already has the currentTopologyVersion.
-	if currentControlPlaneVersion == currentTopologyVersion {
-		return currentTopologyVersion, nil
+	// Do not trigger another rollout, while a rollout is already in progress. A rollout is still in progress if:
+	// * .status.version is not set
+	// * .status.version is set but not equal to .spec.version
+	if !statusVersionSet || controlPlaneVersion != controlPlaneStatusVersion {
+		return controlPlaneVersion, nil
 	}
 
 	// ControlPlane downgrade is not allowed.
-	if err := detectDowngrade(currentControlPlaneVersion, currentTopologyVersion); err != nil {
+	if err := isDowngrade(controlPlaneVersion, topologyVersion); err != nil {
 		return "", err
 	}
 
-	// ControlPlane will be upgraded.
-	return currentTopologyVersion, nil
+	// Either no-op or ControlPlane will be upgraded.
+	return topologyVersion, nil
 }
 
-// getControlPlaneVersion gets the .spec.version of a ControlPlane.
-func getControlPlaneVersion(controlPlane *unstructured.Unstructured) (string, error) {
-	controlPlaneVersion, ok, err := unstructured.NestedString(controlPlane.UnstructuredContent(), "spec", "version")
+// getControlPlaneVersion gets the version from the specified path of a ControlPlane.
+func getControlPlaneVersion(controlPlane *unstructured.Unstructured, path ...string) (string, bool, error) {
+	version, ok, err := unstructured.NestedString(controlPlane.UnstructuredContent(), path...)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get spec.version from ControlPlane")
+		return "", ok, errors.Wrapf(err, "failed to get %s from ControlPlane", strings.Join(path, "."))
 	}
-	if !ok {
-		return "", errors.New("failed to get spec.version from ControlPlane: not found")
-	}
-	return controlPlaneVersion, nil
+	return version, ok, nil
 }
 
-// detectDowngrade compares currentVersion and desiredVersion and returns an error if they either cannot be parsed
+// isDowngrade compares currentVersion and desiredVersion and returns an error if they either cannot be parsed
 // or if a downgrade is detected.
-func detectDowngrade(currentVersion, desiredVersion string) error {
+func isDowngrade(currentVersion, desiredVersion string) error {
 	currentVersionParsed, err := version.ParseMajorMinorPatch(currentVersion)
 	if err != nil {
 		return errors.Errorf("failed to parse current version %q: %v", currentVersion, err)
@@ -207,7 +213,7 @@ func detectDowngrade(currentVersion, desiredVersion string) error {
 		return errors.Errorf("failed to parse desired version %q: %v", desiredVersion, err)
 	}
 	if desiredVersionParsed.LT(currentVersionParsed) {
-		return errors.Errorf("downgrade from %s to %s is not supported", currentVersion, desiredVersion)
+		return errors.Errorf("downgrading from %s to %s is not supported", currentVersion, desiredVersion)
 	}
 	return nil
 }

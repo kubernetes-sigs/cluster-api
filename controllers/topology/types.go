@@ -48,7 +48,7 @@ type clusterTopologyState struct {
 	cluster               *clusterv1.Cluster
 	infrastructureCluster *unstructured.Unstructured
 	controlPlane          controlPlaneTopologyState
-	machineDeployments    []machineDeploymentTopologyState //nolint:structcheck
+	machineDeployments    map[string]machineDeploymentTopologyState
 }
 
 // controlPlaneTopologyState all the objects representing the state of a managed control plane.
@@ -59,7 +59,7 @@ type controlPlaneTopologyState struct {
 
 // machineDeploymentTopologyState all the objects representing the state of a managed deployment.
 type machineDeploymentTopologyState struct {
-	object                        *clusterv1.MachineDeployment //nolint:structcheck
-	bootstrapTemplate             *unstructured.Unstructured   //nolint:structcheck
-	infrastructureMachineTemplate *unstructured.Unstructured   //nolint:structcheck
+	object                        *clusterv1.MachineDeployment
+	bootstrapTemplate             *unstructured.Unstructured
+	infrastructureMachineTemplate *unstructured.Unstructured
 }

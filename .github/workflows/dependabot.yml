@@ -24,7 +24,7 @@ jobs:
     - uses: actions/cache@v2
       name: Restore go cache
       with:
-        path: |
+        path: | 
           ~/.cache/go-build
           ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}

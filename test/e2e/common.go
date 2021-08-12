@@ -33,7 +33,7 @@ import (
 
 // Test suite constants for e2e config variables.
 const (
-	ManagementKubernetesVersion  = "MANAGEMENT_KUBERNETES_VERSION"
+	KubernetesVersionManagement  = "KUBERNETES_VERSION_MANAGEMENT"
 	KubernetesVersion            = "KUBERNETES_VERSION"
 	CNIPath                      = "CNI"
 	CNIResources                 = "CNI_RESOURCES"

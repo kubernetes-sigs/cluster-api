@@ -18,6 +18,7 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	. "github.com/onsi/gomega"
@@ -32,8 +33,8 @@ const (
 	// DefaultNodeImageRepository is the default node image repository to be used for testing.
 	DefaultNodeImageRepository = "kindest/node"
 
-	// DefaultNodeImage is the default node image to be used for testing.
-	DefaultNodeImage = DefaultNodeImageRepository + ":v1.22.0"
+	// DefaultNodeImageVersion is the default Kubernetes version to be used for creating a kind cluster.
+	DefaultNodeImageVersion = "v1.22.0"
 )
 
 // KindClusterOption is a NewKindClusterProvider option.
@@ -132,7 +133,7 @@ func (k *KindClusterProvider) createKindCluster() {
 
 	kindCreateOptions = append(kindCreateOptions, kind.CreateWithV1Alpha4Config(cfg))
 
-	nodeImage := DefaultNodeImage
+	nodeImage := fmt.Sprintf("%s:%s", DefaultNodeImageRepository, DefaultNodeImageVersion)
 	if k.nodeImage != "" {
 		nodeImage = k.nodeImage
 	}

@@ -196,11 +196,43 @@ type ControlPlaneWaiters struct {
 	WaitForControlPlaneMachinesReady Waiter
 }
 
+// ApplyClusterTemplateAndWaitResult is the output type for ApplyClusterTemplateAndWait.
 type ApplyClusterTemplateAndWaitResult struct {
 	Cluster            *clusterv1.Cluster
 	ControlPlane       *controlplanev1.KubeadmControlPlane
 	MachineDeployments []*clusterv1.MachineDeployment
 	MachinePools       []*clusterv1exp.MachinePool
+}
+
+// ExpectedWorkerNodes returns the expected number of worker nodes that will
+// be provisioned by the given cluster template.
+func (r *ApplyClusterTemplateAndWaitResult) ExpectedWorkerNodes() int32 {
+	expectedWorkerNodes := int32(0)
+
+	for _, md := range r.MachineDeployments {
+		if md.Spec.Replicas != nil {
+			expectedWorkerNodes += *md.Spec.Replicas
+		}
+	}
+	for _, mp := range r.MachinePools {
+		if mp.Spec.Replicas != nil {
+			expectedWorkerNodes += *mp.Spec.Replicas
+		}
+	}
+
+	return expectedWorkerNodes
+}
+
+// ExpectedTotalNodes returns the expected number of nodes that will
+// be provisioned by the given cluster template.
+func (r *ApplyClusterTemplateAndWaitResult) ExpectedTotalNodes() int32 {
+	expectedNodes := r.ExpectedWorkerNodes()
+
+	if r.ControlPlane != nil && r.ControlPlane.Spec.Replicas != nil {
+		expectedNodes += *r.ControlPlane.Spec.Replicas
+	}
+
+	return expectedNodes
 }
 
 // ApplyClusterTemplateAndWait gets a cluster template using clusterctl, and waits for the cluster to be ready.

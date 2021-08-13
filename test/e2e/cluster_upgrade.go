@@ -84,10 +84,9 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		By("Creating a workload cluster")
 
 		var controlPlaneMachineCount int64 = 1
-		// clusterTemplateWorkerMachineCount is used for ConfigCluster, as it is used for MachineDeployment and
-		// MachinePool, we actually get 2 * clusterTemplateWorkerMachineCount Machines
+		// clusterTemplateWorkerMachineCount is used for ConfigCluster, as it is used for MachineDeployments and
+		// MachinePools
 		var clusterTemplateWorkerMachineCount int64 = 2
-		var workerMachineCount = 2 * clusterTemplateWorkerMachineCount
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
@@ -131,14 +130,18 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
 
-		By("Upgrading the machinepool instances")
-		framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
-			ClusterProxy:                   input.BootstrapClusterProxy,
-			Cluster:                        clusterResources.Cluster,
-			UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
-			MachinePools:                   clusterResources.MachinePools,
-		})
+		// Only attempt to upgrade MachinePools if they were provided in the template,
+		// also adjust the expected workerMachineCount if we have MachinePools
+		if len(clusterResources.MachinePools) > 0 {
+			By("Upgrading the machinepool instances")
+			framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
+				ClusterProxy:                   input.BootstrapClusterProxy,
+				Cluster:                        clusterResources.Cluster,
+				UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+				MachinePools:                   clusterResources.MachinePools,
+			})
+		}
 
 		By("Waiting until nodes are ready")
 		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
@@ -146,7 +149,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		framework.WaitForNodesReady(ctx, framework.WaitForNodesReadyInput{
 			Lister:            workloadClient,
 			KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			Count:             int(controlPlaneMachineCount + workerMachineCount),
+			Count:             int(clusterResources.ExpectedTotalNodes()),
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
@@ -157,10 +160,10 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				ctx,
 				kubetest.RunInput{
 					ClusterProxy:       workloadProxy,
-					NumberOfNodes:      int(workerMachineCount),
+					NumberOfNodes:      int(clusterResources.ExpectedWorkerNodes()),
 					ArtifactsDirectory: input.ArtifactFolder,
 					ConfigFilePath:     kubetestConfigFilePath,
-					GinkgoNodes:        int(workerMachineCount),
+					GinkgoNodes:        int(clusterResources.ExpectedWorkerNodes()),
 				},
 			)
 			Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")

@@ -112,7 +112,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
 		"Path to clusterctl configuration (default is `$HOME/.cluster-api/clusterctl.yaml`) or to a remote location (i.e. https://example.com/clusterctl.yaml)")
 
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig, registerCompletionFuncForCommonFlags)
 }
 
 func initConfig() {
@@ -133,6 +133,24 @@ func initConfig() {
 	}
 
 	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
+}
+
+func registerCompletionFuncForCommonFlags() {
+	visitCommands(RootCmd, func(cmd *cobra.Command) {
+		if f := cmd.Flags().Lookup("kubeconfig"); f != nil {
+			kubeconfig := f.Value.String()
+
+			// context in kubeconfig
+			for _, flagName := range []string{"kubeconfig-context", "to-kubeconfig-context"} {
+				_ = cmd.RegisterFlagCompletionFunc(flagName, contextCompletionFunc(&kubeconfig))
+			}
+
+			// namespace
+			for _, flagName := range []string{"namespace", "target-namespace", "from-config-map-namespace"} {
+				_ = cmd.RegisterFlagCompletionFunc(flagName, resourceNameCompletionFunc(&kubeconfig, "v1", "namespace"))
+			}
+		}
+	})
 }
 
 const indentation = `  `

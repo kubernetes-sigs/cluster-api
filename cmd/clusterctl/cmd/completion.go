@@ -23,6 +23,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
 
 const completionBoilerPlate = `# Copyright 2021 The Kubernetes Authors.
@@ -137,4 +139,43 @@ func runCompletionZsh(out io.Writer, cmd *cobra.Command) error {
 	fmt.Fprintln(out, "compdef _clusterctl clusterctl")
 
 	return nil
+}
+
+func contextCompletionFunc(kubeconfig *string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		configClient, err := config.New(cfgFile)
+		if err != nil {
+			return completionError(err)
+		}
+
+		client := cluster.New(cluster.Kubeconfig{Path: *kubeconfig}, configClient)
+		comps, err := client.Proxy().GetContexts(toComplete)
+		if err != nil {
+			return completionError(err)
+		}
+
+		return comps, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
+func resourceNameCompletionFunc(kubeconfig *string, groupVersion, kind string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		configClient, err := config.New(cfgFile)
+		if err != nil {
+			return completionError(err)
+		}
+
+		client := cluster.New(cluster.Kubeconfig{Path: *kubeconfig}, configClient)
+		comps, err := client.Proxy().GetResourceNames(groupVersion, kind, nil, toComplete)
+		if err != nil {
+			return completionError(err)
+		}
+
+		return comps, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
+func completionError(err error) ([]string, cobra.ShellCompDirective) {
+	cobra.CompError(err.Error())
+	return nil, cobra.ShellCompDirectiveError
 }

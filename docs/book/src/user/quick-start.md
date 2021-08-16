@@ -96,7 +96,7 @@ The clusterctl CLI tool handles the lifecycle of a Cluster API management cluste
 {{#tab linux}}
 
 #### Install clusterctl binary with curl on linux
-To download version v0.3.0 on linux, type:
+Download the latest release; on linux, type:
 ```
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"0.3.x"}} -o clusterctl
 ```
@@ -117,7 +117,7 @@ clusterctl version
 {{#tab macOS}}
 
 ##### Install clusterctl binary with curl on macOS
-To download version v0.3.0 on macOS, type:
+Download the latest release; on macOS, type:
 ```
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"0.3.x"}} -o clusterctl
 ```

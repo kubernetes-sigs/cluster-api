@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	goruntime "runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -185,13 +186,24 @@ func new(uncachedObjs ...client.Object) *Environment {
 		objs = append(objs, uncachedObjs...)
 	}
 
+	// Localhost is used on MacOS to avoid Firewall warning popups.
+	host := "localhost"
+	if strings.ToLower(os.Getenv("USE_EXISTING_CLUSTER")) == "true" {
+		// 0.0.0.0 is required on Linux when using kind because otherwise the kube-apiserver running in kind
+		// is unable to reach the webhook, because the webhook would be only binded on 127.0.0.1.
+		// Somehow that's not an issue on MacOS.
+		if goruntime.GOOS == "linux" {
+			host = "0.0.0.0"
+		}
+	}
+
 	options := manager.Options{
 		Scheme:                scheme.Scheme,
 		MetricsBindAddress:    "0",
 		CertDir:               env.WebhookInstallOptions.LocalServingCertDir,
 		Port:                  env.WebhookInstallOptions.LocalServingPort,
 		ClientDisableCacheFor: objs,
-		Host:                  "localhost",
+		Host:                  host,
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)

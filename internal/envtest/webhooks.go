@@ -74,13 +74,25 @@ func initWebhookInstallOptions() envtest.WebhookInstallOptions {
 	if err != nil {
 		klog.Fatalf("Failed to append controlplane controller webhook config: %v", err)
 	}
+
+	var localServingHostExternalName string
+	if strings.ToLower(os.Getenv("USE_EXISTING_CLUSTER")) == "true" {
+		if goruntime.GOOS == "darwin" {
+			// On MacOS with Docker for Mac localhost is reachable via "docker.for.mac.localhost".
+			localServingHostExternalName = "docker.for.mac.localhost"
+		}
+		if goruntime.GOOS == "linux" {
+			// docker network inspect kind [0].IPA.Config[0].Gateway
+			localServingHostExternalName = "172.18.0.1"
+		}
+	}
+
 	return envtest.WebhookInstallOptions{
 		MaxTime:                      20 * time.Second,
 		PollInterval:                 time.Second,
 		ValidatingWebhooks:           validatingWebhooks,
 		MutatingWebhooks:             mutatingWebhooks,
-		// MacOS: docker.for.mac.localhost
-		LocalServingHostExternalName: os.Getenv("CAPI_WEBHOOK_HOSTNAME"),
+		LocalServingHostExternalName: localServingHostExternalName,
 	}
 }
 

@@ -18,6 +18,7 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -34,13 +35,16 @@ import (
 
 // CreateKindBootstrapClusterAndLoadImagesInput is the input for CreateKindBootstrapClusterAndLoadImages.
 type CreateKindBootstrapClusterAndLoadImagesInput struct {
-	// Name of the cluster
+	// Name of the cluster.
 	Name string
 
-	// RequiresDockerSock defines if the cluster requires the docker sock
+	// KubernetesVersion of the cluster.
+	KubernetesVersion string
+
+	// RequiresDockerSock defines if the cluster requires the docker sock.
 	RequiresDockerSock bool
 
-	// Images to be loaded in the cluster (this is kind specific)
+	// Images to be loaded in the cluster.
 	Images []clusterctl.ContainerImage
 
 	// IPFamily is either ipv4 or ipv6. Default is ipv4.
@@ -55,6 +59,9 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	log.Logf("Creating a kind cluster with name %q", input.Name)
 
 	options := []KindClusterOption{}
+	if input.KubernetesVersion != "" {
+		options = append(options, WithNodeImage(fmt.Sprintf("%s:%s", DefaultNodeImageRepository, input.KubernetesVersion)))
+	}
 	if input.RequiresDockerSock {
 		options = append(options, WithDockerSockMount())
 	}

@@ -725,7 +725,7 @@ Azure [does not currently support Calico networking](https://docs.projectcalico.
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-azure/master/templates/addons/calico.yaml
+  apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-azure/main/templates/addons/calico.yaml
 ```
 
 After a short while, our nodes should be running and in `Ready` state,
@@ -743,7 +743,7 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 Delete workload cluster.
 ```bash
 kubectl delete cluster capi-quickstart
-```        
+```
 <aside class="note warning">
 
 IMPORTANT: In order to ensure a proper cleanup of your infrastructure you must always delete the cluster object. Deleting the entire cluster template with `kubectl delete -f capi-quickstart.yaml` might lead to pending resources to be cleaned up manually.

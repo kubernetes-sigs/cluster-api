@@ -419,6 +419,124 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.Spec.ControlPlaneRef).To(Equal(objToRef(controlPlane)))
 }
 
+func TestComputeMachineDeployment(t *testing.T) {
+	workerInfrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "linux-worker-inframachinetemplate").Obj()
+	workerBootstrapTemplate := newFakeBootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstraptemplate").Obj()
+
+	labels := map[string]string{"fizz": "buzz", "foo": "bar"}
+	annotations := map[string]string{"annotation-1": "annotation-1-val"}
+
+	fakeClass := newFakeClusterClass(metav1.NamespaceDefault, "class1").
+		WithWorkerMachineDeploymentClass("linux-worker", labels, annotations, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
+		Obj()
+	class := &clusterTopologyClass{
+		clusterClass: fakeClass,
+		machineDeployments: map[string]machineDeploymentTopologyClass{
+			"linux-worker": {
+				metadata: clusterv1.ObjectMeta{
+					Labels:      labels,
+					Annotations: annotations,
+				},
+				bootstrapTemplate:             workerBootstrapTemplate,
+				infrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+			},
+		},
+	}
+
+	current := &clusterTopologyState{
+		cluster: newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
+	}
+
+	replicas := 5
+	mdTopology := clusterv1.MachineDeploymentTopology{
+		Metadata: clusterv1.ObjectMeta{
+			Labels: map[string]string{"foo": "baz"},
+		},
+		Class:    "linux-worker",
+		Name:     "big-pool-of-machines",
+		Replicas: &replicas,
+	}
+
+	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
+		g := NewWithT(t)
+		actual, err := computeMachineDeployment(class, current, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		actualMd := actual.object
+		g.Expect(*actualMd.Spec.Replicas).To(Equal(int32(replicas)))
+		g.Expect(actualMd.Spec.ClusterName).To(Equal("cluster1"))
+		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
+		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
+
+		g.Expect(actualMd.Labels).To(HaveKeyWithValue("foo", "baz"))
+		g.Expect(actualMd.Labels).To(HaveKeyWithValue("fizz", "buzz"))
+		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+
+		g.Expect(actualMd.Spec.Template.Spec.InfrastructureRef.Name).ToNot(Equal("linux-worker-inframachinetemplate"))
+		g.Expect(actualMd.Spec.Template.Spec.Bootstrap.ConfigRef.Name).ToNot(Equal("linux-worker-bootstraptemplate"))
+	})
+
+	t.Run("If there is already a machine deployment, it preserves the object name and the reference names", func(t *testing.T) {
+		g := NewWithT(t)
+
+		currentReplicas := int32(3)
+		currentMd := &clusterv1.MachineDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "existing-deployment-1",
+				Labels: map[string]string{"a": "1", "b": "2"},
+			},
+			Spec: clusterv1.MachineDeploymentSpec{
+				Replicas: &currentReplicas,
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						Bootstrap: clusterv1.Bootstrap{
+							ConfigRef: objToRef(workerBootstrapTemplate),
+						},
+						InfrastructureRef: *objToRef(workerInfrastructureMachineTemplate),
+					},
+				},
+			},
+		}
+		current.machineDeployments = map[string]machineDeploymentTopologyState{
+			"big-pool-of-machines": {
+				object:                        currentMd,
+				bootstrapTemplate:             workerBootstrapTemplate,
+				infrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+			},
+		}
+
+		actual, err := computeMachineDeployment(class, current, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		actualMd := actual.object
+		g.Expect(*actualMd.Spec.Replicas).NotTo(Equal(currentReplicas))
+		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
+
+		g.Expect(actualMd.Labels).NotTo(HaveKey("a"))
+		g.Expect(actualMd.Labels).NotTo(HaveKey("b"))
+		g.Expect(actualMd.Labels).To(HaveKeyWithValue("foo", "baz"))
+		g.Expect(actualMd.Labels).To(HaveKeyWithValue("fizz", "buzz"))
+		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+
+		g.Expect(actualMd.Spec.Template.Spec.InfrastructureRef.Name).To(Equal("linux-worker-inframachinetemplate"))
+		g.Expect(actualMd.Spec.Template.Spec.Bootstrap.ConfigRef.Name).To(Equal("linux-worker-bootstraptemplate"))
+	})
+
+	t.Run("If a machine deployment references a topology class that does not exist, machine deployment generation fails", func(t *testing.T) {
+		g := NewWithT(t)
+		mdTopology = clusterv1.MachineDeploymentTopology{
+			Metadata: clusterv1.ObjectMeta{
+				Labels: map[string]string{"foo": "baz"},
+			},
+			Class: "windows-worker",
+			Name:  "big-pool-of-machines",
+		}
+
+		_, err := computeMachineDeployment(class, current, mdTopology)
+		g.Expect(err).To(HaveOccurred())
+	})
+}
+
 func TestTemplateToObject(t *testing.T) {
 	template := newFakeInfrastructureClusterTemplate(metav1.NamespaceDefault, "infrastructureClusterTemplate").Obj()
 	cluster := &clusterv1.Cluster{

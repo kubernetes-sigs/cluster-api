@@ -69,12 +69,10 @@ issues:
   # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
   # changes in PRs and avoid nitpicking.
   exclude-use-default: false
-  # List of regexps of issue texts to exclude, empty list by default.
-  exclude:
-  # The following are being worked on to remove their exclusion. This list should be reduced or go away all together over time.
-  # If it is decided they will not be addressed they should be moved above this comment.
-  - 'G307: Deferring unsafe method "Close" on type "\*os.File"'
   exclude-rules:
+  - linters:
+    - gosec
+    text: 'G307: Deferring unsafe method "Close" on type "\*os.File"'
   - linters:
     - gosec
     text: "G108: Profiling endpoint is automatically exposed on /debug/pprof"

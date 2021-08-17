@@ -190,7 +190,7 @@ func new(uncachedObjs ...client.Object) *Environment {
 	host := "localhost"
 	if strings.ToLower(os.Getenv("USE_EXISTING_CLUSTER")) == "true" {
 		// 0.0.0.0 is required on Linux when using kind because otherwise the kube-apiserver running in kind
-		// is unable to reach the webhook, because the webhook would be only binded on 127.0.0.1.
+		// is unable to reach the webhook, because the webhook would be only listening on 127.0.0.1.
 		// Somehow that's not an issue on MacOS.
 		if goruntime.GOOS == "linux" {
 			host = "0.0.0.0"

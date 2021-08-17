@@ -67,13 +67,13 @@ func TestGetCurrentState(t *testing.T) {
 	labelsNotInClass := map[string]string{clusterv1.ClusterLabelName: "non-existent-cluster", clusterv1.ClusterTopologyLabelName: "", clusterv1.ClusterTopologyMachineDeploymentLabelName: "md1"}
 	labelsUnmanaged := map[string]string{clusterv1.ClusterLabelName: "cluster1"}
 	labelsManagedWithoutDeploymentName := map[string]string{clusterv1.ClusterLabelName: "cluster1", clusterv1.ClusterTopologyLabelName: ""}
-	machineDeploymentInCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "proper-labels").WithLabels(labelsInClass).WithBootstrapRef(machineDeploymentBootstrap).WithInfraTemplateRef(machineDeploymentInfrastructure).Obj()
-	duplicateMachineDeploymentInCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "duplicate-labels").WithLabels(labelsInClass).WithBootstrapRef(machineDeploymentBootstrap).WithInfraTemplateRef(machineDeploymentInfrastructure).Obj()
-	machineDeploymentNoBootstrap := newFakeMachineDeployment(metav1.NamespaceDefault, "no-bootstrap").WithLabels(labelsInClass).WithInfraTemplateRef(machineDeploymentInfrastructure).Obj()
-	machineDeploymentNoInfrastructure := newFakeMachineDeployment(metav1.NamespaceDefault, "no-infra").WithLabels(labelsInClass).WithBootstrapRef(machineDeploymentBootstrap).Obj()
-	machineDeploymentOutsideCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "wrong-cluster-label").WithLabels(labelsNotInClass).WithBootstrapRef(machineDeploymentBootstrap).WithInfraTemplateRef(machineDeploymentInfrastructure).Obj()
-	machineDeploymentUnmanaged := newFakeMachineDeployment(metav1.NamespaceDefault, "no-managed-label").WithLabels(labelsUnmanaged).WithBootstrapRef(machineDeploymentBootstrap).WithInfraTemplateRef(machineDeploymentInfrastructure).Obj()
-	machineDeploymentWithoutDeploymentName := newFakeMachineDeployment(metav1.NamespaceDefault, "missing-topology-md-labelName").WithLabels(labelsManagedWithoutDeploymentName).WithBootstrapRef(machineDeploymentBootstrap).WithInfraTemplateRef(machineDeploymentInfrastructure).Obj()
+	machineDeploymentInCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "proper-labels").WithLabels(labelsInClass).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
+	duplicateMachineDeploymentInCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "duplicate-labels").WithLabels(labelsInClass).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
+	machineDeploymentNoBootstrap := newFakeMachineDeployment(metav1.NamespaceDefault, "no-bootstrap").WithLabels(labelsInClass).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
+	machineDeploymentNoInfrastructure := newFakeMachineDeployment(metav1.NamespaceDefault, "no-infra").WithLabels(labelsInClass).WithBootstrapTemplate(machineDeploymentBootstrap).Obj()
+	machineDeploymentOutsideCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "wrong-cluster-label").WithLabels(labelsNotInClass).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
+	machineDeploymentUnmanaged := newFakeMachineDeployment(metav1.NamespaceDefault, "no-managed-label").WithLabels(labelsUnmanaged).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
+	machineDeploymentWithoutDeploymentName := newFakeMachineDeployment(metav1.NamespaceDefault, "missing-topology-md-labelName").WithLabels(labelsManagedWithoutDeploymentName).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
 	emptyMachineDeployments := make(map[string]machineDeploymentTopologyState)
 
 	tests := []struct {

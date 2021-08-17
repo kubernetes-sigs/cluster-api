@@ -507,19 +507,19 @@ type fakeMachineDeployment struct {
 	labels                 map[string]string
 }
 
-func newFakeMachineDeployment(namespace string, name string) *fakeMachineDeployment {
+func newFakeMachineDeployment(namespace, name string) *fakeMachineDeployment {
 	return &fakeMachineDeployment{
 		name:      name,
 		namespace: namespace,
 	}
 }
 
-func (f *fakeMachineDeployment) WithBootstrapRef(ref *unstructured.Unstructured) *fakeMachineDeployment {
+func (f *fakeMachineDeployment) WithBootstrapTemplate(ref *unstructured.Unstructured) *fakeMachineDeployment {
 	f.bootstrapTemplate = ref
 	return f
 }
 
-func (f *fakeMachineDeployment) WithInfraTemplateRef(ref *unstructured.Unstructured) *fakeMachineDeployment {
+func (f *fakeMachineDeployment) WithInfrastructureTemplate(ref *unstructured.Unstructured) *fakeMachineDeployment {
 	f.infrastructureTemplate = ref
 	return f
 }
@@ -539,13 +539,6 @@ func (f *fakeMachineDeployment) Obj() *clusterv1.MachineDeployment {
 			Name:      f.name,
 			Namespace: f.namespace,
 			Labels:    f.labels,
-		},
-		Spec: clusterv1.MachineDeploymentSpec{
-			Template: clusterv1.MachineTemplateSpec{
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{},
-				},
-			},
 		},
 	}
 	if f.bootstrapTemplate != nil {

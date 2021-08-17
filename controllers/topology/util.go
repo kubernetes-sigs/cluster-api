@@ -18,6 +18,7 @@ package topology
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -27,6 +28,16 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// bootstrapTemplateNamePrefix calculates the name prefix for a BootstrapTemplate.
+func bootstrapTemplateNamePrefix(clusterName, machineDeploymentTopologyName string) string {
+	return fmt.Sprintf("%s-%s-bootstrap-", clusterName, machineDeploymentTopologyName)
+}
+
+// infrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
+func infrastructureMachineTemplateNamePrefix(clusterName, machineDeploymentTopologyName string) string {
+	return fmt.Sprintf("%s-%s-infra-", clusterName, machineDeploymentTopologyName)
+}
 
 // getReference gets the object referenced in ref.
 // If necessary, it updates the ref to the latest apiVersion of the current contract.

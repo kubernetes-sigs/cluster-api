@@ -30,7 +30,7 @@ const (
 	ClusterTopologyLabelName = "cluster.x-k8s.io/topology"
 
 	// ClusterTopologyMachineDeploymentLabelName is the label set on the generated  MachineDeployment objects
-	// to track the name of the machine deployment topology it represents.
+	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentLabelName = "cluster.x-k8s.io/topology/deployment-name"
 
 	// ProviderLabelName is the label set on components in the provider manifest.

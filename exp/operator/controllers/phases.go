@@ -27,6 +27,7 @@ import (
 	configclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
+	"sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 	"sigs.k8s.io/cluster-api/exp/operator/util"
@@ -59,39 +60,15 @@ func (s *PhaseError) Error() string {
 	return s.Err.Error()
 }
 
-func NewPreFlightError(err error, reason string) error {
+func ifErrorWrapPhaseError(err error, reason string, ctype clusterv1.ConditionType) error {
 	if err == nil {
 		return nil
 	}
 	return &PhaseError{
 		Err:      err,
-		Type:     operatorv1.PreflightCheckCondition,
+		Type:     ctype,
 		Reason:   reason,
 		Severity: clusterv1.ConditionSeverityWarning,
-	}
-}
-
-func NewCertManagerReadyError(err error, reason string) error {
-	if err == nil {
-		return nil
-	}
-	return &PhaseError{
-		Err:      err,
-		Type:     operatorv1.CertManagerReadyCondition,
-		Reason:   reason,
-		Severity: clusterv1.ConditionSeverityError,
-	}
-}
-
-func NewInstallReadyError(err error, reason string) error {
-	if err == nil {
-		return nil
-	}
-	return &PhaseError{
-		Err:      err,
-		Type:     operatorv1.ProviderInstalledCondition,
-		Reason:   reason,
-		Severity: clusterv1.ConditionSeverityError,
 	}
 }
 
@@ -106,7 +83,7 @@ func newReconcilePhases(c client.Client, certManagerInstaller SingletonInstaller
 func (s *reconciler) load(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
 	reader, err := s.secretReader(ctx, provider)
 	if err != nil {
-		return reconcile.Result{}, NewPreFlightError(err, "failed to load the secret reader")
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, "failed to load the secret reader", v1alpha1.PreflightCheckCondition)
 	}
 
 	s.configClient, err = configclient.New("", configclient.InjectReader(reader))
@@ -116,7 +93,7 @@ func (s *reconciler) load(ctx context.Context, provider genericprovider.GenericP
 
 	s.providerConfig, err = s.configClient.Providers().Get(provider.GetName(), util.ClusterctlProviderType(provider))
 	if err != nil {
-		return reconcile.Result{}, NewPreFlightError(err, operatorv1.UnknownProviderReason)
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, operatorv1.UnknownProviderReason, v1alpha1.PreflightCheckCondition)
 	}
 
 	spec := provider.GetSpec()
@@ -127,7 +104,7 @@ func (s *reconciler) load(ctx context.Context, provider genericprovider.GenericP
 		s.repo, err = repository.NewGitHubRepository(s.providerConfig, s.configClient.Variables())
 	}
 	if err != nil {
-		return reconcile.Result{}, NewPreFlightError(err, "failed to load the repository")
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, "failed to load the repository", v1alpha1.PreflightCheckCondition)
 	}
 
 	s.options = repository.ComponentsOptions{
@@ -140,14 +117,14 @@ func (s *reconciler) load(ctx context.Context, provider genericprovider.GenericP
 	}
 
 	err = s.validateRepoCAPIVersion(provider)
-	return reconcile.Result{}, NewPreFlightError(err, operatorv1.CAPIVersionIncompatibilityReason)
+	return reconcile.Result{}, ifErrorWrapPhaseError(err, operatorv1.CAPIVersionIncompatibilityReason, v1alpha1.PreflightCheckCondition)
 }
 
 func (s *reconciler) fetch(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
 	componentsFile, err := s.repo.GetFile(s.options.Version, s.repo.ComponentsPath())
 	if err != nil {
 		err = errors.Wrapf(err, "failed to read %q from provider's repository %q", s.repo.ComponentsPath(), s.providerConfig.ManifestLabel())
-		return reconcile.Result{}, NewPreFlightError(err, operatorv1.ComponentsFetchErrorReason)
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, operatorv1.ComponentsFetchErrorReason, v1alpha1.PreflightCheckCondition)
 	}
 
 	s.components, err = repository.NewComponents(repository.ComponentsInput{
@@ -158,7 +135,7 @@ func (s *reconciler) fetch(ctx context.Context, provider genericprovider.Generic
 		ObjModifier:  customizeObjectsFn(provider),
 		Options:      s.options})
 	if err != nil {
-		return reconcile.Result{}, NewPreFlightError(err, operatorv1.ComponentsFetchErrorReason)
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, operatorv1.ComponentsFetchErrorReason, v1alpha1.PreflightCheckCondition)
 	}
 	conditions.Set(provider, conditions.TrueCondition(operatorv1.PreflightCheckCondition))
 	return reconcile.Result{}, nil
@@ -166,35 +143,51 @@ func (s *reconciler) fetch(ctx context.Context, provider genericprovider.Generic
 
 // preInstall will
 // 1. ensure basic CRDs.
-// 2. delete existing components if it is an upgrade.
+// 2. delete existing components if required.
 func (s *reconciler) preInstall(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
 	clusterClient := cluster.New(cluster.Kubeconfig{}, s.configClient)
 
 	err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions()
 	if err != nil {
-		return reconcile.Result{}, NewInstallReadyError(err, "failed installing clusterctl CRDs")
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, "failed installing clusterctl CRDs", v1alpha1.ProviderInstalledCondition)
 	}
 
-	upgrade, err := s.isUpgrade(ctx, provider)
-	if err != nil || !upgrade {
-		return reconcile.Result{}, NewInstallReadyError(err, "failed getting clusterctl Provider")
+	needPreDelete, err := s.updateRequiresPreDeletion(ctx, provider)
+	if err != nil || !needPreDelete {
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, "failed getting clusterctl Provider", v1alpha1.ProviderInstalledCondition)
 	}
-	err = clusterClient.ProviderComponents().Delete(cluster.DeleteOptions{
+	return s.delete(ctx, provider)
+}
+
+func (s *reconciler) delete(_ context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
+	clusterClient := cluster.New(cluster.Kubeconfig{}, s.configClient)
+
+	s.clusterctlProvider.Name = clusterctlProviderName(provider).Name
+	s.clusterctlProvider.Namespace = provider.GetNamespace()
+	s.clusterctlProvider.Type = string(util.ClusterctlProviderType(provider))
+	s.clusterctlProvider.ProviderName = provider.GetName()
+	if s.clusterctlProvider.Version == "" {
+		// fake these values to get the delete working in case there is not
+		// a real provider (perhaps a failed install).
+		s.clusterctlProvider.Version = s.options.Version
+	}
+
+	err := clusterClient.ProviderComponents().Delete(cluster.DeleteOptions{
 		Provider:         *s.clusterctlProvider,
 		IncludeNamespace: false,
 		IncludeCRDs:      false,
 	})
-	return reconcile.Result{}, NewInstallReadyError(err, operatorv1.OldComponentsDeletionErrorReason)
+	return reconcile.Result{}, ifErrorWrapPhaseError(err, operatorv1.OldComponentsDeletionErrorReason, v1alpha1.ProviderInstalledCondition)
 }
 
-// get the clusterctlProvider and compare it's version with the Spec.Version
+// updateRequiresPreDeletion get the clusterctlProvider and compare it's version with the Spec.Version
 // if different, it's an upgrade.
-func (s *reconciler) isUpgrade(ctx context.Context, provider genericprovider.GenericProvider) (bool, error) {
+func (s *reconciler) updateRequiresPreDeletion(ctx context.Context, provider genericprovider.GenericProvider) (bool, error) {
 	// TODO: We should replace this with an Installed/Applied version in the providerStatus.
 	err := s.ctrlClient.Get(ctx, clusterctlProviderName(provider), s.clusterctlProvider)
 	if apierrors.IsNotFound(err) {
 		return false, nil
-	} else if !apierrors.IsNotFound(err) {
+	} else if err != nil {
 		return false, err
 	}
 	if s.clusterctlProvider.Version == "" {
@@ -222,10 +215,10 @@ func (s *reconciler) installCertManager(ctx context.Context, provider genericpro
 	if s.isCertManagerRequired(ctx) {
 		clusterClient := cluster.New(cluster.Kubeconfig{}, s.configClient)
 		status, err := s.certManagerInstaller.Install(func() error {
-			return clusterClient.CertManager().EnsureLatestVersion()
+			return clusterClient.CertManager().EnsureInstalled()
 		})
 		if err != nil || status == InstallStatusUnknown {
-			return reconcile.Result{RequeueAfter: time.Minute}, NewCertManagerReadyError(err, string(status))
+			return reconcile.Result{RequeueAfter: time.Minute}, ifErrorWrapPhaseError(err, string(status), v1alpha1.CertManagerReadyCondition)
 		}
 		if status == InstallStatusInstalling {
 			conditions.Set(provider, conditions.FalseCondition(operatorv1.CertManagerReadyCondition, string(status), clusterv1.ConditionSeverityInfo, "Busy Installing"))
@@ -254,16 +247,13 @@ func (s *reconciler) install(ctx context.Context, provider genericprovider.Gener
 	installer := clusterClient.ProviderInstaller()
 	installer.Add(s.components)
 
-	_, err := installer.Install(cluster.InstallOptions{
-		WaitProviders:       true,
-		WaitProviderTimeout: 5 * time.Minute,
-	})
+	_, err := installer.Install(cluster.InstallOptions{})
 	if err != nil {
 		reason := "Install failed"
 		if err == wait.ErrWaitTimeout {
 			reason = "Timedout waiting for deployment to become ready"
 		}
-		return reconcile.Result{}, NewInstallReadyError(err, reason)
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, reason, v1alpha1.ProviderInstalledCondition)
 	}
 
 	spec := provider.GetSpec()

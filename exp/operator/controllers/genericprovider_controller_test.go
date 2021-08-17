@@ -40,36 +40,29 @@ import (
 func TestReconcilerPreflightConditions(t *testing.T) {
 	g := NewWithT(t)
 
-	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "provider-test"}}
-
-	g.Expect(env.Create(ctx, namespace)).To(Succeed())
-
-	defer func() {
-		g.Expect(env.Delete(ctx, namespace)).To(Succeed())
-	}()
-
 	testCases := []struct {
-		name     string
-		provider genericprovider.GenericProvider
+		name      string
+		namespace string
+		provider  genericprovider.GenericProvider
 	}{
 		{
-			name: "preflight conditions for CoreProvider",
+			name:      "preflight conditions for CoreProvider",
+			namespace: "test-core-provider",
 			provider: &genericprovider.CoreProviderWrapper{
 				CoreProvider: &operatorv1.CoreProvider{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "cluster-api",
-						Namespace: namespace.Name,
+						Name: "cluster-api",
 					},
 				},
 			},
 		},
 		{
-			name: "preflight conditions for ControlPlaneProvider",
+			name:      "preflight conditions for ControlPlaneProvider",
+			namespace: "test-cp-provider",
 			provider: &genericprovider.ControlPlaneProviderWrapper{
 				ControlPlaneProvider: &operatorv1.ControlPlaneProvider{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "kubeadm",
-						Namespace: namespace.Name,
+						Name: "kubeadm",
 					},
 				},
 			},
@@ -79,12 +72,15 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
+			namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tc.namespace}}
+			g.Expect(env.Create(ctx, namespace)).To(Succeed())
+			tc.provider.SetNamespace(tc.namespace)
 
 			if tc.provider.GetName() != "cluster-api" {
 				core := &operatorv1.CoreProvider{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "cluster-api",
-						Namespace: namespace.Name,
+						Namespace: tc.namespace,
 					},
 					Status: operatorv1.CoreProviderStatus{
 						ProviderStatus: operatorv1.ProviderStatus{
@@ -117,7 +113,7 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 				return false
 			}, timeout).Should(BeEquivalentTo(true))
 
-			gs.Expect(env.Delete(ctx, tc.provider.GetObject())).To(Succeed())
+			g.Expect(env.Delete(ctx, namespace)).To(Succeed())
 		})
 	}
 }

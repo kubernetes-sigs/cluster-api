@@ -7,9 +7,9 @@ import (
 type InstallStatus int32
 
 const (
-	InstallStatusUnknown    InstallStatus = iota
-	InstallStatusInstalling InstallStatus = iota
-	InstallStatusReady      InstallStatus = iota
+	InstallStatusUnknown InstallStatus = iota
+	InstallStatusInstalling
+	InstallStatusReady
 )
 
 func (i InstallStatus) String() string {

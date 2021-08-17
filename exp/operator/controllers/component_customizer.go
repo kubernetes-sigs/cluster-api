@@ -47,6 +47,7 @@ const (
 	// the value is the hash of the Spec. This is done so that if the Spec is updated
 	// then the annotation will also be updated, causing the pods to be rotated.
 	specHashAnnotation = "cluster.x-k8s.io/spec-hash"
+	defaultVerbosity   = 1
 )
 
 var (
@@ -174,7 +175,7 @@ func customizeManager(mSpec *operatorv1.ManagerSpec, c *corev1.Container) *corev
 		c.Args = setArg(c.Args, "--profiler-address", *mSpec.ProfilerAddress)
 	}
 
-	if mSpec.Verbosity != 1 {
+	if mSpec.Verbosity != defaultVerbosity {
 		c.Args = setArg(c.Args, "--v", fmt.Sprint(mSpec.Verbosity))
 	}
 

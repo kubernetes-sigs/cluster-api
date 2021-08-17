@@ -334,11 +334,21 @@ type LocalObjectTemplate struct {
   - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
 
 - For object updates:
-  - If `spec.topology.class` is set, it cannot be unset or modified.
+  - If `spec.topology.class` is set it cannot be unset or modified, and if it's unset it cannot be set.
   - `spec.topology.version` cannot be unset and must be a valid semver, if being updated.
   - `spec.topology.version` cannot be downgraded.
   - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
   - A set of worker nodes can be added to or removed from the `spec.topology.workers.machineDeployments` list.
+
+##### ClusterClass compatibility
+There are cases where we must consider whether two ClusterClasses are compatible:
+1. Where a user chooses to replace an existing ClusterClass `cluster.spec.topology.class` with a new ClusterClass.
+2. Where a user updates a ClusterClass currently in use by a Cluster.
+
+To establish compatibility between two ClusterClasses:
+    - All the references must be in the same namespace of `metadata.Namespace` - the same namespace as the existing clusterClass.
+    - `spec.workers.machineDeployments` must not remove any deployment classes (adding new or modifying existing classes is supported).
+    - `spec.controlPlane.localobjecttemplate`, `spec.controlplane.machineinfrastructure`, `spec.infrastructure`,  `spec.workers.machineDeployments[].template.infrastructure.ref` must not change apiGroup or Kind.
 
 #### Behaviors
 This section lists out the behavior for Cluster objects using `ClusterClass` in case of creates and updates.

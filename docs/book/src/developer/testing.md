@@ -96,9 +96,11 @@ GINKGO_FOCUS="\[PR-Blocking\]" ./scripts/ci-e2e.sh
 make -C test/e2e cluster-templates
 ```
 
-Now, the tests can be run in an IDE. The following describes how this can be done in Intellij IDEA. It should work
-roughly the same way in VS Code and other IDEs. We assume the `cluster-api` repository has been checked
+Now, the tests can be run in an IDE. The following describes how this can be done in Intellij IDEA and VS Code. It should work
+roughly the same way in all other IDEs. We assume the `cluster-api` repository has been checked
 out into `/home/user/code/src/sigs.k8s.io/cluster-api`.
+
+#### Intellij 
 
 Create a new run configuration and fill in:
 * Test framework: `gotest`
@@ -108,6 +110,35 @@ Create a new run configuration and fill in:
 * Working directory: `/home/user/code/src/sigs.k8s.io/cluster-api/test/e2e`
 * Environment: `ARTIFACTS=/home/user/code/src/sigs.k8s.io/cluster-api/_artifacts`
 * Program arguments: `-e2e.config=/home/user/code/src/sigs.k8s.io/cluster-api/test/e2e/config/docker.yaml -ginkgo.focus="\[PR-Blocking\]"`
+
+#### VS Code
+
+Add the launch.json file in the .vscode folder in your repo:
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run e2e test",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceRoot}/test/e2e/e2e_suite_test.go",
+            "env": {
+                "ARTIFACTS":"${workspaceRoot}/_artifacts",
+            },
+            "args": [
+                "-e2e.config=${workspaceRoot}/test/e2e/config/docker.yaml",
+                "-ginkgo.focus=\\[PR-Blocking\\]",
+                "-ginkgo.v=true"
+            ],
+            "trace": "verbose",
+            "buildFlags": "-tags 'e2e'",
+            "showGlobalVariables": true
+        }
+    ]
+}
+```
 
 Execute the run configuration with `Debug`.
 

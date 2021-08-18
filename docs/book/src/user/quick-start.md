@@ -123,6 +123,12 @@ Download the latest release; on macOS, type:
 ```
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"0.4.x"}} -o clusterctl
 ```
+
+Or if your Mac has an M1 CPU ("Apple Silicon"):
+```
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"0.4.x"}} -o clusterctl
+```
+
 Make the clusterctl binary executable.
 ```
 chmod +x ./clusterctl

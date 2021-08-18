@@ -17,6 +17,8 @@ limitations under the License.
 package topology
 
 import (
+	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -203,6 +205,314 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 	}
 }
 
+func TestReconcileControlPlaneObject(t *testing.T) {
+	g := NewWithT(t)
+	// Create InfrastructureMachineTemplates for test cases
+	infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Obj()
+	infrastructureMachineTemplate2 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra2").Obj()
+	// Infrastructure object with a different Kind.
+	incompatibleInfrastructureMachineTemplate := infrastructureMachineTemplate2.DeepCopy()
+	incompatibleInfrastructureMachineTemplate.SetKind("incompatibleInfrastructureMachineTemplate")
+	updatedInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
+	err := unstructured.SetNestedField(updatedInfrastructureMachineTemplate.UnstructuredContent(), true, "spec", "differentSetting")
+	g.Expect(err).ToNot(HaveOccurred())
+	// Create cluster class which does not require controlPlaneInfrastructure
+	ccWithoutControlPlaneInfrastructure := controlPlaneTopologyClass{}
+	// Create clusterClasses requiring controlPlaneInfrastructure and one not
+	ccWithControlPlaneInfrastructure := controlPlaneTopologyClass{}
+	ccWithControlPlaneInfrastructure.infrastructureMachineTemplate = infrastructureMachineTemplate
+	// Create ControlPlaneObjects for test cases.
+	controlPlane1 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(infrastructureMachineTemplate).Obj()
+	controlPlane2 := newFakeControlPlane(metav1.NamespaceDefault, "cp2").WithInfrastructureMachineTemplate(infrastructureMachineTemplate2).Obj()
+	// ControlPlane object with novel field in the spec.
+	controlPlane3 := controlPlane1.DeepCopy()
+	err = unstructured.SetNestedField(controlPlane3.UnstructuredContent(), true, "spec", "differentSetting")
+	g.Expect(err).ToNot(HaveOccurred())
+	// ControlPlane object with a new label.
+	controlPlaneWithInstanceSpecificChanges := controlPlane1.DeepCopy()
+	controlPlaneWithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
+	// ControlPlane object with the same name as controlPlane1 but a different InfrastructureMachineTemplate
+
+	tests := []struct {
+		name    string
+		class   controlPlaneTopologyClass
+		current *controlPlaneTopologyState
+		desired *controlPlaneTopologyState
+		want    *controlPlaneTopologyState
+		wantErr bool
+	}{
+		{
+			name:    "Should create desired ControlPlane if the current does not exist",
+			class:   ccWithoutControlPlaneInfrastructure,
+			current: nil,
+			desired: &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			want:    &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			wantErr: false,
+		},
+		{
+			name:    "Fail on updating ControlPlaneObject with incompatible changes, here a different Kind for the infrastructureMachineTemplate",
+			class:   ccWithoutControlPlaneInfrastructure,
+			current: &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			desired: &controlPlaneTopologyState{object: controlPlane2, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			wantErr: true,
+		},
+		{
+			name:    "Update to ControlPlaneObject with no update to the underlying infrastructure",
+			class:   ccWithoutControlPlaneInfrastructure,
+			current: &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			desired: &controlPlaneTopologyState{object: controlPlane3, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			want:    &controlPlaneTopologyState{object: controlPlane3, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			wantErr: false,
+		},
+		{
+			// Will panic due to the design of logging.
+			name:    "Attempt to update controlPlane on controlPlaneState with no infrastructureMachineTemplate",
+			class:   ccWithControlPlaneInfrastructure,
+			current: &controlPlaneTopologyState{object: controlPlane1},
+			desired: &controlPlaneTopologyState{object: controlPlane3},
+			wantErr: true,
+		},
+		{
+			name:    "Update to ControlPlaneObject with no underlying infrastructure",
+			class:   ccWithoutControlPlaneInfrastructure,
+			current: &controlPlaneTopologyState{object: controlPlane1},
+			desired: &controlPlaneTopologyState{object: controlPlane3},
+			want:    &controlPlaneTopologyState{object: controlPlane3},
+			wantErr: false,
+		},
+		{
+			name:    "Preserve specific changes to the ControlPlaneObject",
+			class:   ccWithoutControlPlaneInfrastructure,
+			current: &controlPlaneTopologyState{object: controlPlaneWithInstanceSpecificChanges, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			desired: &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			want:    &controlPlaneTopologyState{object: controlPlaneWithInstanceSpecificChanges, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// this panic catcher catches the case when there is some issue with the clusterClass controlPlaneInfrastructureCheck that causes it to falsely proceed
+			// the test case that throws this panic shows that the structure of our logs is prone to panic if some of our assumptions are off.
+			defer func() {
+				if r := recover(); r != nil {
+					if tt.wantErr {
+						err := fmt.Errorf("panic occurred during testing")
+						g.Expect(err).To(HaveOccurred())
+					}
+				}
+			}()
+
+			fakeObjs := make([]client.Object, 0)
+			var currentState *clusterTopologyState
+			if tt.current != nil {
+				currentState = &clusterTopologyState{controlPlane: *tt.current}
+				if tt.current.object != nil {
+					fakeObjs = append(fakeObjs, tt.current.object)
+				}
+				if tt.current.infrastructureMachineTemplate != nil {
+					fakeObjs = append(fakeObjs, tt.current.infrastructureMachineTemplate)
+				}
+			} else {
+				currentState = &clusterTopologyState{}
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(fakeObjs...).
+				Build()
+
+			// TODO: stop setting ResourceVersion when building objects
+			if tt.desired.infrastructureMachineTemplate != nil {
+				tt.desired.infrastructureMachineTemplate.SetResourceVersion("")
+			}
+			if tt.desired.object != nil {
+				tt.desired.object.SetResourceVersion("")
+			}
+			r := ClusterReconciler{
+				Client: fakeClient,
+			}
+			desiredState := &clusterTopologyState{controlPlane: controlPlaneTopologyState{object: tt.desired.object, infrastructureMachineTemplate: tt.desired.infrastructureMachineTemplate}}
+
+			// Run reconcileControlPlane with the states created in the initial section of the test.
+			err := r.reconcileControlPlane(ctx, tt.class, currentState, desiredState)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Create ControlPlane object for fetching data into
+			gotControlPlaneObject := newFakeControlPlane("", "").Obj()
+			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.object), gotControlPlaneObject)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Get the spec from the ControlPlaneObject we are expecting
+			wantControlPlaneObjectSpec, ok, err := unstructured.NestedMap(tt.want.object.UnstructuredContent(), "spec")
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(ok).To(BeTrue())
+
+			// Get the spec from the ControlPlaneObject we got from the client.Get
+			gotControlPlaneObjectSpec, ok, err := unstructured.NestedMap(gotControlPlaneObject.UnstructuredContent(), "spec")
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(ok).To(BeTrue())
+			for k, v := range wantControlPlaneObjectSpec {
+				g.Expect(gotControlPlaneObjectSpec).To(HaveKeyWithValue(k, v))
+			}
+			for k, v := range tt.want.object.GetLabels() {
+				g.Expect(gotControlPlaneObject.GetLabels()).To(HaveKeyWithValue(k, v))
+			}
+		})
+	}
+}
+
+func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
+	g := NewWithT(t)
+	// Create InfrastructureMachineTemplates for test cases
+	infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Obj()
+	infrastructureMachineTemplate2 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra2").Obj()
+
+	// Create clusterClasses requiring controlPlaneInfrastructure and one not
+	ccWithControlPlaneInfrastructure := controlPlaneTopologyClass{}
+	ccWithControlPlaneInfrastructure.infrastructureMachineTemplate = infrastructureMachineTemplate
+
+	// Infrastructure object with a different Kind.
+	incompatibleInfrastructureMachineTemplate := infrastructureMachineTemplate2.DeepCopy()
+	incompatibleInfrastructureMachineTemplate.SetKind("incompatibleInfrastructureMachineTemplate")
+	updatedInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
+	err := unstructured.SetNestedField(updatedInfrastructureMachineTemplate.UnstructuredContent(), true, "spec", "differentSetting")
+	g.Expect(err).ToNot(HaveOccurred())
+	// Create ControlPlaneObjects for test cases.
+	controlPlane1 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(infrastructureMachineTemplate).Obj()
+	controlPlane1.SetClusterName("firstCluster")
+	// ControlPlane object with novel field in the spec.
+	controlPlane2 := controlPlane1.DeepCopy()
+	err = unstructured.SetNestedField(controlPlane2.UnstructuredContent(), true, "spec", "differentSetting")
+	g.Expect(err).ToNot(HaveOccurred())
+	controlPlane2.SetClusterName("firstCluster")
+	// ControlPlane object with a new label.
+	controlPlaneWithInstanceSpecificChanges := controlPlane1.DeepCopy()
+	controlPlaneWithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
+	// ControlPlane object with the same name as controlPlane1 but a different InfrastructureMachineTemplate
+	controlPlane3 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(updatedInfrastructureMachineTemplate).Obj()
+	controlPlane3.SetClusterName("firstCluster")
+
+	tests := []struct {
+		name    string
+		class   controlPlaneTopologyClass
+		current *controlPlaneTopologyState
+		desired *controlPlaneTopologyState
+		want    *controlPlaneTopologyState
+		wantErr bool
+	}{
+		{
+			name:    "Create desired InfrastructureMachineTemplate where it doesn't exist",
+			class:   ccWithControlPlaneInfrastructure,
+			current: &controlPlaneTopologyState{object: controlPlane1},
+			desired: &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			want:    &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			wantErr: false,
+		},
+		{
+			name:    "Update desired InfrastructureMachineTemplate connected to controlPlane",
+			class:   ccWithControlPlaneInfrastructure,
+			current: &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			desired: &controlPlaneTopologyState{object: controlPlane3, infrastructureMachineTemplate: updatedInfrastructureMachineTemplate},
+			want:    &controlPlaneTopologyState{object: controlPlane3, infrastructureMachineTemplate: updatedInfrastructureMachineTemplate},
+			wantErr: false,
+		},
+		{
+			name:    "Fail on updating infrastructure with incompatible changes",
+			class:   ccWithControlPlaneInfrastructure,
+			current: &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: infrastructureMachineTemplate},
+			desired: &controlPlaneTopologyState{object: controlPlane1, infrastructureMachineTemplate: incompatibleInfrastructureMachineTemplate},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeObjs := make([]client.Object, 0)
+			var currentState *clusterTopologyState
+			if tt.current != nil {
+				currentState = &clusterTopologyState{controlPlane: *tt.current}
+				if tt.current.object != nil {
+					fakeObjs = append(fakeObjs, tt.current.object)
+				}
+				if tt.current.infrastructureMachineTemplate != nil {
+					fakeObjs = append(fakeObjs, tt.current.infrastructureMachineTemplate)
+				}
+			} else {
+				currentState = &clusterTopologyState{}
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(fakeObjs...).
+				Build()
+
+			// TODO: stop setting ResourceVersion when building objects
+			if tt.desired.infrastructureMachineTemplate != nil {
+				tt.desired.infrastructureMachineTemplate.SetResourceVersion("")
+			}
+			if tt.desired.object != nil {
+				tt.desired.object.SetResourceVersion("")
+			}
+			r := ClusterReconciler{
+				Client: fakeClient,
+			}
+			desiredState := &clusterTopologyState{controlPlane: controlPlaneTopologyState{object: tt.desired.object, infrastructureMachineTemplate: tt.desired.infrastructureMachineTemplate}}
+
+			// Run reconcileControlPlane with the states created in the initial section of the test.
+			err := r.reconcileControlPlane(ctx, tt.class, currentState, desiredState)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Create ControlPlane object for fetching data into
+			gotControlPlaneObject := newFakeControlPlane("", "").Obj()
+			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.object), gotControlPlaneObject)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Check to see if the controlPlaneObject has been updated with a new template.
+			// This check is just for the naming format uses by generated templates - here it's templateName-*
+			// This check is only performed when we had an initial template that has been changed
+			if tt.current.infrastructureMachineTemplate != nil {
+				item, err := getNestedRef(gotControlPlaneObject, "spec", "machineTemplate", "infrastructureRef")
+				g.Expect(err).ToNot(HaveOccurred())
+				// This pattern should match return value in controlPlaneinfrastructureMachineTemplateNamePrefix
+				pattern := fmt.Sprintf("%s-controlplane-.*", tt.desired.object.GetClusterName())
+				fmt.Println(pattern, item.Name)
+				ok, err := regexp.Match(pattern, []byte(item.Name))
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(ok).To(BeTrue())
+			}
+
+			// Create object to hold the queried InfrastructureMachineTemplate
+			gotInfrastructureMachineTemplate := newFakeInfrastructureMachineTemplate("", "").Obj()
+			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.infrastructureMachineTemplate), gotInfrastructureMachineTemplate)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Get the spec from the InfrastructureMachineTemplate we are expecting
+			wantInfrastructureMachineTemplateSpec, ok, err := unstructured.NestedMap(tt.want.infrastructureMachineTemplate.UnstructuredContent(), "spec")
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(ok).To(BeTrue())
+
+			// Get the spec from the InfrastructureMachineTemplate we got from the client.Get
+			gotInfrastructureMachineTemplateSpec, ok, err := unstructured.NestedMap(gotInfrastructureMachineTemplate.UnstructuredContent(), "spec")
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(ok).To(BeTrue())
+
+			// Compare all keys and values in the InfrastructureMachineTemplate Spec
+			for k, v := range wantInfrastructureMachineTemplateSpec {
+				g.Expect(gotInfrastructureMachineTemplateSpec).To(HaveKeyWithValue(k, v))
+			}
+
+			// Check to see that labels are as expected on the object
+			for k, v := range tt.want.infrastructureMachineTemplate.GetLabels() {
+				g.Expect(gotInfrastructureMachineTemplate.GetLabels()).To(HaveKeyWithValue(k, v))
+			}
+		})
+	}
+}
 func TestReconcileMachineDeployments(t *testing.T) {
 	infrastructureMachineTemplate1 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Obj()
 	bootstrapTemplate1 := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Obj()

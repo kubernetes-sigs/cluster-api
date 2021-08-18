@@ -139,7 +139,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	// Reconciles current and desired state of the Cluster
-	if err := r.reconcileState(ctx, currentState, desiredState); err != nil {
+	if err := r.reconcileState(ctx, class.controlPlane, currentState, desiredState); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reconciling the Cluster topology")
 	}
 

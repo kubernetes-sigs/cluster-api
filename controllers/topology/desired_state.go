@@ -328,6 +328,13 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	template := &unstructured.Unstructured{}
 	in.template.DeepCopyInto(template)
 
+	// Remove all the info automatically assigned by the API server and not relevant from
+	// the copy of the template.
+	template.SetResourceVersion("")
+	template.SetFinalizers(nil)
+	template.SetUID("")
+	template.SetSelfLink("")
+
 	// Enforce the topology labels into the provided label set.
 	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
 	// controller immediately after creation, even before other controllers are going to add the label (if missing).

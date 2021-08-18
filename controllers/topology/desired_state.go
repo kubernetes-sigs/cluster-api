@@ -61,7 +61,7 @@ func (r *ClusterReconciler) computeDesiredState(_ context.Context, class *cluste
 	desiredState.cluster = computeCluster(current, desiredState.infrastructureCluster, desiredState.controlPlane.object)
 
 	// Compute the desired state of the MachineDeployment objects for the worker nodes.
-	if len(current.cluster.Spec.Topology.Workers.MachineDeployments) == 0 {
+	if current.cluster.Spec.Topology.Workers == nil || len(current.cluster.Spec.Topology.Workers.MachineDeployments) == 0 {
 		return desiredState, nil
 	}
 
@@ -327,6 +327,13 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	template := &unstructured.Unstructured{}
 	in.template.DeepCopyInto(template)
+
+	// Remove all the info automatically assigned by the API server and not relevant from
+	// the copy of the template.
+	template.SetResourceVersion("")
+	template.SetFinalizers(nil)
+	template.SetUID("")
+	template.SetSelfLink("")
 
 	// Enforce the topology labels into the provided label set.
 	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology

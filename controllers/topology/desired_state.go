@@ -61,7 +61,7 @@ func (r *ClusterReconciler) computeDesiredState(_ context.Context, class *cluste
 	desiredState.cluster = computeCluster(current, desiredState.infrastructureCluster, desiredState.controlPlane.object)
 
 	// Compute the desired state of the MachineDeployment objects for the worker nodes.
-	if len(current.cluster.Spec.Topology.Workers.MachineDeployments) == 0 {
+	if current.cluster.Spec.Topology.Workers == nil || len(current.cluster.Spec.Topology.Workers.MachineDeployments) == 0 {
 		return desiredState, nil
 	}
 

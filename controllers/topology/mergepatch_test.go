@@ -37,12 +37,16 @@ func TestNewMergePatchHelper(t *testing.T) {
 			name: "Field both in original and in modified, no-op when equal",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
-					"A": "A",
+					"spec": map[string]interface{}{
+						"foo": "bar",
+					},
 				},
 			},
 			modified: &unstructured.Unstructured{ // desired
 				Object: map[string]interface{}{
-					"A": "A",
+					"spec": map[string]interface{}{
+						"foo": "bar",
+					},
 				},
 			},
 			wantHasChanges: false,
@@ -52,16 +56,20 @@ func TestNewMergePatchHelper(t *testing.T) {
 			name: "Field both in original and in modified, align to modified when different",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
-					"A": "A-changed",
+					"spec": map[string]interface{}{
+						"foo": "bar-changed",
+					},
 				},
 			},
 			modified: &unstructured.Unstructured{ // desired
 				Object: map[string]interface{}{
-					"A": "A",
+					"spec": map[string]interface{}{
+						"foo": "bar",
+					},
 				},
 			},
 			wantHasChanges: true,
-			wantPatch:      []byte("{\"A\":\"A\"}"),
+			wantPatch:      []byte("{\"spec\":{\"foo\":\"bar\"}}"),
 		},
 		{
 			name: "Nested field both in original and in modified, no-op when equal",
@@ -121,47 +129,55 @@ func TestNewMergePatchHelper(t *testing.T) {
 			name: "Value of type map, enforces entries from modified, preserve entries only in original",
 			original: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"map": map[string]string{
-						"A": "A-changed",
-						"B": "B",
-						// C missing
+					"spec": map[string]interface{}{
+						"map": map[string]string{
+							"A": "A-changed",
+							"B": "B",
+							// C missing
+						},
 					},
 				},
 			},
 			modified: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"map": map[string]string{
-						"A": "A",
-						// B missing
-						"C": "C",
+					"spec": map[string]interface{}{
+						"map": map[string]string{
+							"A": "A",
+							// B missing
+							"C": "C",
+						},
 					},
 				},
 			},
 			wantHasChanges: true,
-			wantPatch:      []byte("{\"map\":{\"A\":\"A\",\"C\":\"C\"}}"),
+			wantPatch:      []byte("{\"spec\":{\"map\":{\"A\":\"A\",\"C\":\"C\"}}}"),
 		},
 		{
 			name: "Value of type Array or Slice, align to modified",
 			original: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"slice": []string{
-						"D",
-						"C",
-						"B",
+					"spec": map[string]interface{}{
+						"slice": []string{
+							"D",
+							"C",
+							"B",
+						},
 					},
 				},
 			},
 			modified: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"slice": []string{
-						"A",
-						"B",
-						"C",
+					"spec": map[string]interface{}{
+						"slice": []string{
+							"A",
+							"B",
+							"C",
+						},
 					},
 				},
 			},
 			wantHasChanges: true,
-			wantPatch:      []byte("{\"slice\":[\"A\",\"B\",\"C\"]}"),
+			wantPatch:      []byte("{\"spec\":{\"slice\":[\"A\",\"B\",\"C\"]}}"),
 		},
 
 		// Field only in modified (not existing in original) --> align to modified
@@ -173,11 +189,13 @@ func TestNewMergePatchHelper(t *testing.T) {
 			},
 			modified: &unstructured.Unstructured{ // desired
 				Object: map[string]interface{}{
-					"A": "A",
+					"spec": map[string]interface{}{
+						"foo": "bar",
+					},
 				},
 			},
 			wantHasChanges: true,
-			wantPatch:      []byte("{\"A\":\"A\"}"),
+			wantPatch:      []byte("{\"spec\":{\"foo\":\"bar\"}}"),
 		},
 		{
 			name: "Nested field only in modified, align to modified",
@@ -205,7 +223,9 @@ func TestNewMergePatchHelper(t *testing.T) {
 			name: "Field only in original, align to modified",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
-					"A": "A",
+					"spec": map[string]interface{}{
+						"foo": "bar",
+					},
 				},
 			},
 			modified: &unstructured.Unstructured{ // desired
@@ -232,6 +252,51 @@ func TestNewMergePatchHelper(t *testing.T) {
 			},
 			wantHasChanges: false,
 			wantPatch:      []byte("{}"),
+		},
+
+		// Diff for metadata fields computed by the system or in status are discarded
+
+		{
+			name: "Diff for metadata fields computed by the system or in status are discarded",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"selfLink":        "foo",
+						"uid":             "foo",
+						"resourceVersion": "foo",
+						"generation":      "foo",
+						"managedFields":   "foo",
+					},
+					"status": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+			wantHasChanges: false,
+			wantPatch:      []byte("{}"),
+		},
+		{
+			name: "Relevant Diff are preserved",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"foo": "bar",
+						},
+						"annotations": map[string]interface{}{
+							"foo": "bar",
+						},
+					},
+				},
+			},
+			wantHasChanges: true,
+			wantPatch:      []byte("{\"metadata\":{\"annotations\":{\"foo\":\"bar\"},\"labels\":{\"foo\":\"bar\"}}}"),
 		},
 
 		// More tests
@@ -288,7 +353,7 @@ func TestNewMergePatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(patch.HasChanges()).To(Equal(tt.wantHasChanges))
-			g.Expect(patch.data).To(Equal(tt.wantPatch))
+			g.Expect(patch.patch).To(Equal(tt.wantPatch))
 		})
 	}
 }

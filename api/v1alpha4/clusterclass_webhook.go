@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -46,21 +47,22 @@ var _ webhook.Defaulter = &ClusterClass{}
 // Default satisfies the defaulting webhook interface.
 func (in *ClusterClass) Default() {
 	// Default all namespaces in the references to the object namespace.
-	if in.Spec.Infrastructure.Ref != nil && len(in.Spec.Infrastructure.Ref.Namespace) == 0 {
-		in.Spec.Infrastructure.Ref.Namespace = in.Namespace
+	defaultNamespace(in.Spec.Infrastructure.Ref, in.Namespace)
+	defaultNamespace(in.Spec.ControlPlane.Ref, in.Namespace)
+
+	if in.Spec.ControlPlane.MachineInfrastructure != nil {
+		defaultNamespace(in.Spec.ControlPlane.MachineInfrastructure.Ref, in.Namespace)
 	}
-	if in.Spec.ControlPlane.Ref != nil && len(in.Spec.ControlPlane.Ref.Namespace) == 0 {
-		in.Spec.ControlPlane.Ref.Namespace = in.Namespace
-	}
+
 	for i := range in.Spec.Workers.MachineDeployments {
-		if in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref != nil &&
-			len(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace) == 0 {
-			in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace = in.Namespace
-		}
-		if in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref != nil &&
-			len(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace) == 0 {
-			in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace = in.Namespace
-		}
+		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref, in.Namespace)
+		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref, in.Namespace)
+	}
+}
+
+func defaultNamespace(ref *corev1.ObjectReference, namespace string) {
+	if ref != nil && len(ref.Namespace) == 0 {
+		ref.Namespace = namespace
 	}
 }
 

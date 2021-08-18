@@ -25,8 +25,8 @@ import (
 type clusterTopologyClass struct {
 	clusterClass                  *clusterv1.ClusterClass
 	infrastructureClusterTemplate *unstructured.Unstructured
-	controlPlane                  controlPlaneTopologyClass
-	machineDeployments            map[string]machineDeploymentTopologyClass
+	controlPlane                  *controlPlaneTopologyClass
+	machineDeployments            map[string]*machineDeploymentTopologyClass
 }
 
 // controlPlaneTopologyClass holds the templates required for computing the desired state of a managed control plane.
@@ -48,8 +48,8 @@ type machineDeploymentTopologyClass struct {
 type clusterTopologyState struct {
 	cluster               *clusterv1.Cluster
 	infrastructureCluster *unstructured.Unstructured
-	controlPlane          controlPlaneTopologyState
-	machineDeployments    map[string]machineDeploymentTopologyState
+	controlPlane          *controlPlaneTopologyState
+	machineDeployments    map[string]*machineDeploymentTopologyState
 }
 
 // controlPlaneTopologyState all the objects representing the state of a managed control plane.

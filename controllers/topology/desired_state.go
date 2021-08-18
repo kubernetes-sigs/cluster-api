@@ -65,7 +65,7 @@ func (r *ClusterReconciler) computeDesiredState(_ context.Context, class *cluste
 		return desiredState, nil
 	}
 
-	desiredState.machineDeployments = map[string]machineDeploymentTopologyState{}
+	desiredState.machineDeployments = map[string]*machineDeploymentTopologyState{}
 	for _, mdTopology := range current.cluster.Spec.Topology.Workers.MachineDeployments {
 		desiredMachineDeployment, err := computeMachineDeployment(class, current, mdTopology)
 		if err != nil {
@@ -96,7 +96,7 @@ func computeInfrastructureCluster(class *clusterTopologyClass, current *clusterT
 // that should be referenced by the ControlPlane object.
 func computeControlPlaneInfrastructureMachineTemplate(class *clusterTopologyClass, current *clusterTopologyState) (*unstructured.Unstructured, error) {
 	var currentInfrastructureMachineTemplate *corev1.ObjectReference
-	if current.controlPlane.object != nil {
+	if current.controlPlane != nil && current.controlPlane.object != nil {
 		var err error
 		if currentInfrastructureMachineTemplate, err = getNestedRef(current.controlPlane.object, "spec", "machineTemplate", "infrastructureRef"); err != nil {
 			return nil, errors.Wrap(err, "failed to get spec.machineTemplate.infrastructureRef for the current ControlPlane object")
@@ -186,18 +186,18 @@ func computeCluster(current *clusterTopologyState, infrastructureCluster, contro
 // computeMachineDeployment computes the desired state for a MachineDeploymentTopology.
 // The generated machineDeployment object is calculated using the values from the machineDeploymentTopology and
 // the machineDeployment class.
-func computeMachineDeployment(class *clusterTopologyClass, current *clusterTopologyState, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (machineDeploymentTopologyState, error) {
-	desiredMachineDeployment := machineDeploymentTopologyState{}
+func computeMachineDeployment(class *clusterTopologyClass, current *clusterTopologyState, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*machineDeploymentTopologyState, error) {
+	desiredMachineDeployment := &machineDeploymentTopologyState{}
 
 	className := machineDeploymentTopology.Class
 	machineDeploymentClass, ok := class.machineDeployments[className]
 	if !ok {
-		return desiredMachineDeployment, errors.Errorf("MachineDeployment class %s not found in ClusterClass %s", className, class.clusterClass.Name)
+		return nil, errors.Errorf("MachineDeployment class %s not found in ClusterClass %s", className, class.clusterClass.Name)
 	}
 
 	currentMachineDeployment := current.machineDeployments[machineDeploymentTopology.Name]
 	var currentBootstrapTemplateRef *corev1.ObjectReference
-	if currentMachineDeployment.bootstrapTemplate != nil {
+	if currentMachineDeployment != nil && currentMachineDeployment.bootstrapTemplate != nil {
 		currentBootstrapTemplateRef = currentMachineDeployment.object.Spec.Template.Spec.Bootstrap.ConfigRef
 	}
 	desiredMachineDeployment.bootstrapTemplate = templateToTemplate(templateToInput{
@@ -211,7 +211,7 @@ func computeMachineDeployment(class *clusterTopologyClass, current *clusterTopol
 	})
 
 	var currentInfraMachineTemplateRef *corev1.ObjectReference
-	if currentMachineDeployment.infrastructureMachineTemplate != nil {
+	if currentMachineDeployment != nil && currentMachineDeployment.infrastructureMachineTemplate != nil {
 		currentInfraMachineTemplateRef = &currentMachineDeployment.object.Spec.Template.Spec.InfrastructureRef
 	}
 	desiredMachineDeployment.infrastructureMachineTemplate = templateToTemplate(templateToInput{
@@ -249,7 +249,7 @@ func computeMachineDeployment(class *clusterTopologyClass, current *clusterTopol
 
 	// If an existing MachineDeployment is present, override the MachineDeployment
 	// object with the same name.
-	if currentMachineDeployment.object != nil {
+	if currentMachineDeployment != nil && currentMachineDeployment.object != nil {
 		desiredMachineDeploymentObj.SetName(currentMachineDeployment.object.Name)
 	}
 

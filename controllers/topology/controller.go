@@ -101,6 +101,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	}
 
 	// Return early if the Cluster is paused.
+	// TODO: What should we do if the cluster class is paused?
 	if annotations.IsPaused(cluster, cluster) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
@@ -111,6 +112,8 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		// TODO: When external patching is supported, we should handle the deletion
+		// of those external CRDs we created.
 		return ctrl.Result{}, nil
 	}
 

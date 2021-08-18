@@ -128,7 +128,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	// aggregating templates and cluster class into topologyClass (simulating getClass)
 	topologyClass := &clusterTopologyClass{
 		clusterClass: clusterClass,
-		controlPlane: controlPlaneTopologyClass{
+		controlPlane: &controlPlaneTopologyClass{
 			infrastructureMachineTemplate: infrastructureMachineTemplate,
 		},
 	}
@@ -186,7 +186,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
 		current := &clusterTopologyState{
 			cluster: cluster,
-			controlPlane: controlPlaneTopologyState{
+			controlPlane: &controlPlaneTopologyState{
 				object:                        controlPlane,
 				infrastructureMachineTemplate: currentInfrastructureMachineTemplate,
 			},
@@ -222,7 +222,7 @@ func TestComputeControlPlane(t *testing.T) {
 	// aggregating templates and cluster class into topologyClass (simulating getClass)
 	topologyClass := &clusterTopologyClass{
 		clusterClass: clusterClass,
-		controlPlane: controlPlaneTopologyClass{
+		controlPlane: &controlPlaneTopologyClass{
 			template: controlPlaneTemplate,
 		},
 	}
@@ -319,7 +319,7 @@ func TestComputeControlPlane(t *testing.T) {
 		// aggregating templates and cluster class into topologyClass (simulating getClass)
 		topologyClass := &clusterTopologyClass{
 			clusterClass: clusterClass,
-			controlPlane: controlPlaneTopologyClass{
+			controlPlane: &controlPlaneTopologyClass{
 				template:                      controlPlaneTemplate,
 				infrastructureMachineTemplate: infrastructureMachineTemplate,
 			},
@@ -431,7 +431,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		Obj()
 	class := &clusterTopologyClass{
 		clusterClass: fakeClass,
-		machineDeployments: map[string]machineDeploymentTopologyClass{
+		machineDeployments: map[string]*machineDeploymentTopologyClass{
 			"linux-worker": {
 				metadata: clusterv1.ObjectMeta{
 					Labels:      labels,
@@ -497,7 +497,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				},
 			},
 		}
-		current.machineDeployments = map[string]machineDeploymentTopologyState{
+		current.machineDeployments = map[string]*machineDeploymentTopologyState{
 			"big-pool-of-machines": {
 				object:                        currentMd,
 				bootstrapTemplate:             workerBootstrapTemplate,

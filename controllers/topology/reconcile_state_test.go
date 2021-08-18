@@ -217,9 +217,9 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 	err := unstructured.SetNestedField(updatedInfrastructureMachineTemplate.UnstructuredContent(), true, "spec", "differentSetting")
 	g.Expect(err).ToNot(HaveOccurred())
 	// Create cluster class which does not require controlPlaneInfrastructure
-	ccWithoutControlPlaneInfrastructure := controlPlaneTopologyClass{}
+	ccWithoutControlPlaneInfrastructure := &controlPlaneTopologyClass{}
 	// Create clusterClasses requiring controlPlaneInfrastructure and one not
-	ccWithControlPlaneInfrastructure := controlPlaneTopologyClass{}
+	ccWithControlPlaneInfrastructure := &controlPlaneTopologyClass{}
 	ccWithControlPlaneInfrastructure.infrastructureMachineTemplate = infrastructureMachineTemplate
 	// Create ControlPlaneObjects for test cases.
 	controlPlane1 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(infrastructureMachineTemplate).Obj()
@@ -235,7 +235,7 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		class   controlPlaneTopologyClass
+		class   *controlPlaneTopologyClass
 		current *controlPlaneTopologyState
 		desired *controlPlaneTopologyState
 		want    *controlPlaneTopologyState
@@ -305,7 +305,7 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			fakeObjs := make([]client.Object, 0)
 			var currentState *clusterTopologyState
 			if tt.current != nil {
-				currentState = &clusterTopologyState{controlPlane: *tt.current}
+				currentState = &clusterTopologyState{controlPlane: tt.current}
 				if tt.current.object != nil {
 					fakeObjs = append(fakeObjs, tt.current.object)
 				}
@@ -330,7 +330,7 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			r := ClusterReconciler{
 				Client: fakeClient,
 			}
-			desiredState := &clusterTopologyState{controlPlane: controlPlaneTopologyState{object: tt.desired.object, infrastructureMachineTemplate: tt.desired.infrastructureMachineTemplate}}
+			desiredState := &clusterTopologyState{controlPlane: &controlPlaneTopologyState{object: tt.desired.object, infrastructureMachineTemplate: tt.desired.infrastructureMachineTemplate}}
 
 			// Run reconcileControlPlane with the states created in the initial section of the test.
 			err := r.reconcileControlPlane(ctx, tt.class, currentState, desiredState)
@@ -371,7 +371,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	infrastructureMachineTemplate2 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra2").Obj()
 
 	// Create clusterClasses requiring controlPlaneInfrastructure and one not
-	ccWithControlPlaneInfrastructure := controlPlaneTopologyClass{}
+	ccWithControlPlaneInfrastructure := &controlPlaneTopologyClass{}
 	ccWithControlPlaneInfrastructure.infrastructureMachineTemplate = infrastructureMachineTemplate
 
 	// Infrastructure object with a different Kind.
@@ -397,7 +397,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		class   controlPlaneTopologyClass
+		class   *controlPlaneTopologyClass
 		current *controlPlaneTopologyState
 		desired *controlPlaneTopologyState
 		want    *controlPlaneTopologyState
@@ -432,7 +432,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			fakeObjs := make([]client.Object, 0)
 			var currentState *clusterTopologyState
 			if tt.current != nil {
-				currentState = &clusterTopologyState{controlPlane: *tt.current}
+				currentState = &clusterTopologyState{controlPlane: tt.current}
 				if tt.current.object != nil {
 					fakeObjs = append(fakeObjs, tt.current.object)
 				}
@@ -457,7 +457,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			r := ClusterReconciler{
 				Client: fakeClient,
 			}
-			desiredState := &clusterTopologyState{controlPlane: controlPlaneTopologyState{object: tt.desired.object, infrastructureMachineTemplate: tt.desired.infrastructureMachineTemplate}}
+			desiredState := &clusterTopologyState{controlPlane: &controlPlaneTopologyState{object: tt.desired.object, infrastructureMachineTemplate: tt.desired.infrastructureMachineTemplate}}
 
 			// Run reconcileControlPlane with the states created in the initial section of the test.
 			err := r.reconcileControlPlane(ctx, tt.class, currentState, desiredState)
@@ -579,9 +579,9 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 	tests := []struct {
 		name                                      string
-		current                                   []machineDeploymentTopologyState
-		desired                                   []machineDeploymentTopologyState
-		want                                      []machineDeploymentTopologyState
+		current                                   []*machineDeploymentTopologyState
+		desired                                   []*machineDeploymentTopologyState
+		want                                      []*machineDeploymentTopologyState
 		wantInfrastructureMachineTemplateRotation map[string]bool
 		wantBootstrapTemplateRotation             map[string]bool
 		wantErr                                   bool
@@ -589,74 +589,74 @@ func TestReconcileMachineDeployments(t *testing.T) {
 		{
 			name:    "Should create desired MachineDeployment if the current does not exists yet",
 			current: nil,
-			desired: []machineDeploymentTopologyState{md1},
-			want:    []machineDeploymentTopologyState{md1},
+			desired: []*machineDeploymentTopologyState{md1},
+			want:    []*machineDeploymentTopologyState{md1},
 			wantErr: false,
 		},
 		{
 			name:    "No-op if current MachineDeployment is equal to desired",
-			current: []machineDeploymentTopologyState{md1},
-			desired: []machineDeploymentTopologyState{md1},
-			want:    []machineDeploymentTopologyState{md1},
+			current: []*machineDeploymentTopologyState{md1},
+			desired: []*machineDeploymentTopologyState{md1},
+			want:    []*machineDeploymentTopologyState{md1},
 			wantErr: false,
 		},
 		{
 			name:    "Should update MachineDeployment with InfrastructureMachineTemplate rotation",
-			current: []machineDeploymentTopologyState{md2},
-			desired: []machineDeploymentTopologyState{md2WithRotatedInfrastructureMachineTemplate},
-			want:    []machineDeploymentTopologyState{md2WithRotatedInfrastructureMachineTemplate},
+			current: []*machineDeploymentTopologyState{md2},
+			desired: []*machineDeploymentTopologyState{md2WithRotatedInfrastructureMachineTemplate},
+			want:    []*machineDeploymentTopologyState{md2WithRotatedInfrastructureMachineTemplate},
 			wantInfrastructureMachineTemplateRotation: map[string]bool{"md-2": true},
 			wantErr: false,
 		},
 		{
 			name:                          "Should update MachineDeployment with BootstrapTemplate rotation",
-			current:                       []machineDeploymentTopologyState{md3},
-			desired:                       []machineDeploymentTopologyState{md3WithRotatedBootstrapTemplate},
-			want:                          []machineDeploymentTopologyState{md3WithRotatedBootstrapTemplate},
+			current:                       []*machineDeploymentTopologyState{md3},
+			desired:                       []*machineDeploymentTopologyState{md3WithRotatedBootstrapTemplate},
+			want:                          []*machineDeploymentTopologyState{md3WithRotatedBootstrapTemplate},
 			wantBootstrapTemplateRotation: map[string]bool{"md-3": true},
 			wantErr:                       false,
 		},
 		{
 			name:                          "Should update MachineDeployment with BootstrapTemplate rotation with changed kind",
-			current:                       []machineDeploymentTopologyState{md3},
-			desired:                       []machineDeploymentTopologyState{md3WithRotatedBootstrapTemplateChangedKind},
-			want:                          []machineDeploymentTopologyState{md3WithRotatedBootstrapTemplateChangedKind},
+			current:                       []*machineDeploymentTopologyState{md3},
+			desired:                       []*machineDeploymentTopologyState{md3WithRotatedBootstrapTemplateChangedKind},
+			want:                          []*machineDeploymentTopologyState{md3WithRotatedBootstrapTemplateChangedKind},
 			wantBootstrapTemplateRotation: map[string]bool{"md-3": true},
 			wantErr:                       false,
 		},
 		{
 			name:    "Should update MachineDeployment with InfrastructureMachineTemplate and BootstrapTemplate rotation",
-			current: []machineDeploymentTopologyState{md4},
-			desired: []machineDeploymentTopologyState{md4WithRotatedTemplates},
-			want:    []machineDeploymentTopologyState{md4WithRotatedTemplates},
+			current: []*machineDeploymentTopologyState{md4},
+			desired: []*machineDeploymentTopologyState{md4WithRotatedTemplates},
+			want:    []*machineDeploymentTopologyState{md4WithRotatedTemplates},
 			wantInfrastructureMachineTemplateRotation: map[string]bool{"md-4": true},
 			wantBootstrapTemplateRotation:             map[string]bool{"md-4": true},
 			wantErr:                                   false,
 		},
 		{
 			name:    "Should fail update MachineDeployment because of changed InfrastructureMachineTemplate kind",
-			current: []machineDeploymentTopologyState{md5},
-			desired: []machineDeploymentTopologyState{md5WithChangedInfrastructureMachineTemplateKind},
+			current: []*machineDeploymentTopologyState{md5},
+			desired: []*machineDeploymentTopologyState{md5WithChangedInfrastructureMachineTemplateKind},
 			wantErr: true,
 		},
 		{
 			name:    "Should fail update MachineDeployment because of changed BootstrapTemplate namespace",
-			current: []machineDeploymentTopologyState{md6},
-			desired: []machineDeploymentTopologyState{md6WithChangedBootstrapTemplateNamespace},
+			current: []*machineDeploymentTopologyState{md6},
+			desired: []*machineDeploymentTopologyState{md6WithChangedBootstrapTemplateNamespace},
 			wantErr: true,
 		},
 		{
 			name:    "Should delete MachineDeployment",
-			current: []machineDeploymentTopologyState{md7},
-			desired: []machineDeploymentTopologyState{},
-			want:    []machineDeploymentTopologyState{},
+			current: []*machineDeploymentTopologyState{md7},
+			desired: []*machineDeploymentTopologyState{},
+			want:    []*machineDeploymentTopologyState{},
 			wantErr: false,
 		},
 		{
 			name:    "Should create, update and delete MachineDeployments",
-			current: []machineDeploymentTopologyState{md8Update, md8Delete},
-			desired: []machineDeploymentTopologyState{md8Create, md8UpdateWithRotatedTemplates},
-			want:    []machineDeploymentTopologyState{md8Create, md8UpdateWithRotatedTemplates},
+			current: []*machineDeploymentTopologyState{md8Update, md8Delete},
+			desired: []*machineDeploymentTopologyState{md8Create, md8UpdateWithRotatedTemplates},
+			want:    []*machineDeploymentTopologyState{md8Create, md8UpdateWithRotatedTemplates},
 			wantInfrastructureMachineTemplateRotation: map[string]bool{"md-8-update": true},
 			wantBootstrapTemplateRotation:             map[string]bool{"md-8-update": true},
 			wantErr:                                   false,
@@ -735,7 +735,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					g.Expect(gotBootstrapTemplate).To(Equal(*wantMachineDeploymentState.bootstrapTemplate))
 
 					// Check BootstrapTemplate rotation if there was a previous MachineDeployment/Template.
-					if currentMachineDeploymentTopologyState.bootstrapTemplate != nil {
+					if currentMachineDeploymentTopologyState != nil && currentMachineDeploymentTopologyState.bootstrapTemplate != nil {
 						if tt.wantBootstrapTemplateRotation[gotMachineDeployment.Name] {
 							g.Expect(currentMachineDeploymentTopologyState.bootstrapTemplate.GetName()).ToNot(Equal(gotBootstrapTemplate.GetName()))
 						} else {
@@ -760,7 +760,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					g.Expect(gotInfrastructureMachineTemplate).To(Equal(*wantMachineDeploymentState.infrastructureMachineTemplate))
 
 					// Check InfrastructureMachineTemplate rotation if there was a previous MachineDeployment/Template.
-					if currentMachineDeploymentTopologyState.infrastructureMachineTemplate != nil {
+					if currentMachineDeploymentTopologyState != nil && currentMachineDeploymentTopologyState.infrastructureMachineTemplate != nil {
 						if tt.wantInfrastructureMachineTemplateRotation[gotMachineDeployment.Name] {
 							g.Expect(currentMachineDeploymentTopologyState.infrastructureMachineTemplate.GetName()).ToNot(Equal(gotInfrastructureMachineTemplate.GetName()))
 						} else {
@@ -773,8 +773,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	}
 }
 
-func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured) machineDeploymentTopologyState {
-	return machineDeploymentTopologyState{
+func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured) *machineDeploymentTopologyState {
+	return &machineDeploymentTopologyState{
 		object: newFakeMachineDeployment(metav1.NamespaceDefault, name).
 			WithInfrastructureTemplate(infrastructureMachineTemplate).
 			WithBootstrapTemplate(bootstrapTemplate).
@@ -785,8 +785,8 @@ func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTem
 	}
 }
 
-func toMachineDeploymentTopologyStateMap(states []machineDeploymentTopologyState) map[string]machineDeploymentTopologyState {
-	ret := map[string]machineDeploymentTopologyState{}
+func toMachineDeploymentTopologyStateMap(states []*machineDeploymentTopologyState) map[string]*machineDeploymentTopologyState {
+	ret := map[string]*machineDeploymentTopologyState{}
 	for _, state := range states {
 		ret[state.object.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]] = state
 	}

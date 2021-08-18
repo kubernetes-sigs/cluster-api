@@ -32,13 +32,13 @@ import (
 func (r *ClusterReconciler) getClass(ctx context.Context, cluster *clusterv1.Cluster) (_ *clusterTopologyClass, reterr error) {
 	class := &clusterTopologyClass{
 		clusterClass:       &clusterv1.ClusterClass{},
-		machineDeployments: map[string]machineDeploymentTopologyClass{},
+		machineDeployments: map[string]*machineDeploymentTopologyClass{},
 	}
 
 	// Get ClusterClass.
 	key := client.ObjectKey{Name: cluster.Spec.Topology.Class, Namespace: cluster.Namespace}
 	if err := r.Client.Get(ctx, key, class.clusterClass); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve ClusterClass %q in namespace %q", cluster.Spec.Topology.Class, cluster.Namespace)
+		return nil, errors.Wrapf(err, "failed to retrieve ClusterClass %q", cluster.Spec.Topology.Class)
 	}
 
 	// We use the patchHelper to patch potential changes to the ObjectReferences in ClusterClass.
@@ -49,20 +49,24 @@ func (r *ClusterReconciler) getClass(ctx context.Context, cluster *clusterv1.Clu
 
 	defer func() {
 		if err := patchHelper.Patch(ctx, class.clusterClass); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to patch ClusterClass %q in namespace %q", class.clusterClass.Name, class.clusterClass.Namespace)})
+			reterr = kerrors.NewAggregate([]error{
+				reterr,
+				errors.Wrapf(err, "failed to patch ClusterClass %q", class.clusterClass.Name)},
+			)
 		}
 	}()
 
 	// Get ClusterClass.spec.infrastructure.
 	class.infrastructureClusterTemplate, err = r.getReference(ctx, class.clusterClass.Spec.Infrastructure.Ref)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get infrastructure cluster template")
 	}
 
 	// Get ClusterClass.spec.controlPlane.
+	class.controlPlane = &controlPlaneTopologyClass{}
 	class.controlPlane.template, err = r.getReference(ctx, class.clusterClass.Spec.ControlPlane.Ref)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get control plane template")
 	}
 
 	// Check if ClusterClass.spec.ControlPlane.MachineInfrastructure is set, as it's optional.
@@ -70,23 +74,30 @@ func (r *ClusterReconciler) getClass(ctx context.Context, cluster *clusterv1.Clu
 		// Get ClusterClass.spec.controlPlane.machineInfrastructure.
 		class.controlPlane.infrastructureMachineTemplate, err = r.getReference(ctx, class.clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get control plane's machine template")
 		}
 	}
 
+	// Loop over the machine deployments classes in ClusterClass
+	// and fetch the related templates.
 	for _, mdc := range class.clusterClass.Spec.Workers.MachineDeployments {
-		mdTopologyClass := machineDeploymentTopologyClass{}
+		mdTopologyClass := &machineDeploymentTopologyClass{}
 
+		// Make sure to copy the metadata from the class, which is later layered
+		// with the additional metadata defined in the Cluster's topology section
+		// for the MachineDeployment that is created or updated.
 		mdc.Template.Metadata.DeepCopyInto(&mdTopologyClass.metadata)
 
+		// Get the infrastructure machine template.
 		mdTopologyClass.infrastructureMachineTemplate, err = r.getReference(ctx, mdc.Template.Infrastructure.Ref)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get MachineDeployment in class %q infrastructure machine template", mdc.Class)
 		}
 
+		// Get the bootstrap machine template.
 		mdTopologyClass.bootstrapTemplate, err = r.getReference(ctx, mdc.Template.Bootstrap.Ref)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get MachineDeployment in class %q bootstrap machine template", mdc.Class)
 		}
 
 		class.machineDeployments[mdc.Class] = mdTopologyClass

@@ -156,7 +156,7 @@ Furthermore, it's possible to overwrite all env variables specified in `variable
 local instance of etcd and the kube-apiserver. This allows tests to be executed in an environment very similar to a
 real environment.
 
-Additionally, in Cluster API there is a set of utilities under [test/helpers] that helps developers in setting up
+Additionally, in Cluster API there is a set of utilities under [internal/envtest] that helps developers in setting up
 a [envtest] ready for Cluster API testing, and more specifically:
 
 - With the required CRDs already pre-configured.
@@ -168,30 +168,32 @@ by convention, this code should be in a file named `suite_test.go`:
 
 ```golang
 var (
-	testEnv *helpers.TestEnvironment
-	ctx     = context.Background()
+	env *envtest.Environment
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {
-	// Bootstrapping test environment
-	testEnv = helpers.NewTestEnvironment()
-	go func() {
-		if err := testEnv.StartManager(); err != nil {
-			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
+	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
+		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
+			panic(fmt.Sprintf("unable to setup index: %v", err))
 		}
-	}()
-	<-testEnv.Manager.Elected()
-	testEnv.WaitForWebhooks()
-
-	// Run tests
-	code := m.Run()
-	// Tearing down the test environment
-	if err := testEnv.Stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop the envtest: %v", err))
 	}
 
-	// Report exit code
-	os.Exit(code)
+	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+		if err := (&MyReconciler{
+			Client:  mgr.GetClient(),
+			Log:     log.NullLogger{},
+		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start the MyReconciler: %v", err))
+		}
+	}
+
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M:        m,
+		SetupEnv: func(e *envtest.Environment) { env = e },
+		SetupIndexes:     setupIndexes,
+		SetupReconcilers: setupReconcilers,
+	}))
 }
 ```
 
@@ -204,11 +206,13 @@ func TestMain(m *testing.M) {
 	// Bootstrapping test environment
 	...
 
-	if err := (&MyReconciler{
-		Client:  testEnv,
-		Log:     log.NullLogger{},
-	}).SetupWithManager(testEnv.Manager, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-		panic(fmt.Sprintf("Failed to start the MyReconciler: %v", err))
+	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+		if err := (&MyReconciler{
+			Client:  mgr.GetClient(),
+			Log:     log.NullLogger{},
+		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start the MyReconciler: %v", err))
+		}
 	}
 
 	// Run tests
@@ -236,11 +240,11 @@ func TestAFunc(t *testing.T) {
 	g := NewWithT(t)
 	// Generate namespace with a random name starting with ns1; such namespace
 	// will host test objects in isolation from other tests.
-	ns1, err := testEnv.CreateNamespace(ctx, "ns1")
+	ns1, err := env.CreateNamespace(ctx, "ns1")
 	g.Expect(err).ToNot(HaveOccurred())
 	defer func() {
 		// Cleanup the test namespace
-		g.Expect(testEnv.DeleteNamespace(ctx, ns1)).To(Succeed())
+		g.Expect(env.DeleteNamespace(ctx, ns1)).To(Succeed())
 	}()
 
 	obj := &clusterv1.Cluster{
@@ -263,11 +267,11 @@ func TestAFunc(t *testing.T) {
 	g := NewWithT(t)
 	// Generate namespace with a random name starting with ns1; such namespace
 	// will host test objects in isolation from other tests.
-	ns1, err := testEnv.CreateNamespace(ctx, "ns1")
+	ns1, err := env.CreateNamespace(ctx, "ns1")
 	g.Expect(err).ToNot(HaveOccurred())
 	defer func() {
 		// Cleanup the test namespace
-		g.Expect(testEnv.DeleteNamespace(ctx, ns1)).To(Succeed())
+		g.Expect(env.DeleteNamespace(ctx, ns1)).To(Succeed())
 	}()
 
 	obj := &clusterv1.Cluster{

@@ -33,7 +33,7 @@ import (
 // NOTE: We are assuming all the required objects are provided as input; also, in case of any error,
 // the entire reconcile operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
-func (r *ClusterReconciler) reconcileState(ctx context.Context, cpClass controlPlaneTopologyClass, current, desired *clusterTopologyState) error {
+func (r *ClusterReconciler) reconcileState(ctx context.Context, cpClass *controlPlaneTopologyClass, current, desired *clusterTopologyState) error {
 	// Reconcile desired state of the InfrastructureCluster object.
 	if err := r.reconcileInfrastructureCluster(ctx, current, desired); err != nil {
 		return err
@@ -60,7 +60,7 @@ func (r *ClusterReconciler) reconcileInfrastructureCluster(ctx context.Context, 
 
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
 // updating the cluster where needed.
-func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, class controlPlaneTopologyClass, current, desired *clusterTopologyState) error {
+func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, class *controlPlaneTopologyClass, current, desired *clusterTopologyState) error {
 	log := ctrl.LoggerFrom(ctx)
 	// Set a default nil return function for the cleanup operation.
 	cleanup := func() error { return nil }
@@ -163,7 +163,7 @@ func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, cur
 }
 
 // createMachineDeployment creates a MachineDeployment and the corresponding Templates.
-func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md machineDeploymentTopologyState) error {
+func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md *machineDeploymentTopologyState) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if _, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
@@ -186,7 +186,7 @@ func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md mach
 }
 
 // updateMachineDeployment updates a MachineDeployment. Also rotates the corresponding Templates if necessary.
-func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, clusterName string, currentMD, desiredMD machineDeploymentTopologyState) error {
+func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, clusterName string, currentMD, desiredMD *machineDeploymentTopologyState) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	cleanupOldInfrastructureTemplate, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
@@ -232,7 +232,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 }
 
 // deleteMachineDeployment deletes a MachineDeployment.
-func (r *ClusterReconciler) deleteMachineDeployment(ctx context.Context, md machineDeploymentTopologyState) error {
+func (r *ClusterReconciler) deleteMachineDeployment(ctx context.Context, md *machineDeploymentTopologyState) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.Info("deleting", md.object.GroupVersionKind().String(), md.object.GetName())
@@ -248,7 +248,7 @@ type machineDeploymentDiff struct {
 
 // calculateMachineDeploymentDiff compares two maps of machineDeploymentTopologyState and calculates which
 // MachineDeployments should be created, updated or deleted.
-func calculateMachineDeploymentDiff(current, desired map[string]machineDeploymentTopologyState) machineDeploymentDiff {
+func calculateMachineDeploymentDiff(current, desired map[string]*machineDeploymentTopologyState) machineDeploymentDiff {
 	var diff machineDeploymentDiff
 
 	for md := range desired {

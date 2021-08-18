@@ -102,10 +102,10 @@ func TestGetClass(t *testing.T) {
 					WithControlPlaneTemplate(controlPlaneTemplate).
 					Obj(),
 				infrastructureClusterTemplate: infraClusterTemplate,
-				controlPlane: controlPlaneTopologyClass{
+				controlPlane: &controlPlaneTopologyClass{
 					template: controlPlaneTemplate,
 				},
-				machineDeployments: map[string]machineDeploymentTopologyClass{},
+				machineDeployments: map[string]*machineDeploymentTopologyClass{},
 			},
 		},
 		{
@@ -127,11 +127,11 @@ func TestGetClass(t *testing.T) {
 					WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
 					Obj(),
 				infrastructureClusterTemplate: infraClusterTemplate,
-				controlPlane: controlPlaneTopologyClass{
+				controlPlane: &controlPlaneTopologyClass{
 					template:                      controlPlaneTemplateWithInfrastructureMachine,
 					infrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
 				},
-				machineDeployments: map[string]machineDeploymentTopologyClass{},
+				machineDeployments: map[string]*machineDeploymentTopologyClass{},
 			},
 		},
 		{
@@ -167,10 +167,10 @@ func TestGetClass(t *testing.T) {
 					WithWorkerMachineDeploymentClass("workerclass1", map[string]string{"foo": "bar"}, map[string]string{"a": "b"}, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
 					Obj(),
 				infrastructureClusterTemplate: infraClusterTemplate,
-				controlPlane: controlPlaneTopologyClass{
+				controlPlane: &controlPlaneTopologyClass{
 					template: controlPlaneTemplate,
 				},
-				machineDeployments: map[string]machineDeploymentTopologyClass{
+				machineDeployments: map[string]*machineDeploymentTopologyClass{
 					"workerclass1": {
 						metadata: clusterv1.ObjectMeta{
 							Labels:      map[string]string{"foo": "bar"},

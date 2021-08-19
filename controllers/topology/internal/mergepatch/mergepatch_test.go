@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package topology
+package mergepatch
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func TestNewMergePatchHelper(t *testing.T) {
+func TestNewHelper(t *testing.T) {
 	tests := []struct {
 		name           string
 		original       *unstructured.Unstructured // current
@@ -349,7 +349,7 @@ func TestNewMergePatchHelper(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			patch, err := newMergePatchHelper(tt.original, tt.modified, nil)
+			patch, err := NewHelper(tt.original, tt.modified, nil)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(patch.HasChanges()).To(Equal(tt.wantHasChanges))

@@ -45,7 +45,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const initWithBinaryVariableName = "INIT_WITH_BINARY"
+const (
+	initWithBinaryVariableName = "INIT_WITH_BINARY"
+	initWithKubernetesVersion  = "INIT_WITH_KUBERNETES_VERSION"
+)
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
 type ClusterctlUpgradeSpecInput struct {
@@ -86,6 +89,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(initWithBinaryVariableName), "Invalid argument. %s variable must be defined when calling %s spec", initWithBinaryVariableName, specName)
 		Expect(input.E2EConfig.Variables[initWithBinaryVariableName]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithBinaryVariableName, specName)
+		Expect(input.E2EConfig.Variables).To(HaveKey(initWithKubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
@@ -109,7 +113,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                managementClusterNamespace.Name,
 				ClusterName:              managementClusterName,
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.GetVariable(initWithKubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
@@ -141,7 +145,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		clusterctlBinaryURL = strings.ReplaceAll(clusterctlBinaryURL, "{OS}", runtime.GOOS)
 		clusterctlBinaryURL = strings.ReplaceAll(clusterctlBinaryURL, "{ARCH}", runtime.GOARCH)
 
-		log.Logf("downloading clusterctl binary from %s", clusterctlBinaryURL)
+		log.Logf("Downloading clusterctl binary from %s", clusterctlBinaryURL)
 		clusterctlBinaryPath := downloadToTmpFile(clusterctlBinaryURL)
 		defer os.Remove(clusterctlBinaryPath) // clean up
 

@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/mergepatch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -117,7 +118,7 @@ func (r *ClusterReconciler) reconcileCluster(ctx context.Context, current, desir
 	log := ctrl.LoggerFrom(ctx)
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := newMergePatchHelper(current.cluster, desired.cluster, r.Client)
+	patchHelper, err := mergepatch.NewHelper(current.cluster, desired.cluster, r.Client)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s/%s", current.cluster.GroupVersionKind(), current.cluster.Name)
 	}
@@ -216,7 +217,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 	}
 
 	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
-	patchHelper, err := newMergePatchHelper(currentMD.object, desiredMD.object, r.Client)
+	patchHelper, err := mergepatch.NewHelper(currentMD.object, desiredMD.object, r.Client)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s/%s", currentMD.object.GroupVersionKind(), currentMD.object.Name)
 	}
@@ -289,7 +290,7 @@ func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, curre
 	}
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := newMergePatchHelper(current, desired, r.Client)
+	patchHelper, err := mergepatch.NewHelper(current, desired, r.Client)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s/%s", current.GroupVersionKind(), current.GetKind())
 	}
@@ -340,7 +341,7 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 	}
 
 	// Check differences between current and desired objects, and if there are changes eventually start the template rotation.
-	patchHelper, err := newMergePatchHelper(in.current, in.desired, r.Client)
+	patchHelper, err := mergepatch.NewHelper(in.current, in.desired, r.Client)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create patch helper for %s/%s", in.current.GroupVersionKind(), in.current.GetName())
 	}

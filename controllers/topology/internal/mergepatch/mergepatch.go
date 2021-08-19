@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package topology
+// Package mergepatch implements merge patch support for managed topology.
+package mergepatch
 
 import (
 	"bytes"
@@ -27,7 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type mergePatchHelper struct {
+// Helper helps with a patch that yields the modified document when applied to the original document.
+type Helper struct {
 	client client.Client
 
 	// original holds the object to which the patch should apply to, to be used in the Patch method.
@@ -37,11 +39,11 @@ type mergePatchHelper struct {
 	patch []byte
 }
 
-// newMergePatchHelper will return a patch that yields the modified document when applied to the original document.
+// NewHelper will return a patch that yields the modified document when applied to the original document.
 // NOTE: In the case of ClusterTopologyReconciler, original is the current object, modified is the desired object, and
 // the patch returns all the changes required to align current to what is defined in desired; fields not defined in desired
 // are going to be preserved without changes.
-func newMergePatchHelper(original, modified client.Object, c client.Client) (*mergePatchHelper, error) {
+func NewHelper(original, modified client.Object, c client.Client) (*Helper, error) {
 	// Convert the input objects to json.
 	originalJSON, err := json.Marshal(original)
 	if err != nil {
@@ -78,7 +80,7 @@ func newMergePatchHelper(original, modified client.Object, c client.Client) (*me
 		return nil, errors.Wrap(err, "failed to remove fields merge patch")
 	}
 
-	return &mergePatchHelper{
+	return &Helper{
 		client:   c,
 		patch:    patch,
 		original: original,
@@ -149,12 +151,12 @@ func filterPatchMap(patchMap map[string]interface{}, allowedPaths [][]string) {
 }
 
 // HasChanges return true if the patch has changes.
-func (h *mergePatchHelper) HasChanges() bool {
+func (h *Helper) HasChanges() bool {
 	return !bytes.Equal(h.patch, []byte("{}"))
 }
 
 // Patch will attempt to apply the twoWaysPatch to the original object.
-func (h *mergePatchHelper) Patch(ctx context.Context) error {
+func (h *Helper) Patch(ctx context.Context) error {
 	if !h.HasChanges() {
 		return nil
 	}

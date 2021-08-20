@@ -202,6 +202,15 @@ func (in ClusterClass) validateMachineDeploymentsChanges(old *ClusterClass) fiel
 func (r LocalObjectTemplate) validate(namespace string, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
+	// check if ref is not nil.
+	if r.Ref == nil {
+		return field.ErrorList{field.Invalid(
+			pathPrefix.Child("ref"),
+			r.Ref.Name,
+			"cannot be nil",
+		)}
+	}
+
 	// check if a name is provided
 	if r.Ref.Name == "" {
 		allErrs = append(allErrs,

@@ -28,6 +28,7 @@ func TestNewHelper(t *testing.T) {
 		name           string
 		original       *unstructured.Unstructured // current
 		modified       *unstructured.Unstructured // desired
+		options        []HelperOption
 		wantHasChanges bool
 		wantPatch      []byte
 	}{
@@ -299,6 +300,28 @@ func TestNewHelper(t *testing.T) {
 			wantPatch:      []byte("{\"metadata\":{\"annotations\":{\"foo\":\"bar\"},\"labels\":{\"foo\":\"bar\"}}}"),
 		},
 
+		// Ignore fields
+
+		{
+			name: "Ignore fields are removed from the diff",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"controlPlaneEndpoint": map[string]interface{}{
+							"host": "",
+							"port": 0,
+						},
+					},
+				},
+			},
+			options:        []HelperOption{IgnorePath{"spec", "controlPlaneEndpoint"}},
+			wantHasChanges: false,
+			wantPatch:      []byte("{}"),
+		},
+
 		// More tests
 		{
 			name: "No changes",
@@ -349,7 +372,7 @@ func TestNewHelper(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			patch, err := NewHelper(tt.original, tt.modified, nil)
+			patch, err := NewHelper(tt.original, tt.modified, nil, tt.options...)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(patch.HasChanges()).To(Equal(tt.wantHasChanges))

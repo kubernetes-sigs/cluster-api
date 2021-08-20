@@ -71,5 +71,5 @@ func (b *ClusterBlueprint) HasControlPlaneInfrastructureMachine() bool {
 
 // HasMachineDeployments checks whether the topology has MachineDeployments.
 func (b *ClusterBlueprint) HasMachineDeployments() bool {
-	return b.Topology.Workers == nil || len(b.Topology.Workers.MachineDeployments) == 0
+	return b.Topology.Workers != nil && len(b.Topology.Workers.MachineDeployments) > 0
 }

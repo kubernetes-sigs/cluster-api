@@ -100,7 +100,7 @@ type ControlPlaneTopology struct {
 	// and it's assumed that the control plane controller does not implement support for this field.
 	// When specified against a control plane provider that lacks support for this field, this value will be ignored.
 	// +optional
-	Replicas *int `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 // WorkersTopology represents the different sets of worker nodes in the cluster.
@@ -130,7 +130,7 @@ type MachineDeploymentTopology struct {
 	// and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
 	// of this value.
 	// +optional
-	Replicas *int `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 // ANCHOR_END: ClusterSpec

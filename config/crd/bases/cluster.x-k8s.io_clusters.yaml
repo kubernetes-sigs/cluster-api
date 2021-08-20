@@ -491,6 +491,7 @@ spec:
                           control plane controller does not implement support for
                           this field. When specified against a control plane provider
                           that lacks support for this field, this value will be ignored.
+                        format: int32
                         type: integer
                     type: object
                   rolloutAfter:
@@ -584,6 +585,7 @@ spec:
                                 to zero) and it's assumed that an external entity
                                 (like cluster autoscaler) is responsible for the management
                                 of this value.
+                              format: int32
                               type: integer
                           required:
                           - class

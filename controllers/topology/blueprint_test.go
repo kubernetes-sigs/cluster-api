@@ -24,11 +24,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestGetClass(t *testing.T) {
+func TestGetBlueprint(t *testing.T) {
 	crds := []client.Object{
 		fakeInfrastructureClusterTemplateCRD,
 		fakeControlPlaneTemplateCRD,
@@ -56,7 +57,7 @@ func TestGetClass(t *testing.T) {
 		name         string
 		clusterClass *clusterv1.ClusterClass
 		objects      []client.Object
-		want         *clusterTopologyClass
+		want         *scope.ClusterBlueprint
 		wantErr      bool
 	}{
 		{
@@ -96,16 +97,16 @@ func TestGetClass(t *testing.T) {
 				infraClusterTemplate,
 				controlPlaneTemplate,
 			},
-			want: &clusterTopologyClass{
-				clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			want: &scope.ClusterBlueprint{
+				ClusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplate).
 					Obj(),
-				infrastructureClusterTemplate: infraClusterTemplate,
-				controlPlane: &controlPlaneTopologyClass{
-					template: controlPlaneTemplate,
+				InfrastructureClusterTemplate: infraClusterTemplate,
+				ControlPlane: &scope.ControlPlaneBlueprint{
+					Template: controlPlaneTemplate,
 				},
-				machineDeployments: map[string]*machineDeploymentTopologyClass{},
+				MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{},
 			},
 		},
 		{
@@ -120,18 +121,18 @@ func TestGetClass(t *testing.T) {
 				controlPlaneTemplateWithInfrastructureMachine,
 				controlPlaneInfrastructureMachineTemplate,
 			},
-			want: &clusterTopologyClass{
-				clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			want: &scope.ClusterBlueprint{
+				ClusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplateWithInfrastructureMachine).
 					WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
 					Obj(),
-				infrastructureClusterTemplate: infraClusterTemplate,
-				controlPlane: &controlPlaneTopologyClass{
-					template:                      controlPlaneTemplateWithInfrastructureMachine,
-					infrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
+				InfrastructureClusterTemplate: infraClusterTemplate,
+				ControlPlane: &scope.ControlPlaneBlueprint{
+					Template:                      controlPlaneTemplateWithInfrastructureMachine,
+					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
 				},
-				machineDeployments: map[string]*machineDeploymentTopologyClass{},
+				MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{},
 			},
 		},
 		{
@@ -160,24 +161,24 @@ func TestGetClass(t *testing.T) {
 				workerInfrastructureMachineTemplate,
 				workerBootstrapTemplate,
 			},
-			want: &clusterTopologyClass{
-				clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			want: &scope.ClusterBlueprint{
+				ClusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplate).
 					WithWorkerMachineDeploymentClass("workerclass1", map[string]string{"foo": "bar"}, map[string]string{"a": "b"}, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
 					Obj(),
-				infrastructureClusterTemplate: infraClusterTemplate,
-				controlPlane: &controlPlaneTopologyClass{
-					template: controlPlaneTemplate,
+				InfrastructureClusterTemplate: infraClusterTemplate,
+				ControlPlane: &scope.ControlPlaneBlueprint{
+					Template: controlPlaneTemplate,
 				},
-				machineDeployments: map[string]*machineDeploymentTopologyClass{
+				MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
 					"workerclass1": {
-						metadata: clusterv1.ObjectMeta{
+						Metadata: clusterv1.ObjectMeta{
 							Labels:      map[string]string{"foo": "bar"},
 							Annotations: map[string]string{"a": "b"},
 						},
-						infrastructureMachineTemplate: workerInfrastructureMachineTemplate,
-						bootstrapTemplate:             workerBootstrapTemplate,
+						InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+						BootstrapTemplate:             workerBootstrapTemplate,
 					},
 				},
 			},
@@ -241,7 +242,7 @@ func TestGetClass(t *testing.T) {
 				Client:                    fakeClient,
 				UnstructuredCachingClient: fakeClient,
 			}
-			got, err := r.getClass(ctx, cluster)
+			got, err := r.getBlueprint(ctx, scope.New(cluster).Current.Cluster)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -253,10 +254,10 @@ func TestGetClass(t *testing.T) {
 				return
 			}
 
-			g.Expect(got.clusterClass).To(Equal(tt.want.clusterClass), cmp.Diff(tt.want.clusterClass, got.clusterClass))
-			g.Expect(got.infrastructureClusterTemplate).To(Equal(tt.want.infrastructureClusterTemplate), cmp.Diff(tt.want.infrastructureClusterTemplate, got.infrastructureClusterTemplate))
-			g.Expect(got.controlPlane).To(Equal(tt.want.controlPlane), cmp.Diff(tt.want.controlPlane, got.controlPlane, cmp.AllowUnexported(unstructured.Unstructured{}, controlPlaneTopologyClass{})))
-			g.Expect(got.machineDeployments).To(Equal(tt.want.machineDeployments), cmp.Diff(tt.want.machineDeployments, got.machineDeployments, cmp.AllowUnexported(machineDeploymentTopologyClass{})))
+			g.Expect(got.ClusterClass).To(Equal(tt.want.ClusterClass), cmp.Diff(tt.want.ClusterClass, got.ClusterClass))
+			g.Expect(got.InfrastructureClusterTemplate).To(Equal(tt.want.InfrastructureClusterTemplate), cmp.Diff(tt.want.InfrastructureClusterTemplate, got.InfrastructureClusterTemplate))
+			g.Expect(got.ControlPlane).To(Equal(tt.want.ControlPlane), cmp.Diff(tt.want.ControlPlane, got.ControlPlane, cmp.AllowUnexported(unstructured.Unstructured{}, scope.ControlPlaneBlueprint{})))
+			g.Expect(got.MachineDeployments).To(Equal(tt.want.MachineDeployments), cmp.Diff(tt.want.MachineDeployments, got.MachineDeployments, cmp.AllowUnexported(scope.MachineDeploymentBlueprint{})))
 		})
 	}
 }

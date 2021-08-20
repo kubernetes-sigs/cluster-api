@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 )
 
 var (
@@ -50,10 +51,10 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		WithInfrastructureClusterTemplate(infrastructureClusterTemplate).
 		Obj()
 
-	// aggregating templates and cluster class into topologyClass (simulating getClass)
-	topologyClass := &clusterTopologyClass{
-		clusterClass:                  clusterClass,
-		infrastructureClusterTemplate: infrastructureClusterTemplate,
+	// aggregating templates and cluster class into a blueprint (simulating getBlueprint)
+	blueprint := &scope.ClusterBlueprint{
+		ClusterClass:                  clusterClass,
+		InfrastructureClusterTemplate: infrastructureClusterTemplate,
 	}
 
 	// current cluster objects
@@ -67,19 +68,18 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 	t.Run("Generates the infrastructureCluster from the template", func(t *testing.T) {
 		g := NewWithT(t)
 
-		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-		current := &clusterTopologyState{
-			cluster: cluster,
-		}
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
 
-		obj, err := computeInfrastructureCluster(topologyClass, current)
+		obj, err := computeInfrastructureCluster(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     current.cluster,
-			templateRef: topologyClass.clusterClass.Spec.Infrastructure.Ref,
-			template:    topologyClass.infrastructureClusterTemplate,
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.Infrastructure.Ref,
+			template:    blueprint.InfrastructureClusterTemplate,
 			labels:      nil,
 			annotations: nil,
 			currentRef:  nil,
@@ -93,22 +93,21 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		clusterWithInfrastructureRef := cluster.DeepCopy()
 		clusterWithInfrastructureRef.Spec.InfrastructureRef = fakeRef1
 
-		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-		current := &clusterTopologyState{
-			cluster: clusterWithInfrastructureRef,
-		}
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(clusterWithInfrastructureRef)
+		scope.Blueprint = blueprint
 
-		obj, err := computeInfrastructureCluster(topologyClass, current)
+		obj, err := computeInfrastructureCluster(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     current.cluster,
-			templateRef: topologyClass.clusterClass.Spec.Infrastructure.Ref,
-			template:    topologyClass.infrastructureClusterTemplate,
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.Infrastructure.Ref,
+			template:    blueprint.InfrastructureClusterTemplate,
 			labels:      nil,
 			annotations: nil,
-			currentRef:  current.cluster.Spec.InfrastructureRef,
+			currentRef:  scope.Current.Cluster.Spec.InfrastructureRef,
 			obj:         obj,
 		})
 	})
@@ -118,20 +117,6 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	// templates and ClusterClass
 	labels := map[string]string{"l1": ""}
 	annotations := map[string]string{"a1": ""}
-
-	infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "template1").Obj()
-	clusterClass := newFakeClusterClass(metav1.NamespaceDefault, "class1").
-		WithControlPlaneMetadata(labels, annotations).
-		WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).
-		Obj()
-
-	// aggregating templates and cluster class into topologyClass (simulating getClass)
-	topologyClass := &clusterTopologyClass{
-		clusterClass: clusterClass,
-		controlPlane: &controlPlaneTopologyClass{
-			infrastructureMachineTemplate: infrastructureMachineTemplate,
-		},
-	}
 
 	// current cluster objects
 	cluster := &clusterv1.Cluster{
@@ -151,24 +136,38 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		},
 	}
 
+	infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "template1").Obj()
+	clusterClass := newFakeClusterClass(metav1.NamespaceDefault, "class1").
+		WithControlPlaneMetadata(labels, annotations).
+		WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).
+		Obj()
+
+	// aggregating templates and cluster class into a blueprint (simulating getBlueprint)
+	blueprint := &scope.ClusterBlueprint{
+		Topology:     cluster.Spec.Topology,
+		ClusterClass: clusterClass,
+		ControlPlane: &scope.ControlPlaneBlueprint{
+			InfrastructureMachineTemplate: infrastructureMachineTemplate,
+		},
+	}
+
 	t.Run("Generates the infrastructureMachineTemplate from the template", func(t *testing.T) {
 		g := NewWithT(t)
 
-		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-		current := &clusterTopologyState{
-			cluster: cluster,
-		}
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
 
-		obj, err := computeControlPlaneInfrastructureMachineTemplate(topologyClass, current)
+		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToTemplate(g, assertTemplateInput{
-			cluster:     current.cluster,
-			templateRef: topologyClass.clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
-			template:    topologyClass.controlPlane.infrastructureMachineTemplate,
-			labels:      mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Labels, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Annotations, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
+			labels:      mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 			currentRef:  nil,
 			obj:         obj,
 		})
@@ -183,25 +182,24 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		err := setNestedRef(controlPlane, currentInfrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-		current := &clusterTopologyState{
-			cluster: cluster,
-			controlPlane: &controlPlaneTopologyState{
-				object:                        controlPlane,
-				infrastructureMachineTemplate: currentInfrastructureMachineTemplate,
-			},
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		s := scope.New(cluster)
+		s.Current.ControlPlane = &scope.ControlPlaneState{
+			Object:                        controlPlane,
+			InfrastructureMachineTemplate: currentInfrastructureMachineTemplate,
 		}
+		s.Blueprint = blueprint
 
-		obj, err := computeControlPlaneInfrastructureMachineTemplate(topologyClass, current)
+		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToTemplate(g, assertTemplateInput{
-			cluster:     current.cluster,
-			templateRef: topologyClass.clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
-			template:    topologyClass.controlPlane.infrastructureMachineTemplate,
-			labels:      mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Labels, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Annotations, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:     s.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
+			labels:      mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 			currentRef:  objToRef(currentInfrastructureMachineTemplate),
 			obj:         obj,
 		})
@@ -219,17 +217,9 @@ func TestComputeControlPlane(t *testing.T) {
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		Obj()
 
-	// aggregating templates and cluster class into topologyClass (simulating getClass)
-	topologyClass := &clusterTopologyClass{
-		clusterClass: clusterClass,
-		controlPlane: &controlPlaneTopologyClass{
-			template: controlPlaneTemplate,
-		},
-	}
-
 	// current cluster objects
 	version := "v1.21.2"
-	replicas := 3
+	replicas := int32(3)
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster1",
@@ -252,21 +242,28 @@ func TestComputeControlPlane(t *testing.T) {
 	t.Run("Generates the ControlPlane from the template", func(t *testing.T) {
 		g := NewWithT(t)
 
-		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-		current := &clusterTopologyState{
-			cluster: cluster,
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     cluster.Spec.Topology,
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template: controlPlaneTemplate,
+			},
 		}
 
-		obj, err := computeControlPlane(topologyClass, current, nil)
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		obj, err := computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     current.cluster,
-			templateRef: topologyClass.clusterClass.Spec.ControlPlane.Ref,
-			template:    topologyClass.controlPlane.template,
-			labels:      mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Labels, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Annotations, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:    blueprint.ControlPlane.Template,
+			labels:      mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 			currentRef:  nil,
 			obj:         obj,
 		})
@@ -282,21 +279,28 @@ func TestComputeControlPlane(t *testing.T) {
 		clusterWithoutReplicas := cluster.DeepCopy()
 		clusterWithoutReplicas.Spec.Topology.ControlPlane.Replicas = nil
 
-		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-		current := &clusterTopologyState{
-			cluster: clusterWithoutReplicas,
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     clusterWithoutReplicas.Spec.Topology,
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template: controlPlaneTemplate,
+			},
 		}
 
-		obj, err := computeControlPlane(topologyClass, current, nil)
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(clusterWithoutReplicas)
+		scope.Blueprint = blueprint
+
+		obj, err := computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     current.cluster,
-			templateRef: topologyClass.clusterClass.Spec.ControlPlane.Ref,
-			template:    topologyClass.controlPlane.template,
-			labels:      mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Labels, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Annotations, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:    blueprint.ControlPlane.Template,
+			labels:      mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 			currentRef:  nil,
 			obj:         obj,
 		})
@@ -316,30 +320,30 @@ func TestComputeControlPlane(t *testing.T) {
 			WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).
 			Obj()
 
-		// aggregating templates and cluster class into topologyClass (simulating getClass)
-		topologyClass := &clusterTopologyClass{
-			clusterClass: clusterClass,
-			controlPlane: &controlPlaneTopologyClass{
-				template:                      controlPlaneTemplate,
-				infrastructureMachineTemplate: infrastructureMachineTemplate,
+		// aggregating templates and cluster class into a blueprint (simulating getBlueprint)
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     cluster.Spec.Topology,
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template:                      controlPlaneTemplate,
+				InfrastructureMachineTemplate: infrastructureMachineTemplate,
 			},
 		}
 
-		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-		current := &clusterTopologyState{
-			cluster: cluster,
-		}
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(topologyClass, current, infrastructureMachineTemplate)
+		obj, err := computeControlPlane(ctx, scope, infrastructureMachineTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     current.cluster,
-			templateRef: topologyClass.clusterClass.Spec.ControlPlane.Ref,
-			template:    topologyClass.controlPlane.template,
-			labels:      mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Labels, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Annotations, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:    blueprint.ControlPlane.Template,
+			labels:      mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 			currentRef:  nil,
 			obj:         obj,
 		})
@@ -360,28 +364,37 @@ func TestComputeControlPlane(t *testing.T) {
 		clusterWithControlPlaneRef := cluster.DeepCopy()
 		clusterWithControlPlaneRef.Spec.ControlPlaneRef = fakeRef1
 
-		// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-		current := &clusterTopologyState{
-			cluster: clusterWithControlPlaneRef,
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     clusterWithControlPlaneRef.Spec.Topology,
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template: controlPlaneTemplate,
+			},
 		}
 
-		obj, err := computeControlPlane(topologyClass, current, nil)
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(clusterWithControlPlaneRef)
+		scope.Blueprint = blueprint
+
+		obj, err := computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     current.cluster,
-			templateRef: topologyClass.clusterClass.Spec.ControlPlane.Ref,
-			template:    topologyClass.controlPlane.template,
-			labels:      mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Labels, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(current.cluster.Spec.Topology.ControlPlane.Metadata.Annotations, topologyClass.clusterClass.Spec.ControlPlane.Metadata.Annotations),
-			currentRef:  current.cluster.Spec.ControlPlaneRef,
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:    blueprint.ControlPlane.Template,
+			labels:      mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			currentRef:  scope.Current.Cluster.Spec.ControlPlaneRef,
 			obj:         obj,
 		})
 	})
 }
 
 func TestComputeCluster(t *testing.T) {
+	g := NewWithT(t)
+
 	// generated objects
 	infrastructureCluster := newFakeInfrastructureCluster(metav1.NamespaceDefault, "infrastructureCluster1").Obj()
 	controlPlane := newFakeControlPlane(metav1.NamespaceDefault, "controlplane1").Obj()
@@ -394,14 +407,10 @@ func TestComputeCluster(t *testing.T) {
 		},
 	}
 
-	// aggregating current cluster objects into clusterTopologyState (simulating getCurrentState)
-	current := &clusterTopologyState{
-		cluster: cluster,
-	}
+	// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+	scope := scope.New(cluster)
 
-	g := NewWithT(t)
-
-	obj := computeCluster(current, infrastructureCluster, controlPlane)
+	obj := computeCluster(ctx, scope, infrastructureCluster, controlPlane)
 	g.Expect(obj).ToNot(BeNil())
 
 	// TypeMeta
@@ -412,7 +421,7 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.Name).To(Equal(cluster.Name))
 	g.Expect(obj.Namespace).To(Equal(cluster.Namespace))
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterLabelName, cluster.Name))
-	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyLabelName, ""))
+	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 
 	// Spec
 	g.Expect(obj.Spec.InfrastructureRef).To(Equal(objToRef(infrastructureCluster)))
@@ -429,25 +438,36 @@ func TestComputeMachineDeployment(t *testing.T) {
 	fakeClass := newFakeClusterClass(metav1.NamespaceDefault, "class1").
 		WithWorkerMachineDeploymentClass("linux-worker", labels, annotations, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
 		Obj()
-	class := &clusterTopologyClass{
-		clusterClass: fakeClass,
-		machineDeployments: map[string]*machineDeploymentTopologyClass{
-			"linux-worker": {
-				metadata: clusterv1.ObjectMeta{
-					Labels:      labels,
-					Annotations: annotations,
-				},
-				bootstrapTemplate:             workerBootstrapTemplate,
-				infrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+
+	version := "v1.21.2"
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster1",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.ClusterSpec{
+			Topology: &clusterv1.Topology{
+				Version: version,
 			},
 		},
 	}
 
-	current := &clusterTopologyState{
-		cluster: newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
+	blueprint := &scope.ClusterBlueprint{
+		Topology:     cluster.Spec.Topology,
+		ClusterClass: fakeClass,
+		MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+			"linux-worker": {
+				Metadata: clusterv1.ObjectMeta{
+					Labels:      labels,
+					Annotations: annotations,
+				},
+				BootstrapTemplate:             workerBootstrapTemplate,
+				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+			},
+		},
 	}
 
-	replicas := 5
+	replicas := int32(5)
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
 			Labels: map[string]string{"foo": "baz"},
@@ -459,11 +479,14 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
 		g := NewWithT(t)
-		actual, err := computeMachineDeployment(class, current, mdTopology)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		actual, err := computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		actualMd := actual.object
-		g.Expect(*actualMd.Spec.Replicas).To(Equal(int32(replicas)))
+		actualMd := actual.Object
+		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
 		g.Expect(actualMd.Spec.ClusterName).To(Equal("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
@@ -478,6 +501,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 	t.Run("If there is already a machine deployment, it preserves the object name and the reference names", func(t *testing.T) {
 		g := NewWithT(t)
+		s := scope.New(cluster)
+		s.Blueprint = blueprint
 
 		currentReplicas := int32(3)
 		currentMd := &clusterv1.MachineDeployment{
@@ -497,18 +522,18 @@ func TestComputeMachineDeployment(t *testing.T) {
 				},
 			},
 		}
-		current.machineDeployments = map[string]*machineDeploymentTopologyState{
+		s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{
 			"big-pool-of-machines": {
-				object:                        currentMd,
-				bootstrapTemplate:             workerBootstrapTemplate,
-				infrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+				Object:                        currentMd,
+				BootstrapTemplate:             workerBootstrapTemplate,
+				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 			},
 		}
 
-		actual, err := computeMachineDeployment(class, current, mdTopology)
+		actual, err := computeMachineDeployment(ctx, s, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		actualMd := actual.object
+		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).NotTo(Equal(currentReplicas))
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
@@ -524,6 +549,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 	t.Run("If a machine deployment references a topology class that does not exist, machine deployment generation fails", func(t *testing.T) {
 		g := NewWithT(t)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
 		mdTopology = clusterv1.MachineDeploymentTopology{
 			Metadata: clusterv1.ObjectMeta{
 				Labels: map[string]string{"foo": "baz"},
@@ -532,7 +560,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		_, err := computeMachineDeployment(class, current, mdTopology)
+		_, err := computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).To(HaveOccurred())
 	})
 }
@@ -678,7 +706,7 @@ func assertTemplateToObject(g *WithT, in assertTemplateInput) {
 	}
 	g.Expect(in.obj.GetNamespace()).To(Equal(in.cluster.Namespace))
 	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterLabelName, in.cluster.Name))
-	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyLabelName, ""))
+	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 	for k, v := range in.labels {
 		g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(k, v))
 	}
@@ -713,7 +741,7 @@ func assertTemplateToTemplate(g *WithT, in assertTemplateInput) {
 	}
 	g.Expect(in.obj.GetNamespace()).To(Equal(in.cluster.Namespace))
 	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterLabelName, in.cluster.Name))
-	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyLabelName, ""))
+	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 	for k, v := range in.labels {
 		g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(k, v))
 	}

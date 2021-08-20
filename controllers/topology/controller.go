@@ -27,6 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -117,32 +118,39 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return ctrl.Result{}, nil
 	}
 
+	// Create a scope initialized with only the cluster; during reconcile
+	// additional information will be added about the Cluster blueprint, current state and desired state.
+	scope := scope.New(cluster)
+
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster)
+	return r.reconcile(ctx, scope)
 }
 
 // reconcile handles cluster reconciliation.
-func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
-	// Gets the ClusterClass and the referenced templates.
-	class, err := r.getClass(ctx, cluster)
+func (r *ClusterReconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result, error) {
+	var err error
+
+	// Gets the blueprint with the ClusterClass and the referenced templates
+	// and store it in the request scope.
+	s.Blueprint, err = r.getBlueprint(ctx, s.Current.Cluster)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reading the ClusterClass")
 	}
 
-	// Gets the current state of the Cluster.
-	currentState, err := r.getCurrentState(ctx, cluster, class.clusterClass)
+	// Gets the current state of the Cluster and store it in the request scope.
+	s.Current, err = r.getCurrentState(ctx, s)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reading current state of the Cluster topology")
 	}
 
-	// Computes the desired state of the Cluster
-	desiredState, err := r.computeDesiredState(ctx, class, currentState)
+	// Computes the desired state of the Cluster and store it in the request scope.
+	s.Desired, err = r.computeDesiredState(ctx, s)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error computing the desired state of the Cluster topology")
 	}
 
 	// Reconciles current and desired state of the Cluster
-	if err := r.reconcileState(ctx, class.controlPlane, currentState, desiredState); err != nil {
+	if err := r.reconcileState(ctx, s); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reconciling the Cluster topology")
 	}
 

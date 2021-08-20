@@ -57,7 +57,7 @@ func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) 
 
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
 func (r *ClusterReconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
-	return r.reconcileReferencedObject(ctx, s.Current.InfrastructureCluster, s.Desired.InfrastructureCluster)
+	return r.reconcileReferencedObject(ctx, s.Current.InfrastructureCluster, s.Desired.InfrastructureCluster, mergepatch.IgnorePath{"spec", "controlPlaneEndpoint"})
 }
 
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
@@ -270,7 +270,7 @@ func calculateMachineDeploymentDiff(current, desired map[string]*scope.MachineDe
 // reconcileReferencedObject reconciles the desired state of the referenced object.
 // NOTE: After a referenced object is created it is assumed that the reference should
 // never change (only the content of the object can eventually change). Thus, we are checking for strict compatibility.
-func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, current, desired *unstructured.Unstructured) error {
+func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, current, desired *unstructured.Unstructured, opts ...mergepatch.HelperOption) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there is no current object, create it.
@@ -288,7 +288,7 @@ func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, curre
 	}
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := mergepatch.NewHelper(current, desired, r.Client)
+	patchHelper, err := mergepatch.NewHelper(current, desired, r.Client, opts...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s/%s", current.GroupVersionKind(), current.GetKind())
 	}

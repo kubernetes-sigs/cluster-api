@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package mergepatch implements merge patch support for managed topology.
 package mergepatch
 
 import (
@@ -27,6 +26,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var allowedPaths = [][]string{
+	{"metadata", "labels"},
+	{"metadata", "annotations"},
+	{"spec"},
+}
 
 // Helper helps with a patch that yields the modified document when applied to the original document.
 type Helper struct {
@@ -43,7 +48,10 @@ type Helper struct {
 // NOTE: In the case of ClusterTopologyReconciler, original is the current object, modified is the desired object, and
 // the patch returns all the changes required to align current to what is defined in desired; fields not defined in desired
 // are going to be preserved without changes.
-func NewHelper(original, modified client.Object, c client.Client) (*Helper, error) {
+func NewHelper(original, modified client.Object, c client.Client, opts ...HelperOption) (*Helper, error) {
+	helperOptions := &HelperOptions{}
+	helperOptions = helperOptions.ApplyOptions(opts)
+
 	// Convert the input objects to json.
 	originalJSON, err := json.Marshal(original)
 	if err != nil {
@@ -71,11 +79,7 @@ func NewHelper(original, modified client.Object, c client.Client) (*Helper, erro
 
 	// We should consider only the changes that are relevant for the topology, removing
 	// changes for metadata fields computed by the system or changes to the  status.
-	patch, err := filterPatch(rawPatch, [][]string{
-		{"metadata", "labels"},
-		{"metadata", "annotations"},
-		{"spec"},
-	})
+	patch, err := filterPatch(rawPatch, allowedPaths, helperOptions.ignorePaths)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to remove fields merge patch")
 	}
@@ -88,7 +92,7 @@ func NewHelper(original, modified client.Object, c client.Client) (*Helper, erro
 }
 
 // filterPatch removes from the patch diffs not in the allowed paths.
-func filterPatch(patch []byte, allowedPaths [][]string) ([]byte, error) {
+func filterPatch(patch []byte, allowedPaths, ignorePaths [][]string) ([]byte, error) {
 	// converts the patch into a Map
 	patchMap := make(map[string]interface{})
 	err := json.Unmarshal(patch, &patchMap)
@@ -96,8 +100,13 @@ func filterPatch(patch []byte, allowedPaths [][]string) ([]byte, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal merge patch")
 	}
 
-	// Removes from diffs not in the allowed paths.
+	// Removes from diffs everything not in the allowed paths.
 	filterPatchMap(patchMap, allowedPaths)
+
+	// Removes from diffs everything in the ignore paths.
+	for _, path := range ignorePaths {
+		removePath(patchMap, path)
+	}
 
 	// converts Map back into the patch
 	patch, err = json.Marshal(&patchMap)
@@ -146,6 +155,30 @@ func filterPatchMap(patchMap map[string]interface{}, allowedPaths [][]string) {
 		// Ensure we are not leaving empty maps around.
 		if len(nestedMap) == 0 {
 			delete(patchMap, k)
+		}
+	}
+}
+
+// removePath removes from the patchMap diffs a given path.
+func removePath(patchMap map[string]interface{}, path []string) {
+	switch len(path) {
+	case 0:
+		// if path is empty, no-op.
+		return
+	case 1:
+		// if we are at the end of a path, remove the corresponding entry.
+		delete(patchMap, path[0])
+	default:
+		// if in the middle of a path, go into the nested map,
+		nestedMap, ok := patchMap[path[0]].(map[string]interface{})
+		if !ok {
+			return
+		}
+		removePath(nestedMap, path[1:])
+
+		// Ensure we are not leaving empty maps around.
+		if len(nestedMap) == 0 {
+			delete(patchMap, path[0])
 		}
 	}
 }

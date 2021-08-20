@@ -205,6 +205,9 @@ func new(uncachedObjs ...client.Object) *Environment {
 	if err := (&clusterv1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
+	if err := (&clusterv1.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("unable to create webhook: %+v", err)
+	}
 	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}

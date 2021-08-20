@@ -26,6 +26,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/mergepatch"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -34,75 +35,72 @@ import (
 // NOTE: We are assuming all the required objects are provided as input; also, in case of any error,
 // the entire reconcile operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
-func (r *ClusterReconciler) reconcileState(ctx context.Context, cpClass *controlPlaneTopologyClass, current, desired *clusterTopologyState) error {
+func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	// Reconcile desired state of the InfrastructureCluster object.
-	if err := r.reconcileInfrastructureCluster(ctx, current, desired); err != nil {
+	if err := r.reconcileInfrastructureCluster(ctx, s); err != nil {
 		return err
 	}
 
 	// Reconcile desired state of the ControlPlane object.
-	if err := r.reconcileControlPlane(ctx, cpClass, current, desired); err != nil {
+	if err := r.reconcileControlPlane(ctx, s); err != nil {
 		return err
 	}
 
 	// Reconcile desired state of the InfrastructureCluster object.
-	if err := r.reconcileCluster(ctx, current, desired); err != nil {
+	if err := r.reconcileCluster(ctx, s); err != nil {
 		return err
 	}
 
 	// Reconcile desired state of the MachineDeployment objects.
-	return r.reconcileMachineDeployments(ctx, current, desired)
+	return r.reconcileMachineDeployments(ctx, s)
 }
 
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
-func (r *ClusterReconciler) reconcileInfrastructureCluster(ctx context.Context, current, desired *clusterTopologyState) error {
-	return r.reconcileReferencedObject(ctx, current.infrastructureCluster, desired.infrastructureCluster)
+func (r *ClusterReconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
+	return r.reconcileReferencedObject(ctx, s.Current.InfrastructureCluster, s.Desired.InfrastructureCluster)
 }
 
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
 // updating the cluster where needed.
-func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, class *controlPlaneTopologyClass, current, desired *clusterTopologyState) error {
+func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) error {
 	log := ctrl.LoggerFrom(ctx)
 	// Set a default nil return function for the cleanup operation.
 	cleanup := func() error { return nil }
 
-	// If the ControlPlane requires an InfrastructureMachineTemplate
-	// TODO: Check to ensure this is in the clusterclass - make this a common function.
-	// There's a possible issue with using get here - getControlPlaneState uses a class passed to it.
-	// This function also adds a side effect as it's a network call to an outside component - makes testing much more difficult.
-	if class.HasInfrastructureMachine() {
-		cpInfraRef, err := getNestedRef(desired.controlPlane.object, "spec", "machineTemplate", "infrastructureRef")
+	// If the clusterClass mandates the controlPlane has infrastructureMachines, reconcile it.
+	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
+		cpInfraRef, err := getNestedRef(s.Desired.ControlPlane.Object, "spec", "machineTemplate", "infrastructureRef")
 		if err != nil {
-			return errors.Wrapf(err, "failed to update the %s object,", desired.controlPlane.infrastructureMachineTemplate.GetKind())
+			return errors.Wrapf(err, "failed to update the %s object,", s.Desired.ControlPlane.InfrastructureMachineTemplate.GetKind())
 		}
 
 		// Create or update the MachineInfrastructureTemplate of the control plane.
-		log.Info("Updating", desired.controlPlane.infrastructureMachineTemplate.GroupVersionKind().String(), desired.controlPlane.infrastructureMachineTemplate.GetName())
+		log.Info("Updating", s.Desired.ControlPlane.InfrastructureMachineTemplate.GroupVersionKind().String(), s.Desired.ControlPlane.InfrastructureMachineTemplate.GetName())
 		cleanup, err = r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
 			ref:                  cpInfraRef,
-			current:              current.controlPlane.infrastructureMachineTemplate,
-			desired:              desired.controlPlane.infrastructureMachineTemplate,
+			current:              s.Current.ControlPlane.InfrastructureMachineTemplate,
+			desired:              s.Desired.ControlPlane.InfrastructureMachineTemplate,
 			compatibilityChecker: checkReferencedObjectsAreCompatible,
 			templateNamer: func() string {
-				return controlPlaneInfrastructureMachineTemplateNamePrefix(current.controlPlane.object.GetClusterName())
+				return controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.ControlPlane.Object.GetClusterName())
 			},
 		},
 		)
 		if err != nil {
-			return errors.Wrapf(err, "failed to update the %s object", desired.controlPlane.infrastructureMachineTemplate.GetKind())
+			return errors.Wrapf(err, "failed to update the %s object", s.Desired.ControlPlane.InfrastructureMachineTemplate.GetKind())
 		}
 
 		// The controlPlaneObject.Spec.machineTemplate.infrastructureRef has to be updated in the desired object
-		err = setNestedRef(desired.controlPlane.object, refToUnstructured(cpInfraRef), "spec", "machineTemplate", "infrastructureRef")
+		err = setNestedRef(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef), "spec", "machineTemplate", "infrastructureRef")
 		if err != nil {
-			return kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to update the %s object", desired.controlPlane.object.GetKind()), cleanup()})
+			return kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to update the %s object", s.Desired.ControlPlane.Object.GetKind()), cleanup()})
 		}
 	}
 
-	// Create or update the ControlPlaneObject for the controlPlaneTopologyState.
-	log.Info("updating", desired.controlPlane.object.GroupVersionKind().String(), desired.controlPlane.object.GetName())
-	if err := r.reconcileReferencedObject(ctx, current.controlPlane.object, desired.controlPlane.object); err != nil {
-		return kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to update the %s object", desired.controlPlane.object.GetKind()), cleanup()})
+	// Create or update the ControlPlaneObject for the ControlPlaneState.
+	log.Info("Updating", s.Desired.ControlPlane.Object.GroupVersionKind().String(), s.Desired.ControlPlane.Object.GetName())
+	if err := r.reconcileReferencedObject(ctx, s.Current.ControlPlane.Object, s.Desired.ControlPlane.Object); err != nil {
+		return kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to update the %s object", s.Desired.ControlPlane.Object.GetKind()), cleanup()})
 	}
 
 	// At this point we've updated the ControlPlane object and, where required, the ControlPlane InfrastructureMachineTemplate
@@ -114,30 +112,30 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, class *co
 // NOTE: this assumes reconcileInfrastructureCluster and reconcileControlPlane being already completed;
 // most specifically, after a Cluster is created it is assumed that the reference to the InfrastructureCluster /
 // ControlPlane objects should never change (only the content of the objects can change).
-func (r *ClusterReconciler) reconcileCluster(ctx context.Context, current, desired *clusterTopologyState) error {
+func (r *ClusterReconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := mergepatch.NewHelper(current.cluster, desired.cluster, r.Client)
+	patchHelper, err := mergepatch.NewHelper(s.Current.Cluster, s.Desired.Cluster, r.Client)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s/%s", current.cluster.GroupVersionKind(), current.cluster.Name)
+		return errors.Wrapf(err, "failed to create patch helper for %s/%s", s.Current.Cluster.GroupVersionKind(), s.Current.Cluster.Name)
 	}
 	if patchHelper.HasChanges() {
-		log.Info("updating Cluster")
+		log.Info("Updating Cluster")
 		if err := patchHelper.Patch(ctx); err != nil {
-			return errors.Wrapf(err, "failed to patch %s/%s", current.cluster.GroupVersionKind(), current.cluster.Name)
+			return errors.Wrapf(err, "failed to patch %s/%s", s.Current.Cluster.GroupVersionKind(), s.Current.Cluster.Name)
 		}
 	}
 	return nil
 }
 
 // reconcileMachineDeployments reconciles the desired state of the MachineDeployment objects.
-func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, current, desired *clusterTopologyState) error {
-	diff := calculateMachineDeploymentDiff(current.machineDeployments, desired.machineDeployments)
+func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, s *scope.Scope) error {
+	diff := calculateMachineDeploymentDiff(s.Current.MachineDeployments, s.Desired.MachineDeployments)
 
 	// Create MachineDeployments.
 	for _, mdTopologyName := range diff.toCreate {
-		md := desired.machineDeployments[mdTopologyName]
+		md := s.Desired.MachineDeployments[mdTopologyName]
 		if err := r.createMachineDeployment(ctx, md); err != nil {
 			return err
 		}
@@ -145,16 +143,16 @@ func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, cur
 
 	// Update MachineDeployments.
 	for _, mdTopologyName := range diff.toUpdate {
-		currentMD := current.machineDeployments[mdTopologyName]
-		desiredMD := desired.machineDeployments[mdTopologyName]
-		if err := r.updateMachineDeployment(ctx, current.cluster.Name, currentMD, desiredMD); err != nil {
+		currentMD := s.Current.MachineDeployments[mdTopologyName]
+		desiredMD := s.Desired.MachineDeployments[mdTopologyName]
+		if err := r.updateMachineDeployment(ctx, s.Current.Cluster.Name, currentMD, desiredMD); err != nil {
 			return err
 		}
 	}
 
 	// Delete MachineDeployments.
 	for _, mdTopologyName := range diff.toDelete {
-		md := current.machineDeployments[mdTopologyName]
+		md := s.Current.MachineDeployments[mdTopologyName]
 		if err := r.deleteMachineDeployment(ctx, md); err != nil {
 			return err
 		}
@@ -164,67 +162,67 @@ func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, cur
 }
 
 // createMachineDeployment creates a MachineDeployment and the corresponding Templates.
-func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md *machineDeploymentTopologyState) error {
+func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md *scope.MachineDeploymentState) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if _, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
-		desired: md.infrastructureMachineTemplate,
+		desired: md.InfrastructureMachineTemplate,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to create %s/%s", md.object.GroupVersionKind(), md.object.Name)
+		return errors.Wrapf(err, "failed to create %s/%s", md.Object.GroupVersionKind(), md.Object.Name)
 	}
 
 	if _, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
-		desired: md.bootstrapTemplate,
+		desired: md.BootstrapTemplate,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to create %s/%s", md.object.GroupVersionKind(), md.object.Name)
+		return errors.Wrapf(err, "failed to create %s/%s", md.Object.GroupVersionKind(), md.Object.Name)
 	}
 
-	log.Info("creating", md.object.GroupVersionKind().String(), md.object.GetName())
-	if err := r.Client.Create(ctx, md.object.DeepCopy()); err != nil {
-		return errors.Wrapf(err, "failed to create %s/%s", md.object.GroupVersionKind(), md.object.Name)
+	log.Info("creating", md.Object.GroupVersionKind().String(), md.Object.GetName())
+	if err := r.Client.Create(ctx, md.Object.DeepCopy()); err != nil {
+		return errors.Wrapf(err, "failed to create %s/%s", md.Object.GroupVersionKind(), md.Object.Name)
 	}
 	return nil
 }
 
 // updateMachineDeployment updates a MachineDeployment. Also rotates the corresponding Templates if necessary.
-func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, clusterName string, currentMD, desiredMD *machineDeploymentTopologyState) error {
+func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, clusterName string, currentMD, desiredMD *scope.MachineDeploymentState) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	cleanupOldInfrastructureTemplate, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
-		ref:     &desiredMD.object.Spec.Template.Spec.InfrastructureRef,
-		current: currentMD.infrastructureMachineTemplate,
-		desired: desiredMD.infrastructureMachineTemplate,
+		ref:     &desiredMD.Object.Spec.Template.Spec.InfrastructureRef,
+		current: currentMD.InfrastructureMachineTemplate,
+		desired: desiredMD.InfrastructureMachineTemplate,
 		templateNamer: func() string {
-			return infrastructureMachineTemplateNamePrefix(clusterName, desiredMD.object.Name)
+			return infrastructureMachineTemplateNamePrefix(clusterName, desiredMD.Object.Name)
 		},
 		compatibilityChecker: checkReferencedObjectsAreCompatible,
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to update %s/%s", currentMD.object.GroupVersionKind(), currentMD.object.Name)
+		return errors.Wrapf(err, "failed to update %s/%s", currentMD.Object.GroupVersionKind(), currentMD.Object.Name)
 	}
 
 	cleanupOldBootstrapTemplate, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
-		ref:     desiredMD.object.Spec.Template.Spec.Bootstrap.ConfigRef,
-		current: currentMD.bootstrapTemplate,
-		desired: desiredMD.bootstrapTemplate,
+		ref:     desiredMD.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
+		current: currentMD.BootstrapTemplate,
+		desired: desiredMD.BootstrapTemplate,
 		templateNamer: func() string {
-			return bootstrapTemplateNamePrefix(clusterName, desiredMD.object.Name)
+			return bootstrapTemplateNamePrefix(clusterName, desiredMD.Object.Name)
 		},
 		compatibilityChecker: checkReferencedObjectsAreInTheSameNamespace,
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to update %s/%s", currentMD.object.GroupVersionKind(), currentMD.object.Name)
+		return errors.Wrapf(err, "failed to update %s/%s", currentMD.Object.GroupVersionKind(), currentMD.Object.Name)
 	}
 
 	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
-	patchHelper, err := mergepatch.NewHelper(currentMD.object, desiredMD.object, r.Client)
+	patchHelper, err := mergepatch.NewHelper(currentMD.Object, desiredMD.Object, r.Client)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s/%s", currentMD.object.GroupVersionKind(), currentMD.object.Name)
+		return errors.Wrapf(err, "failed to create patch helper for %s/%s", currentMD.Object.GroupVersionKind(), currentMD.Object.Name)
 	}
 	if patchHelper.HasChanges() {
-		log.Info("updating", currentMD.object.GroupVersionKind().String(), currentMD.object.GetName())
+		log.Info("updating", currentMD.Object.GroupVersionKind().String(), currentMD.Object.GetName())
 		if err := patchHelper.Patch(ctx); err != nil {
-			return errors.Wrapf(err, "failed to update %s/%s", currentMD.object.GroupVersionKind(), currentMD.object.Kind)
+			return errors.Wrapf(err, "failed to update %s/%s", currentMD.Object.GroupVersionKind(), currentMD.Object.Kind)
 		}
 	}
 
@@ -233,12 +231,12 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 }
 
 // deleteMachineDeployment deletes a MachineDeployment.
-func (r *ClusterReconciler) deleteMachineDeployment(ctx context.Context, md *machineDeploymentTopologyState) error {
+func (r *ClusterReconciler) deleteMachineDeployment(ctx context.Context, md *scope.MachineDeploymentState) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	log.Info("deleting", md.object.GroupVersionKind().String(), md.object.GetName())
-	if err := r.Client.Delete(ctx, md.object); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to delete %s/%s", md.object.GroupVersionKind(), md.object.Name)
+	log.Info("deleting", md.Object.GroupVersionKind().String(), md.Object.GetName())
+	if err := r.Client.Delete(ctx, md.Object); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to delete %s/%s", md.Object.GroupVersionKind(), md.Object.Name)
 	}
 	return nil
 }
@@ -247,9 +245,9 @@ type machineDeploymentDiff struct {
 	toCreate, toUpdate, toDelete []string
 }
 
-// calculateMachineDeploymentDiff compares two maps of machineDeploymentTopologyState and calculates which
+// calculateMachineDeploymentDiff compares two maps of MachineDeploymentState and calculates which
 // MachineDeployments should be created, updated or deleted.
-func calculateMachineDeploymentDiff(current, desired map[string]*machineDeploymentTopologyState) machineDeploymentDiff {
+func calculateMachineDeploymentDiff(current, desired map[string]*scope.MachineDeploymentState) machineDeploymentDiff {
 	var diff machineDeploymentDiff
 
 	for md := range desired {
@@ -277,7 +275,7 @@ func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, curre
 
 	// If there is no current object, create it.
 	if current == nil {
-		log.Info("creating", desired.GroupVersionKind().String(), desired.GetName())
+		log.Info("Creating", desired.GroupVersionKind().String(), desired.GetName())
 		if err := r.Client.Create(ctx, desired.DeepCopy()); err != nil {
 			return errors.Wrapf(err, "failed to create %s/%s", desired.GroupVersionKind(), desired.GetKind())
 		}
@@ -295,7 +293,7 @@ func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, curre
 		return errors.Wrapf(err, "failed to create patch helper for %s/%s", current.GroupVersionKind(), current.GetKind())
 	}
 	if patchHelper.HasChanges() {
-		log.Info("updating", current.GroupVersionKind().String(), current.GetName())
+		log.Info("Updating", current.GroupVersionKind().String(), current.GetName())
 		if err := patchHelper.Patch(ctx); err != nil {
 			return errors.Wrapf(err, "failed to patch %s/%s", current.GroupVersionKind(), current.GetKind())
 		}
@@ -318,13 +316,14 @@ type reconcileReferencedTemplateInput struct {
 // 3. delete the old Template
 // This function specifically takes care of the first step and updates the reference locally. So the remaining steps
 // can be executed afterwards.
+// NOTE: This func has a side effect in case of template rotation, changing both the desired object and the object reference.
 func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in reconcileReferencedTemplateInput) (func() error, error) {
 	log := ctrl.LoggerFrom(ctx)
 	cleanupFunc := func() error { return nil }
 
 	// If there is no current object, create the desired object.
 	if in.current == nil {
-		log.Info("creating", in.desired.GroupVersionKind().String(), in.desired.GetName())
+		log.Info("Creating", in.desired.GroupVersionKind().String(), in.desired.GetName())
 		if err := r.Client.Create(ctx, in.desired.DeepCopy()); err != nil {
 			return nil, errors.Wrapf(err, "failed to create %s/%s", in.desired.GroupVersionKind(), in.desired.GetName())
 		}
@@ -346,35 +345,39 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 		return nil, errors.Wrapf(err, "failed to create patch helper for %s/%s", in.current.GroupVersionKind(), in.current.GetName())
 	}
 
-	if patchHelper.HasChanges() {
-		// Create the new template.
-
-		// NOTE: it is required to assign a new name, because during compute the desired object name is enforced to be equal to the current one.
-		newName := names.SimpleNameGenerator.GenerateName(in.templateNamer())
-		in.desired.SetName(newName)
-
-		log.Info("Rotating template", "gvk", in.desired.GroupVersionKind(), "current", in.current.GetName(), "desired", newName)
-
-		log.Info("creating", in.desired.GroupVersionKind().String(), in.desired.GetName())
-		if err := r.Client.Create(ctx, in.desired.DeepCopy()); err != nil {
-			return nil, errors.Wrapf(err, "failed to create %s/%s", in.desired.GroupVersionKind(), in.desired.GetName())
-		}
-
-		// Update the reference with the new name.
-		// NOTE: Updating the object hosting reference to the template is executed outside this func.
-		in.ref.Name = newName
-
-		// Set up a cleanup func for removing the old template.
-		// NOTE: This function must be called after updating the object containing the reference to the Template.
-		cleanupFunc = func() error {
-			log.Info("deleting", in.desired.GroupVersionKind().String(), in.desired.GetName())
-			if err := r.Client.Delete(ctx, in.current); err != nil {
-				return errors.Wrapf(err, "failed to delete %s/%s", in.desired.GroupVersionKind(), in.desired.GetName())
-			}
-			return nil
-		}
+	// Return if no changes are detected.
+	if !patchHelper.HasChanges() {
+		return cleanupFunc, nil
 	}
-	return cleanupFunc, nil
+
+	// Create the new template.
+
+	// NOTE: it is required to assign a new name, because during compute the desired object name is enforced to be equal to the current one.
+	// TODO: find a way to make side effect more explicit
+	newName := names.SimpleNameGenerator.GenerateName(in.templateNamer())
+	in.desired.SetName(newName)
+
+	log.Info("Rotating template", "gvk", in.desired.GroupVersionKind(), "current", in.current.GetName(), "desired", newName)
+
+	log.Info("Creating", in.desired.GroupVersionKind().String(), in.desired.GetName())
+	if err := r.Client.Create(ctx, in.desired.DeepCopy()); err != nil {
+		return nil, errors.Wrapf(err, "failed to create %s/%s", in.desired.GroupVersionKind(), in.desired.GetName())
+	}
+
+	// Update the reference with the new name.
+	// NOTE: Updating the object hosting reference to the template is executed outside this func.
+	// TODO: find a way to make side effect more explicit
+	in.ref.Name = newName
+
+	// Set up a cleanup func for removing the old template.
+	// NOTE: This function must be called after updating the object containing the reference to the Template.
+	return func() error {
+		log.Info("Deleting", in.desired.GroupVersionKind().String(), in.desired.GetName())
+		if err := r.Client.Delete(ctx, in.current); err != nil {
+			return errors.Wrapf(err, "failed to delete %s/%s", in.desired.GroupVersionKind(), in.desired.GetName())
+		}
+		return nil
+	}, nil
 }
 
 // checkReferencedObjectsAreStrictlyCompatible checks if two referenced objects are strictly compatible, meaning that

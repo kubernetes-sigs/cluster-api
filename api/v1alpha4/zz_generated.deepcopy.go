@@ -373,7 +373,7 @@ func (in *ControlPlaneTopology) DeepCopyInto(out *ControlPlaneTopology) {
 	in.Metadata.DeepCopyInto(&out.Metadata)
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 }
@@ -695,7 +695,7 @@ func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology
 	in.Metadata.DeepCopyInto(&out.Metadata)
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 }

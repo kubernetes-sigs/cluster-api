@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -63,10 +64,10 @@ func TestGetCurrentState(t *testing.T) {
 	// MachineDeployment and related objects.
 	machineDeploymentInfrastructure := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Obj()
 	machineDeploymentBootstrap := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Obj()
-	labelsInClass := map[string]string{clusterv1.ClusterLabelName: "cluster1", clusterv1.ClusterTopologyLabelName: "", clusterv1.ClusterTopologyMachineDeploymentLabelName: "md1"}
-	labelsNotInClass := map[string]string{clusterv1.ClusterLabelName: "non-existent-cluster", clusterv1.ClusterTopologyLabelName: "", clusterv1.ClusterTopologyMachineDeploymentLabelName: "md1"}
+	labelsInClass := map[string]string{clusterv1.ClusterLabelName: "cluster1", clusterv1.ClusterTopologyOwnedLabel: "", clusterv1.ClusterTopologyMachineDeploymentLabelName: "md1"}
+	labelsNotInClass := map[string]string{clusterv1.ClusterLabelName: "non-existent-cluster", clusterv1.ClusterTopologyOwnedLabel: "", clusterv1.ClusterTopologyMachineDeploymentLabelName: "md1"}
 	labelsUnmanaged := map[string]string{clusterv1.ClusterLabelName: "cluster1"}
-	labelsManagedWithoutDeploymentName := map[string]string{clusterv1.ClusterLabelName: "cluster1", clusterv1.ClusterTopologyLabelName: ""}
+	labelsManagedWithoutDeploymentName := map[string]string{clusterv1.ClusterLabelName: "cluster1", clusterv1.ClusterTopologyOwnedLabel: ""}
 	machineDeploymentInCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "proper-labels").WithLabels(labelsInClass).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
 	duplicateMachineDeploymentInCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "duplicate-labels").WithLabels(labelsInClass).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
 	machineDeploymentNoBootstrap := newFakeMachineDeployment(metav1.NamespaceDefault, "no-bootstrap").WithLabels(labelsInClass).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
@@ -74,25 +75,25 @@ func TestGetCurrentState(t *testing.T) {
 	machineDeploymentOutsideCluster := newFakeMachineDeployment(metav1.NamespaceDefault, "wrong-cluster-label").WithLabels(labelsNotInClass).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
 	machineDeploymentUnmanaged := newFakeMachineDeployment(metav1.NamespaceDefault, "no-managed-label").WithLabels(labelsUnmanaged).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
 	machineDeploymentWithoutDeploymentName := newFakeMachineDeployment(metav1.NamespaceDefault, "missing-topology-md-labelName").WithLabels(labelsManagedWithoutDeploymentName).WithBootstrapTemplate(machineDeploymentBootstrap).WithInfrastructureTemplate(machineDeploymentInfrastructure).Obj()
-	emptyMachineDeployments := make(map[string]*machineDeploymentTopologyState)
+	emptyMachineDeployments := make(map[string]*scope.MachineDeploymentState)
 
 	tests := []struct {
 		name    string
 		cluster *clusterv1.Cluster
 		class   *clusterv1.ClusterClass
 		objects []client.Object
-		want    *clusterTopologyState
+		want    *scope.ClusterState
 		wantErr bool
 	}{
 		{
 			name:    "Cluster exists with no references",
 			cluster: newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
 			// Expecting valid return with no ControlPlane or Infrastructure state defined and empty MachineDeployment state list
-			want: &clusterTopologyState{
-				cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
-				controlPlane:          nil,
-				infrastructureCluster: nil,
-				machineDeployments:    emptyMachineDeployments,
+			want: &scope.ClusterState{
+				Cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
+				ControlPlane:          &scope.ControlPlaneState{},
+				InfrastructureCluster: nil,
+				MachineDeployments:    emptyMachineDeployments,
 			},
 		},
 		{
@@ -110,11 +111,11 @@ func TestGetCurrentState(t *testing.T) {
 				infraCluster,
 			},
 			// Expecting valid return with no ControlPlane or MachineDeployment state defined but with a valid Infrastructure state.
-			want: &clusterTopologyState{
-				cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithInfrastructureCluster(infraCluster).Obj(),
-				controlPlane:          nil,
-				infrastructureCluster: infraCluster,
-				machineDeployments:    emptyMachineDeployments,
+			want: &scope.ClusterState{
+				Cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithInfrastructureCluster(infraCluster).Obj(),
+				ControlPlane:          &scope.ControlPlaneState{},
+				InfrastructureCluster: infraCluster,
+				MachineDeployments:    emptyMachineDeployments,
 			},
 		},
 		{
@@ -127,11 +128,11 @@ func TestGetCurrentState(t *testing.T) {
 				clusterClassWithNoControlPlaneInfra,
 			},
 			// Expecting valid return with ControlPlane, no ControlPlane Infrastructure state, InfrastructureCluster state and no defined MachineDeployment state.
-			want: &clusterTopologyState{
-				cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithControlPlane(controlPlane).WithInfrastructureCluster(infraCluster).Obj(),
-				controlPlane:          &controlPlaneTopologyState{object: controlPlane, infrastructureMachineTemplate: nil},
-				infrastructureCluster: infraCluster,
-				machineDeployments:    emptyMachineDeployments,
+			want: &scope.ClusterState{
+				Cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithControlPlane(controlPlane).WithInfrastructureCluster(infraCluster).Obj(),
+				ControlPlane:          &scope.ControlPlaneState{Object: controlPlane, InfrastructureMachineTemplate: nil},
+				InfrastructureCluster: infraCluster,
+				MachineDeployments:    emptyMachineDeployments,
 			},
 		},
 		{
@@ -155,11 +156,11 @@ func TestGetCurrentState(t *testing.T) {
 				controlPlaneInfrastructureMachineTemplate,
 			},
 			// Expecting valid return with valid ControlPlane state, but no ControlPlane Infrastructure, InfrastructureCluster or MachineDeployment state defined.
-			want: &clusterTopologyState{
-				cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithControlPlane(controlPlaneWithInfra).Obj(),
-				controlPlane:          &controlPlaneTopologyState{object: controlPlaneWithInfra, infrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
-				infrastructureCluster: nil,
-				machineDeployments:    emptyMachineDeployments,
+			want: &scope.ClusterState{
+				Cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithControlPlane(controlPlaneWithInfra).Obj(),
+				ControlPlane:          &scope.ControlPlaneState{Object: controlPlaneWithInfra, InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
+				InfrastructureCluster: nil,
+				MachineDeployments:    emptyMachineDeployments,
 			},
 		},
 		{
@@ -173,11 +174,11 @@ func TestGetCurrentState(t *testing.T) {
 				controlPlaneWithInfra,
 			},
 			// Expecting valid return with valid ControlPlane state, ControlPlane Infrastructure state and InfrastructureCluster state, but no defined MachineDeployment state.
-			want: &clusterTopologyState{
-				cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithInfrastructureCluster(infraCluster).WithControlPlane(controlPlaneWithInfra).Obj(),
-				controlPlane:          &controlPlaneTopologyState{object: controlPlaneWithInfra, infrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
-				infrastructureCluster: infraCluster,
-				machineDeployments:    emptyMachineDeployments,
+			want: &scope.ClusterState{
+				Cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithInfrastructureCluster(infraCluster).WithControlPlane(controlPlaneWithInfra).Obj(),
+				ControlPlane:          &scope.ControlPlaneState{Object: controlPlaneWithInfra, InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
+				InfrastructureCluster: infraCluster,
+				MachineDeployments:    emptyMachineDeployments,
 			},
 		},
 		{
@@ -194,12 +195,12 @@ func TestGetCurrentState(t *testing.T) {
 				machineDeploymentInCluster,
 			},
 			// Expecting valid return with valid ControlPlane, ControlPlane Infrastructure and InfrastructureCluster state, but no defined MachineDeployment state.
-			want: &clusterTopologyState{
-				cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
-				controlPlane:          nil,
-				infrastructureCluster: nil,
-				machineDeployments: map[string]*machineDeploymentTopologyState{
-					"md1": {object: machineDeploymentInCluster, bootstrapTemplate: machineDeploymentBootstrap, infrastructureMachineTemplate: machineDeploymentInfrastructure}},
+			want: &scope.ClusterState{
+				Cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
+				ControlPlane:          &scope.ControlPlaneState{},
+				InfrastructureCluster: nil,
+				MachineDeployments: map[string]*scope.MachineDeploymentState{
+					"md1": {Object: machineDeploymentInCluster, BootstrapTemplate: machineDeploymentBootstrap, InfrastructureMachineTemplate: machineDeploymentInfrastructure}},
 			},
 		},
 		{
@@ -223,15 +224,15 @@ func TestGetCurrentState(t *testing.T) {
 				machineDeploymentUnmanaged,
 			},
 			// Expect valid return with empty MachineDeployments properly filtered by label.
-			want: &clusterTopologyState{
-				cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
-				controlPlane:          nil,
-				infrastructureCluster: nil,
-				machineDeployments:    emptyMachineDeployments,
+			want: &scope.ClusterState{
+				Cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
+				ControlPlane:          &scope.ControlPlaneState{},
+				InfrastructureCluster: nil,
+				MachineDeployments:    emptyMachineDeployments,
 			},
 		},
 		{
-			name:    "MachineDeployment with ClusterTopologyLabelName but without correct ClusterTopologyMachineDeploymentLabelName",
+			name:    "MachineDeployment with ClusterTopologyOwnedLabel but without correct ClusterTopologyMachineDeploymentLabelName",
 			cluster: newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
 			class:   clusterClassWithControlPlaneInfra,
 			objects: []client.Object{
@@ -242,7 +243,7 @@ func TestGetCurrentState(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "Multiple MachineDeployments with the same ClusterTopologyLabelName label",
+			name:    "Multiple MachineDeployments with the same ClusterTopologyOwnedLabel label",
 			cluster: newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj(),
 			class:   clusterClassWithControlPlaneInfra,
 			objects: []client.Object{
@@ -252,7 +253,7 @@ func TestGetCurrentState(t *testing.T) {
 				machineDeploymentInCluster,
 				duplicateMachineDeploymentInCluster,
 			},
-			// Expect error as two MachineDeployments with the same ClusterTopologyLabelName should not exist for one cluster
+			// Expect error as two MachineDeployments with the same ClusterTopologyOwnedLabel should not exist for one cluster
 			wantErr: true,
 		},
 		{
@@ -270,13 +271,13 @@ func TestGetCurrentState(t *testing.T) {
 				machineDeploymentOutsideCluster,
 				machineDeploymentUnmanaged,
 			},
-			// Expect valid return of full clusterTopologyState with MachineDeployments properly filtered by label.
-			want: &clusterTopologyState{
-				cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithInfrastructureCluster(infraCluster).WithControlPlane(controlPlaneWithInfra).Obj(),
-				controlPlane:          &controlPlaneTopologyState{object: controlPlaneWithInfra, infrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
-				infrastructureCluster: infraCluster,
-				machineDeployments: map[string]*machineDeploymentTopologyState{
-					"md1": {object: machineDeploymentInCluster, bootstrapTemplate: machineDeploymentBootstrap, infrastructureMachineTemplate: machineDeploymentInfrastructure}},
+			// Expect valid return of full ClusterState with MachineDeployments properly filtered by label.
+			want: &scope.ClusterState{
+				Cluster:               newFakeCluster(metav1.NamespaceDefault, "cluster1").WithInfrastructureCluster(infraCluster).WithControlPlane(controlPlaneWithInfra).Obj(),
+				ControlPlane:          &scope.ControlPlaneState{Object: controlPlaneWithInfra, InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
+				InfrastructureCluster: infraCluster,
+				MachineDeployments: map[string]*scope.MachineDeploymentState{
+					"md1": {Object: machineDeploymentInCluster, BootstrapTemplate: machineDeploymentBootstrap, InfrastructureMachineTemplate: machineDeploymentInfrastructure}},
 			},
 		},
 		{
@@ -329,7 +330,11 @@ func TestGetCurrentState(t *testing.T) {
 				Client:                    fakeClient,
 				UnstructuredCachingClient: fakeClient,
 			}
-			got, err := r.getCurrentState(ctx, tt.cluster, tt.class)
+
+			s := scope.New(tt.cluster)
+			s.Blueprint = &scope.ClusterBlueprint{ClusterClass: tt.class}
+
+			got, err := r.getCurrentState(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -339,10 +344,10 @@ func TestGetCurrentState(t *testing.T) {
 				g.Expect(got).To(BeNil())
 				return
 			}
-			g.Expect(got.cluster).To(Equal(tt.want.cluster), cmp.Diff(tt.want.cluster, got.cluster))
-			g.Expect(got.infrastructureCluster).To(Equal(tt.want.infrastructureCluster), cmp.Diff(tt.want.infrastructureCluster, got.infrastructureCluster))
-			g.Expect(got.controlPlane).To(Equal(tt.want.controlPlane), cmp.Diff(tt.want.controlPlane, got.controlPlane, cmp.AllowUnexported(unstructured.Unstructured{}, controlPlaneTopologyState{})))
-			g.Expect(got.machineDeployments).To(Equal(tt.want.machineDeployments), cmp.Diff(tt.want.machineDeployments, got.machineDeployments, cmp.AllowUnexported(machineDeploymentTopologyState{})))
+			g.Expect(got.Cluster).To(Equal(tt.want.Cluster), cmp.Diff(tt.want.Cluster, got.Cluster))
+			g.Expect(got.InfrastructureCluster).To(Equal(tt.want.InfrastructureCluster), cmp.Diff(tt.want.InfrastructureCluster, got.InfrastructureCluster))
+			g.Expect(got.ControlPlane).To(Equal(tt.want.ControlPlane), cmp.Diff(tt.want.ControlPlane, got.ControlPlane, cmp.AllowUnexported(unstructured.Unstructured{}, scope.ControlPlaneState{})))
+			g.Expect(got.MachineDeployments).To(Equal(tt.want.MachineDeployments), cmp.Diff(tt.want.MachineDeployments, got.MachineDeployments, cmp.AllowUnexported(scope.MachineDeploymentState{})))
 		})
 	}
 }

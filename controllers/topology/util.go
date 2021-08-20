@@ -118,9 +118,3 @@ func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
 	uns.SetName(ref.Name)
 	return uns
 }
-
-// HasInfrastructureMachine checks whether the clusterClass mandates the controlPlane has infrastructureMachines
-// This function is in the wrong place for now - waiting on agreement for implmentation.
-func (c *controlPlaneTopologyClass) HasInfrastructureMachine() bool {
-	return c.infrastructureMachineTemplate != nil
-}

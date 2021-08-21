@@ -28,7 +28,7 @@ type Scope struct {
 	// Current holds the current state of the managed topology.
 	Current *ClusterState
 
-	// Desired holds the current state of the managed topology.
+	// Desired holds the desired state of the managed topology.
 	Desired *ClusterState
 }
 

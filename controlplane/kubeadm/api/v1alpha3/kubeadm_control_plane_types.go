@@ -85,6 +85,7 @@ type KubeadmControlPlaneSpec struct {
 	// The RolloutStrategy to use to replace control plane machines with
 	// new ones.
 	// +optional
+	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
 }
 

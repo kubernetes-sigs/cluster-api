@@ -38,6 +38,10 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 ) (ctrl.Result, error) {
 	logger := controlPlane.Logger()
 
+	if kcp.Spec.RolloutStrategy == nil || kcp.Spec.RolloutStrategy.RollingUpdate == nil {
+		return ctrl.Result{}, errors.New("rolloutStrategy is not set")
+	}
+
 	// TODO: handle reconciliation of etcd members and kubeadm config in case they get out of sync with cluster
 
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))

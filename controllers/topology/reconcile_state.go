@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/check"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/mergepatch"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -80,7 +81,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.
 			ref:                  cpInfraRef,
 			current:              s.Current.ControlPlane.InfrastructureMachineTemplate,
 			desired:              s.Desired.ControlPlane.InfrastructureMachineTemplate,
-			compatibilityChecker: checkReferencedObjectsAreCompatible,
+			compatibilityChecker: check.ReferencedObjectsAreCompatible,
 			templateNamer: func() string {
 				return controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.ControlPlane.Object.GetClusterName())
 			},
@@ -195,7 +196,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 		templateNamer: func() string {
 			return infrastructureMachineTemplateNamePrefix(clusterName, desiredMD.Object.Name)
 		},
-		compatibilityChecker: checkReferencedObjectsAreCompatible,
+		compatibilityChecker: check.ReferencedObjectsAreCompatible,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to update %s/%s", currentMD.Object.GroupVersionKind(), currentMD.Object.Name)
@@ -208,7 +209,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 		templateNamer: func() string {
 			return bootstrapTemplateNamePrefix(clusterName, desiredMD.Object.Name)
 		},
-		compatibilityChecker: checkReferencedObjectsAreInTheSameNamespace,
+		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to update %s/%s", currentMD.Object.GroupVersionKind(), currentMD.Object.Name)
@@ -283,7 +284,7 @@ func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, curre
 	}
 
 	// Check if the current and desired referenced object are compatible.
-	if err := checkReferencedObjectsAreStrictlyCompatible(current, desired); err != nil {
+	if err := check.ReferencedObjectsAreStrictlyCompatible(current, desired); err != nil {
 		return err
 	}
 
@@ -378,37 +379,4 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 		}
 		return nil
 	}, nil
-}
-
-// checkReferencedObjectsAreStrictlyCompatible checks if two referenced objects are strictly compatible, meaning that
-// they are compatible and the name of the objects do not change.
-func checkReferencedObjectsAreStrictlyCompatible(current, desired client.Object) error {
-	if current.GetName() != desired.GetName() {
-		return errors.Errorf("invalid operation: it is not possible to change the name of %s/%s from %s to %s",
-			current.GetObjectKind().GroupVersionKind(), current.GetName(), current.GetName(), desired.GetName())
-	}
-	return checkReferencedObjectsAreCompatible(current, desired)
-}
-
-// checkReferencedObjectsAreCompatible checks if two referenced objects are compatible, meaning that
-// they are of the same GroupKind and in the same namespace.
-func checkReferencedObjectsAreCompatible(current, desired client.Object) error {
-	currentGK := current.GetObjectKind().GroupVersionKind().GroupKind()
-	desiredGK := desired.GetObjectKind().GroupVersionKind().GroupKind()
-
-	if currentGK.String() != desiredGK.String() {
-		return errors.Errorf("invalid operation: it is not possible to change the GroupKind of %s/%s from %s to %s",
-			current.GetObjectKind().GroupVersionKind(), current.GetName(), currentGK, desiredGK)
-	}
-	return checkReferencedObjectsAreInTheSameNamespace(current, desired)
-}
-
-// checkReferencedObjectsAreInTheSameNamespace checks if two referenced objects are in the same namespace.
-func checkReferencedObjectsAreInTheSameNamespace(current, desired client.Object) error {
-	// NOTE: this should never happen (webhooks prevent it), but checking for extra safety.
-	if current.GetNamespace() != desired.GetNamespace() {
-		return errors.Errorf("invalid operation: it is not possible to change the namespace of %s/%s from %s to %s",
-			current.GetObjectKind().GroupVersionKind(), current.GetName(), current.GetNamespace(), desired.GetNamespace())
-	}
-	return nil
 }

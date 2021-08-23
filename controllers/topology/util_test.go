@@ -19,6 +19,8 @@ package topology
 import (
 	"testing"
 
+	"sigs.k8s.io/cluster-api/internal/testtypes"
+
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -30,20 +32,20 @@ import (
 )
 
 func TestGetTemplate(t *testing.T) {
-	fakeControlPlaneTemplateCRDv99 := fakeControlPlaneTemplateCRD.DeepCopy()
+	fakeControlPlaneTemplateCRDv99 := testtypes.GenericControlPlaneTemplateCRD.DeepCopy()
 	fakeControlPlaneTemplateCRDv99.Labels = map[string]string{
 		"cluster.x-k8s.io/v1alpha4": "v1alpha4_v99",
 	}
 	crds := []client.Object{
 		fakeControlPlaneTemplateCRDv99,
-		fakeBootstrapTemplateCRD,
+		testtypes.GenericBootstrapConfigTemplateCRD,
 	}
 
-	controlPlaneTemplate := newFakeControlPlaneTemplate(metav1.NamespaceDefault, "controlplanetemplate1").Obj()
+	controlPlaneTemplate := testtypes.NewControlPlaneTemplateBuilder(metav1.NamespaceDefault, "controlplanetemplate1").Build()
 	controlPlaneTemplatev99 := controlPlaneTemplate.DeepCopy()
-	controlPlaneTemplatev99.SetAPIVersion(fakeControlPlaneProviderGroupVersion.Group + "/v99")
+	controlPlaneTemplatev99.SetAPIVersion(testtypes.ControlPlaneGroupVersion.Group + "/v99")
 
-	workerBootstrapTemplate := newFakeBootstrapTemplate(metav1.NamespaceDefault, "workerbootstraptemplate1").Obj()
+	workerBootstrapTemplate := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "workerbootstraptemplate1").Build()
 
 	tests := []struct {
 		name    string

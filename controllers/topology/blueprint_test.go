@@ -20,38 +20,52 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
+	"sigs.k8s.io/cluster-api/internal/testtypes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestGetBlueprint(t *testing.T) {
 	crds := []client.Object{
-		fakeInfrastructureClusterTemplateCRD,
-		fakeControlPlaneTemplateCRD,
-		fakeInfrastructureMachineTemplateCRD,
-		fakeBootstrapTemplateCRD,
+		testtypes.GenericInfrastructureClusterTemplateCRD,
+		testtypes.GenericInfrastructureMachineTemplateCRD,
+		testtypes.GenericInfrastructureMachineCRD,
+		testtypes.GenericControlPlaneTemplateCRD,
+		testtypes.GenericBootstrapConfigTemplateCRD,
 	}
 
-	infraClusterTemplate := newFakeInfrastructureClusterTemplate(metav1.NamespaceDefault, "infraclustertemplate1").Obj()
-	controlPlaneTemplate := newFakeControlPlaneTemplate(metav1.NamespaceDefault, "controlplanetemplate1").Obj()
+	// ignoreResourceVersion is an option to pass to cmpopts to ignore this field which is set by the fakeClient
+	// TODO: Make composable version of these options in the builder package to reuse these filters across tests.
+	ignoreResourceVersion := cmpopts.IgnoreFields(metav1.ObjectMeta{}, "ResourceVersion")
 
-	controlPlaneInfrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "controlplaneinframachinetemplate1").Obj()
-	controlPlaneTemplateWithInfrastructureMachine := newFakeControlPlaneTemplate(metav1.NamespaceDefault, "controlplanetempaltewithinfrastructuremachine1").
+	infraClusterTemplate := testtypes.NewInfrastructureClusterTemplateBuilder(metav1.NamespaceDefault, "infraclustertemplate1").
+		Build()
+	controlPlaneTemplate := testtypes.NewControlPlaneTemplateBuilder(metav1.NamespaceDefault, "controlplanetemplate1").
+		Build()
+
+	controlPlaneInfrastructureMachineTemplate := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "controlplaneinframachinetemplate1").
+		Build()
+	controlPlaneTemplateWithInfrastructureMachine := testtypes.NewControlPlaneTemplateBuilder(metav1.NamespaceDefault, "controlplanetempaltewithinfrastructuremachine1").
 		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
-		Obj()
+		Build()
 
-	workerInfrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "workerinframachinetemplate1").Obj()
-	workerBootstrapTemplate := newFakeBootstrapTemplate(metav1.NamespaceDefault, "workerbootstraptemplate1").Obj()
-
-	var (
-		labels      map[string]string
-		annotations map[string]string
-	)
+	workerInfrastructureMachineTemplate := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "workerinframachinetemplate1").
+		Build()
+	workerBootstrapTemplate := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "workerbootstraptemplate1").
+		Build()
+	machineDeployment := testtypes.NewMachineDeploymentClassBuilder(metav1.NamespaceDefault, "machinedeployment1").
+		WithClass("workerclass1").
+		WithLabels(map[string]string{"foo": "bar"}).
+		WithAnnotations(map[string]string{"a": "b"}).
+		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
+		WithBootstrapTemplate(workerBootstrapTemplate).
+		Build()
+	mds := []clusterv1.MachineDeploymentClass{*machineDeployment}
 
 	tests := []struct {
 		name         string
@@ -65,23 +79,24 @@ func TestGetBlueprint(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:         "ClusterClass exists without references",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "clusterclass1").Obj(),
-			wantErr:      true,
+			name: "ClusterClass exists without references",
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "clusterclass1").
+				Build(),
+			wantErr: true,
 		},
 		{
 			name: "Ref to missing InfraClusterTemplate",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "clusterclass1").
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "clusterclass1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
-				Obj(),
+				Build(),
 			wantErr: true,
 		},
 		{
 			name: "Valid ref to InfraClusterTemplate, Ref to missing ControlPlaneTemplate",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				Obj(),
+				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
 			},
@@ -89,19 +104,19 @@ func TestGetBlueprint(t *testing.T) {
 		},
 		{
 			name: "Valid refs to InfraClusterTemplate and ControlPlaneTemplate",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				Obj(),
+				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
 				controlPlaneTemplate,
 			},
 			want: &scope.ClusterBlueprint{
-				ClusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+				ClusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplate).
-					Obj(),
+					Build(),
 				InfrastructureClusterTemplate: infraClusterTemplate,
 				ControlPlane: &scope.ControlPlaneBlueprint{
 					Template: controlPlaneTemplate,
@@ -111,22 +126,22 @@ func TestGetBlueprint(t *testing.T) {
 		},
 		{
 			name: "Valid refs to InfraClusterTemplate, ControlPlaneTemplate and ControlPlaneInfrastructureMachineTemplate",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplateWithInfrastructureMachine).
 				WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
-				Obj(),
+				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
 				controlPlaneTemplateWithInfrastructureMachine,
 				controlPlaneInfrastructureMachineTemplate,
 			},
 			want: &scope.ClusterBlueprint{
-				ClusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+				ClusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplateWithInfrastructureMachine).
 					WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
-					Obj(),
+					Build(),
 				InfrastructureClusterTemplate: infraClusterTemplate,
 				ControlPlane: &scope.ControlPlaneBlueprint{
 					Template:                      controlPlaneTemplateWithInfrastructureMachine,
@@ -137,11 +152,11 @@ func TestGetBlueprint(t *testing.T) {
 		},
 		{
 			name: "Valid refs to InfraClusterTemplate, ControlPlaneTemplate, Ref to missing ControlPlaneInfrastructureMachineTemplate",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
 				WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
-				Obj(),
+				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
 				controlPlaneTemplate,
@@ -150,11 +165,11 @@ func TestGetBlueprint(t *testing.T) {
 		},
 		{
 			name: "Valid refs to InfraClusterTemplate, ControlPlaneTemplate, worker InfrastructureMachineTemplate and BootstrapTemplate",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentClass("workerclass1", map[string]string{"foo": "bar"}, map[string]string{"a": "b"}, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
-				Obj(),
+				WithWorkerMachineDeploymentClasses(mds).
+				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
 				controlPlaneTemplate,
@@ -162,11 +177,11 @@ func TestGetBlueprint(t *testing.T) {
 				workerBootstrapTemplate,
 			},
 			want: &scope.ClusterBlueprint{
-				ClusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+				ClusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplate).
-					WithWorkerMachineDeploymentClass("workerclass1", map[string]string{"foo": "bar"}, map[string]string{"a": "b"}, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
-					Obj(),
+					WithWorkerMachineDeploymentClasses(mds).
+					Build(),
 				InfrastructureClusterTemplate: infraClusterTemplate,
 				ControlPlane: &scope.ControlPlaneBlueprint{
 					Template: controlPlaneTemplate,
@@ -185,11 +200,11 @@ func TestGetBlueprint(t *testing.T) {
 		},
 		{
 			name: "Valid refs to InfraClusterTemplate, ControlPlaneTemplate, InfrastructureMachineTemplate, Ref to missing BootstrapTemplate",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentClass("workerclass1", labels, annotations, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
-				Obj(),
+				WithWorkerMachineDeploymentClasses(mds).
+				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
 				controlPlaneTemplate,
@@ -199,11 +214,11 @@ func TestGetBlueprint(t *testing.T) {
 		},
 		{
 			name: "Valid refs to InfraClusterTemplate, ControlPlaneTemplate, worker BootstrapTemplate, Ref to missing InfrastructureMachineTemplate",
-			clusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+			clusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentClass("workerclass1", labels, annotations, workerInfrastructureMachineTemplate, workerBootstrapTemplate).
-				Obj(),
+				WithWorkerMachineDeploymentClasses(mds).
+				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
 				controlPlaneTemplate,
@@ -220,7 +235,7 @@ func TestGetBlueprint(t *testing.T) {
 			objs = append(objs, crds...)
 			objs = append(objs, tt.objects...)
 
-			cluster := newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj()
+			cluster := testtypes.NewClusterBuilder(metav1.NamespaceDefault, "cluster1").Build()
 
 			if tt.clusterClass != nil {
 				cluster.Spec.Topology = &clusterv1.Topology{
@@ -254,10 +269,16 @@ func TestGetBlueprint(t *testing.T) {
 				return
 			}
 
-			g.Expect(got.ClusterClass).To(Equal(tt.want.ClusterClass), cmp.Diff(tt.want.ClusterClass, got.ClusterClass))
-			g.Expect(got.InfrastructureClusterTemplate).To(Equal(tt.want.InfrastructureClusterTemplate), cmp.Diff(tt.want.InfrastructureClusterTemplate, got.InfrastructureClusterTemplate))
-			g.Expect(got.ControlPlane).To(Equal(tt.want.ControlPlane), cmp.Diff(tt.want.ControlPlane, got.ControlPlane, cmp.AllowUnexported(unstructured.Unstructured{}, scope.ControlPlaneBlueprint{})))
-			g.Expect(got.MachineDeployments).To(Equal(tt.want.MachineDeployments), cmp.Diff(tt.want.MachineDeployments, got.MachineDeployments, cmp.AllowUnexported(scope.MachineDeploymentBlueprint{})))
+			// Expect the Diff resulting from each object comparison to be empty when ignoring ObjectMeta.ResourceVersion
+			// This is necessary as the FakeClient adds its own ResourceVersion on object creation.
+			g.Expect(cmp.Diff(tt.want.ClusterClass, got.ClusterClass, ignoreResourceVersion)).To(Equal(""),
+				cmp.Diff(tt.want.ClusterClass, got.ClusterClass, ignoreResourceVersion))
+			g.Expect(cmp.Diff(tt.want.InfrastructureClusterTemplate, got.InfrastructureClusterTemplate, ignoreResourceVersion)).To(Equal(""),
+				cmp.Diff(tt.want.InfrastructureClusterTemplate, got.InfrastructureClusterTemplate, ignoreResourceVersion))
+			g.Expect(cmp.Diff(tt.want.ControlPlane, got.ControlPlane, ignoreResourceVersion)).To(Equal(""),
+				cmp.Diff(tt.want.ControlPlane, got.ControlPlane, ignoreResourceVersion))
+			g.Expect(cmp.Diff(tt.want.MachineDeployments, got.MachineDeployments, ignoreResourceVersion)).To(Equal(""),
+				cmp.Diff(tt.want.MachineDeployments, got.MachineDeployments, ignoreResourceVersion))
 		})
 	}
 }

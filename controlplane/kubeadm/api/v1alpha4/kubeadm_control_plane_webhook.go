@@ -138,6 +138,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, users},
 		{spec, kubeadmConfigSpec, ntp, "*"},
 		{spec, "machineTemplate", "metadata"},
+		{spec, "machineTemplate", "infrastructureRef", "apiVersion"},
 		{spec, "machineTemplate", "infrastructureRef", "name"},
 		{spec, "replicas"},
 		{spec, "version"},

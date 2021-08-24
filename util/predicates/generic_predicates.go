@@ -35,44 +35,44 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 			log := logger.WithValues("predicateAggregation", "All")
 			for _, p := range predicates {
 				if !p.UpdateFunc(e) {
-					log.V(4).Info("One of the provided predicates returned false, blocking further processing")
+					log.V(6).Info("One of the provided predicates returned false, blocking further processing")
 					return false
 				}
 			}
-			log.V(4).Info("All provided predicates returned true, allowing further processing")
+			log.V(6).Info("All provided predicates returned true, allowing further processing")
 			return true
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
 			log := logger.WithValues("predicateAggregation", "All")
 			for _, p := range predicates {
 				if !p.CreateFunc(e) {
-					log.V(4).Info("One of the provided predicates returned false, blocking further processing")
+					log.V(6).Info("One of the provided predicates returned false, blocking further processing")
 					return false
 				}
 			}
-			log.V(4).Info("All provided predicates returned true, allowing further processing")
+			log.V(6).Info("All provided predicates returned true, allowing further processing")
 			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			log := logger.WithValues("predicateAggregation", "All")
 			for _, p := range predicates {
 				if !p.DeleteFunc(e) {
-					log.V(4).Info("One of the provided predicates returned false, blocking further processing")
+					log.V(6).Info("One of the provided predicates returned false, blocking further processing")
 					return false
 				}
 			}
-			log.V(4).Info("All provided predicates returned true, allowing further processing")
+			log.V(6).Info("All provided predicates returned true, allowing further processing")
 			return true
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			log := logger.WithValues("predicateAggregation", "All")
 			for _, p := range predicates {
 				if !p.GenericFunc(e) {
-					log.V(4).Info("One of the provided predicates returned false, blocking further processing")
+					log.V(6).Info("One of the provided predicates returned false, blocking further processing")
 					return false
 				}
 			}
-			log.V(4).Info("All provided predicates returned true, allowing further processing")
+			log.V(6).Info("All provided predicates returned true, allowing further processing")
 			return true
 		},
 	}
@@ -85,44 +85,44 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 			log := logger.WithValues("predicateAggregation", "Any")
 			for _, p := range predicates {
 				if p.UpdateFunc(e) {
-					log.V(4).Info("One of the provided predicates returned true, allowing further processing")
+					log.V(6).Info("One of the provided predicates returned true, allowing further processing")
 					return true
 				}
 			}
-			log.V(4).Info("All of the provided predicates returned false, blocking further processing")
+			log.V(6).Info("All of the provided predicates returned false, blocking further processing")
 			return false
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
 			log := logger.WithValues("predicateAggregation", "Any")
 			for _, p := range predicates {
 				if p.CreateFunc(e) {
-					log.V(4).Info("One of the provided predicates returned true, allowing further processing")
+					log.V(6).Info("One of the provided predicates returned true, allowing further processing")
 					return true
 				}
 			}
-			log.V(4).Info("All of the provided predicates returned false, blocking further processing")
+			log.V(6).Info("All of the provided predicates returned false, blocking further processing")
 			return false
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			log := logger.WithValues("predicateAggregation", "Any")
 			for _, p := range predicates {
 				if p.DeleteFunc(e) {
-					log.V(4).Info("One of the provided predicates returned true, allowing further processing")
+					log.V(6).Info("One of the provided predicates returned true, allowing further processing")
 					return true
 				}
 			}
-			log.V(4).Info("All of the provided predicates returned false, blocking further processing")
+			log.V(6).Info("All of the provided predicates returned false, blocking further processing")
 			return false
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			log := logger.WithValues("predicateAggregation", "Any")
 			for _, p := range predicates {
 				if p.GenericFunc(e) {
-					log.V(4).Info("One of the provided predicates returned true, allowing further processing")
+					log.V(6).Info("One of the provided predicates returned true, allowing further processing")
 					return true
 				}
 			}
-			log.V(4).Info("All of the provided predicates returned false, blocking further processing")
+			log.V(6).Info("All of the provided predicates returned false, blocking further processing")
 			return false
 		},
 	}
@@ -190,7 +190,7 @@ func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
 		log.V(4).Info("Resource is paused, will not attempt to map resource")
 		return false
 	}
-	log.V(4).Info("Resource is not paused, will attempt to map resource")
+	log.V(6).Info("Resource is not paused, will attempt to map resource")
 	return true
 }
 
@@ -203,7 +203,7 @@ func processIfLabelMatch(logger logr.Logger, obj client.Object, labelValue strin
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
 	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
 	if labels.HasWatchLabel(obj, labelValue) {
-		log.V(4).Info("Resource matches label, will attempt to map resource")
+		log.V(6).Info("Resource matches label, will attempt to map resource")
 		return true
 	}
 	log.V(4).Info("Resource does not match label, will not attempt to map resource")
@@ -238,6 +238,6 @@ func processIfNotExternallyManaged(logger logr.Logger, obj client.Object) bool {
 		log.V(4).Info("Resource is externally managed, will not attempt to map resource")
 		return false
 	}
-	log.V(4).Info("Resource is managed, will attempt to map resource")
+	log.V(6).Info("Resource is managed, will attempt to map resource")
 	return true
 }

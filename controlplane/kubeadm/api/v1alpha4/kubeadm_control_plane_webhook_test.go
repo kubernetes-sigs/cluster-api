@@ -321,6 +321,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			},
 		},
 	}
+	validUpdate.Spec.MachineTemplate.InfrastructureRef.APIVersion = "test/v1alpha2"
 	validUpdate.Spec.MachineTemplate.InfrastructureRef.Name = "orange"
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
 	now := metav1.NewTime(time.Now())

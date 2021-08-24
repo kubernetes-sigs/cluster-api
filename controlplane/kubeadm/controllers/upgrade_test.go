@@ -49,7 +49,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	kcp.Spec.Replicas = pointer.Int32Ptr(1)
 	setKCPHealthy(kcp)
 
-	fakeClient := newFakeClient(cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy())
+	fakeClient := newFakeClient(fakeGenericMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy())
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
@@ -144,7 +144,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 			Status: internal.ClusterStatus{Nodes: 3},
 		},
 	}
-	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
+	objs := []client.Object{fakeGenericMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("test-%d", i)
 		m := &clusterv1.Machine{

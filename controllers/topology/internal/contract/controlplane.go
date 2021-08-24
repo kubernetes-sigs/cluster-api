@@ -17,8 +17,10 @@ limitations under the License.
 package contract
 
 import (
+	"strings"
 	"sync"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -71,6 +73,18 @@ func (v *ControlPlaneVersion) Path() Path {
 	return Path{"spec", "version"}
 }
 
+// Get gets the version value from the ControlPlane object.
+func (v *ControlPlaneVersion) Get(obj *unstructured.Unstructured) (*string, error) {
+	value, ok, err := unstructured.NestedString(obj.UnstructuredContent(), v.Path()...)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, errors.Errorf("%s not found", "."+strings.Join(v.Path(), "."))
+	}
+	return &value, nil
+}
+
 // Set sets the version value in the ControlPlane object.
 func (v *ControlPlaneVersion) Set(obj *unstructured.Unstructured, value string) error {
 	return unstructured.SetNestedField(obj.UnstructuredContent(), value, v.Path()...)
@@ -82,6 +96,18 @@ type ControlPlaneReplicas struct{}
 // Path returns the path of the reference.
 func (r *ControlPlaneReplicas) Path() Path {
 	return Path{"spec", "replicas"}
+}
+
+// Get gets the replicas value from the ControlPlane object.
+func (r *ControlPlaneReplicas) Get(obj *unstructured.Unstructured) (*int64, error) {
+	value, ok, err := unstructured.NestedInt64(obj.UnstructuredContent(), r.Path()...)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, errors.Errorf("%s not found", "."+strings.Join(r.Path(), "."))
+	}
+	return &value, nil
 }
 
 // Set sets the replica value in the ControlPlane object.

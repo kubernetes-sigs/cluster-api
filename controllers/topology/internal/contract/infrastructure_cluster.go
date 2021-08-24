@@ -36,6 +36,8 @@ func InfrastructureCluster() *InfrastructureClusterContract {
 // IgnorePaths returns a list of paths to be ignored when reconciling a topology.
 func (c *InfrastructureClusterContract) IgnorePaths() []Path {
 	return []Path{
+		// NOTE: the controlPlaneEndpoint struct currently contains two mandatory fields (host and port); without this
+		// ignore path they are going to be always reconciled to the default value or to the value set into the template.
 		{"spec", "controlPlaneEndpoint"},
 	}
 }

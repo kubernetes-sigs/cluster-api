@@ -23,16 +23,20 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+var fooRefBuilder = func() *unstructured.Unstructured {
+	refObj := &unstructured.Unstructured{}
+	refObj.SetAPIVersion("fooApiVersion")
+	refObj.SetKind("fooKind")
+	refObj.SetNamespace("fooNamespace")
+	refObj.SetName("fooName")
+	return refObj
+}
+
 func TestGetNestedRef(t *testing.T) {
 	t.Run("Gets a nested ref if defined", func(t *testing.T) {
 		g := NewWithT(t)
 
-		refObj := &unstructured.Unstructured{}
-		refObj.SetAPIVersion("foo.foo")
-		refObj.SetKind("Bar")
-		refObj.SetNamespace("Baz")
-		refObj.SetName("Bar")
-
+		refObj := fooRefBuilder()
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
 		err := SetNestedRef(obj, refObj, "spec", "machineTemplate", "infrastructureRef")
@@ -77,12 +81,8 @@ func TestGetNestedRef(t *testing.T) {
 func TestSetNestedRef(t *testing.T) {
 	t.Run("Sets a nested ref", func(t *testing.T) {
 		g := NewWithT(t)
-		refObj := &unstructured.Unstructured{}
-		refObj.SetAPIVersion("foo.foo")
-		refObj.SetKind("Bar")
-		refObj.SetNamespace("Baz")
-		refObj.SetName("Bar")
 
+		refObj := fooRefBuilder()
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
 		err := SetNestedRef(obj, refObj, "spec", "machineTemplate", "infrastructureRef")
@@ -101,12 +101,8 @@ func TestSetNestedRef(t *testing.T) {
 func TestObjToRef(t *testing.T) {
 	t.Run("Gets a ref from an obj", func(t *testing.T) {
 		g := NewWithT(t)
-		refObj := &unstructured.Unstructured{}
-		refObj.SetAPIVersion("foo.foo")
-		refObj.SetKind("Bar")
-		refObj.SetNamespace("Baz")
-		refObj.SetName("Bar")
 
+		refObj := fooRefBuilder()
 		ref := ObjToRef(refObj)
 
 		g.Expect(ref).ToNot(BeNil())

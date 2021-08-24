@@ -21,7 +21,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +35,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/internal/testtypes"
+	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -715,7 +714,7 @@ func TestReconcileRequest(t *testing.T) {
 				node,
 				&testCluster,
 				&tc.machine,
-				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				&infraConfig,
 			).Build()
 
@@ -957,9 +956,9 @@ func TestMachineConditions(t *testing.T) {
 			clientFake := fake.NewClientBuilder().WithObjects(
 				&testCluster,
 				m,
-				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				infra,
-				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+				builder.GenericBootstrapConfigCRD.DeepCopy(),
 				bootstrap,
 				node,
 			).Build()

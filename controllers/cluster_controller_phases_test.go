@@ -21,17 +21,15 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/internal/builder"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"sigs.k8s.io/cluster-api/internal/testtypes"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {
@@ -129,11 +127,11 @@ func TestClusterReconcilePhases(t *testing.T) {
 				if tt.infraRef != nil {
 					infraConfig := &unstructured.Unstructured{Object: tt.infraRef}
 					c = fake.NewClientBuilder().
-						WithObjects(testtypes.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster, infraConfig).
+						WithObjects(builder.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster, infraConfig).
 						Build()
 				} else {
 					c = fake.NewClientBuilder().
-						WithObjects(testtypes.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster).
+						WithObjects(builder.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster).
 						Build()
 				}
 				r := &ClusterReconciler{

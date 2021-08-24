@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/testtypes"
+	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -1491,10 +1491,10 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
-				Kind:       testtypes.GenericInfrastructureMachineCRD.Kind,
-				APIVersion: testtypes.GenericInfrastructureMachineCRD.APIVersion,
-				Name:       testtypes.GenericInfrastructureMachineCRD.Name,
-				Namespace:  testtypes.GenericInfrastructureMachineCRD.Namespace,
+				Kind:       builder.GenericInfrastructureMachineCRD.Kind,
+				APIVersion: builder.GenericInfrastructureMachineCRD.APIVersion,
+				Name:       builder.GenericInfrastructureMachineCRD.Name,
+				Namespace:  builder.GenericInfrastructureMachineCRD.Namespace,
 			},
 		},
 		Status: clusterv1.MachineStatus{

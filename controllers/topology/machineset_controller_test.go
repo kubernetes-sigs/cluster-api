@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/testtypes"
+	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,9 +33,9 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 
 	mdName := "md"
 
-	msBT := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "msBT").Build()
-	msIMT := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()
-	ms := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+	msBT := builder.BootstrapTemplate(metav1.NamespaceDefault, "msBT").Build()
+	msIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "msIMT").Build()
+	ms := builder.MachineSet(metav1.NamespaceDefault, "ms").
 		WithBootstrapTemplate(msBT).
 		WithInfrastructureTemplate(msIMT).
 		WithLabels(map[string]string{
@@ -77,8 +77,8 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 	t.Run("Should delete infra template of a MachineSet without a bootstrap template", func(t *testing.T) {
 		g := NewWithT(t)
 
-		msWithoutBootstrapTemplateIMT := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msWithoutBootstrapTemplateIMT").Build()
-		msWithoutBootstrapTemplate := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "msWithoutBootstrapTemplate").
+		msWithoutBootstrapTemplateIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "msWithoutBootstrapTemplateIMT").Build()
+		msWithoutBootstrapTemplate := builder.MachineSet(metav1.NamespaceDefault, "msWithoutBootstrapTemplate").
 			WithInfrastructureTemplate(msWithoutBootstrapTemplateIMT).
 			WithLabels(map[string]string{
 				clusterv1.MachineDeploymentLabelName: mdName,
@@ -115,7 +115,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 	t.Run("Should not delete templates of a MachineSet when they are still in use in a MachineDeployment", func(t *testing.T) {
 		g := NewWithT(t)
 
-		md := testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
+		md := builder.MachineDeployment(metav1.NamespaceDefault, "md").
 			WithBootstrapTemplate(msBT).
 			WithInfrastructureTemplate(msIMT).
 			Build()
@@ -143,7 +143,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 	t.Run("Should not delete templates of a MachineSet when they are still in use in another MachineSet", func(t *testing.T) {
 		g := NewWithT(t)
 
-		md := testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
+		md := builder.MachineDeployment(metav1.NamespaceDefault, "md").
 			WithBootstrapTemplate(msBT).
 			WithInfrastructureTemplate(msIMT).
 			Build()
@@ -151,7 +151,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 
 		// anotherMS is another MachineSet of the same MachineDeployment using the same templates.
 		// Because anotherMS is not in deleting, reconcileDelete should not delete the templates.
-		anotherMS := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "anotherMS").
+		anotherMS := builder.MachineSet(metav1.NamespaceDefault, "anotherMS").
 			WithBootstrapTemplate(msBT).
 			WithInfrastructureTemplate(msIMT).
 			WithLabels(map[string]string{

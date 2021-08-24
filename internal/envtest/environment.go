@@ -49,7 +49,7 @@ import (
 	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/testtypes"
+	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -161,16 +161,16 @@ func new(uncachedObjs ...client.Object) *Environment {
 			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 		},
 		CRDs: []apiextensionsv1.CustomResourceDefinition{
-			*testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-			*testtypes.GenericBootstrapConfigTemplateCRD.DeepCopy(),
-			*testtypes.GenericControlPlaneCRD.DeepCopy(),
-			*testtypes.GenericControlPlaneTemplateCRD.DeepCopy(),
-			*testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
-			*testtypes.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
-			*testtypes.GenericInfrastructureClusterCRD.DeepCopy(),
-			*testtypes.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
-			*testtypes.GenericRemediationCRD.DeepCopy(),
-			*testtypes.GenericRemediationTemplateCRD.DeepCopy(),
+			*builder.GenericBootstrapConfigCRD.DeepCopy(),
+			*builder.GenericBootstrapConfigTemplateCRD.DeepCopy(),
+			*builder.GenericControlPlaneCRD.DeepCopy(),
+			*builder.GenericControlPlaneTemplateCRD.DeepCopy(),
+			*builder.GenericInfrastructureMachineCRD.DeepCopy(),
+			*builder.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
+			*builder.GenericInfrastructureClusterCRD.DeepCopy(),
+			*builder.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
+			*builder.GenericRemediationCRD.DeepCopy(),
+			*builder.GenericRemediationTemplateCRD.DeepCopy(),
 		},
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.

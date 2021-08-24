@@ -30,7 +30,7 @@ import (
 var (
 	env *envtest.Environment
 	ctx = ctrl.SetupSignalHandler()
-	// TODO(sbueringer): move under internal/testtypes (or refactor it in a way that we don't need it anymore).
+	// TODO(sbueringer): move under internal/builder (or refactor it in a way that we don't need it anymore).
 	fakeGenericMachineTemplateCRD = &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),

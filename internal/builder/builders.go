@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package testtypes
+package builder
 
 import (
 	"fmt"
@@ -36,8 +36,8 @@ type ClusterBuilder struct {
 	controlPlane          *unstructured.Unstructured
 }
 
-// NewClusterBuilder returns a ClusterBuilder with the given name and namespace.
-func NewClusterBuilder(namespace, name string) *ClusterBuilder {
+// Cluster returns a ClusterBuilder with the given name and namespace.
+func Cluster(namespace, name string) *ClusterBuilder {
 	return &ClusterBuilder{
 		namespace: namespace,
 		name:      name,
@@ -97,8 +97,8 @@ type ClusterClassBuilder struct {
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 }
 
-// NewClusterClassBuilder returns a ClusterClassBuilder with the given name and namespace.
-func NewClusterClassBuilder(namespace, name string) *ClusterClassBuilder {
+// ClusterClass returns a ClusterClassBuilder with the given name and namespace.
+func ClusterClass(namespace, name string) *ClusterClassBuilder {
 	return &ClusterClassBuilder{
 		namespace: namespace,
 		name:      name,
@@ -187,8 +187,8 @@ type MachineDeploymentClassBuilder struct {
 	annotations                   map[string]string
 }
 
-// NewMachineDeploymentClassBuilder returns a MachineDeploymentClassBuilder with the given name and namespace.
-func NewMachineDeploymentClassBuilder(namespace, name string) *MachineDeploymentClassBuilder {
+// MachineDeploymentClass returns a MachineDeploymentClassBuilder with the given name and namespace.
+func MachineDeploymentClass(namespace, name string) *MachineDeploymentClassBuilder {
 	return &MachineDeploymentClassBuilder{
 		name:      name,
 		namespace: namespace,
@@ -251,8 +251,8 @@ type InfrastructureMachineTemplateBuilder struct {
 	specFields map[string]interface{}
 }
 
-// NewInfrastructureMachineTemplateBuilder creates an InfrastructureMachineTemplateBuilder with the given name and namespace.
-func NewInfrastructureMachineTemplateBuilder(namespace, name string) *InfrastructureMachineTemplateBuilder {
+// InfrastructureMachineTemplate creates an InfrastructureMachineTemplateBuilder with the given name and namespace.
+func InfrastructureMachineTemplate(namespace, name string) *InfrastructureMachineTemplateBuilder {
 	return &InfrastructureMachineTemplateBuilder{
 		namespace: namespace,
 		name:      name,
@@ -283,8 +283,8 @@ type BootstrapTemplateBuilder struct {
 	name      string
 }
 
-// NewBootstrapTemplateBuilder creates a BootstrapTemplateBuilder with the given name and namespace.
-func NewBootstrapTemplateBuilder(namespace, name string) *BootstrapTemplateBuilder {
+// BootstrapTemplate creates a BootstrapTemplateBuilder with the given name and namespace.
+func BootstrapTemplate(namespace, name string) *BootstrapTemplateBuilder {
 	return &BootstrapTemplateBuilder{
 		namespace: namespace,
 		name:      name,
@@ -309,8 +309,8 @@ type InfrastructureClusterTemplateBuilder struct {
 	specFields map[string]interface{}
 }
 
-// NewInfrastructureClusterTemplateBuilder returns an InfrastructureClusterTemplateBuilder with the given name and namespace.
-func NewInfrastructureClusterTemplateBuilder(namespace, name string) *InfrastructureClusterTemplateBuilder {
+// InfrastructureClusterTemplate returns an InfrastructureClusterTemplateBuilder with the given name and namespace.
+func InfrastructureClusterTemplate(namespace, name string) *InfrastructureClusterTemplateBuilder {
 	return &InfrastructureClusterTemplateBuilder{
 		namespace: namespace,
 		name:      name,
@@ -344,8 +344,8 @@ type ControlPlaneTemplateBuilder struct {
 	specFields                    map[string]interface{}
 }
 
-// NewControlPlaneTemplateBuilder creates a NewControlPlaneTemplate builder with the given name and namespace.
-func NewControlPlaneTemplateBuilder(namespace, name string) *ControlPlaneTemplateBuilder {
+// ControlPlaneTemplate creates a NewControlPlaneTemplate builder with the given name and namespace.
+func ControlPlaneTemplate(namespace, name string) *ControlPlaneTemplateBuilder {
 	return &ControlPlaneTemplateBuilder{
 		namespace: namespace,
 		name:      name,
@@ -375,7 +375,6 @@ func (c *ControlPlaneTemplateBuilder) Build() *unstructured.Unstructured {
 	setSpecFields(obj, c.specFields)
 
 	if c.infrastructureMachineTemplate != nil {
-		// TODO(killianmuldoon): Update to use the internal/contract package
 		if err := setNestedRef(obj, c.infrastructureMachineTemplate, "spec", "template", "spec", "machineTemplate", "infrastructureRef"); err != nil {
 			panic(err)
 		}
@@ -396,8 +395,8 @@ func (i *InfrastructureClusterBuilder) WithSpecFields(fields map[string]interfac
 	return i
 }
 
-// NewInfrastructureClusterBuilder returns and InfrastructureClusterBuilder with the given name and namespace.
-func NewInfrastructureClusterBuilder(namespace, name string) *InfrastructureClusterBuilder {
+// InfrastructureCluster returns and InfrastructureClusterBuilder with the given name and namespace.
+func InfrastructureCluster(namespace, name string) *InfrastructureClusterBuilder {
 	return &InfrastructureClusterBuilder{
 		namespace: namespace,
 		name:      name,
@@ -425,8 +424,8 @@ type ControlPlaneBuilder struct {
 	statusFields                  map[string]interface{}
 }
 
-// NewControlPlaneBuilder returns a ControlPlaneBuilder with the given name and Namespace.
-func NewControlPlaneBuilder(namespace, name string) *ControlPlaneBuilder {
+// ControlPlane returns a ControlPlaneBuilder with the given name and Namespace.
+func ControlPlane(namespace, name string) *ControlPlaneBuilder {
 	return &ControlPlaneBuilder{
 		namespace: namespace,
 		name:      name,
@@ -498,8 +497,8 @@ type MachineDeploymentBuilder struct {
 	status                 *clusterv1.MachineDeploymentStatus
 }
 
-// NewMachineDeploymentBuilder creates a MachineDeploymentBuilder with the given name and namespace.
-func NewMachineDeploymentBuilder(namespace, name string) *MachineDeploymentBuilder {
+// MachineDeployment creates a MachineDeploymentBuilder with the given name and namespace.
+func MachineDeployment(namespace, name string) *MachineDeploymentBuilder {
 	return &MachineDeploymentBuilder{
 		name:      name,
 		namespace: namespace,
@@ -591,8 +590,8 @@ type MachineSetBuilder struct {
 	labels                 map[string]string
 }
 
-// NewMachineSetBuilder creates a MachineSetBuilder with the given name and namespace.
-func NewMachineSetBuilder(namespace, name string) *MachineSetBuilder {
+// MachineSet creates a MachineSetBuilder with the given name and namespace.
+func MachineSet(namespace, name string) *MachineSetBuilder {
 	return &MachineSetBuilder{
 		name:      name,
 		namespace: namespace,

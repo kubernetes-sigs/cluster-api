@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package testtypes implements types we can use in all of our unit tests.
-package testtypes
+// Package builder implements builder and CRDs for creating API objects for testing.
+package builder

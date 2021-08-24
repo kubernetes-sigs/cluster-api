@@ -21,21 +21,19 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/internal/testtypes"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 var _ reconcile.Reconciler = &MachineSetReconciler{}
@@ -772,8 +770,8 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 				},
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						Kind:       testtypes.GenericInfrastructureMachineTemplateCRD.Kind,
-						APIVersion: testtypes.GenericInfrastructureMachineTemplateCRD.APIVersion,
+						Kind:       builder.GenericInfrastructureMachineTemplateCRD.Kind,
+						APIVersion: builder.GenericInfrastructureMachineTemplateCRD.APIVersion,
 						// Try to break Infra Cloning
 						Name:      "something_invalid",
 						Namespace: cluster.Namespace,
@@ -793,7 +791,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	request := reconcile.Request{
 		NamespacedName: key,
 	}
-	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, testtypes.GenericInfrastructureMachineTemplateCRD.DeepCopy()).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, builder.GenericInfrastructureMachineTemplateCRD.DeepCopy()).Build()
 
 	msr := &MachineSetReconciler{
 		Client:   fakeClient,

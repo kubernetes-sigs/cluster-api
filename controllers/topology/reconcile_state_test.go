@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -478,7 +479,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			// This check is just for the naming format uses by generated templates - here it's templateName-*
 			// This check is only performed when we had an initial template that has been changed
 			if tt.current.InfrastructureMachineTemplate != nil {
-				item, err := getNestedRef(gotControlPlaneObject, "spec", "machineTemplate", "infrastructureRef")
+				item, err := contract.ControlPlane().InfrastructureMachineTemplate().Get(gotControlPlaneObject)
 				g.Expect(err).ToNot(HaveOccurred())
 				// This pattern should match return value in controlPlaneinfrastructureMachineTemplateNamePrefix
 				pattern := fmt.Sprintf("%s-controlplane-.*", tt.desired.Object.GetClusterName())

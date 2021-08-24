@@ -16,6 +16,8 @@ limitations under the License.
 
 package mergepatch
 
+import "sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
+
 // HelperOption is some configuration that modifies options for Helper.
 type HelperOption interface {
 	// ApplyToHelper applies this configuration to the given helper options.
@@ -24,7 +26,7 @@ type HelperOption interface {
 
 // HelperOptions contains options for Helper.
 type HelperOptions struct {
-	ignorePaths [][]string
+	ignorePaths []contract.Path
 }
 
 // ApplyOptions applies the given patch options on these options,
@@ -36,10 +38,10 @@ func (o *HelperOptions) ApplyOptions(opts []HelperOption) *HelperOptions {
 	return o
 }
 
-// IgnorePath instruct the Helper to ignore a given path when computing a patch.
-type IgnorePath []string
+// IgnorePaths instruct the Helper to ignore given paths when computing a patch.
+type IgnorePaths []contract.Path
 
 // ApplyToHelper applies this configuration to the given helper options.
-func (i IgnorePath) ApplyToHelper(opts *HelperOptions) {
-	opts.ignorePaths = append(opts.ignorePaths, i)
+func (i IgnorePaths) ApplyToHelper(opts *HelperOptions) {
+	opts.ignorePaths = i
 }

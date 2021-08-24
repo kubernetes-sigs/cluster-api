@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 )
 
 func TestNewHelper(t *testing.T) {
@@ -317,7 +318,7 @@ func TestNewHelper(t *testing.T) {
 					},
 				},
 			},
-			options:        []HelperOption{IgnorePath{"spec", "controlPlaneEndpoint"}},
+			options:        []HelperOption{IgnorePaths{contract.Path{"spec", "controlPlaneEndpoint"}}},
 			wantHasChanges: false,
 			wantPatch:      []byte("{}"),
 		},

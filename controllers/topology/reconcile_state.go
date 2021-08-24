@@ -26,6 +26,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/check"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/mergepatch"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -58,7 +59,7 @@ func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) 
 
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
 func (r *ClusterReconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
-	return r.reconcileReferencedObject(ctx, s.Current.InfrastructureCluster, s.Desired.InfrastructureCluster, mergepatch.IgnorePath{"spec", "controlPlaneEndpoint"})
+	return r.reconcileReferencedObject(ctx, s.Current.InfrastructureCluster, s.Desired.InfrastructureCluster, mergepatch.IgnorePaths(contract.InfrastructureCluster().IgnorePaths()))
 }
 
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
@@ -70,7 +71,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.
 
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, reconcile it.
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
-		cpInfraRef, err := getNestedRef(s.Desired.ControlPlane.Object, "spec", "machineTemplate", "infrastructureRef")
+		cpInfraRef, err := contract.ControlPlane().InfrastructureMachineTemplate().Get(s.Desired.ControlPlane.Object)
 		if err != nil {
 			return errors.Wrapf(err, "failed to update the %s object,", s.Desired.ControlPlane.InfrastructureMachineTemplate.GetKind())
 		}
@@ -92,7 +93,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.
 		}
 
 		// The controlPlaneObject.Spec.machineTemplate.infrastructureRef has to be updated in the desired object
-		err = setNestedRef(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef), "spec", "machineTemplate", "infrastructureRef")
+		err = contract.ControlPlane().InfrastructureMachineTemplate().Set(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef))
 		if err != nil {
 			return kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to update the %s object", s.Desired.ControlPlane.Object.GetKind()), cleanup()})
 		}

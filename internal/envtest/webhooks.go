@@ -75,10 +75,11 @@ func initWebhookInstallOptions() envtest.WebhookInstallOptions {
 		klog.Fatalf("Failed to append controlplane controller webhook config: %v", err)
 	}
 	return envtest.WebhookInstallOptions{
-		MaxTime:            20 * time.Second,
-		PollInterval:       time.Second,
-		ValidatingWebhooks: validatingWebhooks,
-		MutatingWebhooks:   mutatingWebhooks,
+		MaxTime:                      20 * time.Second,
+		PollInterval:                 time.Second,
+		ValidatingWebhooks:           validatingWebhooks,
+		MutatingWebhooks:             mutatingWebhooks,
+		LocalServingHostExternalName: os.Getenv("CAPI_WEBHOOK_HOSTNAME"),
 	}
 }
 

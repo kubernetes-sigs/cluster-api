@@ -40,7 +40,7 @@ func ClusterCreateInfraReady(logger logr.Logger) predicate.Funcs {
 
 			// Only need to trigger a reconcile if the Cluster.Status.InfrastructureReady is true
 			if c.Status.InfrastructureReady {
-				log.V(4).Info("Cluster infrastructure is ready, allowing further processing")
+				log.V(6).Info("Cluster infrastructure is ready, allowing further processing")
 				return true
 			}
 
@@ -69,7 +69,7 @@ func ClusterCreateNotPaused(logger logr.Logger) predicate.Funcs {
 
 			// Only need to trigger a reconcile if the Cluster.Spec.Paused is false
 			if !c.Spec.Paused {
-				log.V(4).Info("Cluster is not paused, allowing further processing")
+				log.V(6).Info("Cluster is not paused, allowing further processing")
 				return true
 			}
 
@@ -99,7 +99,7 @@ func ClusterUpdateInfraReady(logger logr.Logger) predicate.Funcs {
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
 			if !oldCluster.Status.InfrastructureReady && newCluster.Status.InfrastructureReady {
-				log.V(4).Info("Cluster infrastructure became ready, allowing further processing")
+				log.V(6).Info("Cluster infrastructure became ready, allowing further processing")
 				return true
 			}
 
@@ -129,7 +129,7 @@ func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
 			if oldCluster.Spec.Paused && !newCluster.Spec.Paused {
-				log.V(4).Info("Cluster was unpaused, allowing further processing")
+				log.V(6).Info("Cluster was unpaused, allowing further processing")
 				return true
 			}
 

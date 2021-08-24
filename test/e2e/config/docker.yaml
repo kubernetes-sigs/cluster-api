@@ -29,8 +29,8 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: v0.3.22 # latest published release
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.22/core-components.yaml"
+  - name: v0.3.23 # latest published release
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/core-components.yaml"
     type: "url"
     replacements:
     - old: --metrics-addr=127.0.0.1:8080
@@ -46,8 +46,8 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: v0.3.22 # latest published release
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.22/bootstrap-components.yaml"
+  - name: v0.3.23 # latest published release
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/bootstrap-components.yaml"
     type: "url"
     replacements:
       - old: --metrics-addr=127.0.0.1:8080
@@ -63,8 +63,8 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: v0.3.22 # latest published release
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.22/control-plane-components.yaml"
+  - name: v0.3.23 # latest published release
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/control-plane-components.yaml"
     type: "url"
     replacements:
       - old: --metrics-addr=127.0.0.1:8080
@@ -80,8 +80,8 @@ providers:
 - name: docker
   type: InfrastructureProvider
   versions:
-  - name: v0.3.22 # latest published release
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.22/infrastructure-components-development.yaml"
+  - name: v0.3.23 # latest published release
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/infrastructure-components-development.yaml"
     type: "url"
     replacements:
       - old: --metrics-addr=127.0.0.1:8080
@@ -129,7 +129,7 @@ variables:
   NODE_DRAIN_TIMEOUT: "60s"
   # NOTE: INIT_WITH_BINARY and INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
-  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.22/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
   # CAPI v0.3.x cannot be deployed on Kubernetes >= v1.22.
   INIT_WITH_KUBERNETES_VERSION: "v1.21.2"
 

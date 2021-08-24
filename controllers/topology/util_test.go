@@ -21,9 +21,8 @@ import (
 
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/internal/testtypes"
+	. "sigs.k8s.io/cluster-api/internal/testtypes"
 
-	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,20 +33,20 @@ import (
 )
 
 func TestGetReference(t *testing.T) {
-	fakeControlPlaneTemplateCRDv99 := testtypes.GenericControlPlaneTemplateCRD.DeepCopy()
+	fakeControlPlaneTemplateCRDv99 := GenericControlPlaneTemplateCRD.DeepCopy()
 	fakeControlPlaneTemplateCRDv99.Labels = map[string]string{
 		"cluster.x-k8s.io/v1alpha4": "v1alpha4_v99",
 	}
 	crds := []client.Object{
 		fakeControlPlaneTemplateCRDv99,
-		testtypes.GenericBootstrapConfigTemplateCRD,
+		GenericBootstrapConfigTemplateCRD,
 	}
 
-	controlPlaneTemplate := testtypes.NewControlPlaneTemplateBuilder(metav1.NamespaceDefault, "controlplanetemplate1").Build()
+	controlPlaneTemplate := NewControlPlaneTemplateBuilder(metav1.NamespaceDefault, "controlplanetemplate1").Build()
 	controlPlaneTemplatev99 := controlPlaneTemplate.DeepCopy()
-	controlPlaneTemplatev99.SetAPIVersion(testtypes.ControlPlaneGroupVersion.Group + "/v99")
+	controlPlaneTemplatev99.SetAPIVersion(ControlPlaneGroupVersion.Group + "/v99")
 
-	workerBootstrapTemplate := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "workerbootstraptemplate1").Build()
+	workerBootstrapTemplate := NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "workerbootstraptemplate1").Build()
 
 	tests := []struct {
 		name    string
@@ -111,8 +110,8 @@ func TestGetReference(t *testing.T) {
 			}
 			g.Expect(err).NotTo(HaveOccurred())
 
-			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
-			g.Expect(tt.ref).To(Equal(tt.wantRef), cmp.Diff(tt.wantRef, tt.ref))
+			g.Expect(got).To(EqualObject(tt.want))
+			g.Expect(tt.ref).To(EqualObject(tt.wantRef))
 		})
 	}
 }
@@ -121,13 +120,13 @@ func TestCalculateTemplatesInUse(t *testing.T) {
 	t.Run("Calculate templates in use with regular MachineDeployment and MachineSet", func(t *testing.T) {
 		g := NewWithT(t)
 
-		md := testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
-			WithBootstrapTemplate(testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "mdBT").Build()).
-			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
+		md := NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
+			WithBootstrapTemplate(NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "mdBT").Build()).
+			WithInfrastructureTemplate(NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
 			Build()
-		ms := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
-			WithBootstrapTemplate(testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "msBT").Build()).
-			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
+		ms := NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+			WithBootstrapTemplate(NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "msBT").Build()).
+			WithInfrastructureTemplate(NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
 			Build()
 
 		actual, err := calculateTemplatesInUse(md, []*clusterv1.MachineSet{ms})
@@ -144,11 +143,11 @@ func TestCalculateTemplatesInUse(t *testing.T) {
 	t.Run("Calculate templates in use with MachineDeployment and MachineSet without BootstrapTemplate", func(t *testing.T) {
 		g := NewWithT(t)
 
-		mdWithoutBootstrapTemplate := testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
-			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
+		mdWithoutBootstrapTemplate := NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
+			WithInfrastructureTemplate(NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
 			Build()
-		msWithoutBootstrapTemplate := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
-			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
+		msWithoutBootstrapTemplate := NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+			WithInfrastructureTemplate(NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
 			Build()
 
 		actual, err := calculateTemplatesInUse(mdWithoutBootstrapTemplate, []*clusterv1.MachineSet{msWithoutBootstrapTemplate})
@@ -165,13 +164,13 @@ func TestCalculateTemplatesInUse(t *testing.T) {
 
 		deletionTimeStamp := metav1.Now()
 
-		mdInDeleting := testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
-			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
+		mdInDeleting := NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
+			WithInfrastructureTemplate(NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
 			Build()
 		mdInDeleting.SetDeletionTimestamp(&deletionTimeStamp)
 
-		msInDeleting := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
-			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
+		msInDeleting := NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+			WithInfrastructureTemplate(NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
 			Build()
 		msInDeleting.SetDeletionTimestamp(&deletionTimeStamp)
 
@@ -187,9 +186,9 @@ func TestCalculateTemplatesInUse(t *testing.T) {
 	t.Run("Calculate templates in use without MachineDeployment and with MachineSet", func(t *testing.T) {
 		g := NewWithT(t)
 
-		ms := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
-			WithBootstrapTemplate(testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "msBT").Build()).
-			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
+		ms := NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+			WithBootstrapTemplate(NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "msBT").Build()).
+			WithInfrastructureTemplate(NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
 			Build()
 
 		actual, err := calculateTemplatesInUse(nil, []*clusterv1.MachineSet{ms})

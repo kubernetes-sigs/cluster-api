@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/testtypes"
 )
 
@@ -189,10 +190,10 @@ func (f *fakeCluster) Obj() *clusterv1.Cluster {
 		},
 	}
 	if f.infrastructureCluster != nil {
-		obj.Spec.InfrastructureRef = objToRef(f.infrastructureCluster)
+		obj.Spec.InfrastructureRef = contract.ObjToRef(f.infrastructureCluster)
 	}
 	if f.controlPlane != nil {
-		obj.Spec.ControlPlaneRef = objToRef(f.controlPlane)
+		obj.Spec.ControlPlaneRef = contract.ObjToRef(f.controlPlane)
 	}
 	return obj
 }
@@ -275,7 +276,7 @@ func (f *fakeClusterClass) Obj() *clusterv1.ClusterClass {
 	}
 	if f.infrastructureClusterTemplate != nil {
 		obj.Spec.Infrastructure = clusterv1.LocalObjectTemplate{
-			Ref: objToRef(f.infrastructureClusterTemplate),
+			Ref: contract.ObjToRef(f.infrastructureClusterTemplate),
 		}
 	}
 	if f.controlPlaneMetadata != nil {
@@ -283,12 +284,12 @@ func (f *fakeClusterClass) Obj() *clusterv1.ClusterClass {
 	}
 	if f.controlPlaneTemplate != nil {
 		obj.Spec.ControlPlane.LocalObjectTemplate = clusterv1.LocalObjectTemplate{
-			Ref: objToRef(f.controlPlaneTemplate),
+			Ref: contract.ObjToRef(f.controlPlaneTemplate),
 		}
 	}
 	if f.controlPlaneInfrastructureMachineTemplate != nil {
 		obj.Spec.ControlPlane.MachineInfrastructure = &clusterv1.LocalObjectTemplate{
-			Ref: objToRef(f.controlPlaneInfrastructureMachineTemplate),
+			Ref: contract.ObjToRef(f.controlPlaneInfrastructureMachineTemplate),
 		}
 	}
 	if len(f.workerMachineDeploymentTemplates) > 0 {
@@ -301,10 +302,10 @@ func (f *fakeClusterClass) Obj() *clusterv1.ClusterClass {
 						Annotations: mdt.Annotations,
 					},
 					Bootstrap: clusterv1.LocalObjectTemplate{
-						Ref: objToRef(mdt.bootstrapTemplate),
+						Ref: contract.ObjToRef(mdt.bootstrapTemplate),
 					},
 					Infrastructure: clusterv1.LocalObjectTemplate{
-						Ref: objToRef(mdt.infrastructureMachineTemplate),
+						Ref: contract.ObjToRef(mdt.infrastructureMachineTemplate),
 					},
 				},
 			})
@@ -423,7 +424,7 @@ func (f *fakeControlPlaneTemplate) Obj() *unstructured.Unstructured {
 	}
 
 	if f.infrastructureMachineTemplate != nil {
-		if err := setNestedRef(obj, f.infrastructureMachineTemplate, "spec", "template", "spec", "machineTemplate", "infrastructureRef"); err != nil {
+		if err := contract.ControlPlaneTemplate().InfrastructureMachineTemplate().Set(obj, f.infrastructureMachineTemplate); err != nil {
 			panic(err)
 		}
 	}
@@ -492,7 +493,7 @@ func (f *fakeControlPlane) Obj() *unstructured.Unstructured {
 	}
 
 	if f.infrastructureMachineTemplate != nil {
-		if err := setNestedRef(obj, f.infrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef"); err != nil {
+		if err := contract.ControlPlane().InfrastructureMachineTemplate().Set(obj, f.infrastructureMachineTemplate); err != nil {
 			panic(err)
 		}
 	}
@@ -542,10 +543,10 @@ func (f *fakeMachineDeployment) Obj() *clusterv1.MachineDeployment {
 		},
 	}
 	if f.bootstrapTemplate != nil {
-		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(f.bootstrapTemplate)
+		obj.Spec.Template.Spec.Bootstrap.ConfigRef = contract.ObjToRef(f.bootstrapTemplate)
 	}
 	if f.infrastructureTemplate != nil {
-		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(f.infrastructureTemplate)
+		obj.Spec.Template.Spec.InfrastructureRef = *contract.ObjToRef(f.infrastructureTemplate)
 	}
 	return obj
 }

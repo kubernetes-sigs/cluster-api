@@ -24,10 +24,11 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var allowedPaths = [][]string{
+var allowedPaths = []contract.Path{
 	{"metadata", "labels"},
 	{"metadata", "annotations"},
 	{"spec"},
@@ -92,7 +93,7 @@ func NewHelper(original, modified client.Object, c client.Client, opts ...Helper
 }
 
 // filterPatch removes from the patch diffs not in the allowed paths.
-func filterPatch(patch []byte, allowedPaths, ignorePaths [][]string) ([]byte, error) {
+func filterPatch(patch []byte, allowedPaths, ignorePaths []contract.Path) ([]byte, error) {
 	// converts the patch into a Map
 	patchMap := make(map[string]interface{})
 	err := json.Unmarshal(patch, &patchMap)
@@ -117,7 +118,7 @@ func filterPatch(patch []byte, allowedPaths, ignorePaths [][]string) ([]byte, er
 }
 
 // filterPatch removes from the patchMap diffs not in the allowed paths.
-func filterPatchMap(patchMap map[string]interface{}, allowedPaths [][]string) {
+func filterPatchMap(patchMap map[string]interface{}, allowedPaths []contract.Path) {
 	// Loop through the entries in the map.
 	for k, m := range patchMap {
 		// Check if item is in the allowed paths.
@@ -141,7 +142,7 @@ func filterPatchMap(patchMap map[string]interface{}, allowedPaths [][]string) {
 		if !ok {
 			continue
 		}
-		nestedPaths := make([][]string, 0)
+		nestedPaths := make([]contract.Path, 0)
 		for _, path := range allowedPaths {
 			if k == path[0] && len(path) > 1 {
 				nestedPaths = append(nestedPaths, path[1:])
@@ -160,7 +161,7 @@ func filterPatchMap(patchMap map[string]interface{}, allowedPaths [][]string) {
 }
 
 // removePath removes from the patchMap diffs a given path.
-func removePath(patchMap map[string]interface{}, path []string) {
+func removePath(patchMap map[string]interface{}, path contract.Path) {
 	switch len(path) {
 	case 0:
 		// if path is empty, no-op.

@@ -19,14 +19,12 @@ package topology
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // bootstrapTemplateNamePrefix calculates the name prefix for a BootstrapTemplate.
@@ -59,54 +57,6 @@ func (r *ClusterReconciler) getReference(ctx context.Context, ref *corev1.Object
 		return nil, errors.Wrapf(err, "failed to retrieve %s %q in namespace %q", ref.Kind, ref.Name, ref.Namespace)
 	}
 	return obj, nil
-}
-
-// getNestedRef returns the ref value of a nested field.
-func getNestedRef(obj *unstructured.Unstructured, fields ...string) (*corev1.ObjectReference, error) {
-	ref := &corev1.ObjectReference{}
-	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "apiVersion")...); ok && err == nil {
-		ref.APIVersion = v
-	} else {
-		return nil, errors.Errorf("failed to get %s.apiVersion from %s", strings.Join(fields, "."), obj.GetKind())
-	}
-	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "kind")...); ok && err == nil {
-		ref.Kind = v
-	} else {
-		return nil, errors.Errorf("failed to get %s.kind from %s", strings.Join(fields, "."), obj.GetKind())
-	}
-	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "name")...); ok && err == nil {
-		ref.Name = v
-	} else {
-		return nil, errors.Errorf("failed to get %s.name from %s", strings.Join(fields, "."), obj.GetKind())
-	}
-	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "namespace")...); ok && err == nil {
-		ref.Namespace = v
-	} else {
-		return nil, errors.Errorf("failed to get %s.namespace from %s", strings.Join(fields, "."), obj.GetKind())
-	}
-	return ref, nil
-}
-
-// setNestedRef sets the value of a nested field to a reference to the refObj provided.
-func setNestedRef(obj, refObj *unstructured.Unstructured, fields ...string) error {
-	ref := map[string]interface{}{
-		"kind":       refObj.GetKind(),
-		"namespace":  refObj.GetNamespace(),
-		"name":       refObj.GetName(),
-		"apiVersion": refObj.GetAPIVersion(),
-	}
-	return unstructured.SetNestedField(obj.UnstructuredContent(), ref, fields...)
-}
-
-// objToRef returns a reference to the given object.
-func objToRef(obj client.Object) *corev1.ObjectReference {
-	gvk := obj.GetObjectKind().GroupVersionKind()
-	return &corev1.ObjectReference{
-		Kind:       gvk.Kind,
-		APIVersion: gvk.GroupVersion().String(),
-		Namespace:  obj.GetNamespace(),
-		Name:       obj.GetName(),
-	}
 }
 
 // refToUnstructured returns an unstructured object with details from an ObjectReference.

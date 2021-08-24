@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 )
 
@@ -179,7 +180,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		currentInfrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "cluster1-template1").Obj()
 
 		controlPlane := &unstructured.Unstructured{Object: map[string]interface{}{}}
-		err := setNestedRef(controlPlane, currentInfrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef")
+		err := contract.ControlPlane().InfrastructureMachineTemplate().Set(controlPlane, currentInfrastructureMachineTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
@@ -200,7 +201,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
 			labels:      mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
 			annotations: mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
-			currentRef:  objToRef(currentInfrastructureMachineTemplate),
+			currentRef:  contract.ObjToRef(currentInfrastructureMachineTemplate),
 			obj:         obj,
 		})
 	})
@@ -268,9 +269,9 @@ func TestComputeControlPlane(t *testing.T) {
 			obj:         obj,
 		})
 
-		assertNestedField(g, obj, version, "spec", "version")
-		assertNestedField(g, obj, int64(replicas), "spec", "replicas")
-		assertNestedFieldUnset(g, obj, "spec", "machineTemplate", "infrastructureRef")
+		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
+		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
+		assertNestedFieldUnset(g, obj, contract.ControlPlane().InfrastructureMachineTemplate().Path()...)
 	})
 	t.Run("Skips setting replicas if required", func(t *testing.T) {
 		g := NewWithT(t)
@@ -305,9 +306,9 @@ func TestComputeControlPlane(t *testing.T) {
 			obj:         obj,
 		})
 
-		assertNestedField(g, obj, version, "spec", "version")
-		assertNestedFieldUnset(g, obj, "spec", "replicas")
-		assertNestedFieldUnset(g, obj, "spec", "machineTemplate", "infrastructureRef")
+		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
+		assertNestedFieldUnset(g, obj, contract.ControlPlane().Replicas().Path()...)
+		assertNestedFieldUnset(g, obj, contract.ControlPlane().InfrastructureMachineTemplate().Path()...)
 	})
 	t.Run("Generates the ControlPlane from the template and adds the infrastructure machine template if required", func(t *testing.T) {
 		g := NewWithT(t)
@@ -348,14 +349,14 @@ func TestComputeControlPlane(t *testing.T) {
 			obj:         obj,
 		})
 
-		assertNestedField(g, obj, version, "spec", "version")
-		assertNestedField(g, obj, int64(replicas), "spec", "replicas")
+		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
+		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
 		assertNestedField(g, obj, map[string]interface{}{
 			"kind":       infrastructureMachineTemplate.GetKind(),
 			"namespace":  infrastructureMachineTemplate.GetNamespace(),
 			"name":       infrastructureMachineTemplate.GetName(),
 			"apiVersion": infrastructureMachineTemplate.GetAPIVersion(),
-		}, "spec", "machineTemplate", "infrastructureRef")
+		}, contract.ControlPlane().InfrastructureMachineTemplate().Path()...)
 	})
 	t.Run("If there is already a reference to the ControlPlane, it preserves the reference name", func(t *testing.T) {
 		g := NewWithT(t)
@@ -424,8 +425,8 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 
 	// Spec
-	g.Expect(obj.Spec.InfrastructureRef).To(Equal(objToRef(infrastructureCluster)))
-	g.Expect(obj.Spec.ControlPlaneRef).To(Equal(objToRef(controlPlane)))
+	g.Expect(obj.Spec.InfrastructureRef).To(Equal(contract.ObjToRef(infrastructureCluster)))
+	g.Expect(obj.Spec.ControlPlaneRef).To(Equal(contract.ObjToRef(controlPlane)))
 }
 
 func TestComputeMachineDeployment(t *testing.T) {
@@ -515,9 +516,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: objToRef(workerBootstrapTemplate),
+							ConfigRef: contract.ObjToRef(workerBootstrapTemplate),
 						},
-						InfrastructureRef: *objToRef(workerInfrastructureMachineTemplate),
+						InfrastructureRef: *contract.ObjToRef(workerInfrastructureMachineTemplate),
 					},
 				},
 			},

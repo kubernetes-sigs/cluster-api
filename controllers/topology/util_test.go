@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -59,27 +60,27 @@ func TestGetTemplate(t *testing.T) {
 		},
 		{
 			name: "Get object",
-			ref:  objToRef(workerBootstrapTemplate),
+			ref:  contract.ObjToRef(workerBootstrapTemplate),
 			objects: []client.Object{
 				workerBootstrapTemplate,
 			},
 			want:    workerBootstrapTemplate,
-			wantRef: objToRef(workerBootstrapTemplate),
+			wantRef: contract.ObjToRef(workerBootstrapTemplate),
 		},
 		{
 			name:    "Get object fails: object does not exist",
-			ref:     objToRef(workerBootstrapTemplate),
+			ref:     contract.ObjToRef(workerBootstrapTemplate),
 			objects: []client.Object{},
 			wantErr: true,
 		},
 		{
 			name: "Get object and update the ref",
-			ref:  objToRef(controlPlaneTemplate),
+			ref:  contract.ObjToRef(controlPlaneTemplate),
 			objects: []client.Object{
 				controlPlaneTemplatev99,
 			},
 			want:    controlPlaneTemplatev99,
-			wantRef: objToRef(controlPlaneTemplatev99),
+			wantRef: contract.ObjToRef(controlPlaneTemplatev99),
 		},
 	}
 	for _, tt := range tests {
@@ -110,82 +111,4 @@ func TestGetTemplate(t *testing.T) {
 			g.Expect(tt.ref).To(Equal(tt.wantRef), cmp.Diff(tt.wantRef, tt.ref))
 		})
 	}
-}
-
-func TestGetNestedRef(t *testing.T) {
-	t.Run("Gets a nested ref if defined", func(t *testing.T) {
-		g := NewWithT(t)
-
-		infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "control-plane-machine-infrastructure-template1").Obj()
-		controlPlaneTemplate := newFakeControlPlane(metav1.NamespaceDefault, "control-plane-template").
-			WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
-			Obj()
-
-		ref, err := getNestedRef(controlPlaneTemplate, "spec", "machineTemplate", "infrastructureRef")
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(ref).ToNot(BeNil())
-		g.Expect(ref.APIVersion).To(Equal(infrastructureMachineTemplate.GetAPIVersion()))
-		g.Expect(ref.Kind).To(Equal(infrastructureMachineTemplate.GetKind()))
-		g.Expect(ref.Name).To(Equal(infrastructureMachineTemplate.GetName()))
-		g.Expect(ref.Namespace).To(Equal(infrastructureMachineTemplate.GetNamespace()))
-	})
-	t.Run("getNestedRef fails if the nested ref does not exist", func(t *testing.T) {
-		g := NewWithT(t)
-
-		controlPlaneTemplate := newFakeControlPlane(metav1.NamespaceDefault, "control-plane-template").Obj()
-
-		ref, err := getNestedRef(controlPlaneTemplate, "spec", "machineTemplate", "infrastructureRef")
-		g.Expect(err).To(HaveOccurred())
-		g.Expect(ref).To(BeNil())
-	})
-	t.Run("getNestedRef fails if the nested ref exist but it is incomplete", func(t *testing.T) {
-		g := NewWithT(t)
-
-		controlPlaneTemplate := newFakeControlPlane(metav1.NamespaceDefault, "control-plane-template").Obj()
-
-		err := unstructured.SetNestedField(controlPlaneTemplate.UnstructuredContent(), "foo", "spec", "machineTemplate", "infrastructureRef", "kind")
-		g.Expect(err).ToNot(HaveOccurred())
-		err = unstructured.SetNestedField(controlPlaneTemplate.UnstructuredContent(), "bar", "spec", "machineTemplate", "infrastructureRef", "namespace")
-		g.Expect(err).ToNot(HaveOccurred())
-		err = unstructured.SetNestedField(controlPlaneTemplate.UnstructuredContent(), "baz", "spec", "machineTemplate", "infrastructureRef", "apiVersion")
-		g.Expect(err).ToNot(HaveOccurred())
-		// Reference name missing
-
-		ref, err := getNestedRef(controlPlaneTemplate, "spec", "machineTemplate", "infrastructureRef")
-		g.Expect(err).To(HaveOccurred())
-		g.Expect(ref).To(BeNil())
-	})
-}
-
-func TestSetNestedRef(t *testing.T) {
-	t.Run("Sets a nested ref", func(t *testing.T) {
-		g := NewWithT(t)
-		infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "control-plane-machine-infrastructure-template1").Obj()
-		controlPlaneTemplate := newFakeControlPlane(metav1.NamespaceDefault, "control-plane-template").Obj()
-
-		err := setNestedRef(controlPlaneTemplate, infrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef")
-		g.Expect(err).To(BeNil())
-
-		ref, err := getNestedRef(controlPlaneTemplate, "spec", "machineTemplate", "infrastructureRef")
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(ref).ToNot(BeNil())
-		g.Expect(ref.APIVersion).To(Equal(infrastructureMachineTemplate.GetAPIVersion()))
-		g.Expect(ref.Kind).To(Equal(infrastructureMachineTemplate.GetKind()))
-		g.Expect(ref.Name).To(Equal(infrastructureMachineTemplate.GetName()))
-		g.Expect(ref.Namespace).To(Equal(infrastructureMachineTemplate.GetNamespace()))
-	})
-}
-
-func TestObjToRef(t *testing.T) {
-	t.Run("Gets a ref from an obj", func(t *testing.T) {
-		g := NewWithT(t)
-		infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "control-plane-machine-infrastructure-template1").Obj()
-		ref := objToRef(infrastructureMachineTemplate)
-
-		g.Expect(ref).ToNot(BeNil())
-		g.Expect(ref.APIVersion).To(Equal(infrastructureMachineTemplate.GetAPIVersion()))
-		g.Expect(ref.Kind).To(Equal(infrastructureMachineTemplate.GetKind()))
-		g.Expect(ref.Name).To(Equal(infrastructureMachineTemplate.GetName()))
-		g.Expect(ref.Namespace).To(Equal(infrastructureMachineTemplate.GetNamespace()))
-	})
 }

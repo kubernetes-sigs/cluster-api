@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -94,7 +95,7 @@ func (r *ClusterReconciler) getCurrentControlPlaneState(ctx context.Context, clu
 	}
 
 	// Otherwise, get the control plane machine infrastructureMachine template.
-	machineInfrastructureRef, err := getNestedRef(res.Object, "spec", "machineTemplate", "infrastructureRef")
+	machineInfrastructureRef, err := contract.ControlPlane().InfrastructureMachineTemplate().Get(res.Object)
 	if err != nil {
 		return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s, %s", res.Object.GetKind(), res.Object.GetName())
 	}

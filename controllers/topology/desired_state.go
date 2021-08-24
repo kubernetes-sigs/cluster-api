@@ -28,6 +28,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 )
 
@@ -112,7 +113,7 @@ func computeControlPlaneInfrastructureMachineTemplate(_ context.Context, s *scop
 	var currentRef *corev1.ObjectReference
 	if s.Current.ControlPlane != nil && s.Current.ControlPlane.Object != nil {
 		var err error
-		if currentRef, err = getNestedRef(s.Current.ControlPlane.Object, "spec", "machineTemplate", "infrastructureRef"); err != nil {
+		if currentRef, err = contract.ControlPlane().InfrastructureMachineTemplate().Get(s.Current.ControlPlane.Object); err != nil {
 			return nil, errors.Wrap(err, "failed to get spec.machineTemplate.infrastructureRef for the current ControlPlane object")
 		}
 	}
@@ -157,7 +158,7 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, add a reference to InfrastructureMachine
 	// template to be used for the control plane machines.
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
-		if err := setNestedRef(controlPlane, infrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef"); err != nil {
+		if err := contract.ControlPlane().InfrastructureMachineTemplate().Set(controlPlane, infrastructureMachineTemplate); err != nil {
 			return nil, errors.Wrap(err, "failed to spec.machineTemplate.infrastructureRef in the ControlPlane object")
 		}
 	}
@@ -166,14 +167,14 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 	// NOTE: If the Topology.ControlPlane.replicas value is nil, it is assumed that the control plane controller
 	// does not implement support for this field and the ControlPlane object is generated without the number of Replicas.
 	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
-		if err := unstructured.SetNestedField(controlPlane.UnstructuredContent(), int64(*s.Blueprint.Topology.ControlPlane.Replicas), "spec", "replicas"); err != nil {
+		if err := contract.ControlPlane().Replicas().Set(controlPlane, int64(*s.Blueprint.Topology.ControlPlane.Replicas)); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.replicas in the ControlPlane object")
 		}
 	}
 
 	// Sets the desired Kubernetes version for the control plane.
 	// TODO: improve this logic by adding support for version upgrade component by component
-	if err := unstructured.SetNestedField(controlPlane.UnstructuredContent(), s.Blueprint.Topology.Version, "spec", "version"); err != nil {
+	if err := contract.ControlPlane().Version().Set(controlPlane, s.Blueprint.Topology.Version); err != nil {
 		return nil, errors.Wrap(err, "failed to set spec.version in the ControlPlane object")
 	}
 
@@ -198,8 +199,8 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 
 	// Set the references to the infrastructureCluster and controlPlane objects.
 	// NOTE: Once set for the first time, the references are not expected to change.
-	cluster.Spec.InfrastructureRef = objToRef(infrastructureCluster)
-	cluster.Spec.ControlPlaneRef = objToRef(controlPlane)
+	cluster.Spec.InfrastructureRef = contract.ObjToRef(infrastructureCluster)
+	cluster.Spec.ControlPlaneRef = contract.ObjToRef(controlPlane)
 
 	return cluster
 }
@@ -225,7 +226,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	}
 	desiredMachineDeployment.BootstrapTemplate = templateToTemplate(templateToInput{
 		template:              machineDeploymentBlueprint.BootstrapTemplate,
-		templateClonedFromRef: objToRef(machineDeploymentBlueprint.BootstrapTemplate),
+		templateClonedFromRef: contract.ObjToRef(machineDeploymentBlueprint.BootstrapTemplate),
 		cluster:               s.Current.Cluster,
 		namePrefix:            bootstrapTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
 		currentObjectRef:      currentBootstrapTemplateRef,
@@ -240,7 +241,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	}
 	desiredMachineDeployment.InfrastructureMachineTemplate = templateToTemplate(templateToInput{
 		template:              machineDeploymentBlueprint.InfrastructureMachineTemplate,
-		templateClonedFromRef: objToRef(machineDeploymentBlueprint.InfrastructureMachineTemplate),
+		templateClonedFromRef: contract.ObjToRef(machineDeploymentBlueprint.InfrastructureMachineTemplate),
 		cluster:               s.Current.Cluster,
 		namePrefix:            infrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
 		currentObjectRef:      currentInfraMachineTemplateRef,
@@ -265,8 +266,8 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       s.Current.Cluster.Name,
 					Version:           pointer.String(s.Blueprint.Topology.Version),
-					Bootstrap:         clusterv1.Bootstrap{ConfigRef: objToRef(desiredMachineDeployment.BootstrapTemplate)},
-					InfrastructureRef: *objToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
+					Bootstrap:         clusterv1.Bootstrap{ConfigRef: contract.ObjToRef(desiredMachineDeployment.BootstrapTemplate)},
+					InfrastructureRef: *contract.ObjToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
 				},
 			},
 		},

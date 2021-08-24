@@ -233,7 +233,7 @@ func (c *Cluster) validateTopology(old *Cluster) field.ErrorList {
 				),
 			)
 		}
-		if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && !inVersion.GTE(oldVersion) {
+		if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && version.CompareWithBuildIdentifiers(inVersion, oldVersion) == -1 {
 			allErrs = append(
 				allErrs,
 				field.Invalid(

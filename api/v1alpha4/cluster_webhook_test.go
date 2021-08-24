@@ -199,6 +199,106 @@ func TestClusterTopologyValidation(t *testing.T) {
 			},
 		},
 		{
+			name:      "should return error when downgrading topology version - major",
+			expectErr: true,
+			old: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v2.2.3",
+					},
+				},
+			},
+			in: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.2.3",
+					},
+				},
+			},
+		},
+		{
+			name:      "should return error when downgrading topology version - minor",
+			expectErr: true,
+			old: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.2.3",
+					},
+				},
+			},
+			in: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.1.3",
+					},
+				},
+			},
+		},
+		{
+			name:      "should return error when downgrading topology version - patch",
+			expectErr: true,
+			old: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.2.3",
+					},
+				},
+			},
+			in: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.2.2",
+					},
+				},
+			},
+		},
+		{
+			name:      "should return error when downgrading topology version - pre-release",
+			expectErr: true,
+			old: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.2.3-xyz.2",
+					},
+				},
+			},
+			in: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.2.3-xyz.1",
+					},
+				},
+			},
+		},
+		{
+			name:      "should return error when downgrading topology version - build tag",
+			expectErr: true,
+			old: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.2.3+xyz.2",
+					},
+				},
+			},
+			in: &Cluster{
+				Spec: ClusterSpec{
+					Topology: &Topology{
+						Class:   "foo",
+						Version: "v1.2.3+xyz.1",
+					},
+				},
+			},
+		},
+		{
 			name:      "should return error when duplicated MachineDeployments names exists in a Topology",
 			expectErr: true,
 			in: &Cluster{

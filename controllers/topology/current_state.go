@@ -113,7 +113,7 @@ func (r *ClusterReconciler) getCurrentControlPlaneState(ctx context.Context, clu
 // expected on first reconcile. If MachineDeployments are found for the Cluster their Infrastructure and Bootstrap references
 // are inspected. Where these are not found the function will throw an error.
 func (r *ClusterReconciler) getCurrentMachineDeploymentState(ctx context.Context, cluster *clusterv1.Cluster) (map[string]*scope.MachineDeploymentState, error) {
-	state := make(map[string]*scope.MachineDeploymentState)
+	state := make(scope.MachineDeploymentsStateMap)
 
 	// List all the machine deployments in the current cluster and in a managed topology.
 	md := &clusterv1.MachineDeploymentList{}

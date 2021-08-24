@@ -19,6 +19,7 @@ package scope
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/controllers/mdutil"
 )
 
 // ClusterState holds all the objects representing the state of a managed Cluster topology.
@@ -35,7 +36,7 @@ type ClusterState struct {
 	ControlPlane *ControlPlaneState
 
 	// MachineDeployments holds the machine deployments in the Cluster.
-	MachineDeployments map[string]*MachineDeploymentState
+	MachineDeployments MachineDeploymentsStateMap
 }
 
 // ControlPlaneState holds all the objects representing the state of a managed control plane.
@@ -45,6 +46,20 @@ type ControlPlaneState struct {
 
 	// InfrastructureMachineTemplate holds the infrastructure template referenced by the ControlPlane object.
 	InfrastructureMachineTemplate *unstructured.Unstructured
+}
+
+// MachineDeploymentsStateMap holds a collection of MachineDeployment states.
+type MachineDeploymentsStateMap map[string]*MachineDeploymentState
+
+// IsAnyRollingOut returns true if at least one of the machine deployments
+// is upgrading.
+func (mds MachineDeploymentsStateMap) IsAnyRollingOut() bool {
+	for _, md := range mds {
+		if md.IsRollingOut() {
+			return true
+		}
+	}
+	return false
 }
 
 // MachineDeploymentState holds all the objects representing the state of a managed deployment.
@@ -57,4 +72,11 @@ type MachineDeploymentState struct {
 
 	// InfrastructureMachineTemplate holds the infrastructure machine template referenced by the MachineDeployment object.
 	InfrastructureMachineTemplate *unstructured.Unstructured
+}
+
+// IsRollingOut determines if the machine deployment is upgrading.
+// A machine deployment is considered upgrading if:
+// - if any of the replicas of the the machine deployment is not ready.
+func (md *MachineDeploymentState) IsRollingOut() bool {
+	return !mdutil.DeploymentComplete(md.Object, &md.Object.Status) || *md.Object.Spec.Replicas != md.Object.Status.ReadyReplicas
 }

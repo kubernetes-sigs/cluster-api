@@ -16,5 +16,74 @@ limitations under the License.
 
 package contract
 
+import (
+	"strings"
+
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
+var errNotFound = errors.New("not found")
+
 // Path defines a how to access a field in an Unstructured object.
 type Path []string
+
+// Int64 represents an accessor to an int64 path value.
+type Int64 struct {
+	path Path
+}
+
+// Path returns the path to the int64 value.
+func (i *Int64) Path() Path {
+	return i.path
+}
+
+// Get gets the int64 value.
+func (i *Int64) Get(obj *unstructured.Unstructured) (*int64, error) {
+	value, ok, err := unstructured.NestedInt64(obj.UnstructuredContent(), i.path...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(i.path, "."))
+	}
+	if !ok {
+		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(i.path, "."))
+	}
+	return &value, nil
+}
+
+// Set set the int64 value in the path.
+func (i *Int64) Set(obj *unstructured.Unstructured, value int64) error {
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, i.path...); err != nil {
+		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.path, "."), obj.GroupVersionKind())
+	}
+	return nil
+}
+
+// String represents an accessor to a string path value.
+type String struct {
+	path Path
+}
+
+// Path returns the path to the string value.
+func (s *String) Path() Path {
+	return s.path
+}
+
+// Get gets the string value.
+func (s *String) Get(obj *unstructured.Unstructured) (*string, error) {
+	value, ok, err := unstructured.NestedString(obj.UnstructuredContent(), s.path...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(s.path, "."))
+	}
+	if !ok {
+		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(s.path, "."))
+	}
+	return &value, nil
+}
+
+// Set set the string value in the path.
+func (s *String) Set(obj *unstructured.Unstructured, value string) error {
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, s.path...); err != nil {
+		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(s.path, "."), obj.GroupVersionKind())
+	}
+	return nil
+}

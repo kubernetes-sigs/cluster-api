@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
+	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -71,7 +72,7 @@ func (r *ClusterReconciler) getCurrentState(ctx context.Context, s *scope.Scope)
 func (r *ClusterReconciler) getCurrentInfrastructureClusterState(ctx context.Context, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
 	infra, err := r.getReference(ctx, cluster.Spec.InfrastructureRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, cluster.Spec.InfrastructureRef.Name)
+		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.InfrastructureRef})
 	}
 	return infra, nil
 }
@@ -86,7 +87,7 @@ func (r *ClusterReconciler) getCurrentControlPlaneState(ctx context.Context, clu
 	// Get the control plane object.
 	res.Object, err = r.getReference(ctx, cluster.Spec.ControlPlaneRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, cluster.Spec.ControlPlaneRef.Name)
+		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.ControlPlaneRef})
 	}
 
 	// If the clusterClass does not mandate the controlPlane has infrastructureMachines, return.
@@ -97,11 +98,11 @@ func (r *ClusterReconciler) getCurrentControlPlaneState(ctx context.Context, clu
 	// Otherwise, get the control plane machine infrastructureMachine template.
 	machineInfrastructureRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(res.Object)
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s, %s", res.Object.GetKind(), res.Object.GetName())
+		return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s", tlog.KObj{Obj: res.Object})
 	}
 	res.InfrastructureMachineTemplate, err = r.getReference(ctx, machineInfrastructureRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s, %s", res.Object.GetKind(), res.Object.GetName())
+		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s", tlog.KObj{Obj: res.Object})
 	}
 
 	return res, nil
@@ -133,32 +134,32 @@ func (r *ClusterReconciler) getCurrentMachineDeploymentState(ctx context.Context
 		// from a well-defined label.
 		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
 		if !ok || len(mdTopologyName) == 0 {
-			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentLabelName, m.Name)
+			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentLabelName, tlog.KObj{Obj: m})
 		}
 
 		// Make sure that the name of the MachineDeployment stays unique.
 		// If we've already have seen a MachineDeployment with the same name
 		// this is an error, probably caused from manual modifications or a race condition.
 		if _, ok := state[mdTopologyName]; ok {
-			return nil, fmt.Errorf("duplicate machine deployment %s found for label %s: %s", m.Name, clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
+			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
 		}
 		infraRef := &m.Spec.Template.Spec.InfrastructureRef
 		if infraRef == nil {
-			return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a InfrastructureMachineTemplate", m.Name)
+			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
 		}
 
 		bootstrapRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 		if bootstrapRef == nil {
-			return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a Bootstrap Config", m.Name)
+			return nil, fmt.Errorf("%s does not have a reference to a Bootstrap Config", tlog.KObj{Obj: m})
 		}
 
 		i, err := r.getReference(ctx, infraRef)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Infrastructure reference could not be retrieved", m.Name))
+			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
 		}
 		b, err := r.getReference(ctx, bootstrapRef)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Bootstrap reference could not be retrieved", m.Name))
+			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
 		}
 		state[mdTopologyName] = &scope.MachineDeploymentState{
 			Object:                        m,

@@ -24,15 +24,23 @@ var (
 	// InfrastructureGroupVersion is group version used for infrastructure objects.
 	InfrastructureGroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha4"}
 
+	// GenericInfrastructureMachineKind is the Kind for the GenericInfrastructureMachine.
+	GenericInfrastructureMachineKind = "GenericInfrastructureMachine"
 	// GenericInfrastructureMachineCRD is a generic infrastructure machine CRD.
-	GenericInfrastructureMachineCRD = generateCRD(InfrastructureGroupVersion.WithKind("GenericInfrastructureMachine"))
+	GenericInfrastructureMachineCRD = generateCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureMachineKind))
 
+	// GenericInfrastructureMachineTemplateKind is the Kind for the GenericInfrastructureMachineTemplate.
+	GenericInfrastructureMachineTemplateKind = "GenericInfrastructureMachineTemplate"
 	// GenericInfrastructureMachineTemplateCRD is a generic infrastructure machine template CRD.
-	GenericInfrastructureMachineTemplateCRD = generateCRD(InfrastructureGroupVersion.WithKind("GenericInfrastructureMachineTemplate"))
+	GenericInfrastructureMachineTemplateCRD = generateCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureMachineTemplateKind))
 
+	// GenericInfrastructureClusterKind is the kind for the GenericInfrastructureCluster type.
+	GenericInfrastructureClusterKind = "GenericInfrastructureCluster"
 	// GenericInfrastructureClusterCRD is a generic infrastructure machine CRD.
-	GenericInfrastructureClusterCRD = generateCRD(InfrastructureGroupVersion.WithKind("GenericInfrastructureCluster"))
+	GenericInfrastructureClusterCRD = generateCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureClusterKind))
 
+	// GenericInfrastructureClusterTemplateKind is the kind for the GenericInfrastructureClusterTemplate type.
+	GenericInfrastructureClusterTemplateKind = "GenericInfrastructureClusterTemplate"
 	// GenericInfrastructureClusterTemplateCRD is a generic infrastructure machine template CRD.
-	GenericInfrastructureClusterTemplateCRD = generateCRD(InfrastructureGroupVersion.WithKind("GenericInfrastructureClusterTemplate"))
+	GenericInfrastructureClusterTemplateCRD = generateCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureClusterTemplateKind))
 )

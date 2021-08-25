@@ -24,9 +24,13 @@ var (
 	// BootstrapGroupVersion is group version used for bootstrap objects.
 	BootstrapGroupVersion = schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1alpha4"}
 
+	// GenericBootstrapConfigKind is the Kind for the GenericBootstrapConfig.
+	GenericBootstrapConfigKind = "GenericBootstrapConfig"
 	// GenericBootstrapConfigCRD is a generic boostrap CRD.
-	GenericBootstrapConfigCRD = generateCRD(BootstrapGroupVersion.WithKind("GenericBootstrapConfig"))
+	GenericBootstrapConfigCRD = generateCRD(BootstrapGroupVersion.WithKind(GenericBootstrapConfigKind))
 
+	// GenericBootstrapConfigTemplateKind is the Kind for the GenericBoostrapConfigTemplate.
+	GenericBootstrapConfigTemplateKind = "GenericBootstrapConfigTemplate"
 	// GenericBootstrapConfigTemplateCRD is a generic boostrap template CRD.
-	GenericBootstrapConfigTemplateCRD = generateCRD(BootstrapGroupVersion.WithKind("GenericBootstrapConfigTemplate"))
+	GenericBootstrapConfigTemplateCRD = generateCRD(BootstrapGroupVersion.WithKind(GenericBootstrapConfigTemplateKind))
 )

@@ -24,9 +24,13 @@ var (
 	// ControlPlaneGroupVersion is group version used for control plane objects.
 	ControlPlaneGroupVersion = schema.GroupVersion{Group: "controlplane.cluster.x-k8s.io", Version: "v1alpha4"}
 
+	// GenericControlPlaneKind is the Kind for the GenericControlPlane.
+	GenericControlPlaneKind = "GenericControlPlane"
 	// GenericControlPlaneCRD is a generic control plane CRD.
-	GenericControlPlaneCRD = generateCRD(ControlPlaneGroupVersion.WithKind("GenericControlPlane"))
+	GenericControlPlaneCRD = generateCRD(ControlPlaneGroupVersion.WithKind(GenericControlPlaneKind))
 
+	// GenericControlPlaneTemplateKind is the Kind for the GenericControlPlaneTemplate.
+	GenericControlPlaneTemplateKind = "GenericControlPlaneTemplate"
 	// GenericControlPlaneTemplateCRD is a generic control plane template CRD.
-	GenericControlPlaneTemplateCRD = generateCRD(ControlPlaneGroupVersion.WithKind("GenericControlPlaneTemplate"))
+	GenericControlPlaneTemplateCRD = generateCRD(ControlPlaneGroupVersion.WithKind(GenericControlPlaneTemplateKind))
 )

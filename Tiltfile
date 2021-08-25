@@ -12,9 +12,12 @@ settings = {
     "kind_cluster_name": "kind",
 }
 
+if os.path.exists("./tilt-settings.json"):
+    warn("Found a 'tilt-settings.json' file. This will be ignored and should be renamed to 'tilt_config.json' instead.")
+
 # global settings
 settings.update(read_json(
-    "tilt-settings.json",
+    "tilt_config.json",
     default = {},
 ))
 
@@ -196,7 +199,7 @@ def enable_provider(name):
     )
 
     if p.get("kustomize_config", True):
-        # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
+        # Copy all the substitutions from the user's tilt_config.json into the environment. Otherwise, the substitutions
         # are not available and their placeholders will be replaced with the empty string when we call kustomize +
         # envsubst below.
         substitutions = settings.get("kustomize_substitutions", {})
@@ -213,7 +216,7 @@ def include_user_tilt_files():
     for f in user_tiltfiles:
         include(f)
 
-# Enable core cluster-api plus everything listed in 'enable_providers' in tilt-settings.json
+# Enable core cluster-api plus everything listed in 'enable_providers' in tilt_config.json
 def enable_providers():
     local("make kustomize envsubst")
     user_enable_providers = settings.get("enable_providers", [])

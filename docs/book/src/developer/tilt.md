@@ -42,9 +42,11 @@ kind create cluster
 ```
 IMPORTANT, if you are planning to use the CAPD provider, check that you created the required mounts for allowing the provider to access the Docker socket on the host; see [quick start](https://cluster-api.sigs.k8s.io/user/quick-start.html#usage) for instructions.
 
-### Create a tilt-settings.json file
+### Create a tilt_config.json file
 
-Next, create a `tilt-settings.json` file and place it in your local copy of `cluster-api`. Here is an example:
+**Note: `tilt-settings.json` has been renamed to `tilt_config.json` in accordance with [Tilt documentation](https://docs.tilt.dev/tiltfile_config.html).**
+
+Next, create a `tilt_config.json` file and place it in your local copy of `cluster-api`. Here is an example:
 
 ```json
 {
@@ -54,7 +56,7 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
 }
 ```
 
-#### tilt-settings.json fields
+#### tilt_config.json fields
 
 **allowed_contexts** (Array, default=[]): A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on
 [allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
@@ -110,7 +112,7 @@ An Azure Service Principal is needed for populating the controller manifests. Th
   AZURE_CLIENT_ID=$(az ad sp show --id http://$AZURE_SERVICE_PRINCIPAL_NAME --query appId --output tsv)
   ```
 
-Add the output of the following as a section in your `tilt-settings.json`:
+Add the output of the following as a section in your `tilt_config.json`:
 
   ```shell
   cat <<EOF
@@ -270,13 +272,13 @@ is immediately before the "real work" happens.
 
 At a high level, the Tiltfile performs the following actions:
 
-1. Read `tilt-settings.json`
+1. Read `tilt_config.json`
 1. Configure the allowed Kubernetes contexts
 1. Set the default registry
 1. Define the `providers` map
 1. Include user-defined Tilt files
 1. Deploy cert-manager
-1. Enable providers (`core` + what is listed in `tilt-settings.json`)
+1. Enable providers (`core` + what is listed in `tilt_config.json`)
     1. Build the manager binary locally as a `local_resource`
     1. Invoke `docker_build` for the provider
     1. Invoke `kustomize` for the provider's `config/` directory

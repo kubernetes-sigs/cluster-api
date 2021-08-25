@@ -59,6 +59,7 @@ vendor
 
 # User-supplied Tiltfile extensions, settings, and builds
 tilt.d
+tilt_config.json
 tilt-settings.json
 .tiltbuild
 

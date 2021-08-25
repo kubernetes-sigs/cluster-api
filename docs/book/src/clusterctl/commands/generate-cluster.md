@@ -8,7 +8,7 @@ For example
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 --control-plane-machine-count=3 --worker-machine-count=3 > my-cluster.yaml
 ```
 
-Geenerates a YAML file named `my-cluster.yaml` with a predefined list of Cluster API objects; Cluster, Machines,
+Generates a YAML file named `my-cluster.yaml` with a predefined list of Cluster API objects; Cluster, Machines,
 Machine Deployments, etc. to be deployed in the current namespace (in case, use the `--target-namespace` flag to
 specify a different target namespace).
 

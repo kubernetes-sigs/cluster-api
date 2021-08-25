@@ -36,6 +36,7 @@ aliases:
   cluster-api-topology-maintainers:
   cluster-api-topology-reviewers:
   - ykakarap
+  - killianmuldoon
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm

@@ -160,7 +160,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&controllers.DockerClusterReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("DockerCluster"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, controller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DockerCluster")
 		os.Exit(1)
 	}

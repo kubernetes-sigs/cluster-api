@@ -76,6 +76,8 @@ type MachineSetReconciler struct {
 }
 
 func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	options.Log = mgr.GetLogger().WithValues("MachineSet")
+
 	clusterToMachineSets, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineSetList{}, mgr.GetScheme())
 	if err != nil {
 		return err

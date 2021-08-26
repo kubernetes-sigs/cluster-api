@@ -52,6 +52,8 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 		var testUnhealthyThreshold = 3
 
 		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+			t.Helper()
+
 			t.Log("Setting up a new manager")
 			var err error
 			mgr, err = manager.New(env.Config, manager.Options{
@@ -105,6 +107,8 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 		}
 
 		teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+			t.Helper()
+
 			t.Log("Deleting any Secrets")
 			g.Expect(cleanupTestSecrets(ctx, k8sClient)).To(Succeed())
 			t.Log("Deleting any Clusters")

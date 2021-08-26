@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -79,7 +80,11 @@ func SetNestedRef(obj, refObj *unstructured.Unstructured, fields ...string) erro
 		"name":       refObj.GetName(),
 		"apiVersion": refObj.GetAPIVersion(),
 	}
-	return unstructured.SetNestedField(obj.UnstructuredContent(), ref, fields...)
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), ref, fields...); err != nil {
+		return errors.Wrapf(err, "failed to set object reference on object %v %s",
+			obj.GroupVersionKind(), klog.KObj(obj))
+	}
+	return nil
 }
 
 // ObjToRef returns a reference to the given object.

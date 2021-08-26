@@ -72,7 +72,7 @@ func (c *Conn) SetWriteDeadline(t time.Time) error {
 }
 
 // SetReadDeadline sets the read and write deadlines to the specified interval.
-func (c Conn) SetReadDeadline(t time.Time) error {
+func (c *Conn) SetReadDeadline(t time.Time) error {
 	c.readDeadline = t
 	return nil
 }

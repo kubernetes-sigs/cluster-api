@@ -1861,6 +1861,8 @@ func newWorkerPoolJoinKubeadmConfig(machinePool *expv1.MachinePool) *bootstrapv1
 }
 
 func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) []client.Object {
+	t.Helper()
+
 	out := []client.Object{}
 	if config.Spec.ClusterConfiguration == nil {
 		config.Spec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}

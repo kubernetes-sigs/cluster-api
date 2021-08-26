@@ -36,6 +36,8 @@ type DefaultingValidator interface { //nolint:revive
 // update and delete.
 func DefaultValidateTest(object DefaultingValidator) func(*testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
+
 		createCopy := object.DeepCopyObject().(DefaultingValidator)
 		updateCopy := object.DeepCopyObject().(DefaultingValidator)
 		deleteCopy := object.DeepCopyObject().(DefaultingValidator)

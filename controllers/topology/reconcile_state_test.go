@@ -388,20 +388,19 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	updatedInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
 	err := unstructured.SetNestedField(updatedInfrastructureMachineTemplate.UnstructuredContent(), true, "spec", "differentSetting")
 	g.Expect(err).ToNot(HaveOccurred())
+	// Create Cluster object for test cases.
+	cluster := newFakeCluster(metav1.NamespaceDefault, "cluster").Obj()
 	// Create ControlPlaneObjects for test cases.
 	controlPlane1 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(infrastructureMachineTemplate).Obj()
-	controlPlane1.SetClusterName("firstCluster")
 	// ControlPlane object with novel field in the spec.
 	controlPlane2 := controlPlane1.DeepCopy()
 	err = unstructured.SetNestedField(controlPlane2.UnstructuredContent(), true, "spec", "differentSetting")
 	g.Expect(err).ToNot(HaveOccurred())
-	controlPlane2.SetClusterName("firstCluster")
 	// ControlPlane object with a new label.
 	controlPlaneWithInstanceSpecificChanges := controlPlane1.DeepCopy()
 	controlPlaneWithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
 	// ControlPlane object with the same name as controlPlane1 but a different InfrastructureMachineTemplate
 	controlPlane3 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(updatedInfrastructureMachineTemplate).Obj()
-	controlPlane3.SetClusterName("firstCluster")
 
 	tests := []struct {
 		name    string
@@ -437,6 +436,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			s := scope.New(nil)
 			s.Blueprint = blueprint
 			if tt.current != nil {
+				s.Current.Cluster = cluster
 				s.Current.ControlPlane = tt.current
 				if tt.current.Object != nil {
 					fakeObjs = append(fakeObjs, tt.current.Object)
@@ -482,7 +482,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 				item, err := contract.ControlPlane().InfrastructureMachineTemplate().Get(gotControlPlaneObject)
 				g.Expect(err).ToNot(HaveOccurred())
 				// This pattern should match return value in controlPlaneinfrastructureMachineTemplateNamePrefix
-				pattern := fmt.Sprintf("%s-controlplane-.*", tt.desired.Object.GetClusterName())
+				pattern := fmt.Sprintf("%s-controlplane-.*", s.Current.Cluster.Name)
 				fmt.Println(pattern, item.Name)
 				ok, err := regexp.Match(pattern, []byte(item.Name))
 				g.Expect(err).NotTo(HaveOccurred())

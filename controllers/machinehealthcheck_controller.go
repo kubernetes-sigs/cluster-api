@@ -58,6 +58,11 @@ const (
 	// EventRemediationRestricted is emitted in case when machine remediation
 	// is restricted by remediation circuit shorting logic.
 	EventRemediationRestricted string = "RemediationRestricted"
+
+	maxUnhealthyKeyLog     = "max unhealthy"
+	unhealthyTargetsKeyLog = "unhealthy targets"
+	unhealthyRangeKeyLog   = "unhealthy range"
+	totalTargetKeyLog      = "total target"
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -219,8 +224,6 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, *nodeStartupTimeout)
 	m.Status.CurrentHealthy = int32(len(healthy))
 
-	var unhealthyLimitKey, unhealthyLimitValue interface{}
-
 	// check MHC current health against MaxUnhealthy
 	remediationAllowed, remediationCount, err := isAllowedRemediation(m)
 	if err != nil {
@@ -231,27 +234,28 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 		var message string
 
 		if m.Spec.UnhealthyRange == nil {
-			unhealthyLimitKey = "max unhealthy"
-			unhealthyLimitValue = m.Spec.MaxUnhealthy
+			logger.V(3).Info(
+				"Short-circuiting remediation",
+				totalTargetKeyLog, totalTargets,
+				maxUnhealthyKeyLog, m.Spec.MaxUnhealthy,
+				unhealthyTargetsKeyLog, len(unhealthy),
+			)
 			message = fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: %v, unhealthy: %v, maxUnhealthy: %v)",
 				totalTargets,
 				len(unhealthy),
 				m.Spec.MaxUnhealthy)
 		} else {
-			unhealthyLimitKey = "unhealthy range"
-			unhealthyLimitValue = *m.Spec.UnhealthyRange
+			logger.V(3).Info(
+				"Short-circuiting remediation",
+				totalTargetKeyLog, totalTargets,
+				unhealthyRangeKeyLog, *m.Spec.UnhealthyRange,
+				unhealthyTargetsKeyLog, len(unhealthy),
+			)
 			message = fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: %v, unhealthy: %v, unhealthyRange: %v)",
 				totalTargets,
 				len(unhealthy),
 				*m.Spec.UnhealthyRange)
 		}
-
-		logger.V(3).Info(
-			"Short-circuiting remediation",
-			"total target", totalTargets,
-			unhealthyLimitKey, unhealthyLimitValue,
-			"unhealthy targets", len(unhealthy),
-		)
 
 		// Remediation not allowed, the number of not started or unhealthy machines either exceeds maxUnhealthy (or) not within unhealthyRange
 		m.Status.RemediationsAllowed = 0
@@ -282,12 +286,21 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	logger.V(3).Info(
-		"Remediations are allowed",
-		"total target", totalTargets,
-		unhealthyLimitKey, unhealthyLimitValue,
-		"unhealthy targets", len(unhealthy),
-	)
+	if m.Spec.UnhealthyRange == nil {
+		logger.V(3).Info(
+			"Remediations are allowed",
+			totalTargetKeyLog, totalTargets,
+			maxUnhealthyKeyLog, m.Spec.MaxUnhealthy,
+			unhealthyTargetsKeyLog, len(unhealthy),
+		)
+	} else {
+		logger.V(3).Info(
+			"Remediations are allowed",
+			totalTargetKeyLog, totalTargets,
+			unhealthyRangeKeyLog, *m.Spec.UnhealthyRange,
+			unhealthyTargetsKeyLog, len(unhealthy),
+		)
+	}
 
 	// Remediation is allowed so unhealthyMachineCount is within unhealthyRange (or) maxUnhealthy - unhealthyMachineCount >= 0
 	m.Status.RemediationsAllowed = remediationCount

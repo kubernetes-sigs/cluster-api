@@ -37,7 +37,21 @@ a fake infrastructure provider to allow test coverage for testing the interactio
 
 ## Running unit and integration tests
 
-Using the `test` target through `make` will run all of the unit and integration tests.
+Run `make test` to execute all unit and integration tests.
+
+<aside class="note">
+
+<h1>Tips</h1>
+
+When testing individual packages, you can speed up the test execution by running the tests with a local kind cluster.
+This avoids spinning up a testenv with each test execution. It also makes it easier to debug, because it's straightforward
+to access a kind cluster with kubectl during test execution. For further instructions, run: `./hack/setup-envtest-with-kind.sh`.
+
+When running individual tests, it could happen that a testenv is started if this is required by the `suite_test.go` file.
+However, if the tests you are running don't require testenv (i.e. they are only using fake client), you can skip the testenv
+creation by setting the environment variable `CAPI_DISABLE_TEST_ENV` (to any non-empty value).
+
+</aside>
 
 ## End-to-end tests
 

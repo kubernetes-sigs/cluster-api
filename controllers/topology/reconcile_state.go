@@ -84,7 +84,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.
 			desired:              s.Desired.ControlPlane.InfrastructureMachineTemplate,
 			compatibilityChecker: check.ReferencedObjectsAreCompatible,
 			templateNamer: func() string {
-				return controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.ControlPlane.Object.GetClusterName())
+				return controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name)
 			},
 		},
 		)

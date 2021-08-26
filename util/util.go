@@ -416,6 +416,18 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 	return false
 }
 
+// GetGVKMetadata retrieves a CustomResourceDefinition metadata from the API server using partial object metadata.
+//
+// This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
+func GetGVKMetadata(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (*metav1.PartialObjectMetadata, error) {
+	meta := &metav1.PartialObjectMetadata{}
+	meta.SetName(fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group))
+	if err := c.Get(ctx, client.ObjectKeyFromObject(meta), meta); err != nil {
+		return meta, errors.Wrap(err, "failed to retrieve metadata from GVK resource")
+	}
+	return meta, nil
+}
+
 // GetCRDWithContract retrieves a list of CustomResourceDefinitions from using controller-runtime Client,
 // filtering with the `contract` label passed in.
 // Returns the first CRD in the list that matches the GroupVersionKind, otherwise returns an error.
@@ -445,6 +457,8 @@ func GetCRDWithContract(ctx context.Context, c client.Client, gvk schema.GroupVe
 // GetCRDMetadataFromGVK retrieves a CustomResourceDefinition metadata from the API server using client-go's metadata only client.
 //
 // This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
+//
+// Deprecated: Use GetGVKMetadata instead.
 func GetCRDMetadataFromGVK(ctx context.Context, restConfig *rest.Config, gvk schema.GroupVersionKind) (*metav1.PartialObjectMetadata, error) {
 	// Make sure a rest config is available.
 	if restConfig == nil {

@@ -48,7 +48,7 @@ func (r *ClusterReconciler) getReference(ctx context.Context, ref *corev1.Object
 	if ref == nil {
 		return nil, errors.New("reference is not set")
 	}
-	if err := utilconversion.ConvertReferenceAPIContract(ctx, r.Client, r.restConfig, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return nil, err
 	}
 

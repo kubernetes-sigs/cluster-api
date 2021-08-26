@@ -81,6 +81,8 @@ type MachineHealthCheckReconciler struct {
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	options.Log = mgr.GetLogger().WithValues("MachineHealthCheck")
+
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(

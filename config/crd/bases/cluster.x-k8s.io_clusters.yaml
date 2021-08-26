@@ -595,7 +595,6 @@ spec:
                     type: object
                 required:
                 - class
-                - controlPlane
                 - version
                 type: object
             type: object

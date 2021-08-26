@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -52,7 +51,6 @@ type ClusterReconciler struct {
 	// thus allowing to optimize reads for templates or provider specific objects in a managed topology.
 	UnstructuredCachingClient client.Client
 
-	restConfig      *rest.Config
 	externalTracker external.ObjectTracker
 }
 
@@ -75,7 +73,6 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.restConfig = mgr.GetConfig()
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
 	}

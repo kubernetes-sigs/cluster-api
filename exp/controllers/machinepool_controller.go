@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -61,7 +60,6 @@ type MachinePoolReconciler struct {
 	Client           client.Client
 	WatchFilterValue string
 
-	config           *rest.Config
 	controller       controller.Controller
 	recorder         record.EventRecorder
 	externalWatchers sync.Map
@@ -95,7 +93,6 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinepool-controller")
-	r.config = mgr.GetConfig()
 	return nil
 }
 

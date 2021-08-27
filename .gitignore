@@ -24,6 +24,7 @@ test/e2e/data/infrastructure-docker/v1alpha4/cluster-template*.yaml
 
 # VSCode
 .vscode/
+*.code-workspace
 
 # kubeconfigs
 minikube.kubeconfig

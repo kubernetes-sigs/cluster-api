@@ -451,6 +451,10 @@ spec:
         statusReplicasPath: .status.replicas
       status: {}
   - additionalPrinterColumns:
+    - description: Time duration since creation of MachineSet
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - description: Total number of non-terminated machines targeted by this machineset
       jsonPath: .status.replicas
       name: Replicas

@@ -24,6 +24,7 @@ import (
 // +kubebuilder:resource:path=providers,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Provider"
 // +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".type"
 // +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".providerName"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".version"

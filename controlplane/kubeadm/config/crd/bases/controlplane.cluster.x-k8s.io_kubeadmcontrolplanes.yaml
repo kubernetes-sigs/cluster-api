@@ -1169,6 +1169,10 @@ spec:
         statusReplicasPath: .status.replicas
       status: {}
   - additionalPrinterColumns:
+    - description: Time duration since creation of KubeadmControlPlane
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - description: This denotes whether or not the control plane has the uploaded
         kubeadm-config configmap
       jsonPath: .status.initialized

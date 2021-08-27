@@ -561,6 +561,10 @@ spec:
         statusReplicasPath: .status.replicas
       status: {}
   - additionalPrinterColumns:
+    - description: Time duration since creation of MachinePool
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - description: MachinePool replicas count
       jsonPath: .status.replicas
       name: Replicas

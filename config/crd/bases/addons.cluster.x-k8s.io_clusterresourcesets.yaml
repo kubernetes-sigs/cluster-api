@@ -175,7 +175,12 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - description: Time duration since creation of ClusterResourceSet
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: ClusterResourceSet is the Schema for the clusterresourcesets

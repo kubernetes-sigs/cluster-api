@@ -99,7 +99,12 @@ spec:
         type: object
     served: true
     storage: false
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - description: Time duration since creation of DockerMachineTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: DockerMachineTemplate is the Schema for the dockermachinetemplates
@@ -180,6 +185,7 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""

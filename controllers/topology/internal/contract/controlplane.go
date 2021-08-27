@@ -39,14 +39,12 @@ func ControlPlane() *ControlPlaneContract {
 	return controlPlane
 }
 
-// InfrastructureMachineTemplate provide access to InfrastructureMachineTemplate reference in a ControlPlane object, if any.
+// MachineTemplate provides access to MachineTemplate in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.
-// This is why in we are deriving if InfrastructureMachineTemplate is required from the ClusterClass in the topology reconciler code.
-func (c *ControlPlaneContract) InfrastructureMachineTemplate() *Ref {
-	return &Ref{
-		path: []string{"spec", "machineTemplate", "infrastructureRef"},
-	}
+// This is why in we are deriving if MachineTemplate is required from the ClusterClass in the topology reconciler code.
+func (c *ControlPlaneContract) MachineTemplate() *ControlPlaneMachineTemplate {
+	return &ControlPlaneMachineTemplate{}
 }
 
 // Version provide access to version field  in a ControlPlane object, if any.
@@ -63,6 +61,23 @@ func (c *ControlPlaneContract) Version() *ControlPlaneVersion {
 // This is why in we are deriving if replicas is required from the ClusterClass in the topology reconciler code.
 func (c *ControlPlaneContract) Replicas() *ControlPlaneReplicas {
 	return &ControlPlaneReplicas{}
+}
+
+// ControlPlaneMachineTemplate provides a helper struct for working with MachineTemplate in ClusterClass.
+type ControlPlaneMachineTemplate struct{}
+
+// InfrastructureRef provides access to the infrastructureRef of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) InfrastructureRef() *Ref {
+	return &Ref{
+		path: Path{"spec", "machineTemplate", "infrastructureRef"},
+	}
+}
+
+// Metadata provides access to the metadata of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) Metadata() *Metadata {
+	return &Metadata{
+		path: Path{"spec", "machineTemplate", "metadata"},
+	}
 }
 
 // ControlPlaneVersion provide a helper struct for working with version in ClusterClass.

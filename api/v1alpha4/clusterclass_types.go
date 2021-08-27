@@ -55,6 +55,11 @@ type ClusterClassSpec struct {
 
 // ControlPlaneClass defines the class for the control plane.
 type ControlPlaneClass struct {
+	// Metadata is the metadata applied to the machines of the ControlPlane.
+	// At runtime this metadata is merged with the corresponding metadata from the topology.
+	//
+	// This field is supported if and only if the control plane provider template
+	// referenced is Machine based.
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// LocalObjectTemplate contains the reference to the control plane provider.
@@ -93,6 +98,8 @@ type MachineDeploymentClass struct {
 // MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass
 // should look like.
 type MachineDeploymentClassTemplate struct {
+	// Metadata is the metadata applied to the machines of the MachineDeployment.
+	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// Bootstrap contains the bootstrap template reference to be used

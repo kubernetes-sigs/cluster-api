@@ -71,7 +71,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.
 
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, reconcile it.
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
-		cpInfraRef, err := contract.ControlPlane().InfrastructureMachineTemplate().Get(s.Desired.ControlPlane.Object)
+		cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Desired.ControlPlane.Object)
 		if err != nil {
 			return errors.Wrapf(err, "failed to update the %s object,", s.Desired.ControlPlane.InfrastructureMachineTemplate.GetKind())
 		}
@@ -93,7 +93,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.
 		}
 
 		// The controlPlaneObject.Spec.machineTemplate.infrastructureRef has to be updated in the desired object
-		err = contract.ControlPlane().InfrastructureMachineTemplate().Set(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef))
+		err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef))
 		if err != nil {
 			return kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to update the %s object", s.Desired.ControlPlane.Object.GetKind()), cleanup()})
 		}

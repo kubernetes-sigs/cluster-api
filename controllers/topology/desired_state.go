@@ -105,7 +105,7 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 // that should be referenced by the ControlPlane object.
 func computeControlPlaneInfrastructureMachineTemplate(_ context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.ControlPlane.InfrastructureMachineTemplate
-	templateClonedFromref := s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref
+	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref
 	cluster := s.Current.Cluster
 
 	// Check if the current control plane object has a machineTemplate.infrastructureRef already defined.
@@ -113,21 +113,17 @@ func computeControlPlaneInfrastructureMachineTemplate(_ context.Context, s *scop
 	var currentRef *corev1.ObjectReference
 	if s.Current.ControlPlane != nil && s.Current.ControlPlane.Object != nil {
 		var err error
-		if currentRef, err = contract.ControlPlane().InfrastructureMachineTemplate().Get(s.Current.ControlPlane.Object); err != nil {
+		if currentRef, err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Current.ControlPlane.Object); err != nil {
 			return nil, errors.Wrap(err, "failed to get spec.machineTemplate.infrastructureRef for the current ControlPlane object")
 		}
 	}
-	topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
-	clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
 
 	controlPlaneInfrastructureMachineTemplate := templateToTemplate(templateToInput{
 		template:              template,
-		templateClonedFromRef: templateClonedFromref,
+		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
 		namePrefix:            controlPlaneInfrastructureMachineTemplateNamePrefix(cluster.Name),
 		currentObjectRef:      currentRef,
-		labels:                mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels),
-		annotations:           mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations),
 	})
 	return controlPlaneInfrastructureMachineTemplate, nil
 }
@@ -139,8 +135,6 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.Ref
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.ControlPlaneRef
-	topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
-	clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
 
 	controlPlane, err := templateToObject(templateToInput{
 		template:              template,
@@ -148,18 +142,28 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 		cluster:               cluster,
 		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
 		currentObjectRef:      currentRef,
-		labels:                mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels),
-		annotations:           mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations),
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to generate the ControlPlane object from the %s", template.GetKind())
 	}
 
-	// If the clusterClass mandates the controlPlane has infrastructureMachines, add a reference to InfrastructureMachine
-	// template to be used for the control plane machines.
+	// If the ClusterClass mandates the controlPlane has infrastructureMachines, add a reference to InfrastructureMachine
+	// template and metadata to be used for the control plane machines.
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
-		if err := contract.ControlPlane().InfrastructureMachineTemplate().Set(controlPlane, infrastructureMachineTemplate); err != nil {
+		if err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, infrastructureMachineTemplate); err != nil {
 			return nil, errors.Wrap(err, "failed to spec.machineTemplate.infrastructureRef in the ControlPlane object")
+		}
+
+		// Compute the labels and annotations to be applied to ControlPlane machines.
+		// We merge the labels and annotations from topology and ClusterClass.
+		topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
+		clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
+		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
+			&clusterv1.ObjectMeta{
+				Labels:      mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels),
+				Annotations: mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations),
+			}); err != nil {
+			return nil, errors.Wrap(err, "failed to spec.machineTemplate.metadata in the ControlPlane object")
 		}
 	}
 
@@ -230,8 +234,6 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 		cluster:               s.Current.Cluster,
 		namePrefix:            bootstrapTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
 		currentObjectRef:      currentBootstrapTemplateRef,
-		labels:                mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels),
-		annotations:           mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations),
 	})
 
 	// Compute the Infrastructure template.
@@ -245,8 +247,6 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 		cluster:               s.Current.Cluster,
 		namePrefix:            infrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
 		currentObjectRef:      currentInfraMachineTemplateRef,
-		labels:                mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels),
-		annotations:           mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations),
 	})
 
 	// Compute the MachineDeployment object.
@@ -263,6 +263,10 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: s.Current.Cluster.Name,
 			Template: clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels:      mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels),
+					Annotations: mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations),
+				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: s.Current.Cluster.Name,
 					// Sets the desired Kubernetes version for the MachineDeployment.
@@ -284,16 +288,11 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	// Apply Labels
 	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachineDeploymentLabel
 	// keeping track of the MachineDeployment name from the Topology; this will be used to identify the object in next reconcile loops.
-	// NOTE: Topology label takes precedence on labels defined in the topology/in the ClusterClass.
-	labels := mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels)
+	labels := map[string]string{}
 	labels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
 	desiredMachineDeploymentObj.SetLabels(labels)
-
-	// Apply Labels
-	// NOTE: Topology label takes precedence on labels defined in the topology/in the ClusterClass.
-	desiredMachineDeploymentObj.Annotations = mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
 
 	// Set the desired replicas.
 	desiredMachineDeploymentObj.Spec.Replicas = machineDeploymentTopology.Replicas
@@ -308,21 +307,15 @@ type templateToInput struct {
 	cluster               *clusterv1.Cluster
 	namePrefix            string
 	currentObjectRef      *corev1.ObjectReference
-	labels                map[string]string
-	annotations           map[string]string
 }
 
 // templateToObject generates an object from a template, taking care
 // of adding required labels (cluster, topology), annotations (clonedFrom)
 // and assigning a meaningful name (or reusing current reference name).
 func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
-	// Enforce the topology labels into the provided label set.
 	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
 	// controller immediately after creation, even before other controllers are going to add the label (if missing).
-	labels := in.labels
-	if labels == nil {
-		labels = map[string]string{}
-	}
+	labels := map[string]string{}
 	labels[clusterv1.ClusterLabelName] = in.cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 
@@ -334,7 +327,6 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 		TemplateRef: in.templateClonedFromRef,
 		Namespace:   in.cluster.Namespace,
 		Labels:      labels,
-		Annotations: in.annotations,
 		ClusterName: in.cluster.Name,
 	})
 	if err != nil {
@@ -375,9 +367,6 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	if labels == nil {
 		labels = map[string]string{}
 	}
-	for key, value := range in.labels {
-		labels[key] = value
-	}
 	labels[clusterv1.ClusterLabelName] = in.cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	template.SetLabels(labels)
@@ -386,9 +375,6 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	annotations := template.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
-	}
-	for key, value := range in.annotations {
-		annotations[key] = value
 	}
 	annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.templateClonedFromRef.Name
 	annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.templateClonedFromRef.GroupVersionKind().GroupKind().String()

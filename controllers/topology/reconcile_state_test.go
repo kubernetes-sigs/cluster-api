@@ -471,7 +471,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			// This check is just for the naming format uses by generated templates - here it's templateName-*
 			// This check is only performed when we had an initial template that has been changed
 			if tt.current.InfrastructureMachineTemplate != nil {
-				item, err := contract.ControlPlane().InfrastructureMachineTemplate().Get(gotControlPlaneObject)
+				item, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(gotControlPlaneObject)
 				g.Expect(err).ToNot(HaveOccurred())
 				pattern := fmt.Sprintf("%s.*", controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
 				fmt.Println(pattern, item.Name)

@@ -95,7 +95,7 @@ func (r *ClusterReconciler) getCurrentControlPlaneState(ctx context.Context, clu
 	}
 
 	// Otherwise, get the control plane machine infrastructureMachine template.
-	machineInfrastructureRef, err := contract.ControlPlane().InfrastructureMachineTemplate().Get(res.Object)
+	machineInfrastructureRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(res.Object)
 	if err != nil {
 		return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s, %s", res.Object.GetKind(), res.Object.GetName())
 	}

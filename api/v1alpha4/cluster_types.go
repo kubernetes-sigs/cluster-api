@@ -93,6 +93,11 @@ type Topology struct {
 
 // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
 type ControlPlaneTopology struct {
+	// Metadata is the metadata applied to the machines of the ControlPlane.
+	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
+	//
+	// This field is supported if and only if the control plane provider template
+	// referenced in the ClusterClass is Machine based.
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// Replicas is the number of control plane nodes.
@@ -112,6 +117,8 @@ type WorkersTopology struct {
 // MachineDeploymentTopology specifies the different parameters for a set of worker nodes in the topology.
 // This set of nodes is managed by a MachineDeployment object whose lifecycle is managed by the Cluster controller.
 type MachineDeploymentTopology struct {
+	// Metadata is the metadata applied to the machines of the MachineDeployment.
+	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// Class is the name of the MachineDeploymentClass used to create the set of worker nodes.

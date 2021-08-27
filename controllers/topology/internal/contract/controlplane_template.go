@@ -39,6 +39,6 @@ func ControlPlaneTemplate() *ControlPlaneTemplateContract {
 // This is why in we are deriving if this field is required from the ClusterClass in the topology reconciler code.
 func (c *ControlPlaneTemplateContract) InfrastructureMachineTemplate() *Ref {
 	return &Ref{
-		path: []string{"spec", "template", "spec", "machineTemplate", "infrastructureRef"},
+		path: Path{"spec", "template", "spec", "machineTemplate", "infrastructureRef"},
 	}
 }

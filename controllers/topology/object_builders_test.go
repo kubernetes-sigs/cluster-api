@@ -493,7 +493,7 @@ func (f *fakeControlPlane) Obj() *unstructured.Unstructured {
 	}
 
 	if f.infrastructureMachineTemplate != nil {
-		if err := contract.ControlPlane().InfrastructureMachineTemplate().Set(obj, f.infrastructureMachineTemplate); err != nil {
+		if err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(obj, f.infrastructureMachineTemplate); err != nil {
 			panic(err)
 		}
 	}

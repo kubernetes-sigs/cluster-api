@@ -706,6 +706,8 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 }
 
 func testMethod(t *testing.T, r *http.Request, want string) {
+	t.Helper()
+
 	if got := r.Method; got != want {
 		t.Errorf("Request method: %v, want %v", got, want)
 	}

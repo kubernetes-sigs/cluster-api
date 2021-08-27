@@ -714,7 +714,9 @@ func TestMachinePoolConditions(t *testing.T) {
 				}
 			},
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				t.Helper()
 				g := NewWithT(t)
+
 				g.Expect(getter.GetConditions()).NotTo(HaveLen(0))
 				for _, c := range getter.GetConditions() {
 					g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
@@ -736,6 +738,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				})
 			},
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				t.Helper()
 				g := NewWithT(t)
 
 				g.Expect(conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
@@ -749,6 +752,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			bootstrapReady:      false,
 			infrastructureReady: true,
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				t.Helper()
 				g := NewWithT(t)
 
 				g.Expect(conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
@@ -775,6 +779,8 @@ func TestMachinePoolConditions(t *testing.T) {
 				})
 			},
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				t.Helper()
+
 				g := NewWithT(t)
 
 				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
@@ -788,6 +794,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			bootstrapReady:      true,
 			infrastructureReady: false,
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				t.Helper()
 				g := NewWithT(t)
 
 				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
@@ -811,6 +818,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				}
 			},
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+				t.Helper()
 				g := NewWithT(t)
 
 				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())

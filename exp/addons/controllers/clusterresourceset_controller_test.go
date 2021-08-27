@@ -49,6 +49,8 @@ func TestClusterResourceSetReconciler(t *testing.T) {
 	)
 
 	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+		t.Helper()
+
 		clusterResourceSetName = fmt.Sprintf("clusterresourceset-%s", util.RandomString(6))
 		labels = map[string]string{clusterResourceSetName: "bar"}
 
@@ -98,6 +100,8 @@ metadata:
 	}
 
 	teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+		t.Helper()
+
 		t.Log("Deleting the Kubeconfigsecret")
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{

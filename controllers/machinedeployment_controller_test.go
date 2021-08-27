@@ -44,6 +44,8 @@ var _ reconcile.Reconciler = &MachineDeploymentReconciler{}
 
 func TestMachineDeploymentReconciler(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
+		t.Helper()
+
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, machineDeploymentNamespace)
 		g.Expect(err).To(BeNil())
@@ -59,6 +61,8 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 	}
 
 	teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace, cluster *clusterv1.Cluster) {
+		t.Helper()
+
 		t.Log("Deleting the Cluster")
 		g.Expect(env.Delete(ctx, cluster)).To(Succeed())
 		t.Log("Deleting the namespace")

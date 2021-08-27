@@ -77,7 +77,7 @@ func (v *ControlPlaneVersion) Path() Path {
 func (v *ControlPlaneVersion) Get(obj *unstructured.Unstructured) (*string, error) {
 	value, ok, err := unstructured.NestedString(obj.UnstructuredContent(), v.Path()...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to retrieve control plane version")
 	}
 	if !ok {
 		return nil, errors.Errorf("%s not found", "."+strings.Join(v.Path(), "."))
@@ -87,7 +87,10 @@ func (v *ControlPlaneVersion) Get(obj *unstructured.Unstructured) (*string, erro
 
 // Set sets the version value in the ControlPlane object.
 func (v *ControlPlaneVersion) Set(obj *unstructured.Unstructured, value string) error {
-	return unstructured.SetNestedField(obj.UnstructuredContent(), value, v.Path()...)
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, v.Path()...); err != nil {
+		return errors.Wrap(err, "failed to set control plane version")
+	}
+	return nil
 }
 
 // ControlPlaneReplicas provide a helper struct for working with version in ClusterClass.
@@ -102,7 +105,7 @@ func (r *ControlPlaneReplicas) Path() Path {
 func (r *ControlPlaneReplicas) Get(obj *unstructured.Unstructured) (*int64, error) {
 	value, ok, err := unstructured.NestedInt64(obj.UnstructuredContent(), r.Path()...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to retrieve control plane replicas")
 	}
 	if !ok {
 		return nil, errors.Errorf("%s not found", "."+strings.Join(r.Path(), "."))
@@ -112,5 +115,8 @@ func (r *ControlPlaneReplicas) Get(obj *unstructured.Unstructured) (*int64, erro
 
 // Set sets the replica value in the ControlPlane object.
 func (r *ControlPlaneReplicas) Set(obj *unstructured.Unstructured, value int64) error {
-	return unstructured.SetNestedField(obj.UnstructuredContent(), value, r.Path()...)
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, r.Path()...); err != nil {
+		return errors.Wrap(err, "failed to set control plane replicas")
+	}
+	return nil
 }

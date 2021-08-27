@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 )
@@ -305,7 +305,7 @@ func TestParseMachineYaml(t *testing.T) {
 func createTempFile(contents string) (filename string, reterr error) {
 	f, err := os.CreateTemp("", "")
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to create temporary file")
 	}
 	defer func() {
 		if err := f.Close(); err != nil {

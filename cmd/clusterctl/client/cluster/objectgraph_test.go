@@ -245,6 +245,8 @@ type wantGraph struct {
 }
 
 func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
+	t.Helper()
+
 	g := NewWithT(t)
 
 	g.Expect(len(got.uidToNode)).To(Equal(len(want.nodes)), "the number of nodes in the objectGraph doesn't match the number of expected nodes")

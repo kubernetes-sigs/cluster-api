@@ -1866,6 +1866,8 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 
 // asserts the conditions set on the Getter object.
 func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
+	t.Helper()
+
 	for _, condition := range conditions {
 		assertCondition(t, from, condition)
 	}
@@ -1875,6 +1877,8 @@ func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clust
 // when the condition is true, asserting the reason/severity/message
 // for the condition are avoided.
 func assertCondition(t *testing.T, from conditions.Getter, condition *clusterv1.Condition) {
+	t.Helper()
+
 	g := NewWithT(t)
 	g.Expect(conditions.Has(from, condition.Type)).To(BeTrue())
 

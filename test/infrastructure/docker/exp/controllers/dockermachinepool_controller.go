@@ -55,7 +55,7 @@ type DockerMachinePoolReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 
 func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, rerr error) {
-	log := ctrl.LoggerFrom(ctx, "docker-machine-pool", req.NamespacedName)
+	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the DockerMachinePool instance.
 	dockerMachinePool := &infrav1exp.DockerMachinePool{}

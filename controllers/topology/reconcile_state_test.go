@@ -268,14 +268,6 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// Will panic due to the design of logging.
-			name:    "Attempt to update controlPlane on controlPlaneState with no infrastructureMachineTemplate",
-			class:   ccWithControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlane1},
-			desired: &scope.ControlPlaneState{Object: controlPlane3},
-			wantErr: true,
-		},
-		{
 			name:    "Update to ControlPlaneObject with no underlying infrastructure",
 			class:   ccWithoutControlPlaneInfrastructure,
 			current: &scope.ControlPlaneState{Object: controlPlane1},
@@ -294,19 +286,19 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// this panic catcher catches the case when there is some issue with the clusterClass controlPlaneInfrastructureCheck that causes it to falsely proceed
-			// the test case that throws this panic shows that the structure of our logs is prone to panic if some of our assumptions are off.
-			defer func() {
-				if r := recover(); r != nil {
-					if tt.wantErr {
-						err := fmt.Errorf("panic occurred during testing")
-						g.Expect(err).To(HaveOccurred())
-					}
-				}
-			}()
-
 			fakeObjs := make([]client.Object, 0)
 			s := scope.New(nil)
+
+			s.Blueprint = &scope.ClusterBlueprint{
+				ClusterClass: &clusterv1.ClusterClass{},
+			}
+			if tt.class.InfrastructureMachineTemplate != nil {
+				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.LocalObjectTemplate{
+					Ref: contract.ObjToRef(tt.class.InfrastructureMachineTemplate),
+				}
+			}
+
+			s.Current.ControlPlane = &scope.ControlPlaneState{}
 			if tt.current != nil {
 				s.Current.ControlPlane = tt.current
 				if tt.current.Object != nil {
@@ -481,8 +473,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			if tt.current.InfrastructureMachineTemplate != nil {
 				item, err := contract.ControlPlane().InfrastructureMachineTemplate().Get(gotControlPlaneObject)
 				g.Expect(err).ToNot(HaveOccurred())
-				// This pattern should match return value in controlPlaneinfrastructureMachineTemplateNamePrefix
-				pattern := fmt.Sprintf("%s-controlplane-.*", s.Current.Cluster.Name)
+				pattern := fmt.Sprintf("%s.*", controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
 				fmt.Println(pattern, item.Name)
 				ok, err := regexp.Match(pattern, []byte(item.Name))
 				g.Expect(err).NotTo(HaveOccurred())

@@ -39,7 +39,7 @@ func infrastructureMachineTemplateNamePrefix(clusterName, machineDeploymentTopol
 
 // infrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
 func controlPlaneInfrastructureMachineTemplateNamePrefix(clusterName string) string {
-	return fmt.Sprintf("%s-controlplane-", clusterName)
+	return fmt.Sprintf("%s-control-plane-", clusterName)
 }
 
 // getReference gets the object referenced in ref.

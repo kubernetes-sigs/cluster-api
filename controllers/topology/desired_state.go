@@ -124,7 +124,7 @@ func computeControlPlaneInfrastructureMachineTemplate(_ context.Context, s *scop
 		template:              template,
 		templateClonedFromRef: templateClonedFromref,
 		cluster:               cluster,
-		namePrefix:            fmt.Sprintf("%s-controlplane-", cluster.Name),
+		namePrefix:            controlPlaneInfrastructureMachineTemplateNamePrefix(cluster.Name),
 		currentObjectRef:      currentRef,
 		labels:                mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels),
 		annotations:           mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations),
@@ -264,7 +264,9 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 			ClusterName: s.Current.Cluster.Name,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       s.Current.Cluster.Name,
+					ClusterName: s.Current.Cluster.Name,
+					// Sets the desired Kubernetes version for the MachineDeployment.
+					// TODO: improve this logic by adding support for version upgrade component by component
 					Version:           pointer.String(s.Blueprint.Topology.Version),
 					Bootstrap:         clusterv1.Bootstrap{ConfigRef: contract.ObjToRef(desiredMachineDeployment.BootstrapTemplate)},
 					InfrastructureRef: *contract.ObjToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
@@ -293,8 +295,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	// NOTE: Topology label takes precedence on labels defined in the topology/in the ClusterClass.
 	desiredMachineDeploymentObj.Annotations = mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
 
-	// Sets the desired Kubernetes version for the control plane.
-	// TODO: improve this logic by adding support for version upgrade component by component
+	// Set the desired replicas.
 	desiredMachineDeploymentObj.Spec.Replicas = machineDeploymentTopology.Replicas
 
 	desiredMachineDeployment.Object = desiredMachineDeploymentObj

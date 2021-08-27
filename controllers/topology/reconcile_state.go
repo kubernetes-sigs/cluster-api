@@ -147,7 +147,7 @@ func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, s *
 	for _, mdTopologyName := range diff.toUpdate {
 		currentMD := s.Current.MachineDeployments[mdTopologyName]
 		desiredMD := s.Desired.MachineDeployments[mdTopologyName]
-		if err := r.updateMachineDeployment(ctx, s.Current.Cluster.Name, currentMD, desiredMD); err != nil {
+		if err := r.updateMachineDeployment(ctx, s.Current.Cluster.Name, mdTopologyName, currentMD, desiredMD); err != nil {
 			return err
 		}
 	}
@@ -187,7 +187,7 @@ func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md *sco
 }
 
 // updateMachineDeployment updates a MachineDeployment. Also rotates the corresponding Templates if necessary.
-func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, clusterName string, currentMD, desiredMD *scope.MachineDeploymentState) error {
+func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, clusterName string, mdTopologyName string, currentMD, desiredMD *scope.MachineDeploymentState) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	cleanupOldInfrastructureTemplate, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
@@ -195,7 +195,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 		current: currentMD.InfrastructureMachineTemplate,
 		desired: desiredMD.InfrastructureMachineTemplate,
 		templateNamer: func() string {
-			return infrastructureMachineTemplateNamePrefix(clusterName, desiredMD.Object.Name)
+			return infrastructureMachineTemplateNamePrefix(clusterName, mdTopologyName)
 		},
 		compatibilityChecker: check.ReferencedObjectsAreCompatible,
 	})
@@ -208,7 +208,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 		current: currentMD.BootstrapTemplate,
 		desired: desiredMD.BootstrapTemplate,
 		templateNamer: func() string {
-			return bootstrapTemplateNamePrefix(clusterName, desiredMD.Object.Name)
+			return bootstrapTemplateNamePrefix(clusterName, mdTopologyName)
 		},
 		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
 	})

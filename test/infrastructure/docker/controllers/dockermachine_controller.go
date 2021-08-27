@@ -360,8 +360,6 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	options.Log = mgr.GetLogger().WithValues("DockerMachine")
-
 	clusterToDockerMachines, err := util.ClusterToObjectsMapper(mgr.GetClient(), &infrav1.DockerMachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err

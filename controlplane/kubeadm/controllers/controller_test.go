@@ -469,7 +469,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			Machines: collections.Machines{},
 			Workload: fakeWorkloadCluster{},
 		}
-		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
+		objs := []client.Object{fakeGenericMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
@@ -532,7 +532,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			Machines: collections.Machines{},
 			Workload: fakeWorkloadCluster{},
 		}
-		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
+		objs := []client.Object{fakeGenericMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
@@ -640,7 +640,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			Machines: collections.Machines{},
 			Workload: fakeWorkloadCluster{},
 		}
-		objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
+		objs := []client.Object{fakeGenericMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := 0; i < 3; i++ {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
@@ -720,7 +720,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			Workload: fakeWorkloadCluster{},
 		}
 
-		fakeClient := newFakeClient(cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy(), fmc.Machines["test0"].DeepCopy())
+		fakeClient := newFakeClient(fakeGenericMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy(), fmc.Machines["test0"].DeepCopy())
 		fmc.Reader = fakeClient
 		recorder := record.NewFakeRecorder(32)
 		r := &KubeadmControlPlaneReconciler{
@@ -847,6 +847,7 @@ kubernetesVersion: metav1.16.1`,
 	}
 
 	fakeClient := newFakeClient(
+		fakeGenericMachineTemplateCRD,
 		kcp.DeepCopy(),
 		cluster.DeepCopy(),
 		genericMachineTemplate.DeepCopy(),

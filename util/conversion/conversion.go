@@ -54,7 +54,7 @@ var (
 	contract = clusterv1.GroupVersion.String()
 )
 
-// ConvertReferenceAPIContract takes a client and object reference, queries the API Server for
+// UpdateReferenceAPIContract takes a client and object reference, queries the API Server for
 // the Custom Resource Definition and looks which one is the stored version available.
 //
 // The object passed as input is modified in place if an updated compatible version is found.

@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -61,6 +62,7 @@ func init() {
 	_ = kubeadmcontrolplanev1old.AddToScheme(scheme)
 	_ = kubeadmcontrolplanev1.AddToScheme(scheme)
 	_ = kubeadmbootstrapv1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

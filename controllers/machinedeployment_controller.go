@@ -60,8 +60,6 @@ type MachineDeploymentReconciler struct {
 }
 
 func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	options.Log = mgr.GetLogger().WithValues("MachineDeployment")
-
 	clusterToMachineDeployments, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineDeploymentList{}, mgr.GetScheme())
 	if err != nil {
 		return err

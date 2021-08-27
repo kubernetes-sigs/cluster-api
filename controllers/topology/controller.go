@@ -57,6 +57,7 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
+		Named("cluster/topology").
 		Watches(
 			&source.Kind{Type: &clusterv1.ClusterClass{}},
 			handler.EnqueueRequestsFromMapFunc(r.clusterClassToCluster),

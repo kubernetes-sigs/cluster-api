@@ -125,8 +125,6 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	options.Log = mgr.GetLogger().WithValues("DockerMachinePool")
-
 	clusterToDockerMachinePools, err := util.ClusterToObjectsMapper(mgr.GetClient(), &infrav1exp.DockerMachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return err

@@ -140,7 +140,7 @@ func (o *objectMover) Restore(toCluster Client, directory string) error {
 
 func (o *objectMover) filesToObjs(dir string) ([]unstructured.Unstructured, error) {
 	log := logf.Log
-	log.Info("Restoring files from %s", dir)
+	log.Info(fmt.Sprintf("Restoring files from %s", dir))
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {

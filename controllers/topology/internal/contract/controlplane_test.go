@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 func TestControlPlane(t *testing.T) {
@@ -57,17 +58,39 @@ func TestControlPlane(t *testing.T) {
 
 		refObj := fooRefBuilder()
 
-		g.Expect(ControlPlane().InfrastructureMachineTemplate().Path()).To(Equal(Path{"spec", "machineTemplate", "infrastructureRef"}))
+		g.Expect(ControlPlane().MachineTemplate().InfrastructureRef().Path()).To(Equal(Path{"spec", "machineTemplate", "infrastructureRef"}))
 
-		err := ControlPlane().InfrastructureMachineTemplate().Set(obj, refObj)
+		err := ControlPlane().MachineTemplate().InfrastructureRef().Set(obj, refObj)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := ControlPlane().InfrastructureMachineTemplate().Get(obj)
+		got, err := ControlPlane().MachineTemplate().InfrastructureRef().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got.APIVersion).To(Equal(refObj.GetAPIVersion()))
 		g.Expect(got.Kind).To(Equal(refObj.GetKind()))
 		g.Expect(got.Name).To(Equal(refObj.GetName()))
 		g.Expect(got.Namespace).To(Equal(refObj.GetNamespace()))
+	})
+	t.Run("Manages spec.machineTemplate.metadata", func(t *testing.T) {
+		g := NewWithT(t)
+
+		metadata := &clusterv1.ObjectMeta{
+			Labels: map[string]string{
+				"label1": "labelValue1",
+			},
+			Annotations: map[string]string{
+				"annotation1": "annotationValue1",
+			},
+		}
+
+		g.Expect(ControlPlane().MachineTemplate().Metadata().Path()).To(Equal(Path{"spec", "machineTemplate", "metadata"}))
+
+		err := ControlPlane().MachineTemplate().Metadata().Set(obj, metadata)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().Metadata().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(Equal(metadata))
 	})
 }

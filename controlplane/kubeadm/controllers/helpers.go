@@ -294,7 +294,10 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal cluster configuration")
 	}
-	machine.SetAnnotations(map[string]string{controlplanev1.KubeadmClusterConfigurationAnnotation: string(clusterConfig)})
+	if machine.Annotations == nil {
+		machine.Annotations = map[string]string{}
+	}
+	machine.Annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = string(clusterConfig)
 
 	if err := r.Client.Create(ctx, machine); err != nil {
 		return errors.Wrap(err, "failed to create machine")

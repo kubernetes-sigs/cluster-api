@@ -321,6 +321,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			},
 		},
 	}
+	validUpdate.Spec.MachineTemplate.ObjectMeta.Labels = map[string]string{
+		"label": "labelValue",
+	}
+	validUpdate.Spec.MachineTemplate.ObjectMeta.Annotations = map[string]string{
+		"annotation": "labelAnnotation",
+	}
 	validUpdate.Spec.MachineTemplate.InfrastructureRef.APIVersion = "test/v1alpha2"
 	validUpdate.Spec.MachineTemplate.InfrastructureRef.Name = "orange"
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)

@@ -300,6 +300,12 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	Expect(err).ToNot(HaveOccurred())
 
 	input.ControlPlane.Spec.Version = input.KubernetesUpgradeVersion
+
+	// If the ClusterConfiguration is not specified, create an empty one.
+	if input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
+		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration = new(bootstrapv1.ClusterConfiguration)
+	}
+
 	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = bootstrapv1.Etcd{
 		Local: &bootstrapv1.LocalEtcd{
 			ImageMeta: bootstrapv1.ImageMeta{

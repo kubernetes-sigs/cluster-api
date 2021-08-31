@@ -284,7 +284,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 	}
 
 	if a.watches.Has(input.Name) {
-		t.log.V(4).Info("Watch already exists", "namespace", input.Cluster.Namespace, "cluster", input.Cluster.Name, "name", input.Name)
+		t.log.V(6).Info("Watch already exists", "namespace", input.Cluster.Namespace, "cluster", input.Cluster.Name, "name", input.Name)
 		return nil
 	}
 

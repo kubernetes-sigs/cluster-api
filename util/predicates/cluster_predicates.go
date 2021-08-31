@@ -129,11 +129,13 @@ func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
 			if oldCluster.Spec.Paused && !newCluster.Spec.Paused {
-				log.V(6).Info("Cluster was unpaused, allowing further processing")
+				log.V(4).Info("Cluster was unpaused, allowing further processing")
 				return true
 			}
 
-			log.V(4).Info("Cluster was not unpaused, blocking further processing")
+			// This predicate always work in "or" with Paused predicates
+			// so the logs are adjusted to not provide false negatives/verbosity al V<=5.
+			log.V(6).Info("Cluster was not unpaused, blocking further processing")
 			return false
 		},
 		CreateFunc:  func(e event.CreateEvent) bool { return false },

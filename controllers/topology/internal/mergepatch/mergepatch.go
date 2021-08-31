@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -194,5 +195,9 @@ func (h *Helper) Patch(ctx context.Context) error {
 	if !h.HasChanges() {
 		return nil
 	}
+
+	log := ctrl.LoggerFrom(ctx)
+	log.V(5).Info("Patching object", "Patch", string(h.patch))
+
 	return h.client.Patch(ctx, h.original, client.RawPatch(types.MergePatchType, h.patch))
 }

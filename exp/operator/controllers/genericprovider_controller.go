@@ -23,6 +23,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -44,6 +45,7 @@ type GenericProviderReconciler struct {
 	Provider             client.Object
 	ProviderList         client.ObjectList
 	Client               client.Client
+	Config               *rest.Config
 	CertManagerInstaller SingletonInstaller
 }
 
@@ -124,7 +126,7 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 		"Generation", provider.GetGeneration(),
 		"ObservedGeneration", provider.GetStatus().ObservedGeneration)
 
-	reconciler := newReconcilePhases(r.Client, r.CertManagerInstaller)
+	reconciler := newReconcilePhases(r.Client, r.Config, r.CertManagerInstaller)
 	phases := []reconcilePhaseFn{
 		func(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
 			return preflightChecks(ctx, reconciler.ctrlClient, provider, genericProviderList)
@@ -158,7 +160,7 @@ func (r *GenericProviderReconciler) reconcileDelete(ctx context.Context, provide
 	log := ctrl.LoggerFrom(ctx)
 	log.V(2).Info("deleting provider resources")
 
-	reconciler := newReconcilePhases(r.Client, r.CertManagerInstaller)
+	reconciler := newReconcilePhases(r.Client, r.Config, r.CertManagerInstaller)
 	phases := []reconcilePhaseFn{
 		reconciler.delete,
 	}

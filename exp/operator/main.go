@@ -188,6 +188,7 @@ func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.Singlet
 		Provider:             &operatorv1.CoreProvider{},
 		ProviderList:         &operatorv1.CoreProviderList{},
 		Client:               mgr.GetClient(),
+		Config:               mgr.GetConfig(),
 		CertManagerInstaller: certManagerInstaller,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoreProvider")
@@ -198,6 +199,7 @@ func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.Singlet
 		Provider:             &operatorv1.InfrastructureProvider{},
 		ProviderList:         &operatorv1.InfrastructureProviderList{},
 		Client:               mgr.GetClient(),
+		Config:               mgr.GetConfig(),
 		CertManagerInstaller: certManagerInstaller,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "InfrastructureProvider")
@@ -208,6 +210,7 @@ func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.Singlet
 		Provider:             &operatorv1.BootstrapProvider{},
 		ProviderList:         &operatorv1.BootstrapProviderList{},
 		Client:               mgr.GetClient(),
+		Config:               mgr.GetConfig(),
 		CertManagerInstaller: certManagerInstaller,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BootstrapProvider")
@@ -218,6 +221,7 @@ func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.Singlet
 		Provider:             &operatorv1.ControlPlaneProvider{},
 		ProviderList:         &operatorv1.ControlPlaneProviderList{},
 		Client:               mgr.GetClient(),
+		Config:               mgr.GetConfig(),
 		CertManagerInstaller: certManagerInstaller,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ControlPlaneProvider")

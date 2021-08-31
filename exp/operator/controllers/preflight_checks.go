@@ -121,8 +121,8 @@ func preflightChecks(ctx context.Context, c client.Client, provider genericprovi
 
 		// For any other provider we should check that instances with similar name exist in any namespace
 		if p.GetObjectKind().GroupVersionKind().Kind != coreProvider && p.GetName() == provider.GetName() {
-			log.V(4).Info(moreThanOneProviderInstanceExistsMessage, p.GetName(), p.GetNamespace())
 			preflightFalseCondition.Message = fmt.Sprintf(moreThanOneProviderInstanceExistsMessage, p.GetName(), p.GetNamespace())
+			log.V(4).Info(preflightFalseCondition.Message)
 			conditions.Set(provider, preflightFalseCondition)
 			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 		}

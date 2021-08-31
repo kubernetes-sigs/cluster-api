@@ -25,21 +25,85 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	operatorv1 "sigs.k8s.io/cluster-api/exp/operator/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/operator/controllers/genericprovider"
 )
 
-func TestReconcilerPreflightConditions(t *testing.T) {
-	g := NewWithT(t)
+const (
+	testMetadata = `
+apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3
+releaseSeries:
+  - major: 0
+    minor: 4
+    contract: v1alpha4
+`
+	testComponents = `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-docker
+    control-plane: controller-manager
+  name: capd-controller-manager
+  namespace: capd-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/provider: infrastructure-docker
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/provider: infrastructure-docker
+        control-plane: controller-manager
+    spec:
+      containers:
+      - image: gcr.io/google-samples/hello-app:1.0
+        name: manager
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 200m
+`
+)
 
+func insertDummyConfig(provider genericprovider.GenericProvider) {
+	spec := provider.GetSpec()
+	spec.FetchConfig = &operatorv1.FetchConfiguration{
+		Selector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"test": "dummy-config",
+			},
+		},
+	}
+	provider.SetSpec(spec)
+}
+
+func dummyConfigMap(ns string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "v0.4.2",
+			Namespace: ns,
+			Labels: map[string]string{
+				"test": "dummy-config",
+			},
+		},
+		Data: map[string]string{
+			"metadata":   testMetadata,
+			"components": testComponents,
+		},
+	}
+}
+
+func TestReconcilerPreflightConditions(t *testing.T) {
 	testCases := []struct {
 		name      string
 		namespace string
@@ -71,9 +135,12 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			gs := NewWithT(t)
+			g := NewWithT(t)
+
+			t.Log("creating namespace", tc.namespace)
 			namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tc.namespace}}
-			g.Expect(env.Create(ctx, namespace)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, namespace)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, dummyConfigMap(tc.namespace))).To(Succeed())
 			tc.provider.SetNamespace(tc.namespace)
 
 			if tc.provider.GetName() != "cluster-api" {
@@ -82,22 +149,15 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 						Name:      "cluster-api",
 						Namespace: tc.namespace,
 					},
-					Status: operatorv1.CoreProviderStatus{
-						ProviderStatus: operatorv1.ProviderStatus{
-							Conditions: []clusterv1.Condition{
-								{
-									Type:               clusterv1.ReadyCondition,
-									Status:             corev1.ConditionTrue,
-									LastTransitionTime: metav1.Now(),
-								},
-							},
-						},
-					},
 				}
-				gs.Expect(env.Create(ctx, core)).To(Succeed())
-				gs.Expect(env.Status().Update(ctx, core)).To(Succeed())
+
+				insertDummyConfig(&genericprovider.CoreProviderWrapper{CoreProvider: core})
+				t.Log("creating core provider", core.Name)
+				g.Expect(env.CreateAndWait(ctx, core)).To(Succeed())
 			}
-			gs.Expect(env.Create(ctx, tc.provider.GetObject())).To(Succeed())
+			t.Log("creating test provider", tc.provider.GetName())
+			insertDummyConfig(tc.provider)
+			g.Expect(env.CreateAndWait(ctx, tc.provider.GetObject())).To(Succeed())
 
 			g.Eventually(func() bool {
 				if err := env.Get(ctx, client.ObjectKeyFromObject(tc.provider.GetObject()), tc.provider.GetObject()); err != nil {

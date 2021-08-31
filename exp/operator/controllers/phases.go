@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/scheme"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,6 +37,7 @@ import (
 
 type reconciler struct {
 	ctrlClient           client.Client
+	ctrlConfig           *rest.Config
 	certManagerInstaller SingletonInstaller
 
 	repo               repository.Repository
@@ -72,15 +74,18 @@ func ifErrorWrapPhaseError(err error, reason string, ctype clusterv1.ConditionTy
 	}
 }
 
-func newReconcilePhases(c client.Client, certManagerInstaller SingletonInstaller) *reconciler {
+func newReconcilePhases(c client.Client, config *rest.Config, certManagerInstaller SingletonInstaller) *reconciler {
 	return &reconciler{
 		ctrlClient:           c,
+		ctrlConfig:           config,
 		certManagerInstaller: certManagerInstaller,
 		clusterctlProvider:   &clusterctlv1.Provider{},
 	}
 }
 
 func (s *reconciler) load(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(2).Info("loading provider", "name", provider.GetName())
 	reader, err := s.secretReader(ctx, provider)
 	if err != nil {
 		return reconcile.Result{}, ifErrorWrapPhaseError(err, "failed to load the secret reader", v1alpha1.PreflightCheckCondition)
@@ -121,6 +126,8 @@ func (s *reconciler) load(ctx context.Context, provider genericprovider.GenericP
 }
 
 func (s *reconciler) fetch(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(2).Info("fetching provider", "name", provider.GetName())
 	componentsFile, err := s.repo.GetFile(s.options.Version, s.repo.ComponentsPath())
 	if err != nil {
 		err = errors.Wrapf(err, "failed to read %q from provider's repository %q", s.repo.ComponentsPath(), s.providerConfig.ManifestLabel())
@@ -141,11 +148,18 @@ func (s *reconciler) fetch(ctx context.Context, provider genericprovider.Generic
 	return reconcile.Result{}, nil
 }
 
+func (s *reconciler) newClusterClient() cluster.Client {
+	return cluster.New(cluster.Kubeconfig{}, s.configClient, cluster.InjectProxy(&controllerProxy{
+		ctrlClient: s.ctrlClient,
+		ctrlConfig: s.ctrlConfig,
+	}))
+}
+
 // preInstall will
 // 1. ensure basic CRDs.
 // 2. delete existing components if required.
 func (s *reconciler) preInstall(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
-	clusterClient := cluster.New(cluster.Kubeconfig{}, s.configClient)
+	clusterClient := s.newClusterClient()
 
 	err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions()
 	if err != nil {
@@ -159,8 +173,10 @@ func (s *reconciler) preInstall(ctx context.Context, provider genericprovider.Ge
 	return s.delete(ctx, provider)
 }
 
-func (s *reconciler) delete(_ context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
-	clusterClient := cluster.New(cluster.Kubeconfig{}, s.configClient)
+func (s *reconciler) delete(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(2).Info("deleting provider", "name", provider.GetName())
+	clusterClient := s.newClusterClient()
 
 	s.clusterctlProvider.Name = clusterctlProviderName(provider).Name
 	s.clusterctlProvider.Namespace = provider.GetNamespace()
@@ -213,9 +229,8 @@ func clusterctlProviderName(provider genericprovider.GenericProvider) client.Obj
 
 func (s *reconciler) installCertManager(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
 	if s.isCertManagerRequired(ctx) {
-		clusterClient := cluster.New(cluster.Kubeconfig{}, s.configClient)
 		status, err := s.certManagerInstaller.Install(func() error {
-			return clusterClient.CertManager().EnsureInstalled()
+			return s.newClusterClient().CertManager().EnsureInstalled()
 		})
 		if err != nil || status == InstallStatusUnknown {
 			return reconcile.Result{RequeueAfter: time.Minute}, ifErrorWrapPhaseError(err, string(status), v1alpha1.CertManagerReadyCondition)
@@ -243,7 +258,7 @@ func (s *reconciler) isCertManagerRequired(ctx context.Context) bool {
 }
 
 func (s *reconciler) install(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
-	clusterClient := cluster.New(cluster.Kubeconfig{}, s.configClient)
+	clusterClient := s.newClusterClient()
 	installer := clusterClient.ProviderInstaller()
 	installer.Add(s.components)
 

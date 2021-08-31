@@ -18,6 +18,7 @@ package envtest
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -27,7 +28,9 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/pkg/errors"
+	admissionregistration "k8s.io/api/admissionregistration/v1"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,7 +55,7 @@ import (
 )
 
 func init() {
-	klog.InitFlags(nil)
+	klog.InitFlags(flag.CommandLine)
 	logger := klogr.New()
 	// Use klog as the internal logger for this envtest environment.
 	log.SetLogger(logger)
@@ -67,6 +70,8 @@ func init() {
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(operatorv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterctlv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(admissionregistration.AddToScheme(scheme.Scheme))
+	utilruntime.Must(admissionregistrationv1beta1.AddToScheme(scheme.Scheme))
 }
 
 var (

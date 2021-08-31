@@ -50,6 +50,19 @@ func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, name
 	return obj, nil
 }
 
+// Delete uses the client and reference to delete an external, unstructured object.
+func Delete(ctx context.Context, c client.Client, ref *corev1.ObjectReference) error {
+	obj := new(unstructured.Unstructured)
+	obj.SetAPIVersion(ref.APIVersion)
+	obj.SetKind(ref.Kind)
+	obj.SetName(ref.Name)
+	obj.SetNamespace(ref.Namespace)
+	if err := c.Delete(ctx, obj); err != nil {
+		return errors.Wrapf(err, "failed to delete %s external object %q/%q", obj.GetKind(), obj.GetNamespace(), obj.GetName())
+	}
+	return nil
+}
+
 // CloneTemplateInput is the input to CloneTemplate.
 type CloneTemplateInput struct {
 	// Client is the controller runtime client.

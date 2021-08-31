@@ -176,7 +176,7 @@ func GetClusterByName(ctx context.Context, c client.Client, namespace, name stri
 	}
 
 	if err := c.Get(ctx, key, cluster); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get Cluster/%s", name)
 	}
 
 	return cluster, nil

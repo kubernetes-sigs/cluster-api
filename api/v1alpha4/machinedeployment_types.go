@@ -21,6 +21,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+const (
+	// MachineDeploymentTopologyFinalizer is the finalizer used by the topology MachineDeployment controller to
+	// clean up referenced template resources if necessary when a MachineDeployment is being deleted.
+	MachineDeploymentTopologyFinalizer = "machinedeployment.topology.cluster.x-k8s.io"
+)
+
 // MachineDeploymentStrategyType defines the type of MachineDeployment rollout strategies.
 type MachineDeploymentStrategyType string
 

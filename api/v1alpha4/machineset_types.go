@@ -24,6 +24,12 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
+const (
+	// MachineSetTopologyFinalizer is the finalizer used by the topology MachineDeployment controller to
+	// clean up referenced template resources if necessary when a MachineSet is being deleted.
+	MachineSetTopologyFinalizer = "machineset.topology.cluster.x-k8s.io"
+)
+
 // ANCHOR: MachineSetSpec
 
 // MachineSetSpec defines the desired state of MachineSet.

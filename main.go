@@ -284,6 +284,24 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
 			os.Exit(1)
 		}
+
+		if err := (&topology.MachineDeploymentReconciler{
+			Client:           mgr.GetClient(),
+			APIReader:        mgr.GetAPIReader(),
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "MachineDeploymentTopology")
+			os.Exit(1)
+		}
+
+		if err := (&topology.MachineSetReconciler{
+			Client:           mgr.GetClient(),
+			APIReader:        mgr.GetAPIReader(),
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "MachineSetTopology")
+			os.Exit(1)
+		}
 	}
 	if err := (&controllers.ClusterReconciler{
 		Client:           mgr.GetClient(),

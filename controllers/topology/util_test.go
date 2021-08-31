@@ -19,6 +19,8 @@ package topology
 import (
 	"testing"
 
+	"github.com/pkg/errors"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/testtypes"
 
 	"github.com/google/go-cmp/cmp"
@@ -113,4 +115,98 @@ func TestGetReference(t *testing.T) {
 			g.Expect(tt.ref).To(Equal(tt.wantRef), cmp.Diff(tt.wantRef, tt.ref))
 		})
 	}
+}
+
+func TestCalculateTemplatesInUse(t *testing.T) {
+	t.Run("Calculate templates in use with regular MachineDeployment and MachineSet", func(t *testing.T) {
+		g := NewWithT(t)
+
+		md := testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
+			WithBootstrapTemplate(testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "mdBT").Build()).
+			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
+			Build()
+		ms := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+			WithBootstrapTemplate(testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "msBT").Build()).
+			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
+			Build()
+
+		actual, err := calculateTemplatesInUse(md, []*clusterv1.MachineSet{ms})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(actual).To(HaveLen(4))
+
+		g.Expect(actual).To(HaveKey(mustTemplateRefID(md.Spec.Template.Spec.Bootstrap.ConfigRef)))
+		g.Expect(actual).To(HaveKey(mustTemplateRefID(&md.Spec.Template.Spec.InfrastructureRef)))
+
+		g.Expect(actual).To(HaveKey(mustTemplateRefID(ms.Spec.Template.Spec.Bootstrap.ConfigRef)))
+		g.Expect(actual).To(HaveKey(mustTemplateRefID(&ms.Spec.Template.Spec.InfrastructureRef)))
+	})
+
+	t.Run("Calculate templates in use with MachineDeployment and MachineSet without BootstrapTemplate", func(t *testing.T) {
+		g := NewWithT(t)
+
+		mdWithoutBootstrapTemplate := testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
+			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
+			Build()
+		msWithoutBootstrapTemplate := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
+			Build()
+
+		actual, err := calculateTemplatesInUse(mdWithoutBootstrapTemplate, []*clusterv1.MachineSet{msWithoutBootstrapTemplate})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(actual).To(HaveLen(2))
+
+		g.Expect(actual).To(HaveKey(mustTemplateRefID(&mdWithoutBootstrapTemplate.Spec.Template.Spec.InfrastructureRef)))
+
+		g.Expect(actual).To(HaveKey(mustTemplateRefID(&msWithoutBootstrapTemplate.Spec.Template.Spec.InfrastructureRef)))
+	})
+
+	t.Run("Calculate templates in use with MachineDeployment and MachineSet ignore templates when resources in deleting", func(t *testing.T) {
+		g := NewWithT(t)
+
+		deletionTimeStamp := metav1.Now()
+
+		mdInDeleting := testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, "md").
+			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "mdIMT").Build()).
+			Build()
+		mdInDeleting.SetDeletionTimestamp(&deletionTimeStamp)
+
+		msInDeleting := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
+			Build()
+		msInDeleting.SetDeletionTimestamp(&deletionTimeStamp)
+
+		actual, err := calculateTemplatesInUse(mdInDeleting, []*clusterv1.MachineSet{msInDeleting})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(actual).To(HaveLen(0))
+
+		g.Expect(actual).ToNot(HaveKey(mustTemplateRefID(&mdInDeleting.Spec.Template.Spec.InfrastructureRef)))
+
+		g.Expect(actual).ToNot(HaveKey(mustTemplateRefID(&msInDeleting.Spec.Template.Spec.InfrastructureRef)))
+	})
+
+	t.Run("Calculate templates in use without MachineDeployment and with MachineSet", func(t *testing.T) {
+		g := NewWithT(t)
+
+		ms := testtypes.NewMachineSetBuilder(metav1.NamespaceDefault, "ms").
+			WithBootstrapTemplate(testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "msBT").Build()).
+			WithInfrastructureTemplate(testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "msIMT").Build()).
+			Build()
+
+		actual, err := calculateTemplatesInUse(nil, []*clusterv1.MachineSet{ms})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(actual).To(HaveLen(2))
+
+		g.Expect(actual).To(HaveKey(mustTemplateRefID(ms.Spec.Template.Spec.Bootstrap.ConfigRef)))
+		g.Expect(actual).To(HaveKey(mustTemplateRefID(&ms.Spec.Template.Spec.InfrastructureRef)))
+	})
+}
+
+// mustTemplateRefID returns the templateRefID as calculated by templateRefID, but panics
+// if templateRefID returns an error.
+func mustTemplateRefID(ref *corev1.ObjectReference) string {
+	refID, err := templateRefID(ref)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to calculate templateRefID"))
+	}
+	return refID
 }

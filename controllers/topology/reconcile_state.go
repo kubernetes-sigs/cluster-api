@@ -206,26 +206,24 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 	log := tlog.LoggerFrom(ctx).WithMachineDeployment(desiredMD.Object)
 
 	ctx, _ = log.WithObject(desiredMD.InfrastructureMachineTemplate).Into(ctx)
-	_, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+	if _, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
 		ref:                  &desiredMD.Object.Spec.Template.Spec.InfrastructureRef,
 		current:              currentMD.InfrastructureMachineTemplate,
 		desired:              desiredMD.InfrastructureMachineTemplate,
 		templateNamePrefix:   infrastructureMachineTemplateNamePrefix(clusterName, mdTopologyName),
 		compatibilityChecker: check.ReferencedObjectsAreCompatible,
-	})
-	if err != nil {
+	}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
 	}
 
 	ctx, _ = log.WithObject(desiredMD.BootstrapTemplate).Into(ctx)
-	_, err = r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+	if _, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
 		ref:                  desiredMD.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
 		current:              currentMD.BootstrapTemplate,
 		desired:              desiredMD.BootstrapTemplate,
 		templateNamePrefix:   bootstrapTemplateNamePrefix(clusterName, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
-	})
-	if err != nil {
+	}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
 	}
 

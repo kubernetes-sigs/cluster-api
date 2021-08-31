@@ -114,6 +114,7 @@ azure               InfrastructureProvider   https://github.com/kubernetes-sigs/
 digitalocean        InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/releases/latest/        infrastructure-components.yaml
 docker              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                              infrastructure-components-development.yaml
 gcp                 InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/                 infrastructure-components.yaml
+maas                InfrastructureProvider   https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                   infrastructure-components.yaml
 metal3              InfrastructureProvider   https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                    infrastructure-components.yaml
 my-infra-provider   InfrastructureProvider   /home/.cluster-api/overrides/infrastructure-docker/latest/                                   infrastructure-components.yaml
 nested              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/              infrastructure-components.yaml
@@ -179,6 +180,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: gcp
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/
+- File: infrastructure-components.yaml
+  Name: maas
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/
 - File: infrastructure-components.yaml
   Name: metal3
   ProviderType: InfrastructureProvider

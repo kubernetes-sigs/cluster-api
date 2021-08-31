@@ -44,6 +44,7 @@ const (
 	PacketProviderName    = "packet"
 	SideroProviderName    = "sidero"
 	VSphereProviderName   = "vsphere"
+	MAASProviderName      = "maas"
 )
 
 // Bootstrap providers.
@@ -161,6 +162,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         VSphereProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         MAASProviderName,
+			url:          "https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

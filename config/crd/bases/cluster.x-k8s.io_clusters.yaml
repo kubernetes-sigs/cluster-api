@@ -276,6 +276,10 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Time duration since creation of Cluster
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
       jsonPath: .status.phase
       name: Phase

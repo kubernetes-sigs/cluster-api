@@ -28,6 +28,7 @@ type DockerMachineTemplateSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=dockermachinetemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachineTemplate"
 
 // DockerMachineTemplate is the Schema for the dockermachinetemplates API.
 type DockerMachineTemplate struct {

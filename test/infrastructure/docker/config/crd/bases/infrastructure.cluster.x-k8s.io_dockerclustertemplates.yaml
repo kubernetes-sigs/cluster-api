@@ -16,7 +16,12 @@ spec:
     singular: dockerclustertemplate
   scope: Namespaced
   versions:
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - description: Time duration since creation of DockerClusterTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: DockerClusterTemplate is the Schema for the dockerclustertemplates
@@ -110,6 +115,7 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""

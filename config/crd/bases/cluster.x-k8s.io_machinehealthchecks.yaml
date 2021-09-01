@@ -272,6 +272,10 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Time duration since creation of MachineHealthCheck
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - description: Maximum number of unhealthy machines allowed
       jsonPath: .spec.maxUnhealthy
       name: MaxUnhealthy

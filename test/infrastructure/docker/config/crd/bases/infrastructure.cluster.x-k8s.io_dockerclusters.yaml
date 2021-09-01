@@ -156,7 +156,12 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - description: Time duration since creation of DockerCluster
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: DockerCluster is the Schema for the dockerclusters API.

@@ -159,7 +159,12 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - description: Time duration since creation of DockerMachine
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: DockerMachine is the Schema for the dockermachines API.

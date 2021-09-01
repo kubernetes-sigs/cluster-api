@@ -23,9 +23,12 @@ import (
 
 // ControlPlaneMachineLabelsForCluster returns a set of labels to add to a control plane machine for this specific cluster.
 func ControlPlaneMachineLabelsForCluster(kcp *controlplanev1.KubeadmControlPlane, clusterName string) map[string]string {
-	labels := kcp.Spec.MachineTemplate.ObjectMeta.Labels
-	if labels == nil {
-		labels = map[string]string{}
+	labels := map[string]string{}
+
+	// Add the labels from the MachineTemplate.
+	// Note: we intentionally don't use the map directly to ensure we don't modify the map in KCP.
+	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Labels {
+		labels[k] = v
 	}
 
 	// Always force these labels over the ones coming from the spec.

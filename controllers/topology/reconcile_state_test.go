@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"testing"
 
+	"sigs.k8s.io/cluster-api/internal/testtypes"
+
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,11 +35,13 @@ import (
 )
 
 func TestReconcileCluster(t *testing.T) {
-	cluster1 := newFakeCluster(metav1.NamespaceDefault, "cluster1").Obj()
-	cluster1WithReferences := newFakeCluster(metav1.NamespaceDefault, "cluster1").
-		WithInfrastructureCluster(newFakeInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Obj()).
-		WithControlPlane(newFakeControlPlane(metav1.NamespaceDefault, "control-plane1").Obj()).
-		Obj()
+	cluster1 := testtypes.NewClusterBuilder(metav1.NamespaceDefault, "cluster1").
+		Build()
+	cluster1WithReferences := testtypes.NewClusterBuilder(metav1.NamespaceDefault, "cluster1").
+		WithInfrastructureCluster(testtypes.NewInfrastructureClusterBuilder(metav1.NamespaceDefault, "infrastructure-cluster1").
+			Build()).
+		WithControlPlane(testtypes.NewControlPlaneBuilder(metav1.NamespaceDefault, "control-plane1").Build()).
+		Build()
 	cluster2WithReferences := cluster1WithReferences.DeepCopy()
 	cluster2WithReferences.SetGroupVersionKind(cluster1WithReferences.GroupVersionKind())
 	cluster2WithReferences.Name = "cluster2"
@@ -106,16 +110,26 @@ func TestReconcileCluster(t *testing.T) {
 func TestReconcileInfrastructureCluster(t *testing.T) {
 	g := NewWithT(t)
 
-	clusterInfrastructure1 := newFakeInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Obj()
-	clusterInfrastructure2 := newFakeInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster2").Obj()
-	clusterInfrastructure3 := newFakeInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster3").Obj()
+	clusterInfrastructure1 := testtypes.NewInfrastructureClusterBuilder(metav1.NamespaceDefault, "infrastructure-cluster1").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		Build()
+	clusterInfrastructure2 := testtypes.NewInfrastructureClusterBuilder(metav1.NamespaceDefault, "infrastructure-cluster2").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		Build()
+	clusterInfrastructure3 := testtypes.NewInfrastructureClusterBuilder(metav1.NamespaceDefault, "infrastructure-cluster3").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		Build()
 	clusterInfrastructure3WithInstanceSpecificChanges := clusterInfrastructure3.DeepCopy()
 	clusterInfrastructure3WithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
-	clusterInfrastructure4 := newFakeInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster4").Obj()
+	clusterInfrastructure4 := testtypes.NewInfrastructureClusterBuilder(metav1.NamespaceDefault, "infrastructure-cluster4").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		Build()
 	clusterInfrastructure4WithTemplateOverridingChanges := clusterInfrastructure4.DeepCopy()
 	err := unstructured.SetNestedField(clusterInfrastructure4WithTemplateOverridingChanges.UnstructuredContent(), false, "spec", "fakeSetting")
 	g.Expect(err).ToNot(HaveOccurred())
-	clusterInfrastructure5 := newFakeInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster5").Obj()
+	clusterInfrastructure5 := testtypes.NewInfrastructureClusterBuilder(metav1.NamespaceDefault, "infrastructure-cluster5").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		Build()
 
 	tests := []struct {
 		name    string
@@ -211,22 +225,27 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 func TestReconcileControlPlaneObject(t *testing.T) {
 	g := NewWithT(t)
 	// Create InfrastructureMachineTemplates for test cases
-	infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Obj()
-	infrastructureMachineTemplate2 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra2").Obj()
+	infrastructureMachineTemplate := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infra1").Build()
+	infrastructureMachineTemplate2 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infra2").Build()
+
 	// Infrastructure object with a different Kind.
 	incompatibleInfrastructureMachineTemplate := infrastructureMachineTemplate2.DeepCopy()
 	incompatibleInfrastructureMachineTemplate.SetKind("incompatibleInfrastructureMachineTemplate")
 	updatedInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
 	err := unstructured.SetNestedField(updatedInfrastructureMachineTemplate.UnstructuredContent(), true, "spec", "differentSetting")
 	g.Expect(err).ToNot(HaveOccurred())
-	// Create cluster class which does not require controlPlaneInfrastructure
+
+	// Create cluster class which does not require controlPlaneInfrastructure.
 	ccWithoutControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{}
-	// Create clusterClasses requiring controlPlaneInfrastructure and one not
-	ccWithControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{}
-	ccWithControlPlaneInfrastructure.InfrastructureMachineTemplate = infrastructureMachineTemplate
+	// Create clusterClasses requiring controlPlaneInfrastructure and one not.
+	ccWithControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{InfrastructureMachineTemplate: infrastructureMachineTemplate}
 	// Create ControlPlaneObjects for test cases.
-	controlPlane1 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(infrastructureMachineTemplate).Obj()
-	controlPlane2 := newFakeControlPlane(metav1.NamespaceDefault, "cp2").WithInfrastructureMachineTemplate(infrastructureMachineTemplate2).Obj()
+	controlPlane1 := testtypes.NewControlPlaneBuilder(metav1.NamespaceDefault, "cp1").
+		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
+		Build()
+	controlPlane2 := testtypes.NewControlPlaneBuilder(metav1.NamespaceDefault, "cp2").
+		WithInfrastructureMachineTemplate(infrastructureMachineTemplate2).
+		Build()
 	// ControlPlane object with novel field in the spec.
 	controlPlane3 := controlPlane1.DeepCopy()
 	err = unstructured.SetNestedField(controlPlane3.UnstructuredContent(), true, "spec", "differentSetting")
@@ -268,6 +287,14 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "Update to ControlPlaneObject with underlying infrastructure.",
+			class:   ccWithControlPlaneInfrastructure,
+			current: &scope.ControlPlaneState{InfrastructureMachineTemplate: nil},
+			desired: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:    &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			wantErr: false,
+		},
+		{
 			name:    "Update to ControlPlaneObject with no underlying infrastructure",
 			class:   ccWithoutControlPlaneInfrastructure,
 			current: &scope.ControlPlaneState{Object: controlPlane1},
@@ -287,8 +314,7 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeObjs := make([]client.Object, 0)
-			s := scope.New(nil)
-
+			s := scope.New(testtypes.NewClusterBuilder(metav1.NamespaceDefault, "cluster1").Build())
 			s.Blueprint = &scope.ClusterBlueprint{
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
@@ -323,7 +349,13 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			r := ClusterReconciler{
 				Client: fakeClient,
 			}
-			s.Desired = &scope.ClusterState{ControlPlane: &scope.ControlPlaneState{Object: tt.desired.Object, InfrastructureMachineTemplate: tt.desired.InfrastructureMachineTemplate}}
+
+			s.Desired = &scope.ClusterState{
+				ControlPlane: &scope.ControlPlaneState{
+					Object:                        tt.desired.Object,
+					InfrastructureMachineTemplate: tt.desired.InfrastructureMachineTemplate,
+				},
+			}
 
 			// Run reconcileControlPlane with the states created in the initial section of the test.
 			err := r.reconcileControlPlane(ctx, s)
@@ -334,7 +366,7 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Create ControlPlane object for fetching data into
-			gotControlPlaneObject := newFakeControlPlane("", "").Obj()
+			gotControlPlaneObject := testtypes.NewControlPlaneBuilder("", "").Build()
 			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.Object), gotControlPlaneObject)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -361,18 +393,25 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	g := NewWithT(t)
 
 	// Create InfrastructureMachineTemplates for test cases
-	infrastructureMachineTemplate := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Obj()
-	infrastructureMachineTemplate2 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra2").Obj()
+	infrastructureMachineTemplate := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infra1").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		Build()
+	infrastructureMachineTemplate2 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infra2").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		Build()
 
 	// Create the blueprint mandating controlPlaneInfrastructure.
 	blueprint := &scope.ClusterBlueprint{
-		ClusterClass: newFakeClusterClass(metav1.NamespaceDefault, "class1").
+		ClusterClass: testtypes.NewClusterClassBuilder(metav1.NamespaceDefault, "class1").
 			WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).
-			Obj(),
+			Build(),
 		ControlPlane: &scope.ControlPlaneBlueprint{
 			InfrastructureMachineTemplate: infrastructureMachineTemplate,
 		},
 	}
+
+	// Create Cluster object for test cases.
+	cluster := testtypes.NewClusterBuilder(metav1.NamespaceDefault, "cluster1").Build()
 
 	// Infrastructure object with a different Kind.
 	incompatibleInfrastructureMachineTemplate := infrastructureMachineTemplate2.DeepCopy()
@@ -380,10 +419,10 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	updatedInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
 	err := unstructured.SetNestedField(updatedInfrastructureMachineTemplate.UnstructuredContent(), true, "spec", "differentSetting")
 	g.Expect(err).ToNot(HaveOccurred())
-	// Create Cluster object for test cases.
-	cluster := newFakeCluster(metav1.NamespaceDefault, "cluster").Obj()
 	// Create ControlPlaneObjects for test cases.
-	controlPlane1 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(infrastructureMachineTemplate).Obj()
+	controlPlane1 := testtypes.NewControlPlaneBuilder(metav1.NamespaceDefault, "cp1").
+		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
+		Build()
 	// ControlPlane object with novel field in the spec.
 	controlPlane2 := controlPlane1.DeepCopy()
 	err = unstructured.SetNestedField(controlPlane2.UnstructuredContent(), true, "spec", "differentSetting")
@@ -392,7 +431,9 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	controlPlaneWithInstanceSpecificChanges := controlPlane1.DeepCopy()
 	controlPlaneWithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
 	// ControlPlane object with the same name as controlPlane1 but a different InfrastructureMachineTemplate
-	controlPlane3 := newFakeControlPlane(metav1.NamespaceDefault, "cp1").WithInfrastructureMachineTemplate(updatedInfrastructureMachineTemplate).Obj()
+	controlPlane3 := testtypes.NewControlPlaneBuilder(metav1.NamespaceDefault, "cp1").
+		WithInfrastructureMachineTemplate(updatedInfrastructureMachineTemplate).
+		Build()
 
 	tests := []struct {
 		name    string
@@ -425,10 +466,9 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeObjs := make([]client.Object, 0)
-			s := scope.New(nil)
+			s := scope.New(cluster)
 			s.Blueprint = blueprint
 			if tt.current != nil {
-				s.Current.Cluster = cluster
 				s.Current.ControlPlane = tt.current
 				if tt.current.Object != nil {
 					fakeObjs = append(fakeObjs, tt.current.Object)
@@ -463,7 +503,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Create ControlPlane object for fetching data into
-			gotControlPlaneObject := newFakeControlPlane("", "").Obj()
+			gotControlPlaneObject := testtypes.NewControlPlaneBuilder("", "").Build()
 			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.Object), gotControlPlaneObject)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -481,7 +521,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			}
 
 			// Create object to hold the queried InfrastructureMachineTemplate
-			gotInfrastructureMachineTemplate := newFakeInfrastructureMachineTemplate("", "").Obj()
+			gotInfrastructureMachineTemplate := testtypes.NewInfrastructureMachineTemplateBuilder("", "").Build()
 			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.InfrastructureMachineTemplate), gotInfrastructureMachineTemplate)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -508,19 +548,19 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	}
 }
 func TestReconcileMachineDeployments(t *testing.T) {
-	infrastructureMachineTemplate1 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Obj()
-	bootstrapTemplate1 := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Obj()
+	infrastructureMachineTemplate1 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
+	bootstrapTemplate1 := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-1").Build()
 	md1 := newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate1, bootstrapTemplate1)
 
-	infrastructureMachineTemplate2 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-2").Obj()
-	bootstrapTemplate2 := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-2").Obj()
+	infrastructureMachineTemplate2 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-2").Build()
+	bootstrapTemplate2 := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-2").Build()
 	md2 := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2, bootstrapTemplate2)
 	infrastructureMachineTemplate2WithChanges := infrastructureMachineTemplate2.DeepCopy()
 	infrastructureMachineTemplate2WithChanges.SetLabels(map[string]string{"foo": "bar"})
 	md2WithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2WithChanges, bootstrapTemplate2)
 
-	infrastructureMachineTemplate3 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-3").Obj()
-	bootstrapTemplate3 := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-3").Obj()
+	infrastructureMachineTemplate3 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-3").Build()
+	bootstrapTemplate3 := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-3").Build()
 	md3 := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3)
 	bootstrapTemplate3WithChanges := bootstrapTemplate3.DeepCopy()
 	bootstrapTemplate3WithChanges.SetLabels(map[string]string{"foo": "bar"})
@@ -529,8 +569,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	bootstrapTemplate3WithChangeKind.SetKind("AnotherGenericBootstrapTemplate")
 	md3WithRotatedBootstrapTemplateChangedKind := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3WithChanges)
 
-	infrastructureMachineTemplate4 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-4").Obj()
-	bootstrapTemplate4 := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4").Obj()
+	infrastructureMachineTemplate4 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-4").Build()
+	bootstrapTemplate4 := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-4").Build()
 	md4 := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4, bootstrapTemplate4)
 	infrastructureMachineTemplate4WithChanges := infrastructureMachineTemplate4.DeepCopy()
 	infrastructureMachineTemplate4WithChanges.SetLabels(map[string]string{"foo": "bar"})
@@ -538,32 +578,32 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	bootstrapTemplate4WithChanges.SetLabels(map[string]string{"foo": "bar"})
 	md4WithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4WithChanges, bootstrapTemplate4WithChanges)
 
-	infrastructureMachineTemplate5 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-5").Obj()
-	bootstrapTemplate5 := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-5").Obj()
+	infrastructureMachineTemplate5 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-5").Build()
+	bootstrapTemplate5 := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-5").Build()
 	md5 := newFakeMachineDeploymentTopologyState("md-5", infrastructureMachineTemplate5, bootstrapTemplate5)
 	infrastructureMachineTemplate5WithChangedKind := infrastructureMachineTemplate5.DeepCopy()
 	infrastructureMachineTemplate5WithChangedKind.SetKind("ChangedKind")
 	md5WithChangedInfrastructureMachineTemplateKind := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate5WithChangedKind, bootstrapTemplate5)
 
-	infrastructureMachineTemplate6 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-6").Obj()
-	bootstrapTemplate6 := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-6").Obj()
+	infrastructureMachineTemplate6 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-6").Build()
+	bootstrapTemplate6 := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-6").Build()
 	md6 := newFakeMachineDeploymentTopologyState("md-6", infrastructureMachineTemplate6, bootstrapTemplate6)
 	bootstrapTemplate6WithChangedNamespace := bootstrapTemplate6.DeepCopy()
 	bootstrapTemplate6WithChangedNamespace.SetNamespace("ChangedNamespace")
 	md6WithChangedBootstrapTemplateNamespace := newFakeMachineDeploymentTopologyState("md-6", infrastructureMachineTemplate6, bootstrapTemplate6WithChangedNamespace)
 
-	infrastructureMachineTemplate7 := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-7").Obj()
-	bootstrapTemplate7 := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-7").Obj()
+	infrastructureMachineTemplate7 := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-7").Build()
+	bootstrapTemplate7 := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-7").Build()
 	md7 := newFakeMachineDeploymentTopologyState("md-7", infrastructureMachineTemplate7, bootstrapTemplate7)
 
-	infrastructureMachineTemplate8Create := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-create").Obj()
-	bootstrapTemplate8Create := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-create").Obj()
+	infrastructureMachineTemplate8Create := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-8-create").Build()
+	bootstrapTemplate8Create := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-8-create").Build()
 	md8Create := newFakeMachineDeploymentTopologyState("md-8-create", infrastructureMachineTemplate8Create, bootstrapTemplate8Create)
-	infrastructureMachineTemplate8Delete := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-delete").Obj()
-	bootstrapTemplate8Delete := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-delete").Obj()
+	infrastructureMachineTemplate8Delete := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-8-delete").Build()
+	bootstrapTemplate8Delete := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-8-delete").Build()
 	md8Delete := newFakeMachineDeploymentTopologyState("md-8-delete", infrastructureMachineTemplate8Delete, bootstrapTemplate8Delete)
-	infrastructureMachineTemplate8Update := newFakeInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-update").Obj()
-	bootstrapTemplate8Update := newFakeBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-update").Obj()
+	infrastructureMachineTemplate8Update := testtypes.NewInfrastructureMachineTemplateBuilder(metav1.NamespaceDefault, "infrastructure-machine-8-update").Build()
+	bootstrapTemplate8Update := testtypes.NewBootstrapTemplateBuilder(metav1.NamespaceDefault, "bootstrap-config-8-update").Build()
 	md8Update := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8Update, bootstrapTemplate8Update)
 	infrastructureMachineTemplate8UpdateWithChanges := infrastructureMachineTemplate8Update.DeepCopy()
 	infrastructureMachineTemplate8UpdateWithChanges.SetLabels(map[string]string{"foo": "bar"})
@@ -672,7 +712,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 				Build()
 
 			currentMachineDeploymentStates := toMachineDeploymentTopologyStateMap(tt.current)
-			s := scope.New(newFakeCluster(metav1.NamespaceDefault, "cluster-1").Obj())
+			s := scope.New(testtypes.NewClusterBuilder(metav1.NamespaceDefault, "cluster-1").Build())
 			s.Current.MachineDeployments = currentMachineDeploymentStates
 
 			// TODO: stop setting ResourceVersion when building objects
@@ -720,6 +760,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 						Namespace: gotBootstrapTemplateRef.Namespace,
 						Name:      gotBootstrapTemplateRef.Name,
 					}, &gotBootstrapTemplate)
+
 					g.Expect(err).ToNot(HaveOccurred())
 					// We don't want to compare resourceVersions as they are slightly different between the test cases
 					// and it's not worth the effort.
@@ -745,6 +786,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 						Namespace: gotInfrastructureMachineTemplateRef.Namespace,
 						Name:      gotInfrastructureMachineTemplateRef.Name,
 					}, &gotInfrastructureMachineTemplate)
+
 					g.Expect(err).ToNot(HaveOccurred())
 					// We don't want to compare resourceVersions as they are slightly different between the test cases
 					// and it's not worth the effort.
@@ -767,11 +809,11 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured) *scope.MachineDeploymentState {
 	return &scope.MachineDeploymentState{
-		Object: newFakeMachineDeployment(metav1.NamespaceDefault, name).
+		Object: testtypes.NewMachineDeploymentBuilder(metav1.NamespaceDefault, name).
 			WithInfrastructureTemplate(infrastructureMachineTemplate).
 			WithBootstrapTemplate(bootstrapTemplate).
 			WithLabels(map[string]string{clusterv1.ClusterTopologyMachineDeploymentLabelName: name + "-topology"}).
-			Obj(),
+			Build(),
 		InfrastructureMachineTemplate: infrastructureMachineTemplate,
 		BootstrapTemplate:             bootstrapTemplate,
 	}

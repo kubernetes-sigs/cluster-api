@@ -194,8 +194,8 @@ set-manifest-pull-policy:
 ## Release
 ## --------------------------------------
 
-GIT_TAG := $(shell git describe --abbrev=0 2>/dev/null)
-RELEASE_TAG := $(lastword $(subst /, ,$(GIT_TAG)))
+RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
+RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
 RELEASE_DIR := out
 
 $(RELEASE_DIR):
@@ -205,7 +205,7 @@ $(RELEASE_DIR):
 release: clean-release ## Builds and push container images using the latest git tag for the commit.
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
-	git checkout "${GIT_TAG}"
+	git checkout "${RELEASE_TAG}"
 	# Set the manifest image to the staging bucket.
 	MANIFEST_IMG=$(STAGING_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		$(MAKE) set-manifest-image

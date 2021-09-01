@@ -1,0 +1,35 @@
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+name: release
+
+jobs:
+  build:
+    name: create draft release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set env
+        run:  echo "RELEASE_TAG=${GITHUB_REF:10}" >> $GITHUB_ENV
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      - name: generate release artifacts
+        run: |
+          make release
+      - name: generate release notes
+        run: |
+          make release-notes
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: out/*
+          body_path: _releasenotes/${{ env.RELEASE_TAG }}.md

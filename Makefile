@@ -484,13 +484,19 @@ set-manifest-image:
 ## --------------------------------------
 
 ## latest git tag for the commit, e.g., v0.3.10
-RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
+RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
+# the previous release tag, e.g., v0.3.9, excluding pre-release tags
+PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
 ## set by Prow, ref name of the base branch, e.g., master
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out
+RELEASE_NOTES_DIR := _releasenotes
 
 $(RELEASE_DIR):
 	mkdir -p $(RELEASE_DIR)/
+
+$(RELEASE_NOTES_DIR):
+	mkdir -p $(RELEASE_NOTES_DIR)/
 
 .PHONY: release
 release: clean-release ## Builds and push container images using the latest git tag for the commit.
@@ -586,6 +592,10 @@ release-alias-tag: ## Adds the tag to the last build tag.
 	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+
+.PHONY: release-notes
+release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
+	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
 
 ## --------------------------------------
 ## Cleanup / Verification

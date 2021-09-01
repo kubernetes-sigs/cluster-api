@@ -41,6 +41,9 @@ type ClusterUpgradeConformanceSpecInput struct {
 	ArtifactFolder        string
 	SkipCleanup           bool
 	SkipConformanceTests  bool
+
+	// Flavor to use when creating the cluster for testing, "upgrades" is used if not specified.
+	Flavor *string
 }
 
 // ClusterUpgradeConformanceSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
@@ -95,7 +98,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "upgrades",
+				Flavor:                   pointer.StringDeref(input.Flavor, "upgrades"),
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),

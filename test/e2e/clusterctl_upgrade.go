@@ -59,6 +59,8 @@ type ClusterctlUpgradeSpecInput struct {
 	SkipCleanup           bool
 	PreUpgrade            func(managementClusterProxy framework.ClusterProxy)
 	PostUpgrade           func(managementClusterProxy framework.ClusterProxy)
+	MgmtFlavor            string
+	WorkloadFlavor        string
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -110,7 +112,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   clusterctl.DefaultFlavor,
+				Flavor:                   input.MgmtFlavor,
 				Namespace:                managementClusterNamespace.Name,
 				ClusterName:              managementClusterName,
 				KubernetesVersion:        input.E2EConfig.GetVariable(initWithKubernetesVersion),
@@ -195,7 +197,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// pass the clusterctl config file that points to the local provider repository created for this test,
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			// select template
-			Flavor: clusterctl.DefaultFlavor,
+			Flavor: input.WorkloadFlavor,
 			// define template variables
 			Namespace:                testNamespace.Name,
 			ClusterName:              workLoadClusterName,

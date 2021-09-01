@@ -42,6 +42,10 @@ type MachinePoolInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
+
+	// Flavor, if specified must refer to a template that contains a MachinePool resource.
+	// If not specified, "machine-pool" is used
+	Flavor *string
 }
 
 // MachinePoolSpec implements a test that verifies MachinePool create, scale up and scale down.
@@ -79,7 +83,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "machine-pool",
+				Flavor:                   pointer.StringDeref(input.Flavor, "machine-pool"),
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),

@@ -47,6 +47,18 @@ type KCPAdoptionSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
+
+	// Flavor, if specified, must refer to a template that is
+	// specially crafted with individual control plane machines
+	// and a KubeadmControlPlane resource configured for adoption.
+	// The initial Cluster, InfraCluster, Machine, InfraMachine,
+	// KubeadmConfig, and any other resources that should exist
+	// prior to adoption must have the kcp-adoption.step1: "" label
+	// applied to them. The updated Cluster (with controlPlaneRef
+	// configured), InfraMachineTemplate, and KubeadmControlPlane
+	// resources must have the kcp-adoption.step2: "" applied to them.
+	// If not specified, "kcp-adoption" is used.
+	Flavor *string
 }
 
 type ClusterProxy interface {
@@ -96,7 +108,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			// pass the clusterctl config file that points to the local provider repository created for this test,
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			// select template
-			Flavor: "kcp-adoption",
+			Flavor: pointer.StringDeref(input.Flavor, "kcp-adoption"),
 			// define template variables
 			Namespace:                namespace.Name,
 			ClusterName:              clusterName,

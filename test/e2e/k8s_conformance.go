@@ -41,6 +41,7 @@ type K8SConformanceSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
+	Flavor                string
 }
 
 // K8SConformanceSpec implements a spec that creates a cluster and runs Kubernetes conformance suite.
@@ -89,7 +90,7 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   clusterctl.DefaultFlavor,
+				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),

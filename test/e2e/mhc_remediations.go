@@ -40,6 +40,20 @@ type MachineRemediationSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
+
+	// KCPFlavor, if specified, must refer to a template that has a MachineHealthCheck
+	// resource configured to match the control plane Machines (cluster.x-k8s.io/controlplane: "" label)
+	// and be configured to treat "e2e.remediation.condition" "False" as an unhealthy
+	// condition with a short timeout.
+	// If not specified, "kcp-remediation" is used.
+	KCPFlavor *string
+
+	// MDFlavor, if specified, must refer to a template that has a MachineHealthCheck
+	// resource configured to match the MachineDeployment managed Machines and be
+	// configured to treat "e2e.remediation.condition" "False" as an unhealthy
+	// condition with a short timeout.
+	// If not specified, "md-remediation" is used.
+	MDFlavor *string
 }
 
 // MachineRemediationSpec implements a test that verifies that Machines are remediated by MHC during unhealthy conditions.
@@ -76,7 +90,7 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "md-remediation",
+				Flavor:                   pointer.StringDeref(input.MDFlavor, "md-remediation"),
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
@@ -108,7 +122,7 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "kcp-remediation",
+				Flavor:                   pointer.StringDeref(input.KCPFlavor, "kcp-remediation"),
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),

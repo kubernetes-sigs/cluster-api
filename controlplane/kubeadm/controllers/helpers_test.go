@@ -486,6 +486,14 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 		},
 	}
 
+	kcpMachineTemplateObjectMeta := clusterv1.ObjectMeta{
+		Labels: map[string]string{
+			"machineTemplateLabel": "machineTemplateLabelValue",
+		},
+		Annotations: map[string]string{
+			"machineTemplateAnnotation": "machineTemplateAnnotationValue",
+		},
+	}
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testControlPlane",
@@ -493,6 +501,9 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				ObjectMeta: kcpMachineTemplateObjectMeta,
+			},
 		},
 	}
 
@@ -532,6 +543,19 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	g.Expect(machine.OwnerReferences).To(HaveLen(1))
 	g.Expect(machine.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 	g.Expect(machine.Spec).To(Equal(expectedMachineSpec))
+
+	// Verify that the machineTemplate.ObjectMeta has been propagated to the Machine.
+	for k, v := range kcpMachineTemplateObjectMeta.Labels {
+		g.Expect(machine.Labels[k]).To(Equal(v))
+	}
+	for k, v := range kcpMachineTemplateObjectMeta.Annotations {
+		g.Expect(machine.Annotations[k]).To(Equal(v))
+	}
+
+	// Verify that machineTemplate.ObjectMeta in KCP has not been modified.
+	g.Expect(kcp.Spec.MachineTemplate.ObjectMeta.Labels).NotTo(HaveKey(clusterv1.ClusterLabelName))
+	g.Expect(kcp.Spec.MachineTemplate.ObjectMeta.Labels).NotTo(HaveKey(clusterv1.MachineControlPlaneLabelName))
+	g.Expect(kcp.Spec.MachineTemplate.ObjectMeta.Annotations).NotTo(HaveKey(controlplanev1.KubeadmClusterConfigurationAnnotation))
 }
 
 func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {

@@ -271,7 +271,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 			Name:        names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
 			Namespace:   kcp.Namespace,
 			Labels:      internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
-			Annotations: kcp.Spec.MachineTemplate.ObjectMeta.Annotations,
+			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},
@@ -294,8 +294,11 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal cluster configuration")
 	}
-	if machine.Annotations == nil {
-		machine.Annotations = map[string]string{}
+
+	// Add the annotations from the MachineTemplate.
+	// Note: we intentionally don't use the map directly to ensure we don't modify the map in KCP.
+	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
+		machine.Annotations[k] = v
 	}
 	machine.Annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = string(clusterConfig)
 

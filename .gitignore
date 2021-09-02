@@ -6,7 +6,6 @@
 cmd/clusterctl/clusterctl
 bin
 hack/tools/bin
-out
 
 # Test binary, build with `go test -c`
 *.test
@@ -68,3 +67,7 @@ clusterctl-settings.json
 
 # test results
 _artifacts
+
+#release artifacts
+out
+_releasenotes

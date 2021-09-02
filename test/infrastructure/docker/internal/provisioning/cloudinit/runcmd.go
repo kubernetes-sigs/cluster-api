@@ -17,52 +17,17 @@ limitations under the License.
 package cloudinit
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 )
-
-// Cmd defines a shell command.
-type Cmd struct {
-	Cmd   string
-	Args  []string
-	Stdin string
-}
-
-// UnmarshalJSON a runcmd command
-// It can be either a list or a string.
-// If the item is a list, the head of the list is the command and the tail are the args.
-// If the item is a string, the whole command will be wrapped in `/bin/sh -c`.
-func (c *Cmd) UnmarshalJSON(data []byte) error {
-	// First, try to decode the input as a list
-	var s1 []string
-	if err := json.Unmarshal(data, &s1); err != nil {
-		if _, ok := err.(*json.UnmarshalTypeError); !ok {
-			return errors.WithStack(err)
-		}
-	} else {
-		c.Cmd = s1[0]
-		c.Args = s1[1:]
-		return nil
-	}
-
-	// If it's not a list, it must be a string
-	var s2 string
-	if err := json.Unmarshal(data, &s2); err != nil {
-		return errors.WithStack(err)
-	}
-
-	c.Cmd = "/bin/sh"
-	c.Args = []string{"-c", s2}
-
-	return nil
-}
 
 // runCmd defines parameters of a shell command that is equivalent to an action found in the cloud init rundcmd module.
 type runCmd struct {
-	Cmds []Cmd `json:"runcmd,"`
+	Cmds []provisioning.Cmd `json:"runcmd,"`
 }
 
 func newRunCmdAction() action {
@@ -78,8 +43,8 @@ func (a *runCmd) Unmarshal(userData []byte) error {
 }
 
 // Commands returns a list of commands to run on the node.
-func (a *runCmd) Commands() ([]Cmd, error) {
-	cmds := make([]Cmd, 0)
+func (a *runCmd) Commands() ([]provisioning.Cmd, error) {
+	cmds := make([]provisioning.Cmd, 0)
 	for _, c := range a.Cmds {
 		// kubeadm in docker requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...
 		c = hackKubeadmIgnoreErrors(c)
@@ -88,7 +53,7 @@ func (a *runCmd) Commands() ([]Cmd, error) {
 	return cmds, nil
 }
 
-func hackKubeadmIgnoreErrors(c Cmd) Cmd {
+func hackKubeadmIgnoreErrors(c provisioning.Cmd) provisioning.Cmd {
 	// case kubeadm commands are defined as a string
 	if c.Cmd == "/bin/sh" && len(c.Args) >= 2 {
 		if c.Args[0] == "-c" {

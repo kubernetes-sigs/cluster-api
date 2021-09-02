@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 )
 
 func TestRunCmdUnmarshal(t *testing.T) {
@@ -34,10 +36,10 @@ runcmd:
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(r.Cmds).To(HaveLen(2))
 
-	expected0 := Cmd{Cmd: "ls", Args: []string{"-l", "/"}}
+	expected0 := provisioning.Cmd{Cmd: "ls", Args: []string{"-l", "/"}}
 	g.Expect(r.Cmds[0]).To(Equal(expected0))
 
-	expected1 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "ls -l /"}}
+	expected1 := provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", "ls -l /"}}
 	g.Expect(r.Cmds[1]).To(Equal(expected1))
 }
 
@@ -45,17 +47,17 @@ func TestRunCmdRun(t *testing.T) {
 	var useCases = []struct {
 		name         string
 		r            runCmd
-		expectedCmds []Cmd
+		expectedCmds []provisioning.Cmd
 	}{
 		{
 			name: "two command pass",
 			r: runCmd{
-				Cmds: []Cmd{
+				Cmds: []provisioning.Cmd{
 					{Cmd: "foo", Args: []string{"bar"}},
 					{Cmd: "baz", Args: []string{"bbb"}},
 				},
 			},
-			expectedCmds: []Cmd{
+			expectedCmds: []provisioning.Cmd{
 				{Cmd: "foo", Args: []string{"bar"}},
 				{Cmd: "baz", Args: []string{"bbb"}},
 			},
@@ -63,11 +65,11 @@ func TestRunCmdRun(t *testing.T) {
 		{
 			name: "hack kubeadm ingore errors",
 			r: runCmd{
-				Cmds: []Cmd{
+				Cmds: []provisioning.Cmd{
 					{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /run/kubeadm/kubeadm.yaml"}},
 				},
 			},
-			expectedCmds: []Cmd{
+			expectedCmds: []provisioning.Cmd{
 				{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=all --config /run/kubeadm/kubeadm.yaml"}},
 			},
 		},
@@ -98,11 +100,11 @@ runcmd:
 
 	r.Cmds[0] = hackKubeadmIgnoreErrors(r.Cmds[0])
 
-	expected0 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=all --config=/run/kubeadm/kubeadm.yaml"}}
+	expected0 := provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=all --config=/run/kubeadm/kubeadm.yaml"}}
 	g.Expect(r.Cmds[0]).To(Equal(expected0))
 
 	r.Cmds[1] = hackKubeadmIgnoreErrors(r.Cmds[1])
 
-	expected1 := Cmd{Cmd: "kubeadm", Args: []string{"join", "--ignore-preflight-errors=all", "--config=/run/kubeadm/kubeadm-controlplane-join-config.yaml"}}
+	expected1 := provisioning.Cmd{Cmd: "kubeadm", Args: []string{"join", "--ignore-preflight-errors=all", "--config=/run/kubeadm/kubeadm-controlplane-join-config.yaml"}}
 	g.Expect(r.Cmds[1]).To(Equal(expected1))
 }

@@ -22,13 +22,15 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 )
 
 func TestWriteFiles(t *testing.T) {
 	var useCases = []struct {
 		name         string
 		w            writeFilesAction
-		expectedCmds []Cmd
+		expectedCmds []provisioning.Cmd
 	}{
 		{
 			name: "two files pass",
@@ -38,7 +40,7 @@ func TestWriteFiles(t *testing.T) {
 					{Path: "baz", Content: "qux"},
 				},
 			},
-			expectedCmds: []Cmd{
+			expectedCmds: []provisioning.Cmd{
 				{Cmd: "mkdir", Args: []string{"-p", "."}},
 				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
 				{Cmd: "mkdir", Args: []string{"-p", "."}},
@@ -52,7 +54,7 @@ func TestWriteFiles(t *testing.T) {
 					{Path: "foo", Content: "bar", Owner: "baz:baz"},
 				},
 			},
-			expectedCmds: []Cmd{
+			expectedCmds: []provisioning.Cmd{
 				{Cmd: "mkdir", Args: []string{"-p", "."}},
 				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
 				{Cmd: "chown", Args: []string{"baz:baz", "foo"}},
@@ -65,7 +67,7 @@ func TestWriteFiles(t *testing.T) {
 					{Path: "foo", Content: "bar", Permissions: "755"},
 				},
 			},
-			expectedCmds: []Cmd{
+			expectedCmds: []provisioning.Cmd{
 				{Cmd: "mkdir", Args: []string{"-p", "."}},
 				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
 				{Cmd: "chmod", Args: []string{"755", "foo"}},
@@ -78,7 +80,7 @@ func TestWriteFiles(t *testing.T) {
 					{Path: "foo", Content: "bar", Append: true},
 				},
 			},
-			expectedCmds: []Cmd{
+			expectedCmds: []provisioning.Cmd{
 				{Cmd: "mkdir", Args: []string{"-p", "."}},
 				{Cmd: "/bin/sh", Args: []string{"-c", "cat >> foo /dev/stdin"}, Stdin: "bar"},
 			},

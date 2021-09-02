@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloudinit
+// Package provisioning deals with various machine initialization methods viz. cloud-init, Ignition,
+// etc.
+package provisioning
 
 import (
 	"encoding/json"
@@ -22,38 +24,38 @@ import (
 	"github.com/pkg/errors"
 )
 
-type unknown struct {
-	module string
-	lines  []string
+// Cmd defines a shell command.
+type Cmd struct {
+	Cmd   string
+	Args  []string
+	Stdin string
 }
 
-func newUnknown(module string) action {
-	return &unknown{module: module}
-}
-
-// Unmarshal will unmarshal unknown actions and slurp the value.
-func (u *unknown) Unmarshal(data []byte) error {
-	// try unmarshalling to a slice of strings
+// UnmarshalJSON a runcmd command
+// It can be either a list or a string.
+// If the item is a list, the head of the list is the command and the tail are the args.
+// If the item is a string, the whole command will be wrapped in `/bin/sh -c`.
+func (c *Cmd) UnmarshalJSON(data []byte) error {
+	// First, try to decode the input as a list
 	var s1 []string
 	if err := json.Unmarshal(data, &s1); err != nil {
 		if _, ok := err.(*json.UnmarshalTypeError); !ok {
 			return errors.WithStack(err)
 		}
 	} else {
-		u.lines = s1
+		c.Cmd = s1[0]
+		c.Args = s1[1:]
 		return nil
 	}
 
-	// If it's not a slice of strings it should be one string value
+	// If it's not a list, it must be a string
 	var s2 string
 	if err := json.Unmarshal(data, &s2); err != nil {
 		return errors.WithStack(err)
 	}
 
-	u.lines = []string{s2}
-	return nil
-}
+	c.Cmd = "/bin/sh"
+	c.Args = []string{"-c", s2}
 
-func (u *unknown) Commands() ([]Cmd, error) {
-	return []Cmd{}, nil
+	return nil
 }

@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -88,12 +89,15 @@ func (r *GenericProviderReconciler) Reconcile(ctx context.Context, req reconcile
 		}
 	}()
 
-	// Ignore deleted provider, this can happen when foregroundDeletion
-	// is enabled
-	// Cleanup logic is not needed because owner references set on resource created by
-	// Provider will cause GC to do the cleanup for us.
-	if !typedProvider.GetDeletionTimestamp().IsZero() {
+	// Add finalizer first if not exist to avoid the race condition between init and delete
+	if !controllerutil.ContainsFinalizer(typedProvider.GetObject(), operatorv1.ProviderFinalizer) {
+		controllerutil.AddFinalizer(typedProvider.GetObject(), operatorv1.ProviderFinalizer)
 		return ctrl.Result{}, nil
+	}
+
+	// Handle deletion reconciliation loop.
+	if !typedProvider.GetDeletionTimestamp().IsZero() {
+		return r.reconcileDelete(ctx, typedProvider)
 	}
 
 	return r.reconcile(ctx, typedProvider, typedProviderList)
@@ -147,6 +151,34 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 			return res, err
 		}
 	}
+	return res, nil
+}
+
+func (r *GenericProviderReconciler) reconcileDelete(ctx context.Context, provider genericprovider.GenericProvider) (_ ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(2).Info("deleting provider resources")
+
+	reconciler := newReconcilePhases(r.Client, r.CertManagerInstaller)
+	phases := []reconcilePhaseFn{
+		reconciler.delete,
+	}
+
+	res := reconcile.Result{}
+	var err error
+	for _, phase := range phases {
+		res, err = phase(ctx, provider)
+		if err != nil {
+			se, ok := err.(*PhaseError)
+			if ok {
+				conditions.Set(provider, conditions.FalseCondition(se.Type, se.Reason, se.Severity, err.Error()))
+			}
+		}
+		if !res.IsZero() || err != nil {
+			// the steps are sequencial, so we must be complete before progressing.
+			return res, err
+		}
+	}
+	controllerutil.RemoveFinalizer(provider.GetObject(), operatorv1.ProviderFinalizer)
 	return res, nil
 }
 

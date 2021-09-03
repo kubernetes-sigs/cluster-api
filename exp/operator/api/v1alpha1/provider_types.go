@@ -24,6 +24,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const (
+	ProviderFinalizer = "provider.cluster.x-k8s.io"
+)
+
 // ProviderSpec is the desired state of the Provider.
 type ProviderSpec struct {
 	// Version indicates the provider version.

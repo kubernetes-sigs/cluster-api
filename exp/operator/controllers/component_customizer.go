@@ -276,13 +276,16 @@ func customizeObjectsFn(provider genericprovider.GenericProvider) func(objs []un
 				continue
 			}
 
-			// Set the owner references so that when the provider is deleted, the components are also deleted.
-			o.SetOwnerReferences(util.EnsureOwnerRef(provider.GetOwnerReferences(), metav1.OwnerReference{
-				APIVersion: operatorv1.GroupVersion.String(),
-				Kind:       provider.GetObjectKind().GroupVersionKind().Kind,
-				Name:       provider.GetName(),
-				UID:        provider.GetUID(),
-			}))
+			if o.GetNamespace() != "" {
+				// only set the ownership on namespaced objects.
+				o.SetOwnerReferences(util.EnsureOwnerRef(provider.GetOwnerReferences(),
+					metav1.OwnerReference{
+						APIVersion: operatorv1.GroupVersion.String(),
+						Kind:       provider.GetObjectKind().GroupVersionKind().Kind,
+						Name:       provider.GetName(),
+						UID:        provider.GetUID(),
+					}))
+			}
 
 			if o.GetKind() == daemonSetKind {
 				d := &appsv1.DaemonSet{}

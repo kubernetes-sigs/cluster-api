@@ -47,6 +47,8 @@ type Kubeconfig struct {
 	// Specify context within the kubeconfig file. If empty, cluster client
 	// will use the current context.
 	Context string
+	// InCluster if true, incluster config will be created
+	InCluster bool
 }
 
 // Client is used to interact with a management cluster.

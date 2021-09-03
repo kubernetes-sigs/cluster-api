@@ -102,22 +102,33 @@ func (k *proxy) ValidateKubernetesVersion() error {
 
 // GetConfig returns the config for a kubernetes client.
 func (k *proxy) GetConfig() (*rest.Config, error) {
-	config, err := k.configLoadingRules.Load()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load Kubeconfig")
+	var restConfig *rest.Config
+
+	if k.kubeconfig.InCluster {
+		var err error
+		restConfig, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create in-cluster Kubeconfig")
+		}
+	} else {
+		config, err := k.configLoadingRules.Load()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to load Kubeconfig")
+		}
+
+		configOverrides := &clientcmd.ConfigOverrides{
+			CurrentContext: k.kubeconfig.Context,
+			Timeout:        k.timeout.String(),
+		}
+		restConfig, err = clientcmd.NewDefaultClientConfig(*config, configOverrides).ClientConfig()
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "invalid configuration:") {
+				return nil, errors.New(strings.Replace(err.Error(), "invalid configuration:", "invalid kubeconfig file; clusterctl requires a valid kubeconfig file to connect to the management cluster:", 1))
+			}
+			return nil, err
+		}
 	}
 
-	configOverrides := &clientcmd.ConfigOverrides{
-		CurrentContext: k.kubeconfig.Context,
-		Timeout:        k.timeout.String(),
-	}
-	restConfig, err := clientcmd.NewDefaultClientConfig(*config, configOverrides).ClientConfig()
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "invalid configuration:") {
-			return nil, errors.New(strings.Replace(err.Error(), "invalid configuration:", "invalid kubeconfig file; clusterctl requires a valid kubeconfig file to connect to the management cluster:", 1))
-		}
-		return nil, err
-	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
 	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go does't generate throttling log messages

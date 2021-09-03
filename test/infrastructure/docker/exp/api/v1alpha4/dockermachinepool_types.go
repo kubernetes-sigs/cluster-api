@@ -114,6 +114,7 @@ type DockerMachinePoolInstanceStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachinePool"
 
 // DockerMachinePool is the Schema for the dockermachinepools API.
 type DockerMachinePool struct {

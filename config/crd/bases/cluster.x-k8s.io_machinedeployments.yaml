@@ -505,6 +505,10 @@ spec:
         statusReplicasPath: .status.replicas
       status: {}
   - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
     - description: Time duration since creation of MachineDeployment
       jsonPath: .metadata.creationTimestamp
       name: Age

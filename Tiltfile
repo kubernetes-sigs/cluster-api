@@ -54,6 +54,8 @@ providers = {
             "api",
             "controllers",
             "internal",
+            "../../go.mod",
+            "../../go.sum",
         ],
     },
     "kubeadm-control-plane": {
@@ -64,6 +66,8 @@ providers = {
             "api",
             "controllers",
             "internal",
+            "../../go.mod",
+            "../../go.sum",
         ],
     },
     "docker": {

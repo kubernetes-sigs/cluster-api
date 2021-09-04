@@ -272,6 +272,10 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
     - description: Time duration since creation of MachineHealthCheck
       jsonPath: .metadata.creationTimestamp
       name: Age

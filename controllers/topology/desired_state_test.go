@@ -345,8 +345,12 @@ func TestComputeControlPlane(t *testing.T) {
 		})
 		gotMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
+
+		expectedLabels := mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels)
+		expectedLabels[clusterv1.ClusterLabelName] = cluster.Name
+		expectedLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		g.Expect(gotMetadata).To(Equal(&clusterv1.ObjectMeta{
-			Labels:      mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			Labels:      expectedLabels,
 			Annotations: mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		}))
 
@@ -504,9 +508,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("fizz", "buzz"))
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 		g.Expect(actualMd.Spec.Template.Spec.InfrastructureRef.Name).ToNot(Equal("linux-worker-inframachinetemplate"))
 		g.Expect(actualMd.Spec.Template.Spec.Bootstrap.ConfigRef.Name).ToNot(Equal("linux-worker-bootstraptemplate"))
 	})
@@ -549,9 +555,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("fizz", "buzz"))
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 		g.Expect(actualMd.Spec.Template.Spec.InfrastructureRef.Name).To(Equal("linux-worker-inframachinetemplate"))
 		g.Expect(actualMd.Spec.Template.Spec.Bootstrap.ConfigRef.Name).To(Equal("linux-worker-bootstraptemplate"))
 	})

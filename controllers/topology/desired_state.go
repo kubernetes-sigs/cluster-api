@@ -156,11 +156,16 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 
 		// Compute the labels and annotations to be applied to ControlPlane machines.
 		// We merge the labels and annotations from topology and ClusterClass.
+		// We also add the cluster-name and the topology owned labels, so they are propagated down to Machines.
 		topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
 		clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
+
+		machineLabels := mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
+		machineLabels[clusterv1.ClusterLabelName] = cluster.Name
+		machineLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
 			&clusterv1.ObjectMeta{
-				Labels:      mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels),
+				Labels:      machineLabels,
 				Annotations: mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations),
 			}); err != nil {
 			return nil, errors.Wrap(err, "failed to spec.machineTemplate.metadata in the ControlPlane object")
@@ -293,6 +298,13 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
 	desiredMachineDeploymentObj.SetLabels(labels)
+
+	// Also set the labels in .spec.template.labels so that they are propagated to
+	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
+	// Note: the labels in MachineSet are used to properly cleanup templates when the MachineSet is deleted.
+	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
+	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
 
 	// Set the desired replicas.
 	desiredMachineDeploymentObj.Spec.Replicas = machineDeploymentTopology.Replicas

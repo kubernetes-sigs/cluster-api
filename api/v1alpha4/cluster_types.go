@@ -83,6 +83,7 @@ type Topology struct {
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
 	// ControlPlane describes the cluster control plane.
+	// +optional
 	ControlPlane ControlPlaneTopology `json:"controlPlane"`
 
 	// Workers encapsulates the different constructs that form the worker nodes

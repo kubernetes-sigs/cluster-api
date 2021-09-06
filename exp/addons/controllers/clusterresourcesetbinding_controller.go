@@ -42,7 +42,7 @@ type ClusterResourceSetBindingReconciler struct {
 }
 
 func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	_, err := ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSetBinding{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
@@ -50,7 +50,7 @@ func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Conte
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

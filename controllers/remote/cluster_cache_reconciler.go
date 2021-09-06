@@ -40,11 +40,11 @@ type ClusterCacheReconciler struct {
 }
 
 func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	_, err := ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Complete(r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

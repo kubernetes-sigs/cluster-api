@@ -241,6 +241,14 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 		currentObjectRef:      currentBootstrapTemplateRef,
 	})
 
+	bootstrapTemplateLabels := desiredMachineDeployment.BootstrapTemplate.GetLabels()
+	if bootstrapTemplateLabels == nil {
+		bootstrapTemplateLabels = map[string]string{}
+	}
+	// Add ClusterTopologyMachineDeploymentLabel to the generated Bootstrap template
+	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	desiredMachineDeployment.BootstrapTemplate.SetLabels(bootstrapTemplateLabels)
+
 	// Compute the Infrastructure template.
 	var currentInfraMachineTemplateRef *corev1.ObjectReference
 	if currentMachineDeployment != nil && currentMachineDeployment.InfrastructureMachineTemplate != nil {
@@ -253,6 +261,14 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 		namePrefix:            infrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
 		currentObjectRef:      currentInfraMachineTemplateRef,
 	})
+
+	infraMachineTemplateLabels := desiredMachineDeployment.InfrastructureMachineTemplate.GetLabels()
+	if infraMachineTemplateLabels == nil {
+		infraMachineTemplateLabels = map[string]string{}
+	}
+	// Add ClusterTopologyMachineDeploymentLabel to the generated InfrastructureMachine template
+	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	desiredMachineDeployment.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
 
 	// Compute the MachineDeployment object.
 	gv := clusterv1.GroupVersion

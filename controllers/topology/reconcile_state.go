@@ -51,7 +51,7 @@ func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) 
 		return err
 	}
 
-	// Reconcile desired state of the InfrastructureCluster object.
+	// Reconcile desired state of the Cluster object.
 	if err := r.reconcileCluster(ctx, s); err != nil {
 		return err
 	}

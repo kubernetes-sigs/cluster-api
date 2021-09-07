@@ -40,6 +40,11 @@ type QuickStartSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
+
+	// Flavor, if specified is the template flavor used to create the cluster for testing.
+	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
+	// otherwise the default flavor is used.
+	Flavor *string
 }
 
 // QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
@@ -72,9 +77,9 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 	It("Should create a workload cluster", func() {
 		By("Creating a workload cluster")
 
-		flavor := clusterctl.DefaultFlavor
+		defaultFlavor := clusterctl.DefaultFlavor
 		if input.E2EConfig.GetVariable(IPFamily) == "IPv6" {
-			flavor = "ipv6"
+			defaultFlavor = "ipv6"
 		}
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -84,7 +89,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   flavor,
+				Flavor:                   pointer.StringDeref(input.Flavor, defaultFlavor),
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),

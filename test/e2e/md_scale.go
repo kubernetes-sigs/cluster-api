@@ -39,6 +39,7 @@ type MachineDeploymentScaleSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
+	Flavor                string
 }
 
 // MachineDeploymentScaleSpec implements a test that verifies that MachineDeployment scale operations are successful.
@@ -68,6 +69,7 @@ func MachineDeploymentScaleSpec(ctx context.Context, inputGetter func() MachineD
 
 	It("Should successfully scale a MachineDeployment up and down upon changes to the MachineDeployment replica count", func() {
 		By("Creating a workload cluster")
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -75,7 +77,7 @@ func MachineDeploymentScaleSpec(ctx context.Context, inputGetter func() MachineD
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   clusterctl.DefaultFlavor,
+				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),

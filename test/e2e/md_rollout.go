@@ -40,6 +40,7 @@ type MachineDeploymentRolloutSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
+	Flavor                string
 }
 
 // MachineDeploymentRolloutSpec implements a test that verifies that MachineDeployment rolling updates are successful.
@@ -78,7 +79,7 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   clusterctl.DefaultFlavor,
+				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),

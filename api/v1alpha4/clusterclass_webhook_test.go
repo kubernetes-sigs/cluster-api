@@ -215,6 +215,18 @@ func TestClusterClassValidation(t *testing.T) {
 		Namespace:  "default",
 		Kind:       "barTemplate",
 	}
+	incompatibleRef := &corev1.ObjectReference{
+		APIVersion: "group.test.io/foo",
+		Kind:       "another-barTemplate",
+		Name:       "baz",
+		Namespace:  "default",
+	}
+	compatibleRef := &corev1.ObjectReference{
+		APIVersion: "group.test.io/another-foo",
+		Kind:       "barTemplate",
+		Name:       "another-baz",
+		Namespace:  "default",
+	}
 
 	tests := []struct {
 		name      string
@@ -892,7 +904,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name: "update fails if infrastructure changes",
+			name: "update pass if infrastructure changes in a compatible way",
 			old: &ClusterClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
@@ -921,12 +933,57 @@ func TestClusterClassValidation(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: ClusterClassSpec{
-					Infrastructure: LocalObjectTemplate{Ref: &corev1.ObjectReference{
-						APIVersion: "foox",
-						Kind:       "barx",
-						Name:       "bazx",
-						Namespace:  "default",
-					}},
+					Infrastructure: LocalObjectTemplate{Ref: compatibleRef},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
+					Workers: WorkersClass{
+						MachineDeployments: []MachineDeploymentClass{
+							{
+								Class: "aa",
+								Template: MachineDeploymentClassTemplate{
+									Metadata:       ObjectMeta{},
+									Bootstrap:      LocalObjectTemplate{Ref: ref},
+									Infrastructure: LocalObjectTemplate{Ref: ref},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "update fails if infrastructure changes in an incompatible way",
+			old: &ClusterClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: ClusterClassSpec{
+					Infrastructure: LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
+					Workers: WorkersClass{
+						MachineDeployments: []MachineDeploymentClass{
+							{
+								Class: "aa",
+								Template: MachineDeploymentClassTemplate{
+									Metadata:       ObjectMeta{},
+									Bootstrap:      LocalObjectTemplate{Ref: ref},
+									Infrastructure: LocalObjectTemplate{Ref: ref},
+								},
+							},
+						},
+					},
+				},
+			},
+			in: &ClusterClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: ClusterClassSpec{
+					Infrastructure: LocalObjectTemplate{Ref: incompatibleRef},
 					ControlPlane: ControlPlaneClass{
 						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
 					},
@@ -947,7 +1004,63 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "update fails if controlPlane changes",
+			name: "update pass if controlPlane changes in a compatible way",
+			old: &ClusterClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: ClusterClassSpec{
+					Infrastructure: LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate:   LocalObjectTemplate{Ref: ref},
+						MachineInfrastructure: &LocalObjectTemplate{Ref: ref},
+					},
+					Workers: WorkersClass{
+						MachineDeployments: []MachineDeploymentClass{
+							{
+								Class: "aa",
+								Template: MachineDeploymentClassTemplate{
+									Metadata:       ObjectMeta{},
+									Bootstrap:      LocalObjectTemplate{Ref: ref},
+									Infrastructure: LocalObjectTemplate{Ref: ref},
+								},
+							},
+						},
+					},
+				},
+			},
+			in: &ClusterClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: ClusterClassSpec{
+					Infrastructure: LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						Metadata: ObjectMeta{
+							Labels:      map[string]string{"foo": "bar"},
+							Annotations: map[string]string{"foo": "bar"},
+						},
+						LocalObjectTemplate:   LocalObjectTemplate{Ref: compatibleRef},
+						MachineInfrastructure: &LocalObjectTemplate{Ref: compatibleRef},
+					},
+					Workers: WorkersClass{
+						MachineDeployments: []MachineDeploymentClass{
+							{
+								Class: "aa",
+								Template: MachineDeploymentClassTemplate{
+									Metadata:       ObjectMeta{},
+									Bootstrap:      LocalObjectTemplate{Ref: ref},
+									Infrastructure: LocalObjectTemplate{Ref: ref},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "update fails if controlPlane changes in an incompatible way (control plane template)",
 			old: &ClusterClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
@@ -978,12 +1091,7 @@ func TestClusterClassValidation(t *testing.T) {
 				Spec: ClusterClassSpec{
 					Infrastructure: LocalObjectTemplate{Ref: ref},
 					ControlPlane: ControlPlaneClass{
-						LocalObjectTemplate: LocalObjectTemplate{Ref: &corev1.ObjectReference{
-							APIVersion: "foox",
-							Kind:       "barx",
-							Name:       "bazx",
-							Namespace:  "default",
-						}},
+						LocalObjectTemplate: LocalObjectTemplate{Ref: incompatibleRef},
 					},
 					Workers: WorkersClass{
 						MachineDeployments: []MachineDeploymentClass{
@@ -1002,7 +1110,59 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "update fails a machine deployment changes",
+			name: "update fails if controlPlane changes in an incompatible way (control plane infrastructure machine template)",
+			old: &ClusterClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: ClusterClassSpec{
+					Infrastructure: LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate:   LocalObjectTemplate{Ref: ref},
+						MachineInfrastructure: &LocalObjectTemplate{Ref: ref},
+					},
+					Workers: WorkersClass{
+						MachineDeployments: []MachineDeploymentClass{
+							{
+								Class: "aa",
+								Template: MachineDeploymentClassTemplate{
+									Metadata:       ObjectMeta{},
+									Bootstrap:      LocalObjectTemplate{Ref: ref},
+									Infrastructure: LocalObjectTemplate{Ref: ref},
+								},
+							},
+						},
+					},
+				},
+			},
+			in: &ClusterClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: ClusterClassSpec{
+					Infrastructure: LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate:   LocalObjectTemplate{Ref: ref},
+						MachineInfrastructure: &LocalObjectTemplate{Ref: incompatibleRef},
+					},
+					Workers: WorkersClass{
+						MachineDeployments: []MachineDeploymentClass{
+							{
+								Class: "aa",
+								Template: MachineDeploymentClassTemplate{
+									Metadata:       ObjectMeta{},
+									Bootstrap:      LocalObjectTemplate{Ref: ref},
+									Infrastructure: LocalObjectTemplate{Ref: ref},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "update pass if a machine deployment changes in a compatible way",
 			old: &ClusterClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
@@ -1040,14 +1200,62 @@ func TestClusterClassValidation(t *testing.T) {
 							{
 								Class: "aa",
 								Template: MachineDeploymentClassTemplate{
-									Metadata: ObjectMeta{},
-									Bootstrap: LocalObjectTemplate{Ref: &corev1.ObjectReference{
-										APIVersion: "foox",
-										Kind:       "barx",
-										Name:       "bazx",
-										Namespace:  "default",
-									}},
+									Metadata: ObjectMeta{
+										Labels:      map[string]string{"foo": "bar"},
+										Annotations: map[string]string{"foo": "bar"},
+									},
+									Bootstrap:      LocalObjectTemplate{Ref: incompatibleRef}, // NOTE: this should be tolerated
+									Infrastructure: LocalObjectTemplate{Ref: compatibleRef},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "update fails a machine deployment changes in an incompatible way",
+			old: &ClusterClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: ClusterClassSpec{
+					Infrastructure: LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
+					Workers: WorkersClass{
+						MachineDeployments: []MachineDeploymentClass{
+							{
+								Class: "aa",
+								Template: MachineDeploymentClassTemplate{
+									Metadata:       ObjectMeta{},
+									Bootstrap:      LocalObjectTemplate{Ref: ref},
 									Infrastructure: LocalObjectTemplate{Ref: ref},
+								},
+							},
+						},
+					},
+				},
+			},
+			in: &ClusterClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: ClusterClassSpec{
+					Infrastructure: LocalObjectTemplate{Ref: ref},
+					ControlPlane: ControlPlaneClass{
+						LocalObjectTemplate: LocalObjectTemplate{Ref: ref},
+					},
+					Workers: WorkersClass{
+						MachineDeployments: []MachineDeploymentClass{
+							{
+								Class: "aa",
+								Template: MachineDeploymentClassTemplate{
+									Metadata:       ObjectMeta{},
+									Bootstrap:      LocalObjectTemplate{Ref: ref},
+									Infrastructure: LocalObjectTemplate{Ref: incompatibleRef},
 								},
 							},
 						},

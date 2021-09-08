@@ -324,6 +324,7 @@ type LocalObjectTemplate struct {
   - all the reference must be in the same namespace of `metadata.Namespace`
   - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
   - `spec.workers.machineDeployments` supports adding new deployment classes.
+  - changes should be compliant with the compatibility rules defined in this doc. 
 
 ##### Cluster
 - For object creation:

@@ -201,7 +201,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 	log := loggerFrom(ctx).WithMachineDeployment(desiredMD.Object)
 
 	ctx, _ = log.WithObject(desiredMD.InfrastructureMachineTemplate).Into(ctx)
-	cleanupOldInfrastructureTemplate, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+	_, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
 		ref:     &desiredMD.Object.Spec.Template.Spec.InfrastructureRef,
 		current: currentMD.InfrastructureMachineTemplate,
 		desired: desiredMD.InfrastructureMachineTemplate,
@@ -215,7 +215,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 	}
 
 	ctx, _ = log.WithObject(desiredMD.BootstrapTemplate).Into(ctx)
-	cleanupOldBootstrapTemplate, err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+	_, err = r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
 		ref:     desiredMD.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
 		current: currentMD.BootstrapTemplate,
 		desired: desiredMD.BootstrapTemplate,
@@ -236,7 +236,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 	}
 	if !patchHelper.HasChanges() {
 		log.V(3).Infof("No changes for %s", KRef{Obj: currentMD.Object})
-		return kerrors.NewAggregate([]error{cleanupOldInfrastructureTemplate(), cleanupOldBootstrapTemplate()})
+		return nil
 	}
 
 	log.Infof("Patching %s", KRef{Obj: currentMD.Object})
@@ -245,7 +245,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 	}
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
-	return kerrors.NewAggregate([]error{cleanupOldInfrastructureTemplate(), cleanupOldBootstrapTemplate()})
+	return nil
 }
 
 // deleteMachineDeployment deletes a MachineDeployment.
@@ -380,7 +380,7 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 	newName := names.SimpleNameGenerator.GenerateName(in.templateNamer())
 	in.desired.SetName(newName)
 
-	log.Infof("Rotating %s, new name %s", KRef{Obj: in.desired}, newName)
+	log.Infof("Rotating %s, new name %s", KRef{Obj: in.current}, newName)
 	log.Infof("Creating %s", KRef{Obj: in.desired})
 	if err := r.Client.Create(ctx, in.desired.DeepCopy()); err != nil {
 		return nil, errors.Wrapf(err, "failed to create %s/%s", in.desired.GroupVersionKind(), in.desired.GetName())

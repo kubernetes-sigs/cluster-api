@@ -18,7 +18,6 @@ package v1alpha4
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -112,24 +111,24 @@ func (in *ClusterClass) validate(old *ClusterClass) error {
 	return nil
 }
 
-func (in ClusterClass) validateAllRefs() field.ErrorList {
+func (in *ClusterClass) validateAllRefs() field.ErrorList {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, in.Spec.Infrastructure.validate(in.Namespace, field.NewPath("spec", "infrastructure"))...)
-	allErrs = append(allErrs, in.Spec.ControlPlane.LocalObjectTemplate.validate(in.Namespace, field.NewPath("spec", "controlPlane"))...)
+	allErrs = append(allErrs, in.Spec.Infrastructure.isValid(in.Namespace, field.NewPath("spec", "infrastructure"))...)
+	allErrs = append(allErrs, in.Spec.ControlPlane.LocalObjectTemplate.isValid(in.Namespace, field.NewPath("spec", "controlPlane"))...)
 	if in.Spec.ControlPlane.MachineInfrastructure != nil {
-		allErrs = append(allErrs, in.Spec.ControlPlane.MachineInfrastructure.validate(in.Namespace, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
+		allErrs = append(allErrs, in.Spec.ControlPlane.MachineInfrastructure.isValid(in.Namespace, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
 	}
 
 	for i, class := range in.Spec.Workers.MachineDeployments {
-		allErrs = append(allErrs, class.Template.Bootstrap.validate(in.Namespace, field.NewPath("spec", "workers", fmt.Sprintf("machineDeployments[%v]", i), "template", "bootstrap"))...)
-		allErrs = append(allErrs, class.Template.Infrastructure.validate(in.Namespace, field.NewPath("spec", "workers", fmt.Sprintf("machineDeployments[%v]", i), "template", "infrastructure"))...)
+		allErrs = append(allErrs, class.Template.Bootstrap.isValid(in.Namespace, field.NewPath("spec", "workers", fmt.Sprintf("machineDeployments[%v]", i), "template", "bootstrap"))...)
+		allErrs = append(allErrs, class.Template.Infrastructure.isValid(in.Namespace, field.NewPath("spec", "workers", fmt.Sprintf("machineDeployments[%v]", i), "template", "infrastructure"))...)
 	}
 
 	return allErrs
 }
 
-func (in ClusterClass) validateCompatibleSpecChanges(old *ClusterClass) field.ErrorList {
+func (in *ClusterClass) validateCompatibleSpecChanges(old *ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// in case of create, no changes to verify
@@ -138,33 +137,32 @@ func (in ClusterClass) validateCompatibleSpecChanges(old *ClusterClass) field.Er
 		return nil
 	}
 
-	// Ensure that the old MachineDeployments still exist.
-	allErrs = append(allErrs, in.validateMachineDeploymentsChanges(old)...)
+	// Validate changes to MachineDeployments.
+	allErrs = append(allErrs, in.validateMachineDeploymentsCompatibleChanges(old)...)
 
-	if !reflect.DeepEqual(in.Spec.Infrastructure, old.Spec.Infrastructure) {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "infrastructure"),
-				in.Spec.Infrastructure,
-				"cannot be changed.",
-			),
-		)
-	}
+	// Validate InfrastructureClusterTemplate changes in a compatible way.
+	allErrs = append(allErrs, in.Spec.Infrastructure.isCompatibleWith(
+		old.Spec.Infrastructure,
+		field.NewPath("spec", "infrastructure"),
+	)...)
 
-	if !reflect.DeepEqual(in.Spec.ControlPlane, old.Spec.ControlPlane) {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "controlPlane"),
-				in.Spec.Infrastructure,
-				"cannot be changed.",
-			),
-		)
+	// Validate control plane changes in a compatible way.
+	allErrs = append(allErrs, in.Spec.ControlPlane.LocalObjectTemplate.isCompatibleWith(
+		old.Spec.ControlPlane.LocalObjectTemplate,
+		field.NewPath("spec", "controlPlane"),
+	)...)
+
+	if in.Spec.ControlPlane.MachineInfrastructure != nil && old.Spec.ControlPlane.MachineInfrastructure != nil {
+		allErrs = append(allErrs, in.Spec.ControlPlane.MachineInfrastructure.isCompatibleWith(
+			*old.Spec.ControlPlane.MachineInfrastructure,
+			field.NewPath("spec", "controlPlane", "machineInfrastructure"),
+		)...)
 	}
 
 	return allErrs
 }
 
-func (in ClusterClass) validateMachineDeploymentsChanges(old *ClusterClass) field.ErrorList {
+func (in *ClusterClass) validateMachineDeploymentsCompatibleChanges(old *ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// Ensure no MachineDeployment class was removed.
@@ -181,17 +179,18 @@ func (in ClusterClass) validateMachineDeploymentsChanges(old *ClusterClass) fiel
 		}
 	}
 
-	// Ensure no previous MachineDeployment class was modified.
-	for _, class := range in.Spec.Workers.MachineDeployments {
+	// Ensure previous MachineDeployment class was modified in a compatible way.
+	for i, class := range in.Spec.Workers.MachineDeployments {
 		for _, oldClass := range old.Spec.Workers.MachineDeployments {
-			if class.Class == oldClass.Class && !reflect.DeepEqual(class, oldClass) {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "workers", "machineDeployments"),
-						class,
-						"cannot be changed.",
-					),
-				)
+			if class.Class == oldClass.Class {
+				// NOTE: class.Template.Metadata and class.Template.Bootstrap are allowed to change;
+				// class.Template.Bootstrap are ensured syntactically correct by validateAllRefs.
+
+				// Validates class.Template.Infrastructure template changes in a compatible way
+				allErrs = append(allErrs, class.Template.Infrastructure.isCompatibleWith(
+					oldClass.Template.Infrastructure,
+					field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"),
+				)...)
 			}
 		}
 	}
@@ -199,7 +198,7 @@ func (in ClusterClass) validateMachineDeploymentsChanges(old *ClusterClass) fiel
 	return allErrs
 }
 
-func (r LocalObjectTemplate) validate(namespace string, pathPrefix *field.Path) field.ErrorList {
+func (r *LocalObjectTemplate) isValid(namespace string, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// check if ref is not nil.
@@ -261,7 +260,68 @@ func (r LocalObjectTemplate) validate(namespace string, pathPrefix *field.Path) 
 			field.Invalid(
 				pathPrefix.Child("ref", "apiVersion"),
 				r.Ref.APIVersion,
-				"cannot be empty",
+				"value cannot be empty",
+			),
+		)
+	}
+
+	return allErrs
+}
+
+// isCompatibleWith checks if a reference is compatible with the old one.
+// NOTE: this func assumes that r.isValid() is called before, thus both ref are defined and syntactically valid;
+// also namespace are enforced to be the same of the ClusterClass.
+func (r *LocalObjectTemplate) isCompatibleWith(old LocalObjectTemplate, pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Check for nil Ref here to avoid panic.
+	if r.Ref == nil || old.Ref == nil {
+		return allErrs
+	}
+
+	// Ensure that the API Group and Kind does not change, while instead we allow version to change.
+	// TODO: In the future we might want to relax this requirement with some sort of opt-in behavior (e.g. annotation).
+
+	gv, err := schema.ParseGroupVersion(r.Ref.APIVersion)
+	if err != nil {
+		// NOTE this should never happen.
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "apiVersion"),
+				r.Ref.APIVersion,
+				fmt.Sprintf("must be a valid apiVersion: %v", err),
+			),
+		)
+	}
+
+	oldGV, err := schema.ParseGroupVersion(old.Ref.APIVersion)
+	if err != nil {
+		// NOTE this should never happen.
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "apiVersion"),
+				old.Ref.APIVersion,
+				fmt.Sprintf("must be a valid apiVersion: %v", err),
+			),
+		)
+	}
+
+	if gv.Group != oldGV.Group {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "apiVersion"),
+				r.Ref.APIVersion,
+				"apiGroup cannot be changed",
+			),
+		)
+	}
+
+	if r.Ref.Kind != old.Ref.Kind {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "kind"),
+				r.Ref.Kind,
+				"value cannot be changed",
 			),
 		)
 	}
@@ -270,7 +330,7 @@ func (r LocalObjectTemplate) validate(namespace string, pathPrefix *field.Path) 
 }
 
 // classNames returns the set of MachineDeployment class names.
-func (w WorkersClass) classNames() sets.String {
+func (w *WorkersClass) classNames() sets.String {
 	classes := sets.NewString()
 	for _, class := range w.MachineDeployments {
 		classes.Insert(class.Class)
@@ -278,7 +338,7 @@ func (w WorkersClass) classNames() sets.String {
 	return classes
 }
 
-func (w WorkersClass) validateUniqueClasses(pathPrefix *field.Path) field.ErrorList {
+func (w *WorkersClass) validateUniqueClasses(pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	classes := sets.NewString()

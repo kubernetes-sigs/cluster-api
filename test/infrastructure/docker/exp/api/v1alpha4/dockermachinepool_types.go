@@ -28,7 +28,7 @@ const (
 	MachinePoolFinalizer = "dockermachinepool.infrastructure.cluster.x-k8s.io"
 )
 
-// DockerMachineTemplate defines the desired state of DockerMachine.
+// DockerMachinePoolTemplate defines the desired state of DockerMachine.
 type DockerMachinePoolTemplate struct {
 	// CustomImage allows customizing the container image that is used for
 	// running the machine

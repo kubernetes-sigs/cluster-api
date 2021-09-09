@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestGetTemplate(t *testing.T) {
+func TestGetReference(t *testing.T) {
 	fakeControlPlaneTemplateCRDv99 := testtypes.GenericControlPlaneTemplateCRD.DeepCopy()
 	fakeControlPlaneTemplateCRDv99.Labels = map[string]string{
 		"cluster.x-k8s.io/v1alpha4": "v1alpha4_v99",

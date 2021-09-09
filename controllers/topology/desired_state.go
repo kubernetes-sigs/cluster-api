@@ -29,6 +29,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
+	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 )
 
@@ -224,7 +225,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	className := machineDeploymentTopology.Class
 	machineDeploymentBlueprint, ok := s.Blueprint.MachineDeployments[className]
 	if !ok {
-		return nil, errors.Errorf("MachineDeployment blueprint %s not found in ClusterClass %s", className, s.Blueprint.ClusterClass.Name)
+		return nil, errors.Errorf("MachineDeployment class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
 	}
 
 	// Compute the boostrap template.

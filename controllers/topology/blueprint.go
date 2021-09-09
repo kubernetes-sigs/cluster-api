@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,7 +41,7 @@ func (r *ClusterReconciler) getBlueprint(ctx context.Context, cluster *clusterv1
 	// Get ClusterClass.
 	key := client.ObjectKey{Name: cluster.Spec.Topology.Class, Namespace: cluster.Namespace}
 	if err := r.Client.Get(ctx, key, blueprint.ClusterClass); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve ClusterClass %q", cluster.Spec.Topology.Class)
+		return nil, errors.Wrapf(err, "failed to retrieve ClusterClass/%s", cluster.Spec.Topology.Class)
 	}
 
 	// We use the patchHelper to patch potential changes to the ObjectReferences in ClusterClass.
@@ -53,7 +54,7 @@ func (r *ClusterReconciler) getBlueprint(ctx context.Context, cluster *clusterv1
 		if err := patchHelper.Patch(ctx, blueprint.ClusterClass); err != nil {
 			reterr = kerrors.NewAggregate([]error{
 				reterr,
-				errors.Wrapf(err, "failed to patch ClusterClass %q", blueprint.ClusterClass.Name)},
+				errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: blueprint.ClusterClass})},
 			)
 		}
 	}()
@@ -61,21 +62,21 @@ func (r *ClusterReconciler) getBlueprint(ctx context.Context, cluster *clusterv1
 	// Get ClusterClass.spec.infrastructure.
 	blueprint.InfrastructureClusterTemplate, err = r.getReference(ctx, blueprint.ClusterClass.Spec.Infrastructure.Ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get infrastructure cluster template for ClusterClass %q", blueprint.ClusterClass.Name)
+		return nil, errors.Wrapf(err, "failed to get infrastructure cluster template for %s", tlog.KObj{Obj: blueprint.ClusterClass})
 	}
 
 	// Get ClusterClass.spec.controlPlane.
 	blueprint.ControlPlane = &scope.ControlPlaneBlueprint{}
 	blueprint.ControlPlane.Template, err = r.getReference(ctx, blueprint.ClusterClass.Spec.ControlPlane.Ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get control plane template for ClusterClass %q", blueprint.ClusterClass.Name)
+		return nil, errors.Wrapf(err, "failed to get control plane template for %s", tlog.KObj{Obj: blueprint.ClusterClass})
 	}
 
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, read it.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
 		blueprint.ControlPlane.InfrastructureMachineTemplate, err = r.getReference(ctx, blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get control plane's machine template for ClusterClass %q", blueprint.ClusterClass.Name)
+			return nil, errors.Wrapf(err, "failed to get control plane's machine template for %s", tlog.KObj{Obj: blueprint.ClusterClass})
 		}
 	}
 
@@ -92,13 +93,13 @@ func (r *ClusterReconciler) getBlueprint(ctx context.Context, cluster *clusterv1
 		// Get the infrastructure machine template.
 		machineDeploymentBlueprint.InfrastructureMachineTemplate, err = r.getReference(ctx, machineDeploymentClass.Template.Infrastructure.Ref)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get infrastructure machine template for ClusterClass %q, MachineDeployment class %q", blueprint.ClusterClass.Name, machineDeploymentClass.Class)
+			return nil, errors.Wrapf(err, "failed to get infrastructure machine template for %s, MachineDeployment class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machineDeploymentClass.Class)
 		}
 
 		// Get the bootstrap machine template.
 		machineDeploymentBlueprint.BootstrapTemplate, err = r.getReference(ctx, machineDeploymentClass.Template.Bootstrap.Ref)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get bootstrap machine template for ClusterClass %q, MachineDeployment class %q", blueprint.ClusterClass.Name, machineDeploymentClass.Class)
+			return nil, errors.Wrapf(err, "failed to get bootstrap machine template for %s, MachineDeployment class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machineDeploymentClass.Class)
 		}
 
 		blueprint.MachineDeployments[machineDeploymentClass.Class] = machineDeploymentBlueprint

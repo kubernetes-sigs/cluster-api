@@ -24,6 +24,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
@@ -392,6 +393,7 @@ func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) b
 }
 
 // FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template).
+// Deprecated: this does not for rolloutAfter. Use FindNewMachineSetWithRolloutAfter.
 func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) *clusterv1.MachineSet {
 	sort.Sort(MachineSetsByCreationTimestamp(msList))
 	for i := range msList {
@@ -403,14 +405,57 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 			return msList[i]
 		}
 	}
-	// new MachineSet does not exist.
+	// New MachineSet does not exist.
 	return nil
+}
+
+// FindNewMachineSetWithRolloutAfter is as FindNewMachineSet but it also accounts for RolloutAfter.
+func FindNewMachineSetWithRolloutAfter(now *metav1.Time, deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+	// In rare cases, such as after cluster upgrades, Deployment may end up with
+	// having more than one new MachineSets that have the same template,
+	// see https://github.com/kubernetes/kubernetes/issues/40415
+	// We deterministically choose the oldest new MachineSet with matching template hash.
+	sort.Sort(MachineSetsByCreationTimestamp(msList))
+
+	if deployment.Spec.RolloutAfter != nil {
+		if now.After(deployment.Spec.RolloutAfter.Time) {
+			// TODO (alberto): inlining the format statement within the annotation assigment here
+			// does not set the value. Why?
+			lastRolloutAfter := deployment.Spec.RolloutAfter.Time.UTC().Format(time.RFC3339)
+			deployment.Annotations[clusterv1.LastRolloutAfterAnnotation] = lastRolloutAfter
+		}
+	}
+
+	for i := range msList {
+		if EqualMachineTemplate(&msList[i].Spec.Template, &deployment.Spec.Template) {
+			// If a rolloutAfter should happen or has already happened
+			// we pick the oldest one with creationTimestamp after rolloutAfter.
+			if lastRolloutAfter, ok := deployment.Annotations[clusterv1.LastRolloutAfterAnnotation]; ok {
+				created := msList[i].CreationTimestamp
+				t, err := time.Parse(time.RFC3339, lastRolloutAfter)
+				if err != nil {
+					return nil, err
+				}
+				if created.After(t) {
+					return msList[i], nil
+				}
+				continue
+			}
+
+			// If a rolloutAfter never took place just pick the oldest one.
+			return msList[i], nil
+		}
+	}
+
+	// New MachineSet does not exist.
+	return nil, nil
 }
 
 // FindOldMachineSets returns the old machine sets targeted by the given Deployment, with the given slice of MSes.
 // Returns two list of machine sets
 //  - the first contains all old machine sets with all non-zero replicas
 //  - the second contains all old machine sets
+// Deprecated: this does not for rolloutAfter. Use FindOldMachineSetsWithRolloutAfter.
 func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
 	var requiredMSs []*clusterv1.MachineSet
 	allMSs := make([]*clusterv1.MachineSet, 0, len(msList))
@@ -426,6 +471,28 @@ func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clust
 		}
 	}
 	return requiredMSs, allMSs
+}
+
+// FindOldMachineSetsWithRolloutAfter is as FindOldMachineSets but also accounts for rolloutAfter.
+func FindOldMachineSetsWithRolloutAfter(now *metav1.Time, deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
+	var requiredMSs []*clusterv1.MachineSet
+	allMSs := make([]*clusterv1.MachineSet, 0, len(msList))
+	newMS, err := FindNewMachineSetWithRolloutAfter(now, deployment, msList)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, ms := range msList {
+		// Filter out new machine set
+		if newMS != nil && ms.UID == newMS.UID {
+			continue
+		}
+		allMSs = append(allMSs, ms)
+		if *(ms.Spec.Replicas) != 0 {
+			requiredMSs = append(requiredMSs, ms)
+		}
+	}
+	return requiredMSs, allMSs, nil
 }
 
 // GetReplicaCountForMachineSets returns the sum of Replicas of the given machine sets.

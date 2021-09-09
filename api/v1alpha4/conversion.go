@@ -19,6 +19,7 @@ package v1alpha4
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -121,14 +122,38 @@ func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.MachineDeployment)
 
-	return Convert_v1alpha4_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil)
+	if err := Convert_v1alpha4_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1beta1.MachineDeployment{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.RolloutAfter != nil {
+		dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
+	}
+
+	return nil
 }
 
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.MachineDeployment)
 
-	return Convert_v1beta1_MachineDeployment_To_v1alpha4_MachineDeployment(src, dst, nil)
+	if err := Convert_v1beta1_MachineDeployment_To_v1alpha4_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
+
 
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.MachineDeploymentList)
@@ -169,4 +194,8 @@ func (dst *MachineHealthCheckList) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *v1beta1.MachineStatus, s apiconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
 	return autoConvert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
+}
+
+func Convert_v1beta1_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec(in *v1beta1.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec(in, out, s)
 }

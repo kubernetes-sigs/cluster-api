@@ -191,6 +191,10 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Strategy.RollingUpdate.DeletePolicy = restored.Spec.Strategy.RollingUpdate.DeletePolicy
 	}
 
+	if restored.Spec.RolloutAfter != nil {
+		dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
+	}
+
 	dst.Status.Conditions = restored.Status.Conditions
 	return nil
 }
@@ -311,4 +315,8 @@ func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus
 func Convert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *v1beta1.MachineStatus, s apiconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
 	return autoConvert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
+}
+
+func Convert_v1beta1_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in *v1beta1.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in, out, s)
 }

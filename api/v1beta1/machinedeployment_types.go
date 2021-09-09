@@ -57,6 +57,9 @@ const (
 	// MachineDeploymentUniqueLabel is the label applied to Machines
 	// in a MachineDeployment containing the hash of the template.
 	MachineDeploymentUniqueLabel = "machine-template-hash"
+
+	// LastRolloutAfterAnnotation is the last MachineDeployment.Spec.RolloutAfter that was met.
+	LastRolloutAfterAnnotation = "machinedeployment.clusters.x-k8s.io/lastRollout"
 )
 
 // ANCHOR: MachineDeploymentSpec
@@ -66,6 +69,13 @@ type MachineDeploymentSpec struct {
 	// ClusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
+
+	// RolloutAfter performs a rollout of the MachineDeployment
+	// the first reconciliation loop where the given time is before now().
+	// After that moment the field has no effect until it's updated with a new time.
+	// Any changes to other fields of the spec are not affected by this field and will be rolled out as normal.
+	// +optional
+	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
 	// Number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.

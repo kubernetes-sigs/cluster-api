@@ -33,6 +33,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const (
+	hashValue          = "hash"
+	differentHashValue = "different-hash"
+)
+
 func newDControllerRef(d *clusterv1.MachineDeployment) *metav1.OwnerReference {
 	isController := true
 	return &metav1.OwnerReference{
@@ -272,11 +277,11 @@ func TestFindNewMachineSet(t *testing.T) {
 
 	deployment := generateDeployment("nginx")
 	newMS := generateMS(deployment)
-	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = "hash"
+	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
 	newMS.CreationTimestamp = later
 
 	newMSDup := generateMS(deployment)
-	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = "different-hash"
+	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = differentHashValue
 	newMSDup.CreationTimestamp = now
 
 	oldDeployment := generateDeployment("nginx")
@@ -322,6 +327,131 @@ func TestFindNewMachineSet(t *testing.T) {
 	}
 }
 
+func TestFindNewMachineSetWithRolloutAfter(t *testing.T) {
+	now := metav1.Now()
+	later := metav1.Time{Time: now.Add(time.Minute)}
+
+	// Cases when a rolloutAfter never took place and is not required.
+	deployment := generateDeployment("nginx")
+	rolloutAfter := metav1.Time{Time: now.Add(1 * time.Hour)}
+	deployment.Spec.RolloutAfter = &rolloutAfter
+	newMS := generateMS(deployment)
+	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
+	newMS.CreationTimestamp = later
+
+	newMSDup := generateMS(deployment)
+	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = differentHashValue
+	newMSDup.CreationTimestamp = now
+
+	oldDeployment := generateDeployment("nginx")
+	oldMS := generateMS(oldDeployment)
+	oldMS.Spec.Template.Annotations = map[string]string{
+		"old": "true",
+	}
+	oldMS.Status.FullyLabeledReplicas = *(oldMS.Spec.Replicas)
+
+	// Cases when rolloutAfter is required.
+	rolloutAfter = metav1.Time{Time: now.Add(-1 * time.Second)}
+	deploymentNeedRolloutAfter := generateDeployment("nginx")
+	deploymentNeedRolloutAfter.Spec.RolloutAfter = &rolloutAfter
+	machineSetBeforeRolloutAfter := generateMS(deployment)
+	machineSetBeforeRolloutAfter.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
+	machineSetBeforeRolloutAfter.CreationTimestamp = metav1.Time{
+		Time: deploymentNeedRolloutAfter.Spec.RolloutAfter.Add(-2 * time.Minute),
+	}
+
+	machineSetAfterRolloutAfter := generateMS(deployment)
+	machineSetAfterRolloutAfter.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
+	machineSetAfterRolloutAfter.CreationTimestamp = metav1.Time{
+		Time: deploymentNeedRolloutAfter.Spec.RolloutAfter.Add(2 * time.Minute),
+	}
+
+	oldestMachineSetAfterRolloutAfter := generateMS(deployment)
+	oldestMachineSetAfterRolloutAfter.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
+	oldestMachineSetAfterRolloutAfter.CreationTimestamp = metav1.Time{
+		Time: deploymentNeedRolloutAfter.Spec.RolloutAfter.Add(1 * time.Minute),
+	}
+
+	// Cases with when a previous rolloutAfter already took place and rolloutAfter is not required.
+	nextRolloutAfter := metav1.Time{Time: now.Add(1 * time.Hour)}
+	lastRolloutAfter := metav1.Time{Time: now.Add(-1 * time.Hour)}
+	deploymentRolloutAfterHappened := generateDeployment("nginx")
+	deploymentRolloutAfterHappened.Spec.RolloutAfter = &nextRolloutAfter
+	deploymentRolloutAfterHappened.Annotations[clusterv1.LastRolloutAfterAnnotation] = lastRolloutAfter.Format(time.RFC3339)
+
+	machineSetBeforeLastRolloutAfter := generateMS(deployment)
+	machineSetBeforeLastRolloutAfter.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
+	machineSetBeforeLastRolloutAfter.CreationTimestamp = metav1.Time{
+		Time: lastRolloutAfter.Add(-1 * time.Minute),
+	}
+
+	machineSetAfterLastRolloutAfter := generateMS(deployment)
+	machineSetAfterLastRolloutAfter.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
+	machineSetAfterLastRolloutAfter.CreationTimestamp = metav1.Time{
+		Time: lastRolloutAfter.Add(2 * time.Minute),
+	}
+
+	oldestMachineSetAfterLastRolloutAfter := generateMS(deployment)
+	oldestMachineSetAfterLastRolloutAfter.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
+	oldestMachineSetAfterLastRolloutAfter.CreationTimestamp = metav1.Time{
+		Time: lastRolloutAfter.Add(1 * time.Minute),
+	}
+
+	tests := []struct {
+		Name       string
+		deployment clusterv1.MachineDeployment
+		msList     []*clusterv1.MachineSet
+		expected   *clusterv1.MachineSet
+	}{
+		{
+			Name:       "When the templates match it should find the MachineSet even though the machine-template-hash value differs",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&newMS, &oldMS},
+			expected:   &newMS,
+		},
+		{
+			Name:       "When there are more than one MachineSet with the same template it should find the oldest",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&newMS, &oldMS, &newMSDup},
+			expected:   &newMSDup,
+		},
+		{
+			Name:       "When no MachineSets match template it should return nil",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&oldMS},
+			expected:   nil,
+		},
+		{
+			Name:       "When rolloutAfter is required and no MachineSets were created after it should return nil",
+			deployment: deploymentNeedRolloutAfter,
+			msList:     []*clusterv1.MachineSet{&machineSetBeforeRolloutAfter},
+			expected:   nil,
+		},
+		{
+			Name:       "When rolloutAfter is required it should return the oldest created after rolloutAfter",
+			deployment: deploymentNeedRolloutAfter,
+			msList:     []*clusterv1.MachineSet{&machineSetBeforeRolloutAfter, &machineSetAfterRolloutAfter, &oldestMachineSetAfterRolloutAfter},
+			expected:   &oldestMachineSetAfterRolloutAfter,
+		},
+		{
+			Name:       "When rolloutAfter is not required but another one took place in the past it should return oldest created after the last rolloutAfter",
+			deployment: deploymentRolloutAfterHappened,
+			msList:     []*clusterv1.MachineSet{&machineSetBeforeLastRolloutAfter, &machineSetAfterLastRolloutAfter, &oldestMachineSetAfterLastRolloutAfter},
+			expected:   &oldestMachineSetAfterLastRolloutAfter,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ms, err := FindNewMachineSetWithRolloutAfter(&now, &test.deployment, test.msList)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(ms).To(Equal(test.expected))
+		})
+	}
+}
+
 func TestFindOldMachineSets(t *testing.T) {
 	now := metav1.Now()
 	later := metav1.Time{Time: now.Add(time.Minute)}
@@ -330,11 +460,11 @@ func TestFindOldMachineSets(t *testing.T) {
 	deployment := generateDeployment("nginx")
 	newMS := generateMS(deployment)
 	*(newMS.Spec.Replicas) = 1
-	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = "hash"
+	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
 	newMS.CreationTimestamp = later
 
 	newMSDup := generateMS(deployment)
-	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = "different-hash"
+	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = differentHashValue
 	newMSDup.CreationTimestamp = now
 
 	oldDeployment := generateDeployment("nginx")

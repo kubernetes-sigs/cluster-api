@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"sort"
 	"strconv"
 
@@ -75,10 +76,14 @@ func (r *MachineDeploymentReconciler) sync(ctx context.Context, d *clusterv1.Mac
 // Note that currently the deployment controller is using caches to avoid querying the server for reads.
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
 func (r *MachineDeploymentReconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
-	_, allOldMSs := mdutil.FindOldMachineSets(d, msList)
+	now := metav1.Now()
+	_, allOldMSs, err := mdutil.FindOldMachineSetsWithRolloutAfter(&now, d, msList)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Get new machine set with the updated revision number
-	newMS, err := r.getNewMachineSet(ctx, d, msList, allOldMSs, createIfNotExisted)
+	newMS, err := r.getNewMachineSet(ctx, &now, d, msList, allOldMSs, createIfNotExisted)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -91,10 +96,13 @@ func (r *MachineDeploymentReconciler) getAllMachineSetsAndSyncRevision(ctx conte
 // 2. If there's existing new MS, update its revision number if it's smaller than (maxOldRevision + 1), where maxOldRevision is the max revision number among all old MSes.
 // 3. If there's no existing new MS and createIfNotExisted is true, create one with appropriate revision number (maxOldRevision + 1) and replicas.
 // Note that the machine-template-hash will be added to adopted MSes and machines.
-func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, error) {
+func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, now *metav1.Time, d *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	existingNewMS := mdutil.FindNewMachineSet(d, msList)
+	existingNewMS, err := mdutil.FindNewMachineSetWithRolloutAfter(now, d, msList)
+	if err != nil {
+		return nil, err
+	}
 
 	// Calculate the max revision number among all old MSes
 	maxOldRevision := mdutil.MaxRevision(oldMSs, log)
@@ -139,19 +147,18 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, d *c
 		return nil, nil
 	}
 
-	// new MachineSet does not exist, create one.
+	// New MachineSet does not exist, create one.
 	newMSTemplate := *d.Spec.Template.DeepCopy()
-	hash, err := mdutil.ComputeSpewHash(&newMSTemplate)
+	machineSetName, machineDeploymentHash, err := generateMachineSetName(d, now)
 	if err != nil {
 		return nil, err
 	}
-	machineTemplateSpecHash := fmt.Sprintf("%d", hash)
-	newMSTemplate.Labels = mdutil.CloneAndAddLabel(d.Spec.Template.Labels,
-		clusterv1.MachineDeploymentUniqueLabel, machineTemplateSpecHash)
+
+	newMSTemplate.Labels = mdutil.CloneAndAddLabel(d.Spec.Template.Labels, clusterv1.MachineDeploymentUniqueLabel, machineDeploymentHash)
 
 	// Add machineTemplateHash label to selector.
 	newMSSelector := mdutil.CloneSelectorAndAddLabel(&d.Spec.Selector,
-		clusterv1.MachineDeploymentUniqueLabel, machineTemplateSpecHash)
+		clusterv1.MachineDeploymentUniqueLabel, machineDeploymentHash)
 
 	minReadySeconds := int32(0)
 	if d.Spec.MinReadySeconds != nil {
@@ -162,7 +169,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, d *c
 	newMS := clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			// Make the name deterministic, to ensure idempotence
-			Name:            d.Name + "-" + apirand.SafeEncodeString(machineTemplateSpecHash),
+			Name:            machineSetName,
 			Namespace:       d.Namespace,
 			Labels:          newMSTemplate.Labels,
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(d, machineDeploymentKind)},
@@ -250,6 +257,34 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, d *c
 	})
 
 	return createdMS, err
+}
+
+func generateMachineSetName(d *clusterv1.MachineDeployment, now *metav1.Time) (string, string, error) {
+	template := *d.Spec.Template.DeepCopy()
+	hash, err := mdutil.ComputeSpewHash(&template)
+	if err != nil {
+		return "", "", err
+	}
+	machineDeploymentHash := fmt.Sprintf("%d", hash)
+
+	if d.Spec.RolloutAfter != nil {
+		// If the reconciliation time is after spec.rolloutAfter then a rollout should happen or has already happened.
+		// We include the rolloutAfter hash into the MachineSet name so the first time that
+		// the reconciliation time is after spec.rolloutAfter then a new MachineSet is created with a name
+		// which does not clash with the one for the existing MachineSet with the same MachineDeployment template
+		// and the rollout is orchestrated as usual.
+		if now.After(d.Spec.RolloutAfter.Time) {
+			hasher := fnv.New32a()
+			if err := mdutil.SpewHashObject(hasher, d.Spec.RolloutAfter.Time); err != nil {
+				return "", "", err
+			}
+			rolloutAfterHash := hasher.Sum32()
+			machineDeploymentHash += fmt.Sprintf("%d", rolloutAfterHash)
+		}
+	}
+	machineSetName := d.Name + "-" + apirand.SafeEncodeString(machineDeploymentHash)
+
+	return machineSetName, machineDeploymentHash, nil
 }
 
 // scale scales proportionally in order to mitigate risk. Otherwise, scaling up can increase the size

@@ -24,6 +24,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
@@ -46,6 +47,45 @@ type MachineSetsByCreationTimestamp []*clusterv1.MachineSet
 func (o MachineSetsByCreationTimestamp) Len() int      { return len(o) }
 func (o MachineSetsByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
 func (o MachineSetsByCreationTimestamp) Less(i, j int) bool {
+	if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
+		return o[i].Name < o[j].Name
+	}
+	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+}
+
+// MachineSetsByRolloutAfterAnnotationAndCreationTimestamp sorts a list of MachineSet by the following criteria
+// * rolloutAfter annotation value descending
+// * creationTimestamp ascending
+// * using their names as a tie breaker.
+type MachineSetsByRolloutAfterAnnotationAndCreationTimestamp []*clusterv1.MachineSet
+
+func (o MachineSetsByRolloutAfterAnnotationAndCreationTimestamp) Len() int { return len(o) }
+func (o MachineSetsByRolloutAfterAnnotationAndCreationTimestamp) Swap(i, j int) {
+	o[i], o[j] = o[j], o[i]
+}
+func (o MachineSetsByRolloutAfterAnnotationAndCreationTimestamp) Less(i, j int) bool {
+	iAnnotation, iHasAnnotation := o[i].Annotations[clusterv1.MachineSetLastRolloutAfterAnnotation]
+	jAnnotation, jHasAnnotation := o[j].Annotations[clusterv1.MachineSetLastRolloutAfterAnnotation]
+	switch {
+	case iHasAnnotation && jHasAnnotation:
+		iTime, err := time.Parse(time.RFC3339, iAnnotation)
+		if err != nil {
+			return false
+		}
+		jTime, err := time.Parse(time.RFC3339, jAnnotation)
+		if err != nil {
+			return true
+		}
+		if iTime.After(jTime) {
+			return true
+		}
+	case iHasAnnotation && !jHasAnnotation:
+		return true
+	case jHasAnnotation && !iHasAnnotation:
+		return false
+	}
+
+	// fallback to comparing CreationTimestamp
 	if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
 		return o[i].Name < o[j].Name
 	}
@@ -186,7 +226,7 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 
 // SetNewMachineSetAnnotations sets new machine set's annotations appropriately by updating its revision and
 // copying required deployment annotations to it; it returns true if machine set's annotation is changed.
-func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, newRevision string, exists bool, logger logr.Logger) bool {
+func SetNewMachineSetAnnotations(now *metav1.Time, deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, newRevision string, exists bool, logger logr.Logger) bool {
 	logger = logger.WithValues("MachineSet", klog.KObj(newMS))
 
 	// First, copy deployment's annotations (except for apply and revision annotations)
@@ -234,6 +274,12 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 	}
 	// If the new machine set is about to be created, we need to add replica annotations to it.
 	if !exists && SetReplicasAnnotations(newMS, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+MaxSurge(*deployment)) {
+		annotationChanged = true
+	}
+	// If the new MachineSet is about to be created, we need to add the rolloutAfter annotation if it is set at the deployment.
+	// The annotation is later on used to determine the current MachineSet in FindNewMachineSet.
+	if !exists && deployment.Spec.RolloutAfter != nil && now.After(deployment.Spec.RolloutAfter.Time) {
+		newMS.Annotations[clusterv1.MachineSetLastRolloutAfterAnnotation] = deployment.Spec.RolloutAfter.UTC().Format(time.RFC3339)
 		annotationChanged = true
 	}
 	return annotationChanged
@@ -395,29 +441,49 @@ func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) b
 }
 
 // FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template).
-func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) *clusterv1.MachineSet {
-	sort.Sort(MachineSetsByCreationTimestamp(msList))
+func FindNewMachineSet(now *metav1.Time, deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+	// In rare cases, such as after cluster upgrades, Deployment may end up with
+	// having more than one new MachineSets that have the same template,
+	// see https://github.com/kubernetes/kubernetes/issues/40415
+	// Besides only considering MachineSets which have an equivalent MachineTemplateSpec, we choose the MachineSet
+	// which has the most recent RolloutAfter annotation set (if any) or as second criteria is the oldest one.
+	sort.Sort(MachineSetsByRolloutAfterAnnotationAndCreationTimestamp(msList))
+
+	// We deterministically choose the MachineSet which has the newest RolloutAfter annotation or for equal values
+	// is the newest one.
 	for i := range msList {
 		if EqualMachineTemplate(&msList[i].Spec.Template, &deployment.Spec.Template) {
-			// In rare cases, such as after cluster upgrades, Deployment may end up with
-			// having more than one new MachineSets that have the same template,
-			// see https://github.com/kubernetes/kubernetes/issues/40415
-			// We deterministically choose the oldest new MachineSet with matching template hash.
-			return msList[i]
+			// If RolloutAfter is set and is in the past, only return a MachineSet which got created after RolloutAfter.
+			// Otherwise this fallbacks to returning nil which results in a new MachineSet and Rollout.
+			if deployment.Spec.RolloutAfter != nil && now.After(deployment.Spec.RolloutAfter.Time) {
+				created := msList[i].CreationTimestamp
+				if created.Before(deployment.Spec.RolloutAfter) {
+					continue
+				}
+				return msList[i], nil
+			}
+
+			// If a rolloutAfter never took place or is some time in the future just pick the oldest one.
+			return msList[i], nil
 		}
 	}
-	// new MachineSet does not exist.
-	return nil
+
+	// New MachineSet does not exist.
+	return nil, nil
 }
 
 // FindOldMachineSets returns the old machine sets targeted by the given Deployment, with the given slice of MSes.
 // Returns two list of machine sets
 //   - the first contains all old machine sets with all non-zero replicas
 //   - the second contains all old machine sets
-func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
+func FindOldMachineSets(now *metav1.Time, deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
 	var requiredMSs []*clusterv1.MachineSet
 	allMSs := make([]*clusterv1.MachineSet, 0, len(msList))
-	newMS := FindNewMachineSet(deployment, msList)
+	newMS, err := FindNewMachineSet(now, deployment, msList)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	for _, ms := range msList {
 		// Filter out new machine set
 		if newMS != nil && ms.UID == newMS.UID {
@@ -428,7 +494,7 @@ func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clust
 			requiredMSs = append(requiredMSs, ms)
 		}
 	}
-	return requiredMSs, allMSs
+	return requiredMSs, allMSs, nil
 }
 
 // GetReplicaCountForMachineSets returns the sum of Replicas of the given machine sets.

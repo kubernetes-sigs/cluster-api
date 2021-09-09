@@ -34,6 +34,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const (
+	hashValue          = "hash"
+	differentHashValue = "different-hash"
+)
+
 func newDControllerRef(d *clusterv1.MachineDeployment) *metav1.OwnerReference {
 	isController := true
 	return &metav1.OwnerReference{
@@ -269,23 +274,25 @@ func TestEqualMachineTemplate(t *testing.T) {
 
 func TestFindNewMachineSet(t *testing.T) {
 	now := metav1.Now()
-	later := metav1.Time{Time: now.Add(time.Minute)}
 
 	deployment := generateDeployment("nginx")
-	newMS := generateMS(deployment)
-	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = "hash"
-	newMS.CreationTimestamp = later
 
-	newMSDup := generateMS(deployment)
-	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = "different-hash"
-	newMSDup.CreationTimestamp = now
+	// For cases when a rolloutAfter is scheduled but not yet took place.
+	deploymentRolloutAfterFuture := *deployment.DeepCopy()
+	deploymentRolloutAfterFuture.Spec.RolloutAfter = &metav1.Time{Time: now.Add(1 * time.Minute)}
 
-	oldDeployment := generateDeployment("nginx")
-	oldMS := generateMS(oldDeployment)
-	oldMS.Spec.Template.Annotations = map[string]string{
-		"old": "true",
-	}
-	oldMS.Status.FullyLabeledReplicas = *(oldMS.Spec.Replicas)
+	// For cases when a rolloutAfter should happen now
+	deploymentRolloutAfterNow := *deployment.DeepCopy()
+	deploymentRolloutAfterNow.Spec.RolloutAfter = &metav1.Time{Time: now.Add(-1 * time.Second)}
+
+	// For cases when a rolloutAfter should happen now or has happened in the past
+	deploymentRolloutAfter4mAgo := *deployment.DeepCopy()
+	deploymentRolloutAfter4mAgo.Spec.RolloutAfter = &metav1.Time{Time: now.Add(-4 * time.Minute)}
+
+	msBuilder := newMachineSetBuilder(deployment)
+
+	notEqualMachineSpec := msBuilder.obj.Spec
+	notEqualMachineSpec.Template.Annotations = map[string]string{"this": "does-not-match"}
 
 	tests := []struct {
 		Name       string
@@ -294,22 +301,79 @@ func TestFindNewMachineSet(t *testing.T) {
 		expected   *clusterv1.MachineSet
 	}{
 		{
-			Name:       "Get new MachineSet with the same template as Deployment spec but different machine-template-hash value",
+			Name:       "No RolloutAfter / Return nil because there is no existing MachineSet which has an equivalent template",
 			deployment: deployment,
-			msList:     []*clusterv1.MachineSet{&newMS, &oldMS},
-			expected:   &newMS,
+			msList: []*clusterv1.MachineSet{
+				msBuilder.WithSpec(notEqualMachineSpec).Build(),
+			},
+			expected: nil,
 		},
 		{
-			Name:       "Get the oldest new MachineSet when there are more than one MachineSet with the same template",
+			Name:       "No RolloutAfter / Return oldest MachineSet which has an equal MachineTemplate when RolloutAfter is not set and no rollout annotations are set on MachineSets",
 			deployment: deployment,
-			msList:     []*clusterv1.MachineSet{&newMS, &oldMS, &newMSDup},
-			expected:   &newMSDup,
+			msList: []*clusterv1.MachineSet{
+				msBuilder.WithSpec(notEqualMachineSpec).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-1 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).Build(),
+			},
+			expected: msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).Build(),
 		},
 		{
-			Name:       "Get nil new MachineSet",
+			Name:       "Future RolloutAfter / Return oldest MachineSet which has an equal MachineTemplate when RolloutAfter is not set and no rollout annotations are set on MachineSets",
+			deployment: deploymentRolloutAfterFuture,
+			msList: []*clusterv1.MachineSet{
+				msBuilder.WithSpec(notEqualMachineSpec).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-1 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).Build(),
+			},
+			expected: msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).Build(),
+		},
+		{
+			Name:       "Future RolloutAfter / Return MachineSet with oldest rollout annotation which has an equal MachineTemplate when future RolloutAfter is set",
+			deployment: deploymentRolloutAfterFuture,
+			msList: []*clusterv1.MachineSet{
+				msBuilder.WithSpec(notEqualMachineSpec).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-1 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-4 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).Build(),
+			},
+			expected: msBuilder.WithCreationTimestamp(now.Add(-4 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+		},
+		{
+			Name:       "Past RolloutAfter, but not set anymore / Return MachineSet with newest rollout annotation which has an equal MachineTemplate when RolloutAfter is not set",
 			deployment: deployment,
-			msList:     []*clusterv1.MachineSet{&oldMS},
-			expected:   nil,
+			msList: []*clusterv1.MachineSet{
+				msBuilder.WithSpec(notEqualMachineSpec).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-1 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-5 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-4 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).Build(),
+			},
+			expected: msBuilder.WithCreationTimestamp(now.Add(-4 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+		},
+		{
+			Name:       "Past RolloutAfter / Return MachineSet with newest rollout annotation which has an equal MachineTemplate",
+			deployment: deploymentRolloutAfter4mAgo,
+			msList: []*clusterv1.MachineSet{
+				msBuilder.WithSpec(notEqualMachineSpec).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-1 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-5 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-4 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).Build(),
+			},
+			expected: msBuilder.WithCreationTimestamp(now.Add(-4 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+		},
+		{
+			Name:       "RolloutAfter now / Return nil because there is no existing MachineSet which created after RolloutAfter and has an equivalent template",
+			deployment: deploymentRolloutAfterNow,
+			msList: []*clusterv1.MachineSet{
+				msBuilder.WithSpec(notEqualMachineSpec).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-1 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-4 * time.Minute)).WithLastRolloutAfterAnnotation(now.Add(-4 * time.Minute)).Build(),
+				msBuilder.WithCreationTimestamp(now.Add(-5 * time.Minute)).Build(),
+			},
+			expected: nil,
 		},
 	}
 
@@ -317,7 +381,8 @@ func TestFindNewMachineSet(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ms := FindNewMachineSet(&test.deployment, test.msList)
+			ms, err := FindNewMachineSet(&now, &test.deployment, test.msList)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ms).To(Equal(test.expected))
 		})
 	}
@@ -331,11 +396,11 @@ func TestFindOldMachineSets(t *testing.T) {
 	deployment := generateDeployment("nginx")
 	newMS := generateMS(deployment)
 	*(newMS.Spec.Replicas) = 1
-	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = "hash"
+	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = hashValue
 	newMS.CreationTimestamp = later
 
 	newMSDup := generateMS(deployment)
-	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = "different-hash"
+	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = differentHashValue
 	newMSDup.CreationTimestamp = now
 
 	oldDeployment := generateDeployment("nginx")
@@ -401,7 +466,8 @@ func TestFindOldMachineSets(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			requireMS, allMS := FindOldMachineSets(&test.deployment, test.msList)
+			requireMS, allMS, err := FindOldMachineSets(&now, &test.deployment, test.msList)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(allMS).To(ConsistOf(test.expected))
 			// MSs are getting filtered correctly by ms.spec.replicas
 			g.Expect(requireMS).To(ConsistOf(test.expectedRequire))
@@ -720,6 +786,8 @@ func TestAnnotationUtils(t *testing.T) {
 	tDeployment.Annotations[clusterv1.RevisionAnnotation] = "999"
 	logger := klogr.New()
 
+	now := metav1.Now()
+
 	// Test Case 1: Check if anotations are copied properly from deployment to MS
 	t.Run("SetNewMachineSetAnnotations", func(t *testing.T) {
 		g := NewWithT(t)
@@ -727,7 +795,7 @@ func TestAnnotationUtils(t *testing.T) {
 		// Try to set the increment revision from 1 through 20
 		for i := 0; i < 20; i++ {
 			nextRevision := fmt.Sprintf("%d", i+1)
-			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true, logger)
+			SetNewMachineSetAnnotations(&now, &tDeployment, &tMS, nextRevision, true, logger)
 			// Now the MachineSets Revision Annotation should be i+1
 			g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.RevisionAnnotation, nextRevision))
 		}
@@ -825,4 +893,42 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 			g.Expect(ReplicasAnnotationsNeedUpdate(test.machineSet, 10, 20)).To(Equal(test.expected))
 		})
 	}
+}
+
+type machineSetBuilder struct {
+	obj *clusterv1.MachineSet
+}
+
+func newMachineSetBuilder(md clusterv1.MachineDeployment) *machineSetBuilder {
+	ms := generateMS(md)
+	return &machineSetBuilder{obj: &ms}
+}
+
+func (b *machineSetBuilder) Build() *clusterv1.MachineSet {
+	return b.obj.DeepCopy()
+}
+
+func (b *machineSetBuilder) WithAnnotation(k, v string) *machineSetBuilder {
+	newB := b.obj.DeepCopy()
+	if newB.Annotations == nil {
+		newB.Annotations = map[string]string{}
+	}
+	newB.Annotations[k] = v
+	return &machineSetBuilder{newB}
+}
+
+func (b *machineSetBuilder) WithLastRolloutAfterAnnotation(t time.Time) *machineSetBuilder {
+	return b.WithAnnotation(clusterv1.MachineSetLastRolloutAfterAnnotation, t.UTC().Format(time.RFC3339))
+}
+
+func (b *machineSetBuilder) WithSpec(spec clusterv1.MachineSetSpec) *machineSetBuilder {
+	newB := b.obj.DeepCopy()
+	newB.Spec = spec
+	return &machineSetBuilder{newB}
+}
+
+func (b *machineSetBuilder) WithCreationTimestamp(t time.Time) *machineSetBuilder {
+	newB := b.obj.DeepCopy()
+	newB.ObjectMeta.CreationTimestamp = metav1.NewTime(t)
+	return &machineSetBuilder{newB}
 }

@@ -1445,6 +1445,12 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentSpec(ref common.R
 							Format:      "",
 						},
 					},
+					"rolloutAfter": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RolloutAfter is a field to indicate a rollout should be performed after the specified time even if no changes have been made to the MachineDeployment. Any changes to other fields of the spec are not affected by this field and will be rolled out as normal.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Number of desired machines. Defaults to 1. This is a pointer to distinguish between explicit zero and not specified.",
@@ -1505,7 +1511,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentSpec(ref common.R
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/v1beta1.MachineTemplateSpec"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/v1beta1.MachineTemplateSpec"},
 	}
 }
 

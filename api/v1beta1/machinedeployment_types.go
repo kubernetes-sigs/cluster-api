@@ -67,6 +67,14 @@ type MachineDeploymentSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
+	// RolloutAfter is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the
+	// MachineDeployment.
+	// Any changes to other fields of the spec are not affected by this field and will be rolled out as normal.
+	//
+	// +optional
+	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
+
 	// Number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional

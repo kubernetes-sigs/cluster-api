@@ -29,6 +29,10 @@ const (
 	// MachineSetTopologyFinalizer is the finalizer used by the topology MachineDeployment controller to
 	// clean up referenced template resources if necessary when a MachineSet is being deleted.
 	MachineSetTopologyFinalizer = "machineset.topology.cluster.x-k8s.io"
+
+	// MachineSetLastRolloutAfterAnnotation gets set during creation of a MachineSet to the value of
+	// MachineDeployment.Spec.RolloutAfter, if it is not nil.
+	MachineSetLastRolloutAfterAnnotation = "machineset.clusters.x-k8s.io/lastRollout"
 )
 
 // ANCHOR: MachineSetSpec

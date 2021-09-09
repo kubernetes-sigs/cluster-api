@@ -1065,6 +1065,13 @@ spec:
                   Defaults to 1.
                 format: int32
                 type: integer
+              rolloutAfter:
+                description: RolloutAfter is a field to indicate a rollout should
+                  be performed after the specified time even if no changes have been
+                  made to the MachineDeployment. Any changes to other fields of the
+                  spec are not affected by this field and will be rolled out as normal.
+                format: date-time
+                type: string
               selector:
                 description: Label selector for machines. Existing MachineSets whose
                   machines are selected by this will be the ones affected by this

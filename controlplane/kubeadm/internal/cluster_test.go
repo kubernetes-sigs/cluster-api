@@ -192,8 +192,10 @@ func TestGetWorkloadCluster(t *testing.T) {
 				}(o)
 			}
 
+			// Note: The API reader is intentionally used instead of the regular (cached) client
+			// to avoid test failures when the local cache isn't able to catch up in time.
 			m := Management{
-				Client:  env,
+				Client:  env.GetAPIReader(),
 				Tracker: tracker,
 			}
 

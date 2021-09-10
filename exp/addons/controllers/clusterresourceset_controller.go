@@ -63,6 +63,8 @@ var (
 type ClusterResourceSetReconciler struct {
 	Client           client.Client
 	Tracker          *remote.ClusterCacheTracker
+	
+	//Label value to filter events for reconciliation
 	WatchFilterValue string
 }
 

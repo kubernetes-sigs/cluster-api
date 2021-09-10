@@ -73,6 +73,8 @@ type InitLocker interface {
 type KubeadmConfigReconciler struct {
 	Client           client.Client
 	KubeadmInitLock  InitLocker
+	
+	//Label value to filter events for reconciliation
 	WatchFilterValue string
 
 	remoteClientGetter remote.ClusterClientGetter

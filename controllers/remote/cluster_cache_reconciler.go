@@ -36,6 +36,8 @@ type ClusterCacheReconciler struct {
 	Log              logr.Logger
 	Client           client.Client
 	Tracker          *ClusterCacheTracker
+	
+	//Label value to filter events for reconciliation
 	WatchFilterValue string
 }
 

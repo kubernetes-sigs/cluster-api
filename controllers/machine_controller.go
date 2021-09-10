@@ -77,6 +77,8 @@ var (
 type MachineReconciler struct {
 	Client           client.Client
 	Tracker          *remote.ClusterCacheTracker
+	
+	//Label value to filter events for reconciliation
 	WatchFilterValue string
 
 	controller      controller.Controller

@@ -38,6 +38,8 @@ import (
 // ClusterResourceSetBindingReconciler reconciles a ClusterResourceSetBinding object.
 type ClusterResourceSetBindingReconciler struct {
 	Client           client.Client
+	
+	//Label value to filter events for reconciliation
 	WatchFilterValue string
 }
 

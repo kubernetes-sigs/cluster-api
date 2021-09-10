@@ -65,6 +65,8 @@ type KubeadmControlPlaneReconciler struct {
 	controller       controller.Controller
 	recorder         record.EventRecorder
 	Tracker          *remote.ClusterCacheTracker
+	
+	//Label value to filter events for reconciliation
 	WatchFilterValue string
 
 	managementCluster         internal.ManagementCluster

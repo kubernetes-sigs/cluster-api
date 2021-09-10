@@ -45,6 +45,8 @@ import (
 // ClusterReconciler reconciles a managed topology for a Cluster object.
 type ClusterReconciler struct {
 	Client           client.Client
+	
+	//Label value to filter events for reconciliation
 	WatchFilterValue string
 
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,

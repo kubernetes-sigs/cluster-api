@@ -39,6 +39,9 @@ const (
 
 // Get uses the client and reference to get an external, unstructured object.
 func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+	if ref == nil {
+		return nil, errors.Errorf("cannot get object - object reference not set")
+	}
 	obj := new(unstructured.Unstructured)
 	obj.SetAPIVersion(ref.APIVersion)
 	obj.SetKind(ref.Kind)

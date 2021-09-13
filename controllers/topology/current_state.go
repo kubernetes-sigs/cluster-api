@@ -130,7 +130,7 @@ func (r *ClusterReconciler) getCurrentMachineDeploymentState(ctx context.Context
 	for i := range md.Items {
 		m := &md.Items[i]
 
-		// Retrieve the name which is usually assigned in Cluster's topology
+		// Retrieve the name which is assigned in Cluster's topology
 		// from a well-defined label.
 		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
 		if !ok || len(mdTopologyName) == 0 {
@@ -143,24 +143,27 @@ func (r *ClusterReconciler) getCurrentMachineDeploymentState(ctx context.Context
 		if _, ok := state[mdTopologyName]; ok {
 			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
 		}
-		infraRef := &m.Spec.Template.Spec.InfrastructureRef
-		if infraRef == nil {
-			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
-		}
 
+		// Gets the BootstrapTemplate
 		bootstrapRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 		if bootstrapRef == nil {
 			return nil, fmt.Errorf("%s does not have a reference to a Bootstrap Config", tlog.KObj{Obj: m})
-		}
-
-		i, err := r.getReference(ctx, infraRef)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
 		}
 		b, err := r.getReference(ctx, bootstrapRef)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
 		}
+
+		// Gets the InfrastructureMachineTemplate
+		infraRef := m.Spec.Template.Spec.InfrastructureRef
+		if infraRef.Name == "" {
+			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
+		}
+		i, err := r.getReference(ctx, &infraRef)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+		}
+
 		state[mdTopologyName] = &scope.MachineDeploymentState{
 			Object:                        m,
 			BootstrapTemplate:             b,

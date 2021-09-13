@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // computeDesiredState computes the desired state of the cluster topology.
@@ -299,6 +300,13 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 				},
 			},
 		},
+	}
+
+	// If it's a new MachineDeployment, set the finalizer.
+	// Note: we only add it on creation to avoid race conditions later on when
+	// the MachineDeployment topology controller removes the finalizer.
+	if currentMachineDeployment == nil {
+		controllerutil.AddFinalizer(desiredMachineDeploymentObj, clusterv1.MachineDeploymentTopologyFinalizer)
 	}
 
 	// If an existing MachineDeployment is present, override the MachineDeployment generate name

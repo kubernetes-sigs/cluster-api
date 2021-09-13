@@ -522,6 +522,71 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	return obj
 }
 
+// MachineSetBuilder holds the variables and objects needed to build a generic MachineSet.
+type MachineSetBuilder struct {
+	namespace              string
+	name                   string
+	bootstrapTemplate      *unstructured.Unstructured
+	infrastructureTemplate *unstructured.Unstructured
+	replicas               *int32
+	labels                 map[string]string
+}
+
+// NewMachineSetBuilder creates a MachineSetBuilder with the given name and namespace.
+func NewMachineSetBuilder(namespace, name string) *MachineSetBuilder {
+	return &MachineSetBuilder{
+		name:      name,
+		namespace: namespace,
+	}
+}
+
+// WithBootstrapTemplate adds the passed Unstructured object to the MachineSetBuilder as a bootstrapTemplate.
+func (m *MachineSetBuilder) WithBootstrapTemplate(ref *unstructured.Unstructured) *MachineSetBuilder {
+	m.bootstrapTemplate = ref
+	return m
+}
+
+// WithInfrastructureTemplate adds the passed unstructured object to the MachineSet builder as an infrastructureMachineTemplate.
+func (m *MachineSetBuilder) WithInfrastructureTemplate(ref *unstructured.Unstructured) *MachineSetBuilder {
+	m.infrastructureTemplate = ref
+	return m
+}
+
+// WithLabels adds the given labels to the MachineSetBuilder.
+func (m *MachineSetBuilder) WithLabels(labels map[string]string) *MachineSetBuilder {
+	m.labels = labels
+	return m
+}
+
+// WithReplicas sets the number of replicas for the MachineSetClassBuilder.
+func (m *MachineSetBuilder) WithReplicas(replicas *int32) *MachineSetBuilder {
+	m.replicas = replicas
+	return m
+}
+
+// Build creates a new MachineSet with the variables and objects passed to the MachineSetBuilder.
+func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
+	obj := &clusterv1.MachineSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachineSet",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.name,
+			Namespace: m.namespace,
+			Labels:    m.labels,
+		},
+	}
+	obj.Spec.Replicas = m.replicas
+	if m.bootstrapTemplate != nil {
+		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)
+	}
+	if m.infrastructureTemplate != nil {
+		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
+	}
+	return obj
+}
+
 // objToRef returns a reference to the given object.
 func objToRef(obj client.Object) *corev1.ObjectReference {
 	gvk := obj.GetObjectKind().GroupVersionKind()

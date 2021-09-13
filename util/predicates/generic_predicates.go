@@ -241,3 +241,35 @@ func processIfNotExternallyManaged(logger logr.Logger, obj client.Object) bool {
 	log.V(6).Info("Resource is managed, will attempt to map resource")
 	return true
 }
+
+// ResourceIsTopologyOwned returns a predicate that returns true only if the resource has
+// the `topology.cluster.x-k8s.io/owned` label.
+func ResourceIsTopologyOwned(logger logr.Logger) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return processIfTopologyOwned(logger.WithValues("predicate", "updateEvent"), e.ObjectNew)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return processIfTopologyOwned(logger.WithValues("predicate", "createEvent"), e.Object)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return processIfTopologyOwned(logger.WithValues("predicate", "deleteEvent"), e.Object)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return processIfTopologyOwned(logger.WithValues("predicate", "genericEvent"), e.Object)
+		},
+	}
+}
+
+func processIfTopologyOwned(logger logr.Logger, obj client.Object) bool {
+	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
+	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+	if labels.IsTopologyOwned(obj) {
+		log.V(6).Info("Resource is topology owned, will attempt to map resource")
+		return true
+	}
+	// We intentionally log this line only on level 6, because it will be very frequently
+	// logged for MachineDeployments and MachineSets not owned by a topology.
+	log.V(6).Info("Resource is not topology owned, will not attempt to map resource")
+	return false
+}

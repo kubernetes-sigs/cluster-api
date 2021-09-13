@@ -152,11 +152,23 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 
 	updatedReplicas, err := c.UpdatedReplicas().Get(obj)
 	if err != nil {
+		if errors.Is(err, errNotFound) {
+			// If updatedReplicas is not set on the control plane
+			// we should consider the control plane to be scaling so that
+			// we block any operation that expect the control plane to be stable.
+			return true, nil
+		}
 		return false, errors.Wrap(err, "failed to get control plane status updatedReplicas")
 	}
 
 	readyReplicas, err := c.ReadyReplicas().Get(obj)
 	if err != nil {
+		if errors.Is(err, errNotFound) {
+			// If readyReplicas is not set on the control plane
+			// we should consider the control plane to be scaling so that
+			// we block any operation that expect the control plane to be stable.
+			return true, nil
+		}
 		return false, errors.Wrap(err, "failed to get control plane status readyReplicas")
 	}
 

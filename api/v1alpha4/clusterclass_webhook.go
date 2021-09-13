@@ -121,8 +121,8 @@ func (in *ClusterClass) validateAllRefs() field.ErrorList {
 	}
 
 	for i, class := range in.Spec.Workers.MachineDeployments {
-		allErrs = append(allErrs, class.Template.Bootstrap.isValid(in.Namespace, field.NewPath("spec", "workers", fmt.Sprintf("machineDeployments[%v]", i), "template", "bootstrap"))...)
-		allErrs = append(allErrs, class.Template.Infrastructure.isValid(in.Namespace, field.NewPath("spec", "workers", fmt.Sprintf("machineDeployments[%v]", i), "template", "infrastructure"))...)
+		allErrs = append(allErrs, class.Template.Bootstrap.isValid(in.Namespace, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "bootstrap"))...)
+		allErrs = append(allErrs, class.Template.Infrastructure.isValid(in.Namespace, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"))...)
 	}
 
 	return allErrs
@@ -346,7 +346,7 @@ func (w *WorkersClass) validateUniqueClasses(pathPrefix *field.Path) field.Error
 		if classes.Has(class.Class) {
 			allErrs = append(allErrs,
 				field.Invalid(
-					pathPrefix.Child(fmt.Sprintf("machineDeployments[%v]", i), "class"),
+					pathPrefix.Child("machineDeployments").Index(i).Child("class"),
 					class.Class,
 					fmt.Sprintf("MachineDeployment class should be unique. MachineDeployment with class %q is defined more than once.", class.Class),
 				),

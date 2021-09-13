@@ -17,8 +17,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"fmt"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -69,7 +67,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
-					field.NewPath("spec", "files", fmt.Sprintf("%d", i)),
+					field.NewPath("spec", "files").Index(i),
 					file,
 					conflictingFileSourceMsg,
 				),
@@ -83,7 +81,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 				allErrs = append(
 					allErrs,
 					field.Invalid(
-						field.NewPath("spec", "files", fmt.Sprintf("%d", i), "contentFrom", "secret", "name"),
+						field.NewPath("spec", "files").Index(i).Child("contentFrom", "secret", "name"),
 						file,
 						missingSecretNameMsg,
 					),
@@ -93,7 +91,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 				allErrs = append(
 					allErrs,
 					field.Invalid(
-						field.NewPath("spec", "files", fmt.Sprintf("%d", i), "contentFrom", "secret", "key"),
+						field.NewPath("spec", "files").Index(i).Child("contentFrom", "secret", "key"),
 						file,
 						missingSecretKeyMsg,
 					),
@@ -105,7 +103,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
-					field.NewPath("spec", "files", fmt.Sprintf("%d", i), "path"),
+					field.NewPath("spec", "files").Index(i).Child("path"),
 					file,
 					pathConflictMsg,
 				),

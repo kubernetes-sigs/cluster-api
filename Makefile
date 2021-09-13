@@ -166,6 +166,10 @@ docker-build-e2e: ## Rebuild all Cluster API provider images to be used in the e
 test-e2e: ## Run the e2e tests
 	$(MAKE) -C $(TEST_DIR)/e2e run
 
+.PHONY: kind-cluster
+kind-cluster: ## Create a new kind cluster designed for testing with Tilt
+	hack/kind-install-for-capd.sh
+
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------

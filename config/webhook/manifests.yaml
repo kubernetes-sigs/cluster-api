@@ -35,28 +35,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-cluster-x-k8s-io-v1beta1-clusterclass
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.clusterclass.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - cluster.x-k8s.io
-    apiVersions:
-    - v1beta1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - clusterclasses
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /mutate-cluster-x-k8s-io-v1beta1-machine
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -167,6 +145,28 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-cluster-x-k8s-io-v1beta1-clusterclass
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.clusterclass.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusterclasses
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-addons-cluster-x-k8s-io-v1beta1-clusterresourceset
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -211,28 +211,6 @@ webhooks:
     - UPDATE
     resources:
     - clusters
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-cluster-x-k8s-io-v1beta1-clusterclass
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.clusterclass.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - cluster.x-k8s.io
-    apiVersions:
-    - v1beta1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - clusterclasses
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -343,6 +321,28 @@ webhooks:
     - UPDATE
     resources:
     - machinepools
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-cluster-x-k8s-io-v1beta1-clusterclass
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.clusterclass.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusterclasses
   sideEffects: None
 - admissionReviewVersions:
   - v1

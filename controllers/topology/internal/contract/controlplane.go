@@ -17,11 +17,12 @@ limitations under the License.
 package contract
 
 import (
-	"strings"
 	"sync"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // ControlPlaneContract encodes information about the Cluster API contract for ControlPlane objects
@@ -51,16 +52,120 @@ func (c *ControlPlaneContract) MachineTemplate() *ControlPlaneMachineTemplate {
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.
 // This is why in we are deriving if version is required from the ClusterClass in the topology reconciler code.
-func (c *ControlPlaneContract) Version() *ControlPlaneVersion {
-	return &ControlPlaneVersion{}
+func (c *ControlPlaneContract) Version() *String {
+	return &String{
+		path: []string{"spec", "version"},
+	}
+}
+
+// StatusVersion provide access to version field  in a ControlPlane object status, if any.
+func (c *ControlPlaneContract) StatusVersion() *String {
+	return &String{
+		path: []string{"status", "version"},
+	}
 }
 
 // Replicas provide access to replicas field  in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.
 // This is why in we are deriving if replicas is required from the ClusterClass in the topology reconciler code.
-func (c *ControlPlaneContract) Replicas() *ControlPlaneReplicas {
-	return &ControlPlaneReplicas{}
+func (c *ControlPlaneContract) Replicas() *Int64 {
+	return &Int64{
+		path: []string{"spec", "replicas"},
+	}
+}
+
+// StatusReplicas provide access to status.replicas field  in a ControlPlane object, if any.
+func (c *ControlPlaneContract) StatusReplicas() *Int64 {
+	return &Int64{
+		path: []string{"status", "replicas"},
+	}
+}
+
+// UpdatedReplicas provide access to status.updatedReplicas field  in a ControlPlane object, if any.
+func (c *ControlPlaneContract) UpdatedReplicas() *Int64 {
+	return &Int64{
+		path: []string{"status", "updatedReplicas"},
+	}
+}
+
+// ReadyReplicas provide access to status.readyReplicas field  in a ControlPlane object, if any.
+func (c *ControlPlaneContract) ReadyReplicas() *Int64 {
+	return &Int64{
+		path: []string{"status", "readyReplicas"},
+	}
+}
+
+// IsUpgrading returns true if the control plane is in the middle of an upgrade, false otherwise.
+// A control plane is considered upgrading if:
+// - if spec.version is greater than status.verison.
+// Note: A control plane is considered not upgrading if the status or status.version is not set.
+func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool, error) {
+	specVersion, err := c.Version().Get(obj)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get control plane spec version")
+	}
+	specV, err := semver.ParseTolerant(*specVersion)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse control plane spec version")
+	}
+	statusVersion, err := c.StatusVersion().Get(obj)
+	if err != nil {
+		if errors.Is(err, errNotFound) { // status version is not yet set
+			// If the status.version is not yet present in the object, it implies the
+			// first machine of the control plane is provisioning. We can resonably assume
+			// that the control plane is not upgrading at this stage.
+			return false, nil
+		}
+		return false, errors.Wrap(err, "failed to get control plane status version")
+	}
+	statusV, err := semver.ParseTolerant(*statusVersion)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse control plane status version")
+	}
+
+	return version.CompareWithBuildIdentifiers(specV, statusV) == 1, nil
+}
+
+// IsScaling returns true if the control plane is in the middle of a scale operation, false otherwise.
+// A control plane is considered scaling if:
+// - status.replicas is not yet set.
+// - spec.replicas != status.replicas.
+// - spec.replicas != status.updatedReplicas.
+// - spec.replicas != status.readyReplicas.
+func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, error) {
+	desiredReplicas, err := c.Replicas().Get(obj)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get control plane spec replicas")
+	}
+
+	statusReplicas, err := c.StatusReplicas().Get(obj)
+	if err != nil {
+		if errors.Is(err, errNotFound) {
+			// status is probably not yet set on the control plane
+			// if status is missing we can consider the control plane to be scaling
+			// so that we can block any operations that expect control plane to be stable.
+			return true, nil
+		}
+		return false, errors.Wrap(err, "failed to get control plane status replicas")
+	}
+
+	updatedReplicas, err := c.UpdatedReplicas().Get(obj)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get control plane status updatedReplicas")
+	}
+
+	readyReplicas, err := c.ReadyReplicas().Get(obj)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get control plane status readyReplicas")
+	}
+
+	if *statusReplicas != *desiredReplicas ||
+		*updatedReplicas != *desiredReplicas ||
+		*readyReplicas != *desiredReplicas {
+		return true, nil
+	}
+	return false, nil
 }
 
 // ControlPlaneMachineTemplate provides a helper struct for working with MachineTemplate in ClusterClass.
@@ -78,60 +183,4 @@ func (c *ControlPlaneMachineTemplate) Metadata() *Metadata {
 	return &Metadata{
 		path: Path{"spec", "machineTemplate", "metadata"},
 	}
-}
-
-// ControlPlaneVersion provide a helper struct for working with version in ClusterClass.
-type ControlPlaneVersion struct{}
-
-// Path returns the path of the reference.
-func (v *ControlPlaneVersion) Path() Path {
-	return Path{"spec", "version"}
-}
-
-// Get gets the version value from the ControlPlane object.
-func (v *ControlPlaneVersion) Get(obj *unstructured.Unstructured) (*string, error) {
-	value, ok, err := unstructured.NestedString(obj.UnstructuredContent(), v.Path()...)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve control plane version")
-	}
-	if !ok {
-		return nil, errors.Errorf("%s not found", "."+strings.Join(v.Path(), "."))
-	}
-	return &value, nil
-}
-
-// Set sets the version value in the ControlPlane object.
-func (v *ControlPlaneVersion) Set(obj *unstructured.Unstructured, value string) error {
-	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, v.Path()...); err != nil {
-		return errors.Wrap(err, "failed to set control plane version")
-	}
-	return nil
-}
-
-// ControlPlaneReplicas provide a helper struct for working with version in ClusterClass.
-type ControlPlaneReplicas struct{}
-
-// Path returns the path of the reference.
-func (r *ControlPlaneReplicas) Path() Path {
-	return Path{"spec", "replicas"}
-}
-
-// Get gets the replicas value from the ControlPlane object.
-func (r *ControlPlaneReplicas) Get(obj *unstructured.Unstructured) (*int64, error) {
-	value, ok, err := unstructured.NestedInt64(obj.UnstructuredContent(), r.Path()...)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve control plane replicas")
-	}
-	if !ok {
-		return nil, errors.Errorf("%s not found", "."+strings.Join(r.Path(), "."))
-	}
-	return &value, nil
-}
-
-// Set sets the replica value in the ControlPlane object.
-func (r *ControlPlaneReplicas) Set(obj *unstructured.Unstructured, value int64) error {
-	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, r.Path()...); err != nil {
-		return errors.Wrap(err, "failed to set control plane replicas")
-	}
-	return nil
 }

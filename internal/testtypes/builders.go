@@ -422,6 +422,7 @@ type ControlPlaneBuilder struct {
 	name                          string
 	infrastructureMachineTemplate *unstructured.Unstructured
 	specFields                    map[string]interface{}
+	statusFields                  map[string]interface{}
 }
 
 // NewControlPlaneBuilder returns a ControlPlaneBuilder with the given name and Namespace.
@@ -438,6 +439,32 @@ func (f *ControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.
 	return f
 }
 
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."
+//
+// Example map: map[string]interface{}{
+//     "spec.version": "v1.2.3",
+// }.
+func (f *ControlPlaneBuilder) WithSpecFields(m map[string]interface{}) *ControlPlaneBuilder {
+	f.specFields = m
+	return f
+}
+
+// WithStatusFields sets a map of status fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the status field.
+//
+// Note: all the paths should start with "status."
+//
+// Example map: map[string]interface{}{
+//     "status.version": "v1.2.3",
+// }.
+func (f *ControlPlaneBuilder) WithStatusFields(m map[string]interface{}) *ControlPlaneBuilder {
+	f.statusFields = m
+	return f
+}
+
 // Build generates an Unstructured object from the information passed to the ControlPlaneBuilder.
 func (f *ControlPlaneBuilder) Build() *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
@@ -447,6 +474,7 @@ func (f *ControlPlaneBuilder) Build() *unstructured.Unstructured {
 	obj.SetName(f.name)
 
 	setSpecFields(obj, f.specFields)
+	setStatusFields(obj, f.statusFields)
 
 	if f.infrastructureMachineTemplate != nil {
 		// TODO(killianmuldoon): Update to use the internal/contract package
@@ -463,8 +491,11 @@ type MachineDeploymentBuilder struct {
 	name                   string
 	bootstrapTemplate      *unstructured.Unstructured
 	infrastructureTemplate *unstructured.Unstructured
+	version                *string
 	replicas               *int32
+	generation             *int64
 	labels                 map[string]string
+	status                 *clusterv1.MachineDeploymentStatus
 }
 
 // NewMachineDeploymentBuilder creates a MachineDeploymentBuilder with the given name and namespace.
@@ -493,9 +524,28 @@ func (m *MachineDeploymentBuilder) WithLabels(labels map[string]string) *Machine
 	return m
 }
 
+// WithVersion sets the passed version on the machine deployment spec.
+func (m *MachineDeploymentBuilder) WithVersion(version string) *MachineDeploymentBuilder {
+	m.version = &version
+	return m
+}
+
 // WithReplicas sets the number of replicas for the MachineDeploymentClassBuilder.
-func (m *MachineDeploymentBuilder) WithReplicas(replicas *int32) *MachineDeploymentBuilder {
-	m.replicas = replicas
+func (m *MachineDeploymentBuilder) WithReplicas(replicas int32) *MachineDeploymentBuilder {
+	m.replicas = &replicas
+	return m
+}
+
+// WithGeneration sets the passed value on the machine deployments object metadata.
+func (m *MachineDeploymentBuilder) WithGeneration(generation int64) *MachineDeploymentBuilder {
+	m.generation = &generation
+	return m
+}
+
+// WithStatus sets the passed status object as the status of the machine deployment object.
+// TODO (killianmuldoon): Revise making this method consistent with WithSpec fields in objectbuilders.
+func (m *MachineDeploymentBuilder) WithStatus(status clusterv1.MachineDeploymentStatus) *MachineDeploymentBuilder {
+	m.status = &status
 	return m
 }
 
@@ -512,12 +562,21 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 			Labels:    m.labels,
 		},
 	}
+	if m.generation != nil {
+		obj.Generation = *m.generation
+	}
+	if m.version != nil {
+		obj.Spec.Template.Spec.Version = m.version
+	}
 	obj.Spec.Replicas = m.replicas
 	if m.bootstrapTemplate != nil {
 		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)
 	}
 	if m.infrastructureTemplate != nil {
 		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
+	}
+	if m.status != nil {
+		obj.Status = *m.status
 	}
 	return obj
 }
@@ -618,6 +677,21 @@ func setSpecFields(obj *unstructured.Unstructured, fields map[string]interface{}
 		}
 		if fieldParts[0] != "spec" {
 			panic(fmt.Errorf("can not set fields outside spec"))
+		}
+		if err := unstructured.SetNestedField(obj.UnstructuredContent(), v, strings.Split(k, ".")...); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func setStatusFields(obj *unstructured.Unstructured, fields map[string]interface{}) {
+	for k, v := range fields {
+		fieldParts := strings.Split(k, ".")
+		if len(fieldParts) == 0 {
+			panic(fmt.Errorf("fieldParts invalid"))
+		}
+		if fieldParts[0] != "status" {
+			panic(fmt.Errorf("can not set fields outside status"))
 		}
 		if err := unstructured.SetNestedField(obj.UnstructuredContent(), v, strings.Split(k, ".")...); err != nil {
 			panic(err)

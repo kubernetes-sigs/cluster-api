@@ -65,6 +65,13 @@ const (
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the control plane object is not reporting its own ready condition.
 	WaitingForControlPlaneFallbackReason = "WaitingForControlPlane"
+
+	// WaitingForControlPlaneAvailableReason (Severity=Info) documents a Cluster API object
+	// waiting for the control plane machine to be available.
+	//
+	// NOTE: Having the control plane machine available is a pre-condition for joining additional control planes
+	// or workers nodes.
+	WaitingForControlPlaneAvailableReason = "WaitingForControlPlaneAvailable"
 )
 
 // Conditions and condition Reasons for the Machine object

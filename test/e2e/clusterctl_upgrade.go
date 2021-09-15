@@ -278,7 +278,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
 				Lister:    managementClusterProxy.GetClient(),
-				Namespace: managementClusterNamespace.Name,
+				Namespace: testNamespace.Name,
 				LogPath:   filepath.Join(input.ArtifactFolder, "clusters", managementClusterResources.Cluster.Name, "resources"),
 			})
 

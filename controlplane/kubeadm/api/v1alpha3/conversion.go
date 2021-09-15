@@ -37,7 +37,6 @@ func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {
 		return err
 	}
 
-	dest.Spec.RolloutStrategy = restored.Spec.RolloutStrategy
 	dest.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
 	dest.Status.Version = restored.Status.Version
 

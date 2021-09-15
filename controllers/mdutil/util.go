@@ -44,17 +44,24 @@ const (
 	DefaultMachineDeploymentUniqueLabelKey = "machine-template-hash"
 
 	// FailedMSCreateReason is added in a machine deployment when it cannot create a new machine set.
+	// Deprecated: This field will be removed in a next release.
 	FailedMSCreateReason = "MachineSetCreateError"
+
 	// FoundNewMSReason is added in a machine deployment when it adopts an existing machine set.
+	// Deprecated: This field will be removed in a next release.
 	FoundNewMSReason = "FoundNewMachineSet"
+
 	// PausedDeployReason is added in a deployment when it is paused. Lack of progress shouldn't be
 	// estimated once a deployment is paused.
+	// Deprecated: This field will be removed in a next release.
 	PausedDeployReason = "DeploymentPaused"
 
 	// MinimumReplicasAvailable is added in a deployment when it has its minimum replicas required available.
+	// Deprecated: This field will be removed in a next release.
 	MinimumReplicasAvailable = "MinimumReplicasAvailable"
 	// MinimumReplicasUnavailable is added in a deployment when it doesn't have the minimum required replicas
 	// available.
+	// Deprecated: This field will be removed in a next release.
 	MinimumReplicasUnavailable = "MinimumReplicasUnavailable"
 )
 

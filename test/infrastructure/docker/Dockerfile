@@ -22,6 +22,13 @@ FROM ${builder_image} as builder
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
 
+# Gets additional CAPD dependencies
+WORKDIR /tmp
+
+RUN curl -LO https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl && \
+    chmod +x ./kubectl && \
+    mv ./kubectl /usr/bin/kubectl
+
 WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -49,13 +56,6 @@ WORKDIR /workspace/test/infrastructure/docker
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
-
-# Gets additional CAPD dependencies
-WORKDIR /tmp
-
-RUN curl -LO https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl && \
-    chmod +x ./kubectl && \
-    mv ./kubectl /usr/bin/kubectl
 
 # NOTE: CAPD can't use non-root because docker requires access to the docker socket
 FROM gcr.io/distroless/static:latest

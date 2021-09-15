@@ -142,6 +142,20 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl
 		return ctrl.Result{}, errors.Wrap(err, "error reading current state of the Cluster topology")
 	}
 
+	// Watch Infrastructure and ControlPlane CRs when they exist.
+	if s.Current.InfrastructureCluster != nil {
+		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.InfrastructureCluster,
+			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "error watching Infrastructure CR")
+		}
+	}
+	if s.Current.ControlPlane.Object != nil {
+		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.ControlPlane.Object,
+			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "error watching ControlPlane CR")
+		}
+	}
+
 	// Computes the desired state of the Cluster and store it in the request scope.
 	s.Desired, err = r.computeDesiredState(ctx, s)
 	if err != nil {

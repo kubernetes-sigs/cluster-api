@@ -122,6 +122,14 @@ func (f *FakeProxy) ListResources(labels map[string]string, namespaces ...string
 	return ret, nil
 }
 
+func (f *FakeProxy) GetContexts(prefix string) ([]string, error) {
+	return nil, nil
+}
+
+func (f *FakeProxy) GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error) {
+	return nil, nil
+}
+
 func NewFakeProxy() *FakeProxy {
 	return &FakeProxy{
 		namespace: "default",

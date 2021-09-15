@@ -235,6 +235,12 @@ type Proxy interface {
 
 	// ListResources returns all the Kubernetes objects with the given labels existing the listed namespaces.
 	ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error)
+
+	// GetContexts returns the list of contexts in kubeconfig which begin with prefix.
+	GetContexts(prefix string) ([]string, error)
+
+	// GetResourceNames returns the list of resource names which begin with prefix.
+	GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error)
 }
 
 // retryWithExponentialBackoff repeats an operation until it passes or the exponential backoff times out.

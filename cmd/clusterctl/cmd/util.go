@@ -26,6 +26,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
@@ -165,4 +166,13 @@ func printComponentsAsText(c client.Components) error {
 	fmt.Println()
 
 	return nil
+}
+
+// visitCommands visits the commands.
+func visitCommands(cmd *cobra.Command, fn func(*cobra.Command)) {
+	fn(cmd)
+
+	for _, c := range cmd.Commands() {
+		visitCommands(c, fn)
+	}
 }

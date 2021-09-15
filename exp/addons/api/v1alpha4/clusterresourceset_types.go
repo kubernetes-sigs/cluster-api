@@ -19,7 +19,7 @@ package v1alpha4
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -113,7 +113,6 @@ func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterresourcesets,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterResourceSet"
 
 // ClusterResourceSet is the Schema for the clusterresourcesets API.

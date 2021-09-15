@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	ctrl "sigs.k8s.io/controller-runtime"

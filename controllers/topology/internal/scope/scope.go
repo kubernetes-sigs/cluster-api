@@ -17,7 +17,7 @@ limitations under the License.
 package scope
 
 import (
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // Scope holds all the information to process a request in the topology/ClusterReconciler controller.

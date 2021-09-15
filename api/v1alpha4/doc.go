@@ -14,4 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/api/v1beta1
 package v1alpha4

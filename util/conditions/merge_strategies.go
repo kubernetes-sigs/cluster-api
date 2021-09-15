@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // mergeOptions allows to set strategies for merging a set of conditions into a single condition,

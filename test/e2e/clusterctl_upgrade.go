@@ -35,7 +35,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/utils/pointer"
 	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"

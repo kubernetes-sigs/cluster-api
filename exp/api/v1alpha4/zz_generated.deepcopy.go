@@ -22,8 +22,8 @@ package v1alpha4
 
 import (
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -142,7 +142,7 @@ func (in *MachinePoolStatus) DeepCopyInto(out *MachinePoolStatus) {
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1alpha4.Conditions, len(*in))
+		*out = make(v1beta1.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

@@ -656,6 +656,390 @@ spec:
             type: object
         type: object
     served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Time duration since creation of Cluster
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Cluster is the Schema for the clusters API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterSpec defines the desired state of Cluster.
+            properties:
+              clusterNetwork:
+                description: Cluster network configuration.
+                properties:
+                  apiServerPort:
+                    description: APIServerPort specifies the port the API Server should
+                      bind to. Defaults to 6443.
+                    format: int32
+                    type: integer
+                  pods:
+                    description: The network ranges from which Pod networks are allocated.
+                    properties:
+                      cidrBlocks:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - cidrBlocks
+                    type: object
+                  serviceDomain:
+                    description: Domain name for services.
+                    type: string
+                  services:
+                    description: The network ranges from which service VIPs are allocated.
+                    properties:
+                      cidrBlocks:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - cidrBlocks
+                    type: object
+                type: object
+              controlPlaneEndpoint:
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    format: int32
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
+              controlPlaneRef:
+                description: ControlPlaneRef is an optional reference to a provider-specific
+                  resource that holds the details for provisioning the Control Plane
+                  for a Cluster.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+              infrastructureRef:
+                description: InfrastructureRef is a reference to a provider-specific
+                  resource that holds the details for provisioning infrastructure
+                  for a cluster in said provider.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+              paused:
+                description: Paused can be used to prevent controllers from processing
+                  the Cluster and all its associated objects.
+                type: boolean
+              topology:
+                description: 'This encapsulates the topology for the cluster. NOTE:
+                  It is required to enable the ClusterTopology feature gate flag to
+                  activate managed topologies support; this feature is highly experimental,
+                  and parts of it might still be not implemented.'
+                properties:
+                  class:
+                    description: The name of the ClusterClass object to create the
+                      topology.
+                    type: string
+                  controlPlane:
+                    description: ControlPlane describes the cluster control plane.
+                    properties:
+                      metadata:
+                        description: "Metadata is the metadata applied to the machines
+                          of the ControlPlane. At runtime this metadata is merged
+                          with the corresponding metadata from the ClusterClass. \n
+                          This field is supported if and only if the control plane
+                          provider template referenced in the ClusterClass is Machine
+                          based."
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: 'Annotations is an unstructured key value
+                              map stored with a resource that may be set by external
+                              tools to store and retrieve arbitrary metadata. They
+                              are not queryable and should be preserved when modifying
+                              objects. More info: http://kubernetes.io/docs/user-guide/annotations'
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: 'Map of string keys and values that can be
+                              used to organize and categorize (scope and select) objects.
+                              May match selectors of replication controllers and services.
+                              More info: http://kubernetes.io/docs/user-guide/labels'
+                            type: object
+                        type: object
+                      replicas:
+                        description: Replicas is the number of control plane nodes.
+                          If the value is nil, the ControlPlane object is created
+                          without the number of Replicas and it's assumed that the
+                          control plane controller does not implement support for
+                          this field. When specified against a control plane provider
+                          that lacks support for this field, this value will be ignored.
+                        format: int32
+                        type: integer
+                    type: object
+                  rolloutAfter:
+                    description: RolloutAfter performs a rollout of the entire cluster
+                      one component at a time, control plane first and then machine
+                      deployments.
+                    format: date-time
+                    type: string
+                  version:
+                    description: The Kubernetes version of the cluster.
+                    type: string
+                  workers:
+                    description: Workers encapsulates the different constructs that
+                      form the worker nodes for the cluster.
+                    properties:
+                      machineDeployments:
+                        description: MachineDeployments is a list of machine deployments
+                          in the cluster.
+                        items:
+                          description: MachineDeploymentTopology specifies the different
+                            parameters for a set of worker nodes in the topology.
+                            This set of nodes is managed by a MachineDeployment object
+                            whose lifecycle is managed by the Cluster controller.
+                          properties:
+                            class:
+                              description: Class is the name of the MachineDeploymentClass
+                                used to create the set of worker nodes. This should
+                                match one of the deployment classes defined in the
+                                ClusterClass object mentioned in the `Cluster.Spec.Class`
+                                field.
+                              type: string
+                            metadata:
+                              description: Metadata is the metadata applied to the
+                                machines of the MachineDeployment. At runtime this
+                                metadata is merged with the corresponding metadata
+                                from the ClusterClass.
+                              properties:
+                                annotations:
+                                  additionalProperties:
+                                    type: string
+                                  description: 'Annotations is an unstructured key
+                                    value map stored with a resource that may be set
+                                    by external tools to store and retrieve arbitrary
+                                    metadata. They are not queryable and should be
+                                    preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations'
+                                  type: object
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  description: 'Map of string keys and values that
+                                    can be used to organize and categorize (scope
+                                    and select) objects. May match selectors of replication
+                                    controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+                                  type: object
+                              type: object
+                            name:
+                              description: Name is the unique identifier for this
+                                MachineDeploymentTopology. The value is used with
+                                other unique identifiers to create a MachineDeployment's
+                                Name (e.g. cluster's name, etc). In case the name
+                                is greater than the allowed maximum length, the values
+                                are hashed together.
+                              type: string
+                            replicas:
+                              description: Replicas is the number of worker nodes
+                                belonging to this set. If the value is nil, the MachineDeployment
+                                is created without the number of Replicas (defaulting
+                                to zero) and it's assumed that an external entity
+                                (like cluster autoscaler) is responsible for the management
+                                of this value.
+                              format: int32
+                              type: integer
+                          required:
+                          - class
+                          - name
+                          type: object
+                        type: array
+                    type: object
+                required:
+                - class
+                - version
+                type: object
+            type: object
+          status:
+            description: ClusterStatus defines the observed state of Cluster.
+            properties:
+              conditions:
+                description: Conditions defines current service state of the cluster.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another. This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field
+                        changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition
+                        in CamelCase. The specific API may choose whether or not this
+                        field is considered a guaranteed API. This field may not be
+                        empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of
+                        Reason code, so the users or machines can immediately understand
+                        the current situation and act accordingly. The Severity field
+                        MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              controlPlaneReady:
+                description: ControlPlaneReady defines if the control plane is ready.
+                type: boolean
+              failureDomains:
+                additionalProperties:
+                  description: FailureDomainSpec is the Schema for Cluster API failure
+                    domains. It allows controllers to understand how many failure
+                    domains a cluster can optionally span across.
+                  properties:
+                    attributes:
+                      additionalProperties:
+                        type: string
+                      description: Attributes is a free form map of attributes an
+                        infrastructure provider might use or require.
+                      type: object
+                    controlPlane:
+                      description: ControlPlane determines if this failure domain
+                        is suitable for use by control plane machines.
+                      type: boolean
+                  type: object
+                description: FailureDomains is a slice of failure domain objects synced
+                  from the infrastructure provider.
+                type: object
+              failureMessage:
+                description: FailureMessage indicates that there is a fatal problem
+                  reconciling the state, and will be set to a descriptive error message.
+                type: string
+              failureReason:
+                description: FailureReason indicates that there is a fatal problem
+                  reconciling the state, and will be set to a token value suitable
+                  for programmatic interpretation.
+                type: string
+              infrastructureReady:
+                description: InfrastructureReady is the state of the infrastructure
+                  provider.
+                type: boolean
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current phase of cluster actuation.
+                  E.g. Pending, Running, Terminating, Failed etc.
+                type: string
+            type: object
+        type: object
+    served: true
     storage: true
     subresources:
       status: {}

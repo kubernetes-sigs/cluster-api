@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"github.com/google/go-github/v33/github"
 	"github.com/pkg/errors"

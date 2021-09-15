@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/envtest"

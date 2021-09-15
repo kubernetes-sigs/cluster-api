@@ -8,3 +8,6 @@ resources:
 - group: cluster
   kind: MachinePool
   version: v1alpha4
+- group: cluster
+  kind: MachinePool
+  version: v1beta1

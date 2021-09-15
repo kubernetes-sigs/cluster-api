@@ -959,6 +959,411 @@ spec:
             type: object
         type: object
     served: true
+    storage: false
+    subresources:
+      scale:
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
+      status: {}
+  - additionalPrinterColumns:
+    - description: Time duration since creation of MachinePool
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: MachinePool replicas count
+      jsonPath: .status.replicas
+      name: Replicas
+      type: string
+    - description: MachinePool status such as Terminating/Pending/Provisioning/Running/Failed
+        etc
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Kubernetes version associated with this MachinePool
+      jsonPath: .spec.template.spec.version
+      name: Version
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: MachinePool is the Schema for the machinepools API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MachinePoolSpec defines the desired state of MachinePool.
+            properties:
+              clusterName:
+                description: ClusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
+              failureDomains:
+                description: FailureDomains is the list of failure domains this MachinePool
+                  should be attached to.
+                items:
+                  type: string
+                type: array
+              minReadySeconds:
+                description: Minimum number of seconds for which a newly created machine
+                  instances should be ready. Defaults to 0 (machine instance will
+                  be considered available as soon as it is ready)
+                format: int32
+                type: integer
+              providerIDList:
+                description: ProviderIDList are the identification IDs of machine
+                  instances provided by the provider. This field must match the provider
+                  IDs as seen on the node objects corresponding to a machine pool's
+                  machine instances.
+                items:
+                  type: string
+                type: array
+              replicas:
+                description: Number of desired machines. Defaults to 1. This is a
+                  pointer to distinguish between explicit zero and not specified.
+                format: int32
+                type: integer
+              template:
+                description: Template describes the machines that will be created.
+                properties:
+                  metadata:
+                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: 'Annotations is an unstructured key value map
+                          stored with a resource that may be set by external tools
+                          to store and retrieve arbitrary metadata. They are not queryable
+                          and should be preserved when modifying objects. More info:
+                          http://kubernetes.io/docs/user-guide/annotations'
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: 'Map of string keys and values that can be used
+                          to organize and categorize (scope and select) objects. May
+                          match selectors of replication controllers and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        type: object
+                    type: object
+                  spec:
+                    description: 'Specification of the desired behavior of the machine.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status'
+                    properties:
+                      bootstrap:
+                        description: Bootstrap is a reference to a local struct which
+                          encapsulates fields to configure the Machine’s bootstrapping
+                          mechanism.
+                        properties:
+                          configRef:
+                            description: ConfigRef is a reference to a bootstrap provider-specific
+                              resource that holds configuration details. The reference
+                              is optional to allow users/operators to specify Bootstrap.DataSecretName
+                              without the need of a controller.
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: 'If referring to a piece of an object
+                                  instead of an entire object, this string should
+                                  contain a valid JSON/Go field access statement,
+                                  such as desiredState.manifest.containers[2]. For
+                                  example, if the object reference is to a container
+                                  within a pod, this would take on a value like: "spec.containers{name}"
+                                  (where "name" refers to the name of the container
+                                  that triggered the event) or if no container name
+                                  is specified "spec.containers[2]" (container with
+                                  index 2 in this pod). This syntax is chosen only
+                                  to have some well-defined way of referencing a part
+                                  of an object. TODO: this design is not final and
+                                  this field is subject to change in the future.'
+                                type: string
+                              kind:
+                                description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                type: string
+                              namespace:
+                                description: 'Namespace of the referent. More info:
+                                  https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                type: string
+                              resourceVersion:
+                                description: 'Specific resourceVersion to which this
+                                  reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                type: string
+                              uid:
+                                description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                type: string
+                            type: object
+                          dataSecretName:
+                            description: DataSecretName is the name of the secret
+                              that stores the bootstrap data script. If nil, the Machine
+                              should remain in the Pending state.
+                            type: string
+                        type: object
+                      clusterName:
+                        description: ClusterName is the name of the Cluster this object
+                          belongs to.
+                        minLength: 1
+                        type: string
+                      failureDomain:
+                        description: FailureDomain is the failure domain the machine
+                          will be created in. Must match a key in the FailureDomains
+                          map stored on the cluster object.
+                        type: string
+                      infrastructureRef:
+                        description: InfrastructureRef is a required reference to
+                          a custom resource offered by an infrastructure provider.
+                        properties:
+                          apiVersion:
+                            description: API version of the referent.
+                            type: string
+                          fieldPath:
+                            description: 'If referring to a piece of an object instead
+                              of an entire object, this string should contain a valid
+                              JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                              For example, if the object reference is to a container
+                              within a pod, this would take on a value like: "spec.containers{name}"
+                              (where "name" refers to the name of the container that
+                              triggered the event) or if no container name is specified
+                              "spec.containers[2]" (container with index 2 in this
+                              pod). This syntax is chosen only to have some well-defined
+                              way of referencing a part of an object. TODO: this design
+                              is not final and this field is subject to change in
+                              the future.'
+                            type: string
+                          kind:
+                            description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                            type: string
+                          namespace:
+                            description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                            type: string
+                          resourceVersion:
+                            description: 'Specific resourceVersion to which this reference
+                              is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                            type: string
+                          uid:
+                            description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                            type: string
+                        type: object
+                      nodeDrainTimeout:
+                        description: 'NodeDrainTimeout is the total amount of time
+                          that the controller will spend on draining a node. The default
+                          value is 0, meaning that the node can be drained without
+                          any time limitations. NOTE: NodeDrainTimeout is different
+                          from `kubectl drain --timeout`'
+                        type: string
+                      providerID:
+                        description: ProviderID is the identification ID of the machine
+                          provided by the provider. This field must match the provider
+                          ID as seen on the node object corresponding to this machine.
+                          This field is required by higher level consumers of cluster-api.
+                          Example use case is cluster autoscaler with cluster-api
+                          as provider. Clean-up logic in the autoscaler compares machines
+                          to nodes to find out machines at provider which could not
+                          get registered as Kubernetes nodes. With cluster-api as
+                          a generic out-of-tree provider for autoscaler, this field
+                          is required by autoscaler to be able to have a provider
+                          view of the list of machines. Another list of nodes is queried
+                          from the k8s apiserver and then a comparison is done to
+                          find out unregistered machines and are marked for delete.
+                          This field will be set by the actuators and consumed by
+                          higher level entities like autoscaler that will be interfacing
+                          with cluster-api as generic provider.
+                        type: string
+                      version:
+                        description: Version defines the desired Kubernetes version.
+                          This field is meant to be optionally used by bootstrap providers.
+                        type: string
+                    required:
+                    - bootstrap
+                    - clusterName
+                    - infrastructureRef
+                    type: object
+                type: object
+            required:
+            - clusterName
+            - template
+            type: object
+          status:
+            description: MachinePoolStatus defines the observed state of MachinePool.
+            properties:
+              availableReplicas:
+                description: The number of available replicas (ready for at least
+                  minReadySeconds) for this MachinePool.
+                format: int32
+                type: integer
+              bootstrapReady:
+                description: BootstrapReady is the state of the bootstrap provider.
+                type: boolean
+              conditions:
+                description: Conditions define the current service state of the MachinePool.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another. This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field
+                        changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition
+                        in CamelCase. The specific API may choose whether or not this
+                        field is considered a guaranteed API. This field may not be
+                        empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of
+                        Reason code, so the users or machines can immediately understand
+                        the current situation and act accordingly. The Severity field
+                        MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              failureMessage:
+                description: FailureMessage indicates that there is a problem reconciling
+                  the state, and will be set to a descriptive error message.
+                type: string
+              failureReason:
+                description: FailureReason indicates that there is a problem reconciling
+                  the state, and will be set to a token value suitable for programmatic
+                  interpretation.
+                type: string
+              infrastructureReady:
+                description: InfrastructureReady is the state of the infrastructure
+                  provider.
+                type: boolean
+              nodeRefs:
+                description: NodeRefs will point to the corresponding Nodes if it
+                  they exist.
+                items:
+                  description: 'ObjectReference contains enough information to let
+                    you inspect or modify the referred object. --- New uses of this
+                    type are discouraged because of difficulty describing its usage
+                    when embedded in APIs.  1. Ignored fields.  It includes many fields
+                    which are not generally honored.  For instance, ResourceVersion
+                    and FieldPath are both very rarely valid in actual usage.  2.
+                    Invalid usage help.  It is impossible to add specific help for
+                    individual usage.  In most embedded usages, there are particular     restrictions
+                    like, "must refer only to types A and B" or "UID not honored"
+                    or "name must be restricted".     Those cannot be well described
+                    when embedded.  3. Inconsistent validation.  Because the usages
+                    are different, the validation rules are different by usage, which
+                    makes it hard for users to predict what will happen.  4. The fields
+                    are both imprecise and overly precise.  Kind is not a precise
+                    mapping to a URL. This can produce ambiguity     during interpretation
+                    and require a REST mapping.  In most cases, the dependency is
+                    on the group,resource tuple     and the version of the actual
+                    struct is irrelevant.  5. We cannot easily change it.  Because
+                    this type is embedded in many locations, updates to this type     will
+                    affect numerous schemas.  Don''t make new APIs embed an underspecified
+                    API type they do not control. Instead of using this type, create
+                    a locally provided and used type that is well-focused on your
+                    reference. For example, ServiceReferences for admission registration:
+                    https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
+                    .'
+                  properties:
+                    apiVersion:
+                      description: API version of the referent.
+                      type: string
+                    fieldPath:
+                      description: 'If referring to a piece of an object instead of
+                        an entire object, this string should contain a valid JSON/Go
+                        field access statement, such as desiredState.manifest.containers[2].
+                        For example, if the object reference is to a container within
+                        a pod, this would take on a value like: "spec.containers{name}"
+                        (where "name" refers to the name of the container that triggered
+                        the event) or if no container name is specified "spec.containers[2]"
+                        (container with index 2 in this pod). This syntax is chosen
+                        only to have some well-defined way of referencing a part of
+                        an object. TODO: this design is not final and this field is
+                        subject to change in the future.'
+                      type: string
+                    kind:
+                      description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                      type: string
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                      type: string
+                    namespace:
+                      description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                      type: string
+                    resourceVersion:
+                      description: 'Specific resourceVersion to which this reference
+                        is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                      type: string
+                    uid:
+                      description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                      type: string
+                  type: object
+                type: array
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current phase of cluster actuation.
+                  E.g. Pending, Running, Terminating, Failed etc.
+                type: string
+              readyReplicas:
+                description: The number of ready replicas for this MachinePool. A
+                  machine is considered ready when the node has been created and is
+                  "Ready".
+                format: int32
+                type: integer
+              replicas:
+                description: Replicas is the most recently observed number of replicas.
+                format: int32
+                type: integer
+              unavailableReplicas:
+                description: Total number of unavailable machine instances targeted
+                  by this machine pool. This is the total number of machine instances
+                  that are still required for the machine pool to have 100% available
+                  capacity. They may either be machine instances that are running
+                  but not yet available or machine instances that still have not been
+                  created.
+                format: int32
+                type: integer
+            type: object
+        type: object
+    served: true
     storage: true
     subresources:
       scale:

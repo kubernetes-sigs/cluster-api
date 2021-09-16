@@ -53,6 +53,10 @@ const (
 	// is machinedeployment.spec.replicas + maxSurge. Used by the underlying machine sets to estimate their
 	// proportions in case the deployment has surge replicas.
 	MaxReplicasAnnotation = "machinedeployment.clusters.x-k8s.io/max-replicas"
+
+	// MachineDeploymentUniqueLabel is the label applied to Machines
+	// in a MachineDeployment containing the hash of the template.
+	MachineDeploymentUniqueLabel = "machine-template-hash"
 )
 
 // ANCHOR: MachineDeploymentSpec

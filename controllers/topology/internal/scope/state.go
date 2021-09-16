@@ -19,7 +19,7 @@ package scope
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/mdutil"
+	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
 )
 
 // ClusterState holds all the objects representing the state of a managed Cluster topology.

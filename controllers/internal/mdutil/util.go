@@ -38,33 +38,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
-const (
-	// DefaultMachineDeploymentUniqueLabelKey is the label applied to Machines
-	// in a MachineDeployment containing the hash of the template.
-	DefaultMachineDeploymentUniqueLabelKey = "machine-template-hash"
-
-	// FailedMSCreateReason is added in a machine deployment when it cannot create a new machine set.
-	// Deprecated: This field will be removed in a next release.
-	FailedMSCreateReason = "MachineSetCreateError"
-
-	// FoundNewMSReason is added in a machine deployment when it adopts an existing machine set.
-	// Deprecated: This field will be removed in a next release.
-	FoundNewMSReason = "FoundNewMachineSet"
-
-	// PausedDeployReason is added in a deployment when it is paused. Lack of progress shouldn't be
-	// estimated once a deployment is paused.
-	// Deprecated: This field will be removed in a next release.
-	PausedDeployReason = "DeploymentPaused"
-
-	// MinimumReplicasAvailable is added in a deployment when it has its minimum replicas required available.
-	// Deprecated: This field will be removed in a next release.
-	MinimumReplicasAvailable = "MinimumReplicasAvailable"
-	// MinimumReplicasUnavailable is added in a deployment when it doesn't have the minimum required replicas
-	// available.
-	// Deprecated: This field will be removed in a next release.
-	MinimumReplicasUnavailable = "MinimumReplicasUnavailable"
-)
-
 // MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
 type MachineSetsByCreationTimestamp []*clusterv1.MachineSet
 
@@ -299,9 +272,8 @@ func SetReplicasAnnotations(ms *clusterv1.MachineSet, desiredReplicas, maxReplic
 		ms.Annotations[clusterv1.DesiredReplicasAnnotation] = desiredString
 		updated = true
 	}
-	maxString := fmt.Sprintf("%d", maxReplicas)
-	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != maxString {
-		ms.Annotations[clusterv1.MaxReplicasAnnotation] = maxString
+	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != fmt.Sprintf("%d", maxReplicas) {
+		ms.Annotations[clusterv1.MaxReplicasAnnotation] = fmt.Sprintf("%d", maxReplicas)
 		updated = true
 	}
 	return updated
@@ -316,8 +288,7 @@ func ReplicasAnnotationsNeedUpdate(ms *clusterv1.MachineSet, desiredReplicas, ma
 	if hasString := ms.Annotations[clusterv1.DesiredReplicasAnnotation]; hasString != desiredString {
 		return true
 	}
-	maxString := fmt.Sprintf("%d", maxReplicas)
-	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != maxString {
+	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != fmt.Sprintf("%d", maxReplicas) {
 		return true
 	}
 	return false
@@ -403,8 +374,8 @@ func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) b
 	// 1. The hash result would be different upon machineTemplateSpec API changes
 	//    (e.g. the addition of a new field will cause the hash code to change)
 	// 2. The deployment template won't have hash labels
-	delete(t1Copy.Labels, DefaultMachineDeploymentUniqueLabelKey)
-	delete(t2Copy.Labels, DefaultMachineDeploymentUniqueLabelKey)
+	delete(t1Copy.Labels, clusterv1.MachineDeploymentUniqueLabel)
+	delete(t2Copy.Labels, clusterv1.MachineDeploymentUniqueLabel)
 
 	// Remove the version part from the references APIVersion field,
 	// for more details see issue #2183 and #2140.
@@ -697,23 +668,6 @@ func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelVal
 	return newSelector
 }
 
-// DeepHashObject writes specified object to hash using the spew library
-// which follows pointers and prints actual values of the nested objects
-// ensuring the hash does not change when a pointer changes.
-// Deprecated: Please use controllers/mdutil SpewHashObject(hasher, objectToWrite).
-func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
-	hasher.Reset()
-	printer := spew.ConfigState{
-		Indent:         " ",
-		SortKeys:       true,
-		DisableMethods: true,
-		SpewKeys:       true,
-	}
-	// We ignore the returned error because there is no way to return the error without
-	// breaking API compatibility. Please use SpewHashObject instead.
-	_, _ = printer.Fprintf(hasher, "%#v", objectToWrite)
-}
-
 // SpewHashObject writes specified object to hash using the spew library
 // which follows pointers and prints actual values of the nested objects
 // ensuring the hash does not change when a pointer changes.
@@ -732,18 +686,10 @@ func SpewHashObject(hasher hash.Hash, objectToWrite interface{}) error {
 	return nil
 }
 
-// ComputeHash computes the hash of a MachineTemplateSpec using the spew library.
-// Deprecated: Please use controllers/mdutil ComputeSpewHash(template).
-func ComputeHash(template *clusterv1.MachineTemplateSpec) uint32 {
-	machineTemplateSpecHasher := fnv.New32a()
-	DeepHashObject(machineTemplateSpecHasher, *template)
-	return machineTemplateSpecHasher.Sum32()
-}
-
 // ComputeSpewHash computes the hash of a MachineTemplateSpec using the spew library.
-func ComputeSpewHash(template *clusterv1.MachineTemplateSpec) (uint32, error) {
+func ComputeSpewHash(objectToWrite interface{}) (uint32, error) {
 	machineTemplateSpecHasher := fnv.New32a()
-	if err := SpewHashObject(machineTemplateSpecHasher, *template); err != nil {
+	if err := SpewHashObject(machineTemplateSpecHasher, objectToWrite); err != nil {
 		return 0, err
 	}
 	return machineTemplateSpecHasher.Sum32(), nil

@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/mdutil"
+	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -147,11 +147,11 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(ctx context.Context, d *c
 	}
 	machineTemplateSpecHash := fmt.Sprintf("%d", hash)
 	newMSTemplate.Labels = mdutil.CloneAndAddLabel(d.Spec.Template.Labels,
-		mdutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
+		clusterv1.MachineDeploymentUniqueLabel, machineTemplateSpecHash)
 
 	// Add machineTemplateHash label to selector.
 	newMSSelector := mdutil.CloneSelectorAndAddLabel(&d.Spec.Selector,
-		mdutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
+		clusterv1.MachineDeploymentUniqueLabel, machineTemplateSpecHash)
 
 	minReadySeconds := int32(0)
 	if d.Spec.MinReadySeconds != nil {

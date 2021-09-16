@@ -23,6 +23,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
@@ -141,14 +142,14 @@ func runCompletionZsh(out io.Writer, cmd *cobra.Command) error {
 	return nil
 }
 
-func contextCompletionFunc(kubeconfig *string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		configClient, err := config.New(cfgFile)
 		if err != nil {
 			return completionError(err)
 		}
 
-		client := cluster.New(cluster.Kubeconfig{Path: *kubeconfig}, configClient)
+		client := cluster.New(cluster.Kubeconfig{Path: kubeconfigFlag.Value.String()}, configClient)
 		comps, err := client.Proxy().GetContexts(toComplete)
 		if err != nil {
 			return completionError(err)
@@ -158,14 +159,14 @@ func contextCompletionFunc(kubeconfig *string) func(cmd *cobra.Command, args []s
 	}
 }
 
-func resourceNameCompletionFunc(kubeconfig *string, groupVersion, kind string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func resourceNameCompletionFunc(kubeconfigFlag, contextFlag *pflag.Flag, groupVersion, kind string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		configClient, err := config.New(cfgFile)
 		if err != nil {
 			return completionError(err)
 		}
 
-		client := cluster.New(cluster.Kubeconfig{Path: *kubeconfig}, configClient)
+		client := cluster.New(cluster.Kubeconfig{Path: kubeconfigFlag.Value.String(), Context: contextFlag.Value.String()}, configClient)
 		comps, err := client.Proxy().GetResourceNames(groupVersion, kind, nil, toComplete)
 		if err != nil {
 			return completionError(err)

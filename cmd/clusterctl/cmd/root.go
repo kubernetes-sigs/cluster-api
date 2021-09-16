@@ -137,17 +137,17 @@ func initConfig() {
 
 func registerCompletionFuncForCommonFlags() {
 	visitCommands(RootCmd, func(cmd *cobra.Command) {
-		if f := cmd.Flags().Lookup("kubeconfig"); f != nil {
-			kubeconfig := f.Value.String()
-
+		if kubeconfigFlag := cmd.Flags().Lookup("kubeconfig"); kubeconfigFlag != nil {
 			// context in kubeconfig
 			for _, flagName := range []string{"kubeconfig-context", "to-kubeconfig-context"} {
-				_ = cmd.RegisterFlagCompletionFunc(flagName, contextCompletionFunc(&kubeconfig))
+				_ = cmd.RegisterFlagCompletionFunc(flagName, contextCompletionFunc(kubeconfigFlag))
 			}
 
-			// namespace
-			for _, flagName := range []string{"namespace", "target-namespace", "from-config-map-namespace"} {
-				_ = cmd.RegisterFlagCompletionFunc(flagName, resourceNameCompletionFunc(&kubeconfig, "v1", "namespace"))
+			if contextFlag := cmd.Flags().Lookup("kubeconfig-context"); contextFlag != nil {
+				// namespace
+				for _, flagName := range []string{"namespace", "target-namespace", "from-config-map-namespace"} {
+					_ = cmd.RegisterFlagCompletionFunc(flagName, resourceNameCompletionFunc(kubeconfigFlag, contextFlag, "v1", "namespace"))
+				}
 			}
 		}
 	})

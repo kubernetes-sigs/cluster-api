@@ -24,14 +24,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api/feature"
 )
 
 var (
-	cannotUseWithIgnition    = fmt.Sprintf("not supported when spec.format is set to %q", Ignition)
-	conflictingFileSourceMsg = "only one of content or contentFrom may be specified for a single file"
-	missingSecretNameMsg     = "secret file source must specify non-empty secret name"
-	missingSecretKeyMsg      = "secret file source must specify non-empty secret key"
-	pathConflictMsg          = "path property must be unique among all files"
+	cannotUseWithIgnition                            = fmt.Sprintf("not supported when spec.format is set to %q", Ignition)
+	conflictingFileSourceMsg                         = "only one of content or contentFrom may be specified for a single file"
+	kubeadmBootstrapFormatIgnitionFeatureDisabledMsg = "can be set only if the KubeadmBootstrapFormatIgnition feature gate is enabled"
+	missingSecretNameMsg                             = "secret file source must specify non-empty secret name"
+	missingSecretKeyMsg                              = "secret file source must specify non-empty secret key"
+	pathConflictMsg                                  = "path property must be unique among all files"
 )
 
 func (c *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -65,6 +68,7 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 	if len(allErrs) == 0 {
 		return nil
 	}
+
 	return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmConfig").GroupKind(), name, allErrs)
 }
 
@@ -139,6 +143,20 @@ func (c *KubeadmConfigSpec) validateFiles() field.ErrorList {
 
 func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
 	var allErrs field.ErrorList
+
+	if !feature.Gates.Enabled(feature.KubeadmBootstrapFormatIgnition) {
+		if c.Format == Ignition {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath("spec", "format"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
+		}
+
+		if c.Ignition != nil {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath("spec", "ignition"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
+		}
+
+		return allErrs
+	}
 
 	if c.Format != Ignition {
 		if c.Ignition != nil {

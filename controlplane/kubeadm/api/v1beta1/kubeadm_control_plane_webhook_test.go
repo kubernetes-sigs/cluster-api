@@ -24,9 +24,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/feature"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
@@ -135,9 +137,10 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	validIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
 
 	tests := []struct {
-		name      string
-		expectErr bool
-		kcp       *KubeadmControlPlane
+		name                  string
+		enableIgnitionFeature bool
+		expectErr             bool
+		kcp                   *KubeadmControlPlane
 	}{
 		{
 			name:      "should succeed when given a valid config",
@@ -190,19 +193,27 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			kcp:       invalidMaxSurge,
 		},
 		{
-			name:      "should return error when Ignition configuration is invalid",
-			expectErr: true,
-			kcp:       invalidIgnitionConfiguration,
+			name:                  "should return error when Ignition configuration is invalid",
+			enableIgnitionFeature: true,
+			expectErr:             true,
+			kcp:                   invalidIgnitionConfiguration,
 		},
 		{
-			name:      "should succeed when Ignition configuration is valid",
-			expectErr: false,
-			kcp:       validIgnitionConfiguration,
+			name:                  "should succeed when Ignition configuration is valid",
+			enableIgnitionFeature: true,
+			expectErr:             false,
+			kcp:                   validIgnitionConfiguration,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.enableIgnitionFeature {
+				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
+				// Enabling the feature flag temporarily for this test.
+				defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)()
+			}
+
 			g := NewWithT(t)
 
 			if tt.expectErr {
@@ -571,10 +582,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validIgnitionConfigurationAfter.Spec.KubeadmConfigSpec.Ignition.ContainerLinuxConfig.AdditionalConfig = "foo: bar"
 
 	tests := []struct {
-		name      string
-		expectErr bool
-		before    *KubeadmControlPlane
-		kcp       *KubeadmControlPlane
+		name                  string
+		enableIgnitionFeature bool
+		expectErr             bool
+		before                *KubeadmControlPlane
+		kcp                   *KubeadmControlPlane
 	}{
 		{
 			name:      "should succeed when given a valid config",
@@ -859,21 +871,29 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       disableNTPServers,
 		},
 		{
-			name:      "should return error when Ignition configuration is invalid",
-			expectErr: true,
-			before:    invalidIgnitionConfiguration,
-			kcp:       invalidIgnitionConfiguration,
+			name:                  "should return error when Ignition configuration is invalid",
+			enableIgnitionFeature: true,
+			expectErr:             true,
+			before:                invalidIgnitionConfiguration,
+			kcp:                   invalidIgnitionConfiguration,
 		},
 		{
-			name:      "should succeed when Ignition configuration is modified",
-			expectErr: false,
-			before:    validIgnitionConfigurationBefore,
-			kcp:       validIgnitionConfigurationAfter,
+			name:                  "should succeed when Ignition configuration is modified",
+			enableIgnitionFeature: true,
+			expectErr:             false,
+			before:                validIgnitionConfigurationBefore,
+			kcp:                   validIgnitionConfigurationAfter,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.enableIgnitionFeature {
+				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
+				// Enabling the feature flag temporarily for this test.
+				defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)()
+			}
+
 			g := NewWithT(t)
 
 			err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())

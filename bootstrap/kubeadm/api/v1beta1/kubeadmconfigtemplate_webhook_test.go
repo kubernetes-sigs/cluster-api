@@ -45,6 +45,8 @@ func TestKubeadmConfigTemplateValidation(t *testing.T) {
 	}
 
 	for name, tt := range cases {
+		tt := tt
+
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(tt.in.ValidateCreate()).To(Succeed())

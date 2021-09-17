@@ -21,13 +21,17 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
+
+	"sigs.k8s.io/cluster-api/feature"
 )
 
 func TestClusterValidate(t *testing.T) {
 	cases := map[string]struct {
-		in        *KubeadmConfig
-		expectErr bool
+		in                    *KubeadmConfig
+		enableIgnitionFeature bool
+		expectErr             bool
 	}{
 		"valid content": {
 			in: &KubeadmConfig{
@@ -143,6 +147,7 @@ func TestClusterValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"Ignition field is set, format is not Ignition": {
+			enableIgnitionFeature: true,
 			in: &KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
@@ -155,6 +160,7 @@ func TestClusterValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"Ignition field is not set, format is Ignition": {
+			enableIgnitionFeature: true,
 			in: &KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
@@ -166,6 +172,7 @@ func TestClusterValidate(t *testing.T) {
 			},
 		},
 		"format is Ignition, user is inactive": {
+			enableIgnitionFeature: true,
 			in: &KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
@@ -183,6 +190,7 @@ func TestClusterValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"format is Ignition, non-GPT partition configured": {
+			enableIgnitionFeature: true,
 			in: &KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
@@ -202,6 +210,7 @@ func TestClusterValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"format is Ignition, experimental retry join is set": {
+			enableIgnitionFeature: true,
 			in: &KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
@@ -214,10 +223,42 @@ func TestClusterValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"feature gate disabled, format is Ignition": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+				},
+			},
+			expectErr: true,
+		},
+		"feature gate disabled, Ignition field is set": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+					Ignition: &IgnitionSpec{
+						ContainerLinuxConfig: &ContainerLinuxConfig{},
+					},
+				},
+			},
+			expectErr: true,
+		},
 	}
 
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
+			if tt.enableIgnitionFeature {
+				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
+				// Enabling the feature flag temporarily for this test.
+				defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)()
+			}
 			g := NewWithT(t)
 			if tt.expectErr {
 				g.Expect(tt.in.ValidateCreate()).NotTo(Succeed())

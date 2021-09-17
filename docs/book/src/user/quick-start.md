@@ -727,7 +727,7 @@ Calico is used here as an example.
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
+  apply -f https://docs.projectcalico.org/v3.20/manifests/calico.yaml
 ```
 
 After a short while, our nodes should be running and in `Ready` state,

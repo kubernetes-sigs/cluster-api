@@ -66,7 +66,7 @@ const (
 type ClusterReconciler struct {
 	Client           client.Client
 	
-	//Label value to filter events for reconciliation
+	// WatchFilterValue is the label value used to filter events prior to reconciliation
 	WatchFilterValue string
 
 	recorder        record.EventRecorder

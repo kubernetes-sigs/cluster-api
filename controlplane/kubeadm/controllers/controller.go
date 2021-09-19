@@ -66,7 +66,7 @@ type KubeadmControlPlaneReconciler struct {
 	recorder         record.EventRecorder
 	Tracker          *remote.ClusterCacheTracker
 	
-	//Label value to filter events for reconciliation
+	// WatchFilterValue is the label value used to filter events prior to reconciliation
 	WatchFilterValue string
 
 	managementCluster         internal.ManagementCluster

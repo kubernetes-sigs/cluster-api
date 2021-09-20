@@ -16,5 +16,55 @@ limitations under the License.
 
 package v1alpha4
 
-func (*DockerCluster) Hub()     {}
-func (*DockerClusterList) Hub() {}
+import (
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
+
+func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.DockerCluster)
+
+	return Convert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(src, dst, nil)
+}
+
+func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.DockerCluster)
+
+	return Convert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(src, dst, nil)
+}
+
+func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.DockerClusterTemplate)
+
+	return Convert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(src, dst, nil)
+}
+
+func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.DockerClusterTemplate)
+
+	return Convert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(src, dst, nil)
+}
+
+func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.DockerMachine)
+
+	return Convert_v1alpha4_DockerMachine_To_v1beta1_DockerMachine(src, dst, nil)
+}
+
+func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.DockerMachine)
+
+	return Convert_v1beta1_DockerMachine_To_v1alpha4_DockerMachine(src, dst, nil)
+}
+
+func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.DockerMachineTemplate)
+
+	return Convert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil)
+}
+
+func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.DockerMachineTemplate)
+
+	return Convert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(src, dst, nil)
+}

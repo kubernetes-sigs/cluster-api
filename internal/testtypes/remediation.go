@@ -22,7 +22,7 @@ import (
 
 var (
 	// RemediationGroupVersion is group version used for remediation objects.
-	RemediationGroupVersion = schema.GroupVersion{Group: "remediation.external.io", Version: "v1alpha4"}
+	RemediationGroupVersion = schema.GroupVersion{Group: "remediation.external.io", Version: "v1beta1"}
 
 	// GenericRemediationCRD is a generic infrastructure remediation CRD.
 	GenericRemediationCRD = generateCRD(RemediationGroupVersion.WithKind("GenericExternalRemediation"))

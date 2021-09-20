@@ -33,17 +33,20 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/api/v1alpha4/index"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/controllers/topology"
-	addonsv1old "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
+	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
-	expv1old "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	expv1alpha4 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/version"
@@ -84,13 +87,20 @@ func init() {
 	klog.InitFlags(nil)
 
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = clusterv1old.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
-	_ = expv1old.AddToScheme(scheme)
-	_ = expv1.AddToScheme(scheme)
-	_ = addonsv1old.AddToScheme(scheme)
-	_ = addonsv1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
+
+	_ = clusterv1alpha3.AddToScheme(scheme)
+	_ = clusterv1alpha4.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+
+	_ = expv1alpha3.AddToScheme(scheme)
+	_ = expv1alpha4.AddToScheme(scheme)
+	_ = expv1.AddToScheme(scheme)
+
+	_ = addonsv1alpha3.AddToScheme(scheme)
+	_ = addonsv1alpha4.AddToScheme(scheme)
+	_ = addonsv1.AddToScheme(scheme)
+
 	// +kubebuilder:scaffold:scheme
 }
 

@@ -20,7 +20,7 @@ import (
 	"context"
 	"io"
 
-	"sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // Runtime defines the interface for interacting with a container runtime.
@@ -88,7 +88,7 @@ type RunContainerInput struct {
 	// PortMappings contains host<>container ports to map.
 	PortMappings []PortMapping
 	// IPFamily is the IP version to use.
-	IPFamily v1alpha4.ClusterIPFamily
+	IPFamily clusterv1.ClusterIPFamily
 }
 
 // ExecContainerInput contains values for running exec on a container.

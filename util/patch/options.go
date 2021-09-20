@@ -16,7 +16,7 @@ limitations under the License.
 
 package patch
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // Option is some configuration that modifies options for a patch request.
 type Option interface {

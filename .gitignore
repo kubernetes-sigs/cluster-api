@@ -13,6 +13,7 @@ hack/tools/bin
 # E2E test templates
 test/e2e/data/infrastructure-docker/v1alpha3/cluster-template*.yaml
 test/e2e/data/infrastructure-docker/v1alpha4/cluster-template*.yaml
+test/e2e/data/infrastructure-docker/v1beta1/cluster-template*.yaml
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out

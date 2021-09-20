@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,7 +50,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 					Port: 8443,
 				},
 				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 					Kind:       "GenericInfrastructureMachine",
 					Name:       "test",
 				},
@@ -80,7 +80,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				cluster: cluster,
 				infraRef: map[string]interface{}{
 					"kind":       "GenericInfrastructureMachine",
-					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 					"metadata": map[string]interface{}{
 						"name":              "test",
 						"namespace":         "test-namespace",
@@ -94,7 +94,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				cluster: cluster,
 				infraRef: map[string]interface{}{
 					"kind":       "GenericInfrastructureMachine",
-					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 					"metadata": map[string]interface{}{
 						"name":              "test",
 						"namespace":         "test-namespace",
@@ -108,7 +108,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				cluster: cluster,
 				infraRef: map[string]interface{}{
 					"kind":       "GenericInfrastructureMachine",
-					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 					"metadata": map[string]interface{}{
 						"name":      "test",
 						"namespace": "test-namespace",

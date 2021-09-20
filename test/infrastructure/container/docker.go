@@ -35,7 +35,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -392,7 +392,7 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 	}
 	networkConfig := network.NetworkingConfig{}
 
-	if runConfig.IPFamily == v1alpha4.IPv6IPFamily {
+	if runConfig.IPFamily == clusterv1.IPv6IPFamily {
 		hostConfig.Sysctls = map[string]string{
 			"net.ipv6.conf.all.disable_ipv6": "0",
 			"net.ipv6.conf.all.forwarding":   "1",

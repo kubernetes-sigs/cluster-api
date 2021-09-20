@@ -35,12 +35,12 @@ var referencedObjectsCompatibilityTestCases = []referencedObjectsCompatibilityTe
 		name: "Fails if group changes",
 		current: &unstructured.Unstructured{
 			Object: map[string]interface{}{
-				"apiVersion": "foo/v1alpha4",
+				"apiVersion": "foo/v1beta1",
 			},
 		},
 		desired: &unstructured.Unstructured{
 			Object: map[string]interface{}{
-				"apiVersion": "bar/v1alpha4",
+				"apiVersion": "bar/v1beta1",
 			},
 		},
 		wantErr: true,

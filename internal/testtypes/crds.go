@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func generateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
@@ -37,7 +37,7 @@ func generateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDef
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group),
 			Labels: map[string]string{
-				clusterv1.GroupVersion.String(): "v1alpha4",
+				clusterv1.GroupVersion.String(): "v1beta1",
 			},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{

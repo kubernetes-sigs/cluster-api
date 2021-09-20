@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/testtypes"
 
 	"github.com/google/go-cmp/cmp"
@@ -36,7 +36,7 @@ import (
 func TestGetReference(t *testing.T) {
 	fakeControlPlaneTemplateCRDv99 := testtypes.GenericControlPlaneTemplateCRD.DeepCopy()
 	fakeControlPlaneTemplateCRDv99.Labels = map[string]string{
-		"cluster.x-k8s.io/v1alpha4": "v1alpha4_v99",
+		"cluster.x-k8s.io/v1beta1": "v1beta1_v99",
 	}
 	crds := []client.Object{
 		fakeControlPlaneTemplateCRDv99,

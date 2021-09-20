@@ -53,7 +53,7 @@ $(KUSTOMIZE): # Build kustomize from tools folder.
 DOCKER_TEMPLATES := $(REPO_ROOT)/test/e2e/data/infrastructure-docker
 
 .PHONY: cluster-templates
-cluster-templates: $(KUSTOMIZE) cluster-templates-v1alpha3 cluster-templates-v1alpha4 ## Generate cluster templates for all versions
+cluster-templates: $(KUSTOMIZE) cluster-templates-v1alpha3 cluster-templates-v1alpha4 cluster-templates-v1beta1 ## Generate cluster templates for all versions
 
 cluster-templates-v1alpha3: $(KUSTOMIZE) ## Generate cluster templates for v1alpha3
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha3/cluster-template --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha3/cluster-template.yaml
@@ -70,6 +70,20 @@ cluster-templates-v1alpha4: $(KUSTOMIZE) ## Generate cluster templates for v1alp
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-upgrades --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-upgrades.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-scale-in --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-kcp-scale-in.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-ipv6 --load_restrictor none > $(DOCKER_TEMPLATES)/v1alpha4/cluster-template-ipv6.yaml
+
+cluster-templates-v1beta1: $(KUSTOMIZE) ## Generate cluster templates for v1beta1
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-md-remediation --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-md-remediation.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-remediation --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-remediation.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-adoption/step1 --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-adoption.yaml
+	echo "---" >> $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-adoption.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-adoption/step2 --load_restrictor none >> $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-adoption.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-machine-pool --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-machine-pool.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-node-drain --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-node-drain.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-upgrades --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-upgrades.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-scale-in --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-kcp-scale-in.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-ipv6 --load_restrictor none > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-ipv6.yaml
+
 ## --------------------------------------
 ## Testing
 ## --------------------------------------

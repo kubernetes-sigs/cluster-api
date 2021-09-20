@@ -26,11 +26,11 @@ import (
 	apiextensionsv1beta "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 // TryAddDefaultSchemes tries to add the following schemes:
@@ -47,10 +47,10 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	// Add the apps schemes.
 	_ = appsv1.AddToScheme(scheme)
 
-	// Add the core CAPI v1alpha4 scheme.
+	// Add the core CAPI scheme.
 	_ = clusterv1.AddToScheme(scheme)
 
-	// Add the CAPI v1alpha4 experiments scheme.
+	// Add the CAPI experiments scheme.
 	_ = expv1.AddToScheme(scheme)
 	_ = addonsv1.AddToScheme(scheme)
 

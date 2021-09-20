@@ -1,0 +1,42 @@
+---
+# MachinePool which references the DockerMachinePool and KubeadmConfigTemplate below
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-mp-0"
+spec:
+  clusterName: '${CLUSTER_NAME}'
+  replicas: ${WORKER_MACHINE_COUNT}
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfig
+          name: "${CLUSTER_NAME}-mp-0-config"
+      clusterName: '${CLUSTER_NAME}'
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachinePool
+        name: "${CLUSTER_NAME}-dmp-0"
+      version: "${KUBERNETES_VERSION}"
+---
+# DockerMachinePool using default values referenced by the MachinePool
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-dmp-0"
+---
+# KubeadmConfigTemplate referenced by the MachinePool
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfig
+metadata:
+  name: "${CLUSTER_NAME}-mp-0-config"
+spec:
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+        # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+        cgroup-driver: cgroupfs
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

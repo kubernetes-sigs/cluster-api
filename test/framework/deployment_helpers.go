@@ -38,7 +38,7 @@ import (
 
 	"k8s.io/api/policy/v1beta1"
 	"k8s.io/utils/pointer"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

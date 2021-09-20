@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -46,7 +46,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					&clusterv1.MachineDeployment{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "MachineDeployment",
-							APIVersion: "cluster.x-k8s.io/v1alpha4",
+							APIVersion: "cluster.x-k8s.io/v1beta1",
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",
@@ -70,7 +70,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					&clusterv1.MachineDeployment{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "MachineDeployment",
-							APIVersion: "cluster.x-k8s.io/v1alpha4",
+							APIVersion: "cluster.x-k8s.io/v1beta1",
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package upstreamv1beta3
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,7 +23,7 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects.
-	GroupVersion = schema.GroupVersion{Group: "kubeadm.k8s.io", Version: "v1beta1"}
+	GroupVersion = schema.GroupVersion{Group: "kubeadm.k8s.io", Version: "v1beta3"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}

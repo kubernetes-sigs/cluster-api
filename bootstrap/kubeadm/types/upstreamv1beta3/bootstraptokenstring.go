@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta3
+package upstreamv1beta3
 
 import (
 	"fmt"

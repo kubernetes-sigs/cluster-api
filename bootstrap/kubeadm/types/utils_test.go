@@ -17,16 +17,16 @@ limitations under the License.
 package utils
 
 import (
+	"testing"
+
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta2"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta3"
-
-	"testing"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
 )
 
 func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
@@ -52,7 +52,7 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			args: args{
 				version: semver.MustParse("1.13.0"),
 			},
-			want:    v1beta1.GroupVersion,
+			want:    upstreamv1beta1.GroupVersion,
 			wantErr: false,
 		},
 		{
@@ -60,7 +60,7 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			args: args{
 				version: semver.MustParse("1.14.99"),
 			},
-			want:    v1beta1.GroupVersion,
+			want:    upstreamv1beta1.GroupVersion,
 			wantErr: false,
 		},
 		{
@@ -68,7 +68,7 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			args: args{
 				version: semver.MustParse("1.15.0"),
 			},
-			want:    v1beta2.GroupVersion,
+			want:    upstreamv1beta2.GroupVersion,
 			wantErr: false,
 		},
 		{
@@ -76,7 +76,7 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			args: args{
 				version: semver.MustParse("1.20.99"),
 			},
-			want:    v1beta2.GroupVersion,
+			want:    upstreamv1beta2.GroupVersion,
 			wantErr: false,
 		},
 		{
@@ -84,7 +84,7 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			args: args{
 				version: semver.MustParse("1.22.0"),
 			},
-			want:    v1beta3.GroupVersion,
+			want:    upstreamv1beta3.GroupVersion,
 			wantErr: false,
 		},
 		{
@@ -92,7 +92,7 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			args: args{
 				version: semver.MustParse("1.23.99"),
 			},
-			want:    v1beta3.GroupVersion,
+			want:    upstreamv1beta3.GroupVersion,
 			wantErr: false,
 		},
 		{
@@ -100,7 +100,7 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			args: args{
 				version: semver.MustParse("99.99.99"),
 			},
-			want:    v1beta3.GroupVersion,
+			want:    upstreamv1beta3.GroupVersion,
 			wantErr: false,
 		},
 	}

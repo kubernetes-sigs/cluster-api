@@ -14,44 +14,47 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
+package upstreamv1beta3
 
 import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
+	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(AddToScheme(scheme)).To(Succeed())
+	g.Expect(v1beta1.AddToScheme(scheme)).To(Succeed())
+
 	t.Run("for ClusterConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1alpha4.ClusterConfiguration{},
-		Spoke: &ClusterConfiguration{},
-		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
-		SkipSpokeAnnotationCleanup: true,
-		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
-	}))
-	t.Run("for ClusterStatus", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1alpha4.ClusterStatus{},
-		Spoke: &ClusterStatus{},
+		Scheme: scheme,
+		Hub:    &v1beta1.ClusterConfiguration{},
+		Spoke:  &ClusterConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 	t.Run("for InitConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1alpha4.InitConfiguration{},
-		Spoke: &InitConfiguration{},
+		Scheme: scheme,
+		Hub:    &v1beta1.InitConfiguration{},
+		Spoke:  &InitConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 	t.Run("for JoinConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1alpha4.JoinConfiguration{},
-		Spoke: &JoinConfiguration{},
+		Scheme: scheme,
+		Hub:    &v1beta1.JoinConfiguration{},
+		Spoke:  &JoinConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
@@ -60,37 +63,40 @@ func TestFuzzyConversion(t *testing.T) {
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		nodeRegistrationOptionsFuzzer,
 		initConfigurationFuzzer,
+		joinConfigurationFuzzer,
 		joinControlPlanesFuzzer,
-		dnsFuzzer,
-		clusterConfigurationFuzzer,
 	}
+}
+
+func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// NodeRegistrationOptions.IgnorePreflightErrors does not exists in v1alpha4, so setting it to nil in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
+	obj.IgnorePreflightErrors = nil
 }
 
 func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// JoinControlPlane.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
+	// JoinControlPlane.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
 	obj.CertificateKey = ""
 }
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
-	// InitConfiguration.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
+	// InitConfiguration.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
 	obj.CertificateKey = ""
+
+	// InitConfiguration.SkipPhases does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
+	obj.SkipPhases = nil
 }
 
-func dnsFuzzer(obj *DNS, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
+	c.Fuzz(obj)
 
-	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
-	obj.Type = ""
-}
-
-func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
-	obj.UseHyperKubeImage = false
+	// JoinConfiguration.SkipPhases does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
+	obj.SkipPhases = nil
 }

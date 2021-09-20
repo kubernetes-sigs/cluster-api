@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1beta3 contains a mirror of kubeadm API v1beta3 API, required because it is not possible to import k/K.
+// Package upstreamv1beta3 contains a mirror of kubeadm API v1beta3 API, required because it is not possible to import k/K.
 //
 // IMPORTANT: Do not change these files!
 // IMPORTANT: only for KubeadmConfig serialization/deserialization, and should not be used for other purposes.
 //
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
 // +k8s:deepcopy-gen=package
-package v1beta3 // import "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta3"
+package upstreamv1beta3 // import "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"

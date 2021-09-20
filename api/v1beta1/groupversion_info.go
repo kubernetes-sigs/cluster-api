@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha4 contains API Schema definitions for the cluster v1alpha4 API group
+// Package v1beta1 contains API Schema definitions for the cluster v1beta1 API group
 // +kubebuilder:object:generate=true
 // +groupName=cluster.x-k8s.io
-package v1alpha4
+package v1beta1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,13 +26,11 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects.
-	GroupVersion = schema.GroupVersion{Group: "cluster.x-k8s.io", Version: "v1alpha4"}
+	GroupVersion = schema.GroupVersion{Group: "cluster.x-k8s.io", Version: "v1beta1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
-
-	localSchemeBuilder = SchemeBuilder.SchemeBuilder
 )

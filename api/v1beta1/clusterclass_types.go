@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +23,7 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterclasses,shortName=cc,scope=Namespaced,categories=cluster-api
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterClass"
 
 // ClusterClass is a template which can be used to create managed topologies.

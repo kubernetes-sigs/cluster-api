@@ -16,5 +16,43 @@ limitations under the License.
 
 package v1alpha4
 
-func (*KubeadmControlPlane) Hub()     {}
-func (*KubeadmControlPlaneList) Hub() {}
+import (
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
+
+func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {
+	dest := destRaw.(*v1beta1.KubeadmControlPlane)
+
+	return Convert_v1alpha4_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dest, nil)
+}
+
+func (dest *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.KubeadmControlPlane)
+
+	return Convert_v1beta1_KubeadmControlPlane_To_v1alpha4_KubeadmControlPlane(src, dest, nil)
+}
+
+func (src *KubeadmControlPlaneTemplate) ConvertTo(destRaw conversion.Hub) error {
+	dest := destRaw.(*v1beta1.KubeadmControlPlaneTemplate)
+
+	return Convert_v1alpha4_KubeadmControlPlaneTemplate_To_v1beta1_KubeadmControlPlaneTemplate(src, dest, nil)
+}
+
+func (dest *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.KubeadmControlPlaneTemplate)
+
+	return Convert_v1beta1_KubeadmControlPlaneTemplate_To_v1alpha4_KubeadmControlPlaneTemplate(src, dest, nil)
+}
+
+func (src *KubeadmControlPlaneList) ConvertTo(destRaw conversion.Hub) error {
+	dest := destRaw.(*v1beta1.KubeadmControlPlaneList)
+
+	return Convert_v1alpha4_KubeadmControlPlaneList_To_v1beta1_KubeadmControlPlaneList(src, dest, nil)
+}
+
+func (dest *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.KubeadmControlPlaneList)
+
+	return Convert_v1beta1_KubeadmControlPlaneList_To_v1alpha4_KubeadmControlPlaneList(src, dest, nil)
+}

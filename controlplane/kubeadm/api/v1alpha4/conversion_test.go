@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	"testing"
@@ -35,6 +35,12 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke:       &KubeadmControlPlane{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
+
+	t.Run("for KubeadmControlPlaneTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:         &v1beta1.KubeadmControlPlaneTemplate{},
+		Spoke:       &KubeadmControlPlaneTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+	}))
 }
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -52,7 +58,6 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		kubeadmBootstrapTokenStringFuzzer,
 		cabpkBootstrapTokenStringFuzzer,
 		dnsFuzzer,
-		kubeadmClusterConfigurationFuzzer,
 	}
 }
 
@@ -70,11 +75,4 @@ func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
-}
-
-func kubeadmClusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
-	obj.UseHyperKubeImage = false
 }

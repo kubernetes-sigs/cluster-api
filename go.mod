@@ -11,10 +11,8 @@ require (
 	github.com/drone/envsubst/v2 v2.0.0-20210615175204-7bf45dbf5372
 	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/fatih/color v1.12.0
-	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/gobuffalo/flect v0.2.3
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-github/v33 v33.0.0
 	github.com/google/gofuzz v1.2.0
@@ -30,13 +28,13 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.0
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	google.golang.org/grpc v1.39.0
-	k8s.io/api v0.21.4
+	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.21.4
-	k8s.io/apimachinery v0.21.4
+	k8s.io/apimachinery v0.22.1
 	k8s.io/apiserver v0.21.4
-	k8s.io/client-go v0.21.4
+	k8s.io/client-go v0.22.1
 	k8s.io/cluster-bootstrap v0.21.4
-	k8s.io/component-base v0.21.4
+	k8s.io/component-base v0.22.1
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/kubectl v0.21.4
 	k8s.io/utils v0.0.0-20210802155522-efc7438f0176

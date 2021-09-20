@@ -11,7 +11,7 @@ require (
 	golang.org/x/exp v0.0.0-20210625193404-fa9d1d177d71 // indirect
 	golang.org/x/tools v0.1.5
 	gotest.tools/gotestsum v1.6.4
-	k8s.io/code-generator v0.21.3
+	k8s.io/code-generator v0.22.1
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210706144019-ef5c8a3ffd28
 	sigs.k8s.io/controller-tools v0.6.2
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20210702145813-742983631190

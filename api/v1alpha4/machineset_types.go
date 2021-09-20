@@ -163,6 +163,9 @@ type MachineSetStatus struct {
 	FailureReason *capierrors.MachineSetStatusError `json:"failureReason,omitempty"`
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
+	// Conditions defines current service state of the MachineSet.
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachineSetStatus
@@ -221,4 +224,14 @@ type MachineSetList struct {
 
 func init() {
 	SchemeBuilder.Register(&MachineSet{}, &MachineSetList{})
+}
+
+// GetConditions returns the set of conditions for the MachineSet.
+func (m *MachineSet) GetConditions() Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions updates the set of conditions on the MachineSet.
+func (m *MachineSet) SetConditions(conditions Conditions) {
+	m.Status.Conditions = conditions
 }

@@ -14,3 +14,9 @@ resources:
 - group: bootstrap
   version: v1alpha4
   kind: KubeadmConfigTemplate
+- group: bootstrap
+  version: v1beta1
+  kind: KubeadmConfig
+- group: bootstrap
+  version: v1beta1
+  kind: KubeadmConfigTemplate

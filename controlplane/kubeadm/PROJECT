@@ -11,3 +11,9 @@ resources:
 - group: controlplane
   kind: KubeadmControlPlaneTemplate
   version: v1alpha4
+- group: controlplane
+  version: v1beta1
+  kind: KubeadmControlPlane
+- group: controlplane
+  kind: KubeadmControlPlaneTemplate
+  version: v1beta1

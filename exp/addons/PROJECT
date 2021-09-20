@@ -8,4 +8,7 @@ resources:
 - group: addons
   kind: ClusterResourceSet
   version: v1alpha4
+- group: addons
+  kind: ClusterResourceSet
+  version: v1beta1
 

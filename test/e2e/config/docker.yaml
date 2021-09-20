@@ -29,12 +29,18 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: v0.3.23 # latest published release
+  - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/core-components.yaml"
     type: "url"
     replacements:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
+  - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/core-components.yaml"
+      type: "url"
+      replacements:
+        - old: --metrics-addr=127.0.0.1:8080
+          new: --metrics-addr=:8080
   - name: v1.0.99 # next; use manifest from source files
     value: ../../../config/default
     replacements:
@@ -46,8 +52,14 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: v0.3.23 # latest published release
+  - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/bootstrap-components.yaml"
+    type: "url"
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+  - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/bootstrap-components.yaml"
     type: "url"
     replacements:
       - old: --metrics-addr=127.0.0.1:8080
@@ -63,8 +75,14 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: v0.3.23 # latest published release
+  - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/control-plane-components.yaml"
+    type: "url"
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+  - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/control-plane-components.yaml"
     type: "url"
     replacements:
       - old: --metrics-addr=127.0.0.1:8080
@@ -80,7 +98,7 @@ providers:
 - name: docker
   type: InfrastructureProvider
   versions:
-  - name: v0.3.23 # latest published release
+  - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/infrastructure-components-development.yaml"
     type: "url"
     replacements:
@@ -89,6 +107,15 @@ providers:
     files:
       # Add cluster templates
       - sourcePath: "../data/infrastructure-docker/v1alpha3/cluster-template.yaml"
+  - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/infrastructure-components-development.yaml"
+    type: "url"
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      # Add cluster templates
+      - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template.yaml"
   - name: v1.0.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:

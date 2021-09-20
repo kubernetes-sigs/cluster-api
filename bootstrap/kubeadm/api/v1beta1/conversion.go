@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
-import (
-	ctrl "sigs.k8s.io/controller-runtime"
-)
+func (*KubeadmConfig) Hub()             {}
+func (*KubeadmConfigList) Hub()         {}
+func (*KubeadmConfigTemplate) Hub()     {}
+func (*KubeadmConfigTemplateList) Hub() {}
 
-func (r *KubeadmConfigList) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
+func (*ClusterConfiguration) Hub() {}
+func (*ClusterStatus) Hub()        {}
+func (*InitConfiguration) Hub()    {}
+func (*JoinConfiguration) Hub()    {}

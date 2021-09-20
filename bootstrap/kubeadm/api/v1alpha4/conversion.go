@@ -16,12 +16,55 @@ limitations under the License.
 
 package v1alpha4
 
-func (*KubeadmConfig) Hub()             {}
-func (*KubeadmConfigList) Hub()         {}
-func (*KubeadmConfigTemplate) Hub()     {}
-func (*KubeadmConfigTemplateList) Hub() {}
+import (
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
 
-func (*ClusterConfiguration) Hub() {}
-func (*ClusterStatus) Hub()        {}
-func (*InitConfiguration) Hub()    {}
-func (*JoinConfiguration) Hub()    {}
+func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.KubeadmConfig)
+
+	return Convert_v1alpha4_KubeadmConfig_To_v1beta1_KubeadmConfig(src, dst, nil)
+}
+
+func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.KubeadmConfig)
+
+	return Convert_v1beta1_KubeadmConfig_To_v1alpha4_KubeadmConfig(src, dst, nil)
+}
+
+func (src *KubeadmConfigList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.KubeadmConfigList)
+
+	return Convert_v1alpha4_KubeadmConfigList_To_v1beta1_KubeadmConfigList(src, dst, nil)
+}
+
+func (dst *KubeadmConfigList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.KubeadmConfigList)
+
+	return Convert_v1beta1_KubeadmConfigList_To_v1alpha4_KubeadmConfigList(src, dst, nil)
+}
+
+func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.KubeadmConfigTemplate)
+
+	return Convert_v1alpha4_KubeadmConfigTemplate_To_v1beta1_KubeadmConfigTemplate(src, dst, nil)
+}
+
+func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.KubeadmConfigTemplate)
+
+	return Convert_v1beta1_KubeadmConfigTemplate_To_v1alpha4_KubeadmConfigTemplate(src, dst, nil)
+}
+
+func (src *KubeadmConfigTemplateList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.KubeadmConfigTemplateList)
+
+	return Convert_v1alpha4_KubeadmConfigTemplateList_To_v1beta1_KubeadmConfigTemplateList(src, dst, nil)
+}
+
+func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.KubeadmConfigTemplateList)
+
+	return Convert_v1beta1_KubeadmConfigTemplateList_To_v1alpha4_KubeadmConfigTemplateList(src, dst, nil)
+}

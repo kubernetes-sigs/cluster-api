@@ -15,5 +15,5 @@ limitations under the License.
 */
 
 // Package v1alpha3 contains the v1alpha3 API implementation.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
 package v1alpha3

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	"testing"
@@ -42,7 +42,6 @@ func TestFuzzyConversion(t *testing.T) {
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		KubeadmConfigStatusFuzzer,
 		dnsFuzzer,
 		clusterConfigurationFuzzer,
 		// This custom functions are needed when ConvertTo/ConvertFrom functions
@@ -60,24 +59,17 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func KubeadmConfigStatusFuzzer(obj *KubeadmConfigStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
-	obj.BootstrapData = nil
-}
-
 func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
+	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
 }
 
 func clusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> <hub> --> v1beta1 round trip errors.
+	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> v1alpha4 --> v1beta1 round trip errors.
 	obj.UseHyperKubeImage = false
 }
 

@@ -109,6 +109,15 @@ func init() {
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,
 		"Disable grouping machines when ready condition has the same Status, Severity and Reason.")
 
+	// completions
+	describeClusterClusterCmd.ValidArgsFunction = resourceNameCompletionFunc(
+		describeClusterClusterCmd.Flags().Lookup("kubeconfig"),
+		describeClusterClusterCmd.Flags().Lookup("kubeconfig-context"),
+		describeClusterClusterCmd.Flags().Lookup("namespace"),
+		clusterv1.GroupVersion.String(),
+		"cluster",
+	)
+
 	describeCmd.AddCommand(describeClusterClusterCmd)
 }
 

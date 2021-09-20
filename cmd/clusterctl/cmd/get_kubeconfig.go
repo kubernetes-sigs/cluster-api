@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
@@ -57,6 +58,16 @@ func init() {
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
 	getKubeconfigCmd.Flags().StringVar(&gk.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
+
+	// completions
+	getKubeconfigCmd.ValidArgsFunction = resourceNameCompletionFunc(
+		getKubeconfigCmd.Flags().Lookup("kubeconfig"),
+		getKubeconfigCmd.Flags().Lookup("kubeconfig-context"),
+		getKubeconfigCmd.Flags().Lookup("namespace"),
+		clusterv1.GroupVersion.String(),
+		"cluster",
+	)
+
 	getCmd.AddCommand(getKubeconfigCmd)
 }
 

@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const completionBoilerPlate = `# Copyright 2021 The Kubernetes Authors.
@@ -159,15 +160,28 @@ func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, 
 	}
 }
 
-func resourceNameCompletionFunc(kubeconfigFlag, contextFlag *pflag.Flag, groupVersion, kind string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func resourceNameCompletionFunc(kubeconfigFlag, contextFlag, namespaceFlag *pflag.Flag, groupVersion, kind string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		configClient, err := config.New(cfgFile)
 		if err != nil {
 			return completionError(err)
 		}
 
-		client := cluster.New(cluster.Kubeconfig{Path: kubeconfigFlag.Value.String(), Context: contextFlag.Value.String()}, configClient)
-		comps, err := client.Proxy().GetResourceNames(groupVersion, kind, nil, toComplete)
+		clusterClient := cluster.New(cluster.Kubeconfig{Path: kubeconfigFlag.Value.String(), Context: contextFlag.Value.String()}, configClient)
+
+		var namespace string
+		if namespaceFlag != nil {
+			namespace = namespaceFlag.Value.String()
+		}
+
+		if namespace == "" {
+			namespace, err = clusterClient.Proxy().CurrentNamespace()
+			if err != nil {
+				return completionError(err)
+			}
+		}
+
+		comps, err := clusterClient.Proxy().GetResourceNames(groupVersion, kind, []client.ListOption{client.InNamespace(namespace)}, toComplete)
 		if err != nil {
 			return completionError(err)
 		}

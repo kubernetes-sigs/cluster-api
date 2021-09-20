@@ -146,7 +146,7 @@ func registerCompletionFuncForCommonFlags() {
 			if contextFlag := cmd.Flags().Lookup("kubeconfig-context"); contextFlag != nil {
 				// namespace
 				for _, flagName := range []string{"namespace", "target-namespace", "from-config-map-namespace"} {
-					_ = cmd.RegisterFlagCompletionFunc(flagName, resourceNameCompletionFunc(kubeconfigFlag, contextFlag, "v1", "namespace"))
+					_ = cmd.RegisterFlagCompletionFunc(flagName, resourceNameCompletionFunc(kubeconfigFlag, contextFlag, nil, "v1", "namespace"))
 				}
 			}
 		}

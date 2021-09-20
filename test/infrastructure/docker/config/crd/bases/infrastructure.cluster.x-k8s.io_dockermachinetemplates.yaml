@@ -184,6 +184,93 @@ spec:
             type: object
         type: object
     served: true
+    storage: false
+    subresources: {}
+  - additionalPrinterColumns:
+    - description: Time duration since creation of DockerMachineTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: DockerMachineTemplate is the Schema for the dockermachinetemplates
+          API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DockerMachineTemplateSpec defines the desired state of DockerMachineTemplate.
+            properties:
+              template:
+                description: DockerMachineTemplateResource describes the data needed
+                  to create a DockerMachine from a template.
+                properties:
+                  spec:
+                    description: Spec is the specification of the desired behavior
+                      of the machine.
+                    properties:
+                      bootstrapped:
+                        description: Bootstrapped is true when the kubeadm bootstrapping
+                          has been run against this machine
+                        type: boolean
+                      customImage:
+                        description: CustomImage allows customizing the container
+                          image that is used for running the machine
+                        type: string
+                      extraMounts:
+                        description: ExtraMounts describes additional mount points
+                          for the node container These may be used to bind a hostPath
+                        items:
+                          description: Mount specifies a host volume to mount into
+                            a container. This is a simplified version of kind v1alpha4.Mount
+                            types.
+                          properties:
+                            containerPath:
+                              description: Path of the mount within the container.
+                              type: string
+                            hostPath:
+                              description: Path of the mount on the host. If the hostPath
+                                doesn't exist, then runtimes should report error.
+                                If the hostpath is a symbolic link, runtimes should
+                                follow the symlink and mount the real destination
+                                to container.
+                              type: string
+                            readOnly:
+                              description: If set, the mount is read-only.
+                              type: boolean
+                          type: object
+                        type: array
+                      preLoadImages:
+                        description: PreLoadImages allows to pre-load images in a
+                          newly created machine. This can be used to speed up tests
+                          by avoiding e.g. to download CNI images on all the containers.
+                        items:
+                          type: string
+                        type: array
+                      providerID:
+                        description: ProviderID will be the container name in ProviderID
+                          format (docker:////<containername>)
+                        type: string
+                    type: object
+                required:
+                - spec
+                type: object
+            required:
+            - template
+            type: object
+        type: object
+    served: true
     storage: true
     subresources: {}
 status:

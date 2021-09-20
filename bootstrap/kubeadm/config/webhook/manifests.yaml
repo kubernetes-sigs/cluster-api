@@ -13,7 +13,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-bootstrap-cluster-x-k8s-io-v1alpha4-kubeadmconfig
+      path: /validate-bootstrap-cluster-x-k8s-io-v1beta1-kubeadmconfig
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.kubeadmconfig.bootstrap.cluster.x-k8s.io
@@ -21,7 +21,7 @@ webhooks:
   - apiGroups:
     - bootstrap.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE

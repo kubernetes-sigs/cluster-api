@@ -20,7 +20,7 @@ import (
 	"sort"
 
 	corev1 "k8s.io/api/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // localizedCondition defines a condition with the information of the object the conditions

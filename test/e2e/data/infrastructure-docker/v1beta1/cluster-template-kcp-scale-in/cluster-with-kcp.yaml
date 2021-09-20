@@ -1,0 +1,9 @@
+# KubeadmControlPlane referenced by the Cluster object with
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  rolloutStrategy:
+    rollingUpdate:
+      maxSurge: 0

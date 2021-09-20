@@ -13,7 +13,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha4-kubeadmcontrolplane
+      path: /mutate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
@@ -21,7 +21,7 @@ webhooks:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -35,14 +35,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha4-kubeadmcontrolplanetemplate
+      path: /mutate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplanetemplate
   failurePolicy: Fail
   name: default.kubeadmcontrolplanetemplate.controlplane.cluster.x-k8s.io
   rules:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -64,7 +64,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-controlplane-cluster-x-k8s-io-v1alpha4-kubeadmcontrolplane
+      path: /validate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
@@ -72,7 +72,7 @@ webhooks:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -87,14 +87,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-controlplane-cluster-x-k8s-io-v1alpha4-kubeadmcontrolplanetemplate
+      path: /validate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplanetemplate
   failurePolicy: Fail
   name: validation.kubeadmcontrolplanetemplate.controlplane.cluster.x-k8s.io
   rules:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE

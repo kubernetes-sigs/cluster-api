@@ -124,7 +124,6 @@ type KubeadmConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigs,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfig"
 

@@ -1,6 +1,7 @@
 domain: x-k8s.io
 repo: sigs.k8s.io/cluster-api
 resources:
+# v1alpha3 types
 - group: cluster
   kind: Cluster
   version: v1alpha3
@@ -13,6 +14,7 @@ resources:
 - group: cluster
   kind: MachineDeployment
   version: v1alpha3
+# v1alpha4 types
 - group: cluster
   kind: ClusterClass
   version: v1alpha4
@@ -28,4 +30,20 @@ resources:
 - group: cluster
   kind: MachineDeployment
   version: v1alpha4
+# v1beta1 types
+- group: cluster
+  kind: ClusterClass
+  version: v1beta1
+- group: cluster
+  kind: Cluster
+  version: v1beta1
+- group: cluster
+  kind: Machine
+  version: v1beta1
+- group: cluster
+  kind: MachineSet
+  version: v1beta1
+- group: cluster
+  kind: MachineDeployment
+  version: v1beta1
 version: "2"

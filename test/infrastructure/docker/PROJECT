@@ -10,6 +10,9 @@ resources:
   kind: DockerMachine
 - group: infrastructure
   version: v1alpha3
+  kind: DockerMachineTemplate
+- group: infrastructure
+  version: v1alpha3
   kind: DockerMachinePool
 - group: infrastructure
   version: v1alpha4
@@ -19,7 +22,25 @@ resources:
   kind: DockerMachine
 - group: infrastructure
   version: v1alpha4
+  kind: DockerMachineTemplate
+- group: infrastructure
+  version: v1alpha4
   kind: DockerMachinePool
 - group: infrastructure
   version: v1alpha4
+  kind: DockerClusterTemplate
+- group: infrastructure
+  version: v1beta1
+  kind: DockerCluster
+- group: infrastructure
+  version: v1beta1
+  kind: DockerMachine
+- group: infrastructure
+  version: v1beta1
+  kind: DockerMachineTemplate
+- group: infrastructure
+  version: v1beta1
+  kind: DockerMachinePool
+- group: infrastructure
+  version: v1beta1
   kind: DockerClusterTemplate

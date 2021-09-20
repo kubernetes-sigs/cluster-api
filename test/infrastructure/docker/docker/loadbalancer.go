@@ -22,9 +22,9 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/third_party/forked/loadbalancer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,7 +45,7 @@ type LoadBalancer struct {
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
-func NewLoadBalancer(cluster *clusterv1.Cluster, dockerCluster *v1alpha4.DockerCluster) (*LoadBalancer, error) {
+func NewLoadBalancer(cluster *clusterv1.Cluster, dockerCluster *infrav1.DockerCluster) (*LoadBalancer, error) {
 	if cluster.Name == "" {
 		return nil, errors.New("create load balancer: cluster name is empty")
 	}
@@ -80,7 +80,7 @@ func NewLoadBalancer(cluster *clusterv1.Cluster, dockerCluster *v1alpha4.DockerC
 
 // getLoadBalancerImage will return the image (e.g. "kindest/haproxy:2.1.1-alpine") to use for
 // the load balancer.
-func getLoadBalancerImage(dockerCluster *v1alpha4.DockerCluster) string {
+func getLoadBalancerImage(dockerCluster *infrav1.DockerCluster) string {
 	// Check if a non-default image was provided
 	image := loadbalancer.Image
 	imageRepo := loadbalancer.DefaultImageRepository

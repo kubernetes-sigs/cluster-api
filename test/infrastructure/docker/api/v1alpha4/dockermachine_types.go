@@ -92,7 +92,6 @@ type DockerMachineStatus struct {
 
 // +kubebuilder:resource:path=dockermachines,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachine"
 

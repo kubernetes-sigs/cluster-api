@@ -113,7 +113,6 @@ func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterresourcesets,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterResourceSet"
 
 // ClusterResourceSet is the Schema for the clusterresourcesets API.

@@ -21,7 +21,7 @@ import (
 
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // MatchConditions returns a custom matcher to check equality of clusterv1.Conditions.

@@ -17,8 +17,8 @@ limitations under the License.
 package internal
 
 import (
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 // ControlPlaneMachineLabelsForCluster returns a set of labels to add to a control plane machine for this specific cluster.

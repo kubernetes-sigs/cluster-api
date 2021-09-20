@@ -23,7 +23,7 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 )
 
 const (

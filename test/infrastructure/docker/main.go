@@ -31,18 +31,20 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	infrav1old "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
+	infrav1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
+	infrav1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/controllers"
-	infraexpv1old "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4"
+	infraexpv1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3"
+	infraexpv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -65,9 +67,11 @@ func init() {
 	klog.InitFlags(nil)
 
 	_ = scheme.AddToScheme(myscheme)
-	_ = infrav1old.AddToScheme(myscheme)
+	_ = infrav1alpha3.AddToScheme(myscheme)
+	_ = infrav1alpha4.AddToScheme(myscheme)
 	_ = infrav1.AddToScheme(myscheme)
-	_ = infraexpv1old.AddToScheme(myscheme)
+	_ = infraexpv1alpha3.AddToScheme(myscheme)
+	_ = infraexpv1alpha4.AddToScheme(myscheme)
 	_ = infraexpv1.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = expv1.AddToScheme(myscheme)

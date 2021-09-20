@@ -8,3 +8,6 @@ resources:
 - group: infrastructure
   kind: DockerMachinePool
   version: v1alpha4
+- group: infrastructure
+  kind: DockerMachinePool
+  version: v1beta1

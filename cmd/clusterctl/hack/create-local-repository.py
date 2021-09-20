@@ -53,24 +53,24 @@ settings = {}
 providers = {
       'cluster-api': {
               'componentsFile': 'core-components.yaml',
-              'nextVersion': 'v0.4.99',
+              'nextVersion': 'v1.0.99',
               'type': 'CoreProvider',
       },
       'bootstrap-kubeadm': {
             'componentsFile': 'bootstrap-components.yaml',
-            'nextVersion': 'v0.4.99',
+            'nextVersion': 'v1.0.99',
             'type': 'BootstrapProvider',
             'configFolder': 'bootstrap/kubeadm/config/default',
       },
       'control-plane-kubeadm': {
             'componentsFile': 'control-plane-components.yaml',
-            'nextVersion': 'v0.4.99',
+            'nextVersion': 'v1.0.99',
             'type': 'ControlPlaneProvider',
             'configFolder': 'controlplane/kubeadm/config/default',
       },
       'infrastructure-docker': {
           'componentsFile': 'infrastructure-components.yaml',
-          'nextVersion': 'v0.4.99',
+          'nextVersion': 'v1.0.99',
           'type': 'InfrastructureProvider',
           'configFolder': 'test/infrastructure/docker/config/default',
       },

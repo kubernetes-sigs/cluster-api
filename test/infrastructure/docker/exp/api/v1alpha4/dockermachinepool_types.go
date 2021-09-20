@@ -18,7 +18,6 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 )
@@ -112,7 +111,6 @@ type DockerMachinePoolInstanceStatus struct {
 
 // +kubebuilder:resource:path=dockermachinepools,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachinePool"
 

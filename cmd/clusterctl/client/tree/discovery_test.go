@@ -64,44 +64,44 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
+					"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
-				"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/cp1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
 				},
 				// Machine should be leaf (no echo)
-				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/cp1": {},
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers": {
-					"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1",
+				"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers": {
+					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
 				},
 				// Machine deployment should have a group of machines (grouping)
-				"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1": {
-					"virtual.cluster.x-k8s.io/v1alpha4, ns1/zzz_",
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
+					"virtual.cluster.x-k8s.io/v1beta1, ns1/zzz_",
 				},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, be a grouping object
-				"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers": func(g *WithT, obj client.Object) {
+				"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should be a grouping object
-				"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 			},
@@ -133,47 +133,47 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
+					"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
-				"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/cp1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
 				},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers": {
-					"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1",
+				"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers": {
+					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
 				},
 				// Machine deployment should have a group of machines
-				"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1": {
-					"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m1",
-					"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m2",
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m2",
 				},
 				// Machine should be leaf (no echo)
-				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/cp1": {},
-				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m1":  {},
-				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m2":  {},
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {},
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1":  {},
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m2":  {},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, should NOT be a grouping object
-				"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers": func(g *WithT, obj client.Object) {
+				"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should NOT be a grouping object
-				"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 			},
@@ -205,65 +205,65 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
-				"cluster.x-k8s.io/v1alpha4, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
+					"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
-				"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/cp1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
 				},
 				// Machine should have infra machine and bootstrap (echo)
-				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/cp1": {
-					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/cp1",
-					"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/cp1",
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cp1",
+					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cp1",
 				},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers": {
-					"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1",
+				"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers": {
+					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
 				},
 				// Machine deployment should have a group of machines
-				"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1": {
-					"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m1",
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
 				},
 				// Machine should have infra machine and bootstrap (echo)
-				"cluster.x-k8s.io/v1alpha4, Kind=Machine, ns1/m1": {
-					"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m1",
-					"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m1",
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1",
+					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
 				},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, should NOT be a grouping object
-				"controlplane.cluster.x-k8s.io/v1alpha4, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1alpha4, ns1/Workers": func(g *WithT, obj client.Object) {
+				"virtual.cluster.x-k8s.io/v1beta1, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should NOT be a grouping object
-				"cluster.x-k8s.io/v1alpha4, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 				// infra machines and boostrap should have meta names
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/cp1": func(g *WithT, obj client.Object) {
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cp1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructure"))
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/cp1": func(g *WithT, obj client.Object) {
+				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cp1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfig"))
 				},
-				"infrastructure.cluster.x-k8s.io/v1alpha4, Kind=GenericInfrastructureMachine, ns1/m1": func(g *WithT, obj client.Object) {
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructure"))
 				},
-				"bootstrap.cluster.x-k8s.io/v1alpha4, Kind=GenericBootstrapConfig, ns1/m1": func(g *WithT, obj client.Object) {
+				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfig"))
 				},
 			},

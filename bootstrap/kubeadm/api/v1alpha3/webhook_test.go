@@ -24,10 +24,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestKubeadmConfigConversion(t *testing.T) {
@@ -73,14 +72,14 @@ func TestKubeadmConfigTemplateConversion(t *testing.T) {
 }
 
 var fakeKubeadmConfigSpec = KubeadmConfigSpec{
-	ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+	ClusterConfiguration: &upstreamv1beta1.ClusterConfiguration{
 		KubernetesVersion: "v1.20.2",
-		APIServer: kubeadmv1beta1.APIServer{
-			ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
+		APIServer: upstreamv1beta1.APIServer{
+			ControlPlaneComponent: upstreamv1beta1.ControlPlaneComponent{
 				ExtraArgs: map[string]string{
 					"foo": "bar",
 				},
-				ExtraVolumes: []kubeadmv1beta1.HostPathMount{
+				ExtraVolumes: []upstreamv1beta1.HostPathMount{
 					{
 						Name:      "mount-path",
 						HostPath:  "/foo",
@@ -91,14 +90,14 @@ var fakeKubeadmConfigSpec = KubeadmConfigSpec{
 			},
 		},
 	},
-	InitConfiguration: &kubeadmv1beta1.InitConfiguration{
-		NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+	InitConfiguration: &upstreamv1beta1.InitConfiguration{
+		NodeRegistration: upstreamv1beta1.NodeRegistrationOptions{
 			Name:      "foo",
 			CRISocket: "/var/run/containerd/containerd.sock",
 		},
 	},
-	JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-		NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+	JoinConfiguration: &upstreamv1beta1.JoinConfiguration{
+		NodeRegistration: upstreamv1beta1.NodeRegistrationOptions{
 			Name:      "foo",
 			CRISocket: "/var/run/containerd/containerd.sock",
 		},

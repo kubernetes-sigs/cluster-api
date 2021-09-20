@@ -32,7 +32,6 @@ type KubeadmConfigTemplateResource struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigtemplates,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfigTemplate"
 
 // KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API.

@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,7 +45,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 	infraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
@@ -77,14 +77,14 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  ns.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 					Kind:       "BootstrapMachine",
 					Name:       "bootstrap-config1",
 				},

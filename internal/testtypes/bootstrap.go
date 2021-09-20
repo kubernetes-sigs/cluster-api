@@ -22,7 +22,7 @@ import (
 
 var (
 	// BootstrapGroupVersion is group version used for bootstrap objects.
-	BootstrapGroupVersion = schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1alpha4"}
+	BootstrapGroupVersion = schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1beta1"}
 
 	// GenericBootstrapConfigKind is the Kind for the GenericBootstrapConfig.
 	GenericBootstrapConfigKind = "GenericBootstrapConfig"

@@ -137,13 +137,13 @@ in Cluster API is impractical, Cluster API hosts a mirror of kubeadm API types.
 
 kubeadm v1beta1 mirror-types:
 
-- Hosted in `bootstrap/kubeadm/types/v1beta1`.
+- Hosted in `bootstrap/kubeadm/types/upstreamv1beta1`.
 - Diverged from the original v1beta1 types for better CRD support (in practice
   a set of `+optional` fixes, few `omitempty` differences).
 
 kubeadm v1beta2 mirror-types:
 
-- Hosted in `bootstrap/kubeadm/types/v1beta2`.
+- Hosted in `bootstrap/kubeadm/types/upstreamv1beta2`.
 - Currently, not used in the Cluster API codebase.
 - Does not include changes for better CRD support introduced in kubeadm v1beta1
   mirror-types.
@@ -160,7 +160,7 @@ __Alternative 1:__
 
 Keep kubeadm v1beta1 types as a Hub type (1); implement conversion to kubeadm API
 version f(Kubernetes Version) when generating the kubeadm config for init/join (
-e.g convert to kubeadm API v1beta2 for Kubernetes version >= v1.15, convert to 
+e.g convert to kubeadm API v1beta2 for Kubernetes version >= v1.15, convert to
 kubeadm API v1beta1 for Kubernetes version < v1.15).
 
 This alternative is the more clean, robust and forward looking, but it requires
@@ -211,12 +211,12 @@ Planned actions are:
 - introduce a Cluster API owned version of the kubeadm config types
   (starting from kubeadm v1beta1) to be used by KubeadmConfig/KubeadmControlPlane
   specs; this should also act as a serialization/deserialization hub (1).
-  Please note that those types will be part of Cluster API types, and thus initially 
+  Please note that those types will be part of Cluster API types, and thus initially
   versioned as v1alpha4; once conversion will be in place, those types are not required
   anymore to have the same serialization format of the real kubeadm types.
-- preserve `bootstrap/kubeadm/types/v1beta1` as a serialization/deserialization
+- preserve `bootstrap/kubeadm/types/upstreamv1beta1` as a serialization/deserialization
   spoke (1)(2) for v1alpha4 (also, this will be used by v1alpha3 API types until removal)
-- preserve `bootstrap/kubeadm/types/v1beta2` as serialization/deserialization
+- preserve `bootstrap/kubeadm/types/upstreamv1beta2` as serialization/deserialization
   spoke (1)(2) for v1alpha4
 - implement hub/spoke conversions (1)
 - make CABPK to use conversion while generating the kubeadm config file for init/join
@@ -224,13 +224,13 @@ Planned actions are:
 - make KCP to use the Cluster API owned version of the kubeadm config types instead
   of using `Unstructured` for the kubeadm-config Config Map handling
 - add the `IgnorePreflightError` field to the Cluster API owned types; this field will be silently
-  ignored when converting to v1beta1 (because this version does not support this field).  
+  ignored when converting to v1beta1 (because this version does not support this field).
   Note: we are not planning to add `CertificateKey` to the Cluster API owned types because
   this field is not relevant for Cluster API.
 
 (1) See https://book.kubebuilder.io/multiversion-tutorial/conversion-concepts.html
 for a definition of Hub or spoke types/version.
-(2) As soon as it will be possible to vendor kubeadm types, we should drop this copy 
+(2) As soon as it will be possible to vendor kubeadm types, we should drop this copy
 and use kubeadm library as a source of truth. Hover there is no concrete plan for this yet.
 
 ### Security Model

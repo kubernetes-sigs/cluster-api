@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -257,7 +257,7 @@ func Test_createGroupNode(t *testing.T) {
 
 	want := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "virtual.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "virtual.cluster.x-k8s.io/v1beta1",
 			"kind":       "MachineGroup",
 			"metadata": map[string]interface{}{
 				"namespace": "ns",
@@ -297,7 +297,7 @@ func Test_updateGroupNode(t *testing.T) {
 
 	group := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "virtual.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "virtual.cluster.x-k8s.io/v1beta1",
 			"kind":       "MachineGroup",
 			"metadata": map[string]interface{}{
 				"namespace": "ns",
@@ -338,7 +338,7 @@ func Test_updateGroupNode(t *testing.T) {
 
 	want := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "virtual.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "virtual.cluster.x-k8s.io/v1beta1",
 			"kind":       "MachineGroup",
 			"metadata": map[string]interface{}{
 				"namespace": "ns",

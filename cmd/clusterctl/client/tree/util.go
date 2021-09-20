@@ -21,7 +21,7 @@ import (
 	"sort"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -90,7 +90,7 @@ func objToSetter(obj client.Object) conditions.Setter {
 
 // VirtualObject return a new virtual object.
 func VirtualObject(namespace, kind, name string) *unstructured.Unstructured {
-	gk := "virtual.cluster.x-k8s.io/v1alpha4"
+	gk := "virtual.cluster.x-k8s.io/v1beta1"
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": gk,

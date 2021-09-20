@@ -35,11 +35,12 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	kubeadmcontrolplanev1old "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	kubeadmcontrolplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	kcpv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	kcpv1alpha4 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/version"
@@ -59,8 +60,9 @@ func init() {
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
-	_ = kubeadmcontrolplanev1old.AddToScheme(scheme)
-	_ = kubeadmcontrolplanev1.AddToScheme(scheme)
+	_ = kcpv1alpha3.AddToScheme(scheme)
+	_ = kcpv1alpha4.AddToScheme(scheme)
+	_ = kcpv1.AddToScheme(scheme)
 	_ = kubeadmbootstrapv1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
@@ -232,12 +234,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&kubeadmcontrolplanev1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kcpv1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 		os.Exit(1)
 	}
 
-	if err := (&kubeadmcontrolplanev1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager((mgr)); err != nil {
+	if err := (&kcpv1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager((mgr)); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlaneTemplate")
 	}
 }

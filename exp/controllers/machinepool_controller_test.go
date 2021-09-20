@@ -26,8 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -252,7 +252,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureConfig",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
@@ -284,7 +284,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 	bootstrapConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
 			"metadata": map[string]interface{}{
 				"name":      "test-bootstrap",
 				"namespace": metav1.NamespaceDefault,
@@ -315,7 +315,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 
 							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
@@ -351,7 +351,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
@@ -390,7 +390,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 								Kind:       "InfrastructureConfig",
 								Name:       "infra-config1",
 							},
@@ -441,7 +441,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	bootstrapConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
 			"metadata": map[string]interface{}{
 				"name":      "delete-bootstrap",
 				"namespace": metav1.NamespaceDefault,
@@ -452,7 +452,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	infraConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureConfig",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 			"metadata": map[string]interface{}{
 				"name":      "delete-infra",
 				"namespace": metav1.NamespaceDefault,
@@ -471,13 +471,13 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 						Kind:       "InfrastructureConfig",
 						Name:       "delete-infra",
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 							Kind:       "BootstrapConfig",
 							Name:       "delete-bootstrap",
 						},
@@ -574,7 +574,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
@@ -604,7 +604,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap1",
 					"namespace": metav1.NamespaceDefault,
@@ -621,7 +621,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha4",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 				"metadata": map[string]interface{}{
 					"name":      "infra1",
 					"namespace": metav1.NamespaceDefault,
@@ -651,13 +651,13 @@ func TestMachinePoolConditions(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra1",
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap1",
 						},
@@ -812,7 +812,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			expectError:    true,
 			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
 				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 					Kind:       "InfrastructureConfig",
 					Name:       "does-not-exist",
 				}

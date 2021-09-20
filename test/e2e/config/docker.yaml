@@ -35,13 +35,13 @@ providers:
     replacements:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
-  - name: v0.4.99 # next; use manifest from source files
+  - name: v1.0.99 # next; use manifest from source files
     value: ../../../config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
 - name: kubeadm
   type: BootstrapProvider
@@ -52,13 +52,13 @@ providers:
     replacements:
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
-  - name: v0.4.99 # next; use manifest from source files
+  - name: v1.0.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -69,13 +69,13 @@ providers:
     replacements:
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
-  - name: v0.4.99 # next; use manifest from source files
+  - name: v1.0.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
 - name: docker
   type: InfrastructureProvider
@@ -89,23 +89,23 @@ providers:
     files:
       # Add cluster templates
       - sourcePath: "../data/infrastructure-docker/v1alpha3/cluster-template.yaml"
-  - name: v0.4.99 # next; use manifest from source files
+  - name: v1.0.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
     # Add cluster templates
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-md-remediation.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-remediation.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-adoption.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-machine-pool.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-node-drain.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-upgrades.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-kcp-scale-in.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template-ipv6.yaml"
-    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-md-remediation.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-remediation.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-adoption.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-machine-pool.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-node-drain.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-scale-in.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ipv6.yaml"
+    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
 variables:
   # Default variables for the e2e test; those values could be overridden via env variables, thus

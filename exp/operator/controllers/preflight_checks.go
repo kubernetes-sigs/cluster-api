@@ -22,7 +22,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,9 +48,6 @@ func coreProviderIsReady(ctx context.Context, c client.Client) (bool, error) {
 	cpl := &operatorv1.CoreProviderList{}
 	err := c.List(ctx, cpl)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return false, nil
-		}
 		return false, err
 	}
 	for _, cp := range cpl.Items {

@@ -243,7 +243,7 @@ lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
 apidiff: $(GO_APIDIFF) ## Check for API differences
-	$(GO_APIDIFF) $(shell git rev-parse origin/master) --print-compatible
+	$(GO_APIDIFF) $(shell git rev-parse origin/main) --print-compatible
 
 ## --------------------------------------
 ## Generate / Manifests
@@ -502,7 +502,7 @@ set-manifest-image:
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 # the previous release tag, e.g., v0.3.9, excluding pre-release tags
 PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
-## set by Prow, ref name of the base branch, e.g., master
+## set by Prow, ref name of the base branch, e.g., main
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out
 RELEASE_NOTES_DIR := _releasenotes
@@ -591,7 +591,7 @@ release-staging: ## Builds and push container images to the staging bucket.
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
 .PHONY: release-staging-nightly
-release-staging-nightly: ## Tags and push container images to the staging bucket. Example image tag: cluster-api-controller:nightly_master_20210121
+release-staging-nightly: ## Tags and push container images to the staging bucket. Example image tag: cluster-api-controller:nightly_main_20210121
 	$(eval NEW_RELEASE_ALIAS_TAG := nightly_$(RELEASE_ALIAS_TAG)_$(shell date +'%Y%m%d'))
 	echo $(NEW_RELEASE_ALIAS_TAG)
 	$(MAKE) release-alias-tag TAG=$(RELEASE_ALIAS_TAG) RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
@@ -599,7 +599,7 @@ release-staging-nightly: ## Tags and push container images to the staging bucket
 	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
 	## Build the manifests
 	$(MAKE) release-manifests
-	# Example manifest location: artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210121/bootstrap-components.yaml
+	# Example manifest location: artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20210121/bootstrap-components.yaml
 	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
 
 .PHONY: release-alias-tag
@@ -638,10 +638,10 @@ clean-release-git: ## Restores the git files usually modified during a release
 clean-book: ## Remove all generated GitBook files
 	rm -rf ./docs/book/_book
 
-.PHONY: clean-manifests ## Reset manifests in config directories back to master
+.PHONY: clean-manifests ## Reset manifests in config directories back to main
 clean-manifests:
-	@read -p "WARNING: This will reset all config directories to local master. Press [ENTER] to continue."
-	git checkout master config bootstrap/kubeadm/config controlplane/kubeadm/config $(CAPD_DIR)/config
+	@read -p "WARNING: This will reset all config directories to local main. Press [ENTER] to continue."
+	git checkout main config bootstrap/kubeadm/config controlplane/kubeadm/config $(CAPD_DIR)/config
 
 .PHONY: format-tiltfile
 format-tiltfile: ## Format Tiltfile

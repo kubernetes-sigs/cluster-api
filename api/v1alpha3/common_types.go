@@ -18,7 +18,6 @@ package v1alpha3
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -123,50 +122,6 @@ type MachineAddresses []MachineAddress
 // In future versions, controller-tools@v2 might allow overriding the type and validation for embedded
 // types. When that happens, this hack should be revisited.
 type ObjectMeta struct {
-	// Name must be unique within a namespace. Is required when creating resources, although
-	// some resources may allow a client to request the generation of an appropriate name
-	// automatically. Name is primarily intended for creation idempotence and configuration
-	// definition.
-	// Cannot be updated.
-	// More info: http://kubernetes.io/docs/user-guide/identifiers#names
-	// +optional
-	//
-	// Deprecated: This field has no function and is going to be removed in a next release.
-	Name string `json:"name,omitempty"`
-
-	// GenerateName is an optional prefix, used by the server, to generate a unique
-	// name ONLY IF the Name field has not been provided.
-	// If this field is used, the name returned to the client will be different
-	// than the name passed. This value will also be combined with a unique suffix.
-	// The provided value has the same validation rules as the Name field,
-	// and may be truncated by the length of the suffix required to make the value
-	// unique on the server.
-	//
-	// If this field is specified and the generated name exists, the server will
-	// NOT return a 409 - instead, it will either return 201 Created or 500 with Reason
-	// ServerTimeout indicating a unique name could not be found in the time allotted, and the client
-	// should retry (optionally after the time indicated in the Retry-After header).
-	//
-	// Applied only if Name is not specified.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency
-	// +optional
-	//
-	// Deprecated: This field has no function and is going to be removed in a next release.
-	GenerateName string `json:"generateName,omitempty"`
-
-	// Namespace defines the space within each name must be unique. An empty namespace is
-	// equivalent to the "default" namespace, but "default" is the canonical representation.
-	// Not all objects are required to be scoped to a namespace - the value of this field for
-	// those objects will be empty.
-	//
-	// Must be a DNS_LABEL.
-	// Cannot be updated.
-	// More info: http://kubernetes.io/docs/user-guide/namespaces
-	// +optional
-	//
-	// Deprecated: This field has no function and is going to be removed in a next release.
-	Namespace string `json:"namespace,omitempty"`
-
 	// Map of string keys and values that can be used to organize and categorize
 	// (scope and select) objects. May match selectors of replication controllers
 	// and services.
@@ -180,15 +135,4 @@ type ObjectMeta struct {
 	// More info: http://kubernetes.io/docs/user-guide/annotations
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
-
-	// List of objects depended by this object. If ALL objects in the list have
-	// been deleted, this object will be garbage collected. If this object is managed by a controller,
-	// then an entry in this list will point to this controller, with the controller field set to true.
-	// There cannot be more than one managing controller.
-	// +optional
-	// +patchMergeKey=uid
-	// +patchStrategy=merge
-	//
-	// Deprecated: This field has no function and is going to be removed in a next release.
-	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid"`
 }

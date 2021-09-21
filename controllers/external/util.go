@@ -29,13 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	// TemplateSuffix is the object kind suffix used by infrastructure references associated
-	// with MachineSet or MachineDeployments.
-	// Deprecated: use api/v1alpha4.TemplatePrefix instead.
-	TemplateSuffix = "Template"
-)
-
 // Get uses the client and reference to get an external, unstructured object.
 func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
 	if ref == nil {

@@ -46,12 +46,6 @@ type Provider struct {
 	// Version indicates the component version.
 	// +optional
 	Version string `json:"version,omitempty"`
-
-	// WatchedNamespace indicates the namespace where the provider controller is is watching.
-	// if empty the provider controller is watching for objects in all namespaces.
-	// Deprecated: in clusterctl v1alpha4 all the providers watch all the namespaces; this field will be removed in a future version of this API
-	// +optional
-	WatchedNamespace string `json:"watchedNamespace,omitempty"`
 }
 
 // ManifestLabel returns the cluster.x-k8s.io/provider label value for an entry in the provider inventory.
@@ -81,7 +75,6 @@ func (p *Provider) Equals(other Provider) bool {
 		p.Namespace == other.Namespace &&
 		p.ProviderName == other.ProviderName &&
 		p.Type == other.Type &&
-		p.WatchedNamespace == other.WatchedNamespace &&
 		p.Version == other.Version
 }
 

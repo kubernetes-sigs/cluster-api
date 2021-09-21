@@ -66,13 +66,6 @@ func CustomObjectMetaFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 
 func CustomObjectMetaFuzzer(in *ObjectMeta, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
-
-	// These fields have been removed in v1alpha4
-	// data is going to be lost, so we're forcing zero values here.
-	in.Name = ""
-	in.GenerateName = ""
-	in.Namespace = ""
-	in.OwnerReferences = nil
 }
 
 func BootstrapFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -83,9 +76,6 @@ func BootstrapFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 
 func BootstrapFuzzer(obj *Bootstrap, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
-
-	// Bootstrap.Data has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
-	obj.Data = nil
 }
 
 // clusterSpokeAfterMutation modifies the spoke version of the Cluster such that it can pass an equality test in the

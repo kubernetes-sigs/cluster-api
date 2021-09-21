@@ -51,11 +51,6 @@ func (in *Bootstrap) DeepCopyInto(out *Bootstrap) {
 		*out = new(v1.ObjectReference)
 		**out = **in
 	}
-	if in.Data != nil {
-		in, out := &in.Data, &out.Data
-		*out = new(string)
-		**out = **in
-	}
 	if in.DataSecretName != nil {
 		in, out := &in.DataSecretName, &out.DataSecretName
 		*out = new(string)
@@ -934,13 +929,6 @@ func (in *ObjectMeta) DeepCopyInto(out *ObjectMeta) {
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
-		}
-	}
-	if in.OwnerReferences != nil {
-		in, out := &in.OwnerReferences, &out.OwnerReferences
-		*out = make([]metav1.OwnerReference, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }

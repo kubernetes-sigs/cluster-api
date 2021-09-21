@@ -364,10 +364,9 @@ func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, 
 				clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelInventoryValue,
 			},
 		},
-		ProviderName:     name,
-		Type:             string(providerType),
-		Version:          version,
-		WatchedNamespace: "",
+		ProviderName: name,
+		Type:         string(providerType),
+		Version:      version,
 	}
 }
 

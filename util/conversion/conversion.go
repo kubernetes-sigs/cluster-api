@@ -37,7 +37,6 @@ import (
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -62,44 +61,6 @@ func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev
 	gvk := ref.GroupVersionKind()
 
 	metadata, err := util.GetGVKMetadata(ctx, c, gvk)
-	if err != nil {
-		log.Info("Cannot retrieve CRD with metadata only client, falling back to slower listing", "err", err.Error())
-		// Fallback to slower and more memory intensive method to get the full CRD.
-		crd, err := util.GetCRDWithContract(ctx, c, gvk, contract)
-		if err != nil {
-			return err
-		}
-		metadata = &metav1.PartialObjectMetadata{
-			TypeMeta:   crd.TypeMeta,
-			ObjectMeta: crd.ObjectMeta,
-		}
-	}
-
-	chosen, err := getLatestAPIVersionFromContract(metadata)
-	if err != nil {
-		return err
-	}
-
-	// Modify the GroupVersionKind with the new version.
-	if gvk.Version != chosen {
-		gvk.Version = chosen
-		ref.SetGroupVersionKind(gvk)
-	}
-
-	return nil
-}
-
-// ConvertReferenceAPIContract takes a client and object reference, queries the API Server for
-// the Custom Resource Definition and looks which one is the stored version available.
-//
-// The object passed as input is modified in place if an updated compatible version is found.
-//
-// Deprecated: Use UpdateReferenceAPIContract instead.
-func ConvertReferenceAPIContract(ctx context.Context, c client.Client, restConfig *rest.Config, ref *corev1.ObjectReference) error {
-	log := ctrl.LoggerFrom(ctx)
-	gvk := ref.GroupVersionKind()
-
-	metadata, err := util.GetCRDMetadataFromGVK(ctx, restConfig, gvk)
 	if err != nil {
 		log.Info("Cannot retrieve CRD with metadata only client, falling back to slower listing", "err", err.Error())
 		// Fallback to slower and more memory intensive method to get the full CRD.

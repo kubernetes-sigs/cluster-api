@@ -126,6 +126,7 @@ type ClusterConfiguration struct {
 	//
 	// Deprecated: As hyperkube is itself deprecated, this fields is too. It will be removed in future kubeadm config versions, kubeadm
 	// will print multiple warnings when set to true, and at some point it may become ignored.
+	// TODO: Remove this field once conversions to Kubeadm v1beta2 --> v1alpha4 --> v1beta2 are no longer supported.
 	// +optional
 	UseHyperKubeImage bool `json:"useHyperKubeImage,omitempty"`
 

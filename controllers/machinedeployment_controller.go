@@ -53,7 +53,9 @@ var (
 
 // MachineDeploymentReconciler reconciles a MachineDeployment object.
 type MachineDeploymentReconciler struct {
-	Client           client.Client
+	Client client.Client
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
 	recorder record.EventRecorder

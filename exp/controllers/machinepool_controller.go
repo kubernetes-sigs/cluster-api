@@ -57,7 +57,9 @@ const (
 
 // MachinePoolReconciler reconciles a MachinePool object.
 type MachinePoolReconciler struct {
-	Client           client.Client
+	Client client.Client
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
 	controller       controller.Controller

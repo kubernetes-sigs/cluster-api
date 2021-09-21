@@ -49,6 +49,9 @@ type GenericProviderReconciler struct {
 	CertManagerInstaller SingletonInstaller
 }
 
+// to prevent privilege escalation errors like: "is attempting to grant RBAC permissions not currently held"
+// +kubebuilder:rbac:groups="*",resources="*",verbs="*"
+
 func (r *GenericProviderReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	clusterctllog.SetLogger(mgr.GetLogger())
 	return ctrl.NewControllerManagedBy(mgr).

@@ -117,10 +117,13 @@ func (r *ClusterReconciler) getCurrentMachineDeploymentState(ctx context.Context
 
 	// List all the machine deployments in the current cluster and in a managed topology.
 	md := &clusterv1.MachineDeploymentList{}
-	err := r.Client.List(ctx, md, client.MatchingLabels{
-		clusterv1.ClusterLabelName:          cluster.Name,
-		clusterv1.ClusterTopologyOwnedLabel: "",
-	})
+	err := r.APIReader.List(ctx, md,
+		client.MatchingLabels{
+			clusterv1.ClusterLabelName:          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		},
+		client.InNamespace(cluster.Namespace),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read MachineDeployments for managed topology")
 	}

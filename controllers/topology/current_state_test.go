@@ -437,6 +437,7 @@ func TestGetCurrentState(t *testing.T) {
 			// Calls getCurrentState.
 			r := &ClusterReconciler{
 				Client:                    fakeClient,
+				APIReader:                 fakeClient,
 				UnstructuredCachingClient: fakeClient,
 			}
 			got, err := r.getCurrentState(ctx, s)

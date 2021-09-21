@@ -45,7 +45,10 @@ import (
 
 // ClusterReconciler reconciles a managed topology for a Cluster object.
 type ClusterReconciler struct {
-	Client           client.Client
+	Client client.Client
+	// APIReader is used to list MachineSets directly via the API server to avoid
+	// race conditions caused by an outdated cache.
+	APIReader        client.Reader
 	WatchFilterValue string
 
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
@@ -183,6 +186,7 @@ func (r *ClusterReconciler) clusterClassToCluster(o client.Object) []ctrl.Reques
 		context.TODO(),
 		clusterList,
 		client.MatchingFields{index.ClusterClassNameField: clusterClass.Name},
+		client.InNamespace(clusterClass.Namespace),
 	); err != nil {
 		return nil
 	}

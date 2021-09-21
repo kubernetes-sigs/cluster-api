@@ -288,6 +288,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 		if err := (&topology.ClusterReconciler{
 			Client:                    mgr.GetClient(),
+			APIReader:                 mgr.GetAPIReader(),
 			UnstructuredCachingClient: unstructuredCachingClient,
 			WatchFilterValue:          watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {

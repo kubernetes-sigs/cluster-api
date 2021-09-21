@@ -61,10 +61,10 @@ var (
 
 // ClusterResourceSetReconciler reconciles a ClusterResourceSet object.
 type ClusterResourceSetReconciler struct {
-	Client           client.Client
-	Tracker          *remote.ClusterCacheTracker
-	
-	// WatchFilterValue is the label value used to filter events prior to reconciliation
+	Client  client.Client
+	Tracker *remote.ClusterCacheTracker
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 }
 

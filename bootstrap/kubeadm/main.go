@@ -45,6 +45,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
 	// +kubebuilder:scaffold:imports
 )
 
@@ -63,7 +65,15 @@ func init() {
 	_ = kubeadmbootstrapv1alpha4.AddToScheme(scheme)
 	_ = kubeadmbootstrapv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
+
+	check(&kubeadmbootstrapv1.KubeadmConfig{}, &kubeadmbootstrapv1alpha3.KubeadmConfig{}, &kubeadmbootstrapv1alpha4.KubeadmConfig{})
+	check(&kubeadmbootstrapv1.KubeadmConfigList{}, &kubeadmbootstrapv1alpha3.KubeadmConfigList{}, &kubeadmbootstrapv1alpha4.KubeadmConfigList{})
+
+	check(&kubeadmbootstrapv1.KubeadmConfigTemplate{}, &kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}, &kubeadmbootstrapv1alpha4.KubeadmConfigTemplate{})
+	check(&kubeadmbootstrapv1.KubeadmConfigTemplateList{}, &kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}, &kubeadmbootstrapv1alpha4.KubeadmConfigTemplateList{})
 }
+
+func check(hub conversion.Hub, spokes ...conversion.Convertible) {}
 
 var (
 	metricsBindAddr             string

@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -76,7 +77,25 @@ func init() {
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = expv1.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
+
+	check(&infrav1.DockerCluster{}, &infrav1alpha3.DockerCluster{}, &infrav1alpha4.DockerCluster{})
+	check(&infrav1.DockerClusterList{}, &infrav1alpha3.DockerClusterList{}, &infrav1alpha4.DockerClusterList{})
+
+	check(&infrav1.DockerClusterTemplate{}, &infrav1alpha4.DockerClusterTemplate{})
+	check(&infrav1.DockerClusterTemplateList{}, &infrav1alpha4.DockerClusterTemplateList{})
+
+	check(&infrav1.DockerMachine{}, &infrav1alpha3.DockerMachine{}, &infrav1alpha4.DockerMachine{})
+	check(&infrav1.DockerMachineList{}, &infrav1alpha3.DockerMachineList{}, &infrav1alpha4.DockerMachineList{})
+
+	check(&infrav1.DockerMachineTemplate{}, &infrav1alpha3.DockerMachineTemplate{}, &infrav1alpha4.DockerMachineTemplate{})
+	check(&infrav1.DockerMachineTemplateList{}, &infrav1alpha3.DockerMachineTemplateList{}, &infrav1alpha4.DockerMachineTemplateList{})
+
+	// Fix: https://github.com/kubernetes-sigs/cluster-api/issues/5279
+	check(&infraexpv1.DockerMachinePool{}, &infraexpv1alpha3.DockerMachinePool{}, &infraexpv1alpha4.DockerMachinePool{})
+	check(&infraexpv1.DockerMachinePoolList{}, &infraexpv1alpha3.DockerMachinePoolList{}, &infraexpv1alpha4.DockerMachinePoolList{})
 }
+
+func check(hub conversion.Hub, spokes ...conversion.Convertible) {}
 
 func initFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",

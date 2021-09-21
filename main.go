@@ -53,6 +53,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
 	// +kubebuilder:scaffold:imports
 )
 
@@ -102,7 +104,32 @@ func init() {
 	_ = addonsv1.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
+
+	check(&clusterv1.Cluster{}, &clusterv1alpha3.Cluster{}, &clusterv1alpha4.Cluster{})
+	check(&clusterv1.ClusterList{}, &clusterv1alpha3.ClusterList{}, &clusterv1alpha4.ClusterList{})
+	check(&clusterv1.ClusterClass{}, &clusterv1alpha4.ClusterClass{})
+	check(&clusterv1.ClusterClassList{}, &clusterv1alpha4.ClusterClassList{})
+	check(&clusterv1.Machine{}, &clusterv1alpha3.Machine{}, &clusterv1alpha4.Machine{})
+	check(&clusterv1.MachineList{}, &clusterv1alpha3.MachineList{}, &clusterv1alpha4.MachineList{})
+	check(&clusterv1.MachineSet{}, &clusterv1alpha3.MachineSet{}, &clusterv1alpha4.MachineSet{})
+	check(&clusterv1.MachineSetList{}, &clusterv1alpha3.MachineSetList{}, &clusterv1alpha4.MachineSetList{})
+	check(&clusterv1.MachineDeployment{}, &clusterv1alpha3.MachineDeployment{}, &clusterv1alpha4.MachineDeployment{})
+	check(&clusterv1.MachineDeploymentList{}, &clusterv1alpha3.MachineDeploymentList{}, &clusterv1alpha4.MachineDeploymentList{})
+	check(&clusterv1.MachineHealthCheck{}, &clusterv1alpha3.MachineHealthCheck{}, &clusterv1alpha4.MachineHealthCheck{})
+	check(&clusterv1.MachineHealthCheckList{}, &clusterv1alpha3.MachineHealthCheckList{}, &clusterv1alpha4.MachineHealthCheckList{})
+
+	// Fix: https://github.com/kubernetes-sigs/cluster-api/issues/5265
+	check(&expv1.MachinePool{}, &expv1alpha3.MachinePool{}, &expv1alpha4.MachinePool{})
+	check(&expv1.MachinePoolList{}, &expv1alpha3.MachinePoolList{}, &expv1alpha4.MachinePoolList{})
+
+	// Fix: https://github.com/kubernetes-sigs/cluster-api/issues/5253
+	check(&addonsv1.ClusterResourceSet{}, &addonsv1alpha3.ClusterResourceSet{}, &addonsv1alpha4.ClusterResourceSet{})
+	check(&addonsv1.ClusterResourceSetList{}, &addonsv1alpha3.ClusterResourceSetList{}, &addonsv1alpha4.ClusterResourceSetList{})
+	check(&addonsv1.ClusterResourceSetBinding{}, &addonsv1alpha3.ClusterResourceSetBinding{}, &addonsv1alpha4.ClusterResourceSetBinding{})
+	check(&addonsv1.ClusterResourceSetBindingList{}, &addonsv1alpha3.ClusterResourceSetBindingList{}, &addonsv1alpha4.ClusterResourceSetBindingList{})
 }
+
+func check(hub conversion.Hub, spokes ...conversion.Convertible) {}
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {

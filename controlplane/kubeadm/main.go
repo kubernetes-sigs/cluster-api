@@ -47,6 +47,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
 	// +kubebuilder:scaffold:imports
 )
 
@@ -66,7 +68,15 @@ func init() {
 	_ = kubeadmbootstrapv1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
+
+	check(&kcpv1.KubeadmControlPlane{}, &kcpv1alpha3.KubeadmControlPlane{}, &kcpv1alpha4.KubeadmControlPlane{})
+	check(&kcpv1.KubeadmControlPlaneList{}, &kcpv1alpha3.KubeadmControlPlaneList{}, &kcpv1alpha4.KubeadmControlPlaneList{})
+
+	check(&kcpv1.KubeadmControlPlaneTemplate{}, &kcpv1alpha4.KubeadmControlPlaneTemplate{})
+	check(&kcpv1.KubeadmControlPlaneTemplateList{}, &kcpv1alpha4.KubeadmControlPlaneTemplateList{})
 }
+
+func check(hub conversion.Hub, spokes ...conversion.Convertible) {}
 
 var (
 	metricsBindAddr                string

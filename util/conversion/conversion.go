@@ -218,6 +218,7 @@ type FuzzTestFuncInput struct {
 	Spoke                      conversion.Convertible
 	SpokeAfterMutation         func(convertible conversion.Convertible)
 	SkipSpokeAnnotationCleanup bool
+	SkipHubAnnotationCleanup   bool
 
 	FuzzerFuncs []fuzzer.FuzzerFuncs
 }
@@ -277,6 +278,13 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 				// Convert spoke back to hub and check if the resulting hub is equal to the hub before the round trip
 				hubAfter := input.Hub.DeepCopyObject().(conversion.Hub)
 				g.Expect(dstCopy.ConvertTo(hubAfter)).To(gomega.Succeed())
+
+				// Remove data annotation eventually added by ConvertTo for avoiding data loss in spoke-hub-spoke round trips
+				// NOTE: There are use case when we want to skip this operation, e.g. if the spoke object does not have ObjectMeta (e.g. kubeadm types).
+				if !input.SkipHubAnnotationCleanup {
+					metaAfter := hubAfter.(metav1.Object)
+					delete(metaAfter.GetAnnotations(), DataAnnotation)
+				}
 
 				if input.HubAfterMutation != nil {
 					input.HubAfterMutation(hubAfter)

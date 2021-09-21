@@ -32,6 +32,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke: &ClusterConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
+		SkipHubAnnotationCleanup:   true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 	t.Run("for ClusterStatus", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -39,6 +40,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke: &ClusterStatus{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
+		SkipHubAnnotationCleanup:   true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 	t.Run("for InitConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -46,6 +48,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke: &InitConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
+		SkipHubAnnotationCleanup:   true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 	t.Run("for JoinConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -53,6 +56,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke: &JoinConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
+		SkipHubAnnotationCleanup:   true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 }

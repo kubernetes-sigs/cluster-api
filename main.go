@@ -54,7 +54,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
 	// +kubebuilder:scaffold:imports
 )
 

@@ -33,9 +33,11 @@ import (
 // ClusterCacheReconciler is responsible for stopping remote cluster caches when
 // the cluster for the remote cache is being deleted.
 type ClusterCacheReconciler struct {
-	Log              logr.Logger
-	Client           client.Client
-	Tracker          *ClusterCacheTracker
+	Log     logr.Logger
+	Client  client.Client
+	Tracker *ClusterCacheTracker
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 }
 

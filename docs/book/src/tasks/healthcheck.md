@@ -173,7 +173,7 @@ Explicit skipping using `cluster.x-k8s.io/skip-remediation` annotation:
 Before deploying a MachineHealthCheck, please familiarise yourself with the following limitations and caveats:
 
 - Only Machines owned by a MachineSet or a KubeadmControlPlane can be remediated by a MachineHealthCheck (since a MachineDeployment uses a MachineSet, then this includes Machines that are part of a MachineDeployment)
-- Machines managed by a KubeadmControlPlane are remediated according to [the delete-and-recreate guidelines described in the KubeadmControlPlane proposal](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate)
+- Machines managed by a KubeadmControlPlane are remediated according to [the delete-and-recreate guidelines described in the KubeadmControlPlane proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate)
 - If the Node for a Machine is removed from the cluster, a MachineHealthCheck will consider this Machine unhealthy and remediate it immediately
 - If no Node joins the cluster for a Machine after the `NodeStartupTimeout`, the Machine will be remediated
 - If a Machine fails for any reason (if the FailureReason is set), the Machine will be remediated immediately

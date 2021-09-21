@@ -38,7 +38,7 @@ Cluster API Machines:
 - The Kubernetes node hosted on the Machine will be cordoned & drained before removal (with well
   known exceptions like full Cluster deletion).
 - The Machine will respect PreDrainDeleteHook and PreTerminateDeleteHook. see the
-  [Machine Deletion Phase Hooks proposal](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20200602-machine-deletion-phase-hooks.md)
+  [Machine Deletion Phase Hooks proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200602-machine-deletion-phase-hooks.md)
   for additional details.
 
 <!-- links -->

@@ -5,7 +5,7 @@
 - We follow [Semantic Versioning (semver)](https://semver.org/).
 - Cluster API release cadence is Kubernetes Release + 6 weeks.
 - The cadence is subject to change if necessary, refer to the [Milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) page for up-to-date information.
-- The _master_ branch is where development happens, this might include breaking changes.
+- The _main_ branch is where development happens, this might include breaking changes.
 - The _release-X_ branches contain stable, backward compatible code. A new _release-X_ branch is created at every major (X) release.
 
 ## Overview
@@ -36,11 +36,11 @@ that we follow.
 
 ## Branches
 
-Cluster API contains two types of branches: the *master* branch and
+Cluster API contains two types of branches: the *main* branch and
 *release-X* branches.
 
-The *master* branch is where development happens.  All the latest and
-greatest code, including breaking changes, happens on master.
+The *main* branch is where development happens.  All the latest and
+greatest code, including breaking changes, happens on main.
 
 The *release-X* branches contain stable, backwards compatible code.  Every
 major (X) release, a new such branch is created.  It is from these
@@ -109,11 +109,11 @@ Refer to the [releasing document](./docs/developer/releasing.md) for the exact s
 
 Try to avoid breaking changes.  They make life difficult for users, who
 have to rewrite their code when they eventually upgrade, and for
-maintainers/contributors, who have to deal with differences between master
+maintainers/contributors, who have to deal with differences between main
 and stable branches.
 
 That being said, we'll occasionally want to make breaking changes. They'll
-be merged onto master, and will then trigger a major release (see [Release
+be merged onto main, and will then trigger a major release (see [Release
 Process](#release-process)).  Because breaking changes induce a major
 revision, the maintainers may delay a particular breaking change until
 a later date when they are ready to make a major revision with a few
@@ -145,7 +145,7 @@ Development branches:
   changes (we still have to merge/manage multiple branches for development
   and stable)
 
-- can be confusing to contributors, who often expect master to have the
+- can be confusing to contributors, who often expect main to have the
   latest changes.
 
 ### Never break compatibility

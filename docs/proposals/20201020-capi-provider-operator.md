@@ -13,7 +13,7 @@ creation-date: 2020-09-14
 last-updated: 2021-01-20
 status: implementable
 see-also:
-https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20191016-clusterctl-redesign.md
+https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191016-clusterctl-redesign.md
 ---
 
 # CAPI Provider operator
@@ -59,7 +59,7 @@ https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/201910
 ## Glossary
 
 The lexicon used in this document is described in more detail
-[here](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/src/reference/glossary.md).
+[here](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/book/src/reference/glossary.md).
 Any discrepancies should be rectified in the main Cluster API glossary.
 
 ## Summary

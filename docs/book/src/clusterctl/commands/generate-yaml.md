@@ -21,7 +21,7 @@ Current usage of the command is as follows:
 ```bash
 # Generates a configuration file with variable values using a template from a
 # specific URL.
-clusterctl generate yaml --from https://github.com/foo-org/foo-repository/blob/master/cluster-template.yaml
+clusterctl generate yaml --from https://github.com/foo-org/foo-repository/blob/main/cluster-template.yaml
 
 # Generates a configuration file with variable values using
 # a template stored locally.

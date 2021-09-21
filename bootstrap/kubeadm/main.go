@@ -38,6 +38,9 @@ import (
 	kubeadmbootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -70,6 +73,11 @@ func init() {
 
 	check(&kubeadmbootstrapv1.KubeadmConfigTemplate{}, &kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}, &kubeadmbootstrapv1alpha4.KubeadmConfigTemplate{})
 	check(&kubeadmbootstrapv1.KubeadmConfigTemplateList{}, &kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}, &kubeadmbootstrapv1alpha4.KubeadmConfigTemplateList{})
+
+	check(&kubeadmbootstrapv1.ClusterConfiguration{}, &upstreamv1beta1.ClusterConfiguration{}, &upstreamv1beta2.ClusterConfiguration{}, &upstreamv1beta3.ClusterConfiguration{})
+	check(&kubeadmbootstrapv1.ClusterStatus{}, &upstreamv1beta1.ClusterStatus{}, &upstreamv1beta2.ClusterStatus{})
+	check(&kubeadmbootstrapv1.JoinConfiguration{}, &upstreamv1beta1.JoinConfiguration{}, &upstreamv1beta2.JoinConfiguration{}, &upstreamv1beta3.JoinConfiguration{})
+	check(&kubeadmbootstrapv1.InitConfiguration{}, &upstreamv1beta1.InitConfiguration{}, &upstreamv1beta2.InitConfiguration{}, &upstreamv1beta3.InitConfiguration{})
 }
 
 func check(hub conversion.Hub, spokes ...conversion.Convertible) {}

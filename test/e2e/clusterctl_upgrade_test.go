@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing clusterctl upgrades", func() {
+var _ = Describe("When testing clusterctl upgrades [clusterctl-Upgrade]", func() {
 
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{

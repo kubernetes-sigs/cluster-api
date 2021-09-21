@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1v1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -57,7 +57,7 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 	// NOTE: given that v1beta1 (current) and v1alpha4 (previous) does not have breaking changes, we support also upgrades from v1alpha3 to v1beta1;
 	// this is an exception and support for skipping releases should be removed in future releases.
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(
-		cluster.AllowCAPIContract{Contract: clusterv1v1alpha3.GroupVersion.Version},
+		cluster.AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version},
 		cluster.AllowCAPIContract{Contract: clusterv1old.GroupVersion.Version},
 	); err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	// NOTE: given that v1beta1 (current) and v1alpha4 (previous) does not have breaking changes, we support also upgrades from v1alpha3 to v1beta1;
 	// this is an exception and support for skipping releases should be removed in future releases.
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(
-		cluster.AllowCAPIContract{Contract: clusterv1v1alpha3.GroupVersion.Version},
+		cluster.AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version},
 		cluster.AllowCAPIContract{Contract: clusterv1old.GroupVersion.Version},
 	); err != nil {
 		return err

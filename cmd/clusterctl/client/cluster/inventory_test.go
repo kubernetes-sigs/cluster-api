@@ -24,7 +24,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	clusterv1v1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -285,7 +285,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
-								Name:    clusterv1v1alpha3.GroupVersion.Version,
+								Name:    clusterv1alpha3.GroupVersion.Version,
 								Storage: true,
 							},
 						},
@@ -293,7 +293,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 				}),
 			},
 			args: args{
-				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: clusterv1v1alpha3.GroupVersion.Version}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
+				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
 			},
 			wantErr: false,
 		},
@@ -316,7 +316,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 				}),
 			},
 			args: args{
-				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: clusterv1v1alpha3.GroupVersion.Version}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
+				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
 			},
 			wantErr: false,
 		},

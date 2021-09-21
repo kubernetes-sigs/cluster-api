@@ -305,7 +305,7 @@ and all the objects given as input were initialized with a resource version of "
 The behavior of having a resource version in fake client has been fixed in controller-runtime,
 and this function isn't needed anymore.
 
-## Required kustomize changes to remove Kubeadm-rbac-proxy
+## Required kustomize changes to remove kube-rbac-proxy
 
 NB. instructions assumes "Required kustomize changes to have a single manager watching all namespaces and answer to webhook calls"
 should be executed before this changes.

@@ -100,7 +100,9 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 	g.Expect(env.Create(ctx, cluster)).To(Succeed())
 	g.Expect(env.Create(ctx, node)).To(Succeed())
 	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-	g.Expect(env.Create(ctx, machine)).To(Succeed())
+	// Note: We have to DeepCopy the machine, because the Create call clears the status and
+	// reconcileInterruptibleNodeLabel requires .status.nodeRef to be set.
+	g.Expect(env.Create(ctx, machine.DeepCopy())).To(Succeed())
 
 	// Patch infra machine status
 	patchHelper, err := patch.NewHelper(infraMachine, env)

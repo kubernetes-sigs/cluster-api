@@ -28,16 +28,16 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.0
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	google.golang.org/grpc v1.39.0
-	k8s.io/api v0.22.1
-	k8s.io/apiextensions-apiserver v0.21.4
-	k8s.io/apimachinery v0.22.1
-	k8s.io/apiserver v0.21.4
-	k8s.io/client-go v0.22.1
+	k8s.io/api v0.22.2
+	k8s.io/apiextensions-apiserver v0.22.2
+	k8s.io/apimachinery v0.22.2
+	k8s.io/apiserver v0.22.2
+	k8s.io/client-go v0.22.2
 	k8s.io/cluster-bootstrap v0.21.4
-	k8s.io/component-base v0.22.1
+	k8s.io/component-base v0.22.2
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/kubectl v0.21.4
-	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
-	sigs.k8s.io/controller-runtime v0.9.7
+	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
+	sigs.k8s.io/controller-runtime v0.10.1
 	sigs.k8s.io/yaml v1.2.0
 )

@@ -24,9 +24,10 @@ import (
 	"strings"
 	"time"
 
+	admissionv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
@@ -38,8 +39,8 @@ const (
 )
 
 func initWebhookInstallOptions() envtest.WebhookInstallOptions {
-	validatingWebhooks := []client.Object{}
-	mutatingWebhooks := []client.Object{}
+	validatingWebhooks := []admissionv1.ValidatingWebhookConfiguration{}
+	mutatingWebhooks := []admissionv1.MutatingWebhookConfiguration{}
 
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
@@ -85,7 +86,7 @@ func initWebhookInstallOptions() envtest.WebhookInstallOptions {
 
 // Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
-func appendWebhookConfiguration(mutatingWebhooks []client.Object, validatingWebhooks []client.Object, configyamlFile []byte, tag string) ([]client.Object, []client.Object, error) {
+func appendWebhookConfiguration(mutatingWebhooks []admissionv1.MutatingWebhookConfiguration, validatingWebhooks []admissionv1.ValidatingWebhookConfiguration, configyamlFile []byte, tag string) ([]admissionv1.MutatingWebhookConfiguration, []admissionv1.ValidatingWebhookConfiguration, error) {
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
 		klog.Fatalf("failed to parse yaml")
@@ -97,14 +98,26 @@ func appendWebhookConfiguration(mutatingWebhooks []client.Object, validatingWebh
 			// update the name in metadata
 			if o.GetName() == mutatingwebhook {
 				o.SetName(strings.Join([]string{mutatingwebhook, "-", tag}, ""))
-				mutatingWebhooks = append(mutatingWebhooks, &o)
+
+				webhook := &admissionv1.MutatingWebhookConfiguration{}
+				if err := scheme.Scheme.Convert(&o, webhook, nil); err != nil {
+					klog.Fatalf("failed to convert MutatingWebhookConfiguration %s", o.GetName())
+				}
+
+				mutatingWebhooks = append(mutatingWebhooks, *webhook)
 			}
 		}
 		if o.GetKind() == validatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == validatingwebhook {
 				o.SetName(strings.Join([]string{validatingwebhook, "-", tag}, ""))
-				validatingWebhooks = append(validatingWebhooks, &o)
+
+				webhook := &admissionv1.ValidatingWebhookConfiguration{}
+				if err := scheme.Scheme.Convert(&o, webhook, nil); err != nil {
+					klog.Fatalf("failed to convert ValidatingWebhookConfiguration %s", o.GetName())
+				}
+
+				validatingWebhooks = append(validatingWebhooks, *webhook)
 			}
 		}
 	}

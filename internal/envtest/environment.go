@@ -69,6 +69,7 @@ func init() {
 
 	// Calculate the scheme.
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(bootstrapv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(expv1.AddToScheme(scheme.Scheme))
@@ -159,17 +160,17 @@ func new(uncachedObjs ...client.Object) *Environment {
 			filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 		},
-		CRDs: []client.Object{
-			testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-			testtypes.GenericBootstrapConfigTemplateCRD.DeepCopy(),
-			testtypes.GenericControlPlaneCRD.DeepCopy(),
-			testtypes.GenericControlPlaneTemplateCRD.DeepCopy(),
-			testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
-			testtypes.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
-			testtypes.GenericInfrastructureClusterCRD.DeepCopy(),
-			testtypes.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
-			testtypes.GenericRemediationCRD.DeepCopy(),
-			testtypes.GenericRemediationTemplateCRD.DeepCopy(),
+		CRDs: []apiextensionsv1.CustomResourceDefinition{
+			*testtypes.GenericBootstrapConfigCRD.DeepCopy(),
+			*testtypes.GenericBootstrapConfigTemplateCRD.DeepCopy(),
+			*testtypes.GenericControlPlaneCRD.DeepCopy(),
+			*testtypes.GenericControlPlaneTemplateCRD.DeepCopy(),
+			*testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+			*testtypes.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
+			*testtypes.GenericInfrastructureClusterCRD.DeepCopy(),
+			*testtypes.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
+			*testtypes.GenericRemediationCRD.DeepCopy(),
+			*testtypes.GenericRemediationTemplateCRD.DeepCopy(),
 		},
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.

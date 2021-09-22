@@ -258,6 +258,12 @@ Set to `false` if your provider does not have a ./config folder or you do not wa
 
 **go_main** (String, default="main.go"): The go main file if not located at the root of the folder
 
+**label** (String, default=provider name): The label to be used to group provider components in the tilt UI 
+in tilt version >= v0.22.2 (see https://blog.tilt.dev/2021/08/09/resource-grouping.html); as a convention,
+provider abbreviation should be used (CAPD, KCP etc.).
+
+**manager_name** (String): If provided, it will allow tilt to move the provider controller under the above label.
+
 ## Customizing Tilt
 
 If you need to customize Tilt's behavior, you can create files in cluster-api's `tilt.d` directory. This file is ignored

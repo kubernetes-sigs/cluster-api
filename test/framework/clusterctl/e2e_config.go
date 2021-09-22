@@ -159,6 +159,9 @@ type ProviderVersionSource struct {
 	// more information please see https://github.com/hashicorp/go-getter#url-format.
 	Value string `json:"value"`
 
+	// Contract defines the Cluster API contract version a specific version of the provider abides to.
+	Contract string `json:"contract,omitempty"`
+
 	// Type describes how to process the source of the component's YAML.
 	//
 	// Defaults to "kustomize".
@@ -580,11 +583,39 @@ func (c *E2EConfig) GetInt32PtrVariable(varName string) *int32 {
 
 // GetProviderVersions returns the sorted list of versions defined for a provider.
 func (c *E2EConfig) GetProviderVersions(provider string) []string {
+	return c.getVersions(provider, "*")
+}
+
+func (c *E2EConfig) GetProvidersWithOldestVersion(providers ...string) []string {
+	ret := make([]string, 0, len(providers))
+	for _, p := range providers {
+		versions := c.getVersions(p, "*")
+		if len(versions) > 0 {
+			ret = append(ret, fmt.Sprintf("%s:%s", p, versions[0]))
+		}
+	}
+	return ret
+}
+
+func (c *E2EConfig) GetProviderLatestVersionsByContract(contract string, providers ...string) []string {
+	ret := make([]string, 0, len(providers))
+	for _, p := range providers {
+		versions := c.getVersions(p, contract)
+		if len(versions) > 0 {
+			ret = append(ret, fmt.Sprintf("%s:%s", p, versions[len(versions)-1]))
+		}
+	}
+	return ret
+}
+
+func (c *E2EConfig) getVersions(provider string, contract string) []string {
 	versions := []string{}
 	for _, p := range c.Providers {
 		if p.Name == provider {
 			for _, v := range p.Versions {
-				versions = append(versions, v.Name)
+				if contract == "*" || v.Contract == contract {
+					versions = append(versions, v.Name)
+				}
 			}
 		}
 	}
@@ -596,15 +627,4 @@ func (c *E2EConfig) GetProviderVersions(provider string) []string {
 		return vI.LessThan(vJ)
 	})
 	return versions
-}
-
-func (c *E2EConfig) GetProvidersWithOldestVersion(providers ...string) []string {
-	ret := make([]string, 0, len(providers))
-	for _, p := range providers {
-		versions := c.GetProviderVersions(p)
-		if len(versions) > 0 {
-			ret = append(ret, fmt.Sprintf("%s:%s", p, versions[0]))
-		}
-	}
-	return ret
 }

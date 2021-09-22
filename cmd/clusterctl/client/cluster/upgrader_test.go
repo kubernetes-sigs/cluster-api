@@ -19,8 +19,10 @@ package cluster
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 
+	clusterv1v1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -129,6 +131,81 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						{
 							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 							NextVersion: "v2.0.1",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Upgrade for v1alpha3 (not supported), previous contract (not supported), current contract", // upgrade plan should report unsupported options
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithVersions("v1.0.0", "v1.0.1", "v2.0.0", "v3.0.0").
+						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: clusterv1v1alpha3.GroupVersion.Version},
+								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
+								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+							},
+						}),
+					"infrastructure-infra": repository.NewMemoryRepository().
+						WithVersions("v1.0.0", "v2.0.0", "v2.0.1", "v3.0.0").
+						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: clusterv1v1alpha3.GroupVersion.Version},
+								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
+								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+							},
+						}),
+				},
+				// two providers existing in the cluster
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system"),
+			},
+			want: []UpgradePlan{
+				{ // one upgrade plan with the latest releases in the v1alpha3 contract (not supported, but upgrade plan should report these options)
+					Contract: clusterv1v1alpha3.GroupVersion.Version,
+					Providers: []UpgradeItem{
+						{
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+							NextVersion: "v1.0.1",
+						},
+						{
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system"),
+							NextVersion: "",
+						},
+					},
+				},
+				{ // one upgrade plan with the latest releases in the previous contract (not supported, but upgrade plan should report these options)
+					Contract: test.PreviousCAPIContractNotSupported,
+					Providers: []UpgradeItem{
+						{
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+							NextVersion: "v2.0.0",
+						},
+						{
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system"),
+							NextVersion: "v2.0.1",
+						},
+					},
+				},
+				{ // one upgrade plan with the latest releases in the current contract
+					Contract: test.CurrentCAPIContract,
+					Providers: []UpgradeItem{
+						{
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+							NextVersion: "v3.0.0",
+						},
+						{
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system"),
+							NextVersion: "v3.0.0",
 						},
 					},
 				},
@@ -323,7 +400,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			}
 
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(Equal(tt.want), cmp.Diff(got, tt.want))
 		})
 	}
 }
@@ -813,7 +890,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 		errorMsg string
 	}{
 		{
-			name: "fails to upgrade to v1alpha4 when there are multiple instances of the core provider",
+			name: "fails to upgrade to current contract when there are multiple instances of the core provider",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -849,7 +926,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 			errorMsg: "detected multiple instances of the same provider",
 		},
 		{
-			name: "fails to upgrade to v1alpha4 when there are multiple instances of the infra provider",
+			name: "fails to upgrade to current contract when there are multiple instances of the infra provider",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().

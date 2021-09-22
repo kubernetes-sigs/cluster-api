@@ -847,22 +847,26 @@ spec:
       jsonPath: .spec.clusterName
       name: Cluster
       type: string
-    - description: Time duration since creation of MachineSet
-      jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
     - description: Total number of non-terminated machines targeted by this machineset
       jsonPath: .status.replicas
       name: Replicas
-      type: integer
-    - description: Total number of available machines (ready for at least minReadySeconds)
-      jsonPath: .status.availableReplicas
-      name: Available
       type: integer
     - description: Total number of ready machines targeted by this machineset.
       jsonPath: .status.readyReplicas
       name: Ready
       type: integer
+    - description: Total number of available machines (ready for at least minReadySeconds)
+      jsonPath: .status.availableReplicas
+      name: Available
+      type: integer
+    - description: Time duration since creation of MachineSet
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Kubernetes version associated with this MachineSet
+      jsonPath: .spec.template.spec.version
+      name: Version
+      type: string
     name: v1beta1
     schema:
       openAPIV3Schema:

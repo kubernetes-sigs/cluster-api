@@ -751,10 +751,10 @@ spec:
       jsonPath: .spec.clusterName
       name: Cluster
       type: string
-    - description: Time duration since creation of Machine
-      jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
+    - description: Node name associated with this machine
+      jsonPath: .status.nodeRef.name
+      name: NodeName
+      type: string
     - description: Provider ID
       jsonPath: .spec.providerID
       name: ProviderID
@@ -763,14 +763,13 @@ spec:
       jsonPath: .status.phase
       name: Phase
       type: string
+    - description: Time duration since creation of Machine
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - description: Kubernetes version associated with this Machine
       jsonPath: .spec.version
       name: Version
-      type: string
-    - description: Node name associated with this machine
-      jsonPath: .status.nodeRef.name
-      name: NodeName
-      priority: 1
       type: string
     name: v1beta1
     schema:

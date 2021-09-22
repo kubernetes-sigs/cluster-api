@@ -545,22 +545,22 @@ spec:
       jsonPath: .spec.clusterName
       name: Cluster
       type: string
-    - description: Time duration since creation of MachineHealthCheck
-      jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    - description: Maximum number of unhealthy machines allowed
-      jsonPath: .spec.maxUnhealthy
-      name: MaxUnhealthy
-      type: string
     - description: Number of machines currently monitored
       jsonPath: .status.expectedMachines
       name: ExpectedMachines
       type: integer
+    - description: Maximum number of unhealthy machines allowed
+      jsonPath: .spec.maxUnhealthy
+      name: MaxUnhealthy
+      type: string
     - description: Current observed healthy machines
       jsonPath: .status.currentHealthy
       name: CurrentHealthy
       type: integer
+    - description: Time duration since creation of MachineHealthCheck
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1beta1
     schema:
       openAPIV3Schema:

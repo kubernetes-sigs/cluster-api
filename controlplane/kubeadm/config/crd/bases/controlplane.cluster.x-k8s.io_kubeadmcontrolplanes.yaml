@@ -2403,10 +2403,6 @@ spec:
         statusReplicasPath: .status.replicas
       status: {}
   - additionalPrinterColumns:
-    - description: Time duration since creation of KubeadmControlPlane
-      jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
     - description: This denotes whether or not the control plane has the uploaded
         kubeadm-config configmap
       jsonPath: .status.initialized
@@ -2416,10 +2412,6 @@ spec:
       jsonPath: .status.ready
       name: API Server Available
       type: boolean
-    - description: Kubernetes version associated with this control plane
-      jsonPath: .spec.version
-      name: Version
-      type: string
     - description: Total number of non-terminated machines targeted by this control
         plane
       jsonPath: .status.replicas
@@ -2438,6 +2430,14 @@ spec:
       jsonPath: .status.unavailableReplicas
       name: Unavailable
       type: integer
+    - description: Time duration since creation of KubeadmControlPlane
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Kubernetes version associated with this control plane
+      jsonPath: .spec.version
+      name: Version
+      type: string
     name: v1beta1
     schema:
       openAPIV3Schema:

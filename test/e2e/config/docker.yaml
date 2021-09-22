@@ -17,11 +17,11 @@ images:
   loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-cainjector:v1.5.0
+- name: quay.io/jetstack/cert-manager-cainjector:v1.5.3
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-webhook:v1.5.0
+- name: quay.io/jetstack/cert-manager-webhook:v1.5.3
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-controller:v1.5.0
+- name: quay.io/jetstack/cert-manager-controller:v1.5.3
   loadBehavior: tryLoad
 
 providers:

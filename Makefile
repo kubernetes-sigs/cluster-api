@@ -82,6 +82,7 @@ CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
 GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/gotestsum)
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
+CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
 
 # clusterctl.
@@ -204,6 +205,9 @@ $(GOTESTSUM): $(TOOLS_DIR)/go.mod # Build gotestsum from tools folder.
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
+$(CONVERSION_VERIFIER): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-verifier sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
+
 $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
 
@@ -223,6 +227,7 @@ kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize.
 setup-envtest: $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
 controller-gen: $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
 conversion-gen: $(CONVERSION_GEN) ## Build a local copy of conversion-gen.
+conversion-verifier: $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
 gotestsum: $(GOTESTSUM) ## Build a local copy of gotestsum.
 
 .PHONY: e2e-framework
@@ -655,6 +660,7 @@ verify:
 	./hack/verify-starlark.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
+	$(MAKE) verify-conversions
 	$(MAKE) verify-docker-provider
 
 .PHONY: verify-modules
@@ -674,6 +680,10 @@ verify-gen: generate
 		git diff; \
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
+
+.PHONY: verify-conversions
+verify-conversions: $(CONVERSION_VERIFIER)
+	$(CONVERSION_VERIFIER)
 
 .PHONY: verify-docker-provider
 verify-docker-provider:

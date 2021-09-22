@@ -356,11 +356,12 @@ func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
 			return err
 		}
 
-		// Delete the provider, preserving CRD and namespace.
+		// Delete the provider, preserving CRD, namespace and the inventory.
 		if err := u.providerComponents.Delete(DeleteOptions{
 			Provider:         upgradeItem.Provider,
 			IncludeNamespace: false,
 			IncludeCRDs:      false,
+			SkipInventory:    true,
 		}); err != nil {
 			return err
 		}

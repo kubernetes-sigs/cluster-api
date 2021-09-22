@@ -219,6 +219,14 @@ type Bootstrap struct {
 	// +optional
 	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
 
+	// Data contains the bootstrap data, such as cloud-init details scripts.
+	// If nil, the Machine should remain in the Pending state.
+	//
+	// Deprecated: Switch to DataSecretName.
+	//
+	// +optional
+	Data *string `json:"data,omitempty"`
+
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.
 	// +optional

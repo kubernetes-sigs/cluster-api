@@ -109,7 +109,7 @@ type KubeadmConfigStatus struct {
 	// BootstrapData will be a cloud-init script for now.
 	//
 	// Deprecated: Switch to DataSecretName.
-	// TODO: This needs to be kept to support conversion to v1alpha3 types.
+	//
 	// +optional
 	BootstrapData []byte `json:"bootstrapData,omitempty"`
 

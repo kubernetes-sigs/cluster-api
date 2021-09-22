@@ -40,6 +40,12 @@ const (
 	// by its managing controller.
 	KubeadmControlPlaneFinalizer = "kubeadm.controlplane.cluster.x-k8s.io"
 
+	// KubeadmControlPlaneHashLabelKey was used to determine the hash of the
+	// template used to generate a control plane machine.
+	//
+	// Deprecated: This label has been deprecated and it's not in use anymore.
+	KubeadmControlPlaneHashLabelKey = "kubeadm.controlplane.cluster.x-k8s.io/hash"
+
 	// SkipCoreDNSAnnotation annotation explicitly skips reconciling CoreDNS if set.
 	SkipCoreDNSAnnotation = "controlplane.cluster.x-k8s.io/skip-coredns"
 

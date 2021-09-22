@@ -45,7 +45,7 @@ const (
 	// Deprecated: Use clusterctlv1.CertManagerVersionAnnotation instead.
 	// This is maintained only for supporting upgrades from cluster created with clusterctl v1alpha3.
 	// TODO: Remove once upgrades from v1alpha3 are no longer supported.
-	certmanagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
+	certManagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
 )
 
 var (
@@ -314,7 +314,7 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 		objVersion, ok := obj.GetAnnotations()[clusterctlv1.CertManagerVersionAnnotation]
 		if !ok {
 			// try the old annotation name
-			objVersion, ok = obj.GetAnnotations()[certmanagerVersionAnnotation]
+			objVersion, ok = obj.GetAnnotations()[certManagerVersionAnnotation]
 			if !ok {
 				currentVersion = "v0.11.0"
 				needUpgrade = true

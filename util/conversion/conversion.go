@@ -34,7 +34,6 @@ import (
 	metafuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -205,7 +204,7 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer
 	return fuzzer.FuzzerFor(
 		fuzzer.MergeFuzzerFuncs(funcs...),
 		rand.NewSource(rand.Int63()),
-		serializer.NewCodecFactory(scheme),
+		runtimeserializer.NewCodecFactory(scheme),
 	)
 }
 

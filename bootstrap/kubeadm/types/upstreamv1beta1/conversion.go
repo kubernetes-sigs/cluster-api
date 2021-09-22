@@ -18,7 +18,6 @@ package upstreamv1beta1
 
 import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -81,7 +80,7 @@ func Convert_upstreamv1beta1_ClusterConfiguration_To_v1beta1_ClusterConfiguratio
 	return autoConvert_upstreamv1beta1_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
 }
 
-func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in *v1beta1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
 	return autoConvert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in, out, s)
 }

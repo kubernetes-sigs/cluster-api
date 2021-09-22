@@ -172,9 +172,9 @@ k8s::checkoutBranch() {
       echo "+ checkout $releaseBranch branch"
       git checkout "$releaseBranch" -B "release-$major.$minor"
     else
-      # otherwise, we should build from master, which is the branch for the next release
-      echo "+ checkout master branch"
-      git checkout master
+      # otherwise, we should build from main, which is the branch for the next release
+      echo "+ checkout main branch"
+      git checkout main
     fi
   fi
 }

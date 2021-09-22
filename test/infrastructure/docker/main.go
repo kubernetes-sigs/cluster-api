@@ -197,4 +197,11 @@ func setupWebhooks(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create webhook", "webhook", "DockerClusterTemplate")
 		os.Exit(1)
 	}
+
+	if feature.Gates.Enabled(feature.MachinePool) {
+		if err := (&infraexpv1.DockerMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "DockerMachinePool")
+			os.Exit(1)
+		}
+	}
 }

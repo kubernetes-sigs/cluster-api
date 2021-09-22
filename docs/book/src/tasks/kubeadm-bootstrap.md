@@ -7,7 +7,7 @@ for Kubernetes bootstrap.
 
 ### Resources
 
-* [design doc](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20190610-machine-states-preboot-bootstrapping.md)
+* [design doc](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20190610-machine-states-preboot-bootstrapping.md)
 * [The Kubebuilder Book](https://book.kubebuilder.io)
 
 ## How does CABPK work?

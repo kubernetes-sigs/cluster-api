@@ -188,7 +188,7 @@ tilt up
 This will open the command-line HUD as well as a web browser interface. You can monitor Tilt's status in either
 location. After a brief amount of time, you should have a running development environment, and you should now be able to
 create a cluster. There are [example worker cluster
-configs](https://github.com/kubernetes-sigs/cluster-api/tree/master/test/infrastructure/docker/examples) available.
+configs](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker/examples) available.
 These can be customized for your specific needs.
 
 <aside class="note">

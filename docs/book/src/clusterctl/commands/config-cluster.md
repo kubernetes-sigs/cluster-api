@@ -84,7 +84,7 @@ Use the `--from` flag to read cluster templates stored in a GitHub repository or
 
 ```
 clusterctl config cluster my-cluster --kubernetes-version v1.16.3 \
-   --from https://github.com/my-org/my-repository/blob/master/my-template.yaml > my-cluster.yaml
+   --from https://github.com/my-org/my-repository/blob/main/my-template.yaml > my-cluster.yaml
 ```
 
 or

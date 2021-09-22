@@ -6,7 +6,7 @@ CAPD is a reference implementation of an infrastructure provider for the Cluster
 
 This is one out of three components needed to run a Cluster API management cluster.
 
-For a complete overview, please refer to the documentation available [here](https://github.com/kubernetes-sigs/cluster-api/tree/master/bootstrap/kubeadm#cluster-api-bootstrap-provider-kubeadm) which uses CAPD as an example infrastructure provider.
+For a complete overview, please refer to the documentation available [here](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm#cluster-api-bootstrap-provider-kubeadm) which uses CAPD as an example infrastructure provider.
 
 ## CAPD Goals
 

@@ -21,7 +21,7 @@ be troubleshooted systematically.
 ## Labeling nodes with reserved labels such as `node-role.kubernetes.io` fails with kubeadm error during bootstrap
 
 Self-assigning Node labels such as `node-role.kubernetes.io` using the kubelet `--node-labels` flag
-(see `kubeletExtraArgs` in the [CABPK examples](https://github.com/kubernetes-sigs/cluster-api/tree/master/bootstrap/kubeadm))
+(see `kubeletExtraArgs` in the [CABPK examples](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm))
 is not possible due to a security measure imposed by the
 [`NodeRestriction` admission controller](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction)
 that kubeadm enables by default.

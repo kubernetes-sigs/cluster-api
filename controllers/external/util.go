@@ -68,19 +68,15 @@ func Delete(ctx context.Context, c client.Client, ref *corev1.ObjectReference) e
 // CloneTemplateInput is the input to CloneTemplate.
 type CloneTemplateInput struct {
 	// Client is the controller runtime client.
-	// +required
 	Client client.Client
 
 	// TemplateRef is a reference to the template that needs to be cloned.
-	// +required
 	TemplateRef *corev1.ObjectReference
 
 	// Namespace is the Kubernetes namespace the cloned object should be created into.
-	// +required
 	Namespace string
 
 	// ClusterName is the cluster this object is linked to.
-	// +required
 	ClusterName string
 
 	// OwnerRef is an optional OwnerReference to attach to the cloned object.
@@ -127,19 +123,15 @@ func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectR
 // GenerateTemplateInput is the input needed to generate a new template.
 type GenerateTemplateInput struct {
 	// Template is the TemplateRef turned into an unstructured.
-	// +required
 	Template *unstructured.Unstructured
 
 	// TemplateRef is a reference to the template that needs to be cloned.
-	// +required
 	TemplateRef *corev1.ObjectReference
 
 	// Namespace is the Kubernetes namespace the cloned object should be created into.
-	// +required
 	Namespace string
 
 	// ClusterName is the cluster this object is linked to.
-	// +required
 	ClusterName string
 
 	// OwnerRef is an optional OwnerReference to attach to the cloned object.

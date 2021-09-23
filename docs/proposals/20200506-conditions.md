@@ -179,11 +179,9 @@ const (
 // Condition defines an extension to status (i.e. an observation) of a Cluster API resource.
 type Condition struct {
    // Type of condition.
-   // +required
    Type ConditionType `json:"type" description:"type of status condition"`
 
    // Status of the condition, one of True, False, Unknown.
-   // +required
    Status corev1.ConditionStatus `json:"status"`
 
    // Severity with which to treat failures of this type of condition.
@@ -192,7 +190,6 @@ type Condition struct {
    Severity ConditionSeverity `json:"severity,omitempty"`
 
    // LastTransitionTime is the last time the condition transitioned from one status to another.
-   // +required
    LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 
    // The reason for the condition's last transition.

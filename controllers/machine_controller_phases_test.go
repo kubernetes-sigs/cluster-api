@@ -21,7 +21,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -30,16 +29,15 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/internal/testtypes"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 func init() {
@@ -122,8 +120,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 				WithObjects(defaultCluster,
 					defaultKubeconfigSecret,
 					machine,
-					testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-					testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+					builder.GenericBootstrapConfigCRD.DeepCopy(),
+					builder.GenericInfrastructureMachineCRD.DeepCopy(),
 					bootstrapConfig,
 					infraConfig,
 				).Build(),
@@ -160,8 +158,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 				WithObjects(defaultCluster,
 					defaultKubeconfigSecret,
 					machine,
-					testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-					testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+					builder.GenericBootstrapConfigCRD.DeepCopy(),
+					builder.GenericInfrastructureMachineCRD.DeepCopy(),
 					bootstrapConfig,
 					infraConfig,
 				).Build(),
@@ -203,8 +201,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 				WithObjects(defaultCluster,
 					defaultKubeconfigSecret,
 					machine,
-					testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-					testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+					builder.GenericBootstrapConfigCRD.DeepCopy(),
+					builder.GenericInfrastructureMachineCRD.DeepCopy(),
 					bootstrapConfig,
 					infraConfig,
 				).Build(),
@@ -278,8 +276,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 			WithObjects(defaultCluster,
 				machine,
 				node,
-				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+				builder.GenericBootstrapConfigCRD.DeepCopy(),
+				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
@@ -344,8 +342,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 			WithObjects(defaultCluster,
 				machine,
 				node,
-				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+				builder.GenericBootstrapConfigCRD.DeepCopy(),
+				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
@@ -420,8 +418,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 			WithObjects(defaultCluster,
 				machine,
 				node,
-				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+				builder.GenericBootstrapConfigCRD.DeepCopy(),
+				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
@@ -480,8 +478,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 			WithObjects(defaultCluster,
 				defaultKubeconfigSecret,
 				machine,
-				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+				builder.GenericBootstrapConfigCRD.DeepCopy(),
+				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 			).Build()
@@ -562,8 +560,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 				defaultKubeconfigSecret,
 				machine,
 				machineSecond,
-				testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-				testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+				builder.GenericBootstrapConfigCRD.DeepCopy(),
+				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
 			).Build()
@@ -869,8 +867,8 @@ func TestReconcileBootstrap(t *testing.T) {
 			r := &MachineReconciler{
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
-						testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-						testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+						builder.GenericBootstrapConfigCRD.DeepCopy(),
+						builder.GenericInfrastructureMachineCRD.DeepCopy(),
 						bootstrapConfig,
 					).Build(),
 			}
@@ -1079,8 +1077,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			r := &MachineReconciler{
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
-						testtypes.GenericBootstrapConfigCRD.DeepCopy(),
-						testtypes.GenericInfrastructureMachineCRD.DeepCopy(),
+						builder.GenericBootstrapConfigCRD.DeepCopy(),
+						builder.GenericInfrastructureMachineCRD.DeepCopy(),
 						infraConfig,
 					).Build(),
 			}

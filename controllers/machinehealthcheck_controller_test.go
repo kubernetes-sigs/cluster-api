@@ -24,8 +24,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/cluster-api/internal/testtypes"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,17 +34,17 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
+	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
-	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 func TestMachineHealthCheck_Reconcile(t *testing.T) {
@@ -1462,7 +1460,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// Create remediation template resource.
 		infraRemediationResource := map[string]interface{}{
 			"kind":       "GenericExternalRemediation",
-			"apiVersion": testtypes.RemediationGroupVersion.String(),
+			"apiVersion": builder.RemediationGroupVersion.String(),
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size": "3xlarge",
@@ -1476,13 +1474,13 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 		}
 		infraRemediationTmpl.SetKind("GenericExternalRemediationTemplate")
-		infraRemediationTmpl.SetAPIVersion(testtypes.RemediationGroupVersion.String())
+		infraRemediationTmpl.SetAPIVersion(builder.RemediationGroupVersion.String())
 		infraRemediationTmpl.SetGenerateName("remediation-template-name-")
 		infraRemediationTmpl.SetNamespace(cluster.Namespace)
 		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
 
 		remediationTemplate := &corev1.ObjectReference{
-			APIVersion: testtypes.RemediationGroupVersion.String(),
+			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
 		}
@@ -1582,7 +1580,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}).Should(Equal(1))
 
 		ref := corev1.ObjectReference{
-			APIVersion: testtypes.RemediationGroupVersion.String(),
+			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediation",
 		}
 
@@ -1610,7 +1608,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// Create remediation template resource.
 		infraRemediationResource := map[string]interface{}{
 			"kind":       "GenericExternalRemediation",
-			"apiVersion": testtypes.RemediationGroupVersion.String(),
+			"apiVersion": builder.RemediationGroupVersion.String(),
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size": "3xlarge",
@@ -1624,13 +1622,13 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 		}
 		infraRemediationTmpl.SetKind("GenericExternalRemediationTemplate")
-		infraRemediationTmpl.SetAPIVersion(testtypes.RemediationGroupVersion.String())
+		infraRemediationTmpl.SetAPIVersion(builder.RemediationGroupVersion.String())
 		infraRemediationTmpl.SetGenerateName("remediation-template-name-")
 		infraRemediationTmpl.SetNamespace(cluster.Namespace)
 		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
 
 		remediationTemplate := &corev1.ObjectReference{
-			APIVersion: testtypes.RemediationGroupVersion.String(),
+			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
 		}
@@ -1781,7 +1779,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}).Should(Equal(0))
 
 		ref := corev1.ObjectReference{
-			APIVersion: testtypes.RemediationGroupVersion.String(),
+			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediation",
 		}
 

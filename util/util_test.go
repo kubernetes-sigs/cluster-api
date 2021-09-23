@@ -485,58 +485,6 @@ func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
 	g.Expect(machine).NotTo(BeNil())
 }
 
-func TestGetMachinesForCluster(t *testing.T) {
-	g := NewWithT(t)
-
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
-	}
-
-	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-machine",
-			Namespace: cluster.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster.Name,
-			},
-		},
-	}
-
-	machineDifferentClusterNameSameNamespace := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "other-machine",
-			Namespace: cluster.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "other-cluster",
-			},
-		},
-	}
-
-	machineSameClusterNameDifferentNamespace := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "other-machine",
-			Namespace: "other-ns",
-			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster.Name,
-			},
-		},
-	}
-
-	c := fake.NewClientBuilder().WithObjects(
-		machine,
-		machineDifferentClusterNameSameNamespace,
-		machineSameClusterNameDifferentNamespace,
-	).Build()
-
-	machines, err := GetMachinesForCluster(ctx, c, cluster)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(machines.Items).To(HaveLen(1))
-	g.Expect(machines.Items[0].Labels[clusterv1.ClusterLabelName]).To(Equal(cluster.Name))
-}
-
 func TestIsExternalManagedControlPlane(t *testing.T) {
 	g := NewWithT(t)
 

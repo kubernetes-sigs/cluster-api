@@ -44,6 +44,7 @@ const (
 
 	// Deprecated: Use clusterctlv1.CertManagerVersionAnnotation instead.
 	// This is maintained only for supporting upgrades from cluster created with clusterctl v1alpha3.
+	// TODO: Remove once upgrades from v1alpha3 are no longer supported.
 	certManagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
 )
 

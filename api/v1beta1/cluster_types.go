@@ -49,7 +49,7 @@ type ClusterSpec struct {
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
 
 	// ControlPlaneRef is an optional reference to a provider-specific resource that holds
 	// the details for provisioning the Control Plane for a Cluster.
@@ -84,7 +84,7 @@ type Topology struct {
 
 	// ControlPlane describes the cluster control plane.
 	// +optional
-	ControlPlane ControlPlaneTopology `json:"controlPlane"`
+	ControlPlane ControlPlaneTopology `json:"controlPlane,omitempty"`
 
 	// Workers encapsulates the different constructs that form the worker nodes
 	// for the cluster.
@@ -217,7 +217,7 @@ type ClusterStatus struct {
 
 	// ControlPlaneReady defines if the control plane is ready.
 	// +optional
-	ControlPlaneReady bool `json:"controlPlaneReady,omitempty"`
+	ControlPlaneReady bool `json:"controlPlaneReady"`
 
 	// Conditions defines current service state of the cluster.
 	// +optional
@@ -432,7 +432,7 @@ func (in FailureDomains) GetIDs() []*string {
 type FailureDomainSpec struct {
 	// ControlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional
-	ControlPlane bool `json:"controlPlane"`
+	ControlPlane bool `json:"controlPlane,omitempty"`
 
 	// Attributes is a free form map of attributes an infrastructure provider might use or require.
 	// +optional

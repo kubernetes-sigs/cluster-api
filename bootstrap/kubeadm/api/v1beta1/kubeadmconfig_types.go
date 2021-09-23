@@ -100,7 +100,7 @@ type KubeadmConfigSpec struct {
 type KubeadmConfigStatus struct {
 	// Ready indicates the BootstrapData field is ready to be consumed
 	// +optional
-	Ready bool `json:"ready,omitempty"`
+	Ready bool `json:"ready"`
 
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
 	// +optional

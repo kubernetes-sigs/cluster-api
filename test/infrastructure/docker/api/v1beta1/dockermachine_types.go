@@ -79,7 +79,7 @@ type DockerMachineStatus struct {
 	// LoadBalancerConfigured denotes that the machine has been
 	// added to the load balancer
 	// +optional
-	LoadBalancerConfigured bool `json:"loadBalancerConfigured,omitempty"`
+	LoadBalancerConfigured bool `json:"loadBalancerConfigured"`
 
 	// Addresses contains the associated addresses for the docker machine.
 	// +optional

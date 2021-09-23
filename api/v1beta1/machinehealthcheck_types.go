@@ -99,18 +99,18 @@ type MachineHealthCheckStatus struct {
 	// total number of machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	// +optional
-	ExpectedMachines int32 `json:"expectedMachines,omitempty"`
+	ExpectedMachines int32 `json:"expectedMachines"`
 
 	// total number of healthy machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	// +optional
-	CurrentHealthy int32 `json:"currentHealthy,omitempty"`
+	CurrentHealthy int32 `json:"currentHealthy"`
 
 	// RemediationsAllowed is the number of further remediations allowed by this machine health check before
 	// maxUnhealthy short circuiting will be applied
 	// +kubebuilder:validation:Minimum=0
 	// +optional
-	RemediationsAllowed int32 `json:"remediationsAllowed,omitempty"`
+	RemediationsAllowed int32 `json:"remediationsAllowed"`
 
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional

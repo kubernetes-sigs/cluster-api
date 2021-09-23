@@ -14,5 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package mdutil implements MachineDeployment utilities.
+// Package mdutil implements MachineDeployment utilities
+// meant to be consumed internally by the controller.
 package mdutil

@@ -22,7 +22,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	"sigs.k8s.io/cluster-api/controllers/mdutil"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -73,7 +72,7 @@ func rollbackMachineDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeployme
 	}
 	// Copy template into the machinedeployment (excluding the hash)
 	revMSTemplate := *msForRevision.Spec.Template.DeepCopy()
-	delete(revMSTemplate.Labels, mdutil.DefaultMachineDeploymentUniqueLabelKey)
+	delete(revMSTemplate.Labels, clusterv1.MachineDeploymentUniqueLabel)
 
 	d.Spec.Template = revMSTemplate
 	return patchHelper.Patch(ctx, d)

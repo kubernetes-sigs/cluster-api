@@ -255,44 +255,45 @@ breaking change might be a fix for a behavioral bug that was released in an init
 
 ## API conventions
 
-In general we adhere to the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#optional-vs-required).
-We have a small set of exceptions due to the fact that we're using CRDs while the API conventions predates the introduction 
-of CRDs and the way our controllers only patch actual changes to the status instead of updating the entire status in every 
-reconciliation.
+This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#optional-vs-required). Minor modifications or additions to the conventions are listed below.
 
 ### Optional vs. Required
 
-Status fields must be optional, because our controllers are patching selected fields instead of updating the entire status 
-in every reconciliation.
+* Status fields MUST be optional. Our controllers are patching selected fields instead of updating the entire status in every reconciliation.
 
 Optional fields have the following properties:
-* In general an optional field must have both an `+optional` marker and an `omitempty` JSON tag.
-* If the semantic difference between nil and the zero value is important for your code, the field must also be a pointer.
+* An optional field MUST be marked with `+optional` and include an `omitempty` JSON tag.
+* Fields SHOULD be pointers if the nil and the zero values (by Go standards) have semantic differences.
   * Note: This doesn't apply to map or slice types as they already have a built-in `nil` value.
-  * Example: When using ClusterClass, the semantic difference is important when you have a field in a template which will 
-    have instance-specific different values in derived objects. Because in this case it's possible to set the field to `nil`
-    in the template and then the value can be set in derived objects without being overwritten by the cluster topology controller.
 
-* Exceptions:
-  * Fields in root objects should be kept as scaffolded by kubebuilder, e.g.:
-    ```golang
-    type Machine struct {
-      metav1.TypeMeta   `json:",inline"`
-      metav1.ObjectMeta `json:"metadata,omitempty"`
+#### Example
+ 
+When using ClusterClass, the semantic difference is important when you have a field in a template which will
+have instance-specific different values in derived objects. Because in this case it's possible to set the field to `nil`
+in the template and then the value can be set in derived objects without being overwritten by the cluster topology controller.
 
-      Spec   MachineSpec   `json:"spec,omitempty"`
-      Status MachineStatus `json:"status,omitempty"`
-    }
-    type MachineList struct {
-      metav1.TypeMeta `json:",inline"`
-      metav1.ListMeta `json:"metadata,omitempty"`
-      Items           []Machine `json:"items"`
-    }
-    ```
-  * Top-level fields in `status` must always have the `+optional` annotation. If we want the field to be always visible even if it 
-    has the zero value, it must **not** have the `omitempty` JSON tag, e.g.:
-    * Replica counters like `availableReplicas` in the `MachineDeployment`
-    * Flags expressing progress in the object lifecycle like `infrastructureReady` in `Machine`
+#### Exceptions
+
+* Fields in root objects should be kept as scaffolded by kubebuilder, e.g.:
+  ```golang
+  type Machine struct {
+    metav1.TypeMeta   `json:",inline"`
+    metav1.ObjectMeta `json:"metadata,omitempty"`
+
+    Spec   MachineSpec   `json:"spec,omitempty"`
+    Status MachineStatus `json:"status,omitempty"`
+  }
+  type MachineList struct {
+    metav1.TypeMeta `json:",inline"`
+    metav1.ListMeta `json:"metadata,omitempty"`
+    Items           []Machine `json:"items"`
+  }
+  ```
+
+* Top-level fields in `status` must always have the `+optional` annotation. If we want the field to be always visible even if it 
+  has the zero value, it must **not** have the `omitempty` JSON tag, e.g.:
+  * Replica counters like `availableReplicas` in the `MachineDeployment`
+  * Flags expressing progress in the object lifecycle like `infrastructureReady` in `Machine`
 
 ### CRD additionalPrinterColumns
 

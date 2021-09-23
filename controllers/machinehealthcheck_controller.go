@@ -525,7 +525,7 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cl
 	})
 }
 
-// GetMachineFromNode retrieves the machine with a nodeRef to nodeName
+// getMachineFromNode retrieves the machine with a nodeRef to nodeName
 // There should at most one machine with a given nodeRef, returns an error otherwise.
 func getMachineFromNode(ctx context.Context, c client.Client, nodeName string) (*clusterv1.Machine, error) {
 	machineList := &clusterv1.MachineList{}

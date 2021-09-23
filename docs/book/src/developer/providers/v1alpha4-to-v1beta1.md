@@ -21,3 +21,32 @@
 The core ClusterAPI providers will support upgrade from v1alpha3 **and** v1alpha4 to v1beta1. Thus, conversions of API types 
 from v1alpha3 and v1alpha4 to v1beta1 have been implemented. If other providers also want to support the upgrade from v1alpha3 **and**
 v1alpha4, the same conversions have to be implemented.
+
+## Removed items
+
+### API Fields 
+
+- **ClusterTopologyLabelName**, a ClusterClass related constant has been deprecated and removed. This label has been replaced by `ClusterTopologyOwnedLabel`.
+
+- **MachineNodeNameIndex** has been removed from the common types in favor of `api/v1beta1/index.MachineNodeNameField`.
+
+- **MachineProviderNameIndex** has been removed from common types in favor of `api/v1beta1/index.MachineProviderIDField`.
+
+### Clusterctl
+
+- **clusterctl config provider** has been removed in favor of `clusterctl generate provider`.
+
+- **clusterctl config cluster** has been removed in favor of `clusterctl generate cluster`.
+
+### Utils and other
+
+- **TemplateSuffix** has been removed in favor of `api/v1alpha4.TemplatePrefix`.
+- **AddMachineNodeIndex** has been removed in favor of `api/v1alpha4/index.ByMachineNode`
+- **GetMachineFromNode** has been removed. This functionality is now private in the controllers package.
+- **ConverReferenceAPIContract** has been removed in favor of `UpdateReferenceAPIContract` in the util/conversion package.
+- **ParseMajorMinorPatch** has been removed in favor of `ParseMajorMinorPatch` in the util/version package.
+- **GetMachinesForCluster** has been removed in favor of `GetFilteredMachinesForCluster` in the util/collection package.
+- **GetControlPlaneMachines** has been removed in favor of `FromMachines(machine).Filter(collections.ControlPlaneMachines(cluster.Name))`  in the util/collection package.
+- **GetControlPlaneMachinesFromList** has been removed in favor of `FromMachineList(machines).Filter(collections.ControlPlaneMachines(cluster.Name))` in the util/collection package. 
+- **GetCRDMetadataFromGVK** has been removed in favor of `GetGVKMetadata`.
+

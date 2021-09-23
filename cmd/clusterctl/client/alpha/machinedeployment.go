@@ -17,13 +17,16 @@ limitations under the License.
 package alpha
 
 import (
+	"strconv"
+
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	"sigs.k8s.io/cluster-api/controllers/mdutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -75,7 +78,7 @@ func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.Machine
 		previousRevision   = int64(-1)
 	)
 	for _, ms := range allMSs {
-		if v, err := mdutil.Revision(ms); err == nil {
+		if v, err := revision(ms); err == nil {
 			if toRevision == 0 {
 				if latestRevision < v {
 					// newest one we've seen so far
@@ -146,4 +149,16 @@ func getMachineSetsForDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeploy
 	}
 
 	return filtered, nil
+}
+
+func revision(obj runtime.Object) (int64, error) {
+	acc, err := meta.Accessor(obj)
+	if err != nil {
+		return 0, err
+	}
+	v, ok := acc.GetAnnotations()[clusterv1.RevisionAnnotation]
+	if !ok {
+		return 0, nil
+	}
+	return strconv.ParseInt(v, 10, 64)
 }

@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 // Package mdutil implements MachineDeployment utilities.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 package mdutil
 
 import (
@@ -39,36 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
-const (
-	// DefaultMachineDeploymentUniqueLabelKey is the label applied to Machines
-	// in a MachineDeployment containing the hash of the template.
-	// Deprecated: This field package is removed, please use the one in the API package instead.
-	DefaultMachineDeploymentUniqueLabelKey = "machine-template-hash"
-
-	// FailedMSCreateReason is added in a machine deployment when it cannot create a new machine set.
-	// Deprecated: This field will be removed in a next release.
-	FailedMSCreateReason = "MachineSetCreateError"
-
-	// FoundNewMSReason is added in a machine deployment when it adopts an existing machine set.
-	// Deprecated: This field will be removed in a next release.
-	FoundNewMSReason = "FoundNewMachineSet"
-
-	// PausedDeployReason is added in a deployment when it is paused. Lack of progress shouldn't be
-	// estimated once a deployment is paused.
-	// Deprecated: This field will be removed in a next release.
-	PausedDeployReason = "DeploymentPaused"
-
-	// MinimumReplicasAvailable is added in a deployment when it has its minimum replicas required available.
-	// Deprecated: This field will be removed in a next release.
-	MinimumReplicasAvailable = "MinimumReplicasAvailable"
-	// MinimumReplicasUnavailable is added in a deployment when it doesn't have the minimum required replicas
-	// available.
-	// Deprecated: This field will be removed in a next release.
-	MinimumReplicasUnavailable = "MinimumReplicasUnavailable"
-)
-
 // MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 type MachineSetsByCreationTimestamp []*clusterv1.MachineSet
 
 func (o MachineSetsByCreationTimestamp) Len() int      { return len(o) }
@@ -82,7 +52,6 @@ func (o MachineSetsByCreationTimestamp) Less(i, j int) bool {
 
 // MachineSetsBySizeOlder sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
 // By using the creation timestamp, this sorts from old to new machine sets.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 type MachineSetsBySizeOlder []*clusterv1.MachineSet
 
 func (o MachineSetsBySizeOlder) Len() int      { return len(o) }
@@ -96,7 +65,6 @@ func (o MachineSetsBySizeOlder) Less(i, j int) bool {
 
 // MachineSetsBySizeNewer sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
 // By using the creation timestamp, this sorts from new to old machine sets.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 type MachineSetsBySizeNewer []*clusterv1.MachineSet
 
 func (o MachineSetsBySizeNewer) Len() int      { return len(o) }
@@ -109,7 +77,6 @@ func (o MachineSetsBySizeNewer) Less(i, j int) bool {
 }
 
 // SetDeploymentRevision updates the revision for a deployment.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision string) bool {
 	updated := false
 
@@ -125,7 +92,6 @@ func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision str
 }
 
 // MaxRevision finds the highest revision in the machine sets.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func MaxRevision(allMSs []*clusterv1.MachineSet, logger logr.Logger) int64 {
 	max := int64(0)
 	for _, ms := range allMSs {
@@ -141,7 +107,6 @@ func MaxRevision(allMSs []*clusterv1.MachineSet, logger logr.Logger) int64 {
 }
 
 // Revision returns the revision number of the input object.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func Revision(obj runtime.Object) (int64, error) {
 	acc, err := meta.Accessor(obj)
 	if err != nil {
@@ -218,7 +183,6 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 
 // SetNewMachineSetAnnotations sets new machine set's annotations appropriately by updating its revision and
 // copying required deployment annotations to it; it returns true if machine set's annotation is changed.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, newRevision string, exists bool, logger logr.Logger) bool {
 	logger = logger.WithValues("machineset", newMS.Name)
 
@@ -275,7 +239,6 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 // FindOneActiveOrLatest returns the only active or the latest machine set in case there is at most one active
 // machine set. If there are more than one active machine sets, return nil so machine sets can be scaled down
 // to the point where there is only one active machine set.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func FindOneActiveOrLatest(newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet) *clusterv1.MachineSet {
 	if newMS == nil && len(oldMSs) == 0 {
 		return nil
@@ -299,7 +262,6 @@ func FindOneActiveOrLatest(newMS *clusterv1.MachineSet, oldMSs []*clusterv1.Mach
 }
 
 // SetReplicasAnnotations sets the desiredReplicas and maxReplicas into the annotations.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func SetReplicasAnnotations(ms *clusterv1.MachineSet, desiredReplicas, maxReplicas int32) bool {
 	updated := false
 	if ms.Annotations == nil {
@@ -310,16 +272,14 @@ func SetReplicasAnnotations(ms *clusterv1.MachineSet, desiredReplicas, maxReplic
 		ms.Annotations[clusterv1.DesiredReplicasAnnotation] = desiredString
 		updated = true
 	}
-	maxString := fmt.Sprintf("%d", maxReplicas)
-	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != maxString {
-		ms.Annotations[clusterv1.MaxReplicasAnnotation] = maxString
+	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != fmt.Sprintf("%d", maxReplicas) {
+		ms.Annotations[clusterv1.MaxReplicasAnnotation] = fmt.Sprintf("%d", maxReplicas)
 		updated = true
 	}
 	return updated
 }
 
 // ReplicasAnnotationsNeedUpdate return true if the replicas annotation needs to be updated.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func ReplicasAnnotationsNeedUpdate(ms *clusterv1.MachineSet, desiredReplicas, maxReplicas int32) bool {
 	if ms.Annotations == nil {
 		return true
@@ -328,15 +288,13 @@ func ReplicasAnnotationsNeedUpdate(ms *clusterv1.MachineSet, desiredReplicas, ma
 	if hasString := ms.Annotations[clusterv1.DesiredReplicasAnnotation]; hasString != desiredString {
 		return true
 	}
-	maxString := fmt.Sprintf("%d", maxReplicas)
-	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != maxString {
+	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != fmt.Sprintf("%d", maxReplicas) {
 		return true
 	}
 	return false
 }
 
 // MaxUnavailable returns the maximum unavailable machines a rolling deployment can take.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func MaxUnavailable(deployment clusterv1.MachineDeployment) int32 {
 	if !IsRollingUpdate(&deployment) || *(deployment.Spec.Replicas) == 0 {
 		return int32(0)
@@ -350,7 +308,6 @@ func MaxUnavailable(deployment clusterv1.MachineDeployment) int32 {
 }
 
 // MaxSurge returns the maximum surge machines a rolling deployment can take.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func MaxSurge(deployment clusterv1.MachineDeployment) int32 {
 	if !IsRollingUpdate(&deployment) {
 		return int32(0)
@@ -363,7 +320,6 @@ func MaxSurge(deployment clusterv1.MachineDeployment) int32 {
 // GetProportion will estimate the proportion for the provided machine set using 1. the current size
 // of the parent deployment, 2. the replica count that needs be added on the machine sets of the
 // deployment, and 3. the total replicas added in the machine sets of the deployment so far.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func GetProportion(ms *clusterv1.MachineSet, d clusterv1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32, logger logr.Logger) int32 {
 	if ms == nil || *(ms.Spec.Replicas) == 0 || deploymentReplicasToAdd == 0 || deploymentReplicasToAdd == deploymentReplicasAdded {
 		return int32(0)
@@ -386,7 +342,6 @@ func GetProportion(ms *clusterv1.MachineSet, d clusterv1.MachineDeployment, depl
 
 // getMachineSetFraction estimates the fraction of replicas a machine set can have in
 // 1. a scaling event during a rollout or 2. when scaling a paused deployment.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func getMachineSetFraction(ms clusterv1.MachineSet, d clusterv1.MachineDeployment, logger logr.Logger) int32 {
 	// If we are scaling down to zero then the fraction of this machine set is its whole size (negative)
 	if *(d.Spec.Replicas) == int32(0) {
@@ -411,7 +366,6 @@ func getMachineSetFraction(ms clusterv1.MachineSet, d clusterv1.MachineDeploymen
 
 // EqualMachineTemplate returns true if two given machineTemplateSpec are equal,
 // ignoring the diff in value of Labels["machine-template-hash"], and the version from external references.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) bool {
 	t1Copy := template1.DeepCopy()
 	t2Copy := template2.DeepCopy()
@@ -420,8 +374,8 @@ func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) b
 	// 1. The hash result would be different upon machineTemplateSpec API changes
 	//    (e.g. the addition of a new field will cause the hash code to change)
 	// 2. The deployment template won't have hash labels
-	delete(t1Copy.Labels, DefaultMachineDeploymentUniqueLabelKey)
-	delete(t2Copy.Labels, DefaultMachineDeploymentUniqueLabelKey)
+	delete(t1Copy.Labels, clusterv1.MachineDeploymentUniqueLabel)
+	delete(t2Copy.Labels, clusterv1.MachineDeploymentUniqueLabel)
 
 	// Remove the version part from the references APIVersion field,
 	// for more details see issue #2183 and #2140.
@@ -438,7 +392,6 @@ func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) b
 }
 
 // FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template).
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) *clusterv1.MachineSet {
 	sort.Sort(MachineSetsByCreationTimestamp(msList))
 	for i := range msList {
@@ -458,7 +411,6 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 // Returns two list of machine sets
 //  - the first contains all old machine sets with all non-zero replicas
 //  - the second contains all old machine sets
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
 	var requiredMSs []*clusterv1.MachineSet
 	allMSs := make([]*clusterv1.MachineSet, 0, len(msList))
@@ -477,7 +429,6 @@ func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clust
 }
 
 // GetReplicaCountForMachineSets returns the sum of Replicas of the given machine sets.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func GetReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 	totalReplicas := int32(0)
 	for _, ms := range machineSets {
@@ -489,7 +440,6 @@ func GetReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 }
 
 // GetActualReplicaCountForMachineSets returns the sum of actual replicas of the given machine sets.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func GetActualReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 	totalActualReplicas := int32(0)
 	for _, ms := range machineSets {
@@ -506,7 +456,6 @@ func GetActualReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) in
 // Use max(spec.Replicas,status.Replicas) to cover the cases that:
 // 1. Scale up, where spec.Replicas increased but no machine created yet, so spec.Replicas > status.Replicas
 // 2. Scale down, where spec.Replicas decreased but machine not deleted yet, so spec.Replicas < status.Replicas.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func TotalMachineSetsReplicaSum(machineSets []*clusterv1.MachineSet) int32 {
 	totalReplicas := int32(0)
 	for _, ms := range machineSets {
@@ -518,7 +467,6 @@ func TotalMachineSetsReplicaSum(machineSets []*clusterv1.MachineSet) int32 {
 }
 
 // GetReadyReplicaCountForMachineSets returns the number of ready machines corresponding to the given machine sets.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func GetReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 	totalReadyReplicas := int32(0)
 	for _, ms := range machineSets {
@@ -530,7 +478,6 @@ func GetReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int
 }
 
 // GetAvailableReplicaCountForMachineSets returns the number of available machines corresponding to the given machine sets.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 	totalAvailableReplicas := int32(0)
 	for _, ms := range machineSets {
@@ -542,14 +489,12 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 }
 
 // IsRollingUpdate returns true if the strategy type is a rolling update.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func IsRollingUpdate(deployment *clusterv1.MachineDeployment) bool {
 	return deployment.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType
 }
 
 // DeploymentComplete considers a deployment to be complete once all of its desired replicas
 // are updated and available, and no old machines are running.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clusterv1.MachineDeploymentStatus) bool {
 	return newStatus.UpdatedReplicas == *(deployment.Spec.Replicas) &&
 		newStatus.Replicas == *(deployment.Spec.Replicas) &&
@@ -562,7 +507,6 @@ func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clus
 // 1) The new MS is saturated: newMS's replicas == deployment's replicas
 // 2) For RollingUpdateStrategy: Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas.
 // 3) For OnDeleteStrategy: Max number of machines allowed is reached: deployment's replicas == all MSs' replicas.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (int32, error) {
 	switch deployment.Spec.Strategy.Type {
 	case clusterv1.RollingUpdateMachineDeploymentStrategyType:
@@ -603,7 +547,6 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 // Both the deployment and the machine set have to believe this machine set can own all of the desired
 // replicas in the deployment and the annotation helps in achieving that. All machines of the MachineSet
 // need to be available.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func IsSaturated(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineSet) bool {
 	if ms == nil {
 		return false
@@ -627,7 +570,6 @@ func IsSaturated(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineS
 // 1 desired, max unavailable 25%, surge 1% - should scale new(+1), then old(-1)
 // 2 desired, max unavailable 0%, surge 1% - should scale new(+1), then old(-1), then new(+1), then old(-1)
 // 1 desired, max unavailable 0%, surge 1% - should scale new(+1), then old(-1).
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func ResolveFenceposts(maxSurge, maxUnavailable *intstrutil.IntOrString, desired int32) (int32, int32, error) {
 	surge, err := intstrutil.GetScaledValueFromIntOrPercent(maxSurge, int(desired), true)
 	if err != nil {
@@ -650,7 +592,6 @@ func ResolveFenceposts(maxSurge, maxUnavailable *intstrutil.IntOrString, desired
 }
 
 // FilterActiveMachineSets returns machine sets that have (or at least ought to have) machines.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func FilterActiveMachineSets(machineSets []*clusterv1.MachineSet) []*clusterv1.MachineSet {
 	activeFilter := func(ms *clusterv1.MachineSet) bool {
 		return ms != nil && ms.Spec.Replicas != nil && *(ms.Spec.Replicas) > 0
@@ -661,7 +602,6 @@ func FilterActiveMachineSets(machineSets []*clusterv1.MachineSet) []*clusterv1.M
 type filterMS func(ms *clusterv1.MachineSet) bool
 
 // FilterMachineSets returns machine sets that are filtered by filterFn (all returned ones should match filterFn).
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func FilterMachineSets(mSes []*clusterv1.MachineSet, filterFn filterMS) []*clusterv1.MachineSet {
 	var filtered []*clusterv1.MachineSet
 	for i := range mSes {
@@ -674,7 +614,6 @@ func FilterMachineSets(mSes []*clusterv1.MachineSet, filterFn filterMS) []*clust
 
 // CloneAndAddLabel clones the given map and returns a new map with the given key and value added.
 // Returns the given map, if labelKey is empty.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func CloneAndAddLabel(labels map[string]string, labelKey, labelValue string) map[string]string {
 	if labelKey == "" {
 		// Don't need to add a label.
@@ -691,7 +630,6 @@ func CloneAndAddLabel(labels map[string]string, labelKey, labelValue string) map
 
 // CloneSelectorAndAddLabel clones the given selector and returns a new selector with the given key and value added.
 // Returns the given selector, if labelKey is empty.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelValue string) *metav1.LabelSelector {
 	if labelKey == "" {
 		// Don't need to add a label.
@@ -730,27 +668,9 @@ func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelVal
 	return newSelector
 }
 
-// DeepHashObject writes specified object to hash using the spew library
-// which follows pointers and prints actual values of the nested objects
-// ensuring the hash does not change when a pointer changes.
-// Deprecated: Please use controllers/mdutil SpewHashObject(hasher, objectToWrite).
-func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
-	hasher.Reset()
-	printer := spew.ConfigState{
-		Indent:         " ",
-		SortKeys:       true,
-		DisableMethods: true,
-		SpewKeys:       true,
-	}
-	// We ignore the returned error because there is no way to return the error without
-	// breaking API compatibility. Please use SpewHashObject instead.
-	_, _ = printer.Fprintf(hasher, "%#v", objectToWrite)
-}
-
 // SpewHashObject writes specified object to hash using the spew library
 // which follows pointers and prints actual values of the nested objects
 // ensuring the hash does not change when a pointer changes.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func SpewHashObject(hasher hash.Hash, objectToWrite interface{}) error {
 	hasher.Reset()
 	printer := spew.ConfigState{
@@ -766,19 +686,10 @@ func SpewHashObject(hasher hash.Hash, objectToWrite interface{}) error {
 	return nil
 }
 
-// ComputeHash computes the hash of a MachineTemplateSpec using the spew library.
-// Deprecated: Please use controllers/mdutil ComputeSpewHash(template).
-func ComputeHash(template *clusterv1.MachineTemplateSpec) uint32 {
-	machineTemplateSpecHasher := fnv.New32a()
-	DeepHashObject(machineTemplateSpecHasher, *template)
-	return machineTemplateSpecHasher.Sum32()
-}
-
 // ComputeSpewHash computes the hash of a MachineTemplateSpec using the spew library.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
-func ComputeSpewHash(template *clusterv1.MachineTemplateSpec) (uint32, error) {
+func ComputeSpewHash(objectToWrite interface{}) (uint32, error) {
 	machineTemplateSpecHasher := fnv.New32a()
-	if err := SpewHashObject(machineTemplateSpecHasher, *template); err != nil {
+	if err := SpewHashObject(machineTemplateSpecHasher, objectToWrite); err != nil {
 		return 0, err
 	}
 	return machineTemplateSpecHasher.Sum32(), nil
@@ -786,7 +697,6 @@ func ComputeSpewHash(template *clusterv1.MachineTemplateSpec) (uint32, error) {
 
 // GetDeletingMachineCount gets the number of machines that are in the process of being deleted
 // in a machineList.
-// Deprecated: This package is becoming internal and it will be removed in a next release.
 func GetDeletingMachineCount(machineList *clusterv1.MachineList) int32 {
 	var deletingMachineCount int32
 	for _, machine := range machineList.Items {

@@ -107,15 +107,17 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 	testCases := []struct {
 		name      string
 		namespace string
-		provider  genericprovider.GenericProvider
+		providers []genericprovider.GenericProvider
 	}{
 		{
 			name:      "preflight conditions for CoreProvider",
 			namespace: "test-core-provider",
-			provider: &genericprovider.CoreProviderWrapper{
-				CoreProvider: &operatorv1.CoreProvider{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "cluster-api",
+			providers: []genericprovider.GenericProvider{
+				&genericprovider.CoreProviderWrapper{
+					CoreProvider: &operatorv1.CoreProvider{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "cluster-api",
+						},
 					},
 				},
 			},
@@ -123,10 +125,19 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 		{
 			name:      "preflight conditions for ControlPlaneProvider",
 			namespace: "test-cp-provider",
-			provider: &genericprovider.ControlPlaneProviderWrapper{
-				ControlPlaneProvider: &operatorv1.ControlPlaneProvider{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "kubeadm",
+			providers: []genericprovider.GenericProvider{
+				&genericprovider.CoreProviderWrapper{
+					CoreProvider: &operatorv1.CoreProvider{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "cluster-api",
+						},
+					},
+				},
+				&genericprovider.ControlPlaneProviderWrapper{
+					ControlPlaneProvider: &operatorv1.ControlPlaneProvider{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "kubeadm",
+						},
 					},
 				},
 			},
@@ -141,39 +152,38 @@ func TestReconcilerPreflightConditions(t *testing.T) {
 			namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tc.namespace}}
 			g.Expect(env.CreateAndWait(ctx, namespace)).To(Succeed())
 			g.Expect(env.CreateAndWait(ctx, dummyConfigMap(tc.namespace))).To(Succeed())
-			tc.provider.SetNamespace(tc.namespace)
 
-			if tc.provider.GetName() != "cluster-api" {
-				core := &operatorv1.CoreProvider{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "cluster-api",
-						Namespace: tc.namespace,
-					},
-				}
-
-				insertDummyConfig(&genericprovider.CoreProviderWrapper{CoreProvider: core})
-				t.Log("creating core provider", core.Name)
-				g.Expect(env.CreateAndWait(ctx, core)).To(Succeed())
+			for _, p := range tc.providers {
+				insertDummyConfig(p)
+				p.SetNamespace(tc.namespace)
+				t.Log("creating test provider", p.GetName())
+				g.Expect(env.CreateAndWait(ctx, p.GetObject())).To(Succeed())
 			}
-			t.Log("creating test provider", tc.provider.GetName())
-			insertDummyConfig(tc.provider)
-			g.Expect(env.CreateAndWait(ctx, tc.provider.GetObject())).To(Succeed())
 
 			g.Eventually(func() bool {
-				if err := env.Get(ctx, client.ObjectKeyFromObject(tc.provider.GetObject()), tc.provider.GetObject()); err != nil {
-					return false
-				}
+				for _, p := range tc.providers {
+					if err := env.Get(ctx, client.ObjectKeyFromObject(p.GetObject()), p.GetObject()); err != nil {
+						return false
+					}
 
-				for _, cond := range tc.provider.GetStatus().Conditions {
-					if cond.Type == operatorv1.PreflightCheckCondition && cond.Status == corev1.ConditionTrue {
-						return true
+					for _, cond := range p.GetStatus().Conditions {
+						if cond.Type == operatorv1.PreflightCheckCondition {
+							t.Log(t.Name(), p.GetName(), cond)
+							if cond.Status == corev1.ConditionTrue {
+								return true
+							}
+						}
 					}
 				}
 
 				return false
 			}, timeout).Should(BeEquivalentTo(true))
 
-			g.Expect(env.Delete(ctx, namespace)).To(Succeed())
+			objs := []client.Object{}
+			for _, p := range tc.providers {
+				objs = append(objs, p.GetObject())
+			}
+			g.Expect(env.CleanupAndWait(ctx, objs...)).To(Succeed())
 		})
 	}
 }

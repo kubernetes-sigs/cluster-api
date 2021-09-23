@@ -314,7 +314,7 @@ func (s *reconciler) validateRepoCAPIVersion(provider genericprovider.GenericPro
 	if releaseSeries == nil {
 		return errors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", s.options.Version, name)
 	}
-	if releaseSeries.Contract != clusterv1.GroupVersion.Version {
+	if releaseSeries.Contract != "v1alpha4" && releaseSeries.Contract != "v1beta1" {
 		return errors.Errorf(capiVersionIncompatibilityMessage, clusterv1.GroupVersion.Version, releaseSeries.Contract, name)
 	}
 	s.contract = releaseSeries.Contract

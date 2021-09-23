@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
@@ -125,7 +125,8 @@ func listObjByGVK(c client.Client, groupVersion, kind string, options []client.L
 	objList.SetKind(kind)
 
 	if err := c.List(ctx, objList, options...); err != nil {
-		if !apierrors.IsNotFound(err) {
+		// not all clusters (including unit tests) will have cert-manager CRDs.
+		if _, ok := err.(*meta.NoKindMatchError); !ok {
 			return nil, errors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
 		}
 	}

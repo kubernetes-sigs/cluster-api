@@ -41,10 +41,12 @@ type ClusterClassSpec struct {
 	// for the underlying provider.
 	// The underlying provider is responsible for the implementation
 	// of the template to an infrastructure cluster.
+	// +optional
 	Infrastructure LocalObjectTemplate `json:"infrastructure,omitempty"`
 
 	// ControlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
+	// +optional
 	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty"`
 
 	// Workers describes the worker nodes for the cluster.
@@ -61,6 +63,7 @@ type ControlPlaneClass struct {
 	//
 	// This field is supported if and only if the control plane provider template
 	// referenced is Machine based.
+	// +optional
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// LocalObjectTemplate contains the reference to the control plane provider.
@@ -80,6 +83,7 @@ type ControlPlaneClass struct {
 type WorkersClass struct {
 	// MachineDeployments is a list of machine deployment classes that can be used to create
 	// a set of worker nodes.
+	// +optional
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 }
 
@@ -101,6 +105,7 @@ type MachineDeploymentClass struct {
 type MachineDeploymentClassTemplate struct {
 	// Metadata is the metadata applied to the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
+	// +optional
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// Bootstrap contains the bootstrap template reference to be used

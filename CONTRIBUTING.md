@@ -252,6 +252,71 @@ There may, at times, need to be exceptions where breaking changes are allowed in
 discretion of the project's maintainers, and must be carefully considered before merging. An example of an allowed
 breaking change might be a fix for a behavioral bug that was released in an initial minor version (such as `v0.3.0`).
 
+
+## API conventions
+
+In general we adhere to the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#optional-vs-required).
+We have a small set of exceptions due to the fact that we're using CRDs while the API conventions predates the introduction 
+of CRDs and the way our controllers only patch actual changes to the status instead of updating the entire status in every 
+reconciliation.
+
+### Optional vs. Required
+
+Status fields must be optional, because our controllers are patching selected fields instead of updating the entire status 
+in every reconciliation.
+
+Optional fields have the following properties:
+* In general an optional field must have both an `+optional` marker and an `omitempty` JSON tag.
+* If the semantic difference between nil and the zero value is important for your code, the field must also be a pointer.
+  * Note: This doesn't apply to map or slice types as they already have a built-in `nil` value.
+  * Example: When using ClusterClass, the semantic difference is important when you have a field in a template which will 
+    have instance-specific different values in derived objects. Because in this case it's possible to set the field to `nil`
+    in the template and then the value can be set in derived objects without being overwritten by the cluster topology controller.
+
+* Exceptions:
+  * Fields in root objects should be kept as scaffolded by kubebuilder, e.g.:
+    ```golang
+    type Machine struct {
+      metav1.TypeMeta   `json:",inline"`
+      metav1.ObjectMeta `json:"metadata,omitempty"`
+
+      Spec   MachineSpec   `json:"spec,omitempty"`
+      Status MachineStatus `json:"status,omitempty"`
+    }
+    type MachineList struct {
+      metav1.TypeMeta `json:",inline"`
+      metav1.ListMeta `json:"metadata,omitempty"`
+      Items           []Machine `json:"items"`
+    }
+    ```
+  * Top-level fields in `status` must always have the `+optional` annotation. If we want the field to be always visible even if it 
+    has the zero value, it must **not** have the `omitempty` JSON tag, e.g.:
+    * Replica counters like `availableReplicas` in the `MachineDeployment`
+    * Flags expressing progress in the object lifecycle like `infrastructureReady` in `Machine`
+
+### CRD additionalPrinterColumns
+
+All our CRD objects should have the following `additionalPrinterColumns` order (if the respective field exists in the CRD):
+* Namespace (added automatically)
+* Name (added automatically)
+* Cluster
+* Other fields
+* Replica-related fields
+* Phase
+* Age (mandatory field for all CRDs)
+* Version
+* Other fields for -o wide (fields with priority `1` are only shown with `-o wide` and not per default)
+
+Examples:
+```bash
+$ kubectl get kubeadmcontrolplane
+NAMESPACE            NAME                               INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE     VERSION
+quick-start-d5ufye   quick-start-ntysk0-control-plane   true          true                   1          1       1                       2m44s   v1.22.0
+$ kubectl get machinedeployment
+NAMESPACE            NAME                      CLUSTER              REPLICAS   READY   UPDATED   UNAVAILABLE   PHASE       AGE     VERSION
+quick-start-d5ufye   quick-start-ntysk0-md-0   quick-start-ntysk0   1                  1         1             ScalingUp   3m28s   v1.22.0
+```
+
 ## Google Doc Viewing Permissions
 
 To gain viewing permissions to google docs in this project, please join either the

@@ -308,6 +308,8 @@ All our CRD objects should have the following `additionalPrinterColumns` order (
 * Version
 * Other fields for -o wide (fields with priority `1` are only shown with `-o wide` and not per default)
 
+***NOTE***: The columns can be configured via the `kubebuilder:printcolumn` annotation on root objects. For examples, please see the `./api` package.
+
 Examples:
 ```bash
 $ kubectl get kubeadmcontrolplane

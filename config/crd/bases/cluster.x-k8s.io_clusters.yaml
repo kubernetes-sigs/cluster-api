@@ -660,13 +660,17 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
+      jsonPath: .status.phase
+      name: Phase
+      type: string
     - description: Time duration since creation of Cluster
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
-      jsonPath: .status.phase
-      name: Phase
+    - description: Kubernetes version associated with this Cluster
+      jsonPath: .spec.topology.version
+      name: Version
       type: string
     name: v1beta1
     schema:

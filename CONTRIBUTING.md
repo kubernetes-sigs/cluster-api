@@ -264,7 +264,7 @@ This project follows the [Kubernetes API conventions](https://github.com/kuberne
 Optional fields have the following properties:
 * An optional field MUST be marked with `+optional` and include an `omitempty` JSON tag.
 * Fields SHOULD be pointers if the nil and the zero values (by Go standards) have semantic differences.
-  * Note: This doesn't apply to map or slice types as they already have a built-in `nil` value.
+  * Note: This doesn't apply to map or slice types as they are assignable to `nil`.
 
 #### Example
  

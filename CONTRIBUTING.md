@@ -255,7 +255,7 @@ breaking change might be a fix for a behavioral bug that was released in an init
 
 ## API conventions
 
-This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#optional-vs-required). Minor modifications or additions to the conventions are listed below.
+This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md). Minor modifications or additions to the conventions are listed below.
 
 ### Optional vs. Required
 

@@ -31,7 +31,7 @@ import (
 type ClusterBuilder struct {
 	namespace             string
 	name                  string
-	class                 clusterv1.ClusterClass
+	topology              *clusterv1.Topology
 	infrastructureCluster *unstructured.Unstructured
 	controlPlane          *unstructured.Unstructured
 }
@@ -56,9 +56,9 @@ func (c *ClusterBuilder) WithControlPlane(t *unstructured.Unstructured) *Cluster
 	return c
 }
 
-// WithClusterClass adds the passed ClusterClass Name to the ClusterBuilder.
-func (c *ClusterBuilder) WithClusterClass(class clusterv1.ClusterClass) *ClusterBuilder {
-	c.class = class
+// WithTopology adds the passed Topology object to the ClusterBuilder.
+func (c *ClusterBuilder) WithTopology(topology *clusterv1.Topology) *ClusterBuilder {
+	c.topology = topology
 	return c
 }
 
@@ -74,7 +74,7 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 			Namespace: c.namespace,
 		},
 		Spec: clusterv1.ClusterSpec{
-			Topology: &clusterv1.Topology{Class: c.class.Name},
+			Topology: c.topology,
 		},
 	}
 	if c.infrastructureCluster != nil {
@@ -84,6 +84,92 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 		obj.Spec.ControlPlaneRef = objToRef(c.controlPlane)
 	}
 	return obj
+}
+
+// ClusterTopologyBuilder contains the fields needed to build a testable ClusterTopology.
+type ClusterTopologyBuilder struct {
+	class                string
+	workers              *clusterv1.WorkersTopology
+	version              string
+	controlPlaneReplicas int32
+}
+
+// ClusterTopology returns a ClusterTopologyBuilder.
+func ClusterTopology() *ClusterTopologyBuilder {
+	return &ClusterTopologyBuilder{
+		workers: &clusterv1.WorkersTopology{},
+	}
+}
+
+// WithClass adds the passed ClusterClass name to the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithClass(class string) *ClusterTopologyBuilder {
+	c.class = class
+	return c
+}
+
+// WithVersion adds the passed version to the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithVersion(version string) *ClusterTopologyBuilder {
+	c.version = version
+	return c
+}
+
+// WithControlPlaneReplicas adds the passed replicas value to the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithControlPlaneReplicas(replicas int32) *ClusterTopologyBuilder {
+	c.controlPlaneReplicas = replicas
+	return c
+}
+
+// WithMachineDeployment passes the full MachineDeploymentTopology and adds it to an existing list in the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithMachineDeployment(mdc clusterv1.MachineDeploymentTopology) *ClusterTopologyBuilder {
+	c.workers.MachineDeployments = append(c.workers.MachineDeployments, mdc)
+	return c
+}
+
+// Build returns a testable cluster Topology object with any values passed to the builder.
+func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
+	return &clusterv1.Topology{
+		Class:   c.class,
+		Workers: c.workers,
+		Version: c.version,
+		ControlPlane: clusterv1.ControlPlaneTopology{
+			Replicas: &c.controlPlaneReplicas,
+		},
+	}
+}
+
+// MachineDeploymentTopologyBuilder holds the values needed to create a testable MachineDeploymentTopology.
+type MachineDeploymentTopologyBuilder struct {
+	class    string
+	name     string
+	replicas *int32
+}
+
+// MachineDeploymentTopology returns a builder used to create a testable MachineDeploymentTopology.
+func MachineDeploymentTopology(name string) *MachineDeploymentTopologyBuilder {
+	return &MachineDeploymentTopologyBuilder{
+		name: name,
+	}
+}
+
+// WithClass adds a class string used as the MachineDeploymentTopology class.
+func (m *MachineDeploymentTopologyBuilder) WithClass(class string) *MachineDeploymentTopologyBuilder {
+	m.class = class
+	return m
+}
+
+// WithReplicas adds a replicas value used as the MachineDeploymentTopology replicas value.
+func (m *MachineDeploymentTopologyBuilder) WithReplicas(replicas int32) *MachineDeploymentTopologyBuilder {
+	m.replicas = &replicas
+	return m
+}
+
+// Build returns a testable MachineDeploymentTopology with any values passed to the builder.
+func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTopology {
+	return clusterv1.MachineDeploymentTopology{
+		Class:    m.class,
+		Name:     m.name,
+		Replicas: m.replicas,
+	}
 }
 
 // ClusterClassBuilder holds the variables and objects required to build a clusterv1.ClusterClass.
@@ -269,7 +355,7 @@ func (i *InfrastructureMachineTemplateBuilder) WithSpecFields(fields map[string]
 func (i *InfrastructureMachineTemplateBuilder) Build() *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion(InfrastructureGroupVersion.String())
-	obj.SetKind(GenericInfrastructureMachineKind)
+	obj.SetKind(GenericInfrastructureMachineTemplateKind)
 	obj.SetNamespace(i.namespace)
 	obj.SetName(i.name)
 
@@ -683,6 +769,7 @@ func setSpecFields(obj *unstructured.Unstructured, fields map[string]interface{}
 	}
 }
 
+// setStatusFields sets fields in an unstructured object from a map.
 func setStatusFields(obj *unstructured.Unstructured, fields map[string]interface{}) {
 	for k, v := range fields {
 		fieldParts := strings.Split(k, ".")

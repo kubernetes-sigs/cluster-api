@@ -105,6 +105,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	return nil
 }
 
+// SetupForDryRun prepares the Reconciler for a dry run execution.
+func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
+	r.patchEngine = patches.NewEngine()
+	r.recorder = recorder
+}
+
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 

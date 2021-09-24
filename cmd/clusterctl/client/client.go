@@ -89,6 +89,8 @@ type AlphaClient interface {
 	RolloutResume(options RolloutOptions) error
 	// RolloutUndo provides rollout rollback of cluster-api resources
 	RolloutUndo(options RolloutOptions) error
+	// DryRunTopology dry runs the topology reconciler
+	DryRunTopology(options DryRunOptions) (*cluster.DryRunOutput, error)
 }
 
 // YamlPrinter exposes methods that prints the processed template and

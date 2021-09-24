@@ -111,7 +111,7 @@ func (k *proxy) CurrentNamespace() (string, error) {
 		return v.Namespace, nil
 	}
 
-	return "default", nil
+	return metav1.NamespaceDefault, nil
 }
 
 func (k *proxy) ValidateKubernetesVersion() error {

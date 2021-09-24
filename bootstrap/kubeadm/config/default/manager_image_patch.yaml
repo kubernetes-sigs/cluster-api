@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-        - image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:master
+        - image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:main
           name: manager

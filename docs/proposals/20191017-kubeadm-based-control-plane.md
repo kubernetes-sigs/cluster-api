@@ -489,7 +489,7 @@ When `MaxSurge` is set to 0 the rollout algorithm is as follows:
 ###### Why delete and recreate
 
 When replacing a KCP machine the most critical component to be taken into account is etcd, and
-according to the [etcd documentation](https://github.com/etcd-io/etcd/blob/master/Documentation/faq.md#should-i-add-a-member-before-removing-an-unhealthy-member),
+according to the [etcd documentation](https://etcd.io/docs/v3.5/faq/#should-i-add-a-member-before-removing-an-unhealthy-member),
 it's important to remove an unhealthy etcd member first and then add its replacement:
 
 - etcd employs distributed consensus based on a quorum model; (n/2)+1 members, a majority, must agree on a proposal before

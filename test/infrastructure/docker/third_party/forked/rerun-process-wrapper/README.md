@@ -1,7 +1,7 @@
 # Rerunning your process via `live_update`
 ## i.e., simulating [`restart_container()`](https://docs.tilt.dev/live_update_reference.html#restart_container) on non-Docker clusters
 
-As of 6/28/19: `restart_container()`, a command that can be passed to a `live_update`, doesn't work on non-Docker clusters. However there's a workaround available to simulate `restart_container()`'s functionality. It's used in [the onewatch integration test](https://github.com/windmilleng/tilt/tree/master/integration/onewatch) so that the test passes on non-Docker clusters. Here's how to do it yourself:
+As of 6/28/19: `restart_container()`, a command that can be passed to a `live_update`, doesn't work on non-Docker clusters. However there's a workaround available to simulate `restart_container()`'s functionality. It's used in [the onewatch integration test](https://github.com/tilt-dev/tilt/tree/master/integration/onewatch) so that the test passes on non-Docker clusters. Here's how to do it yourself:
 
 Copy `start.sh` and `restart.sh` to your container working dir.
 

@@ -4,7 +4,6 @@ on:
     types: [opened, edited, synchronize, reopened]
     branches:
       - main
-      - master
 jobs:
   golangci:
     name: lint

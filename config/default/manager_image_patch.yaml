@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-      - image: gcr.io/k8s-staging-cluster-api/cluster-api-controller:master
+      - image: gcr.io/k8s-staging-cluster-api/cluster-api-controller:main
         name: manager

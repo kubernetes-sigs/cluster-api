@@ -188,7 +188,7 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 		{
 			name: "Return custom template",
 			args: args{
-				rURL: mustParseURL("https://github.com/kubernetes-sigs/cluster-api/blob/master/config/default/cluster-template.yaml"),
+				rURL: mustParseURL("https://github.com/kubernetes-sigs/cluster-api/blob/main/config/default/cluster-template.yaml"),
 			},
 			want:    []byte(template),
 			wantErr: false,
@@ -196,7 +196,7 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 		{
 			name: "Wrong url",
 			args: args{
-				rURL: mustParseURL("https://github.com/kubernetes-sigs/cluster-api/blob/master/config/default/something-else.yaml"),
+				rURL: mustParseURL("https://github.com/kubernetes-sigs/cluster-api/blob/main/config/default/something-else.yaml"),
 			},
 			want:    nil,
 			wantErr: true,
@@ -331,7 +331,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		{
 			name: "Get from GitHub",
 			args: args{
-				templateURL:         "https://github.com/kubernetes-sigs/cluster-api/blob/master/config/default/cluster-template.yaml",
+				templateURL:         "https://github.com/kubernetes-sigs/cluster-api/blob/main/config/default/cluster-template.yaml",
 				targetNamespace:     "",
 				skipTemplateProcess: false,
 			},

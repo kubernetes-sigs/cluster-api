@@ -53,7 +53,7 @@ func Test_inspectImages(t *testing.T) {
 										"containers": []map[string]interface{}{
 											{
 												"name":  controllerContainerName,
-												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master",
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:main",
 											},
 										},
 									},
@@ -63,7 +63,7 @@ func Test_inspectImages(t *testing.T) {
 					},
 				},
 			},
-			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master"},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:main"},
 			wantErr: false,
 		},
 		{
@@ -80,7 +80,7 @@ func Test_inspectImages(t *testing.T) {
 										"containers": []map[string]interface{}{
 											{
 												"name":  controllerContainerName,
-												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master",
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:main",
 											},
 										},
 									},
@@ -90,7 +90,7 @@ func Test_inspectImages(t *testing.T) {
 					},
 				},
 			},
-			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master"},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:main"},
 			wantErr: false,
 		},
 		{
@@ -107,7 +107,7 @@ func Test_inspectImages(t *testing.T) {
 										"containers": []map[string]interface{}{
 											{
 												"name":  controllerContainerName,
-												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master",
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:main",
 											},
 										},
 										"initContainers": []map[string]interface{}{
@@ -123,7 +123,7 @@ func Test_inspectImages(t *testing.T) {
 					},
 				},
 			},
-			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master", "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init"},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:main", "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init"},
 			wantErr: false,
 		},
 		{
@@ -140,7 +140,7 @@ func Test_inspectImages(t *testing.T) {
 										"containers": []map[string]interface{}{
 											{
 												"name":  controllerContainerName,
-												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master",
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:main",
 											},
 										},
 										"initContainers": []map[string]interface{}{
@@ -156,7 +156,7 @@ func Test_inspectImages(t *testing.T) {
 					},
 				},
 			},
-			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master", "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init"},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:main", "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init"},
 			wantErr: false,
 		},
 	}

@@ -34,13 +34,19 @@ make envsubst
 ## Getting started
 
 ### Create a kind cluster
+A script to create a KIND cluster along with a local docker registry and the correct mounts to run CAPD is included in the hack/ folder.
 
-First, make sure you have a kind cluster and that your `KUBECONFIG` is set up correctly:
+To create a pre-configured cluster run:
 
-``` bash
-kind create cluster
+```bash 
+./hack/kind-install-for-capd.sh
+````
+
+You can see the status of the cluster with:
+
+```bash
+kubectl cluster-info --context kind-capi-test
 ```
-IMPORTANT, if you are planning to use the CAPD provider, check that you created the required mounts for allowing the provider to access the Docker socket on the host; see [quick start](https://cluster-api.sigs.k8s.io/user/quick-start.html#usage) for instructions.
 
 ### Create a tilt-settings.json file
 

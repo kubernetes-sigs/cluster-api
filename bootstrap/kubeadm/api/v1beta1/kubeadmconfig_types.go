@@ -99,6 +99,7 @@ type KubeadmConfigSpec struct {
 // KubeadmConfigStatus defines the observed state of KubeadmConfig.
 type KubeadmConfigStatus struct {
 	// Ready indicates the BootstrapData field is ready to be consumed
+	// +optional
 	Ready bool `json:"ready,omitempty"`
 
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
@@ -279,8 +280,11 @@ type NTP struct {
 // DiskSetup defines input for generated disk_setup and fs_setup in cloud-init.
 type DiskSetup struct {
 	// Partitions specifies the list of the partitions to setup.
+	// +optional
 	Partitions []Partition `json:"partitions,omitempty"`
+
 	// Filesystems specifies the list of file systems to setup.
+	// +optional
 	Filesystems []Filesystem `json:"filesystems,omitempty"`
 }
 

@@ -99,6 +99,7 @@ type ControlPlaneTopology struct {
 	//
 	// This field is supported if and only if the control plane provider template
 	// referenced in the ClusterClass is Machine based.
+	// +optional
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// Replicas is the number of control plane nodes.
@@ -112,6 +113,7 @@ type ControlPlaneTopology struct {
 // WorkersTopology represents the different sets of worker nodes in the cluster.
 type WorkersTopology struct {
 	// MachineDeployments is a list of machine deployments in the cluster.
+	// +optional
 	MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
 }
 
@@ -120,6 +122,7 @@ type WorkersTopology struct {
 type MachineDeploymentTopology struct {
 	// Metadata is the metadata applied to the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
+	// +optional
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// Class is the name of the MachineDeploymentClass used to create the set of worker nodes.
@@ -189,6 +192,7 @@ func (n *NetworkRanges) String() string {
 // ClusterStatus defines the observed state of Cluster.
 type ClusterStatus struct {
 	// FailureDomains is a slice of failure domain objects synced from the infrastructure provider.
+	// +optional
 	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
 
 	// FailureReason indicates that there is a fatal problem reconciling the

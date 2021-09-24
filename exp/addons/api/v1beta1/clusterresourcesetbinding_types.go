@@ -31,6 +31,7 @@ type ResourceBinding struct {
 
 	// Hash is the hash of a resource's data. This can be used to decide if a resource is changed.
 	// For "ApplyOnce" ClusterResourceSet.spec.strategy, this is no-op as that strategy does not act on change.
+	// +optional
 	Hash string `json:"hash,omitempty"`
 
 	// LastAppliedTime identifies when this resource was last applied to the cluster.
@@ -49,6 +50,7 @@ type ResourceSetBinding struct {
 	ClusterResourceSetName string `json:"clusterResourceSetName"`
 
 	// Resources is a list of resources that the ClusterResourceSet has.
+	// +optional
 	Resources []ResourceBinding `json:"resources,omitempty"`
 }
 
@@ -118,6 +120,7 @@ type ClusterResourceSetBinding struct {
 // ClusterResourceSetBindingSpec defines the desired state of ClusterResourceSetBinding.
 type ClusterResourceSetBindingSpec struct {
 	// Bindings is a list of ClusterResourceSets and their resources.
+	// +optional
 	Bindings []*ResourceSetBinding `json:"bindings,omitempty"`
 }
 

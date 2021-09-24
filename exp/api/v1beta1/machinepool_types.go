@@ -38,6 +38,7 @@ type MachinePoolSpec struct {
 
 	// Number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
+	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Template describes the machines that will be created.
@@ -56,6 +57,7 @@ type MachinePoolSpec struct {
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
 	// FailureDomains is the list of failure domains this MachinePool should be attached to.
+	// +optional
 	FailureDomains []string `json:"failureDomains,omitempty"`
 }
 

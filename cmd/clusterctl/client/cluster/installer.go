@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -76,6 +77,11 @@ var _ ProviderInstaller = &providerInstaller{}
 
 func (i *providerInstaller) Add(components repository.Components) {
 	i.installQueue = append(i.installQueue, components)
+
+	// Ensure Providers are installed in the following order: Core, Bootstrap, ControlPlane, Infrastructure.
+	sort.Slice(i.installQueue, func(a, b int) bool {
+		return i.installQueue[a].Type().Order() < i.installQueue[b].Type().Order()
+	})
 }
 
 func (i *providerInstaller) Install(opts InstallOptions) ([]repository.Components, error) {

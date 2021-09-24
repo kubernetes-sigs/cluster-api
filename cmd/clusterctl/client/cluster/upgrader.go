@@ -17,6 +17,8 @@ limitations under the License.
 package cluster
 
 import (
+	"sort"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -344,7 +346,13 @@ func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
 		}
 	}
 
-	for _, upgradeItem := range upgradePlan.Providers {
+	// Ensure Providers are updated in the following order: Core, Bootstrap, ControlPlane, Infrastructure.
+	providers := upgradePlan.Providers
+	sort.Slice(providers, func(a, b int) bool {
+		return providers[a].GetProviderType().Order() < providers[b].GetProviderType().Order()
+	})
+
+	for _, upgradeItem := range providers {
 		// If there is not a specified next version, skip it (we are already up-to-date).
 		if upgradeItem.NextVersion == "" {
 			continue

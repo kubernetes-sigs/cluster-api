@@ -116,13 +116,6 @@ type MachineStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// Version specifies the current version of Kubernetes running
-	// on the corresponding Node. This is meant to be a means of bubbling
-	// up status from the Node to the Machine.
-	// It is entirely optional, but useful for end-user UX if it’s present.
-	// +optional
-	Version *string `json:"version,omitempty"`
-
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.

@@ -37,7 +37,7 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &v1beta1.Machine{},
 		Spoke:       &Machine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, MachineStatusFuzzFunc},
 	}))
 
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -56,6 +56,20 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:   &v1beta1.MachineHealthCheck{},
 		Spoke: &MachineHealthCheck{},
 	}))
+}
+
+func MachineStatusFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		MachineStatusFuzzer,
+	}
+}
+
+func MachineStatusFuzzer(in *MachineStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// These fields have been removed in v1beta1
+	// data is going to be lost, so we're forcing zero values to avoid round trip errors.
+	in.Version = nil
 }
 
 func CustomObjectMetaFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

@@ -21,7 +21,7 @@ understanding if there are problems and where.
 The "at glance" view is based on the idea that we should avoid to overload the user with information, but instead
 surface problems, if any; in practice:
 
-- The view assumes we are processing objects conforming with https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20200506-conditions.md.
+- The view assumes we are processing objects conforming with https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md.
   As a consequence each object should have a Ready condition summarizing the object state.
 
 - The view organizes objects in a hierarchical tree, however it is not required that the

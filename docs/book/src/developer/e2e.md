@@ -205,7 +205,7 @@ test specs for the most common Cluster API use cases.
 [deprecated InitManagementCluster method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#InitManagementCluster
 [Apply method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#Applier
 [CAPA E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/scripts/ci-e2e.sh
-[CAPG E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/master/scripts/ci-e2e.sh
+[CAPG E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/main/scripts/ci-e2e.sh
 [WaitForClusterToProvision]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#WaitForClusterToProvision
 [WaitForKubeadmControlPlaneMachinesToExist]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#WaitForKubeadmControlPlaneMachinesToExist
 [controller-runtime Client]: https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.5.2/pkg/client?tab=doc#Client

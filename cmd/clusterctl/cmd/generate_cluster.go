@@ -79,7 +79,7 @@ var generateClusterClusterCmd = &cobra.Command{
 		clusterctl generate cluster my-cluster --from-config-map MyTemplates
 
 		# Generates a yaml file for creating workload clusters using a template from a specific URL.
-		clusterctl generate cluster my-cluster --from https://github.com/foo-org/foo-repository/blob/master/cluster-template.yaml
+		clusterctl generate cluster my-cluster --from https://github.com/foo-org/foo-repository/blob/main/cluster-template.yaml
 
 		# Generates a yaml file for creating workload clusters using a template stored locally.
 		clusterctl generate cluster my-cluster --from ~/workspace/cluster-template.yaml

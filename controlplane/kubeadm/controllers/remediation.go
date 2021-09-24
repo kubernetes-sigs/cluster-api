@@ -33,7 +33,7 @@ import (
 )
 
 // reconcileUnhealthyMachines tries to remediate KubeadmControlPlane unhealthy machines
-// based on the process described in https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate
+// based on the process described in https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate
 func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlane *internal.ControlPlane) (ret ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
 

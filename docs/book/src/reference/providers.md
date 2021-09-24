@@ -33,6 +33,6 @@ updated info about which API version they are supporting.
 
 Following are the implementations managed by third-parties adopting the standard cluster-api and/or machine-api being developed here.
 
-* [Kubermatic machine controller](https://github.com/kubermatic/machine-controller/tree/master)
-* [OpenShift Machine API Operator](https://github.com/openshift/machine-api-operator/tree/master)
+* [Kubermatic machine controller](https://github.com/kubermatic/machine-controller)
+* [OpenShift Machine API Operator](https://github.com/openshift/machine-api-operator)
 * [Gardener Machine controller manager](https://github.com/gardener/machine-controller-manager/tree/cluster-api)

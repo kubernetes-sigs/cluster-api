@@ -210,11 +210,6 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
-func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *v1beta1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in, out, s)
-}
-
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.MachineDeploymentList)
 
@@ -306,4 +301,14 @@ func Convert_v1alpha3_ObjectMeta_To_v1beta1_ObjectMeta(in *ObjectMeta, out *v1be
 
 func Convert_v1beta1_MachineStatus_To_v1alpha3_MachineStatus(in *v1beta1.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_MachineStatus_To_v1alpha3_MachineStatus(in, out, s)
+}
+
+func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *v1beta1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
+	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
+	return autoConvert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in, out, s)
+}
+
+func Convert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *v1beta1.MachineStatus, s apiconversion.Scope) error {
+	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
+	return autoConvert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
 }

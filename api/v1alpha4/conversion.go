@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha4
 
 import (
+	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -163,4 +164,9 @@ func (dst *MachineHealthCheckList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.MachineHealthCheckList)
 
 	return Convert_v1beta1_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(src, dst, nil)
+}
+
+func Convert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *v1beta1.MachineStatus, s apiconversion.Scope) error {
+	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
+	return autoConvert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
 }

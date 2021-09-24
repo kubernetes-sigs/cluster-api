@@ -89,6 +89,8 @@ type Client interface {
 
 	// WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
 	WorkloadCluster() WorkloadCluster
+
+	Topology() TopologyClient
 }
 
 // PollImmediateWaiter tries a condition func until it returns true, an error, or the timeout is reached.
@@ -148,6 +150,10 @@ func (c *clusterClient) Template() TemplateClient {
 
 func (c *clusterClient) WorkloadCluster() WorkloadCluster {
 	return newWorkloadCluster(c.proxy)
+}
+
+func (c *clusterClient) Topology() TopologyClient {
+	return newTopologyClient()
 }
 
 // Option is a configuration option supplied to New.

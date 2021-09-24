@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -146,6 +147,10 @@ func (f fakeClient) RolloutResume(options RolloutOptions) error {
 
 func (f fakeClient) RolloutUndo(options RolloutOptions) error {
 	return f.internalClient.RolloutUndo(options)
+}
+
+func (f fakeClient) DryRunTopology(options DryRunOptions) ([]unstructured.Unstructured, error) {
+	return nil, nil
 }
 
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
@@ -316,6 +321,10 @@ func (f *fakeClusterClient) Template() cluster.TemplateClient {
 
 func (f *fakeClusterClient) WorkloadCluster() cluster.WorkloadCluster {
 	return f.internalclient.WorkloadCluster()
+}
+
+func (f *fakeClusterClient) Topology() cluster.TopologyClient {
+	return nil
 }
 
 func (f *fakeClusterClient) WithObjs(objs ...client.Object) *fakeClusterClient {

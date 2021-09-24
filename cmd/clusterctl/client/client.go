@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/alpha"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -89,6 +90,8 @@ type AlphaClient interface {
 	RolloutResume(options RolloutOptions) error
 	// RolloutUndo provides rollout rollback of cluster-api resources
 	RolloutUndo(options RolloutOptions) error
+	// DryRunTopology dry runs the topology reconciler
+	DryRunTopology(options DryRunOptions) ([]unstructured.Unstructured, error)
 }
 
 // YamlPrinter exposes methods that prints the processed template and

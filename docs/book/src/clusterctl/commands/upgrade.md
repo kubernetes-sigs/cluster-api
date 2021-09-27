@@ -16,7 +16,7 @@ Produces an output similar to this:
 
 ```shell
 Checking cert-manager version...
-Cert-Manager will be upgraded from "v0.11.0" to "v1.5.0"
+Cert-Manager will be upgraded from "v0.11.0" to "v1.5.3"
 
 Checking new release availability...
 

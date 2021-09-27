@@ -330,7 +330,7 @@ The output of `clusterctl init` is similar to this:
 
 ```shell
 Fetching providers
-Installing cert-manager Version="v1.5.0"
+Installing cert-manager Version="v1.5.3"
 Waiting for cert-manager to be available...
 Installing Provider="cluster-api" Version="v0.4.0" TargetNamespace="capi-system"
 Installing Provider="bootstrap-kubeadm" Version="v0.4.0" TargetNamespace="capi-kubeadm-bootstrap-system"

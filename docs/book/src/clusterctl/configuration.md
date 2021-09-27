@@ -193,7 +193,7 @@ images:
   all:
     repository: myorg.io/local-repo
   cert-manager:
-    tag: v1.5.0
+    tag: v1.5.3
 ```
 
 In this example we are overriding the image repository for all the components and the image tag for
@@ -206,7 +206,7 @@ images:
   all:
     repository: myorg.io/local-repo
   cert-manager/cert-manager-cainjector:
-    tag: v1.5.0
+    tag: v1.5.3
 ```
 
 ## Debugging/Logging

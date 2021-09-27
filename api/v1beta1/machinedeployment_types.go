@@ -195,21 +195,21 @@ type MachineDeploymentStatus struct {
 	// Total number of non-terminated machines targeted by this deployment
 	// (their labels match the selector).
 	// +optional
-	Replicas int32 `json:"replicas,omitempty"`
+	Replicas int32 `json:"replicas"`
 
 	// Total number of non-terminated machines targeted by this deployment
 	// that have the desired template spec.
 	// +optional
-	UpdatedReplicas int32 `json:"updatedReplicas,omitempty"`
+	UpdatedReplicas int32 `json:"updatedReplicas"`
 
 	// Total number of ready machines targeted by this deployment.
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
+	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// Total number of available machines (ready for at least minReadySeconds)
 	// targeted by this deployment.
 	// +optional
-	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
+	AvailableReplicas int32 `json:"availableReplicas"`
 
 	// Total number of unavailable machines targeted by this deployment.
 	// This is the total number of machines that are still required for
@@ -217,7 +217,7 @@ type MachineDeploymentStatus struct {
 	// be machines that are running but not yet available or machines
 	// that still have not been created.
 	// +optional
-	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
+	UnavailableReplicas int32 `json:"unavailableReplicas"`
 
 	// Phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional

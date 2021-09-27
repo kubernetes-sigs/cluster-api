@@ -71,10 +71,12 @@ type ImageMeta struct {
 // DockerClusterStatus defines the observed state of DockerCluster.
 type DockerClusterStatus struct {
 	// Ready denotes that the docker cluster (infrastructure) is ready.
+	// +optional
 	Ready bool `json:"ready"`
 
 	// FailureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
 	// will use this if we populate it.
+	// +optional
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 
 	// Conditions defines current service state of the DockerCluster.

@@ -461,8 +461,6 @@ spec:
                 description: Ready denotes that the docker cluster (infrastructure)
                   is ready.
                 type: boolean
-            required:
-            - ready
             type: object
         type: object
     served: true

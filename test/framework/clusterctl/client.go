@@ -105,7 +105,7 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 
 	out, err := cmd.CombinedOutput()
 	_ = ioutil.WriteFile(filepath.Join(input.LogFolder, "clusterctl-init.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
-	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl init")
+	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl init:\n%s", string(out))
 }
 
 // UpgradeInput is the input for Upgrade.
@@ -216,7 +216,7 @@ func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, inp
 
 	out, err := cmd.Output()
 	_ = ioutil.WriteFile(filepath.Join(input.LogFolder, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName)), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
-	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl config cluster")
+	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl config cluster:\n%s", string(out))
 
 	return out
 }

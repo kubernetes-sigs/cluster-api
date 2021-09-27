@@ -8,20 +8,20 @@
 
 # Standard Netlify redirects
 [[redirects]]
-    from = "https://master--kubernetes-sigs-cluster-api.netlify.com/*"
-    to = "https://master.cluster-api.sigs.k8s.io/:splat"
+    from = "https://main--kubernetes-sigs-cluster-api.netlify.com/*"
+    to = "https://main.cluster-api.sigs.k8s.io/:splat"
     status = 301
     force = true
 
 # HTTP-to-HTTPS rules
 [[redirects]]
-    from = "http://master.cluster-api.sigs.k8s.io/*"
-    to = "https://master.cluster-api.sigs.k8s.io/:splat"
+    from = "http://main.cluster-api.sigs.k8s.io/*"
+    to = "https://main.cluster-api.sigs.k8s.io/:splat"
     status = 301
     force = true
 
 [[redirects]]
-    from = "http://master--kubernetes-sigs-cluster-api.netlify.com/*"
-    to = "http://master.cluster-api.sigs.k8s.io/:splat"
+    from = "http://main--kubernetes-sigs-cluster-api.netlify.com/*"
+    to = "http://main.cluster-api.sigs.k8s.io/:splat"
     status = 301
     force = true

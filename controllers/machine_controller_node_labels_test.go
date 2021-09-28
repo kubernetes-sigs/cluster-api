@@ -87,6 +87,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 					Name:       "bootstrap-config1",
 				},
 			},
+			Version: "v1.20.1",
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{

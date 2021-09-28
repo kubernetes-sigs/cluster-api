@@ -541,6 +541,8 @@ spec:
                       description: Version defines the Kubernetes version for the
                         Machine Instance
                       type: string
+                  required:
+                  - version
                   type: object
                 type: array
               observedGeneration:

@@ -195,7 +195,7 @@ func (m *Machine) Address(ctx context.Context) (string, error) {
 }
 
 // Create creates a docker container hosting a Kubernetes node.
-func (m *Machine) Create(ctx context.Context, role string, version *string, mounts []infrav1.Mount) error {
+func (m *Machine) Create(ctx context.Context, role string, version string, mounts []infrav1.Mount) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create if not exists.
@@ -446,16 +446,11 @@ func (m *Machine) Delete(ctx context.Context) error {
 }
 
 // machineImage is the image of the container node with the machine.
-func (m *Machine) machineImage(version *string) string {
-	if version == nil {
-		defaultImage := fmt.Sprintf("%s:%s", defaultImageName, defaultImageTag)
-		return defaultImage
-	}
-
+func (m *Machine) machineImage(version string) string {
 	// TODO(fp) make this smarter
 	// - allows usage of custom docker repository & image names
 	// - add v only for semantic versions
-	versionString := *version
+	versionString := version
 	if !strings.HasPrefix(versionString, "v") {
 		versionString = fmt.Sprintf("v%s", versionString)
 	}

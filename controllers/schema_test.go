@@ -70,6 +70,7 @@ func TestMachineDeploymentScheme(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test",
+					Version:     "v1.20.1",
 				},
 			},
 		},

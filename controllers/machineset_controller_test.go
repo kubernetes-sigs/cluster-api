@@ -100,7 +100,7 @@ func TestMachineSetReconciler(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						ClusterName: testCluster.Name,
-						Version:     &version,
+						Version:     version,
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: &corev1.ObjectReference{
 								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -268,7 +268,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			}
 
 			g.Expect(m.Spec.Version).ToNot(BeNil())
-			g.Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
+			g.Expect(m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
 			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
 			providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
 			fakeMachineNodeRef(&m, providerID, g)
@@ -776,7 +776,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 						Name:      "something_invalid",
 						Namespace: cluster.Namespace,
 					},
-					Version: &version,
+					Version: version,
 				},
 			},
 			Selector: metav1.LabelSelector{

@@ -103,8 +103,8 @@ func (c *ControlPlane) FailureDomains() clusterv1.FailureDomains {
 }
 
 // Version returns the KubeadmControlPlane's version.
-func (c *ControlPlane) Version() *string {
-	return &c.KCP.Spec.Version
+func (c *ControlPlane) Version() string {
+	return c.KCP.Spec.Version
 }
 
 // MachineInfrastructureTemplateRef returns the KubeadmControlPlane's infrastructure template for Machines.

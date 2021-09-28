@@ -24,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
-	utilpointer "k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -521,7 +520,7 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	}
 	expectedMachineSpec := clusterv1.MachineSpec{
 		ClusterName: cluster.Name,
-		Version:     utilpointer.StringPtr(kcp.Spec.Version),
+		Version:     kcp.Spec.Version,
 		Bootstrap: clusterv1.Bootstrap{
 			ConfigRef: bootstrapRef.DeepCopy(),
 		},

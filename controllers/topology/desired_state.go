@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
@@ -371,7 +370,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       s.Current.Cluster.Name,
-					Version:           pointer.String(version),
+					Version:           version,
 					Bootstrap:         clusterv1.Bootstrap{ConfigRef: contract.ObjToRef(desiredMachineDeployment.BootstrapTemplate)},
 					InfrastructureRef: *contract.ObjToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
 				},
@@ -431,7 +430,7 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	}
 
 	// Get the current version of the machine deployment.
-	currentVersion := *currentMDState.Object.Spec.Template.Spec.Version
+	currentVersion := currentMDState.Object.Spec.Template.Spec.Version
 
 	// Return early if we are not allowed to upgrade the machine deployment.
 	if !s.UpgradeTracker.MachineDeployments.AllowUpgrade() {

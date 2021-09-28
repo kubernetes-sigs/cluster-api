@@ -1198,7 +1198,9 @@ func autoConvert_v1alpha3_MachineSpec_To_v1beta1_MachineSpec(in *MachineSpec, ou
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	if err := metav1.Convert_Pointer_string_To_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.NodeDrainTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
@@ -1216,7 +1218,9 @@ func autoConvert_v1beta1_MachineSpec_To_v1alpha3_MachineSpec(in *v1beta1.Machine
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	if err := metav1.Convert_string_To_Pointer_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.NodeDrainTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))

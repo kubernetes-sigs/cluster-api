@@ -210,10 +210,7 @@ func MatchesKubernetesVersion(kubernetesVersion string) Func {
 		if machine == nil {
 			return false
 		}
-		if machine.Spec.Version == nil {
-			return false
-		}
-		return *machine.Spec.Version == kubernetesVersion
+		return machine.Spec.Version == kubernetesVersion
 	}
 }
 
@@ -223,10 +220,7 @@ func WithVersion() Func {
 		if machine == nil {
 			return false
 		}
-		if machine.Spec.Version == nil {
-			return false
-		}
-		if _, err := semver.ParseTolerant(*machine.Spec.Version); err != nil {
+		if _, err := semver.ParseTolerant(machine.Spec.Version); err != nil {
 			return false
 		}
 		return true

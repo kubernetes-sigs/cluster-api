@@ -483,7 +483,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 							Name:       name,
 						},
 					},
-					Version: &version,
+					Version: version,
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
@@ -546,7 +546,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 							Name:       name,
 						},
 					},
-					Version: &version,
+					Version: version,
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
@@ -654,7 +654,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 							Name:       name,
 						},
 					},
-					Version: &version,
+					Version: version,
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
@@ -710,7 +710,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 								Kind:       "KubeadmConfig",
 							},
 						},
-						Version: pointer.StringPtr("v1.15.0"),
+						Version: "v1.15.0",
 					},
 				},
 			},

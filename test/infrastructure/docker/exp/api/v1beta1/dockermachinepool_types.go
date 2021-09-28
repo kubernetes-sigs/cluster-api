@@ -97,8 +97,7 @@ type DockerMachinePoolInstanceStatus struct {
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// Version defines the Kubernetes version for the Machine Instance
-	// +optional
-	Version *string `json:"version,omitempty"`
+	Version string `json:"version"`
 
 	// Ready denotes that the machine (docker container) is ready
 	// +optional

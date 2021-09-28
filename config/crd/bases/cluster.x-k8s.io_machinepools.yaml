@@ -1195,6 +1195,7 @@ spec:
                     - bootstrap
                     - clusterName
                     - infrastructureRef
+                    - version
                     type: object
                 type: object
             required:

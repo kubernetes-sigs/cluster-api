@@ -39,23 +39,42 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &v1beta1.Machine{},
 		Spoke:       &Machine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineStatusFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineStatusFuzzFunc, MachineSpecFuzzFunc},
 	}))
 
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1beta1.MachineSet{},
-		Spoke: &MachineSet{},
+		Hub:         &v1beta1.MachineSet{},
+		Spoke:       &MachineSet{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineSpecFuzzFunc},
 	}))
 
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1beta1.MachineDeployment{},
-		Spoke: &MachineDeployment{},
+		Hub:         &v1beta1.MachineDeployment{},
+		Spoke:       &MachineDeployment{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineSpecFuzzFunc},
 	}))
 
 	t.Run("for MachineHealthCheck", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:   &v1beta1.MachineHealthCheck{},
 		Spoke: &MachineHealthCheck{},
 	}))
+}
+
+func MachineSpecFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		MachineSpecFuzzer,
+	}
+}
+
+func MachineSpecFuzzer(in *MachineSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Version field has been converted from *string to string in v1beta1,
+	// so we're forcing valid string values to avoid round trip errors.
+	if in.Version == nil {
+		versionString := c.RandString()
+		in.Version = &versionString
+	}
 }
 
 func MachineStatusFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

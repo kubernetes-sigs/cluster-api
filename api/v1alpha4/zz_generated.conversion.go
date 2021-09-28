@@ -1038,7 +1038,17 @@ func Convert_v1beta1_MachineDeploymentClassTemplate_To_v1alpha4_MachineDeploymen
 
 func autoConvert_v1alpha4_MachineDeploymentList_To_v1beta1_MachineDeploymentList(in *MachineDeploymentList, out *v1beta1.MachineDeploymentList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta1.MachineDeployment)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta1.MachineDeployment, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_MachineDeployment_To_v1beta1_MachineDeployment(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1049,7 +1059,17 @@ func Convert_v1alpha4_MachineDeploymentList_To_v1beta1_MachineDeploymentList(in 
 
 func autoConvert_v1beta1_MachineDeploymentList_To_v1alpha4_MachineDeploymentList(in *v1beta1.MachineDeploymentList, out *MachineDeploymentList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]MachineDeployment)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]MachineDeployment, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_MachineDeployment_To_v1alpha4_MachineDeployment(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1402,7 +1422,17 @@ func Convert_v1beta1_MachineSet_To_v1alpha4_MachineSet(in *v1beta1.MachineSet, o
 
 func autoConvert_v1alpha4_MachineSetList_To_v1beta1_MachineSetList(in *MachineSetList, out *v1beta1.MachineSetList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta1.MachineSet)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta1.MachineSet, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_MachineSet_To_v1beta1_MachineSet(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1413,7 +1443,17 @@ func Convert_v1alpha4_MachineSetList_To_v1beta1_MachineSetList(in *MachineSetLis
 
 func autoConvert_v1beta1_MachineSetList_To_v1alpha4_MachineSetList(in *v1beta1.MachineSetList, out *MachineSetList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]MachineSet)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]MachineSet, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_MachineSet_To_v1alpha4_MachineSet(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1498,7 +1538,9 @@ func autoConvert_v1alpha4_MachineSpec_To_v1beta1_MachineSpec(in *MachineSpec, ou
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	if err := metav1.Convert_Pointer_string_To_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.NodeDrainTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
@@ -1516,7 +1558,9 @@ func autoConvert_v1beta1_MachineSpec_To_v1alpha4_MachineSpec(in *v1beta1.Machine
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	if err := metav1.Convert_string_To_Pointer_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.NodeDrainTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))

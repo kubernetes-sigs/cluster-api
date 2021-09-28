@@ -23,6 +23,7 @@ package v1alpha4
 import (
 	unsafe "unsafe"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -148,7 +149,9 @@ func autoConvert_v1alpha4_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachi
 	}
 	out.InstanceName = in.InstanceName
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	if err := v1.Convert_Pointer_string_To_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
 	out.Ready = in.Ready
 	out.Bootstrapped = in.Bootstrapped
 	return nil
@@ -173,7 +176,9 @@ func autoConvert_v1beta1_DockerMachinePoolInstanceStatus_To_v1alpha4_DockerMachi
 	}
 	out.InstanceName = in.InstanceName
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	if err := v1.Convert_string_To_Pointer_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
 	out.Ready = in.Ready
 	out.Bootstrapped = in.Bootstrapped
 	return nil

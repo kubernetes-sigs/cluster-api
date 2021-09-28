@@ -19,7 +19,10 @@ package v1alpha4
 import (
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -28,6 +31,23 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1exp.MachinePool{},
 		Spoke:       &MachinePool{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
+}
+
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		MachineSpecFuzzer,
+	}
+}
+
+func MachineSpecFuzzer(in *clusterv1.MachineSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Version field has been converted from *string to string in v1beta1,
+	// so we're forcing valid string values to avoid round trip errors.
+	if in.Version == nil {
+		versionString := c.RandString()
+		in.Version = &versionString
+	}
 }

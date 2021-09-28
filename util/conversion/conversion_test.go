@@ -50,7 +50,7 @@ func TestMarshalData(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "test-cluster",
-				Version:     &version,
+				Version:     version,
 				ProviderID:  &providerID,
 			},
 		}

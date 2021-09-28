@@ -848,9 +848,9 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Co
 		}
 	}
 
-	// If there are no KubernetesVersion settings defined in ClusterConfiguration, use Version from machine, if defined
-	if config.Spec.ClusterConfiguration.KubernetesVersion == "" && machine.Spec.Version != nil {
-		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
+	// If there are no KubernetesVersion settings defined in ClusterConfiguration, use Version from machine.
+	if config.Spec.ClusterConfiguration.KubernetesVersion == "" {
+		config.Spec.ClusterConfiguration.KubernetesVersion = machine.Spec.Version
 		log.Info("Altering ClusterConfiguration", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
 	}
 }

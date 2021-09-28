@@ -1240,6 +1240,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       infraTmpl.GetName(),
 						},
+						Version: "v1.20.1",
 					},
 				},
 			},
@@ -2304,6 +2305,7 @@ func newRunningMachine(c *clusterv1.Cluster, labels map[string]string) *clusterv
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: pointer.StringPtr("data-secret-name"),
 			},
+			Version: "v1.20.1",
 		},
 		Status: clusterv1.MachineStatus{
 			InfrastructureReady: true,

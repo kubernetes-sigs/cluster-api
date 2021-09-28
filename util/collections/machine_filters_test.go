@@ -251,11 +251,11 @@ func TestMatchesKubernetesVersion(t *testing.T) {
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(nil)).To(BeFalse())
 	})
 
-	t.Run("nil machine.Spec.Version returns false", func(t *testing.T) {
+	t.Run("empty machine.Spec.Version returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: nil,
+				Version: "",
 			},
 		}
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(machine)).To(BeFalse())
@@ -266,7 +266,7 @@ func TestMatchesKubernetesVersion(t *testing.T) {
 		kversion := "some_ver"
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: &kversion,
+				Version: kversion,
 			},
 		}
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(machine)).To(BeTrue())
@@ -277,7 +277,7 @@ func TestMatchesKubernetesVersion(t *testing.T) {
 		kversion := "some_ver_2"
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: &kversion,
+				Version: kversion,
 			},
 		}
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(machine)).To(BeFalse())
@@ -290,21 +290,11 @@ func TestWithVersion(t *testing.T) {
 		g.Expect(collections.WithVersion()(nil)).To(BeFalse())
 	})
 
-	t.Run("nil machine.Spec.Version returns false", func(t *testing.T) {
-		g := NewWithT(t)
-		machine := &clusterv1.Machine{
-			Spec: clusterv1.MachineSpec{
-				Version: nil,
-			},
-		}
-		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
-	})
-
 	t.Run("empty machine.Spec.Version returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: pointer.String(""),
+				Version: "",
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
@@ -314,7 +304,7 @@ func TestWithVersion(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: pointer.String("1..20"),
+				Version: "1..20",
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
@@ -324,7 +314,7 @@ func TestWithVersion(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: pointer.String("1.20"),
+				Version: "1.20",
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeTrue())

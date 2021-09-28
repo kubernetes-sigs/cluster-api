@@ -46,7 +46,7 @@ func TestGetConfigOwner(t *testing.T) {
 				Bootstrap: clusterv1.Bootstrap{
 					DataSecretName: pointer.StringPtr("my-data-secret"),
 				},
-				Version: pointer.StringPtr("v1.19.6"),
+				Version: "v1.19.6",
 			},
 			Status: clusterv1.MachineStatus{
 				InfrastructureReady: true,
@@ -94,7 +94,7 @@ func TestGetConfigOwner(t *testing.T) {
 				ClusterName: "my-cluster",
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
-						Version: pointer.StringPtr("v1.19.6"),
+						Version: "v1.19.6",
 					},
 				},
 			},

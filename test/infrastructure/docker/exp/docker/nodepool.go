@@ -163,7 +163,7 @@ func (np *NodePool) Delete(ctx context.Context) error {
 }
 
 func (np *NodePool) isMachineMatchingInfrastructureSpec(machine *docker.Machine) bool {
-	return machine.ImageVersion() == container.SemverToOCIImageTag(*np.machinePool.Spec.Template.Spec.Version)
+	return machine.ImageVersion() == container.SemverToOCIImageTag(np.machinePool.Spec.Template.Spec.Version)
 }
 
 // machinesMatchingInfrastructureSpec returns all of the docker.Machines which match the machine pool / docker machine pool spec.

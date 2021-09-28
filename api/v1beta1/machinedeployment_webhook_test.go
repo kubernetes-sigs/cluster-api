@@ -36,7 +36,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 		Spec: MachineDeploymentSpec{
 			Template: MachineTemplateSpec{
 				Spec: MachineSpec{
-					Version: pointer.String("1.19.10"),
+					Version: "1.19.10",
 				},
 			},
 		},
@@ -55,7 +55,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(BeNil())
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
-	g.Expect(*md.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
+	g.Expect(md.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
 }
 
 func TestMachineDeploymentValidation(t *testing.T) {
@@ -172,6 +172,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 						ObjectMeta: ObjectMeta{
 							Labels: tt.labels,
 						},
+						Spec: MachineSpec{
+							Version: "v1.20.1",
+						},
 					},
 				},
 			}
@@ -228,7 +231,7 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 
 					Template: MachineTemplateSpec{
 						Spec: MachineSpec{
-							Version: pointer.String(tt.version),
+							Version: tt.version,
 						},
 					},
 				},
@@ -291,12 +294,14 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 			newMD := &MachineDeployment{
 				Spec: MachineDeploymentSpec{
 					ClusterName: tt.newClusterName,
+					Template:    MachineTemplateSpec{Spec: MachineSpec{Version: "v1.20.1"}},
 				},
 			}
 
 			oldMD := &MachineDeployment{
 				Spec: MachineDeploymentSpec{
 					ClusterName: tt.oldClusterName,
+					Template:    MachineTemplateSpec{Spec: MachineSpec{Version: "v1.20.1"}},
 				},
 			}
 

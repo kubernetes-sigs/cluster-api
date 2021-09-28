@@ -278,7 +278,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       cluster.Name,
-			Version:           &kcp.Spec.Version,
+			Version:           kcp.Spec.Version,
 			InfrastructureRef: *infraRef,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef,

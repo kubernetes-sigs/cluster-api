@@ -161,7 +161,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 						Name:       name,
 					},
 				},
-				Version: &version,
+				Version: version,
 			},
 		}
 		cfg := &bootstrapv1.KubeadmConfig{

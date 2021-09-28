@@ -56,9 +56,8 @@ func (m *Machine) Default() {
 		m.Spec.InfrastructureRef.Namespace = m.Namespace
 	}
 
-	if m.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Version, "v") {
-		normalizedVersion := "v" + *m.Spec.Version
-		m.Spec.Version = &normalizedVersion
+	if !strings.HasPrefix(m.Spec.Version, "v") {
+		m.Spec.Version = "v" + m.Spec.Version
 	}
 }
 
@@ -122,10 +121,8 @@ func (m *Machine) validate(old *Machine) error {
 		)
 	}
 
-	if m.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*m.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), *m.Spec.Version, "must be a valid semantic version"))
-		}
+	if !version.KubeSemver.MatchString(m.Spec.Version) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), m.Spec.Version, "must be a valid semantic version"))
 	}
 
 	if len(allErrs) == 0 {

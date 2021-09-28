@@ -1017,11 +1017,6 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 	*out = *in
 	in.Bootstrap.DeepCopyInto(&out.Bootstrap)
 	out.InfrastructureRef = in.InfrastructureRef
-	if in.Version != nil {
-		in, out := &in.Version, &out.Version
-		*out = new(string)
-		**out = **in
-	}
 	if in.ProviderID != nil {
 		in, out := &in.ProviderID, &out.ProviderID
 		*out = new(string)

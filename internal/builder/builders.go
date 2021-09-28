@@ -490,7 +490,7 @@ type MachineDeploymentBuilder struct {
 	name                   string
 	bootstrapTemplate      *unstructured.Unstructured
 	infrastructureTemplate *unstructured.Unstructured
-	version                *string
+	version                string
 	replicas               *int32
 	generation             *int64
 	labels                 map[string]string
@@ -525,7 +525,7 @@ func (m *MachineDeploymentBuilder) WithLabels(labels map[string]string) *Machine
 
 // WithVersion sets the passed version on the machine deployment spec.
 func (m *MachineDeploymentBuilder) WithVersion(version string) *MachineDeploymentBuilder {
-	m.version = &version
+	m.version = version
 	return m
 }
 
@@ -564,7 +564,7 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	if m.generation != nil {
 		obj.Generation = *m.generation
 	}
-	if m.version != nil {
+	if m.version != "" {
 		obj.Spec.Template.Spec.Version = m.version
 	}
 	obj.Spec.Replicas = m.replicas

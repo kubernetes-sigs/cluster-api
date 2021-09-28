@@ -69,8 +69,7 @@ type MachineSpec struct {
 
 	// Version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.
-	// +optional
-	Version *string `json:"version,omitempty"`
+	Version string `json:"version"`
 
 	// ProviderID is the identification ID of the machine provided by the provider.
 	// This field must match the provider ID as seen on the node object corresponding to this machine.

@@ -47,8 +47,8 @@ type machinesByVersion []*clusterv1.Machine
 func (v machinesByVersion) Len() int      { return len(v) }
 func (v machinesByVersion) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 func (v machinesByVersion) Less(i, j int) bool {
-	vi, _ := semver.ParseTolerant(*v[i].Spec.Version)
-	vj, _ := semver.ParseTolerant(*v[j].Spec.Version)
+	vi, _ := semver.ParseTolerant(v[i].Spec.Version)
+	vj, _ := semver.ParseTolerant(v[j].Spec.Version)
 	comp := version.CompareWithBuildIdentifiers(vi, vj)
 	if comp == 0 {
 		return v[i].Name < v[j].Name
@@ -214,5 +214,5 @@ func (s Machines) LowestVersion() *string {
 		return nil
 	}
 	m := machines.sortedByVersion()[0]
-	return m.Spec.Version
+	return &m.Spec.Version
 }

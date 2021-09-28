@@ -765,7 +765,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
-						Version: pointer.String("v1.21.2"),
+						Version: "v1.21.2",
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: contract.ObjToRef(workerBootstrapTemplate),
 						},
@@ -930,7 +930,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 				obj, err := computeMachineDeployment(ctx, s, desiredControlPlaneState, mdTopology)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
+				g.Expect(obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
 		}
 	})

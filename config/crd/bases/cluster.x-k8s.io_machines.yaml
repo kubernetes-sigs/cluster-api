@@ -917,6 +917,7 @@ spec:
             - bootstrap
             - clusterName
             - infrastructureRef
+            - version
             type: object
           status:
             description: MachineStatus defines the observed state of Machine.

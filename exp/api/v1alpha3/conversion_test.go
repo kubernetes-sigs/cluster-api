@@ -40,6 +40,18 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		BootstrapFuzzer,
 		MachinePoolSpecFuzzer,
 		ObjectMetaFuzzer,
+		MachineSpecFuzzer,
+	}
+}
+
+func MachineSpecFuzzer(in *clusterv1.MachineSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Version field has been converted from *string to string in v1beta1,
+	// so we're forcing valid string values to avoid round trip errors.
+	if in.Version == nil {
+		versionString := c.RandString()
+		in.Version = &versionString
 	}
 }
 
@@ -62,7 +74,7 @@ func ObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
 }
 
 func MachinePoolSpecFuzzer(in *MachinePoolSpec, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values here.

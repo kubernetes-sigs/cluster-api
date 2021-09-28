@@ -315,6 +315,7 @@ func TestClusterReconciler(t *testing.T) {
 				Bootstrap: clusterv1.Bootstrap{
 					DataSecretName: pointer.StringPtr(""),
 				},
+				Version: "v1.20.1",
 			},
 		}
 		machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("test6-bootstrapdata")

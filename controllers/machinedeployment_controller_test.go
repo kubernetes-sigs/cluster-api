@@ -109,7 +109,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						ClusterName: testCluster.Name,
-						Version:     &version,
+						Version:     version,
 						InfrastructureRef: corev1.ObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 							Kind:       "GenericInfrastructureMachineTemplate",
@@ -219,7 +219,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		firstMachineSet := machineSets.Items[0]
 		g.Expect(*firstMachineSet.Spec.Replicas).To(BeEquivalentTo(2))
-		g.Expect(*firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("v1.10.3"))
+		g.Expect(firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("v1.10.3"))
 
 		//
 		// Delete firstMachineSet and expect Reconcile to be called to replace it.

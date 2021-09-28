@@ -36,7 +36,7 @@ func TestMachineDefault(t *testing.T) {
 		},
 		Spec: MachineSpec{
 			Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
-			Version:   pointer.StringPtr("1.17.5"),
+			Version:   "1.17.5",
 		},
 	}
 	t.Run("for Machine", utildefaulting.DefaultValidateTest(m))
@@ -45,7 +45,7 @@ func TestMachineDefault(t *testing.T) {
 	g.Expect(m.Labels[ClusterLabelName]).To(Equal(m.Spec.ClusterName))
 	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
-	g.Expect(*m.Spec.Version).To(Equal("v1.17.5"))
+	g.Expect(m.Spec.Version).To(Equal("v1.17.5"))
 }
 
 func TestMachineBootstrapValidation(t *testing.T) {
@@ -75,7 +75,7 @@ func TestMachineBootstrapValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			m := &Machine{
-				Spec: MachineSpec{Bootstrap: tt.bootstrap},
+				Spec: MachineSpec{Bootstrap: tt.bootstrap, Version: "v1.20.1"},
 			}
 			if tt.expectErr {
 				g.Expect(m.ValidateCreate()).NotTo(Succeed())
@@ -132,7 +132,7 @@ func TestMachineNamespaceValidation(t *testing.T) {
 
 			m := &Machine{
 				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
-				Spec:       MachineSpec{Bootstrap: tt.bootstrap, InfrastructureRef: tt.infraRef},
+				Spec:       MachineSpec{Bootstrap: tt.bootstrap, InfrastructureRef: tt.infraRef, Version: "v1.20.1"},
 			}
 
 			if tt.expectErr {
@@ -175,12 +175,14 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 				Spec: MachineSpec{
 					ClusterName: tt.newClusterName,
 					Bootstrap:   Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Version:     "v1.20.1",
 				},
 			}
 			oldMachine := &Machine{
 				Spec: MachineSpec{
 					ClusterName: tt.oldClusterName,
 					Bootstrap:   Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Version:     "v1.20.1",
 				},
 			}
 
@@ -232,7 +234,7 @@ func TestMachineVersionValidation(t *testing.T) {
 
 			m := &Machine{
 				Spec: MachineSpec{
-					Version:   &tt.version,
+					Version:   tt.version,
 					Bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
 				},
 			}

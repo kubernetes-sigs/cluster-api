@@ -791,6 +791,7 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: utilpointer.StringPtr("secret"),
 			},
+			Version: "v1.20.1",
 		},
 	}
 	g.Expect(env.Create(ctx, m)).To(Succeed())

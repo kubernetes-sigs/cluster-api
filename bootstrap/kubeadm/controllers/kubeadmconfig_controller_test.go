@@ -1233,7 +1233,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.StringPtr("otherVersion"),
+					Version: "otherVersion",
 				},
 			},
 		},
@@ -1259,7 +1259,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.StringPtr("myversion"),
+					Version: "myversion",
 				},
 			},
 		},
@@ -1714,7 +1714,7 @@ func newMachine(cluster *clusterv1.Cluster, name, namespace string) *clusterv1.M
 					APIVersion: bootstrapv1.GroupVersion.String(),
 				},
 			},
-			Version: pointer.StringPtr("v1.19.1"),
+			Version: "v1.19.1",
 		},
 	}
 	if cluster != nil {
@@ -1756,7 +1756,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name, namespace string) *expv1.M
 							APIVersion: bootstrapv1.GroupVersion.String(),
 						},
 					},
-					Version: pointer.StringPtr("v1.19.1"),
+					Version: "v1.19.1",
 				},
 			},
 		},

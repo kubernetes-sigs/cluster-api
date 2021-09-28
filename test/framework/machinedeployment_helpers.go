@@ -173,11 +173,11 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 		Expect(err).ToNot(HaveOccurred())
 
 		oldVersion := deployment.Spec.Template.Spec.Version
-		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
+		deployment.Spec.Template.Spec.Version = input.UpgradeVersion
 		Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
-			deployment.Namespace, deployment.Name, *oldVersion, input.UpgradeVersion)
+			deployment.Namespace, deployment.Name, oldVersion, input.UpgradeVersion)
 		WaitForMachineDeploymentMachinesToBeUpgraded(ctx, WaitForMachineDeploymentMachinesToBeUpgradedInput{
 			Lister:                   mgmtClient,
 			Cluster:                  input.Cluster,

@@ -48,9 +48,8 @@ var _ webhook.Validator = &MachineDeployment{}
 func (m *MachineDeployment) Default() {
 	PopulateDefaultsMachineDeployment(m)
 	// tolerate version strings without a "v" prefix: prepend it if it's not there
-	if m.Spec.Template.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Template.Spec.Version, "v") {
-		normalizedVersion := "v" + *m.Spec.Template.Spec.Version
-		m.Spec.Template.Spec.Version = &normalizedVersion
+	if !strings.HasPrefix(m.Spec.Template.Spec.Version, "v") {
+		m.Spec.Template.Spec.Version = "v" + m.Spec.Template.Spec.Version
 	}
 }
 
@@ -126,10 +125,8 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 		}
 	}
 
-	if m.Spec.Template.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*m.Spec.Template.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
-		}
+	if !version.KubeSemver.MatchString(m.Spec.Template.Spec.Version) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "version"), m.Spec.Template.Spec.Version, "must be a valid semantic version"))
 	}
 
 	if len(allErrs) == 0 {

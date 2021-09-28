@@ -63,7 +63,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test",
-					Version:     &currentVersion,
+					Version:     currentVersion,
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 						Kind:       "InfrastructureMachineTemplate",
@@ -142,7 +142,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 								},
 								Spec: clusterv1.MachineSpec{
 									ClusterName: "test",
-									Version:     &rollbackVersion,
+									Version:     rollbackVersion,
 									InfrastructureRef: corev1.ObjectReference{
 										APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 										Kind:       "InfrastructureMachineTemplate",
@@ -252,7 +252,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 			md := &clusterv1.MachineDeployment{}
 			err = cl.Get(context.TODO(), key, md)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(*md.Spec.Template.Spec.Version).To(Equal(tt.wantVersion))
+			g.Expect(md.Spec.Template.Spec.Version).To(Equal(tt.wantVersion))
 			g.Expect(md.Spec.Template.Spec.InfrastructureRef.Name).To(Equal(tt.wantInfraTemplate))
 			g.Expect(*md.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal(tt.wantBootsrapSecretName))
 		})

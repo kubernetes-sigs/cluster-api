@@ -111,7 +111,7 @@ const (
 
 const (
 	// EtcdClusterHealthyCondition documents the overall etcd cluster's health.
-	EtcdClusterHealthyCondition clusterv1.ConditionType = "EtcdClusterHealthyCondition"
+	EtcdClusterHealthyCondition clusterv1.ConditionType = "EtcdClusterHealthy"
 
 	// EtcdClusterInspectionFailedReason documents a failure in inspecting the etcd cluster status.
 	EtcdClusterInspectionFailedReason = "EtcdClusterInspectionFailed"

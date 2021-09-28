@@ -270,7 +270,12 @@ func (c *ControlPlane) MachinesNeedingRollout() collections.Machines {
 // UpToDateMachines returns the machines that are up to date with the control
 // plane's configuration and therefore do not require rollout.
 func (c *ControlPlane) UpToDateMachines() collections.Machines {
-	return c.Machines.Difference(c.MachinesNeedingRollout())
+	return c.Machines.Filter(
+		// Machines that shouldn't be rolled out after the deadline has expired.
+		collections.Not(collections.ShouldRolloutAfter(&c.reconciliationTime, c.KCP.Spec.RolloutAfter)),
+		// Machines that match with KCP config.
+		MatchesMachineSpec(c.infraResources, c.kubeadmConfigs, c.KCP),
+	)
 }
 
 // getInfraResources fetches the external infrastructure resource for each machine in the collection and returns a map of machine.Name -> infraResource.

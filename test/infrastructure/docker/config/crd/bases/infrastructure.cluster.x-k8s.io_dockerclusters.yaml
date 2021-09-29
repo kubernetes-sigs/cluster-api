@@ -313,6 +313,10 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
+      name: Cluster
+      type: string
     - description: Time duration since creation of DockerCluster
       jsonPath: .metadata.creationTimestamp
       name: Age

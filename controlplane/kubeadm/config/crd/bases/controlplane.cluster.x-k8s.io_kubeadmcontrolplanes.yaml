@@ -2403,6 +2403,10 @@ spec:
         statusReplicasPath: .status.replicas
       status: {}
   - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
+      name: Cluster
+      type: string
     - description: This denotes whether or not the control plane has the uploaded
         kubeadm-config configmap
       jsonPath: .status.initialized

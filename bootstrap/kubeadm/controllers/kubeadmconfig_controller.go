@@ -98,11 +98,10 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
-		)
+		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(

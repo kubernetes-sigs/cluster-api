@@ -103,7 +103,10 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToMachines),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+		predicates.All(ctrl.LoggerFrom(ctx),
+			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+		),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")

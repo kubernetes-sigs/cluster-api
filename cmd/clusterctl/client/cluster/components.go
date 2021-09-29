@@ -128,7 +128,7 @@ func (p *providerComponents) createObj(obj unstructured.Unstructured) error {
 
 func (p *providerComponents) Delete(options DeleteOptions) error {
 	log := logf.Log
-	log.Info("Deleting", "Provider", options.Provider.Name, "Version", options.Provider.Version, "TargetNamespace", options.Provider.Namespace)
+	log.Info("Deleting", "Provider", options.Provider.Name, "Version", options.Provider.Version, "Namespace", options.Provider.Namespace)
 
 	// Fetch all the components belonging to a provider.
 	// We want that the delete operation is able to clean-up everything.

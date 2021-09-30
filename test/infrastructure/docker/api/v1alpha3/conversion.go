@@ -18,7 +18,6 @@ package v1alpha3
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -32,7 +31,7 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	// Manually restore data.
-	restored := &v1alpha4.DockerCluster{}
+	restored := &v1beta1.DockerCluster{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}

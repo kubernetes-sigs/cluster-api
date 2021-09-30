@@ -272,3 +272,40 @@ func TestCompareWithBuildIdentifiers(t *testing.T) {
 		})
 	}
 }
+
+func TestCompare(t *testing.T) {
+	tests := []struct {
+		name     string
+		aVersion semver.Version
+		bVersion semver.Version
+		options  []CompareOption
+		want     int
+	}{
+		{
+			name:     "comparing with no options should perform standard compare",
+			aVersion: semver.MustParse("1.2.3"),
+			bVersion: semver.MustParse("1.3.1"),
+			want:     -1,
+		},
+		{
+			name:     "comparing with no options should perform standard compare - equal versions",
+			aVersion: semver.MustParse("1.2.3+xyz.1"),
+			bVersion: semver.MustParse("1.2.3+xyz.2"),
+			want:     0,
+		},
+		{
+			name:     "compare with build tags using the WithBuildTags option",
+			aVersion: semver.MustParse("1.2.3+xyz.1"),
+			bVersion: semver.MustParse("1.2.3+xyz.2"),
+			options:  []CompareOption{WithBuildTags()},
+			want:     -1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(Compare(tt.aVersion, tt.bVersion, tt.options...)).To(Equal(tt.want))
+		})
+	}
+}

@@ -264,6 +264,8 @@ This project follows the [Kubernetes API conventions](https://github.com/kuberne
 
 * Status fields MUST be optional. Our controllers are patching selected fields instead of updating the entire status in every reconciliation.
 
+* If a field is required (for our controllers to work) and has a default value specified via OpenAPI schema, but we don't want to force users to set the field, we have to mark the field as optional. Otherwise, the client-side kubectl OpenAPI schema validation will force the user to set it even though it would be defaulted on the server-side.
+
 Optional fields have the following properties:
 * An optional field MUST be marked with `+optional` and include an `omitempty` JSON tag.
 * Fields SHOULD be pointers if the nil and the zero values (by Go standards) have semantic differences.

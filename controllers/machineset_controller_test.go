@@ -122,7 +122,11 @@ func TestMachineSetReconciler(t *testing.T) {
 		bootstrapResource := map[string]interface{}{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-			"metadata":   map[string]interface{}{},
+			"metadata": map[string]interface{}{
+				"annotations": map[string]interface{}{
+					"precedence": "GenericBootstrapConfig",
+				},
+			},
 		}
 		bootstrapTmpl := &unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -222,6 +226,22 @@ func TestMachineSetReconciler(t *testing.T) {
 		for _, im := range infraMachines.Items {
 			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
 			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the infrastructure template ones")
+			g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+		}
+
+		t.Log("Creating a BootstrapConfig for each Machine")
+		bootstrapConfigs := &unstructured.UnstructuredList{}
+		bootstrapConfigs.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1beta1")
+		bootstrapConfigs.SetKind("GenericBootstrapConfig")
+		g.Eventually(func() int {
+			if err := env.List(ctx, bootstrapConfigs, client.InNamespace(namespace.Name)); err != nil {
+				return -1
+			}
+			return len(machines.Items)
+		}, timeout).Should(BeEquivalentTo(replicas))
+		for _, im := range bootstrapConfigs.Items {
+			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
+			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the bootstrap config template ones")
 			g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
 		}
 

@@ -368,6 +368,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 					Namespace:   machine.Namespace,
 					ClusterName: machine.Spec.ClusterName,
 					Labels:      machine.Labels,
+					Annotations: machine.Annotations,
 				})
 				if err != nil {
 					conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.BootstrapTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())

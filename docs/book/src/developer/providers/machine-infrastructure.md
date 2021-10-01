@@ -39,6 +39,61 @@ A machine infrastructure provider must define an API type for "infrastructure ma
                 - `type` (string): one of `Hostname`, `ExternalIP`, `InternalIP`, `ExternalDNS`, `InternalDNS`
                 - `address` (string)
 
+
+### InfraMachineTemplate Resources
+
+For a given InfraMachine resource, you should also add a corresponding InfraMachineTemplate resource:
+
+``` go
+// InfraMachineTemplateSpec defines the desired state of InfraMachineTemplate.
+type InfraMachineTemplateSpec struct {
+	Template InfraMachineTemplateResource `json:"template"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=inframachinetemplates,scope=Namespaced,categories=cluster-api,shortName=imt
+// +kubebuilder:storageversion
+
+// InfraMachineTemplate is the Schema for the inframachinetemplates API.
+type InfraMachineTemplate struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec InfraMachineTemplateSpec `json:"spec,omitempty"`
+}
+
+type InfraMachineTemplateResource struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	Spec InfraMachineSpec `json:"spec"`
+}
+```
+### List Resources
+
+For any resource, also add list resources, e.g.
+
+```go
+//+kubebuilder:object:root=true
+
+// InfraMachineList contains a list of InfraMachines.
+type InfraMachineList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []InfraCluster `json:"items"`
+}
+
+//+kubebuilder:object:root=true
+
+// InfraMachineTemplateList contains a list of InfraMachineTemplates.
+type InfraMachineTemplateList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []InfraClusterTemplate `json:"items"`
+}
+```
+
 ## Behavior
 
 A machine infrastructure provider must respond to changes to its "infrastructure machine" resources. This process is

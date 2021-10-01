@@ -7,6 +7,8 @@ Examples might include networking, load balancers, firewall rules, and so on.
 
 ## Data Types
 
+### InfraCluster Resources
+
 A cluster infrastructure provider must define an API type for "infrastructure cluster" resources. The type:
 
 1. Must belong to an API group served by the Kubernetes apiserver
@@ -32,6 +34,61 @@ A cluster infrastructure provider must define an API type for "infrastructure cl
             `FailureDomainSpec` is defined as:
             - `controlPlane` (bool): indicates if failure domain is appropriate for running control plane instances.
             - `attributes` (`map[string]string`): arbitrary attributes for users to apply to a failure domain.
+
+### InfraClusterTemplate Resources
+
+For a given InfraCluster resource, you should also add a corresponding InfraClusterTemplate resources:
+
+``` go
+// InfraClusterTemplateSpec defines the desired state of InfraClusterTemplate.
+type InfraClusterTemplateSpec struct {
+	Template InfraClusterTemplateResource `json:"template"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=infraclustertemplates,scope=Namespaced,categories=cluster-api,shortName=ict
+// +kubebuilder:storageversion
+
+// InfraClusterTemplate is the Schema for the infraclustertemplates API.
+type InfraClusterTemplate struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec InfraClusterTemplateSpec `json:"spec,omitempty"`
+}
+
+type InfraClusterTemplateResource struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	Spec InfraClusterSpec `json:"spec"`
+}
+```
+
+### List Resources
+
+For any resource, also add list resources, e.g.
+
+```go
+//+kubebuilder:object:root=true
+
+// InfraClusterList contains a list of InfraClusters.
+type InfraClusterList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []InfraCluster `json:"items"`
+}
+
+//+kubebuilder:object:root=true
+
+// InfraClusterTemplateList contains a list of InfraClusterTemplates.
+type InfraClusterTemplateList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []InfraClusterTemplate `json:"items"`
+}
+```
 
 ## Behavior
 

@@ -28,6 +28,61 @@ Note: because the `dataSecretName` is part of `status`, this value must be deter
 `Cluster`, `Machine`, and/or bootstrap resource. If the name is randomly generated, it is not always possible to move
 the resource and its associated secret from one management cluster to another.
 
+### BootstrapTemplate Resources
+
+For a given Bootstrap resource, you should also add a corresponding BootstrapTemplate resource:
+
+``` go
+// PhippyBootstrapConfigTemplateSpec defines the desired state of PhippyBootstrapConfigTemplate.
+type PhippyBootstrapConfigTemplateSpec struct {
+	Template PhippyBootstrapTemplateResource `json:"template"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=phippybootstrapconfigtemplates,scope=Namespaced,categories=cluster-api,shortName=pbct
+// +kubebuilder:storageversion
+
+// PhippyBootstrapConfigTemplate is the Schema for the Phippy Bootstrap API.
+type PhippyBootstrapConfigTemplate struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec PhippyBootstrapConfigTemplateSpec `json:"spec,omitempty"`
+}
+
+type PhippyBootstrapConfigTemplateResource struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	Spec PhippyBootstrapConfigSpec `json:"spec"`
+}
+```
+### List Resources
+
+For any resource, also add list resources, e.g.
+
+```go
+//+kubebuilder:object:root=true
+
+// PhippyBootstrapConfigList contains a list of Phippy Bootstrap Configurations.
+type PhippyBootstrapConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []PhippyBootstrapConfig `json:"items"`
+}
+
+//+kubebuilder:object:root=true
+
+// PhippyBootstrapConfigTemplateList contains a list of PhippyBootstrapConfigTemplate.
+type PhippyBootstrapConfigTemplateList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []PhippyBootstrapConfigTemplate `json:"items"`
+}
+```
+
+
 ### Bootstrap Secret
 
 The `Secret` containing bootstrap data must:

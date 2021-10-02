@@ -167,6 +167,12 @@ func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, clust
 func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1exp.MachinePool, dockerMachinePool *infrav1exp.DockerMachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
+	if dockerMachinePool.Labels == nil {
+		dockerMachinePool.Labels = make(map[string]string)
+	}
+	// Add ClusterLabelName to DockerMachinePool object
+	dockerMachinePool.Labels[clusterv1.ClusterLabelName] = cluster.Name
+
 	// Make sure bootstrap data is available and populated.
 	if machinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")

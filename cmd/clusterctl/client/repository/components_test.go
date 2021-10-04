@@ -523,6 +523,58 @@ func Test_fixTargetNamespace(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "fix cert-manager Certificate",
+			objs: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"apiVersion": "cert-manager.io/v1",
+						"kind":       "Certificate",
+						"metadata": map[string]interface{}{
+							"name":      "capi-serving-cert",
+							"namespace": "capi-system",
+						},
+						"spec": map[string]interface{}{
+							"dnsNames": []interface{}{
+								"capi-webhook-service.capi-system.svc",
+								"capi-webhook-service.capi-system.svc.cluster.local",
+								"random-other-dns-name",
+							},
+							"issuerRef": map[string]interface{}{
+								"kind": "Issuer",
+								"name": "capi-selfsigned-issuer",
+							},
+							"secretName": "capi-webhook-service-cert",
+						},
+					},
+				},
+			},
+			targetNamespace: "bar",
+			want: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"apiVersion": "cert-manager.io/v1",
+						"kind":       "Certificate",
+						"metadata": map[string]interface{}{
+							"name":      "capi-serving-cert",
+							"namespace": "bar",
+						},
+						"spec": map[string]interface{}{
+							"dnsNames": []interface{}{
+								"capi-webhook-service.bar.svc",
+								"capi-webhook-service.bar.svc.cluster.local",
+								"random-other-dns-name",
+							},
+							"issuerRef": map[string]interface{}{
+								"kind": "Issuer",
+								"name": "capi-selfsigned-issuer",
+							},
+							"secretName": "capi-webhook-service-cert",
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

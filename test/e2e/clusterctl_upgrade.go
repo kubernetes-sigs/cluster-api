@@ -53,20 +53,22 @@ const (
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
 type ClusterctlUpgradeSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-	PreUpgrade            func(managementClusterProxy framework.ClusterProxy)
-	PostUpgrade           func(managementClusterProxy framework.ClusterProxy)
-	MgmtFlavor            string
-	WorkloadFlavor        string
+	E2EConfig                 *clusterctl.E2EConfig
+	ClusterctlConfigPath      string
+	BootstrapClusterProxy     framework.ClusterProxy
+	ArtifactFolder            string
+	InitWithBinary            string
+	InitWithProvidersContract string
+	SkipCleanup               bool
+	PreUpgrade                func(managementClusterProxy framework.ClusterProxy)
+	PostUpgrade               func(managementClusterProxy framework.ClusterProxy)
+	MgmtFlavor                string
+	WorkloadFlavor            string
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
 //
-// NOTE: this test is designed to test v1alpha3 --> v1alpha4 upgrades.
+// NOTE: this test is designed to test older versions of Cluster API --> v1beta1 upgrades.
 func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpgradeSpecInput) {
 	var (
 		specName = "clusterctl-upgrade"
@@ -76,6 +78,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		testCancelWatches context.CancelFunc
 
 		managementClusterName          string
+		clusterctlBinaryURL            string
 		managementClusterNamespace     *corev1.Namespace
 		managementClusterCancelWatches context.CancelFunc
 		managementClusterResources     *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -90,8 +93,16 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
-		Expect(input.E2EConfig.Variables).To(HaveKey(initWithBinaryVariableName), "Invalid argument. %s variable must be defined when calling %s spec", initWithBinaryVariableName, specName)
-		Expect(input.E2EConfig.Variables[initWithBinaryVariableName]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithBinaryVariableName, specName)
+		var clusterctlBinaryURLTemplate string
+		if input.InitWithBinary == "" {
+			Expect(input.E2EConfig.Variables).To(HaveKey(initWithBinaryVariableName), "Invalid argument. %s variable must be defined when calling %s spec", initWithBinaryVariableName, specName)
+			Expect(input.E2EConfig.Variables[initWithBinaryVariableName]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithBinaryVariableName, specName)
+			clusterctlBinaryURLTemplate = input.E2EConfig.GetVariable(initWithBinaryVariableName)
+		} else {
+			clusterctlBinaryURLTemplate = input.InitWithBinary
+		}
+		clusterctlBinaryURLReplacer := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH)
+		clusterctlBinaryURL = clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
 		Expect(input.E2EConfig.Variables).To(HaveKey(initWithKubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
@@ -143,10 +154,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		// Get a ClusterProxy so we can interact with the workload cluster
 		managementClusterProxy = input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 
-		// Download the v1alpha3 clusterctl version to be used for setting up the management cluster to be upgraded
-		clusterctlBinaryURL := input.E2EConfig.GetVariable(initWithBinaryVariableName)
-		clusterctlBinaryURL = strings.ReplaceAll(clusterctlBinaryURL, "{OS}", runtime.GOOS)
-		clusterctlBinaryURL = strings.ReplaceAll(clusterctlBinaryURL, "{ARCH}", runtime.GOARCH)
+		// Download the older clusterctl version to be used for setting up the management cluster to be upgraded
 
 		log.Logf("Downloading clusterctl binary from %s", clusterctlBinaryURL)
 		clusterctlBinaryPath := downloadToTmpFile(clusterctlBinaryURL)
@@ -163,6 +171,9 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		contract := "*"
 		if input.E2EConfig.HasVariable(initWithProvidersContract) {
 			contract = input.E2EConfig.GetVariable(initWithProvidersContract)
+		}
+		if input.InitWithProvidersContract != "" {
+			contract = input.InitWithProvidersContract
 		}
 
 		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{

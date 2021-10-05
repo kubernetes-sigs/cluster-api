@@ -17,12 +17,15 @@ limitations under the License.
 package test
 
 import (
+	"errors"
+
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	fakebootstrap "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/bootstrap"
@@ -39,6 +42,7 @@ type FakeProxy struct {
 	cs        client.Client
 	namespace string
 	objs      []client.Object
+	available *bool
 }
 
 var (
@@ -77,6 +81,15 @@ func (f *FakeProxy) NewClient() (client.Client, error) {
 	}
 	f.cs = fake.NewClientBuilder().WithScheme(FakeScheme).WithObjects(f.objs...).Build()
 	return f.cs, nil
+}
+
+func (f *FakeProxy) CheckClusterAvailable() error {
+	// default to considering the cluster as available unless explicitly set to be
+	// unavailable.
+	if f.available == nil || *f.available {
+		return nil
+	}
+	return errors.New("cluster is not available")
 }
 
 // ListResources returns all the resources known by the FakeProxy.
@@ -182,6 +195,11 @@ func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1
 func (f *FakeProxy) WithFakeCAPISetup() *FakeProxy {
 	f.objs = append(f.objs, FakeCAPISetupObjects()...)
 
+	return f
+}
+
+func (f *FakeProxy) WithClusterAvailable(available bool) *FakeProxy {
+	f.available = pointer.Bool(available)
 	return f
 }
 

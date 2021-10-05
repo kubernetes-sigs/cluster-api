@@ -39,6 +39,33 @@ var (
 	localScheme = scheme.Scheme
 )
 
+// Proxy defines a client proxy interface.
+type Proxy interface {
+	// GetConfig returns the rest.Config
+	GetConfig() (*rest.Config, error)
+
+	// CurrentNamespace returns the namespace from the current context in the kubeconfig file.
+	CurrentNamespace() (string, error)
+
+	// ValidateKubernetesVersion returns an error if management cluster version less than minimumKubernetesVersion.
+	ValidateKubernetesVersion() error
+
+	// NewClient returns a new controller runtime Client object for working on the management cluster.
+	NewClient() (client.Client, error)
+
+	// CheckClusterAvailable checks if a a cluster is available and reachable.
+	CheckClusterAvailable() error
+
+	// ListResources returns all the Kubernetes objects with the given labels existing the listed namespaces.
+	ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error)
+
+	// GetContexts returns the list of contexts in kubeconfig which begin with prefix.
+	GetContexts(prefix string) ([]string, error)
+
+	// GetResourceNames returns the list of resource names which begin with prefix.
+	GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error)
+}
+
 type proxy struct {
 	kubeconfig         Kubeconfig
 	timeout            time.Duration
@@ -148,6 +175,27 @@ func (k *proxy) NewClient() (client.Client, error) {
 	}
 
 	return c, nil
+}
+
+func (k *proxy) CheckClusterAvailable() error {
+	// Check if the cluster is available by creating a client to the cluster.
+	// If creating the client times out and never established we assume that
+	// the cluster does not exist or is not reachable.
+	// For the purposes of clusterctl operations non-existent clusters and
+	// non-reachable clusters can be treated as the same.
+	config, err := k.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	connectBackoff := newShortConnectBackoff()
+	if err := retryWithExponentialBackoff(connectBackoff, func() error {
+		_, err := client.New(config, client.Options{Scheme: localScheme})
+		return err
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {

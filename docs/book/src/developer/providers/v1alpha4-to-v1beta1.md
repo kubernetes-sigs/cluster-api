@@ -50,3 +50,10 @@ v1alpha4, the same conversions have to be implemented.
 - **GetControlPlaneMachinesFromList** has been removed in favor of `FromMachineList(machines).Filter(collections.ControlPlaneMachines(cluster.Name))` in the util/collection package. 
 - **GetCRDMetadataFromGVK** has been removed in favor of `GetGVKMetadata`.
 
+## :warning: LeaderElectionResourceLock change :warning:
+
+The v1beta1 release uses "leases" instead of "configmapsleases" as the LeaderElectionResourceLock for all managers leader election including the core controllers, bootstrap and control plane kubeadm and the Docker provider.
+This has no user facing impact on brand-new clusters created as v1beta1.
+For Cluster API running clusters upgraded through clusterctl this should be ok given that we stop the old controllers.
+Users relying on custom upgrades procedures should ensure a migration to v1alpha4 (multilock "configmapsleases") first, which will acquire a leader lock on both resources. After that, they can proceed migrating to v1beta1 ("leases"). As an additional safety step, these users should ensure the old controllers are stopped before running the new ones with the new lock mechanism.
+Otherwise, your controller might end up with multiple running instances that each acquired leadership through different resource locks during upgrades and thus act on the same resources concurrently.

@@ -23,14 +23,15 @@ import (
 	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -673,8 +674,19 @@ func TestClusterToObjectsMapper(t *testing.T) {
 
 	for _, tc := range table {
 		tc.objects = append(tc.objects, cluster)
-		client := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
-		f, err := ClusterToObjectsMapper(client, tc.input, scheme.Scheme)
+
+		scheme := runtime.NewScheme()
+		_ = clusterv1.AddToScheme(scheme)
+
+		restMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{clusterv1.GroupVersion})
+
+		// Add tc.input gvk to the restMapper.
+		gvk, err := apiutil.GVKForObject(tc.input, scheme)
+		g.Expect(err).ToNot(HaveOccurred())
+		restMapper.Add(gvk, meta.RESTScopeNamespace)
+
+		client := fake.NewClientBuilder().WithObjects(tc.objects...).WithRESTMapper(restMapper).Build()
+		f, err := ClusterToObjectsMapper(client, tc.input, scheme)
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
 		g.Expect(f(cluster)).To(ConsistOf(tc.output))
 	}

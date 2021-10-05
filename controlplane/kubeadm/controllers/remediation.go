@@ -22,6 +22,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
@@ -36,6 +37,33 @@ import (
 // based on the process described in https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate
 func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlane *internal.ControlPlane) (ret ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// Cleanup pending remediation actions not completed for any reasons (e.g. number of current replicas is less or equal to 1)
+	// if the underlying machine is now back to healthy / not deleting.
+	errList := []error{}
+	healthyMachines := controlPlane.HealthyMachines()
+	for _, m := range healthyMachines {
+		if conditions.IsTrue(m, clusterv1.MachineHealthCheckSuccededCondition) &&
+			conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition) &&
+			m.DeletionTimestamp.IsZero() {
+			patchHelper, err := patch.NewHelper(m, r.Client)
+			if err != nil {
+				errList = append(errList, errors.Wrapf(err, "failed to get PatchHelper for machine %s", m.Name))
+				continue
+			}
+
+			conditions.Delete(m, clusterv1.MachineOwnerRemediatedCondition)
+
+			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.MachineOwnerRemediatedCondition,
+			}}); err != nil {
+				errList = append(errList, errors.Wrapf(err, "failed to patch machine %s", m.Name))
+			}
+		}
+	}
+	if len(errList) > 0 {
+		return ctrl.Result{}, kerrors.NewAggregate(errList)
+	}
 
 	// Gets all machines that have `MachineHealthCheckSucceeded=False` (indicating a problem was detected on the machine)
 	// and `MachineOwnerRemediated` present, indicating that this controller is responsible for performing remediation.

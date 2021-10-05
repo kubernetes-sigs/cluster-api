@@ -401,6 +401,49 @@ metadata:
 			wantErr: "ConfigMap ns1/v1.2.3 has no components",
 		},
 		{
+			name: "configmap with invalid version in the name",
+			configMaps: []corev1.ConfigMap{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "ConfigMap",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "not-a-version",
+						Namespace: "ns1",
+						Labels:    map[string]string{"provider-components": "aws"},
+					},
+					Data: map[string]string{
+						"metadata": metadata,
+					},
+				},
+			},
+			wantErr: "ConfigMap ns1/not-a-version has invalid version:not-a-version (from the Name)",
+		},
+		{
+			name: "configmap with invalid version in the Label",
+			configMaps: []corev1.ConfigMap{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "ConfigMap",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "not-a-version",
+						Namespace: "ns1",
+						Labels: map[string]string{
+							"provider-components":               "aws",
+							"provider.cluster.x-k8s.io/version": "also-not-a-label",
+						},
+					},
+					Data: map[string]string{
+						"metadata": metadata,
+					},
+				},
+			},
+			wantErr: "ConfigMap ns1/not-a-version has invalid version:also-not-a-label (from the Label provider.cluster.x-k8s.io/version)",
+		},
+		{
 			name: "one correct configmap",
 			configMaps: []corev1.ConfigMap{
 				{
@@ -412,6 +455,30 @@ metadata:
 						Name:      "v1.2.3",
 						Namespace: "ns1",
 						Labels:    map[string]string{"provider-components": "aws"},
+					},
+					Data: map[string]string{
+						"metadata":   metadata,
+						"components": components,
+					},
+				},
+			},
+			wantDefaultVersion: "v1.2.3",
+		},
+		{
+			name: "one correct configmap with label version",
+			configMaps: []corev1.ConfigMap{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "ConfigMap",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-provider",
+						Namespace: "ns1",
+						Labels: map[string]string{
+							"provider-components":               "aws",
+							"provider.cluster.x-k8s.io/version": "v1.2.3",
+						},
 					},
 					Data: map[string]string{
 						"metadata":   metadata,

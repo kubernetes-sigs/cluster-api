@@ -372,16 +372,29 @@ func (s *reconciler) configmapRepository(ctx context.Context, provider genericpr
 		return nil, fmt.Errorf("no ConfigMaps found with selector %s", provider.GetSpec().FetchConfig.Selector.String())
 	}
 	for _, cm := range cml.Items {
+		version := cm.Name
+		errMsg := "from the Name"
+		if cm.Labels != nil {
+			ver, ok := cm.Labels[v1alpha1.ConfigMapVersionLabelName]
+			if ok {
+				version = ver
+				errMsg = "from the Label " + v1alpha1.ConfigMapVersionLabelName
+			}
+		}
+		_, err = versionutil.ParseSemantic(version)
+		if err != nil {
+			return nil, fmt.Errorf("ConfigMap %s/%s has invalid version:%s (%s)", cm.Namespace, cm.Name, version, errMsg)
+		}
 		metadata, ok := cm.Data["metadata"]
 		if !ok {
 			return nil, fmt.Errorf("ConfigMap %s/%s has no metadata", cm.Namespace, cm.Name)
 		}
-		mr.WithFile(cm.Name, metadataFile, []byte(metadata))
+		mr.WithFile(version, metadataFile, []byte(metadata))
 		components, ok := cm.Data["components"]
 		if !ok {
 			return nil, fmt.Errorf("ConfigMap %s/%s has no components", cm.Namespace, cm.Name)
 		}
-		mr.WithFile(cm.Name, mr.ComponentsPath(), []byte(components))
+		mr.WithFile(version, mr.ComponentsPath(), []byte(components))
 	}
 
 	return mr, nil

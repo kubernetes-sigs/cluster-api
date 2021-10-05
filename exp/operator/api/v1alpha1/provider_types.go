@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	ProviderFinalizer = "provider.cluster.x-k8s.io"
+	ProviderFinalizer         = "provider.cluster.x-k8s.io"
+	ConfigMapVersionLabelName = "provider.cluster.x-k8s.io/version"
 )
 
 // ProviderSpec is the desired state of the Provider.
@@ -180,6 +181,8 @@ type FetchConfiguration struct {
 	// Selector to be used for fetching provider’s components and metadata from
 	// ConfigMaps stored inside the cluster. Each ConfigMap is expected to contain
 	// components and metadata for a specific version only.
+	// Note: the name of the ConfigMap should be set to the version or to override this
+	// add a label like the following: provider.cluster.x-k8s.io/version=v1.4.3
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }

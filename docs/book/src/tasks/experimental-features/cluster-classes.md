@@ -75,7 +75,7 @@ The full ClusterClass definition can also be found in the [CAPI repo](https://ra
 To create the objects on your local cluster run:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass.yaml 
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass-quickstart.yaml
 ```
 
 #### Enable networking for workload clusters

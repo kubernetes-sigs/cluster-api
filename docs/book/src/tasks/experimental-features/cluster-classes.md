@@ -61,7 +61,7 @@ The ClusterClass - first in the yaml below - contains references to the template
   * DockerMachineTemplate
   * KubeadmConfigTemplate
 
-The full ClusterClass definition can also be found in the [CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass.yaml).
+The full ClusterClass definition can also be found in the [CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass.yaml).
 
 <details><summary>ClusterClass</summary>
 
@@ -86,7 +86,7 @@ The kindnet configuration file can be found in the [CAPI repo](https://raw.githu
 
 To create the resources run:
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/kindnet-clusterresourceset.yaml 
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/kindnet-clusterresourceset.yaml 
 ```
 
 #### Create the workload cluster
@@ -100,10 +100,10 @@ This is a Cluster definition that leverages the ClusterClass created above to de
 ```
 </details>
 
-Create the Cluster object from the file in [the CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass-quickstart.yaml) with:
+Create the Cluster object from the file in [the CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass-quickstart.yaml) with:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass-quickstart.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass-quickstart.yaml
 ```
 
 #### Verify the workload cluster is running

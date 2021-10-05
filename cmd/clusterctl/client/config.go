@@ -340,6 +340,14 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 	if err != nil {
 		return nil, err
 	}
+
+	clusterClassClient := repo.ClusterClasses(version)
+
+	template, err = addClusterClassIfMissing(template, clusterClassClient, cluster, targetNamespace, listVariablesOnly)
+	if err != nil {
+		return nil, err
+	}
+
 	return template, nil
 }
 

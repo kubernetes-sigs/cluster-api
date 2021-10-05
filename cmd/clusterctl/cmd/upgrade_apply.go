@@ -86,6 +86,9 @@ func runUpgradeApply() error {
 		(len(ua.controlPlaneProviders) > 0) ||
 		(len(ua.infrastructureProviders) > 0)
 
+	if ua.contract == "" && !hasProviderNames {
+		return errors.New("Either the --contract flag or at least one of the following flags has to be set: --core, --bootstrap, --control-plane, --infrastructure")
+	}
 	if ua.contract != "" && hasProviderNames {
 		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure")
 	}

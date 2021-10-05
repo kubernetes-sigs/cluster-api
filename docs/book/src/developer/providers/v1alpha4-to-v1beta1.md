@@ -22,6 +22,10 @@ The core ClusterAPI providers will support upgrade from v1alpha3 **and** v1alpha
 from v1alpha3 and v1alpha4 to v1beta1 have been implemented. If other providers also want to support the upgrade from v1alpha3 **and**
 v1alpha4, the same conversions have to be implemented.
 
+## Certificates
+
+The `serving-cert` certificates now have organization set to `k8s-sig-cluster-lifecycle`.
+
 ## Removed items
 
 ### API Fields 

@@ -52,6 +52,32 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
 	}()
 
+	t.Run("Remediation cleans up stuck remediation on previously unhealthy machines", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withStuckRemediation())
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Cluster:  &clusterv1.Cluster{},
+			Machines: collections.FromMachines(m),
+		}
+		ret, err := r.reconcileUnhealthyMachines(context.TODO(), controlPlane)
+
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Eventually(func() error {
+			if err := env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m); err != nil {
+				return err
+			}
+			c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
+			if c == nil {
+				return nil
+			}
+			return errors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedCondition)
+		}, 10*time.Second).Should(Succeed())
+	})
 	t.Run("Remediation does not happen if there are no unhealthy machines", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -755,6 +781,13 @@ type machineOption func(*clusterv1.Machine)
 func withMachineHealthCheckFailed() machineOption {
 	return func(machine *clusterv1.Machine) {
 		conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+		conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
+	}
+}
+
+func withStuckRemediation() machineOption {
+	return func(machine *clusterv1.Machine) {
+		conditions.MarkTrue(machine, clusterv1.MachineHealthCheckSuccededCondition)
 		conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 	}
 }

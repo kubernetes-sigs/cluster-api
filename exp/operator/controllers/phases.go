@@ -139,11 +139,16 @@ func (s *reconciler) fetch(ctx context.Context, provider genericprovider.Generic
 		ConfigClient: s.configClient,
 		Processor:    yamlprocessor.NewSimpleProcessor(),
 		RawYaml:      componentsFile,
-		ObjModifier:  customizeObjectsFn(provider),
 		Options:      s.options})
 	if err != nil {
 		return reconcile.Result{}, ifErrorWrapPhaseError(err, operatorv1.ComponentsFetchErrorReason, v1alpha1.PreflightCheckCondition)
 	}
+
+	err = repository.AlterComponents(s.components, customizeObjectsFn(provider))
+	if err != nil {
+		return reconcile.Result{}, ifErrorWrapPhaseError(err, operatorv1.ComponentsFetchErrorReason, v1alpha1.PreflightCheckCondition)
+	}
+
 	conditions.Set(provider, conditions.TrueCondition(operatorv1.PreflightCheckCondition))
 	return reconcile.Result{}, nil
 }

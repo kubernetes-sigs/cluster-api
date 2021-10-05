@@ -36,15 +36,13 @@ If you want to create a local artifact, follow these instructions:
 In order to build artifacts for the CAPI core provider, the kubeadm bootstrap provider and the kubeadm control plane provider:
 
 ```
-make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api
-make generate-manifests REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
+make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 ```
 
 In order to build docker provider artifacts
 
 ```
-make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-cluster-api
-make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
+make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 ```
 
 ### Create a clusterctl-settings.json file
@@ -177,9 +175,9 @@ cert-manager                        cert-manager-webhook                        
 When selecting the `--kubernetes-version`, ensure that the `kindest/node`
 image is available.
 
-For example, on [docker hub][kind-docker-hub] there is no
-image for version `v1.21.2`, therefore creating a CAPD workload cluster with
-`--kubernetes-version=v1.21.2` will fail. See [issue 3795] for more details.
+For example, assuming that on [docker hub][kind-docker-hub] there is no
+image for version `vX.Y.Z`, therefore creating a CAPD workload cluster with
+`--kubernetes-version=vX.Y.Z` will fail. See [issue 3795] for more details.
 
 ### Get the kubeconfig for the workload cluster
 

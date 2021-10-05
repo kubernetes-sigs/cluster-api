@@ -600,7 +600,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 	table := []struct {
 		name        string
 		objects     []client.Object
-		input       runtime.Object
+		input       client.ObjectList
 		output      []ctrl.Request
 		expectError bool
 	}{

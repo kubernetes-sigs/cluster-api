@@ -18,6 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-TABULATE=$(realpath ../../hack/tools/bin/mdbook-tabulate)
+REPO_ROOT=$(git rev-parse --show-toplevel)
+TABULATE=${REPO_ROOT}/hack/tools/bin/mdbook-tabulate
 make "${TABULATE}" GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
 ${TABULATE} "$@"

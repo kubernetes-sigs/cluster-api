@@ -18,6 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-RELEASELINK=$(realpath ../../hack/tools/bin/mdbook-releaselink)
+REPO_ROOT=$(git rev-parse --show-toplevel)
+RELEASELINK=${REPO_ROOT}/hack/tools/bin/mdbook-releaselink
 make "${RELEASELINK}" GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
 ${RELEASELINK} "$@"

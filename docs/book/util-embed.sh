@@ -18,6 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-EMBED=$(realpath ../../hack/tools/bin/mdbook-embed)
+REPO_ROOT=$(git rev-parse --show-toplevel)
+EMBED=${REPO_ROOT}/hack/tools/bin/mdbook-embed
 make "${EMBED}" GOPROXY="${GOPROXY:-"https://proxy.golang.org"}" &>/dev/null
 ${EMBED} "$@"

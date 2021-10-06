@@ -255,6 +255,76 @@ There may, at times, need to be exceptions where breaking changes are allowed in
 discretion of the project's maintainers, and must be carefully considered before merging. An example of an allowed
 breaking change might be a fix for a behavioral bug that was released in an initial minor version (such as `v0.3.0`).
 
+
+## API conventions
+
+This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md). Minor modifications or additions to the conventions are listed below.
+
+### Optional vs. Required
+
+* Status fields MUST be optional. Our controllers are patching selected fields instead of updating the entire status in every reconciliation.
+
+* If a field is required (for our controllers to work) and has a default value specified via OpenAPI schema, but we don't want to force users to set the field, we have to mark the field as optional. Otherwise, the client-side kubectl OpenAPI schema validation will force the user to set it even though it would be defaulted on the server-side.
+
+Optional fields have the following properties:
+* An optional field MUST be marked with `+optional` and include an `omitempty` JSON tag.
+* Fields SHOULD be pointers if the nil and the zero values (by Go standards) have semantic differences.
+  * Note: This doesn't apply to map or slice types as they are assignable to `nil`.
+
+#### Example
+ 
+When using ClusterClass, the semantic difference is important when you have a field in a template which will
+have instance-specific different values in derived objects. Because in this case it's possible to set the field to `nil`
+in the template and then the value can be set in derived objects without being overwritten by the cluster topology controller.
+
+#### Exceptions
+
+* Fields in root objects should be kept as scaffolded by kubebuilder, e.g.:
+  ```golang
+  type Machine struct {
+    metav1.TypeMeta   `json:",inline"`
+    metav1.ObjectMeta `json:"metadata,omitempty"`
+
+    Spec   MachineSpec   `json:"spec,omitempty"`
+    Status MachineStatus `json:"status,omitempty"`
+  }
+  type MachineList struct {
+    metav1.TypeMeta `json:",inline"`
+    metav1.ListMeta `json:"metadata,omitempty"`
+    Items           []Machine `json:"items"`
+  }
+  ```
+
+* Top-level fields in `status` must always have the `+optional` annotation. If we want the field to be always visible even if it 
+  has the zero value, it must **not** have the `omitempty` JSON tag, e.g.:
+  * Replica counters like `availableReplicas` in the `MachineDeployment`
+  * Flags expressing progress in the object lifecycle like `infrastructureReady` in `Machine`
+
+### CRD additionalPrinterColumns
+
+All our CRD objects should have the following `additionalPrinterColumns` order (if the respective field exists in the CRD):
+* Namespace (added automatically)
+* Name (added automatically)
+* Cluster
+* Other fields
+* Replica-related fields
+* Phase
+* Age (mandatory field for all CRDs)
+* Version
+* Other fields for -o wide (fields with priority `1` are only shown with `-o wide` and not per default)
+
+***NOTE***: The columns can be configured via the `kubebuilder:printcolumn` annotation on root objects. For examples, please see the `./api` package.
+
+Examples:
+```bash
+$ kubectl get kubeadmcontrolplane
+NAMESPACE            NAME                               INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE     VERSION
+quick-start-d5ufye   quick-start-ntysk0-control-plane   true          true                   1          1       1                       2m44s   v1.22.0
+$ kubectl get machinedeployment
+NAMESPACE            NAME                      CLUSTER              REPLICAS   READY   UPDATED   UNAVAILABLE   PHASE       AGE     VERSION
+quick-start-d5ufye   quick-start-ntysk0-md-0   quick-start-ntysk0   1                  1         1             ScalingUp   3m28s   v1.22.0
+```
+
 ## Google Doc Viewing Permissions
 
 To gain viewing permissions to google docs in this project, please join either the

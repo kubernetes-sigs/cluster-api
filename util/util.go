@@ -483,11 +483,7 @@ func (o MachinesByCreationTimestamp) Less(i, j int) bool {
 // ClusterToObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
 // and returns a list of requests.
 // NB: The objects are required to have `clusterv1.ClusterLabelName` applied.
-func ClusterToObjectsMapper(c client.Client, ro runtime.Object, scheme *runtime.Scheme) (handler.MapFunc, error) {
-	if _, ok := ro.(metav1.ListInterface); !ok {
-		return nil, errors.Errorf("expected a metav1.ListInterface, got %T instead", ro)
-	}
-
+func ClusterToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
 		return nil, err

@@ -23,3 +23,6 @@ spec:
     kind: Issuer
     name: selfsigned-issuer
   secretName: $(SERVICE_NAME)-cert # this secret will not be prefixed, since it's not managed by kustomize
+  subject:
+    organizations:
+      - k8s-sig-cluster-lifecycle

@@ -139,7 +139,7 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 }
 
 func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {
-	return newProviderUpgrader(c.configClient, c.repositoryClientFactory, c.ProviderInventory(), c.ProviderComponents())
+	return newProviderUpgrader(c.configClient, c.proxy, c.repositoryClientFactory, c.ProviderInventory(), c.ProviderComponents())
 }
 
 func (c *clusterClient) Template() TemplateClient {
@@ -252,7 +252,7 @@ func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) erro
 		i++
 		if err := operation(); err != nil {
 			if i < opts.Steps {
-				log.V(5).Info("Operation failed, retrying with backoff", "Cause", err.Error())
+				log.V(5).Info("Retrying with backoff", "Cause", err.Error())
 				return false, nil
 			}
 			return false, err

@@ -966,6 +966,10 @@ spec:
         statusReplicasPath: .status.replicas
       status: {}
   - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
     - description: MachinePool replicas count
       jsonPath: .status.replicas
       name: Replicas

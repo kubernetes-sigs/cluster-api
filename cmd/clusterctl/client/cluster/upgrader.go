@@ -17,16 +17,22 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"sort"
+	"time"
 
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ProviderUpgrader defines methods for supporting provider upgrade.
@@ -72,6 +78,7 @@ func (u *UpgradeItem) UpgradeRef() string {
 
 type providerUpgrader struct {
 	configClient            config.Client
+	proxy                   Proxy
 	repositoryClientFactory RepositoryClientFactory
 	providerInventory       InventoryClient
 	providerComponents      ComponentsClient
@@ -352,6 +359,27 @@ func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
 		return providers[a].GetProviderType().Order() < providers[b].GetProviderType().Order()
 	})
 
+	// Scale down all providers.
+	// This is done to ensure all Pods of all "old" provider Deployments have been deleted.
+	// Otherwise it can happen that a provider Pod survives the upgrade because we create
+	// a new Deployment with the same selector directly after `Delete`.
+	// This can lead to a failed upgrade because:
+	// * new provider Pods fail to startup because they try to list resources.
+	// * list resources fails, because the API server hits the old provider Pod when trying to
+	//   call the conversion webhook for those resources.
+	for _, upgradeItem := range providers {
+		// If there is not a specified next version, skip it (we are already up-to-date).
+		if upgradeItem.NextVersion == "" {
+			continue
+		}
+
+		// Scale down provider.
+		if err := u.scaleDownProvider(upgradeItem.Provider); err != nil {
+			return err
+		}
+	}
+
+	// Delete old providers and deploy new ones if necessary, i.e. there is a NextVersion.
 	for _, upgradeItem := range providers {
 		// If there is not a specified next version, skip it (we are already up-to-date).
 		if upgradeItem.NextVersion == "" {
@@ -390,9 +418,90 @@ func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
 	return nil
 }
 
-func newProviderUpgrader(configClient config.Client, repositoryClientFactory RepositoryClientFactory, providerInventory InventoryClient, providerComponents ComponentsClient) *providerUpgrader {
+func (u *providerUpgrader) scaleDownProvider(provider clusterctlv1.Provider) error {
+	log := logf.Log
+	log.Info("Scaling down", "Provider", provider.Name, "Version", provider.Version, "Namespace", provider.Namespace)
+
+	cs, err := u.proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	// Fetch all Deployments belonging to a provider.
+	deploymentList := &appsv1.DeploymentList{}
+	if err := cs.List(ctx,
+		deploymentList,
+		client.InNamespace(provider.Namespace),
+		client.MatchingLabels{
+			clusterctlv1.ClusterctlLabelName: "",
+			clusterv1.ProviderLabelName:      provider.ManifestLabel(),
+		}); err != nil {
+		return errors.Wrapf(err, "failed to list Deployments for provider %s", provider.Name)
+	}
+
+	// Scale down provider Deployments.
+	for _, deployment := range deploymentList.Items {
+		log.V(5).Info("Scaling down", "Deployment", deployment.Name, "Namespace", deployment.Namespace)
+		if err := scaleDownDeployment(ctx, cs, deployment); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// scaleDownDeployment scales down a Deployment to 0 and waits until all replicas have been deleted.
+func scaleDownDeployment(ctx context.Context, c client.Client, deploy appsv1.Deployment) error {
+	if err := retryWithExponentialBackoff(newWriteBackoff(), func() error {
+		deployment := &appsv1.Deployment{}
+		if err := c.Get(ctx, client.ObjectKeyFromObject(&deploy), deployment); err != nil {
+			return errors.Wrapf(err, "failed to get Deployment/%s", deploy.GetName())
+		}
+
+		// Deployment already scaled down, return early.
+		if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 0 {
+			return nil
+		}
+
+		// Scale down.
+		deployment.Spec.Replicas = pointer.Int32Ptr(0)
+		if err := c.Update(ctx, deployment); err != nil {
+			return errors.Wrapf(err, "failed to update Deployment/%s", deploy.GetName())
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrapf(err, "failed to scale down Deployment")
+	}
+
+	deploymentScaleToZeroBackOff := wait.Backoff{
+		Duration: 1 * time.Second,
+		Factor:   1,
+		Steps:    60,
+		Jitter:   0.4,
+	}
+	if err := retryWithExponentialBackoff(deploymentScaleToZeroBackOff, func() error {
+		deployment := &appsv1.Deployment{}
+		if err := c.Get(ctx, client.ObjectKeyFromObject(&deploy), deployment); err != nil {
+			return errors.Wrapf(err, "failed to get Deployment/%s", deploy.GetName())
+		}
+
+		// Deployment is scaled down.
+		if deployment.Status.Replicas == 0 {
+			return nil
+		}
+
+		return errors.Errorf("Deployment still has %d replicas", deployment.Status.Replicas)
+	}); err != nil {
+		return errors.Wrapf(err, "failed to wait until Deployment is scaled down")
+	}
+
+	return nil
+}
+
+func newProviderUpgrader(configClient config.Client, proxy Proxy, repositoryClientFactory RepositoryClientFactory, providerInventory InventoryClient, providerComponents ComponentsClient) *providerUpgrader {
 	return &providerUpgrader{
 		configClient:            configClient,
+		proxy:                   proxy,
 		repositoryClientFactory: repositoryClientFactory,
 		providerInventory:       providerInventory,
 		providerComponents:      providerComponents,

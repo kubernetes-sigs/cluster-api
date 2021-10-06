@@ -334,3 +334,25 @@ should be executed before this changes.
 - `spec.infrastructureTemplate` has been moved to `spec.machineTemplate.infrastructureRef`. Thus, cluster templates which include `KubeadmControlPlane`
 have to be adjusted accordingly.
 - `spec.nodeDrainTimeout` has been moved to `spec.machineTemplate.nodeDrainTimeout`.
+
+## Required spec and status fields for Control Planes using 'version' for ClusterClass support
+ControlPlane implementations using version must now [include a 'version' field as defined below in both its spec and its status](../architecture/controllers/control-plane.md#required-spec-fields-for-implementations-using-version).
+
+ `spec.version` - is a string representing the Kubernetes version to be used
+  by the control plane machines. The value must be a valid semantic version;
+  also if the value provided by the user does not start with the v prefix, it
+  must be added.
+
+`status.version` - is a string representing the minimum Kubernetes version for the control plane machines in the cluster.
+
+Please note that implementing these fields are a requirement for a control plane provider to be used with ClusterClass and managed topologies.
+
+## Required spec fields for Control Planes using 'Machines' for ClusterClass support
+ControlPlane implementations that use an underlying MachineInfrastructure must now [include a 'machineTemplate' as defined below, with subordinate fields, in its Spec.](../architecture/controllers/control-plane.md#required-spec-fields-for-implementations-using-machines)
+
+
+ `machineTemplate` - is a struct containing details of the control plane
+  machine template.
+
+ Please note that implementing this field for control plane providers using machines is a requirement for ClusterClass and managed topologies to work consistently across all providers.
+

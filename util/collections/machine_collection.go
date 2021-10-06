@@ -49,7 +49,7 @@ func (v machinesByVersion) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 func (v machinesByVersion) Less(i, j int) bool {
 	vi, _ := semver.ParseTolerant(*v[i].Spec.Version)
 	vj, _ := semver.ParseTolerant(*v[j].Spec.Version)
-	comp := version.CompareWithBuildIdentifiers(vi, vj)
+	comp := version.Compare(vi, vj, version.WithBuildTags())
 	if comp == 0 {
 		return v[i].Name < v[j].Name
 	}

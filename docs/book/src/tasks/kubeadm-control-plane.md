@@ -20,10 +20,6 @@ with a valid lifespan of a year, and will be automatically regenerated when the 
 
 See the section on [upgrading clusters][upgrades].
 
-#### Using Kubeadm Control Plane when upgrading from Cluster API v1alpha2 (0.2.x)
-
-See the section on [Adopting existing machines into KubeadmControlPlane management][adoption]
-
 ### Running workloads on control plane machines
 
 We don't suggest running workloads on control planes, and highly encourage avoiding it unless absolutely necessary.

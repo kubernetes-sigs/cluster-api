@@ -28,7 +28,7 @@ By default, the action of remediating a Machine should trigger a new Machine to 
 Use the following example as a basis for creating a MachineHealthCheck for worker nodes:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineHealthCheck
 metadata:
   name: capi-quickstart-node-unhealthy-5m
@@ -64,7 +64,7 @@ Use this example as the basis for defining a MachineHealthCheck for control plan
 the KubeadmControlPlane:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineHealthCheck
 metadata:
   name: capi-quickstart-kcp-unhealthy-5m

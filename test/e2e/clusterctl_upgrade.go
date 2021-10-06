@@ -53,11 +53,15 @@ const (
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
 type ClusterctlUpgradeSpecInput struct {
-	E2EConfig                 *clusterctl.E2EConfig
-	ClusterctlConfigPath      string
-	BootstrapClusterProxy     framework.ClusterProxy
-	ArtifactFolder            string
-	InitWithBinary            string
+	E2EConfig             *clusterctl.E2EConfig
+	ClusterctlConfigPath  string
+	BootstrapClusterProxy framework.ClusterProxy
+	ArtifactFolder        string
+	// InitWithBinary can be used to override the INIT_WITH_BINARY e2e config variable with the URL of the clusterctl binary of the old version of Cluster API. The spec will interpolate the
+	// strings `{OS}` and `{ARCH}` to `runtime.GOOS` and `runtime.GOARCH` respectively, e.g. https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}
+	InitWithBinary string
+	// InitWithProvidersContract can be used to override the INIT_WITH_PROVIDERS_CONTRACT e2e config variable with a specific
+	// provider contract to use to initialise the secondary management cluster, e.g. `v1alpha3`
 	InitWithProvidersContract string
 	SkipCleanup               bool
 	PreUpgrade                func(managementClusterProxy framework.ClusterProxy)
@@ -69,6 +73,32 @@ type ClusterctlUpgradeSpecInput struct {
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
 //
 // NOTE: this test is designed to test older versions of Cluster API --> v1beta1 upgrades.
+// This spec will create a workload cluster, which will be converted into a new management cluster (henceforth called secondary
+// managemnet cluster)
+// with the older version of Cluster API and infrastructure provider. It will then create an additional
+// workload cluster (henceforth called secondary workload cluster) from the new management cluster using the default cluster template of the old release
+// then run clusterctl upgrade to the latest version of Cluster API and ensure correct operation by
+// scaling a MachineDeployment.
+//
+// To use this spec the variables INIT_WITH_BINARY and INIT_WITH_PROVIDERS_CONTRACT must be set or specified directly
+// in the spec input. See ClusterctlUpgradeSpecInput for further information.
+//
+// In order to get this to work, infrastructure providers need to implement a mechanism to stage
+// the locally compiled OCI image of their infrastructure provider and have it downloaded and available
+// on the secondary management cluster. It is recommended that infrastructure providers use `docker save` and output
+// the local image to a tar file, upload it to object storage, and then use preKubeadmCommands to pre-load the image
+// before Kubernetes starts.
+//
+// For example, for Cluster API Provider AWS, the docker image is stored in an s3 bucket with a unique name for the
+// account-region pair, so as to not clash with any other AWS user / account, with the object key being the sha256sum of the
+// image digest.
+//
+// The following commands are then added to preKubeadmCommands:
+//
+//   preKubeadmCommands:
+//   - mkdir -p /opt/cluster-api
+//   - aws s3 cp "s3://${S3_BUCKET}/${E2E_IMAGE_SHA}" /opt/cluster-api/image.tar
+//   - ctr -n k8s.io images import /opt/cluster-api/image.tar # The image must be imported into the k8s.io namespace
 func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpgradeSpecInput) {
 	var (
 		specName = "clusterctl-upgrade"

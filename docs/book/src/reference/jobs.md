@@ -2,7 +2,7 @@
 
 This document intents to provide an overview over our jobs running via Prow, GitHub actions and Google Cloud Build.
 
-## Builds and Tests running on the default branch (currently v1alpha4)
+## Builds and Tests running on the main branch
 
 > NOTE: To see which test jobs execute which tests or e2e tests, you can click on the links which lead to the respective test overviews in testgrid.
 

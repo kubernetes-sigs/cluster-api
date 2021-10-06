@@ -1,6 +1,6 @@
 # Personas
 
-This document describes the personas for the Cluster API 1.0 project as driven
+This document describes the personas for the Cluster API project as driven
 from use cases.
 
 We are marking a “proposed priority for project at this time” per use case.

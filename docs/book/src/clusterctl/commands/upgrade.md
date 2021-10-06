@@ -16,22 +16,22 @@ Produces an output similar to this:
 
 ```shell
 Checking cert-manager version...
-Cert-Manager will be upgraded from "v0.11.0" to "v1.5.3"
+Cert-Manager will be upgraded from "v1.5.0" to "v1.5.3"
 
 Checking new release availability...
 
-Management group: capi-system/cluster-api, latest release available for the v1alpha4 API Version of Cluster API (contract):
+Management group: capi-system/cluster-api, latest release available for the v1beta1 API Version of Cluster API (contract):
 
 NAME                    NAMESPACE                           TYPE                     CURRENT VERSION   NEXT VERSION
-bootstrap-kubeadm       capi-kubeadm-bootstrap-system       BootstrapProvider        v0.4.0           v0.4.1
-control-plane-kubeadm   capi-kubeadm-control-plane-system   ControlPlaneProvider     v0.4.0           v0.4.1
-cluster-api             capi-system                         CoreProvider             v0.4.0           v0.4.1
-infrastructure-azure    capz-system                         InfrastructureProvider   v0.4.0           v0.4.1
+bootstrap-kubeadm       capi-kubeadm-bootstrap-system       BootstrapProvider        v0.4.0           v1.0.0
+control-plane-kubeadm   capi-kubeadm-control-plane-system   ControlPlaneProvider     v0.4.0           v1.0.0
+cluster-api             capi-system                         CoreProvider             v0.4.0           v1.0.0
+infrastructure-docker   capd-system                         InfrastructureProvider   v0.4.0           v1.0.0
 
 
 You can now apply the upgrade by executing the following command:
 
-   clusterctl upgrade apply --contract v1alpha4
+   clusterctl upgrade apply --contract v1beta1
 ```
 
 The output contains the latest release available for each API Version of Cluster API (contract)
@@ -54,7 +54,7 @@ command to upgrade all the providers in the management cluster. This upgrades
 all the providers to the latest stable releases.
 
 ```shell
-clusterctl upgrade apply --contract v1alpha4
+clusterctl upgrade apply --contract v1beta1
 ```
 
 The upgrade process is composed by three steps:
@@ -87,10 +87,10 @@ the following:
 
 ```shell
 clusterctl upgrade apply \
-    --core capi-system/cluster-api:v0.4.1 \
-    --bootstrap capi-kubeadm-bootstrap-system/kubeadm:v0.4.1 \
-    --control-plane capi-kubeadm-control-plane-system/kubeadm:v0.4.1 \
-    --infrastructure capv-system/vsphere:v0.7.0-alpha.0
+    --core capi-system/cluster-api:v1.0.0 \
+    --bootstrap capi-kubeadm-bootstrap-system/kubeadm:v1.0.0 \
+    --control-plane capi-kubeadm-control-plane-system/kubeadm:v1.0.0 \
+    --infrastructure capd-system/docker:v1.0.0-rc.0
 ```
 
 In this case, all the provider's versions must be explicitly stated.

@@ -30,11 +30,6 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 |Features, Integration|Windows support for worker nodes|[#3616](https://github.com/kubernetes-sigs/cluster-api/pull/3616)|
 |Clusterctl, UX|Provide "at glance" view of cluster conditions|[#3802](https://github.com/kubernetes-sigs/cluster-api/issues/3802)|
 
-## v0.5 (v1alpha5) ~ Q3 2021
-
-|Area|Description|Issue/Proposal|
-|--|--|--|
-
 ## v1beta1/v1 ~ TBA
 
 |Area|Description|Issue/Proposal|

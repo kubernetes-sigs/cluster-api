@@ -28,3 +28,5 @@ require (
 	sigs.k8s.io/kind v0.11.1
 	sigs.k8s.io/yaml v1.3.0
 )
+
+replace sigs.k8s.io/controller-runtime => github.com/fabriziopandini/controller-runtime v0.2.0-beta.1.0.20211105090959-708d5397c4f3

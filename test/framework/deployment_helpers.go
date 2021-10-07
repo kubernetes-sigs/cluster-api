@@ -47,6 +47,9 @@ import (
 type WaitForDeploymentsAvailableInput struct {
 	Getter     Getter
 	Deployment *appsv1.Deployment
+	GetLister  GetLister
+	ClientSet  *kubernetes.Clientset
+	LogPath    string
 }
 
 // WaitForDeploymentsAvailable waits until the Deployment has status.Available = True, that signals that
@@ -69,7 +72,17 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 			}
 		}
 		return false
-	}, intervals...).Should(BeTrue(), func() string { return DescribeFailedDeployment(input, deployment) })
+	}, intervals...).Should(BeTrue(), func() string {
+		if input.GetLister != nil && input.ClientSet != nil && input.LogPath != "" {
+			GetDeploymentLogs(ctx, GetDeploymentLogsInput{
+				Deployment: deployment,
+				GetLister:  input.GetLister,
+				ClientSet:  input.ClientSet,
+				LogPath:    input.LogPath,
+			})
+		}
+		return DescribeFailedDeployment(input, deployment)
+	})
 }
 
 // DescribeFailedDeployment returns detailed output to help debug a deployment failure in e2e.
@@ -130,6 +143,68 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 				opts := &corev1.PodLogOptions{
 					Container: container.Name,
 					Follow:    true,
+				}
+
+				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream(ctx)
+				if err != nil {
+					// Failing to stream logs should not cause the test to fail
+					log.Logf("Error starting logs stream for pod %s/%s, container %s: %v", input.Deployment.Namespace, pod.Name, container.Name, err)
+					return
+				}
+				defer podLogs.Close()
+
+				out := bufio.NewWriter(f)
+				defer out.Flush()
+				_, err = out.ReadFrom(podLogs)
+				if err != nil && err != io.ErrUnexpectedEOF {
+					// Failing to stream logs should not cause the test to fail
+					log.Logf("Got error while streaming logs for pod %s/%s, container %s: %v", input.Deployment.Namespace, pod.Name, container.Name, err)
+				}
+			}(pod, container)
+		}
+	}
+}
+
+type GetDeploymentLogsInput struct {
+	GetLister  GetLister
+	ClientSet  *kubernetes.Clientset
+	Deployment *appsv1.Deployment
+	LogPath    string
+}
+
+func GetDeploymentLogs(ctx context.Context, input GetDeploymentLogsInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for GetDeploymentLogs")
+	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for GetDeploymentLogs")
+	Expect(input.Deployment).NotTo(BeNil(), "input.Deployment is required for GetDeploymentLogs")
+
+	deployment := &appsv1.Deployment{}
+	key := client.ObjectKeyFromObject(input.Deployment)
+	Expect(input.GetLister.Get(ctx, key, deployment)).To(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	pods := &corev1.PodList{}
+	Expect(input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))).To(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+
+	for _, pod := range pods.Items {
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			log.Logf("Creating log watcher for controller %s/%s, pod %s, container %s", input.Deployment.Namespace, input.Deployment.Name, pod.Name, container.Name)
+
+			// Watch each container's logs in a goroutine so we can stream them all concurrently.
+			go func(pod corev1.Pod, container corev1.Container) {
+				defer GinkgoRecover()
+
+				logFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+".log"))
+				Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
+
+				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+				Expect(err).NotTo(HaveOccurred())
+				defer f.Close()
+
+				opts := &corev1.PodLogOptions{
+					Container: container.Name,
+					Follow:    false,
 				}
 
 				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream(ctx)

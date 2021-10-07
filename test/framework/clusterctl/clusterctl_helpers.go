@@ -99,6 +99,9 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
 			Getter:     client,
 			Deployment: deployment,
+			GetLister:  client,
+			ClientSet:  input.ClusterProxy.GetClientSet(),
+			LogPath:    filepath.Join(input.LogFolder, "controllers"),
 		}, intervals...)
 
 		// Start streaming logs from all controller providers
@@ -155,6 +158,9 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
 			Getter:     client,
 			Deployment: deployment,
+			GetLister:  client,
+			ClientSet:  input.ClusterProxy.GetClientSet(),
+			LogPath:    filepath.Join(input.LogFolder, "controllers"),
 		}, intervals...)
 
 		// Start streaming logs from all controller providers

@@ -26,7 +26,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -61,6 +60,36 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 		typeList.SetKind(typeMeta.Kind)
 
 		if err := input.Lister.List(ctx, typeList, client.InNamespace(input.Namespace)); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			Fail(fmt.Sprintf("failed to list %q resources: %v", typeList.GroupVersionKind(), err))
+		}
+		for i := range typeList.Items {
+			obj := typeList.Items[i]
+			objList = append(objList, &obj)
+		}
+	}
+
+	// cluster-wide
+	types = []metav1.TypeMeta{
+		{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+	}
+
+	for i := range types {
+		typeMeta := types[i]
+		typeList := new(unstructured.UnstructuredList)
+		typeList.SetAPIVersion(typeMeta.APIVersion)
+		typeList.SetKind(typeMeta.Kind)
+
+		if err := input.Lister.List(ctx, typeList); err != nil {
 			if apierrors.IsNotFound(err) {
 				continue
 			}

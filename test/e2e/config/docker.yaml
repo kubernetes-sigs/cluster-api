@@ -34,6 +34,8 @@ providers:
     type: "url"
     contract: v1alpha3
     replacements:
+    - old: "--leader-elect"
+      new: "--leader-elect=false"
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
@@ -43,6 +45,8 @@ providers:
     type: "url"
     contract: v1alpha4
     replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -50,6 +54,8 @@ providers:
   - name: v1.0.99 # next; use manifest from source files
     value: ../../../config/default
     replacements:
+    - old: "--leader-elect"
+      new: "--leader-elect=false"
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
@@ -63,6 +69,8 @@ providers:
     type: "url"
     contract: v1alpha3
     replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -72,6 +80,8 @@ providers:
     type: "url"
     contract: v1alpha4
     replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -79,6 +89,8 @@ providers:
   - name: v1.0.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
+    - old: "--leader-elect"
+      new: "--leader-elect=false"
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
@@ -92,6 +104,8 @@ providers:
     type: "url"
     contract: v1alpha3
     replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -101,6 +115,8 @@ providers:
     type: "url"
     contract: v1alpha4
     replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -108,6 +124,8 @@ providers:
   - name: v1.0.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     replacements:
+    - old: "--leader-elect"
+      new: "--leader-elect=false"
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
@@ -121,6 +139,8 @@ providers:
     type: "url"
     contract: v1alpha3
     replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -131,6 +151,8 @@ providers:
     type: "url"
     contract: v1alpha4
     replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -139,6 +161,8 @@ providers:
   - name: v1.0.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:
+    - old: "--leader-elect"
+      new: "--leader-elect=false"
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
@@ -180,9 +204,9 @@ variables:
   CLUSTER_TOPOLOGY: "true"
   # NOTE: INIT_WITH_BINARY and INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
-  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
-  INIT_WITH_PROVIDERS_CONTRACT: "v1alpha4"
-  INIT_WITH_KUBERNETES_VERSION: "v1.22.0"
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_PROVIDERS_CONTRACT: "v1alpha3"
+  INIT_WITH_KUBERNETES_VERSION: "v1.21.2"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

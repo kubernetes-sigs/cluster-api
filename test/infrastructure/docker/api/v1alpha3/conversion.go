@@ -101,13 +101,34 @@ func (dst *DockerMachineList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.DockerMachineTemplate)
 
-	return Convert_v1alpha3_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil)
+	if err := Convert_v1alpha3_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1beta1.DockerMachineTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+
+	return nil
 }
 
 func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.DockerMachineTemplate)
 
-	return Convert_v1beta1_DockerMachineTemplate_To_v1alpha3_DockerMachineTemplate(src, dst, nil)
+	if err := Convert_v1beta1_DockerMachineTemplate_To_v1alpha3_DockerMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *DockerMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
@@ -126,4 +147,9 @@ func (dst *DockerMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_v1beta1_DockerClusterSpec_To_v1alpha3_DockerClusterSpec(in *v1beta1.DockerClusterSpec, out *DockerClusterSpec, s apiconversion.Scope) error {
 	// DockerClusterSpec.LoadBalancer was added in v1alpha4, so automatic conversion is not possible
 	return autoConvert_v1beta1_DockerClusterSpec_To_v1alpha3_DockerClusterSpec(in, out, s)
+}
+
+func Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha3_DockerMachineTemplateResource(in *v1beta1.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s apiconversion.Scope) error {
+	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
+	return autoConvert_v1beta1_DockerMachineTemplateResource_To_v1alpha3_DockerMachineTemplateResource(in, out, s)
 }

@@ -18,12 +18,14 @@ package v1beta1
 
 import (
 	"fmt"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -63,6 +65,11 @@ func (m *MachineSet) Default() {
 	if len(m.Spec.Selector.MatchLabels) == 0 && len(m.Spec.Selector.MatchExpressions) == 0 {
 		m.Spec.Selector.MatchLabels[MachineSetLabelName] = m.Name
 		m.Spec.Template.Labels[MachineSetLabelName] = m.Name
+	}
+
+	if m.Spec.Template.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Template.Spec.Version, "v") {
+		normalizedVersion := "v" + *m.Spec.Template.Spec.Version
+		m.Spec.Template.Spec.Version = &normalizedVersion
 	}
 }
 
@@ -109,6 +116,12 @@ func (m *MachineSet) validate(old *MachineSet) error {
 			allErrs,
 			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
 		)
+	}
+
+	if m.Spec.Template.Spec.Version != nil {
+		if !version.KubeSemver.MatchString(*m.Spec.Template.Spec.Version) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
+		}
 	}
 
 	if len(allErrs) == 0 {

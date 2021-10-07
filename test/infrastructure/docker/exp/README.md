@@ -8,7 +8,7 @@ In short, code in this subrepository is not subject to any compatibility or depr
 
 Experiments follow a strict lifecycle: Alpha -> Beta prior to Graduation.
 
-For more information on graduation criteria, see: [Contributing Guidelines](../CONTRIBUTING.md#experiments)
+For more information on graduation criteria, see: [Contributing Guidelines](../../../../CONTRIBUTING.md#experiments)
 
 ## Active Features
  DockerMachinePool  (alpha)

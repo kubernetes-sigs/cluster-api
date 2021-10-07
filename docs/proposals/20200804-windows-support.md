@@ -118,7 +118,7 @@ There is prior art for building Windows base images. For example, AKS-Engine has
 Another example is the the [sig-windows-tools](https://github.com/kubernetes-sigs/sig-windows-tools) which provide scripts for image configuration when using Kubeadm.
 
 Although the Linux implementation in image-builder uses Ansible for configuration, Windows isn't going to share
-the same configuration because [Ansible](https://docs.ansible.com/ansible/latest/user_guide/windows.html) requires [Windows specific modules](https://docs.ansible.com/ansible/latest/modules/list_of_windows_modules.html) to do the configuration. 
+the same configuration because [Ansible](https://docs.ansible.com/ansible/latest/user_guide/windows.html) requires [Windows specific modules](https://docs.ansible.com/ansible/2.9/modules/list_of_windows_modules.html) to do the configuration. 
 
 #### Kubelet and other component configuration
 
@@ -144,7 +144,7 @@ The conclusion of the [issue](https://github.com/kubernetes-sigs/cluster-api/iss
 
 By leveraging cloudbase-init, an infrastructure provider implementation will require only a few changes which include:
 
-- Make changes to their provider api to enable Windows OS infra machines ([example](https://github.com/ionutbalutoiu/cluster-api-provider-azure/commit/9c8daedac75959b141fec7ea909c2c1fd0bd484b))
+- Make changes to their provider api to enable Windows OS infra machines ([example](https://github.com/kubernetes-sigs/cluster-api-provider-azure/pull/1036/commits/e753a32fccdf6b825b606f12bb1acd6e34a70339#diff-492149096931cdfde8cf61676230879e41cfdb1afeb74784cdf85bca2272a1be))
 - Ensuring cloudbase-init is configured properly to read UserData which will contain the cloud-init script.  Users must configure 
 [cloudbase-init with a metadata service](https://cloudbase-init.readthedocs.io/en/latest/services.html#configuring-available-services) that has support for [UserData](https://cloudbase-init.readthedocs.io/en/latest/userdata.html) ([example](https://cloudbase-init.readthedocs.io/en/latest/tutorial.html#configuration-file)).
 

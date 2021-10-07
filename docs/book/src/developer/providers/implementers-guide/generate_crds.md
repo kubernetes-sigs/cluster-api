@@ -76,7 +76,7 @@ make manifests
 ```
 
 [status]:  https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#status-subresource
-[rbac]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.16/#customresourcesubresources-v1beta1-apiextensions-k8s-io
+[rbac]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#customresourcesubresources-v1beta1-apiextensions-k8s-io
 [kbstatus]: https://book.kubebuilder.io/reference/generating-crd.html?highlight=status#status
 
 ### Apply further customizations

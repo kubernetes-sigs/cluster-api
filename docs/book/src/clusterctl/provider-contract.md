@@ -135,7 +135,7 @@ While defining the Deployment Spec, the container that executes the controller b
 
 The manager MUST support a `--namespace` flag for specifying the namespace where the controller
 will look for objects to reconcile; however, clusterctl will always install providers watching for all namespaces 
-(`--namespace=""`); for more details see [support for multiple instances](../../developer/architecture/controllers/support-multiple-instances.md)
+(`--namespace=""`); for more details see [support for multiple instances](../developer/architecture/controllers/support-multiple-instances.md)
 for more context.
 
 #### Variables

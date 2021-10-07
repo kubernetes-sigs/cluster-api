@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
@@ -31,6 +31,13 @@ func TestMachineSetDefault(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-ms",
 		},
+		Spec: MachineSetSpec{
+			Template: MachineTemplateSpec{
+				Spec: MachineSpec{
+					Version: pointer.String("1.19.10"),
+				},
+			},
+		},
 	}
 	t.Run("for MachineSet", utildefaulting.DefaultValidateTest(ms))
 	ms.Default()
@@ -39,6 +46,7 @@ func TestMachineSetDefault(t *testing.T) {
 	g.Expect(ms.Spec.DeletePolicy).To(Equal(string(RandomMachineSetDeletePolicy)))
 	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
 	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
+	g.Expect(*ms.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
 }
 
 func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
@@ -147,6 +155,64 @@ func TestMachineSetClusterNameImmutable(t *testing.T) {
 				g.Expect(newMS.ValidateUpdate(oldMS)).NotTo(Succeed())
 			} else {
 				g.Expect(newMS.ValidateUpdate(oldMS)).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestMachineSetVersionValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		version   string
+		expectErr bool
+	}{
+		{
+			name:      "should succeed when given a valid semantic version with prepended 'v'",
+			version:   "v1.19.2",
+			expectErr: false,
+		},
+		{
+			name:      "should return error when given a valid semantic version without 'v'",
+			version:   "1.19.2",
+			expectErr: true,
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			version:   "1",
+			expectErr: true,
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			version:   "v1",
+			expectErr: true,
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			version:   "wrong_version",
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			md := &MachineSet{
+				Spec: MachineSetSpec{
+					Template: MachineTemplateSpec{
+						Spec: MachineSpec{
+							Version: pointer.String(tt.version),
+						},
+					},
+				},
+			}
+
+			if tt.expectErr {
+				g.Expect(md.ValidateCreate()).NotTo(Succeed())
+				g.Expect(md.ValidateUpdate(md)).NotTo(Succeed())
+			} else {
+				g.Expect(md.ValidateCreate()).To(Succeed())
+				g.Expect(md.ValidateUpdate(md)).To(Succeed())
 			}
 		})
 	}

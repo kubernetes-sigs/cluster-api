@@ -61,10 +61,12 @@ import (
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
-	Client           client.Client
-	controller       controller.Controller
-	recorder         record.EventRecorder
-	Tracker          *remote.ClusterCacheTracker
+	Client     client.Client
+	controller controller.Controller
+	recorder   record.EventRecorder
+	Tracker    *remote.ClusterCacheTracker
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
 	managementCluster         internal.ManagementCluster

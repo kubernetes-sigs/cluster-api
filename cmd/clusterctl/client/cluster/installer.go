@@ -258,7 +258,7 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 func simulateInstall(providerList *clusterctlv1.ProviderList, components repository.Components) (*clusterctlv1.ProviderList, error) {
 	provider := components.InventoryObject()
 
-	existingInstances := providerList.FilterByProviderNameAndType(provider.ProviderName, provider.GetProviderType())
+	existingInstances := providerList.FilterByProviderNameTypeAndNamespace(provider.ProviderName, provider.GetProviderType(), provider.Namespace)
 	if len(existingInstances) > 0 {
 		return providerList, errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.ManifestLabel(), provider.Namespace)
 	}

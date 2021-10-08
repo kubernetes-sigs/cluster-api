@@ -341,7 +341,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		for i := range dataList {
 			data := dataList[i]
 
-			if err := apply(ctx, remoteClient, data); err != nil {
+			if err := apply(ctx, remoteClient, cluster, data); err != nil {
 				isSuccessful = false
 				log.Error(err, "failed to apply ClusterResourceSet resource", "Resource kind", resource.Kind, "Resource name", resource.Name)
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())

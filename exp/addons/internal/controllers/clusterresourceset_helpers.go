@@ -55,7 +55,7 @@ func isJSONList(data []byte) (bool, error) {
 	return bytes.HasPrefix(trim, jsonListPrefix), nil
 }
 
-func apply(ctx context.Context, c client.Client, data []byte) error {
+func apply(ctx context.Context, c client.Client, cl *clusterv1.Cluster, data []byte) error {
 	isJSONList, err := isJSONList(data)
 	if err != nil {
 		return err
@@ -83,7 +83,12 @@ func apply(ctx context.Context, c client.Client, data []byte) error {
 	errList := []error{}
 	sortedObjs := utilresource.SortForCreate(objs)
 	for i := range sortedObjs {
-		if err := applyUnstructured(ctx, c, &objs[i]); err != nil {
+		patched, err := renderTemplates(cl, &objs[i])
+		if err != nil {
+			errList = append(errList, err)
+			continue
+		}
+		if err := applyUnstructured(ctx, c, patched); err != nil {
 			errList = append(errList, err)
 		}
 	}

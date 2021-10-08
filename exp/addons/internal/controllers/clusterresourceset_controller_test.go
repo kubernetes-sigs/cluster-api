@@ -327,7 +327,9 @@ metadata:
 				Name:      newCMName,
 				Namespace: ns.Name,
 			},
-			Data: map[string]string{},
+			Data: map[string]string{
+				"testing.yaml": "kind: ConfigMap\napiVersion: v1\nmetadata:\n name: demo-configmap\n namespace: " + ns.Name + "\ndata:\n testing: '{{ .ObjectMeta.Name }}'\n",
+			},
 		}
 		g.Expect(env.Create(ctx, newConfigmap)).To(Succeed())
 		defer func() {
@@ -364,6 +366,20 @@ metadata:
 			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
 			return apierrors.IsNotFound(err)
 		}, timeout).Should(BeTrue())
+
+		configMapKey := client.ObjectKey{
+			Name:      "demo-configmap",
+			Namespace: ns.Name,
+		}
+		g.Eventually(func() bool {
+			cm := &corev1.ConfigMap{}
+			err := env.Get(ctx, configMapKey, cm)
+			if err != nil {
+				return false
+			}
+			return cm.Data["testing"] == testCluster.GetName()
+		}, timeout).Should(BeTrue())
+
 	})
 
 	t.Run("Should reconcile a ClusterResourceSet when a Secret resource is created that is part of ClusterResourceSet resources", func(t *testing.T) {

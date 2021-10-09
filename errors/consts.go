@@ -103,6 +103,14 @@ const (
 	// DeleteClusterError indicates that an error was encountered
 	// when trying to delete the cluster.
 	DeleteClusterError ClusterStatusError = "DeleteError"
+
+	// ErrNoCluster is returned when the cluster
+	// label could not be found on the object passed in.
+	ErrNoCluster ClusterStatusError = "ErrNoCluster"
+
+	// ErrUnstructuredFieldNotFound determines that a field
+	// in an unstructured object could not be found.
+	ErrUnstructuredFieldNotFound ClusterStatusError = "ErrUnstructuredFieldNotFound"
 )
 
 // MachineSetStatusError defines errors states for MachineSet objects.

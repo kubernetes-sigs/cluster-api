@@ -128,18 +128,6 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "install another instance of infra1/current contract on a cluster already initialized with core/current contract + infra1/current contract",
-			fields: fields{
-				proxy: test.NewFakeProxy().
-					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
-					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns1"),
-				installQueue: []repository.Components{
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns2"),
-				},
-			},
-			wantErr: true,
-		},
-		{
 			name: "install another instance of infra1/current contract on a cluster already initialized with core/current contract + infra1/current contract, same namespace of the existing infra1",
 			fields: fields{
 				proxy: test.NewFakeProxy().
@@ -161,7 +149,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "n2"),
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "install core/previous contract + infra1/previous contract on an empty cluster (not supported)",

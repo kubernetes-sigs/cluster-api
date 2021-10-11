@@ -1174,6 +1174,13 @@ func TestTemplateToTemplate(t *testing.T) {
 	template := builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infrastructureClusterTemplate").
 		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
+	annotations := template.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[corev1.LastAppliedConfigAnnotation] = "foo"
+	template.SetAnnotations(annotations)
+
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster1",
@@ -1282,6 +1289,7 @@ func assertTemplateToTemplate(g *WithT, in assertTemplateInput) {
 	}
 	g.Expect(in.obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, in.templateRef.GroupVersionKind().GroupKind().String()))
 	g.Expect(in.obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, in.templateRef.Name))
+	g.Expect(in.obj.GetAnnotations()).ToNot(HaveKey(corev1.LastAppliedConfigAnnotation))
 	for k, v := range in.annotations {
 		g.Expect(in.obj.GetAnnotations()).To(HaveKeyWithValue(k, v))
 	}

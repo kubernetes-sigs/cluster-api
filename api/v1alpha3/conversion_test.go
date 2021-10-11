@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
@@ -32,6 +33,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:                &v1beta1.Cluster{},
 		Spoke:              &Cluster{},
 		SpokeAfterMutation: clusterSpokeAfterMutation,
+		FuzzerFuncs:        []fuzzer.FuzzerFuncs{ClusterJSONFuzzFuncs},
 	}))
 
 	t.Run("for Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -122,4 +124,17 @@ func clusterSpokeAfterMutation(c conversion.Convertible) {
 
 	// Point cluster.Status.Conditions and our slice that does not have ControlPlaneInitializedCondition
 	cluster.Status.Conditions = tmp
+}
+
+func ClusterJSONFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		ClusterVariableFuzzer,
+	}
+}
+
+func ClusterVariableFuzzer(in *v1beta1.ClusterVariable, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
+	in.Value = apiextensionsv1.JSON{Raw: []byte("\"test-string\"")}
 }

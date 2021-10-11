@@ -19,19 +19,43 @@ package v1alpha4
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.Cluster)
 
-	return Convert_v1alpha4_Cluster_To_v1beta1_Cluster(src, dst, nil)
+	if err := Convert_v1alpha4_Cluster_To_v1beta1_Cluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1beta1.Cluster{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.Topology != nil {
+		dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
+	}
+
+	return nil
 }
 
 func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.Cluster)
 
-	return Convert_v1beta1_Cluster_To_v1alpha4_Cluster(src, dst, nil)
+	if err := Convert_v1beta1_Cluster_To_v1alpha4_Cluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *ClusterList) ConvertTo(dstRaw conversion.Hub) error {
@@ -49,13 +73,35 @@ func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.ClusterClass)
 
-	return Convert_v1alpha4_ClusterClass_To_v1beta1_ClusterClass(src, dst, nil)
+	if err := Convert_v1alpha4_ClusterClass_To_v1beta1_ClusterClass(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1beta1.ClusterClass{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Patches = restored.Spec.Patches
+	dst.Spec.Variables = restored.Spec.Variables
+
+	return nil
 }
 
 func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.ClusterClass)
 
-	return Convert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(src, dst, nil)
+	if err := Convert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *ClusterClassList) ConvertTo(dstRaw conversion.Hub) error {
@@ -169,4 +215,14 @@ func (dst *MachineHealthCheckList) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *v1beta1.MachineStatus, s apiconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
 	return autoConvert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
+}
+
+func Convert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *v1beta1.ClusterClassSpec, out *ClusterClassSpec, s apiconversion.Scope) error {
+	// spec.{variables,patches} has been added with v1beta1.
+	return autoConvert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in, out, s)
+}
+
+func Convert_v1beta1_Topology_To_v1alpha4_Topology(in *v1beta1.Topology, out *Topology, s apiconversion.Scope) error {
+	// spec.topology.variables has been added with v1beta1.
+	return autoConvert_v1beta1_Topology_To_v1alpha4_Topology(in, out, s)
 }

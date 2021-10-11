@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
@@ -90,6 +91,12 @@ type Topology struct {
 	// for the cluster.
 	// +optional
 	Workers *WorkersTopology `json:"workers,omitempty"`
+
+	// Variables can be used to customize the Cluster through
+	// patches. They must comply to the corresponding
+	// VariableClasses defined in the ClusterClass.
+	// +optional
+	Variables []ClusterVariable `json:"variables,omitempty"`
 }
 
 // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
@@ -142,6 +149,23 @@ type MachineDeploymentTopology struct {
 	// of this value.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+}
+
+// ClusterVariable can be used to customize the Cluster through
+// patches. It must comply to the corresponding
+// ClusterClassVariable defined in the ClusterClass.
+type ClusterVariable struct {
+	// Name of the variable.
+	Name string `json:"name"`
+
+	// Value of the variable.
+	// Note: the value will be validated against the schema of the corresponding ClusterClassVariable
+	// from the ClusterClass.
+	// Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a
+	// hard-coded schema for apiextensionsv1.JSON which cannot be produced by another type via controller-tools,
+	// i.e. it's not possible to have no type field.
+	// Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111
+	Value apiextensionsv1.JSON `json:"value"`
 }
 
 // ANCHOR_END: ClusterSpec

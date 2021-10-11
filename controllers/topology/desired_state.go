@@ -578,13 +578,15 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	template.SetLabels(labels)
 
-	// Enforce cloned from annotations.
+	// Enforce cloned from annotations and removes the kubectl last-applied-configuration annotation
+	// because we don't want to propagate it to the cloned template objects.
 	annotations := template.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
 	annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.templateClonedFromRef.Name
 	annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.templateClonedFromRef.GroupVersionKind().GroupKind().String()
+	delete(annotations, corev1.LastAppliedConfigAnnotation)
 	template.SetAnnotations(annotations)
 
 	// Ensure the generated template gets a meaningful name.

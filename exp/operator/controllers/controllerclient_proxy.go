@@ -27,6 +27,7 @@ func (k *controllerProxy) ValidateKubernetesVersion() error            { return 
 func (k *controllerProxy) GetConfig() (*rest.Config, error)            { return k.ctrlConfig, nil }
 func (k *controllerProxy) NewClient() (client.Client, error)           { return k.ctrlClient, nil }
 func (k *controllerProxy) GetContexts(prefix string) ([]string, error) { return nil, nil }
+func (k *controllerProxy) CheckClusterAvailable() error                { return nil }
 
 // GetResourceNames returns the list of resource names which begin with prefix.
 func (k *controllerProxy) GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error) {

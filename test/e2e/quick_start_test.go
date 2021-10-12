@@ -20,6 +20,7 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
@@ -31,6 +32,21 @@ var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", fun
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
+		}
+	})
+
+})
+
+var _ = Describe("When following the Cluster API quick-start with ClusterClass", func() {
+
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                pointer.String("topology"),
 		}
 	})
 

@@ -44,6 +44,9 @@ type Helper struct {
 
 	// patch holds the merge patch in json format.
 	patch []byte
+
+	// hasSpecChanges documents if the patch impacts the object spec
+	hasSpecChanges bool
 }
 
 // NewHelper will return a patch that yields the modified document when applied to the original document.
@@ -81,25 +84,27 @@ func NewHelper(original, modified client.Object, c client.Client, opts ...Helper
 
 	// We should consider only the changes that are relevant for the topology, removing
 	// changes for metadata fields computed by the system or changes to the  status.
-	patch, err := filterPatch(rawPatch, allowedPaths, helperOptions.ignorePaths)
+	patch, hasSpecChanges, err := filterPatch(rawPatch, allowedPaths, helperOptions.ignorePaths)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to remove fields merge patch")
 	}
 
 	return &Helper{
-		client:   c,
-		patch:    patch,
-		original: original,
+		client:         c,
+		patch:          patch,
+		hasSpecChanges: hasSpecChanges,
+		original:       original,
 	}, nil
 }
 
-// filterPatch removes from the patch diffs not in the allowed paths.
-func filterPatch(patch []byte, allowedPaths, ignorePaths []contract.Path) ([]byte, error) {
+// filterPatch removes from the patch diffs not in the allowed paths;
+// it also return a flag indicating if the resulting patch has spec changes or not.
+func filterPatch(patch []byte, allowedPaths, ignorePaths []contract.Path) ([]byte, bool, error) {
 	// converts the patch into a Map
 	patchMap := make(map[string]interface{})
-	err := json.Unmarshal(patch, &patchMap)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal merge patch")
+
+	if err := json.Unmarshal(patch, &patchMap); err != nil {
+		return nil, false, errors.Wrap(err, "failed to unmarshal merge patch")
 	}
 
 	// Removes from diffs everything not in the allowed paths.
@@ -110,12 +115,15 @@ func filterPatch(patch []byte, allowedPaths, ignorePaths []contract.Path) ([]byt
 		removePath(patchMap, path)
 	}
 
+	// check if the changes impact the spec field.
+	hasSpecChanges := patchMap["spec"] != nil
+
 	// converts Map back into the patch
-	patch, err = json.Marshal(&patchMap)
+	filteredPatch, err := json.Marshal(&patchMap)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal merge patch")
+		return nil, false, errors.Wrap(err, "failed to marshal merge patch")
 	}
-	return patch, nil
+	return filteredPatch, hasSpecChanges, nil
 }
 
 // filterPatch removes from the patchMap diffs not in the allowed paths.
@@ -183,6 +191,11 @@ func removePath(patchMap map[string]interface{}, path contract.Path) {
 			delete(patchMap, path[0])
 		}
 	}
+}
+
+// HasSpecChanges return true if the patch has changes to the spec field.
+func (h *Helper) HasSpecChanges() bool {
+	return h.hasSpecChanges
 }
 
 // HasChanges return true if the patch has changes.

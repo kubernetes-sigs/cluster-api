@@ -372,6 +372,16 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 		return cleanupFunc, nil
 	}
 
+	// If there are no changes in the spec, and thus only changes in metadata, instead of doing a full template
+	// rotation we patch the object in place. This avoids recreating machines.
+	if !patchHelper.HasSpecChanges() {
+		log.Infof("Patching %s", tlog.KObj{Obj: in.desired})
+		if err := patchHelper.Patch(ctx); err != nil {
+			return nil, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: in.desired})
+		}
+		return cleanupFunc, nil
+	}
+
 	// Create the new template.
 
 	// NOTE: it is required to assign a new name, because during compute the desired object name is enforced to be equal to the current one.

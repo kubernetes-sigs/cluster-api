@@ -547,6 +547,8 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	}
 }
 func TestReconcileMachineDeployments(t *testing.T) {
+	g := NewWithT(t)
+
 	infrastructureMachineTemplate1 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
 	bootstrapTemplate1 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
 	md1 := newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate1, bootstrapTemplate1)
@@ -555,14 +557,14 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	bootstrapTemplate2 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-2").Build()
 	md2 := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2, bootstrapTemplate2)
 	infrastructureMachineTemplate2WithChanges := infrastructureMachineTemplate2.DeepCopy()
-	infrastructureMachineTemplate2WithChanges.SetLabels(map[string]string{"foo": "bar"})
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate2WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
 	md2WithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2WithChanges, bootstrapTemplate2)
 
 	infrastructureMachineTemplate3 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-3").Build()
 	bootstrapTemplate3 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-3").Build()
 	md3 := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3)
 	bootstrapTemplate3WithChanges := bootstrapTemplate3.DeepCopy()
-	bootstrapTemplate3WithChanges.SetLabels(map[string]string{"foo": "bar"})
+	g.Expect(unstructured.SetNestedField(bootstrapTemplate3WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
 	md3WithRotatedBootstrapTemplate := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3WithChanges)
 	bootstrapTemplate3WithChangeKind := bootstrapTemplate3.DeepCopy()
 	bootstrapTemplate3WithChangeKind.SetKind("AnotherGenericBootstrapTemplate")
@@ -572,10 +574,19 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	bootstrapTemplate4 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4").Build()
 	md4 := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4, bootstrapTemplate4)
 	infrastructureMachineTemplate4WithChanges := infrastructureMachineTemplate4.DeepCopy()
-	infrastructureMachineTemplate4WithChanges.SetLabels(map[string]string{"foo": "bar"})
-	bootstrapTemplate4WithChanges := bootstrapTemplate3.DeepCopy()
-	bootstrapTemplate4WithChanges.SetLabels(map[string]string{"foo": "bar"})
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate4WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
+	bootstrapTemplate4WithChanges := bootstrapTemplate4.DeepCopy()
+	g.Expect(unstructured.SetNestedField(bootstrapTemplate4WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
 	md4WithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4WithChanges, bootstrapTemplate4WithChanges)
+
+	infrastructureMachineTemplate4m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-4m").Build()
+	bootstrapTemplate4m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4m").Build()
+	md4m := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4m, bootstrapTemplate4m)
+	infrastructureMachineTemplate4mWithChanges := infrastructureMachineTemplate4m.DeepCopy()
+	infrastructureMachineTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
+	bootstrapTemplate4mWithChanges := bootstrapTemplate4m.DeepCopy()
+	bootstrapTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
+	md4mWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4mWithChanges, bootstrapTemplate4mWithChanges)
 
 	infrastructureMachineTemplate5 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-5").Build()
 	bootstrapTemplate5 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-5").Build()
@@ -605,9 +616,9 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	bootstrapTemplate8Update := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-update").Build()
 	md8Update := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8Update, bootstrapTemplate8Update)
 	infrastructureMachineTemplate8UpdateWithChanges := infrastructureMachineTemplate8Update.DeepCopy()
-	infrastructureMachineTemplate8UpdateWithChanges.SetLabels(map[string]string{"foo": "bar"})
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
 	bootstrapTemplate8UpdateWithChanges := bootstrapTemplate3.DeepCopy()
-	bootstrapTemplate8UpdateWithChanges.SetLabels(map[string]string{"foo": "bar"})
+	g.Expect(unstructured.SetNestedField(bootstrapTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
 	md8UpdateWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8UpdateWithChanges, bootstrapTemplate8UpdateWithChanges)
 
 	tests := []struct {
@@ -665,6 +676,13 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			wantInfrastructureMachineTemplateRotation: map[string]bool{"md-4": true},
 			wantBootstrapTemplateRotation:             map[string]bool{"md-4": true},
 			wantErr:                                   false,
+		},
+		{
+			name:    "Should update MachineDeployment with InfrastructureMachineTemplate and BootstrapTemplate without rotation",
+			current: []*scope.MachineDeploymentState{md4m},
+			desired: []*scope.MachineDeploymentState{md4mWithRotatedTemplates},
+			want:    []*scope.MachineDeploymentState{md4m},
+			wantErr: false,
 		},
 		{
 			name:    "Should fail update MachineDeployment because of changed InfrastructureMachineTemplate kind",
@@ -764,6 +782,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					// We don't want to compare resourceVersions as they are slightly different between the test cases
 					// and it's not worth the effort.
 					gotBootstrapTemplate.SetResourceVersion("")
+					wantMachineDeploymentState.BootstrapTemplate.SetResourceVersion("")
 					g.Expect(gotBootstrapTemplate).To(Equal(*wantMachineDeploymentState.BootstrapTemplate))
 
 					// Check BootstrapTemplate rotation if there was a previous MachineDeployment/Template.
@@ -790,6 +809,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					// We don't want to compare resourceVersions as they are slightly different between the test cases
 					// and it's not worth the effort.
 					gotInfrastructureMachineTemplate.SetResourceVersion("")
+					wantMachineDeploymentState.InfrastructureMachineTemplate.SetResourceVersion("")
 					g.Expect(gotInfrastructureMachineTemplate).To(Equal(*wantMachineDeploymentState.InfrastructureMachineTemplate))
 
 					// Check InfrastructureMachineTemplate rotation if there was a previous MachineDeployment/Template.

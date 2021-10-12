@@ -107,10 +107,6 @@ const (
 	// ErrNoCluster is returned when the cluster
 	// label could not be found on the object passed in.
 	ErrNoCluster ClusterStatusError = "ErrNoCluster"
-
-	// ErrUnstructuredFieldNotFound determines that a field
-	// in an unstructured object could not be found.
-	ErrUnstructuredFieldNotFound ClusterStatusError = "ErrUnstructuredFieldNotFound"
 )
 
 // MachineSetStatusError defines errors states for MachineSet objects.
@@ -163,4 +159,13 @@ const (
 	// DeleteKubeadmControlPlaneError indicates that an error was encountered
 	// when trying to delete the kubeadm control plane.
 	DeleteKubeadmControlPlaneError KubeadmControlPlaneStatusError = "DeleteError"
+)
+
+// UnstructuredFieldError defines errors states for UnStructured Fields errors
+type UnstructuredFieldError string
+
+const (
+	// ErrUnstructuredFieldNotFound determines that a field
+	// in an unstructured object could not be found.
+	ErrUnstructuredFieldNotFound UnstructuredFieldError = "ErrUnstructuredFieldNotFound"
 )

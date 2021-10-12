@@ -68,11 +68,3 @@ func ClusterNotFound(format string, args ...interface{}) *ClusterError {
 		Message: fmt.Sprintf(format, args...),
 	}
 }
-
-// ClusterFieldNotFound creates a new error when cluster is not found
-func ClusterFieldNotFound(format string, args ...interface{}) *ClusterError {
-	return &ClusterError{
-		Reason:  ErrUnstructuredFieldNotFound,
-		Message: fmt.Sprintf(format, args...),
-	}
-}

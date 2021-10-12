@@ -54,10 +54,12 @@ const (
 var (
 	rnd = rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
 
+	// Deprecated: This field has no function and is going to be removed in a next release.
 	// ErrNoCluster is returned when the cluster
 	// label could not be found on the object passed in.
 	ErrNoCluster = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 
+	// Deprecated: This field has no function and is going to be removed in a next release.
 	// ErrUnstructuredFieldNotFound determines that a field
 	// in an unstructured object could not be found.
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")

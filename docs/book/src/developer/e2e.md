@@ -145,7 +145,7 @@ defined in the [Cluster API test framework] to check if the operation completed 
 
 ### Naming the test spec
 
-You can categorize the test with a custom label that can be used to filter a category of E2E tests to be run. Currently, the cluster-api codebase has [these labels](./testing.html#running-specific-tests) which are used to run a focused subset of tests.
+You can categorize the test with a custom label that can be used to filter a category of E2E tests to be run. Currently, the cluster-api codebase has [these labels](./testing.md#running-specific-tests) which are used to run a focused subset of tests.
 
 ## Tear down
 

@@ -61,7 +61,7 @@ The ClusterClass - first in the yaml below - contains references to the template
   * DockerMachineTemplate
   * KubeadmConfigTemplate
 
-The full ClusterClass definition can also be found in the [CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass.yaml).
+The full ClusterClass definition can also be found in the [CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass.yaml).
 
 <details><summary>ClusterClass</summary>
 
@@ -75,14 +75,14 @@ The full ClusterClass definition can also be found in the [CAPI repo](https://ra
 To create the objects on your local cluster run:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass.yaml 
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass.yaml 
 ```
 
 #### Enable networking for workload clusters
 
 To make sure workload clusters come up with a functioning network a Kindnet ConfigMap with a Kindnet ClusterResourceSet is required. Kindnet only offers networking for Clusters built with Kind and CAPD. This can be substituted for any other networking solution for Kubernetes e.g. Calico as used in the Quickstart guide.
 
-The kindnet configuration file can be found in the [CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass.yaml).
+The kindnet configuration file can be found in the [CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass.yaml).
 
 To create the resources run:
 ```bash
@@ -100,10 +100,10 @@ This is a Cluster definition that leverages the ClusterClass created above to de
 ```
 </details>
 
-Create the Cluster object from the file in [the CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass-quickstart.yaml) with:
+Create the Cluster object from the file in [the CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass-quickstart.yaml) with:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/clusterclass-quickstart.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass-quickstart.yaml
 ```
 
 #### Verify the workload cluster is running

@@ -274,7 +274,7 @@ func (e *Environment) start(ctx context.Context) {
 			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
 		}
 	}()
-	e.Manager.Elected()
+	<-e.Manager.Elected()
 	e.WaitForWebhooks()
 }
 

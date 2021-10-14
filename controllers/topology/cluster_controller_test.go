@@ -33,7 +33,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestClusterReconciler_reconcile(t *testing.T) {
+var (
+	clusterName1                       = "cluster1"
+	clusterName2                       = "cluster2"
+	clusterClassName                   = "class1"
+	infrastructureMachineTemplateName2 = "otherinframachinetemplate"
+)
+
+func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
 	g := NewWithT(t)
 	timeout := 5 * time.Second
@@ -41,17 +48,262 @@ func TestClusterReconciler_reconcile(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "test-topology-cluster-reconcile")
 	g.Expect(err).ToNot(HaveOccurred())
 
-	clusterName := "cluster1"
-	clusterClassName := "class1"
+	// Create the objects needed for the integration test:
+	// - a ClusterClass with all the related templates
+	// - a Cluster using the above ClusterClass
+	cleanup, err := setupTestEnvForIntegrationTests(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Defer a cleanup function that deletes each of the objects created during setupTestEnvForIntegrationTests.
+	defer func() {
+		g.Expect(cleanup()).To(Succeed())
+	}()
+
+	g.Eventually(func(g Gomega) error {
+		// Get the cluster object.
+		actualCluster := &clusterv1.Cluster{}
+		if err := env.Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, actualCluster); err != nil {
+			return err
+		}
+
+		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
+		g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+
+		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
+		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+
+		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
+		g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+
+		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
+		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+
+		return nil
+	}, timeout).Should(Succeed())
+}
+
+func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	g := NewWithT(t)
+	timeout := 5 * time.Second
+
+	ns, err := env.CreateNamespace(ctx, "test-topology-cluster-reconcile")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create the objects needed for the integration test:
+	// - a ClusterClass with all the related templates
+	// - a Cluster using the above ClusterClass
+	// - a second Cluster using the same ClusterClass
+	cleanup, err := setupTestEnvForIntegrationTests(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Defer a cleanup function that deletes each of the objects created during setupTestEnvForIntegrationTests.
+	defer func() {
+		g.Expect(cleanup()).To(Succeed())
+	}()
+
+	// Check to see that both clusters were correctly created and reconciled using the existing clusterClass.
+	g.Eventually(func(g Gomega) error {
+		for _, name := range []string{clusterName1, clusterName2} {
+			// Get the cluster object.
+			actualCluster := &clusterv1.Cluster{}
+			if err := env.Get(ctx, client.ObjectKey{Name: name, Namespace: ns.Name}, actualCluster); err != nil {
+				return err
+			}
+
+			// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
+			g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+
+			// Check if InfrastructureCluster has been created and has the correct labels and annotations.
+			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+
+			// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
+			g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+
+			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
+			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+		}
+		return nil
+	}, timeout).Should(Succeed())
+}
+
+func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	g := NewWithT(t)
+	timeout := 300 * time.Second
+
+	ns, err := env.CreateNamespace(ctx, "test-topology-cluster-reconcile")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create the objects needed for the integration test:
+	// - a ClusterClass with all the related templates
+	// - a Cluster using the above ClusterClass
+	cleanup, err := setupTestEnvForIntegrationTests(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Defer a cleanup function that deletes each of the objects created during setupTestEnvForIntegrationTests.
+	defer func() {
+		g.Expect(cleanup()).To(Succeed())
+	}()
+
+	actualCluster := &clusterv1.Cluster{}
+	// First ensure that the initial cluster and other objects are created and populated as expected.
+	g.Eventually(func(g Gomega) error {
+		// Get the cluster object now including the updated replica number for the Machine deployment.
+		if err := env.Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, actualCluster); err != nil {
+			return err
+		}
+
+		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
+		g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+
+		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
+		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+
+		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
+		g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+
+		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
+		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+		return nil
+	}, timeout).Should(Succeed())
+
+	// Change the replicas field in the managed topology of our cluster and update the object in the API.
+	replicas := int32(100)
+	clusterWithTopologyChange := actualCluster.DeepCopy()
+	clusterWithTopologyChange.Spec.Topology.Workers.MachineDeployments[0].Replicas = &replicas
+	g.Expect(env.Update(ctx, clusterWithTopologyChange)).Should(Succeed())
+
+	// Check to ensure all objects are correctly reconciled with the new MachineDeployment replica count in Topology.
+	g.Eventually(func(g Gomega) error {
+		// Get the cluster object.
+		updatedCluster := &clusterv1.Cluster{}
+		if err := env.Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, updatedCluster); err != nil {
+			return err
+		}
+
+		// Check to ensure the replica count has been successfully updated in the API server and cache.
+		g.Expect(updatedCluster.Spec.Topology.Workers.MachineDeployments[0].Replicas).To(Equal(&replicas))
+
+		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
+		g.Expect(assertClusterReconcile(updatedCluster)).Should(Succeed())
+
+		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
+		g.Expect(assertInfrastructureClusterReconcile(updatedCluster)).Should(Succeed())
+
+		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
+		g.Expect(assertControlPlaneReconcile(updatedCluster)).Should(Succeed())
+
+		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
+		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).Should(Succeed())
+		return nil
+	}, timeout).Should(Succeed())
+}
+
+func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	g := NewWithT(t)
+	timeout := 5 * time.Second
+
+	ns, err := env.CreateNamespace(ctx, "test-topology-cluster-reconcile")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create the objects needed for the integration test:
+	// - a ClusterClass with all the related templates
+	// - a Cluster using the above ClusterClass
+	// - a second Cluster using the same ClusterClass
+	cleanup, err := setupTestEnvForIntegrationTests(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Defer a cleanup function that deletes each of the objects created during setupTestEnvForIntegrationTests.
+	defer func() {
+		g.Expect(cleanup()).To(Succeed())
+	}()
+
+	actualCluster := &clusterv1.Cluster{}
+
+	g.Eventually(func(g Gomega) error {
+		for _, name := range []string{clusterName1, clusterName2} {
+			// Get the cluster object.
+			if err := env.Get(ctx, client.ObjectKey{Name: name, Namespace: ns.Name}, actualCluster); err != nil {
+				return err
+			}
+
+			// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
+			g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+
+			// Check if InfrastructureCluster has been created and has the correct labels and annotations.
+			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+
+			// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
+			g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+
+			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
+			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+		}
+		return nil
+	}, timeout).Should(Succeed())
+
+	// Get the clusterClass to update and check if clusterClass updates are being correctly reconciled.
+	clusterClass := &clusterv1.ClusterClass{}
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, clusterClass)).To(Succeed())
+
+	// Change the infrastructureMachineTemplateName for the first of our machineDeployment and update in the API.
+	clusterClass.Spec.Workers.MachineDeployments[0].Template.Infrastructure.Ref.Name = infrastructureMachineTemplateName2
+	g.Expect(env.Update(ctx, clusterClass.DeepCopy())).To(Succeed())
+
+	g.Eventually(func(g Gomega) error {
+		// Check that the clusterClass has been correctly updated to use the new infrastructure template.
+		// This is necessary as sometimes the cache can take a little time to update.
+		class := &clusterv1.ClusterClass{}
+		g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, class)).To(Succeed())
+		g.Expect(class.Spec.Workers.MachineDeployments[0].Template.Infrastructure.Ref.Name).To(Equal(infrastructureMachineTemplateName2))
+
+		// For each cluster check that the clusterClass changes have been correctly reconciled.
+		for _, name := range []string{clusterName1, clusterName2} {
+			// Get the cluster object.
+			actualCluster = &clusterv1.Cluster{}
+
+			if err := env.Get(ctx, client.ObjectKey{Name: name, Namespace: ns.Name}, actualCluster); err != nil {
+				return err
+			}
+			// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
+			g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+
+			// Check if InfrastructureCluster has been created and has the correct labels and annotations.
+			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+
+			// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
+			g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+
+			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
+			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+		}
+		return nil
+	}, timeout).Should(Succeed())
+}
+
+// setupTestEnvForIntegrationTests builds and then creates in the envtest API server all objects required at init time for each of the
+// integration tests in this file. This includes:
+// - a ClusterClass with all the related templates
+// - a first Cluster using the above ClusterClass
+// - a second Cluster using the above ClusterClass, but with different version/Machine deployment definition
+// NOTE: The objects are created for every test, though some may not be used in every test.
+func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error) {
 	workerClassName1 := "linux-worker"
 	workerClassName2 := "windows-worker"
-
 	// The below objects are created in order to feed the reconcile loop all the information it needs to create a full
 	// Cluster given a skeletal Cluster object and a ClusterClass. The objects include:
 
 	// 1) Templates for Machine, Cluster, ControlPlane and Bootstrap.
 	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(ns.Name, "inframachinetemplate").Build()
+	infrastructureMachineTemplate2 := builder.InfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName2).
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		Build()
+
 	infrastructureClusterTemplate := builder.InfrastructureClusterTemplate(ns.Name, "infraclustertemplate").
+		// Create spec fake setting to assert that template spec is non-empty for tests.
+		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 	controlPlaneTemplate := builder.ControlPlaneTemplate(ns.Name, "cp1").
 		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
@@ -78,8 +330,8 @@ func TestClusterReconciler_reconcile(t *testing.T) {
 		WithWorkerMachineDeploymentClasses([]clusterv1.MachineDeploymentClass{*machineDeploymentClass1, *machineDeploymentClass2}).
 		Build()
 
-	// 3) A Cluster object including a Cluster Topology Object and the MachineDeploymentTopology objects used in the
-	// Cluster Topology.
+	// 3) Two Clusters including a Cluster Topology objects and the MachineDeploymentTopology objects used in the
+	// Cluster Topology. The second cluster differs from the first both in version and in its MachineDeployment definition.
 	machineDeploymentTopology1 := builder.MachineDeploymentTopology("mdm1").
 		WithClass(workerClassName1).
 		WithReplicas(3).
@@ -88,7 +340,8 @@ func TestClusterReconciler_reconcile(t *testing.T) {
 		WithClass(workerClassName2).
 		WithReplicas(1).
 		Build()
-	cluster := builder.Cluster(ns.Name, clusterName).
+
+	cluster1 := builder.Cluster(ns.Name, clusterName1).
 		WithTopology(
 			builder.ClusterTopology().
 				WithClass(clusterClass.Name).
@@ -99,47 +352,44 @@ func TestClusterReconciler_reconcile(t *testing.T) {
 				Build()).
 		Build()
 
-	// Create a set of initObjects from the objects above to add to the API server when the test environment starts.
+	cluster2 := builder.Cluster(ns.Name, clusterName2).
+		WithTopology(
+			builder.ClusterTopology().
+				WithClass(clusterClass.Name).
+				WithMachineDeployment(machineDeploymentTopology2).
+				WithVersion("1.21.0").
+				WithControlPlaneReplicas(1).
+				Build()).
+		Build()
+
+	// Create a set of setupTestEnvForIntegrationTests from the objects above to add to the API server when the test environment starts.
+	// The objects are created for every test, though some e.g. infrastructureMachineTemplate2 may not be used in every test.
 	initObjs := []client.Object{
 		clusterClass,
-		cluster,
+		cluster1,
+		cluster2,
 		infrastructureClusterTemplate,
 		infrastructureMachineTemplate,
+		infrastructureMachineTemplate2,
 		bootstrapTemplate,
 		controlPlaneTemplate,
 	}
+	cleanup := func() error {
+		// Delete Objects in reverse, because we cannot delete a ClusterCLass if it is still used by a Cluster.
+		for i := len(initObjs) - 1; i >= 0; i-- {
+			if err := env.Delete(ctx, initObjs[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 
 	for _, obj := range initObjs {
-		g.Expect(env.Create(ctx, obj)).To(Succeed())
+		if err := env.Create(ctx, obj); err != nil {
+			return cleanup, err
+		}
 	}
-	defer func() {
-		for _, obj := range initObjs {
-			g.Expect(env.Delete(ctx, obj)).To(Succeed())
-		}
-	}()
-
-	g.Eventually(func(g Gomega) error {
-		// Get the cluster object.
-		key := client.ObjectKey{Name: clusterName, Namespace: ns.Name}
-		actualCluster := &clusterv1.Cluster{}
-		if err := env.Get(ctx, key, actualCluster); err != nil {
-			return err
-		}
-
-		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-		g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
-
-		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
-
-		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-		g.Expect(assertControlPlaneReconcile(actualCluster, clusterClass)).Should(Succeed())
-
-		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
-
-		return nil
-	}, timeout).Should(Succeed())
+	return cleanup, nil
 }
 
 // assertClusterReconcile checks if the Cluster object:
@@ -181,7 +431,7 @@ func assertInfrastructureClusterReconcile(cluster *clusterv1.Cluster) error {
 // 3) If it requires ControlPlane Infrastructure and if so:
 //		i) That the infrastructureMachineTemplate is created correctly.
 //      ii) That the infrastructureMachineTemplate has the correct labels and annotations
-func assertControlPlaneReconcile(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) error {
+func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 	cp, err := getAndAssertLabelsAndAnnotations(*cluster.Spec.ControlPlaneRef, cluster.Name)
 	if err != nil {
 		return err
@@ -191,6 +441,7 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster, clusterClass *clust
 	if err != nil {
 		return err
 	}
+
 	if *version != cluster.Spec.Topology.Version {
 		return fmt.Errorf("version %v does not match expected %v", *version, cluster.Spec.Topology.Version)
 	}
@@ -207,7 +458,10 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster, clusterClass *clust
 			return fmt.Errorf("replicas %v do not match expected %v", int32(*replicas), *cluster.Spec.Topology.ControlPlane.Replicas)
 		}
 	}
-
+	clusterClass := &clusterv1.ClusterClass{}
+	if err := env.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); err != nil {
+		return err
+	}
 	// Check for the ControlPlaneInfrastructure if it's referenced in the clusterClass.
 	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil && clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref != nil {
 		cpInfra, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(cp)
@@ -233,9 +487,9 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster, clusterClass *clust
 // 4) Have the correct replicas and version.
 // 6) Have the correct Kind/APIVersion and Labels/Annotations for BoostrapRef and InfrastructureRef templates.
 func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
-	// List all created machine deployments to assert the expected numbers are c*reated.
+	// List all created machine deployments to assert the expected numbers are created.
 	machineDeployments := &clusterv1.MachineDeploymentList{}
-	if err := env.List(ctx, machineDeployments); err != nil {
+	if err := env.List(ctx, machineDeployments, client.InNamespace(cluster.Namespace)); err != nil {
 		return err
 	}
 
@@ -292,7 +546,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 				return fmt.Errorf("replicas %v does not match expected %v", md.Spec.Replicas, topologyMD.Replicas)
 			}
 			if *md.Spec.Template.Spec.Version != cluster.Spec.Topology.Version {
-				return fmt.Errorf("version %v does not match expecteed %v", md.Spec.Template.Spec.Version, cluster.Spec.Topology.Version)
+				return fmt.Errorf("version %v does not match expected %v", *md.Spec.Template.Spec.Version, cluster.Spec.Topology.Version)
 			}
 
 			// Check if the InfrastructureReference exists.
@@ -329,12 +583,11 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 // 3) The annotation stating where the template was cloned from.
 // The function returns the unstructured object and a bool indicating if it passed all tests.
 func getAndAssertLabelsAndAnnotations(template corev1.ObjectReference, clusterName string) (*unstructured.Unstructured, error) {
-	key := client.ObjectKey{Name: template.Name, Namespace: template.Namespace}
 	got := &unstructured.Unstructured{}
 	got.SetKind(template.Kind)
 	got.SetAPIVersion(template.APIVersion)
 
-	if err := env.Get(ctx, key, got); err != nil {
+	if err := env.Get(ctx, client.ObjectKey{Name: template.Name, Namespace: template.Namespace}, got); err != nil {
 		return nil, err
 	}
 

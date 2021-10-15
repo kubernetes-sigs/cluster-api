@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -84,7 +85,9 @@ type WaitForKubeadmControlPlaneMachinesToExistInput struct {
 
 // WaitForKubeadmControlPlaneMachinesToExist will wait until all control plane machines have node refs.
 func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitForKubeadmControlPlaneMachinesToExistInput, intervals ...interface{}) {
-	By("Waiting for all control plane nodes to exist")
+	clusterName := input.Cluster.Name
+
+	By(fmt.Sprintf("%s: Waiting for all control plane nodes to exist", clusterName))
 	inClustersNamespaceListOption := client.InNamespace(input.Cluster.Namespace)
 	// ControlPlane labels
 	matchClusterListOption := client.MatchingLabels{
@@ -92,20 +95,21 @@ func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitFo
 		clusterv1.ClusterLabelName:             input.Cluster.Name,
 	}
 
-	Eventually(func() (int, error) {
+	Eventually(func() ([]string, error) {
 		machineList := &clusterv1.MachineList{}
 		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
-			log.Logf("Failed to list the machines: %+v", err)
-			return 0, err
+			log.Logf("%s: Failed to list the machines: %+v", clusterName, err)
+			return nil, err
 		}
-		count := 0
+
+		var machinesWithNodes []string
 		for _, machine := range machineList.Items {
 			if machine.Status.NodeRef != nil {
-				count++
+				machinesWithNodes = append(machinesWithNodes, machine.Name)
 			}
 		}
-		return count, nil
-	}, intervals...).Should(Equal(int(*input.ControlPlane.Spec.Replicas)))
+		return machinesWithNodes, nil
+	}, intervals...).Should(HaveLen(int(*input.ControlPlane.Spec.Replicas)), fmt.Sprintf("%s: Expected machines did not come up", clusterName))
 }
 
 // WaitForOneKubeadmControlPlaneMachineToExistInput is the input for WaitForKubeadmControlPlaneMachinesToExist.
@@ -117,6 +121,8 @@ type WaitForOneKubeadmControlPlaneMachineToExistInput struct {
 
 // WaitForOneKubeadmControlPlaneMachineToExist will wait until all control plane machines have node refs.
 func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input WaitForOneKubeadmControlPlaneMachineToExistInput, intervals ...interface{}) {
+	clusterName := input.Cluster.Name
+
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForOneKubeadmControlPlaneMachineToExist")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForOneKubeadmControlPlaneMachineToExist")
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling WaitForOneKubeadmControlPlaneMachineToExist")
@@ -132,7 +138,7 @@ func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input Wait
 	Eventually(func() (bool, error) {
 		machineList := &clusterv1.MachineList{}
 		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
-			log.Logf("Failed to list the machines: %+v", err)
+			log.Logf("%s: Failed to list the machines: %+v", clusterName, err)
 			return false, err
 		}
 		count := 0
@@ -142,7 +148,7 @@ func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input Wait
 			}
 		}
 		return count > 0, nil
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("%s: Failed to create first control plane machine", clusterName))
 }
 
 // WaitForControlPlaneToBeReadyInput is the input for WaitForControlPlaneToBeReady.
@@ -153,7 +159,9 @@ type WaitForControlPlaneToBeReadyInput struct {
 
 // WaitForControlPlaneToBeReady will wait for a control plane to be ready.
 func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...interface{}) {
-	By("Waiting for the control plane to be ready")
+	controlPlaneName := input.ControlPlane.GetName()
+
+	By(fmt.Sprintf("%s: Waiting for the control plane to be ready", controlPlaneName))
 	Eventually(func() (bool, error) {
 		controlplane := &controlplanev1.KubeadmControlPlane{}
 		key := client.ObjectKey{
@@ -164,7 +172,7 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 			return false, err
 		}
 		return controlplane.Status.Ready, nil
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("%s: ControlPlane did not become ready", controlPlaneName))
 }
 
 // AssertControlPlaneFailureDomainsInput is the input for AssertControlPlaneFailureDomains.
@@ -218,6 +226,8 @@ type DiscoveryAndWaitForControlPlaneInitializedInput struct {
 
 // DiscoveryAndWaitForControlPlaneInitialized discovers the KubeadmControlPlane object attached to a cluster and waits for it to be initialized.
 func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input DiscoveryAndWaitForControlPlaneInitializedInput, intervals ...interface{}) *controlplanev1.KubeadmControlPlane {
+	clusterName := input.Cluster.Name
+
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForControlPlaneInitialized")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
@@ -227,9 +237,9 @@ func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input Disco
 		ClusterName: input.Cluster.Name,
 		Namespace:   input.Cluster.Namespace,
 	})
-	Expect(controlPlane).ToNot(BeNil())
+	Expect(controlPlane).ToNot(BeNil(), fmt.Sprintf("%s: Failed to get ControlPlane", clusterName))
 
-	log.Logf("Waiting for the first control plane machine managed by %s/%s to be provisioned", controlPlane.Namespace, controlPlane.Name)
+	log.Logf("%s: Waiting for the first control plane machine managed by %s/%s to be provisioned", clusterName, controlPlane.Namespace, controlPlane.Name)
 	WaitForOneKubeadmControlPlaneMachineToExist(ctx, WaitForOneKubeadmControlPlaneMachineToExistInput{
 		Lister:       input.Lister,
 		Cluster:      input.Cluster,
@@ -248,13 +258,15 @@ type WaitForControlPlaneAndMachinesReadyInput struct {
 
 // WaitForControlPlaneAndMachinesReady waits for a KubeadmControlPlane object to be ready (all the machine provisioned and one node ready).
 func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForControlPlaneAndMachinesReadyInput, intervals ...interface{}) {
+	clusterName := input.Cluster.Name
+
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForControlPlaneReady")
 	Expect(input.GetLister).ToNot(BeNil(), "Invalid argument. input.GetLister can't be nil when calling WaitForControlPlaneReady")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForControlPlaneReady")
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling WaitForControlPlaneReady")
 
 	if input.ControlPlane.Spec.Replicas != nil && int(*input.ControlPlane.Spec.Replicas) > 1 {
-		log.Logf("Waiting for the remaining control plane machines managed by %s/%s to be provisioned", input.ControlPlane.Namespace, input.ControlPlane.Name)
+		log.Logf("%s: Waiting for the remaining control plane machines managed by %s/%s to be provisioned", clusterName, input.ControlPlane.Namespace, input.ControlPlane.Name)
 		WaitForKubeadmControlPlaneMachinesToExist(ctx, WaitForKubeadmControlPlaneMachinesToExistInput{
 			Lister:       input.GetLister,
 			Cluster:      input.Cluster,
@@ -262,7 +274,7 @@ func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForContr
 		}, intervals...)
 	}
 
-	log.Logf("Waiting for control plane %s/%s to be ready (implies underlying nodes to be ready as well)", input.ControlPlane.Namespace, input.ControlPlane.Name)
+	log.Logf("%s: Waiting for control plane %s/%s to be ready (implies underlying nodes to be ready as well)", clusterName, input.ControlPlane.Namespace, input.ControlPlane.Name)
 	waitForControlPlaneToBeReadyInput := WaitForControlPlaneToBeReadyInput{
 		Getter:       input.GetLister,
 		ControlPlane: input.ControlPlane,

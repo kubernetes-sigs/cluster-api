@@ -120,7 +120,9 @@ type WaitForClusterToProvisionInput struct {
 
 // WaitForClusterToProvision will wait for a cluster to have a phase status of provisioned.
 func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, intervals ...interface{}) {
-	By("Waiting for cluster to enter the provisioned phase")
+	clusterName := input.Cluster.GetName()
+
+	By(fmt.Sprintf("%s: Waiting for cluster to enter the provisioned phase", clusterName))
 	Eventually(func() (string, error) {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{
@@ -131,7 +133,7 @@ func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvis
 			return "", err
 		}
 		return cluster.Status.Phase, nil
-	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
+	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)), fmt.Sprintf("%s: Cluster did not become provisioned", clusterName))
 }
 
 // DeleteClusterInput is the input for DeleteCluster.
@@ -184,7 +186,7 @@ func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForCl
 		Name:      input.Name,
 		Namespace: input.Namespace,
 	})
-	Expect(cluster).ToNot(BeNil(), "Failed to get the Cluster object")
+	Expect(cluster).ToNot(BeNil(), fmt.Sprintf("%s: Failed to get the Cluster object", input.Name))
 
 	WaitForClusterToProvision(ctx, WaitForClusterToProvisionInput{
 		Getter:  input.Getter,

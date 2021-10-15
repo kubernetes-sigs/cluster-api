@@ -18,6 +18,7 @@ package clusterctl
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -238,6 +239,8 @@ func (r *ApplyClusterTemplateAndWaitResult) ExpectedTotalNodes() int32 {
 // ApplyClusterTemplateAndWait gets a cluster template using clusterctl, and waits for the cluster to be ready.
 // Important! this method assumes the cluster uses a KubeadmControlPlane and MachineDeployments.
 func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
+	clusterName := input.ConfigCluster.ClusterName
+
 	setDefaults(&input)
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ApplyClusterTemplateAndWait")
@@ -245,10 +248,10 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	Expect(input.ConfigCluster.ControlPlaneMachineCount).ToNot(BeNil())
 	Expect(input.ConfigCluster.WorkerMachineCount).ToNot(BeNil())
 
-	log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-		input.ConfigCluster.ClusterName, valueOrDefault(input.ConfigCluster.Flavor), input.ConfigCluster.KubernetesVersion, *input.ConfigCluster.ControlPlaneMachineCount, *input.ConfigCluster.WorkerMachineCount)
+	log.Logf("%s: Creating the workload cluster using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
+		clusterName, valueOrDefault(input.ConfigCluster.Flavor), input.ConfigCluster.KubernetesVersion, *input.ConfigCluster.ControlPlaneMachineCount, *input.ConfigCluster.WorkerMachineCount)
 
-	log.Logf("Getting the cluster template yaml")
+	log.Logf("%s: Getting the cluster template yaml", clusterName)
 	workloadClusterTemplate := ConfigCluster(ctx, ConfigClusterInput{
 		// pass reference to the management cluster hosting this test
 		KubeconfigPath: input.ConfigCluster.KubeconfigPath,
@@ -266,41 +269,41 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		// setup clusterctl logs folder
 		LogFolder: input.ConfigCluster.LogFolder,
 	})
-	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
+	Expect(workloadClusterTemplate).ToNot(BeNil(), fmt.Sprintf("%s: Failed to get the cluster template", clusterName))
 
-	log.Logf("Applying the cluster template yaml to the cluster")
-	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)).To(Succeed())
+	log.Logf("%s: Applying the cluster template yaml to the cluster", clusterName)
+	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)).To(Succeed(), fmt.Sprintf("%s: Failed to apply cluster template", clusterName))
 
-	log.Logf("Waiting for the cluster infrastructure to be provisioned")
+	log.Logf("%s: Waiting for the cluster infrastructure to be provisioned", clusterName)
 	result.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.ClusterProxy.GetClient(),
 		Namespace: input.ConfigCluster.Namespace,
 		Name:      input.ConfigCluster.ClusterName,
 	}, input.WaitForClusterIntervals...)
 
-	log.Logf("Waiting for control plane to be initialized")
+	log.Logf("%s: Waiting for control plane to be initialized", clusterName)
 	input.WaitForControlPlaneInitialized(ctx, input, result)
 
 	if input.CNIManifestPath != "" {
-		log.Logf("Installing a CNI plugin to the workload cluster")
+		log.Logf("%s: Installing a CNI plugin to the workload cluster", clusterName)
 		workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, result.Cluster.Namespace, result.Cluster.Name)
 
 		cniYaml, err := os.ReadFile(input.CNIManifestPath)
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("%s: Error reading CNI manifest: %v", clusterName, err))
 
-		Expect(workloadCluster.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
+		Expect(workloadCluster.Apply(ctx, cniYaml)).To(Succeed(), fmt.Sprintf("%s: Failed to apply CNI manifest", clusterName))
 	}
 
-	log.Logf("Waiting for control plane to be ready")
+	log.Logf("%s: Waiting for control plane to be ready", clusterName)
 	input.WaitForControlPlaneMachinesReady(ctx, input, result)
 
-	log.Logf("Waiting for the machine deployments to be provisioned")
+	log.Logf("%s: Waiting for the machine deployments to be provisioned", clusterName)
 	result.MachineDeployments = framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: result.Cluster,
 	}, input.WaitForMachineDeployments...)
 
-	log.Logf("Waiting for the machine pools to be provisioned")
+	log.Logf("%s: Waiting for the machine pools to be provisioned", clusterName)
 	result.MachinePools = framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
 		Getter:  input.ClusterProxy.GetClient(),
 		Lister:  input.ClusterProxy.GetClient(),

@@ -77,6 +77,7 @@ Similarly, to **validate** if a particular feature is enabled, see cluster-api-p
 * [MachinePools](./machine-pools.md)
 * [ClusterResourceSet](./cluster-resource-set.md)
 * [ClusterClass](./cluster-classes.md)
+* [ClusterClass Operations](./cluster-class-operations.md)
 
 **Warning**: Experimental features are unreliable, i.e., some may one day be promoted to the main repository, or they may be modified arbitrarily or even disappear altogether.
 In short, they are not subject to any compatibility or deprecation promise.

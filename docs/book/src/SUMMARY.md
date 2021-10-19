@@ -19,6 +19,7 @@
         - [MachinePools](./tasks/experimental-features/machine-pools.md)
         - [ClusterResourceSet](./tasks/experimental-features/cluster-resource-set.md)
         - [ClusterClass](./tasks/experimental-features/cluster-classes.md)
+        - [ClusterClass Operations](./tasks/experimental-features/cluster-class-operations.md)
 - [clusterctl CLI](./clusterctl/overview.md)
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)

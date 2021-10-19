@@ -206,7 +206,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.MachineHealthCheckSuccededCondition,
 			clusterv1.MachineOwnerRemediatedCondition,
 		),
-		conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero()),
+		conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == nil),
 		conditions.WithStepCounterIfOnly(
 			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,

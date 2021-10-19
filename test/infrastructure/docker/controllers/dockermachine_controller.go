@@ -169,7 +169,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
 		),
-		conditions.WithStepCounterIf(dockerMachine.ObjectMeta.DeletionTimestamp.IsZero()),
+		conditions.WithStepCounterIf(dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
 	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
@@ -192,7 +192,12 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		// ensure ready state is set.
 		// This is required after move, because status is not moved to the target cluster.
 		dockerMachine.Status.Ready = true
-		conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
+
+		if externalMachine.Exists() {
+			conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
+		} else {
+			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerDeletedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Container %s does not exists anymore", externalMachine.Name()))
+		}
 		return ctrl.Result{}, nil
 	}
 

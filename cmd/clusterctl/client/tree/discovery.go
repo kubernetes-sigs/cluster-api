@@ -31,6 +31,9 @@ type DiscoverOptions struct {
 	// to signal to the presentation layer to show all the conditions for the objects.
 	ShowOtherConditions string
 
+	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
+	ShowMachineSets bool
+
 	// DisableNoEcho disable hiding MachineInfrastructure or BootstrapConfig objects if the object's ready condition is true
 	// or it has the same Status, Severity and Reason of the parent's object ready condition (it is an echo)
 	DisableNoEcho bool
@@ -117,15 +120,25 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 
 	for i := range machinesDeploymentList.Items {
 		md := &machinesDeploymentList.Items[i]
-		tree.Add(workers, md, GroupingObject(true))
+		addOpts := make([]AddObjectOption, 0)
+		if !options.ShowMachineSets {
+			addOpts = append(addOpts, GroupingObject(true))
+		}
+		tree.Add(workers, md, addOpts...)
 
 		machineSets := selectMachinesSetsControlledBy(machineSetList, md)
 		for i := range machineSets {
 			ms := machineSets[i]
 
+			var parent client.Object = md
+			if options.ShowMachineSets {
+				tree.Add(md, ms, GroupingObject(true))
+				parent = ms
+			}
+
 			machines := selectMachinesControlledBy(machinesList, ms)
 			for _, w := range machines {
-				addMachineFunc(md, w)
+				addMachineFunc(parent, w)
 			}
 		}
 	}

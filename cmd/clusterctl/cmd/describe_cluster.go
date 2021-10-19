@@ -56,6 +56,7 @@ type describeClusterOptions struct {
 
 	namespace           string
 	showOtherConditions string
+	showMachineSets     bool
 	disableNoEcho       bool
 	disableGrouping     bool
 }
@@ -103,7 +104,10 @@ func init() {
 		"The namespace where the workload cluster is located. If unspecified, the current namespace will be used.")
 
 	describeClusterClusterCmd.Flags().StringVar(&dc.showOtherConditions, "show-conditions", "",
-		" list of comma separated kind or kind/name for which the command should show all the object's conditions (use 'all' to show conditions for everything).")
+		"list of comma separated kind or kind/name for which the command should show all the object's conditions (use 'all' to show conditions for everything).")
+	describeClusterClusterCmd.Flags().BoolVar(&dc.showMachineSets, "show-machinesets", false,
+		"Show MachineSet objects.")
+
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableNoEcho, "disable-no-echo", false, ""+
 		"Disable hiding of a MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,
@@ -132,6 +136,7 @@ func runDescribeCluster(name string) error {
 		Namespace:           dc.namespace,
 		ClusterName:         name,
 		ShowOtherConditions: dc.showOtherConditions,
+		ShowMachineSets:     dc.showMachineSets,
 		DisableNoEcho:       dc.disableNoEcho,
 		DisableGrouping:     dc.disableGrouping,
 	})

@@ -362,6 +362,13 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					Deleter: managementClusterProxy.GetClient(),
 					Name:    testNamespace.Name,
 				})
+
+				Byf("Deleting providers")
+				clusterctl.Delete(ctx, clusterctl.DeleteInput{
+					LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", managementClusterResources.Cluster.Name),
+					ClusterctlConfigPath: input.ClusterctlConfigPath,
+					KubeconfigPath:       managementClusterProxy.GetKubeconfigPath(),
+				})
 			}
 			testCancelWatches()
 		}

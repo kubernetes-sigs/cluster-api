@@ -137,6 +137,32 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade")
 }
 
+// DeleteInput is the input for Delete.
+type DeleteInput struct {
+	LogFolder            string
+	ClusterctlConfigPath string
+	KubeconfigPath       string
+}
+
+// Delete calls clusterctl delete --all.
+func Delete(_ context.Context, input DeleteInput) {
+	log.Logf("clusterctl delete --all")
+
+	deleteOpts := clusterctlclient.DeleteOptions{
+		Kubeconfig: clusterctlclient.Kubeconfig{
+			Path:    input.KubeconfigPath,
+			Context: "",
+		},
+		DeleteAll: true,
+	}
+
+	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-delete.log", input.LogFolder)
+	defer log.Close()
+
+	err := clusterctlClient.Delete(deleteOpts)
+	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade")
+}
+
 // ConfigClusterInput is the input for ConfigCluster.
 type ConfigClusterInput struct {
 	LogFolder                string

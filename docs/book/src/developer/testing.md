@@ -90,20 +90,20 @@ GINKGO_FOCUS="\[PR-Blocking\]" ./scripts/ci-e2e.sh
 ### Test execution via make test-e2e
 
 `make test-e2e` will run e2e tests by using whatever provider images already exist on disk.
-After running `make docker-build-e2e` at least once, `make test-e2e` can be used for a faster test run, if there are no 
+After running `make docker-build-e2e` at least once, `make test-e2e` can be used for a faster test run, if there are no
 provider code changes. If the provider code is changed, run `make docker-build-e2e` to update the images.
 
 ### Test execution via IDE
 
 It's also possible to run the tests via an IDE which makes it easier to debug the test code by stepping through the code.
 
-First, we have to make sure all prerequisites are fulfilled, i.e. all required images have been built (this also includes 
+First, we have to make sure all prerequisites are fulfilled, i.e. all required images have been built (this also includes
 kind images). This can be done by executing the `./scripts/ci-e2e.sh` script.
 
 ```bash
 # Notes:
 # * You can cancel the script as soon as it starts the actual test execution via `make -C test/e2e/ run`.
-# * If you want to run other tests (e.g. upgrade tests), make sure all required env variables are set (see the Prow Job config). 
+# * If you want to run other tests (e.g. upgrade tests), make sure all required env variables are set (see the Prow Job config).
 GINKGO_FOCUS="\[PR-Blocking\]" ./scripts/ci-e2e.sh
 
 # Make sure the cluster-templates have been generated.
@@ -114,7 +114,7 @@ Now, the tests can be run in an IDE. The following describes how this can be don
 roughly the same way in all other IDEs. We assume the `cluster-api` repository has been checked
 out into `/home/user/code/src/sigs.k8s.io/cluster-api`.
 
-#### Intellij 
+#### Intellij
 
 Create a new run configuration and fill in:
 * Test framework: `gotest`
@@ -192,6 +192,15 @@ The following env variables can be set to customize the test execution:
 - `GINKGO_NOCOLOR` to turn off the ginkgo colored output (default to false)
 
 Furthermore, it's possible to overwrite all env variables specified in `variables` in `test/e2e/config/docker.yaml`.
+
+### Known Issues
+
+#### Building images on SELinux
+
+Cluster API repositories use [Moby Buildkit](https://github.com/moby/buildkit) to speed up image builds.
+[BuildKit does not currently work on SELinux](https://github.com/moby/buildkit/issues/2295).
+
+Use `sudo setenforce 0` to make SELinux permissive when running e2e tests.
 
 ## Quick reference
 

@@ -44,12 +44,10 @@ func TestGetCurrentState(t *testing.T) {
 
 	// InfrastructureCluster objects.
 	infraCluster := builder.InfrastructureCluster(metav1.NamespaceDefault, "infraOne").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 
 	// ControlPlane and ControlPlaneInfrastructureMachineTemplate objects.
 	controlPlaneInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfraTemplate").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 	controlPlaneTemplateWithInfrastructureMachine := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cpTemplateWithInfra1").
 		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).

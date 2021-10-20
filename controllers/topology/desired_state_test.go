@@ -51,7 +51,6 @@ var (
 func TestComputeInfrastructureCluster(t *testing.T) {
 	// templates and ClusterClass
 	infrastructureClusterTemplate := builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "template1").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithInfrastructureClusterTemplate(infrastructureClusterTemplate).
@@ -143,7 +142,6 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	}
 
 	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "template1").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
@@ -215,7 +213,6 @@ func TestComputeControlPlane(t *testing.T) {
 	annotations := map[string]string{"a1": ""}
 
 	controlPlaneTemplate := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "template1").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
@@ -666,7 +663,6 @@ func TestComputeCluster(t *testing.T) {
 
 func TestComputeMachineDeployment(t *testing.T) {
 	workerInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "linux-worker-inframachinetemplate").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstraptemplate").
 		Build()

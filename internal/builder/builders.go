@@ -345,7 +345,14 @@ func InfrastructureMachineTemplate(namespace, name string) *InfrastructureMachin
 	}
 }
 
-// WithSpecFields will add fields of any type to the object spec. It takes an argument, fields, which is of the form path: object.
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."
+//
+// Example map: map[string]interface{}{
+//     "spec.version": "v1.2.3",
+// }.
 func (i *InfrastructureMachineTemplateBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureMachineTemplateBuilder {
 	i.specFields = fields
 	return i
@@ -358,6 +365,9 @@ func (i *InfrastructureMachineTemplateBuilder) Build() *unstructured.Unstructure
 	obj.SetKind(GenericInfrastructureMachineTemplateKind)
 	obj.SetNamespace(i.namespace)
 	obj.SetName(i.name)
+
+	// Initialize the spec.template.spec to make the object valid in reconciliation.
+	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
 
 	setSpecFields(obj, i.specFields)
 	return obj
@@ -385,6 +395,9 @@ func (b *BootstrapTemplateBuilder) Build() *unstructured.Unstructured {
 	obj.SetNamespace(b.namespace)
 	obj.SetName(b.name)
 
+	// Initialize the spec.template.spec to make the object valid in reconciliation.
+	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
+
 	return obj
 }
 
@@ -403,7 +416,14 @@ func InfrastructureClusterTemplate(namespace, name string) *InfrastructureCluste
 	}
 }
 
-// WithSpecFields will add fields of any type to the object spec. It takes an argument, fields, which is of the form path: object.
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."
+//
+// Example map: map[string]interface{}{
+//     "spec.version": "v1.2.3",
+// }.
 func (i *InfrastructureClusterTemplateBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureClusterTemplateBuilder {
 	i.specFields = fields
 	return i
@@ -416,6 +436,9 @@ func (i *InfrastructureClusterTemplateBuilder) Build() *unstructured.Unstructure
 	obj.SetKind(GenericInfrastructureClusterTemplateKind)
 	obj.SetNamespace(i.namespace)
 	obj.SetName(i.name)
+
+	// Initialize the spec.template.spec to make the object valid in reconciliation.
+	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
 
 	setSpecFields(obj, i.specFields)
 
@@ -438,7 +461,14 @@ func ControlPlaneTemplate(namespace, name string) *ControlPlaneTemplateBuilder {
 	}
 }
 
-// WithSpecFields will add fields of any type to the object spec. It takes an argument, fields, which is of the form path: object.
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."
+//
+// Example map: map[string]interface{}{
+//     "spec.version": "v1.2.3",
+// }.
 func (c *ControlPlaneTemplateBuilder) WithSpecFields(fields map[string]interface{}) *ControlPlaneTemplateBuilder {
 	c.specFields = fields
 	return c
@@ -458,6 +488,9 @@ func (c *ControlPlaneTemplateBuilder) Build() *unstructured.Unstructured {
 	obj.SetNamespace(c.namespace)
 	obj.SetName(c.name)
 
+	// Initialize the spec.template.spec to make the object valid in reconciliation.
+	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
+
 	setSpecFields(obj, c.specFields)
 
 	if c.infrastructureMachineTemplate != nil {
@@ -475,7 +508,14 @@ type InfrastructureClusterBuilder struct {
 	specFields map[string]interface{}
 }
 
-// WithSpecFields will add fields of any type to the object spec. It takes an argument, fields, which is of the form path: object.
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."
+//
+// Example map: map[string]interface{}{
+//     "spec.version": "v1.2.3",
+// }.
 func (i *InfrastructureClusterBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureClusterBuilder {
 	i.specFields = fields
 	return i
@@ -628,7 +668,6 @@ func (m *MachineDeploymentBuilder) WithGeneration(generation int64) *MachineDepl
 }
 
 // WithStatus sets the passed status object as the status of the machine deployment object.
-// TODO (killianmuldoon): Revise making this method consistent with WithSpec fields in objectbuilders.
 func (m *MachineDeploymentBuilder) WithStatus(status clusterv1.MachineDeploymentStatus) *MachineDeploymentBuilder {
 	m.status = &status
 	return m

@@ -82,11 +82,11 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/m
 
 To make sure workload clusters come up with a functioning network a Kindnet ConfigMap with a Kindnet ClusterResourceSet is required. Kindnet only offers networking for Clusters built with Kind and CAPD. This can be substituted for any other networking solution for Kubernetes e.g. Calico as used in the Quickstart guide.
 
-The kindnet configuration file can be found in the [CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/clusterclass.yaml).
+The kindnet configuration file can be found in the [CAPI repo](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/kindnet-clusterresourceset.yaml).
 
 To create the resources run:
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/yamls/kindnet-clusterresourceset.yaml 
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/book/src/tasks/experimental-features/yamls/kindnet-clusterresourceset.yaml 
 ```
 
 #### Create the workload cluster

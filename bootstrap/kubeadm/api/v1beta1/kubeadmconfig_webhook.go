@@ -216,5 +216,27 @@ func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
 		}
 	}
 
+	for i, fs := range c.DiskSetup.Filesystems {
+		if fs.ReplaceFS != nil {
+			allErrs = append(
+				allErrs,
+				field.Forbidden(
+					field.NewPath("spec", "diskSetup", "filesystems").Index(i).Child("replaceFS"),
+					cannotUseWithIgnition,
+				),
+			)
+		}
+
+		if fs.Partition != nil {
+			allErrs = append(
+				allErrs,
+				field.Forbidden(
+					field.NewPath("spec", "diskSetup", "filesystems").Index(i).Child("partition"),
+					cannotUseWithIgnition,
+				),
+			)
+		}
+	}
+
 	return allErrs
 }

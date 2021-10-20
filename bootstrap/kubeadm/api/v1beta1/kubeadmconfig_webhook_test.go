@@ -250,6 +250,46 @@ func TestClusterValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"replaceFS specified with Ignition": {
+			enableIgnitionFeature: true,
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+					DiskSetup: &DiskSetup{
+						Filesystems: []Filesystem{
+							{
+								ReplaceFS: pointer.StringPtr("ntfs"),
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"filesystem partition specified with Ignition": {
+			enableIgnitionFeature: true,
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+					DiskSetup: &DiskSetup{
+						Filesystems: []Filesystem{
+							{
+								Partition: pointer.StringPtr("1"),
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
 	}
 
 	for name, tt := range cases {

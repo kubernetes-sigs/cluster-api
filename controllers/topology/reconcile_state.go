@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/check"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
@@ -37,9 +38,15 @@ import (
 // NOTE: We are assuming all the required objects are provided as input; also, in case of any error,
 // the entire reconcile operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
-func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
+func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) (reterr error) {
 	log := tlog.LoggerFrom(ctx)
 	log.Infof("Reconciling state for topology owned objects")
+
+	// Sets up a cleanup function that takes care of removing all the objects created but
+	// not referenced by the owning object due to errors in the middle of reconcile.
+	defer func() {
+		reterr = kerrors.NewAggregate([]error{reterr, s.Liens.Collect(ctx, r.Client)})
+	}()
 
 	// Reconcile desired state of the InfrastructureCluster object.
 	if err := r.reconcileInfrastructureCluster(ctx, s); err != nil {
@@ -62,6 +69,12 @@ func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) 
 
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
 func (r *ClusterReconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
+	// In case the Cluster is not yet referencing an InfrastructureCluster object,
+	// record the intent of setting this reference at a later stage of the reconcile process (ReconcileCluster).
+	if s.Current.Cluster.Spec.InfrastructureRef == nil {
+		s.Liens.Add(s.Current.Cluster, s.Desired.InfrastructureCluster)
+	}
+
 	ctx, _ = tlog.LoggerFrom(ctx).WithObject(s.Desired.InfrastructureCluster).Into(ctx)
 	return r.reconcileReferencedObject(ctx, s.Current.InfrastructureCluster, s.Desired.InfrastructureCluster, mergepatch.IgnorePaths(contract.InfrastructureCluster().IgnorePaths()))
 }
@@ -69,6 +82,17 @@ func (r *ClusterReconciler) reconcileInfrastructureCluster(ctx context.Context, 
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
 // updating the cluster where needed.
 func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) error {
+	// In case the Cluster is not yet referencing a ControlPlane object,
+	// record the intent of setting this reference at a later stage of the reconcile process (ReconcileCluster).
+	if s.Current.Cluster.Spec.ControlPlaneRef == nil {
+		s.Liens.Add(s.Current.Cluster, s.Desired.ControlPlane.Object)
+		// If the clusterClass mandates the controlPlane has infrastructureMachines, we
+		// record the intent of setting this reference as well.
+		if s.Blueprint.HasControlPlaneInfrastructureMachine() {
+			s.Liens.Add(s.Desired.ControlPlane.Object, s.Desired.ControlPlane.InfrastructureMachineTemplate)
+		}
+	}
+
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, reconcile it.
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
 		ctx, _ := tlog.LoggerFrom(ctx).WithObject(s.Desired.ControlPlane.InfrastructureMachineTemplate).Into(ctx)
@@ -128,6 +152,15 @@ func (r *ClusterReconciler) reconcileCluster(ctx context.Context, s *scope.Scope
 	if err := patchHelper.Patch(ctx); err != nil {
 		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: s.Current.Cluster})
 	}
+
+	// Now that the Cluster is patched, it is possible to discard
+	// the liens owned by the cluster for the InfrastructureCluster and the ControlPlane object
+	// and also the liens owned by the ControlPlane for its own MachineTemplate (if required).
+	s.Liens.Forget(s.Current.Cluster)
+	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
+		s.Liens.Forget(s.Desired.ControlPlane.Object)
+	}
+
 	return nil
 }
 
@@ -138,7 +171,7 @@ func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, s *
 	// Create MachineDeployments.
 	for _, mdTopologyName := range diff.toCreate {
 		md := s.Desired.MachineDeployments[mdTopologyName]
-		if err := r.createMachineDeployment(ctx, md); err != nil {
+		if err := r.createMachineDeployment(ctx, s, md); err != nil {
 			return err
 		}
 	}
@@ -147,7 +180,7 @@ func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, s *
 	for _, mdTopologyName := range diff.toUpdate {
 		currentMD := s.Current.MachineDeployments[mdTopologyName]
 		desiredMD := s.Desired.MachineDeployments[mdTopologyName]
-		if err := r.updateMachineDeployment(ctx, s.Current.Cluster.Name, mdTopologyName, currentMD, desiredMD); err != nil {
+		if err := r.updateMachineDeployment(ctx, s, mdTopologyName, currentMD, desiredMD); err != nil {
 			return err
 		}
 	}
@@ -164,8 +197,13 @@ func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, s *
 }
 
 // createMachineDeployment creates a MachineDeployment and the corresponding Templates.
-func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md *scope.MachineDeploymentState) error {
+func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, s *scope.Scope, md *scope.MachineDeploymentState) error {
 	log := tlog.LoggerFrom(ctx).WithMachineDeployment(md.Object)
+
+	// Record the intent of setting a reference owned by the MachineDeployment to
+	// the BootstrapTemplate and the InfrastructureMachineTemplate at a later stage of this func.
+	s.Liens.Add(md.Object, md.BootstrapTemplate)
+	s.Liens.Add(md.Object, md.InfrastructureMachineTemplate)
 
 	ctx, _ = log.WithObject(md.InfrastructureMachineTemplate).Into(ctx)
 	if err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
@@ -186,33 +224,51 @@ func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md *sco
 	if err := r.Client.Create(ctx, md.Object.DeepCopy()); err != nil {
 		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: md.Object})
 	}
+
+	// Now that the MachineDeployment is created, it is possible to discard
+	// the liens for the BootstrapTemplate and the InfrastructureMachineTemplate.
+	s.Liens.Forget(md.Object)
 	return nil
 }
 
 // updateMachineDeployment updates a MachineDeployment. Also rotates the corresponding Templates if necessary.
-func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, clusterName string, mdTopologyName string, currentMD, desiredMD *scope.MachineDeploymentState) error {
+func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope, mdTopologyName string, currentMD, desiredMD *scope.MachineDeploymentState) error {
 	log := tlog.LoggerFrom(ctx).WithMachineDeployment(desiredMD.Object)
 
 	ctx, _ = log.WithObject(desiredMD.InfrastructureMachineTemplate).Into(ctx)
+	desiredName := desiredMD.InfrastructureMachineTemplate.GetName()
 	if err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
 		ref:                  &desiredMD.Object.Spec.Template.Spec.InfrastructureRef,
 		current:              currentMD.InfrastructureMachineTemplate,
 		desired:              desiredMD.InfrastructureMachineTemplate,
-		templateNamePrefix:   infrastructureMachineTemplateNamePrefix(clusterName, mdTopologyName),
+		templateNamePrefix:   infrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ReferencedObjectsAreCompatible,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
 	}
 
+	// If the template has been rotated, record the intent of setting a reference owned by the MachineDeployment to
+	// the InfrastructureMachineTemplate at a later stage of this func.
+	if desiredName != desiredMD.InfrastructureMachineTemplate.GetName() {
+		s.Liens.Add(currentMD.Object, desiredMD.InfrastructureMachineTemplate)
+	}
+
 	ctx, _ = log.WithObject(desiredMD.BootstrapTemplate).Into(ctx)
+	desiredName = desiredMD.BootstrapTemplate.GetName()
 	if err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
 		ref:                  desiredMD.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
 		current:              currentMD.BootstrapTemplate,
 		desired:              desiredMD.BootstrapTemplate,
-		templateNamePrefix:   bootstrapTemplateNamePrefix(clusterName, mdTopologyName),
+		templateNamePrefix:   bootstrapTemplateNamePrefix(s.Current.Cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
+	}
+
+	// If the template has been rotated, record the intent of setting a reference owned by the MachineDeployment to
+	// the BootstrapTemplate at a later stage of this func.
+	if desiredName != desiredMD.BootstrapTemplate.GetName() {
+		s.Liens.Add(currentMD.Object, desiredMD.BootstrapTemplate)
 	}
 
 	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
@@ -231,7 +287,9 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: currentMD.Object})
 	}
 
-	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
+	// Now that the MachineDeployment has been updated, it is possible to discard
+	// the liens for the BootstrapTemplate and the InfrastructureMachineTemplate.
+	s.Liens.Forget(currentMD.Object)
 	return nil
 }
 

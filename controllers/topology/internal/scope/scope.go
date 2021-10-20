@@ -33,6 +33,10 @@ type Scope struct {
 
 	// UpgradeTracker holds information about ongoing upgrades in the managed topology.
 	UpgradeTracker *UpgradeTracker
+
+	// Liens tracks the intent of objects to reference other objects at
+	// a later stage of the reconcile process.
+	Liens Liens
 }
 
 // New returns a new Scope with only the cluster; while processing a request in the topology/ClusterReconciler controller
@@ -44,5 +48,6 @@ func New(cluster *clusterv1.Cluster) *Scope {
 			Cluster: cluster,
 		},
 		UpgradeTracker: NewUpgradeTracker(),
+		Liens:          Liens{},
 	}
 }

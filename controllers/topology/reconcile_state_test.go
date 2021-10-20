@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -84,6 +85,8 @@ func TestReconcileCluster(t *testing.T) {
 
 			// TODO: stop setting ResourceVersion when building objects
 			tt.desired.SetResourceVersion("")
+
+			s.Blueprint.ClusterClass = builder.ClusterClass(metav1.NamespaceDefault, "cluster-class1").Build()
 			s.Desired = &scope.ClusterState{Cluster: tt.desired}
 
 			r := ClusterReconciler{
@@ -186,6 +189,8 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 				Build()
 
 			s := scope.New(nil)
+			s.Blueprint.ClusterClass = builder.ClusterClass(metav1.NamespaceDefault, "cluster-class1").Build()
+			s.Current.Cluster = builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
 			s.Current.InfrastructureCluster = tt.current
 
 			// TODO: stop setting ResourceVersion when building objects
@@ -546,6 +551,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		})
 	}
 }
+
 func TestReconcileMachineDeployments(t *testing.T) {
 	g := NewWithT(t)
 
@@ -824,6 +830,286 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOrphanObjectsCleanup(t *testing.T) {
+	// Create fake objects required for the test case
+	infrastructureCluster := builder.InfrastructureCluster(metav1.NamespaceDefault, "infra1").Build()
+	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
+	controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
+		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
+		Build()
+	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cluster-class1").WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).Build()
+	bootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()
+	machineDeployment := builder.MachineDeployment(metav1.NamespaceDefault, "md1").WithInfrastructureTemplate(infrastructureMachineTemplate).WithBootstrapTemplate(bootstrapTemplate).Build()
+	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+
+	t.Run("Collect InfrastructureCluster, ControlPlane, InfrastructureMachine in case of errors before patching the Cluster", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a scope with
+		// - a ClusterClass requiring an infrastructureMachine template for the control plane
+		// - desired state including InfrastructureCluster, ControlPlane and required infrastructureMachine
+		s := scope.New(cluster)
+		s.Blueprint = &scope.ClusterBlueprint{
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{InfrastructureMachineTemplate: infrastructureMachineTemplate},
+		}
+		s.Desired = &scope.ClusterState{
+			InfrastructureCluster: infrastructureCluster,
+			ControlPlane: &scope.ControlPlaneState{
+				Object:                        controlPlane,
+				InfrastructureMachineTemplate: infrastructureMachineTemplate,
+			},
+		}
+		s.Current.ControlPlane = &scope.ControlPlaneState{}
+
+		// Create an empty fakeClient
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			Build()
+
+		// Create a reconciler
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+
+		// Reconcile InfrastructureCluster and ControlPlane
+		g.Expect(r.reconcileInfrastructureCluster(ctx, s)).To(Succeed())
+		g.Expect(r.reconcileControlPlane(ctx, s)).To(Succeed())
+
+		// Check Liens for infrastructureCluster, ControlPlane and infrastructureMachine exists at this stage.
+		g.Expect(s.Liens).To(HaveLen(2))
+
+		ownerKey := scope.LiensKey(cluster)
+		g.Expect(s.Liens).To(HaveKey(ownerKey))
+		g.Expect(s.Liens[ownerKey]).To(HaveLen(2))
+		g.Expect(s.Liens[ownerKey]).To(ContainElement(infrastructureCluster))
+		g.Expect(s.Liens[ownerKey]).To(ContainElement(controlPlane))
+
+		ownerKey = scope.LiensKey(controlPlane)
+		g.Expect(s.Liens).To(HaveKey(ownerKey))
+		g.Expect(s.Liens[ownerKey]).To(HaveLen(1))
+		g.Expect(s.Liens[ownerKey]).To(ContainElement(infrastructureMachineTemplate))
+
+		// Assume an error happens at this stage triggering Liens.Collect
+		g.Expect(s.Liens.Collect(ctx, fakeClient)).To(Succeed())
+
+		// Check the objects are actually collected
+		err := fakeClient.Get(ctx, client.ObjectKeyFromObject(infrastructureCluster), infrastructureCluster.DeepCopy())
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		err = fakeClient.Get(ctx, client.ObjectKeyFromObject(controlPlane), controlPlane.DeepCopy())
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		err = fakeClient.Get(ctx, client.ObjectKeyFromObject(infrastructureMachineTemplate), infrastructureMachineTemplate.DeepCopy())
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+		// Check all Liens are removed
+		g.Expect(s.Liens).To(HaveLen(0))
+	})
+	t.Run("Successfully ReconcileControlPlane should cleanup liens", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a scope with
+		// - a ClusterClass requiring an infrastructureMachine template for the control plane
+		// - desired state including InfrastructureCluster, ControlPlane and required infrastructureMachine
+		s := scope.New(cluster)
+		s.Blueprint = &scope.ClusterBlueprint{
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{InfrastructureMachineTemplate: infrastructureMachineTemplate},
+		}
+		s.Desired = &scope.ClusterState{
+			Cluster:               builder.Cluster(cluster.Namespace, cluster.Name).WithInfrastructureCluster(infrastructureCluster).WithControlPlane(controlPlane).Build(),
+			InfrastructureCluster: infrastructureCluster,
+			ControlPlane: &scope.ControlPlaneState{
+				Object:                        controlPlane,
+				InfrastructureMachineTemplate: infrastructureMachineTemplate,
+			},
+		}
+		s.Current.ControlPlane = &scope.ControlPlaneState{}
+
+		// Create a fakeClient with the Cluster only
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(cluster).
+			Build()
+
+		// Create a reconciler
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+
+		// Reconcile InfrastructureCluster and ControlPlane and Cluster
+		g.Expect(r.reconcileInfrastructureCluster(ctx, s)).To(Succeed())
+		g.Expect(r.reconcileControlPlane(ctx, s)).To(Succeed())
+		g.Expect(r.reconcileCluster(ctx, s)).To(Succeed())
+
+		g.Expect(s.Liens).To(HaveLen(0))
+	})
+	t.Run("Collect BootstrapTemplate, InfrastructureTemplate in case of errors before creating the MachineDeployment", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a minimal scope with
+		// - MachineDeployment and related templates
+		s := scope.New(cluster)
+		md := &scope.MachineDeploymentState{
+			Object:                        machineDeployment,
+			BootstrapTemplate:             bootstrapTemplate,
+			InfrastructureMachineTemplate: infrastructureMachineTemplate,
+		}
+
+		// Create a fakeClient with the MachineDeployment already in the Cluster, thus creating the conditions for
+		// createMachineDeployment to fail.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(machineDeployment.DeepCopy()).
+			Build()
+
+		// Create a reconciler
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+
+		// Create MachineDeployment
+		g.Expect(r.createMachineDeployment(ctx, s, md)).ToNot(Succeed())
+
+		// Check Leins for BootstrapTemplate and infrastructureMachine exists at this stage.
+		g.Expect(s.Liens).To(HaveLen(1))
+
+		ownerKey := scope.LiensKey(machineDeployment)
+		g.Expect(s.Liens).To(HaveKey(ownerKey))
+		g.Expect(s.Liens[ownerKey]).To(HaveLen(2))
+		g.Expect(s.Liens[ownerKey]).To(ContainElement(bootstrapTemplate))
+		g.Expect(s.Liens[ownerKey]).To(ContainElement(infrastructureMachineTemplate))
+
+		// Check the objects are actually collected
+		g.Expect(s.Liens.Collect(ctx, fakeClient)).To(Succeed())
+
+		err := fakeClient.Get(ctx, client.ObjectKeyFromObject(bootstrapTemplate), bootstrapTemplate.DeepCopy())
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		err = fakeClient.Get(ctx, client.ObjectKeyFromObject(infrastructureMachineTemplate), infrastructureMachineTemplate.DeepCopy())
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+		// Check all Liens are removed
+		g.Expect(s.Liens).To(HaveLen(0))
+	})
+	t.Run("Successfully CreateMachineDeployment should cleanup liens (no changes)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a minimal scope with
+		// - MachineDeployment and related templates
+		s := scope.New(cluster)
+		md := &scope.MachineDeploymentState{
+			Object:                        machineDeployment,
+			BootstrapTemplate:             bootstrapTemplate,
+			InfrastructureMachineTemplate: infrastructureMachineTemplate,
+		}
+
+		// Create a empty fakeClient.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			Build()
+
+		// Create a reconciler
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+
+		// Create MachineDeployment
+		g.Expect(r.createMachineDeployment(ctx, s, md)).To(Succeed())
+
+		// Check Leins for BootstrapTemplate and infrastructureMachine are removed.
+		g.Expect(s.Liens).To(HaveLen(0))
+	})
+	t.Run("Collect BootstrapTemplate, InfrastructureTemplate in case of template rotation and errors before patching the MachineDeployment", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a minima scope with
+		s := scope.New(cluster)
+		currentMD := &scope.MachineDeploymentState{
+			Object:                        machineDeployment,
+			BootstrapTemplate:             bootstrapTemplate,
+			InfrastructureMachineTemplate: infrastructureMachineTemplate,
+		}
+		desiredMD := &scope.MachineDeploymentState{
+			Object:                        machineDeployment.DeepCopy(),
+			BootstrapTemplate:             bootstrapTemplate.DeepCopy(),
+			InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+		}
+
+		// inject some changes triggering template rotation
+		g.Expect(unstructured.SetNestedField(desiredMD.BootstrapTemplate.Object, true, "spec", "template", "spec", "foo")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(desiredMD.InfrastructureMachineTemplate.Object, true, "spec", "template", "spec", "foo")).To(Succeed())
+
+		// Create a fakeClient without the machine deployment, thus creating the preconditions for update machine deployments to fail.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			Build()
+
+		// Create a reconciler
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+
+		// Update MachineDeployment
+		g.Expect(r.updateMachineDeployment(ctx, s, "foo", currentMD, desiredMD)).ToNot(Succeed())
+
+		// Check Leins for BootstrapTemplate and infrastructureMachine exists at this stage.
+		g.Expect(s.Liens).To(HaveLen(1))
+
+		ownerKey := scope.LiensKey(machineDeployment)
+		g.Expect(s.Liens).To(HaveKey(ownerKey))
+		g.Expect(s.Liens[ownerKey]).To(HaveLen(2))
+		g.Expect(s.Liens[ownerKey]).To(ContainElement(desiredMD.BootstrapTemplate))
+		g.Expect(s.Liens[ownerKey]).To(ContainElement(desiredMD.InfrastructureMachineTemplate))
+
+		// Check the objects are actually collected
+		g.Expect(s.Liens.Collect(ctx, fakeClient)).To(Succeed())
+
+		err := fakeClient.Get(ctx, client.ObjectKeyFromObject(desiredMD.BootstrapTemplate), desiredMD.BootstrapTemplate.DeepCopy())
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		err = fakeClient.Get(ctx, client.ObjectKeyFromObject(desiredMD.InfrastructureMachineTemplate), desiredMD.InfrastructureMachineTemplate.DeepCopy())
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+		// Check all Liens are removed
+		g.Expect(s.Liens).To(HaveLen(0))
+	})
+	t.Run("Successfully UpdateMachineDeployment should cleanup liens (with changes)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a minima scope with
+		s := scope.New(cluster)
+		currentMD := &scope.MachineDeploymentState{
+			Object:                        machineDeployment,
+			BootstrapTemplate:             bootstrapTemplate,
+			InfrastructureMachineTemplate: infrastructureMachineTemplate,
+		}
+		desiredMD := &scope.MachineDeploymentState{
+			Object:                        machineDeployment.DeepCopy(),
+			BootstrapTemplate:             bootstrapTemplate.DeepCopy(),
+			InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+		}
+
+		// inject some changes triggering template rotation
+		g.Expect(unstructured.SetNestedField(desiredMD.BootstrapTemplate.Object, true, "spec", "template", "spec", "foo")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(desiredMD.InfrastructureMachineTemplate.Object, true, "spec", "template", "spec", "foo")).To(Succeed())
+
+		// Create a fakeClient with the machine deployment, thus allowing update to complete.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(currentMD.Object.DeepCopy()).
+			Build()
+
+		// Create a reconciler
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+
+		// Update MachineDeployment
+		g.Expect(r.updateMachineDeployment(ctx, s, "foo", currentMD, desiredMD)).To(Succeed())
+
+		// Check Leins for BootstrapTemplate and infrastructureMachine are removed.
+		g.Expect(s.Liens).To(HaveLen(0))
+	})
 }
 
 func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured) *scope.MachineDeploymentState {

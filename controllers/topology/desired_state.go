@@ -567,6 +567,10 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	template.SetUID("")
 	template.SetSelfLink("")
 
+	// Drop OwnerRef from the original template, given that we
+	// don't  want to propagate them to the newly created object.
+	template.SetOwnerReferences(nil)
+
 	// Enforce the topology labels into the provided label set.
 	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
 	// controller immediately after creation, even before other controllers are going to add the label (if missing).

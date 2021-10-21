@@ -144,6 +144,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Wait for the cluster infrastructure to be ready before creating machines
 	if !cluster.Status.InfrastructureReady {
+		log.Info("Cluster infrastructure is not ready yet")
 		return ctrl.Result{}, nil
 	}
 

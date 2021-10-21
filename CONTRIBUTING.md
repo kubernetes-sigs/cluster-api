@@ -2,20 +2,29 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-* [Contributing Guidelines](#contributing-guidelines)
-  * [Contributor License Agreements](#contributor-license-agreements)
-  * [Finding Things That Need Help](#finding-things-that-need-help)
-  * [Contributing a Patch](#contributing-a-patch)
-  * [Reviewing a Patch](#reviewing-a-patch)
-    * [Approvals](#approvals)
-  * [Reviews](#reviews)
-  * [Backporting a Patch](#backporting-a-patch)
-  * [Features and bugs](#features-and-bugs)
-  * [Proposal process (CAEP)](#proposal-process-caep)
-  * [Experiments](#experiments)
-  * [Breaking Changes](#breaking-changes)
-  * [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
-  * [Issue and Pull Request Management](#issue-and-pull-request-management)
+- [Contributing Guidelines](#contributing-guidelines)
+    - [Contributor License Agreements](#contributor-license-agreements)
+    - [Finding Things That Need Help](#finding-things-that-need-help)
+    - [Contributing a Patch](#contributing-a-patch)
+    - [Documentation changes](#documentation-changes)
+    - [Releases](#releases)
+    - [Proposal process (CAEP)](#proposal-process-caep)
+    - [Triaging E2E test failures](#triaging-e2e-test-failures)
+    - [Reviewing a Patch](#reviewing-a-patch)
+    - [Reviews](#reviews)
+      - [Approvals](#approvals)
+    - [Backporting a Patch](#backporting-a-patch)
+    - [Features and bugs](#features-and-bugs)
+    - [Experiments](#experiments)
+    - [Breaking Changes](#breaking-changes)
+    - [API conventions](#api-conventions)
+      - [Optional vs. Required](#optional-vs-required)
+        - [Example](#example)
+        - [Exceptions](#exceptions)
+      - [CRD additionalPrinterColumns](#crd-additionalprintercolumns)
+    - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
+    - [Issue and Pull Request Management](#issue-and-pull-request-management)
+    - [Subareas of interest](#subareas-of-interest)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -348,3 +357,25 @@ sponsorship [here](https://git.k8s.io/community/community-membership.md).
 
 Cluster API maintainers can assign you an issue or pull request by leaving a `/assign <your Github ID>` comment on the
 issue or pull request.
+
+## Contributors Ladder
+
+New contributors are welcomed to the community by existing members, helped with PR workflow, and directed to relevant documentation and communication channels.
+We are also committed in helping people willing to do so in stepping up through the contributor ladder and this paragraph describes how we are trying to make this to happen.
+
+As the project adoption increases and the codebase keeps growing, we’re trying to break down ownership into self-driven subareas of interest.
+Requirements from the [Kubernetes community membership guidelines](https://github.com/kubernetes/community/blob/master/community-membership.md) apply for reviewers, maintainers and any member of these subareas.
+Whenever you meet requisites for taking responsibilities in a subarea, the following procedure should be followed:
+1. Submit a PR.
+2. Propose at community meeting.
+3. Get positive feedback and +1s in the PR and wait one week lazy consensus after agreement.
+
+As of today there are following OWNERS files/Owner groups defining sub areas:
+- [Clusterctl](cmd/clusterctl)
+- [kubeadm Bootstrap Provider (CABPK)](bootstrap/kubeadm)
+- [kubeadm Control Plane Provider (KCP)](controlplane/kubeadm)
+- [Cluster Managed topologies, ClusterClass](controllers/topology)
+- [Infrastructure Provider Docker (CAPD)](test/infrastructure/docker)
+- [Test](test)
+- [Test Framework](test/framework)
+- [Docs](docs)

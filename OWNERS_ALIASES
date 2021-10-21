@@ -61,8 +61,29 @@ aliases:
   cluster-api-clusterctl-reviewers:
 
   # -----------------------------------------------------------
+  # OWNER_ALIASES for test
+  # -----------------------------------------------------------
+
+  cluster-api-test-reviewers:
+  cluster-api-test-maintainers:
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for test/framework
+  # -----------------------------------------------------------
+
+  cluster-api-test-framework-reviewers:
+  cluster-api-test-framework-maintainers:
+
+  # -----------------------------------------------------------
   # OWNER_ALIASES for test/infrastructure/docker
   # -----------------------------------------------------------
 
   cluster-api-provider-docker-reviewers:
   cluster-api-provider-docker-maintainers:
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for docs
+  # -----------------------------------------------------------
+
+  cluster-api-docs-reviewers:
+  cluster-api-docs-maintainers:

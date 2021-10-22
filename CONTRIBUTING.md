@@ -40,6 +40,74 @@ Before starting to work on the issue, make sure that it doesn't have a [lifecycl
 Alternatively, read some of the docs on other controllers and try to write your own, file and fix any/all issues that
 come up, including gaps in documentation!
 
+## Versioning
+
+### Codebase and Go Modules
+
+> :warning: The project does not follow Go Modules guidelines for compatibility requirements for 1.x semver releases.
+
+Cluster API follows upstream Kubernetes semantic versioning. With the v1 release of our codebase, we guarantee the following:
+
+- A (*minor*) release CAN include:
+  - Introduction of new API versions, or new Kinds.
+  - Compatible API changes like field additions, deprecation notices, etc.
+  - Breaking API changes for deprecated APIs, fields, or code.
+  - Features, promotion or removal of feature gates.
+  - And more!
+
+- A (*patch*) release SHOULD only include backwards compatible set of bugfixes.
+
+These guarantees extend to all code exposed in our Go Module, including
+*types from dependencies in public APIs*.
+Types and functions not in public APIs are not considered part of the guarantee.
+The test module, clusterctl, and experiments do not provide any backward compatible guarantees.
+
+#### Backporting
+
+We only accept backports of critical bugs, security issues, or bugs without easy workarounds, any
+backport MUST not be breaking for either API or behavioral changes.
+We generally do not accept PRs against older release branches.
+
+### APIs
+
+API versioning and guarantees are inspired by the [Kubernetes deprecation policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/)
+and [API change guidelines](https://github.com/kubernetes/community/blob/f0eec4d19d407c13681431b3c436be67da8c448d/contributors/devel/sig-architecture/api_changes.md).
+We follow the API guidelines as much as possible adapting them if necessary and on a case-by-case basis to CustomResourceDefinition.
+
+### CLIs
+
+Any command line interface in Cluster API (e.g. clusterctl) share the same versioning schema of the codebase.
+CLI guarantees are inspired by [Kubernetes deprecation policy for CLI](https://kubernetes.io/docs/reference/using-api/deprecation-policy/#deprecating-a-flag-or-cli),
+however we allow breaking changes after 8 months or 2 releases (whichever is longer) from deprecation.
+
+## Branches
+
+Cluster API has two types of branches: the *main* branch and
+*release-X* branches.
+
+The *main* branch is where development happens. All the latest and
+greatest code, including breaking changes, happens on main.
+
+The *release-X* branches contain stable, backwards compatible code. On every
+major or minor release, a new branch is created. It is from these
+branches that minor and patch releases are tagged. In some cases, it may
+be necessary to open PRs for bugfixes directly against stable branches, but
+this should generally not be the case.
+
+### Support and guarantees
+
+Cluster API maintains the most recent release branch for all supported API and contract versions. Support for this section refers to the ability to backport and release patch versions.
+
+| API Version   | Branch | Supported Until |
+| ------------- | ----------- | ---------- |
+| **v1beta1**   | release-1.0 | current stable |
+| **v1alpha4**  | release-0.4 | 2022-04-06 |
+| **v1alpha3**  | release-0.3 | 2022-02-23 |
+
+- The API version is determined from the GroupVersion defined in the top-level `api/` package.
+- The EOL date is determined from the last release available once a new API version is published.
+- For each given API version only the most recent associated release branch is supported, older branches are immediately unsupported. Exceptions can be filed with maintainers and taken into consideration on a case-by-case basis.
+
 ## Contributing a Patch
 
 1. If you haven't already done so, sign a Contributor License Agreement (see details above).
@@ -47,11 +115,17 @@ come up, including gaps in documentation!
 1. Fork the desired repo, develop and test your code changes.
 1. Submit a pull request.
     1. All code PR must be labeled with one of
-        - ⚠️ (:warning:, major or breaking changes)
-        - ✨ (:sparkles:, feature additions)
-        - 🐛 (:bug:, patch and bugfixes)
-        - 📖 (:book:, documentation or proposals)
-        - 🌱 (:seedling:, minor or other)
+        - ⚠️ (`:warning:`, major or breaking changes)
+        - ✨ (`:sparkles:`, feature additions)
+        - 🐛 (`:bug:`, patch and bugfixes)
+        - 📖 (`:book:`, documentation or proposals)
+        - 🌱 (`:seedling:`, minor or other)
+
+Individual commits should not be tagged separately, but will generally be
+assumed to match the PR. For instance, if you have a bugfix in with
+a breaking change, it's generally encouraged to submit the bugfix
+separately, but if you must put them in one PR, mark the commit
+separately.
 
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer
 docs](https://git.k8s.io/community/contributors/devel). Expect reviewers to request that you
@@ -87,7 +161,7 @@ When submitting the PR remember to label it with the 📖 (:book:) icon.
 
 Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) to track releases.
 
-- Minor versions CAN be planned and scheduled twice in a calendar year.
+- Minor versions CAN be planned and scheduled for each quarter, or sooner if necessary.
   - Each minor version is preceded with one or more planning session.
   - Planning consists of one or more backlog grooming meetings, roadmap amendments,
     and CAEP proposal reviews.
@@ -140,8 +214,6 @@ The artifact folder contains:
 
 In case you want to run E2E test locally, please refer to the [Testing](https://cluster-api.sigs.k8s.io/developer/testing.html#running-unit-and-integration-tests) guide. An overview over our e2e test jobs (and also all our other jobs) can be found in [Jobs](https://cluster-api.sigs.k8s.io/reference/jobs.html).
 
-
-
 ## Reviewing a Patch
 
 ## Reviews
@@ -171,21 +243,6 @@ process.
 - A PR is approved by one of the project maintainers and owners after reviews.
 - Approvals should be the very last action a maintainer takes on a pull request.
 
-## Backporting a Patch
-
-Cluster API maintains older versions through `release-X.Y` branches.
-We accept backports of bug fixes and non breaking features to the most recent release branch.
-Backports MUST not be breaking for both API and behavioral changes.
-We generally do not accept PRs against older release branches.
-
-As an example:
-
-  Let's assume that the most recent release branch is `release-0.3`
-  and the main branch is under active development for the next release.
-  A pull request that has been merged in the main branch can be backported to the `release-0.3`
-  if at least one maintainer approves the cherry pick, or asks the PR's author to backport.
-
-
 ## Features and bugs
 
 Open [issues](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose) to report bugs, or minor features.
@@ -194,7 +251,7 @@ For big feature, API and contract amendments, we follow the CAEP process as outl
 
 ## Experiments
 
-Proof of concepts, code experiments, or other initiatives can live under the `exp` folder and behind a feature gate.
+Proof of concepts, code experiments, or other initiatives can live under the `exp` folder or behind a feature gate.
 
 - Experiments SHOULD not modify any of the publicly exposed APIs (e.g. CRDs).
 - Experiments SHOULD not modify any existing CRD types outside of the experimental API group(s).
@@ -272,7 +329,7 @@ Optional fields have the following properties:
   * Note: This doesn't apply to map or slice types as they are assignable to `nil`.
 
 #### Example
- 
+
 When using ClusterClass, the semantic difference is important when you have a field in a template which will
 have instance-specific different values in derived objects. Because in this case it's possible to set the field to `nil`
 in the template and then the value can be set in derived objects without being overwritten by the cluster topology controller.
@@ -295,7 +352,7 @@ in the template and then the value can be set in derived objects without being o
   }
   ```
 
-* Top-level fields in `status` must always have the `+optional` annotation. If we want the field to be always visible even if it 
+* Top-level fields in `status` must always have the `+optional` annotation. If we want the field to be always visible even if it
   has the zero value, it must **not** have the `omitempty` JSON tag, e.g.:
   * Replica counters like `availableReplicas` in the `MachineDeployment`
   * Flags expressing progress in the object lifecycle like `infrastructureReady` in `Machine`

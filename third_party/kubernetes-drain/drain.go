@@ -43,6 +43,8 @@ const (
 )
 
 // Helper contains the parameters to control the behaviour of drainer
+// Deprecated: This has been deprecated in favor of using the
+// same type from the upstream kubectl codebase.
 type Helper struct {
 	Ctx                 context.Context
 	Client              kubernetes.Interface

@@ -31,6 +31,8 @@ import (
 
 // RunNodeDrain shows the canonical way to drain a node.
 // You should first cordon the node, e.g. using RunCordonOrUncordon
+// Deprecated: This method has been deprecated in favor of using the
+// same method from the upstream kubectl codebase.
 func RunNodeDrain(ctx context.Context, drainer *Helper, nodeName string) error {
 	// TODO(justinsb): Ensure we have adequate e2e coverage of this function in library consumers
 	list, errs := drainer.GetPodsForDeletion(ctx, nodeName)
@@ -49,6 +51,8 @@ func RunNodeDrain(ctx context.Context, drainer *Helper, nodeName string) error {
 }
 
 // RunCordonOrUncordon demonstrates the canonical way to cordon or uncordon a Node
+// Deprecated: This method has been deprecated in favor of using the
+// same method from the upstream kubectl codebase.
 func RunCordonOrUncordon(ctx context.Context, drainer *Helper, node *corev1.Node, desired bool) error {
 	// TODO(justinsb): Ensure we have adequate e2e coverage of this function in library consumers
 	c := NewCordonHelper(node)

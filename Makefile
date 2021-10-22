@@ -528,7 +528,7 @@ release: clean-release ## Builds and push container images using the latest git 
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
 	git checkout "${RELEASE_TAG}"
 	# Build binaries first.
-	$(MAKE) release-binaries
+	GIT_VERSION=$(RELEASE_TAG) $(MAKE) release-binaries
 	# Set the manifest image to the production bucket.
 	$(MAKE) manifest-modification REGISTRY=$(PROD_REGISTRY)
 	## Build the manifests

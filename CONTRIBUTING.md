@@ -40,6 +40,8 @@ Before starting to work on the issue, make sure that it doesn't have a [lifecycl
 Alternatively, read some of the docs on other controllers and try to write your own, file and fix any/all issues that
 come up, including gaps in documentation!
 
+If you're a more experienced contributor, looking at unassigned issues in the next release milestone is a good way to find work that has been prioritized. For example, if the latest minor release is `v1.0`, the next release milestone is `v1.1`.
+
 ## Versioning
 
 ### Codebase and Go Modules
@@ -159,7 +161,7 @@ When submitting the PR remember to label it with the 📖 (:book:) icon.
 
 ## Releases
 
-Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) to track releases.
+Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) to track releases. Issues in a release milestone have been prioritized and accepted for the release. However, these issues are not committed to the release, unless they are marked as `kind/release-blocking`. Getting them into the release is dependent on someone in the community getting assigned to the issue and completing the work.
 
 - Minor versions CAN be planned and scheduled for each quarter, or sooner if necessary.
   - Each minor version is preceded with one or more planning session.

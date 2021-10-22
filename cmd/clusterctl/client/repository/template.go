@@ -17,8 +17,11 @@ limitations under the License.
 package repository
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
@@ -135,4 +138,54 @@ func NewTemplate(input TemplateInput) (Template, error) {
 		targetNamespace: input.TargetNamespace,
 		objs:            objs,
 	}, nil
+}
+
+// MergeTemplates merges the provided Templates into one Template.
+// Notes on the merge operation:
+// - The merge operation returns an error if all the templates do not have the same TargetNamespace.
+// - The Variables of the resulting template is a union of all Variables in the templates.
+// - The default value is picked from the first temmplate that defines it.
+//    The defaults of the same variable in the subsequent templates will be ignored.
+//    (e.g when merging a cluster template and its ClusterClass, the default value from the template takes precedence)
+// - The Objs of the final template will be a union of all the Objs in the templates.
+func MergeTemplates(templates ...Template) (Template, error) {
+	templates = filterNilTemplates(templates...)
+	if len(templates) == 0 {
+		return nil, nil
+	}
+
+	merged := &template{
+		variables:       []string{},
+		variableMap:     map[string]*string{},
+		objs:            []unstructured.Unstructured{},
+		targetNamespace: templates[0].TargetNamespace(),
+	}
+
+	for _, tmpl := range templates {
+		merged.variables = sets.NewString(merged.variables...).Union(sets.NewString(tmpl.Variables()...)).List()
+
+		for key, val := range tmpl.VariableMap() {
+			if v, ok := merged.variableMap[key]; !ok || v == nil {
+				merged.variableMap[key] = val
+			}
+		}
+
+		if merged.targetNamespace != tmpl.TargetNamespace() {
+			return nil, fmt.Errorf("cannot merge templates with different targetNamespaces")
+		}
+
+		merged.objs = append(merged.objs, tmpl.Objs()...)
+	}
+
+	return merged, nil
+}
+
+func filterNilTemplates(templates ...Template) []Template {
+	res := []Template{}
+	for _, tmpl := range templates {
+		if tmpl != nil {
+			res = append(res, tmpl)
+		}
+	}
+	return res
 }

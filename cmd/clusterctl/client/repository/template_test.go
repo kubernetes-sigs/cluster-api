@@ -116,3 +116,49 @@ func Test_newTemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeTemplates(t *testing.T) {
+	g := NewWithT(t)
+
+	templateYAMLGen := func(name, variableValue, sameVariableValue string) []byte {
+		return []byte(fmt.Sprintf(`apiVersion: v1
+data: 
+  variable: ${%s}
+  samevariable: ${SAME_VARIABLE:-%s}
+kind: ConfigMap
+metadata: 
+  name: %s`, variableValue, sameVariableValue, name))
+	}
+
+	template1, err := NewTemplate(TemplateInput{
+		RawArtifact:           templateYAMLGen("foo", "foo", "val-1"),
+		ConfigVariablesClient: test.NewFakeVariableClient().WithVar("foo", "foo-value"),
+		Processor:             yaml.NewSimpleProcessor(),
+		TargetNamespace:       "ns1",
+		SkipTemplateProcess:   false,
+	})
+	if err != nil {
+		t.Fatalf("failed to create template %v", err)
+	}
+
+	template2, err := NewTemplate(TemplateInput{
+		RawArtifact:           templateYAMLGen("bar", "bar", "val-2"),
+		ConfigVariablesClient: test.NewFakeVariableClient().WithVar("bar", "bar-value"),
+		Processor:             yaml.NewSimpleProcessor(),
+		TargetNamespace:       "ns1",
+		SkipTemplateProcess:   false,
+	})
+	if err != nil {
+		t.Fatalf("failed to create template %v", err)
+	}
+
+	merged, err := MergeTemplates(template1, template2)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(merged.Objs())).To(Equal(2))
+	g.Expect(len(merged.VariableMap())).To(Equal(3))
+
+	// Make sure that the SAME_VARIABLE default value comes from the first template
+	// that defines it
+	g.Expect(merged.VariableMap()["SAME_VARIABLE"]).NotTo(BeNil())
+	g.Expect(*merged.VariableMap()["SAME_VARIABLE"]).To(Equal("val-1"))
+}

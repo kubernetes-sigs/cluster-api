@@ -53,6 +53,9 @@ type CheckCAPIContractOptions struct {
 
 	// AllowCAPIContracts instructs CheckCAPIContract to tolerate management clusters with Cluster API with the given contract.
 	AllowCAPIContracts []string
+
+	// AllowCAPIAnyContract instructs CheckCAPIContract to tolerate management clusters with Cluster API installed with any contract.
+	AllowCAPIAnyContract bool
 }
 
 // AllowCAPINotInstalled instructs CheckCAPIContract to tolerate management clusters without Cluster API installed yet.
@@ -62,6 +65,15 @@ type AllowCAPINotInstalled struct{}
 // Apply applies this configuration to the given CheckCAPIContractOptions.
 func (t AllowCAPINotInstalled) Apply(in *CheckCAPIContractOptions) {
 	in.AllowCAPINotInstalled = true
+}
+
+// AllowCAPIAnyContract instructs CheckCAPIContract to tolerate management clusters with Cluster API with any contract.
+// NOTE: This allows clusterctl generate cluster with managed topologies to work properly by performing checks to see if CAPI is installed.
+type AllowCAPIAnyContract struct{}
+
+// Apply applies this configuration to the given CheckCAPIContractOptions.
+func (t AllowCAPIAnyContract) Apply(in *CheckCAPIContractOptions) {
+	in.AllowCAPIAnyContract = true
 }
 
 // AllowCAPIContract instructs CheckCAPIContract to tolerate management clusters with Cluster API with the given contract.
@@ -102,6 +114,9 @@ type InventoryClient interface {
 	// CheckCAPIContract checks the Cluster API version installed in the management cluster, and fails if this version
 	// does not match the current one supported by clusterctl.
 	CheckCAPIContract(...CheckCAPIContractOption) error
+
+	// CheckCAPIInstalled checks if Cluster API is installed on the management cluster.
+	CheckCAPIInstalled() (bool, error)
 
 	// CheckSingleProviderInstance ensures that only one instance of a provider is running, returns error otherwise.
 	CheckSingleProviderInstance() error
@@ -395,6 +410,10 @@ func (p *inventoryClient) CheckCAPIContract(options ...CheckCAPIContractOption) 
 		return errors.Wrap(err, "failed to check Cluster API version")
 	}
 
+	if opt.AllowCAPIAnyContract {
+		return nil
+	}
+
 	for _, version := range crd.Spec.Versions {
 		if version.Storage {
 			if version.Name == clusterv1.GroupVersion.Version {
@@ -409,6 +428,17 @@ func (p *inventoryClient) CheckCAPIContract(options ...CheckCAPIContractOption) 
 		}
 	}
 	return errors.Errorf("failed to check Cluster API version")
+}
+
+func (p *inventoryClient) CheckCAPIInstalled() (bool, error) {
+	if err := p.CheckCAPIContract(AllowCAPIAnyContract{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			// The expected CRDs are not installed on the management. This would mean that Cluster API is not installed on the cluster.
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (p *inventoryClient) CheckSingleProviderInstance() error {
@@ -436,7 +466,7 @@ func (p *inventoryClient) CheckSingleProviderInstance() error {
 
 	if len(errs) > 0 {
 		return errors.Wrap(kerrors.NewAggregate(errs), "detected multiple instances of the same provider, "+
-			"but clusterctl v1alpha4 does not support this use case. See https://cluster-api.sigs.k8s.io/developer/architecture/controllers/support-multiple-instances.html for more details")
+			"but clusterctl does not support this use case. See https://cluster-api.sigs.k8s.io/developer/architecture/controllers/support-multiple-instances.html for more details")
 	}
 
 	return nil

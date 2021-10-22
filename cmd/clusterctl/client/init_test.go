@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -772,6 +773,27 @@ func templateYAML(ns string, clusterName string) []byte {
 		"kind: Cluster\n" +
 		"metadata:\n" +
 		fmt.Sprintf("  name: %s\n", clusterName) +
+		fmt.Sprintf("  namespace: %s", ns))
+
+	return podYaml
+}
+
+func mangedTopologyTemplateYAML(ns, clusterName, clusterClassName string) []byte {
+	return []byte(fmt.Sprintf("apiVersion: %s\n", clusterv1.GroupVersion.String()) +
+		"kind: Cluster\n" +
+		"metadata:\n" +
+		fmt.Sprintf("  name: %s\n", clusterName) +
+		fmt.Sprintf("  namespace: %s\n", ns) +
+		"spec:\n" +
+		"  topology:\n" +
+		fmt.Sprintf("    class: %s", clusterClassName))
+}
+
+func clusterClassYAML(ns, clusterClassName string) []byte {
+	var podYaml = []byte(fmt.Sprintf("apiVersion: %s\n", clusterv1.GroupVersion.String()) +
+		"kind: ClusterClass\n" +
+		"metadata:\n" +
+		fmt.Sprintf("  name: %s\n", clusterClassName) +
 		fmt.Sprintf("  namespace: %s", ns))
 
 	return podYaml

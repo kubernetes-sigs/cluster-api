@@ -16,6 +16,8 @@ limitations under the License.
 
 package test
 
+import "fmt"
+
 type FakeProcessor struct {
 	errGetVariables   error
 	errGetVariableMap error
@@ -44,6 +46,10 @@ func (fp *FakeProcessor) WithProcessErr(e error) *FakeProcessor {
 
 func (fp *FakeProcessor) GetTemplateName(version, flavor string) string {
 	return fp.artifactName
+}
+
+func (fp *FakeProcessor) GetClusterClassTemplateName(version, name string) string {
+	return fmt.Sprintf("clusterclass-%s.yaml", name)
 }
 
 func (fp *FakeProcessor) GetVariables(raw []byte) ([]string, error) {

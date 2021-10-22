@@ -19,6 +19,7 @@ package tree
 import (
 	"context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
@@ -54,6 +55,12 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	}
 	if err := c.Get(ctx, clusterKey, cluster); err != nil {
 		return nil, err
+	}
+
+	// Enforce TypeMeta to make sure checks on GVK works properly.
+	cluster.TypeMeta = metav1.TypeMeta{
+		Kind:       "Cluster",
+		APIVersion: clusterv1.GroupVersion.String(),
 	}
 
 	// Create an object tree with the cluster as root

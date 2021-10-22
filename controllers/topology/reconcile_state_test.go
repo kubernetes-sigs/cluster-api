@@ -82,8 +82,6 @@ func TestReconcileCluster(t *testing.T) {
 
 			s := scope.New(tt.current)
 
-			// TODO: stop setting ResourceVersion when building objects
-			tt.desired.SetResourceVersion("")
 			s.Desired = &scope.ClusterState{Cluster: tt.desired}
 
 			r := ClusterReconciler{
@@ -188,8 +186,6 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 			s := scope.New(nil)
 			s.Current.InfrastructureCluster = tt.current
 
-			// TODO: stop setting ResourceVersion when building objects
-			tt.desired.SetResourceVersion("")
 			s.Desired = &scope.ClusterState{InfrastructureCluster: tt.desired}
 
 			r := ClusterReconciler{
@@ -266,47 +262,47 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			name:    "Should create desired ControlPlane if the current does not exist",
 			class:   ccWithoutControlPlaneInfrastructure,
 			current: nil,
-			desired: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
-			want:    &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
+			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:    &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			wantErr: false,
 		},
 		{
 			name:    "Fail on updating ControlPlaneObject with incompatible changes, here a different Kind for the infrastructureMachineTemplate",
 			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
-			desired: &scope.ControlPlaneState{Object: controlPlane2, InfrastructureMachineTemplate: infrastructureMachineTemplate},
+			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired: &scope.ControlPlaneState{Object: controlPlane2.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			wantErr: true,
 		},
 		{
 			name:    "Update to ControlPlaneObject with no update to the underlying infrastructure",
 			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
-			desired: &scope.ControlPlaneState{Object: controlPlane3, InfrastructureMachineTemplate: infrastructureMachineTemplate},
-			want:    &scope.ControlPlaneState{Object: controlPlane3, InfrastructureMachineTemplate: infrastructureMachineTemplate},
+			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired: &scope.ControlPlaneState{Object: controlPlane3.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:    &scope.ControlPlaneState{Object: controlPlane3.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			wantErr: false,
 		},
 		{
 			name:    "Update to ControlPlaneObject with underlying infrastructure.",
 			class:   ccWithControlPlaneInfrastructure,
 			current: &scope.ControlPlaneState{InfrastructureMachineTemplate: nil},
-			desired: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			want:    &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:    &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			wantErr: false,
 		},
 		{
 			name:    "Update to ControlPlaneObject with no underlying infrastructure",
 			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlane1},
-			desired: &scope.ControlPlaneState{Object: controlPlane3},
-			want:    &scope.ControlPlaneState{Object: controlPlane3},
+			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy()},
+			desired: &scope.ControlPlaneState{Object: controlPlane3.DeepCopy()},
+			want:    &scope.ControlPlaneState{Object: controlPlane3.DeepCopy()},
 			wantErr: false,
 		},
 		{
 			name:    "Preserve specific changes to the ControlPlaneObject",
 			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificChanges, InfrastructureMachineTemplate: infrastructureMachineTemplate},
-			desired: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
-			want:    &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificChanges, InfrastructureMachineTemplate: infrastructureMachineTemplate},
+			current: &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificChanges.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:    &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificChanges.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			wantErr: false,
 		},
 	}
@@ -338,13 +334,6 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 				WithObjects(fakeObjs...).
 				Build()
 
-			// TODO: stop setting ResourceVersion when building objects
-			if tt.desired.InfrastructureMachineTemplate != nil {
-				tt.desired.InfrastructureMachineTemplate.SetResourceVersion("")
-			}
-			if tt.desired.Object != nil {
-				tt.desired.Object.SetResourceVersion("")
-			}
 			r := ClusterReconciler{
 				Client: fakeClient,
 			}
@@ -393,10 +382,8 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 	// Create InfrastructureMachineTemplates for test cases
 	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 	infrastructureMachineTemplate2 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra2").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 
 	// Create the blueprint mandating controlPlaneInfrastructure.
@@ -443,22 +430,22 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	}{
 		{
 			name:    "Create desired InfrastructureMachineTemplate where it doesn't exist",
-			current: &scope.ControlPlaneState{Object: controlPlane1},
-			desired: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
-			want:    &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
+			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy()},
+			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:    &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			wantErr: false,
 		},
 		{
 			name:    "Update desired InfrastructureMachineTemplate connected to controlPlane",
-			current: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
+			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			desired: &scope.ControlPlaneState{Object: controlPlane3, InfrastructureMachineTemplate: updatedInfrastructureMachineTemplate},
 			want:    &scope.ControlPlaneState{Object: controlPlane3, InfrastructureMachineTemplate: updatedInfrastructureMachineTemplate},
 			wantErr: false,
 		},
 		{
 			name:    "Fail on updating infrastructure with incompatible changes",
-			current: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: infrastructureMachineTemplate},
-			desired: &scope.ControlPlaneState{Object: controlPlane1, InfrastructureMachineTemplate: incompatibleInfrastructureMachineTemplate},
+			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: incompatibleInfrastructureMachineTemplate},
 			wantErr: true,
 		},
 	}
@@ -481,13 +468,6 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 				WithObjects(fakeObjs...).
 				Build()
 
-			// TODO: stop setting ResourceVersion when building objects
-			if tt.desired.InfrastructureMachineTemplate != nil {
-				tt.desired.InfrastructureMachineTemplate.SetResourceVersion("")
-			}
-			if tt.desired.Object != nil {
-				tt.desired.Object.SetResourceVersion("")
-			}
 			r := ClusterReconciler{
 				Client: fakeClient,
 			}
@@ -732,12 +712,6 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			s := scope.New(builder.Cluster(metav1.NamespaceDefault, "cluster-1").Build())
 			s.Current.MachineDeployments = currentMachineDeploymentStates
 
-			// TODO: stop setting ResourceVersion when building objects
-			for _, md := range tt.desired {
-				md.Object.SetResourceVersion("")
-				md.BootstrapTemplate.SetResourceVersion("")
-				md.InfrastructureMachineTemplate.SetResourceVersion("")
-			}
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
 
 			r := ClusterReconciler{
@@ -779,11 +753,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					}, &gotBootstrapTemplate)
 
 					g.Expect(err).ToNot(HaveOccurred())
-					// We don't want to compare resourceVersions as they are slightly different between the test cases
-					// and it's not worth the effort.
-					gotBootstrapTemplate.SetResourceVersion("")
-					wantMachineDeploymentState.BootstrapTemplate.SetResourceVersion("")
-					g.Expect(gotBootstrapTemplate).To(Equal(*wantMachineDeploymentState.BootstrapTemplate))
+
+					g.Expect(&gotBootstrapTemplate).To(EqualObject(wantMachineDeploymentState.BootstrapTemplate, IgnoreAutogeneratedMetadata))
 
 					// Check BootstrapTemplate rotation if there was a previous MachineDeployment/Template.
 					if currentMachineDeploymentState != nil && currentMachineDeploymentState.BootstrapTemplate != nil {
@@ -806,11 +777,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					}, &gotInfrastructureMachineTemplate)
 
 					g.Expect(err).ToNot(HaveOccurred())
-					// We don't want to compare resourceVersions as they are slightly different between the test cases
-					// and it's not worth the effort.
-					gotInfrastructureMachineTemplate.SetResourceVersion("")
-					wantMachineDeploymentState.InfrastructureMachineTemplate.SetResourceVersion("")
-					g.Expect(gotInfrastructureMachineTemplate).To(Equal(*wantMachineDeploymentState.InfrastructureMachineTemplate))
+
+					g.Expect(&gotInfrastructureMachineTemplate).To(EqualObject(wantMachineDeploymentState.InfrastructureMachineTemplate, IgnoreAutogeneratedMetadata))
 
 					// Check InfrastructureMachineTemplate rotation if there was a previous MachineDeployment/Template.
 					if currentMachineDeploymentState != nil && currentMachineDeploymentState.InfrastructureMachineTemplate != nil {

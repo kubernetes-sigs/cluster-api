@@ -52,8 +52,6 @@ func TestClusterReconciler_reconcile(t *testing.T) {
 	// 1) Templates for Machine, Cluster, ControlPlane and Bootstrap.
 	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(ns.Name, "inframachinetemplate").Build()
 	infrastructureClusterTemplate := builder.InfrastructureClusterTemplate(ns.Name, "infraclustertemplate").
-		// Create spec fake setting to assert that template spec is non-empty for tests.
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
 	controlPlaneTemplate := builder.ControlPlaneTemplate(ns.Name, "cp1").
 		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).

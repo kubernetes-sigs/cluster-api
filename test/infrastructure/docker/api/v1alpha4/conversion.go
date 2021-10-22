@@ -17,7 +17,9 @@ limitations under the License.
 package v1alpha4
 
 import (
+	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -48,13 +50,34 @@ func (dst *DockerClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.DockerClusterTemplate)
 
-	return Convert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(src, dst, nil)
+	if err := Convert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1beta1.DockerClusterTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+
+	return nil
 }
 
 func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.DockerClusterTemplate)
 
-	return Convert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(src, dst, nil)
+	if err := Convert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *DockerClusterTemplateList) ConvertTo(dstRaw conversion.Hub) error {
@@ -96,13 +119,34 @@ func (dst *DockerMachineList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.DockerMachineTemplate)
 
-	return Convert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil)
+	if err := Convert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1beta1.DockerMachineTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+
+	return nil
 }
 
 func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.DockerMachineTemplate)
 
-	return Convert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(src, dst, nil)
+	if err := Convert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *DockerMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
@@ -115,4 +159,14 @@ func (dst *DockerMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.DockerMachineTemplateList)
 
 	return Convert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(src, dst, nil)
+}
+
+func Convert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in *v1beta1.DockerClusterTemplateResource, out *DockerClusterTemplateResource, s apiconversion.Scope) error {
+	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
+	return autoConvert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in, out, s)
+}
+
+func Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in *v1beta1.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s apiconversion.Scope) error {
+	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
+	return autoConvert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in, out, s)
 }

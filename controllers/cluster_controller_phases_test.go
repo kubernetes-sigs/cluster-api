@@ -370,3 +370,141 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		})
 	}
 }
+
+func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: "test-namespace",
+		},
+		Status: clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{
+				Host: "1.2.3.4",
+				Port: 8443,
+			},
+			InfrastructureRef: &corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "GenericInfrastructureMachine",
+				Name:       "test",
+			},
+		},
+	}
+
+	newFailureDomain := clusterv1.FailureDomains{
+		"newdomain": clusterv1.FailureDomainSpec{
+			ControlPlane: false,
+			Attributes: map[string]string{
+				"attribute1": "value1",
+			},
+		},
+	}
+
+	newFailureDomainUpdated := clusterv1.FailureDomains{
+		"newdomain": clusterv1.FailureDomainSpec{
+			ControlPlane: false,
+			Attributes: map[string]string{
+				"attribute2": "value2",
+			},
+		},
+	}
+
+	clusterWithNewFailureDomainUpdated := cluster.DeepCopy()
+	clusterWithNewFailureDomainUpdated.Status.FailureDomains = newFailureDomainUpdated
+
+	oldFailureDomain := clusterv1.FailureDomains{
+		"olddomain": clusterv1.FailureDomainSpec{
+			ControlPlane: false,
+			Attributes: map[string]string{
+				"attribute1": "value1",
+			},
+		},
+	}
+
+	clusterWithOldFailureDomain := cluster.DeepCopy()
+	clusterWithOldFailureDomain.Status.FailureDomains = oldFailureDomain
+
+	tests := []struct {
+		name                 string
+		cluster              *clusterv1.Cluster
+		infraRef             map[string]interface{}
+		expectFailureDomains clusterv1.FailureDomains
+	}{
+		{
+			name:    "expect no failure domain if infrastructure ref is nil",
+			cluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
+		},
+		{
+			name:     "expect no failure domain if infra config does not have failure domain",
+			cluster:  cluster,
+			infraRef: generateInfraRef(false),
+		},
+		{
+			name:                 "expect failure domain to remain same if infra config have same failure domain",
+			cluster:              cluster,
+			infraRef:             generateInfraRef(true),
+			expectFailureDomains: newFailureDomain,
+		},
+		{
+			name:                 "expect failure domain to be updated if infra config have update to failure domain",
+			cluster:              clusterWithNewFailureDomainUpdated,
+			infraRef:             generateInfraRef(true),
+			expectFailureDomains: newFailureDomain,
+		},
+		{
+			name:                 "expect failure domain to be reset if infra config have different failure domain",
+			cluster:              clusterWithOldFailureDomain,
+			infraRef:             generateInfraRef(true),
+			expectFailureDomains: newFailureDomain,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			objs := []client.Object{builder.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster}
+			if tt.infraRef != nil {
+				objs = append(objs, &unstructured.Unstructured{Object: tt.infraRef})
+			}
+
+			r := &ClusterReconciler{
+				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+			}
+
+			_, err := r.reconcileInfrastructure(ctx, tt.cluster)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(cluster.Status.FailureDomains).To(BeEquivalentTo(tt.expectFailureDomains))
+		})
+	}
+}
+
+func generateInfraRef(withFailureDomain bool) map[string]interface{} {
+	infraRef := map[string]interface{}{
+		"kind":       "GenericInfrastructureMachine",
+		"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+		"metadata": map[string]interface{}{
+			"name":              "test",
+			"namespace":         "test-namespace",
+			"deletionTimestamp": "sometime",
+		},
+	}
+
+	if withFailureDomain {
+		infraRef["status"] = map[string]interface{}{
+			"failureDomains": map[string]interface{}{
+				"newdomain": map[string]interface{}{
+					"controlPlane": false,
+					"attributes": map[string]interface{}{
+						"attribute1": "value1",
+					},
+				},
+			},
+			"ready": true,
+		}
+	}
+
+	return infraRef
+}

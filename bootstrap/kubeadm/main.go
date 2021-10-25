@@ -112,7 +112,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	fs.DurationVar(&tokenTTL, "bootstrap-token-ttl", 15*time.Minute,
+	fs.DurationVar(&tokenTTL, "bootstrap-token-ttl", kubeadmbootstrapcontrollers.DefaultTokenTTL,
 		"The amount of time the bootstrap token will be valid")
 
 	fs.StringVar(&watchFilterValue, "watch-filter", "",

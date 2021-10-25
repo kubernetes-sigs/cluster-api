@@ -59,8 +59,9 @@ const (
 	KubeadmConfigControllerName = "kubeadmconfig-controller"
 )
 
-var (
-	defaultTokenTTL = 15 * time.Minute
+const (
+	// DefaultTokenTTL is the default TTL used for tokens.
+	DefaultTokenTTL = 15 * time.Minute
 )
 
 // InitLocker is a lock that is used around kubeadm init.
@@ -104,7 +105,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		r.remoteClientGetter = remote.NewClusterClient
 	}
 	if r.TokenTTL == 0 {
-		r.TokenTTL = defaultTokenTTL
+		r.TokenTTL = DefaultTokenTTL
 	}
 
 	b := ctrl.NewControllerManagedBy(mgr).

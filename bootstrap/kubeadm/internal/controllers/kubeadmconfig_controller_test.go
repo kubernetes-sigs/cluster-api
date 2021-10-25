@@ -741,7 +741,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
-		TokenTTL:           defaultTokenTTL,
+		TokenTTL:           DefaultTokenTTL,
 		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 	request := ctrl.Request{
@@ -888,7 +888,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
-		TokenTTL:           defaultTokenTTL,
+		TokenTTL:           DefaultTokenTTL,
 		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 	request := ctrl.Request{

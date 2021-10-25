@@ -741,6 +741,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
+		TokenTTL:           defaultTokenTTL,
 		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 	request := ctrl.Request{
@@ -807,7 +808,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	} {
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", DefaultTokenTTL))
+		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", k.TokenTTL))
 	}
 
 	l = &corev1.SecretList{}
@@ -887,6 +888,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
+		TokenTTL:           defaultTokenTTL,
 		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 	request := ctrl.Request{
@@ -930,7 +932,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	} {
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", DefaultTokenTTL))
+		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", k.TokenTTL))
 	}
 
 	l = &corev1.SecretList{}
@@ -959,7 +961,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 	result, err = k.Reconcile(ctx, request)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(result.RequeueAfter).To(Equal(DefaultTokenTTL / 3))
+	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 
 	l = &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
@@ -971,7 +973,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 
 	// before token expires, it should rotate it
-	tokenExpires[0] = []byte(time.Now().UTC().Add(DefaultTokenTTL / 5).Format(time.RFC3339))
+	tokenExpires[0] = []byte(time.Now().UTC().Add(k.TokenTTL / 5).Format(time.RFC3339))
 	l.Items[0].Data[bootstrapapi.BootstrapTokenExpirationKey] = tokenExpires[0]
 	err = myclient.Update(ctx, &l.Items[0])
 	g.Expect(err).NotTo(HaveOccurred())
@@ -996,7 +998,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		if bytes.Equal(item.Data[bootstrapapi.BootstrapTokenExpirationKey], tokenExpires[0]) {
 			foundOld = true
 		} else {
-			g.Expect(string(item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(Equal(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339)))
+			g.Expect(string(item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(Equal(time.Now().UTC().Add(k.TokenTTL).Format(time.RFC3339)))
 			foundNew = true
 		}
 	}

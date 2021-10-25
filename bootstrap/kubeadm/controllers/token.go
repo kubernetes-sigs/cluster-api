@@ -28,13 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var (
-	// DefaultTokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
-	DefaultTokenTTL = 15 * time.Minute
-)
-
 // createToken attempts to create a token with the given ID.
-func createToken(ctx context.Context, c client.Client) (string, error) {
+func createToken(ctx context.Context, c client.Client, ttl time.Duration) (string, error) {
 	token, err := bootstraputil.GenerateBootstrapToken()
 	if err != nil {
 		return "", errors.Wrap(err, "unable to generate bootstrap token")
@@ -57,7 +52,7 @@ func createToken(ctx context.Context, c client.Client) (string, error) {
 		Data: map[string][]byte{
 			bootstrapapi.BootstrapTokenIDKey:               []byte(tokenID),
 			bootstrapapi.BootstrapTokenSecretKey:           []byte(tokenSecret),
-			bootstrapapi.BootstrapTokenExpirationKey:       []byte(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339)),
+			bootstrapapi.BootstrapTokenExpirationKey:       []byte(time.Now().UTC().Add(ttl).Format(time.RFC3339)),
 			bootstrapapi.BootstrapTokenUsageSigningKey:     []byte("true"),
 			bootstrapapi.BootstrapTokenUsageAuthentication: []byte("true"),
 			bootstrapapi.BootstrapTokenExtraGroupsKey:      []byte("system:bootstrappers:kubeadm:default-node-token"),
@@ -92,18 +87,18 @@ func getToken(ctx context.Context, c client.Client, token string) (*corev1.Secre
 }
 
 // refreshToken extends the TTL for an existing token.
-func refreshToken(ctx context.Context, c client.Client, token string) error {
+func refreshToken(ctx context.Context, c client.Client, token string, ttl time.Duration) error {
 	secret, err := getToken(ctx, c, token)
 	if err != nil {
 		return err
 	}
-	secret.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339))
+	secret.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(ttl).Format(time.RFC3339))
 
 	return c.Update(ctx, secret)
 }
 
 // shouldRotate returns true if an existing token is past half of its TTL and should to be rotated.
-func shouldRotate(ctx context.Context, c client.Client, token string) (bool, error) {
+func shouldRotate(ctx context.Context, c client.Client, token string, ttl time.Duration) (bool, error) {
 	secret, err := getToken(ctx, c, token)
 	if err != nil {
 		return false, err
@@ -113,5 +108,5 @@ func shouldRotate(ctx context.Context, c client.Client, token string) (bool, err
 	if err != nil {
 		return false, err
 	}
-	return expiration.Before(time.Now().UTC().Add(DefaultTokenTTL / 2)), nil
+	return expiration.Before(time.Now().UTC().Add(ttl / 2)), nil
 }

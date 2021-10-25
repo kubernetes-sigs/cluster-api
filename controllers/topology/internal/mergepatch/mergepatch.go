@@ -98,7 +98,7 @@ func NewHelper(original, modified client.Object, c client.Client, opts ...Helper
 }
 
 // filterPatch removes from the patch diffs not in the allowed paths;
-// it also return a flag indicating if the resulting patch has spec changes or not.
+// it also returns a flag indicating if the resulting patch has spec changes or not.
 func filterPatch(patch []byte, allowedPaths, ignorePaths []contract.Path) ([]byte, bool, error) {
 	// converts the patch into a Map
 	patchMap := make(map[string]interface{})
@@ -110,10 +110,14 @@ func filterPatch(patch []byte, allowedPaths, ignorePaths []contract.Path) ([]byt
 	// Removes from diffs everything not in the allowed paths.
 	filterPatchMap(patchMap, allowedPaths)
 
-	// Removes from diffs everything in the ignore paths.
+	// Removes from diffs everything in ignore paths.
 	for _, path := range ignorePaths {
 		removePath(patchMap, path)
 	}
+
+	// Cleanup empty maps from the patch, so we are
+	// sure only actual changes remains.
+	cleanupEmptyMaps(patchMap)
 
 	// check if the changes impact the spec field.
 	hasSpecChanges := patchMap["spec"] != nil
@@ -161,11 +165,6 @@ func filterPatchMap(patchMap map[string]interface{}, allowedPaths []contract.Pat
 			continue
 		}
 		filterPatchMap(nestedMap, nestedPaths)
-
-		// Ensure we are not leaving empty maps around.
-		if len(nestedMap) == 0 {
-			delete(patchMap, k)
-		}
 	}
 }
 
@@ -173,22 +172,38 @@ func filterPatchMap(patchMap map[string]interface{}, allowedPaths []contract.Pat
 func removePath(patchMap map[string]interface{}, path contract.Path) {
 	switch len(path) {
 	case 0:
-		// if path is empty, no-op.
+		// If path is empty, no-op.
 		return
 	case 1:
-		// if we are at the end of a path, remove the corresponding entry.
+		// If we are at the end of a path, remove the corresponding entry.
 		delete(patchMap, path[0])
 	default:
-		// if in the middle of a path, go into the nested map,
+		// If in the middle of a path, go into the nested map,
 		nestedMap, ok := patchMap[path[0]].(map[string]interface{})
 		if !ok {
+			// If the path is not a map, return (not a full match)
 			return
 		}
 		removePath(nestedMap, path[1:])
+	}
+}
 
-		// Ensure we are not leaving empty maps around.
+// cleanupEmptyMaps removes empty maps from the patch, so we are
+// sure only actual changes remains.
+func cleanupEmptyMaps(patchMap map[string]interface{}) {
+	for k, v := range patchMap {
+		nestedMap, ok := v.(map[string]interface{})
+		// If the key is not a map (is a value or a list), move to the next key
+		if !ok {
+			continue
+		}
+		// If the key is map with some values, cleanup recursively.
+		if len(nestedMap) > 0 {
+			cleanupEmptyMaps(nestedMap)
+		}
+		// If the resulting map is empty, remove the key.
 		if len(nestedMap) == 0 {
-			delete(patchMap, path[0])
+			delete(patchMap, k)
 		}
 	}
 }

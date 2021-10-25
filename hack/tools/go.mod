@@ -7,6 +7,7 @@ require (
 	github.com/drone/envsubst/v2 v2.0.0-20210615175204-7bf45dbf5372
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/joelanford/go-apidiff v0.1.0
+	github.com/mikefarah/yq/v4 v4.13.5
 	github.com/onsi/ginkgo v1.16.4
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0 // indirect

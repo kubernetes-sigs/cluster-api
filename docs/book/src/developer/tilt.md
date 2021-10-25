@@ -13,7 +13,7 @@ workflow that offers easy deployments and rapid iterative builds.
 1. [kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/)
    standalone (`kubectl kustomize` does not work because it is missing
    some features of kustomize v3)
-1. [Tilt](https://docs.tilt.dev/install.html) v0.16.0 or newer
+1. [Tilt](https://docs.tilt.dev/install.html) v0.22.2 or newer
 1. [envsubst](https://github.com/drone/envsubst) or similar to handle
    clusterctl var replacement. Note: drone/envsubst releases v1.0.2 and
    earlier do not have the binary packaged under cmd/envsubst. It is
@@ -38,7 +38,7 @@ A script to create a KIND cluster along with a local docker registry and the cor
 
 To create a pre-configured cluster run:
 
-```bash 
+```bash
 ./hack/kind-install-for-capd.sh
 ````
 
@@ -89,6 +89,70 @@ For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do 
   "AWS_B64ENCODED_CREDENTIALS": "your credentials here"
 }
 ```
+
+**debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.
+
+Supported settings:
+
+  * **port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will run the provider with delve
+  and port forward the delve server to localhost on the specified debug port. This can then be used with IDEs such as
+  Visual Studio Code, Goland and IntelliJ.
+
+  * **continue** (bool, default=true): By default, Tilt will run delve with `--continue`, such that any provider with
+    debugging turned on will run normally unless specifically having a breakpoint entered. Change to false if you
+    do not want the controller to start at all by default.
+
+  * **profiler_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will enable the profiler with
+  `--profiler-address` and set up a port forward. A "profiler" link will be visible in the Tilt Web UI for the controller.
+
+  * **metrics_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will port forward to the
+    default metrics port. A "metrics" link will be visible in the Tilt Web UI for the controller.
+
+  * **race_detector** (bool, default=false) (Linux amd64 only): If enabled, Tilt will compile the specified controller with
+    cgo and statically compile in the system glibc and enable the race detector. Currently, this is only supported when
+    building on Linux amd64 systems. You must install glibc-static or have libc.a available for this to work.
+
+    Example: Using the configuration below:
+
+    ```json
+      "debug": {
+        "core": {
+          "continue": false,
+          "port": 30000,
+          "profiler_port": 40000,
+          "metrics_port": 40001
+        }
+      },
+    ```
+
+    ##### Wiring up debuggers
+    ###### Visual Studio
+    When using the example above, the core CAPI controller can be debugged in Visual Studio Code using the following launch configuration:
+
+    ```json
+    {
+      "version": "0.2.0",
+      "configurations": [
+        {
+          "name": "Core CAPI Controller",
+          "type": "go",
+          "request": "attach",
+          "mode": "remote",
+          "remotePath": "",
+          "port": 30000,
+          "host": "127.0.0.1",
+          "showLog": true,
+          "trace": "log",
+          "logOutput": "rpc"
+        }
+      ]
+    }
+    ```
+
+    ###### Goland
+  With the above example, you can configure [a Go Remote run/debug
+  configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
+  pointing at port 30000.
 
 {{#/tab }}
 {{#tab AZURE}}
@@ -264,7 +328,7 @@ Set to `false` if your provider does not have a ./config folder or you do not wa
 
 **go_main** (String, default="main.go"): The go main file if not located at the root of the folder
 
-**label** (String, default=provider name): The label to be used to group provider components in the tilt UI 
+**label** (String, default=provider name): The label to be used to group provider components in the tilt UI
 in tilt version >= v0.22.2 (see https://blog.tilt.dev/2021/08/09/resource-grouping.html); as a convention,
 provider abbreviation should be used (CAPD, KCP etc.).
 

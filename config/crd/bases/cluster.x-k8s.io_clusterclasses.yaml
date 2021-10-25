@@ -756,7 +756,8 @@ spec:
                                 the value of Maximum. If ExclusiveMaximum is true,
                                 the variable is valid if it is strictly lower than
                                 the value of Maximum.
-                              type: string
+                              format: int64
+                              type: integer
                             minLength:
                               description: MinLength is the min length of a string
                                 variable.
@@ -769,11 +770,8 @@ spec:
                                 to, the value of Minimum. If ExclusiveMinimum is true,
                                 the variable is valid if it is strictly greater than
                                 the value of Minimum.
-                              type: string
-                            multipleOf:
-                              description: MultipleOf specifies the number of which
-                                the variable must be a multiple of.
-                              type: string
+                              format: int64
+                              type: integer
                             nullable:
                               description: Nullable specifies if the variable can
                                 be set to null.

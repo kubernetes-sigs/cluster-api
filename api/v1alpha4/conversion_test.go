@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"encoding/json"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
@@ -113,10 +112,4 @@ func JSONSchemaPropsFuzzer(in *v1beta1.JSONSchemaProps, c fuzz.Continue) {
 		{Raw: []byte("\"c\"")},
 	}
 	in.Default = &apiextensionsv1.JSON{Raw: []byte("true")}
-
-	// Not every random string is a valid JSON number, so we're setting a valid JSON number.
-	number := json.Number("1")
-	in.MultipleOf = &number
-	in.Minimum = &number
-	in.Maximum = &number
 }

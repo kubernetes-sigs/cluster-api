@@ -21,7 +21,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"encoding/json"
 	"k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -566,17 +565,12 @@ func (in *JSONSchemaProps) DeepCopyInto(out *JSONSchemaProps) {
 	}
 	if in.Maximum != nil {
 		in, out := &in.Maximum, &out.Maximum
-		*out = new(json.Number)
+		*out = new(int64)
 		**out = **in
 	}
 	if in.Minimum != nil {
 		in, out := &in.Minimum, &out.Minimum
-		*out = new(json.Number)
-		**out = **in
-	}
-	if in.MultipleOf != nil {
-		in, out := &in.MultipleOf, &out.MultipleOf
-		*out = new(json.Number)
+		*out = new(int64)
 		**out = **in
 	}
 	if in.Enum != nil {

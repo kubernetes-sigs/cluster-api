@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"encoding/json"
-
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -189,7 +187,7 @@ type JSONSchemaProps struct {
 	// If ExclusiveMaximum is false, the variable is valid if it is lower than, or equal to, the value of Maximum.
 	// If ExclusiveMaximum is true, the variable is valid if it is strictly lower than the value of Maximum.
 	// +optional
-	Maximum *json.Number `json:"maximum,omitempty"`
+	Maximum *int64 `json:"maximum,omitempty"`
 
 	// ExclusiveMaximum specifies if the Maximum is exclusive.
 	// +optional
@@ -199,15 +197,11 @@ type JSONSchemaProps struct {
 	// If ExclusiveMinimum is false, the variable is valid if it is greater than, or equal to, the value of Minimum.
 	// If ExclusiveMinimum is true, the variable is valid if it is strictly greater than the value of Minimum.
 	// +optional
-	Minimum *json.Number `json:"minimum,omitempty"`
+	Minimum *int64 `json:"minimum,omitempty"`
 
 	// ExclusiveMinimum specifies if the Minimum is exclusive.
 	// +optional
 	ExclusiveMinimum bool `json:"exclusiveMinimum,omitempty"`
-
-	// MultipleOf specifies the number of which the variable must be a multiple of.
-	// +optional
-	MultipleOf *json.Number `json:"multipleOf,omitempty"`
 
 	// Enum is the list of valid values of the variable.
 	// +optional

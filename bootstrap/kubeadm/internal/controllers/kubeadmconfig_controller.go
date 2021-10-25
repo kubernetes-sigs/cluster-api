@@ -59,6 +59,11 @@ const (
 	KubeadmConfigControllerName = "kubeadmconfig-controller"
 )
 
+const (
+	// DefaultTokenTTL is the default TTL used for tokens.
+	DefaultTokenTTL = 15 * time.Minute
+)
+
 // InitLocker is a lock that is used around kubeadm init.
 type InitLocker interface {
 	Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool
@@ -76,6 +81,9 @@ type KubeadmConfigReconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+
+	// TokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
+	TokenTTL time.Duration
 
 	remoteClientGetter remote.ClusterClientGetter
 }
@@ -95,6 +103,9 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 	if r.remoteClientGetter == nil {
 		r.remoteClientGetter = remote.NewClusterClient
+	}
+	if r.TokenTTL == 0 {
+		r.TokenTTL = DefaultTokenTTL
 	}
 
 	b := ctrl.NewControllerManagedBy(mgr).
@@ -285,11 +296,11 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 	}
 
 	log.Info("Refreshing token until the infrastructure has a chance to consume it")
-	if err := refreshToken(ctx, remoteClient, token); err != nil {
+	if err := refreshToken(ctx, remoteClient, token, r.TokenTTL); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
 	}
 	return ctrl.Result{
-		RequeueAfter: DefaultTokenTTL / 2,
+		RequeueAfter: r.TokenTTL / 2,
 	}, nil
 }
 
@@ -302,13 +313,13 @@ func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Co
 	}
 
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
-	shouldRotate, err := shouldRotate(ctx, remoteClient, token)
+	shouldRotate, err := shouldRotate(ctx, remoteClient, token, r.TokenTTL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	if shouldRotate {
 		log.V(2).Info("Creating new bootstrap token")
-		token, err := createToken(ctx, remoteClient)
+		token, err := createToken(ctx, remoteClient, r.TokenTTL)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
 		}
@@ -320,7 +331,7 @@ func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Co
 		return r.joinWorker(ctx, scope)
 	}
 	return ctrl.Result{
-		RequeueAfter: DefaultTokenTTL / 3,
+		RequeueAfter: r.TokenTTL / 3,
 	}, nil
 }
 
@@ -792,7 +803,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 			return ctrl.Result{}, err
 		}
 
-		token, err := createToken(ctx, remoteClient)
+		token, err := createToken(ctx, remoteClient, r.TokenTTL)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
 		}

@@ -51,6 +51,7 @@ import (
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/version"
+	"sigs.k8s.io/cluster-api/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -388,7 +389,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 func setupWebhooks(mgr ctrl.Manager) {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.
-	if err := (&clusterv1.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterClass")
 		os.Exit(1)
 	}

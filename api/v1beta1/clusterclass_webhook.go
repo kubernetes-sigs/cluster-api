@@ -31,19 +31,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+// SetupWebhookWithManager sets up ClusterClass webhooks.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.ClusterClass.SetupWebhookWithManager instead.
+// Note: We don't have to call this func for the conversion webhook as there is only a single conversion webhook instance
+// for all resources and we already register it through other types.
 func (in *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(in).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta1-clusterclass,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusterclasses,versions=v1beta1,name=validation.clusterclass.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-clusterclass,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusterclasses,versions=v1beta1,name=default.clusterclass.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-
 var _ webhook.Validator = &ClusterClass{}
 var _ webhook.Defaulter = &ClusterClass{}
 
 // Default satisfies the defaulting webhook interface.
+// Deprecated: This method is going to be removed in a next release.
 func (in *ClusterClass) Default() {
 	// Default all namespaces in the references to the object namespace.
 	defaultNamespace(in.Spec.Infrastructure.Ref, in.Namespace)
@@ -66,11 +69,13 @@ func defaultNamespace(ref *corev1.ObjectReference, namespace string) {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
 func (in *ClusterClass) ValidateCreate() error {
 	return in.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
 func (in *ClusterClass) ValidateUpdate(old runtime.Object) error {
 	oldClusterClass, ok := old.(*ClusterClass)
 	if !ok {
@@ -80,6 +85,7 @@ func (in *ClusterClass) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
 func (in *ClusterClass) ValidateDelete() error {
 	return nil
 }

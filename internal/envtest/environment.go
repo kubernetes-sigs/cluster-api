@@ -51,6 +51,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -218,7 +219,7 @@ func new(uncachedObjs ...client.Object) *Environment {
 	if err := (&clusterv1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&clusterv1.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
 	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {

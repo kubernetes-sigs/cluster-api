@@ -401,6 +401,14 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
 	desiredMachineDeploymentObj.SetLabels(labels)
 
+	// Set the select with the subset of labels identifying controlled machines.
+	// NOTE: this prevents the web hook to add cluster.x-k8s.io/deployment-name label, that is
+	// redundant for managed MachineDeployments given that we already have topology.cluster.x-k8s.io/deployment-name.
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels = map[string]string{}
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+
 	// Also set the labels in .spec.template.labels so that they are propagated to
 	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
 	// Note: the labels in MachineSet are used to properly cleanup templates when the MachineSet is deleted.

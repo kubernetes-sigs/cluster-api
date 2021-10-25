@@ -224,13 +224,13 @@ type ClusterClassSpec struct {
   // Variables defines the variables which can be configured
   // in the Cluster topology and are then used in patches.
   // +optional
-  Variables *VariablesClass `json:"variables,omitempty"`
+  Variables []ClusterClassVariable `json:"variables,omitempty"`
 
   // Patches defines the patches which are applied to customize
   // referenced templates of a ClusterClass.
   // Note: Patches will be applied in the order of the array.
   // +optional
-  Patches []PatchClass `json:"patches,omitempty"`
+  Patches []ClusterClassPatch `json:"patches,omitempty"`
 }
 
 // ControlPlaneClass defines the class for the control plane.
@@ -292,19 +292,12 @@ type LocalObjectTemplate struct {
 }
 ```
 
-**VariablesClass**
+**ClusterClassVariable**
 
 ```golang
-// VariablesClass defines the variables which can be configured
-// in the Cluster topology and used in patches.
-type VariablesClass struct {
-  // Definitions define the variables inline.
-  Definitions []VariableDefinitionClass `json:"definitions,omitempty"`
-}
- 
-// VariableDefinitionClass defines a variable which can 
+// ClusterClassVariable defines a variable which can 
 // be configured in the Cluster topology and used in patches.
-type VariableDefinitionClass struct {
+type ClusterClassVariable struct {
   // Name of the variable.
   Name string `json:"name"`
  
@@ -315,11 +308,11 @@ type VariableDefinitionClass struct {
   Required bool `json:"required"`
  
   // Schema defines the schema of the variable.
-  Schema VariableDefinitionSchemaClass `json:"schema"`
+  Schema VariableSchema `json:"schema"`
 }
  
-// VariableDefinitionSchemaClass defines the schema of a variable.
-type VariableDefinitionSchemaClass struct{
+// VariableSchema defines the schema of a variable.
+type VariableSchema struct{
   // OpenAPIV3Schema defines the schema of a variable via OpenAPI v3
   // schema. The schema is a subset of the schema used in
   // Kubernetes CRDs.
@@ -340,11 +333,11 @@ for now (until further use cases emerge):
     - Through clusterctl we have an additional layer of templating for the Cluster resource which allows defaulting of 
       Cluster variables via environment variables.
 
-**PatchClass**
+**ClusterClassPatch**
 
 ```golang
-// PatchClass defines a patch which is applied to customize the referenced templates.
-type PatchClass struct {
+// ClusterClassPatch defines a patch which is applied to customize the referenced templates.
+type ClusterClassPatch struct {
   // Name of the patch.
   Name string `json:"name"`
  
@@ -356,26 +349,26 @@ type PatchClass struct {
 // PatchDefinition defines a patch which is applied to customize the referenced templates.
 type PatchDefinition struct {
   // Selector defines on which templates the patch should be applied.
-  Selector PatchDefinitionSelector `json:"selector"`
+  Selector PatchSelector `json:"selector"`
  
   // JSONPatches defines the patches which should be applied on the templates
   // matching the selector.
   // Note: Patches will be applied in the order of the array.
-  JSONPatches []JSONPatchDefinition `json:"jsonPatches"`
+  JSONPatches []JSONPatch `json:"jsonPatches"`
 }
 ```
 
 **Note**: We are considering to add a field to allow defining optional patches. This would allow
 adding optional patches in the ClusterClass and then activating them on a per-cluster basis via opt-in.
 
-**PatchDefinitionSelector**
+**PatchSelector**
 
 ```golang
-// PatchDefinitionSelector defines on which templates the patch should be applied.
+// PatchSelector defines on which templates the patch should be applied.
 // Note: Matching on APIVersion and Kind is mandatory, to enforce that the patches are 
 // written for the correct version. The version of the references may be automatically
 // updated during reconciliation if there is a newer version for the same contract.
-type PatchDefinitionSelector struct {
+type PatchSelector struct {
   // APIVersion filters templates by apiVersion.
   APIVersion string `json:"apiVersion"`
  
@@ -383,13 +376,13 @@ type PatchDefinitionSelector struct {
   Kind string `json:"kind"`
  
   // MatchResources selects templates based on where they are referenced.
-  MatchResources PatchMatchResources `json:"matchResources"`
+  MatchResources PatchSelectorMatch `json:"matchResources"`
 }
  
-// PatchMatchResources selects templates based on where they are referenced.
+// PatchSelectorMatch selects templates based on where they are referenced.
 // Note: At least one of the fields must be set.
 // Note: The results of selection based on the individual fields are ORed.
-type PatchMatchResources struct {
+type PatchSelectorMatch struct {
   // ControlPlane selects templates referenced in .spec.ControlPlane.
   // Note: this will match the controlPlane and also the controlPlane 
   // machineInfrastructure (depending on the kind and apiVersion).
@@ -403,22 +396,22 @@ type PatchMatchResources struct {
   // MachineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
   // .spec.workers.machineDeployments.
   // +optional
-  MachineDeploymentClass *PatchMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
+  MachineDeploymentClass *PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
 }
  
-// PatchMatchMachineDeploymentClass selects templates referenced
+// PatchSelectorMatchMachineDeploymentClass selects templates referenced
 // in specific MachineDeploymentClasses in .spec.workers.machineDeployments.
-type PatchMatchMachineDeploymentClass struct {
+type PatchSelectorMatchMachineDeploymentClass struct {
   // Names selects templates by class names.
   Names []string `json:"names"`
 }
 ```
 
-**JSONPatchDefinition**
+**JSONPatch**
 
 ```golang
-// JSONPatchDefinition defines a JSON patch.
-type JSONPatchDefinition struct {
+// JSONPatch defines a JSON patch.
+type JSONPatch struct {
   // Op defines the operation of the patch.
   // Note: Only `add`, `replace` and `remove` are supported.
   Op string `json:"op"`
@@ -440,12 +433,12 @@ type JSONPatchDefinition struct {
   // Note: Either Value or ValueFrom is required for add and replace
   // operations. Only one of them is allowed to be set at the same time.
   // +optional
-  ValueFrom *JSONPatchDefinitionValue `json:"valueFrom,omitempty"`
+  ValueFrom *JSONPatchValue `json:"valueFrom,omitempty"`
 }
  
-// JSONPatchDefinitionValue defines the value of a patch.
+// JSONPatchValue defines the value of a patch.
 // Note: Only one of the fields is allowed to be set at the same time.
-type JSONPatchDefinitionValue struct {
+type JSONPatchValue struct {
   // Variable is the variable to be used as value.
   // Variable can be one of the variables defined in .spec.variables or a builtin variable.
   // +optional
@@ -498,14 +491,14 @@ Note: Builtin variables are defined in [Builtin variables](#builtin-variables) b
     
       // Variables can be used to customize the ClusterClass through
 	  // patches. They must comply to the corresponding
-	  // VariableDefinitionClasses defined in the ClusterClass.
+	  // ClusterClassVariable defined in the ClusterClass.
 	  // +optional
-	  Variables []VariableTopology `json:"variables,omitempty"`
+	  Variables []ClusterVariable `json:"variables,omitempty"`
     }
     ```
     **Note**: We are intentionally using an array with named sub objects instead of a map, because:
     * it’s recommended by the [Kubernetes API conventions][]
-    * we want to be able to extend the `VariableTopology` struct in the future to get the values e.g. from secrets
+    * we want to be able to extend the `ClusterVariable` struct in the future to get the values e.g. from secrets
     * the list matches the way the variables are defined in the ClusterClass (and it’s also very similar to how e.g. 
       env vars are defined on Pods)
 
@@ -559,18 +552,18 @@ Note: Builtin variables are defined in [Builtin variables](#builtin-variables) b
       Replicas *int `json:"replicas,omitempty"`
     }
     ```
-1.  The `VariableTopology` object represents an instance of a variable.
+1.  The `ClusterVariable` object represents an instance of a variable.
     ```golang
-    // VariableTopology can be used to customize the ClusterClass through
+    // ClusterVariable can be used to customize the ClusterClass through
     // patches. It must comply to the corresponding
-    // VariableDefinitionClass defined in the ClusterClass.
-    type VariableTopology struct {
+    // ClusterClassVariable defined in the ClusterClass.
+    type ClusterVariable struct {
       // Name of the variable.
       Name string `json:"name"`
 
       // Value of the variable.
       // Note: the value will be validated against the schema
-      // of the corresponding VariableDefinitionClass from the ClusterClass.
+      // of the corresponding ClusterClassVariable from the ClusterClass.
       Value apiextensionsv1.JSON `json:"value"`
     }
     ```
@@ -615,10 +608,10 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - (defaulting) if namespace field is empty for a reference, default it to `metadata.Namespace`
   - all the reference must be in the same namespace of `metadata.Namespace`
   - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
-  - `VariableDefinitionClass`:
+  - `ClusterClassVariable`:
     - names must be unique, not empty and not equal to `builtin`
     - schemas must be valid
-  - `PatchClass`:
+  - `ClusterClassPatch`:
     - names must be unique and not empty
   - `PatchDefinition`:
     - selector must have valid field values and match at least one template
@@ -644,7 +637,7 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
   - `spec.workers.machineDeployments` supports adding new deployment classes.
   - changes should be compliant with the compatibility rules defined in this doc.
-  - `VariableDefinitionClass`:
+  - `ClusterClassVariable`:
     - names must be unique, not empty and not equal to `builtin`
     - schemas must be valid
     - schemas are mutable
@@ -654,7 +647,7 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
     - variables cannot be removed as long as they are used in Clusters
       - We are considering adding a field to allow deprecations of variables. When a variable would be deprecated no new usages of 
         this variable would be allowed.
-  - `PatchClass` and `PatchDefinition`: same as for object creation
+  - `ClusterClassPatch` and `PatchDefinition`: same as for object creation
 
 ##### Cluster
 
@@ -664,8 +657,8 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - If `spec.topology` is set, `spec.topology.class` cannot be empty.
   - If `spec.topology` is set, `spec.topology.version` cannot be empty and must be a valid semver.
   - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
-  - (defaulting) variables are defaulted according to the corresponding `VariableDefinitionClass`
-  - all required variables must exist and match the schema defined in the corresponding `VariableDefinitionClass` in the ClusterClass
+  - (defaulting) variables are defaulted according to the corresponding `ClusterClassVariable`
+  - all required variables must exist and match the schema defined in the corresponding `ClusterClassVariable` in the ClusterClass
 
 - For object updates:
   - If `spec.topology.class` is set it cannot be unset or modified, and if it's unset it cannot be set.
@@ -673,8 +666,8 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - `spec.topology.version` cannot be downgraded.
   - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
   - A set of worker nodes can be added to or removed from the `spec.topology.workers.machineDeployments` list.
-  - (defaulting) variables are defaulted according to the corresponding `VariableDefinitionClass`
-  - all required variables must exist and match the schema defined in the corresponding `VariableDefinitionClass` in the ClusterClass
+  - (defaulting) variables are defaulted according to the corresponding `ClusterClassVariable`
+  - all required variables must exist and match the schema defined in the corresponding `ClusterClassVariable` in the ClusterClass
 
 #### ClusterClass compatibility
 
@@ -844,17 +837,16 @@ to avoid creating separate ClusterClasses for every small deviation, e.g. a diff
    spec:
      [...]
      variables:
-       definitions:
-       - name: region
-         required: true
-         schema:
-           openAPIV3Schema:
-             type: string
-       - name: controlPlaneMachineType
-         schema:
-           openAPIV3Schema:
-             type: string
-             default: t3.large
+     - name: region
+       required: true
+       schema:
+         openAPIV3Schema:
+           type: string
+     - name: controlPlaneMachineType
+       schema:
+         openAPIV3Schema:
+           type: string
+           default: t3.large
      patches:
      - name: region
        definitions:

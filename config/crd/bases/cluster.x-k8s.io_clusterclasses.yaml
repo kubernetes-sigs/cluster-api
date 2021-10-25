@@ -568,6 +568,236 @@ spec:
                 required:
                 - ref
                 type: object
+              patches:
+                description: 'Patches defines the patches which are applied to customize
+                  referenced templates of a ClusterClass. Note: Patches will be applied
+                  in the order of the array.'
+                items:
+                  description: ClusterClassPatch defines a patch which is applied
+                    to customize the referenced templates.
+                  properties:
+                    definitions:
+                      description: 'Definitions define the patches inline. Note: Patches
+                        will be applied in the order of the array.'
+                      items:
+                        description: PatchDefinition defines a patch which is applied
+                          to customize the referenced templates.
+                        properties:
+                          jsonPatches:
+                            description: 'JSONPatches defines the patches which should
+                              be applied on the templates matching the selector. Note:
+                              Patches will be applied in the order of the array.'
+                            items:
+                              description: JSONPatch defines a JSON patch.
+                              properties:
+                                op:
+                                  description: 'Op defines the operation of the patch.
+                                    Note: Only `add`, `replace` and `remove` are supported.'
+                                  type: string
+                                path:
+                                  description: 'Path defines the path of the patch.
+                                    Note: Only the spec of a template can be patched,
+                                    thus the path has to start with /spec/. Note:
+                                    For now the only allowed array modifications are
+                                    `append` and `prepend`, i.e.: * for op: `add`:
+                                    only index 0 (prepend) and - (append) are allowed
+                                    * for op: `replace` or `remove`: no indexes are
+                                    allowed'
+                                  type: string
+                                value:
+                                  description: 'Value defines the value of the patch.
+                                    Note: Either Value or ValueFrom is required for
+                                    add and replace operations. Only one of them is
+                                    allowed to be set at the same time. Note: We have
+                                    to use apiextensionsv1.JSON instead of our JSON
+                                    type, because controller-tools has a hard-coded
+                                    schema for apiextensionsv1.JSON which cannot be
+                                    produced by another type (unset type field). Ref:
+                                    https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111'
+                                  x-kubernetes-preserve-unknown-fields: true
+                                valueFrom:
+                                  description: 'ValueFrom defines the value of the
+                                    patch. Note: Either Value or ValueFrom is required
+                                    for add and replace operations. Only one of them
+                                    is allowed to be set at the same time.'
+                                  properties:
+                                    template:
+                                      description: 'Template is the Go template to
+                                        be used to calculate the value. A template
+                                        can reference variables defined in .spec.variables
+                                        and builtin variables. Note: The template
+                                        must evaluate to a valid YAML or JSON value.'
+                                      type: string
+                                    variable:
+                                      description: Variable is the variable to be
+                                        used as value. Variable can be one of the
+                                        variables defined in .spec.variables or a
+                                        builtin variable.
+                                      type: string
+                                  type: object
+                              required:
+                              - op
+                              - path
+                              type: object
+                            type: array
+                          selector:
+                            description: Selector defines on which templates the patch
+                              should be applied.
+                            properties:
+                              apiVersion:
+                                description: APIVersion filters templates by apiVersion.
+                                type: string
+                              kind:
+                                description: Kind filters templates by kind.
+                                type: string
+                              matchResources:
+                                description: MatchResources selects templates based
+                                  on where they are referenced.
+                                properties:
+                                  controlPlane:
+                                    description: 'ControlPlane selects templates referenced
+                                      in .spec.ControlPlane. Note: this will match
+                                      the controlPlane and also the controlPlane machineInfrastructure
+                                      (depending on the kind and apiVersion).'
+                                    type: boolean
+                                  infrastructureCluster:
+                                    description: InfrastructureCluster selects templates
+                                      referenced in .spec.infrastructure.
+                                    type: boolean
+                                  machineDeploymentClass:
+                                    description: MachineDeploymentClass selects templates
+                                      referenced in specific MachineDeploymentClasses
+                                      in .spec.workers.machineDeployments.
+                                    properties:
+                                      names:
+                                        description: Names selects templates by class
+                                          names.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - names
+                                    type: object
+                                type: object
+                            required:
+                            - apiVersion
+                            - kind
+                            - matchResources
+                            type: object
+                        required:
+                        - jsonPatches
+                        - selector
+                        type: object
+                      type: array
+                    name:
+                      description: Name of the patch.
+                      type: string
+                  required:
+                  - definitions
+                  - name
+                  type: object
+                type: array
+              variables:
+                description: Variables defines the variables which can be configured
+                  in the Cluster topology and are then used in patches.
+                items:
+                  description: ClusterClassVariable defines a variable which can be
+                    configured in the Cluster topology and used in patches.
+                  properties:
+                    name:
+                      description: Name of the variable.
+                      type: string
+                    required:
+                      description: 'Required specifies if the variable is required.
+                        Note: this applies to the variable as a whole and thus the
+                        top-level object defined in the schema. If nested fields are
+                        required, this will be specified inside the schema.'
+                      type: boolean
+                    schema:
+                      description: Schema defines the schema of the variable.
+                      properties:
+                        openAPIV3Schema:
+                          description: OpenAPIV3Schema defines the schema of a variable
+                            via OpenAPI v3 schema. The schema is a subset of the schema
+                            used in Kubernetes CRDs.
+                          properties:
+                            default:
+                              description: Default is the default value of the variable.
+                              x-kubernetes-preserve-unknown-fields: true
+                            enum:
+                              description: Enum is the list of valid values of the
+                                variable.
+                              items:
+                                x-kubernetes-preserve-unknown-fields: true
+                              type: array
+                            exclusiveMaximum:
+                              description: ExclusiveMaximum specifies if the Maximum
+                                is exclusive.
+                              type: boolean
+                            exclusiveMinimum:
+                              description: ExclusiveMinimum specifies if the Minimum
+                                is exclusive.
+                              type: boolean
+                            format:
+                              description: 'Format is an OpenAPI v3 format string.
+                                Unknown formats are ignored. For a list of supported
+                                formats please see: (of the k8s.io/apiextensions-apiserver
+                                version we''re currently using) https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go'
+                              type: string
+                            maxLength:
+                              description: MaxLength is the max length of a string
+                                variable.
+                              format: int64
+                              type: integer
+                            maximum:
+                              description: Maximum is the maximum of an integer or
+                                number variable. If ExclusiveMaximum is false, the
+                                variable is valid if it is lower than, or equal to,
+                                the value of Maximum. If ExclusiveMaximum is true,
+                                the variable is valid if it is strictly lower than
+                                the value of Maximum.
+                              type: string
+                            minLength:
+                              description: MinLength is the min length of a string
+                                variable.
+                              format: int64
+                              type: integer
+                            minimum:
+                              description: Minimum is the minimum of an integer or
+                                number variable. If ExclusiveMinimum is false, the
+                                variable is valid if it is greater than, or equal
+                                to, the value of Minimum. If ExclusiveMinimum is true,
+                                the variable is valid if it is strictly greater than
+                                the value of Minimum.
+                              type: string
+                            multipleOf:
+                              description: MultipleOf specifies the number of which
+                                the variable must be a multiple of.
+                              type: string
+                            nullable:
+                              description: Nullable specifies if the variable can
+                                be set to null.
+                              type: boolean
+                            pattern:
+                              description: Pattern is the regex which a string variable
+                                must match.
+                              type: string
+                            type:
+                              description: 'Type is the type of the variable. Valid
+                                values are: string, integer, number or boolean.'
+                              type: string
+                          required:
+                          - type
+                          type: object
+                      required:
+                      - openAPIV3Schema
+                      type: object
+                  required:
+                  - name
+                  - required
+                  - schema
+                  type: object
+                type: array
               workers:
                 description: Workers describes the worker nodes for the cluster. It
                   is a collection of node types which can be used to create the worker

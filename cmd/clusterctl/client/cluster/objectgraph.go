@@ -288,6 +288,9 @@ func (o *objectGraph) getDiscoveryTypes() error {
 			if crd.Spec.Group == clusterv1.GroupVersion.Group && crd.Spec.Names.Kind == "Cluster" {
 				forceMoveHierarchy = true
 			}
+			if crd.Spec.Group == clusterv1.GroupVersion.Group && crd.Spec.Names.Kind == "ClusterClass" {
+				forceMoveHierarchy = true
+			}
 			if crd.Spec.Group == addonsv1.GroupVersion.Group && crd.Spec.Names.Kind == "ClusterResourceSet" {
 				forceMoveHierarchy = true
 			}

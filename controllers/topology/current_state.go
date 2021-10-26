@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
+	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -74,6 +75,12 @@ func (r *ClusterReconciler) getCurrentInfrastructureClusterState(ctx context.Con
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.InfrastructureRef})
 	}
+	// check that the referenced object has the ClusterTopologyOwnedLabel label.
+	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+	// owned by the topology.
+	if !labels.IsTopologyOwned(infra) {
+		return nil, fmt.Errorf("referenced infra cluster object %s is not topology owned", tlog.KObj{Obj: infra})
+	}
 	return infra, nil
 }
 
@@ -88,6 +95,12 @@ func (r *ClusterReconciler) getCurrentControlPlaneState(ctx context.Context, clu
 	res.Object, err = r.getReference(ctx, cluster.Spec.ControlPlaneRef)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.ControlPlaneRef})
+	}
+	// check that the referenced object has the ClusterTopologyOwnedLabel label.
+	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+	// owned by the topology.
+	if !labels.IsTopologyOwned(res.Object) {
+		return nil, fmt.Errorf("referenced control plane object %s is not topology owned", tlog.KObj{Obj: res.Object})
 	}
 
 	// If the clusterClass does not mandate the controlPlane has infrastructureMachines, return.

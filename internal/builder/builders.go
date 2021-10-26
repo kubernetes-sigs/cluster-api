@@ -264,8 +264,6 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 
 // MachineDeploymentClassBuilder holds the variables and objects required to build a clusterv1.MachineDeploymentClass.
 type MachineDeploymentClassBuilder struct {
-	namespace                     string
-	name                          string
 	class                         string
 	infrastructureMachineTemplate *unstructured.Unstructured
 	bootstrapTemplate             *unstructured.Unstructured
@@ -274,10 +272,9 @@ type MachineDeploymentClassBuilder struct {
 }
 
 // MachineDeploymentClass returns a MachineDeploymentClassBuilder with the given name and namespace.
-func MachineDeploymentClass(namespace, name string) *MachineDeploymentClassBuilder {
+func MachineDeploymentClass(class string) *MachineDeploymentClassBuilder {
 	return &MachineDeploymentClassBuilder{
-		name:      name,
-		namespace: namespace,
+		class: class,
 	}
 }
 
@@ -290,12 +287,6 @@ func (m *MachineDeploymentClassBuilder) WithInfrastructureTemplate(t *unstructur
 // WithBootstrapTemplate registers the passed Unstructured object as the BootstrapTemplate for the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) WithBootstrapTemplate(t *unstructured.Unstructured) *MachineDeploymentClassBuilder {
 	m.bootstrapTemplate = t
-	return m
-}
-
-// WithClass sets the MachineDeploymentClass name for the MachineDeploymentClassBuilder.
-func (m *MachineDeploymentClassBuilder) WithClass(class string) *MachineDeploymentClassBuilder {
-	m.class = class
 	return m
 }
 

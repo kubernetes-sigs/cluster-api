@@ -24,6 +24,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -33,7 +34,9 @@ import (
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type FakeCluster struct {
@@ -1354,6 +1357,7 @@ func FakeCRDList() []*apiextensionsv1.CustomResourceDefinition {
 
 	return []*apiextensionsv1.CustomResourceDefinition{
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "Cluster", version),
+		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "ClusterClass", version),
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "Machine", version),
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
@@ -1361,7 +1365,9 @@ func FakeCRDList() []*apiextensionsv1.CustomResourceDefinition {
 		FakeNamespacedCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSet", version),
 		FakeNamespacedCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSetBinding", version),
 		FakeNamespacedCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlane", version),
+		FakeNamespacedCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlaneTemplate", version),
 		FakeNamespacedCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureCluster", version),
+		FakeNamespacedCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureClusterTemplate", version),
 		FakeNamespacedCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachine", version),
 		FakeNamespacedCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureMachineTemplate", version),
 		FakeNamespacedCustomResourceDefinition(fakebootstrap.GroupVersion.Group, "GenericBootstrapConfig", version),
@@ -1370,4 +1376,137 @@ func FakeCRDList() []*apiextensionsv1.CustomResourceDefinition {
 		clusterExternalCRD,
 		clusterInfrastructureIdentityCRD,
 	}
+}
+
+type FakeClusterClass struct {
+	namespace                                 string
+	name                                      string
+	infrastructureClusterTemplate             *unstructured.Unstructured
+	controlPlaneTemplate                      *unstructured.Unstructured
+	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
+	workerMachineDeploymentClasses            []*FakeMachineDeploymentClass
+}
+
+func NewFakeClusterClass(namespace, name string) *FakeClusterClass {
+	return &FakeClusterClass{
+		namespace: namespace,
+		name:      name,
+	}
+}
+
+func (f *FakeClusterClass) WithInfrastructureClusterTemplate(tmpl *unstructured.Unstructured) *FakeClusterClass {
+	f.infrastructureClusterTemplate = tmpl
+	return f
+}
+
+func (f *FakeClusterClass) WithControlPlaneTemplate(tmpl *unstructured.Unstructured) *FakeClusterClass {
+	f.controlPlaneTemplate = tmpl
+	return f
+}
+
+func (f *FakeClusterClass) WithControlPlaneInfrastructureTemplate(tmpl *unstructured.Unstructured) *FakeClusterClass {
+	f.controlPlaneInfrastructureMachineTemplate = tmpl
+	return f
+}
+
+func (f *FakeClusterClass) WithWorkerMachineDeploymentClasses(classes []*FakeMachineDeploymentClass) *FakeClusterClass {
+	f.workerMachineDeploymentClasses = classes
+	return f
+}
+
+func (f *FakeClusterClass) Objs() []client.Object {
+	// objMap map where the key is the object to which the owner reference to the cluster class should be added
+	// and the value dictates if the onwner ref needs to be added.
+	// This map also dual functions as a way to de-duplicate and template objects that are reused.
+	objMap := map[client.Object]bool{}
+
+	// If no infrastructure cluster template is provided create a generic infrastructure cluster template to use in the cluster class.
+	if f.infrastructureClusterTemplate == nil {
+		f.infrastructureClusterTemplate = builder.InfrastructureClusterTemplate(f.namespace, f.name).Build()
+	}
+	objMap[f.infrastructureClusterTemplate] = true
+
+	// If no controlplane template is provided create a generic controlplane template to use in the cluster class.
+	if f.controlPlaneTemplate == nil {
+		f.controlPlaneTemplate = builder.ControlPlaneTemplate(f.namespace, f.name).Build()
+	}
+	objMap[f.controlPlaneTemplate] = true
+
+	clusterClassBuilder := builder.ClusterClass(f.namespace, f.name).
+		WithInfrastructureClusterTemplate(f.infrastructureClusterTemplate).
+		WithControlPlaneTemplate(f.controlPlaneTemplate)
+
+	if f.controlPlaneInfrastructureMachineTemplate != nil {
+		clusterClassBuilder.WithControlPlaneInfrastructureMachineTemplate(f.controlPlaneInfrastructureMachineTemplate)
+		objMap[f.controlPlaneInfrastructureMachineTemplate] = true
+	}
+
+	if len(f.workerMachineDeploymentClasses) > 0 {
+		mdClasses := []clusterv1.MachineDeploymentClass{}
+		for _, fakeMDClass := range f.workerMachineDeploymentClasses {
+			mdClasses = append(mdClasses, *fakeMDClass.Obj())
+			objMap[fakeMDClass.bootstrapTemplate] = true
+			objMap[fakeMDClass.infrastructureTemplate] = true
+		}
+		clusterClassBuilder.WithWorkerMachineDeploymentClasses(mdClasses)
+	}
+
+	clusterClass := clusterClassBuilder.Build()
+	objMap[clusterClass] = false
+
+	for o := range objMap {
+		setUID(o)
+	}
+
+	for o, setOwnerReference := range objMap {
+		if setOwnerReference {
+			if err := controllerutil.SetOwnerReference(clusterClass, o, FakeScheme); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	objs := []client.Object{}
+	for o := range objMap {
+		objs = append(objs, o)
+	}
+	return objs
+}
+
+type FakeMachineDeploymentClass struct {
+	class                  string
+	namespace              string // Used when creating the default bootstrap and the infra machine templates
+	infrastructureTemplate *unstructured.Unstructured
+	bootstrapTemplate      *unstructured.Unstructured
+}
+
+func NewFakeMachineDeploymentClass(namespace, class string) *FakeMachineDeploymentClass {
+	return &FakeMachineDeploymentClass{
+		class:     class,
+		namespace: namespace,
+	}
+}
+
+func (f *FakeMachineDeploymentClass) WithInfrastructureMachineTemplate(tmpl *unstructured.Unstructured) *FakeMachineDeploymentClass {
+	f.infrastructureTemplate = tmpl
+	return f
+}
+
+func (f *FakeMachineDeploymentClass) WithBootstrapTemplate(tmpl *unstructured.Unstructured) *FakeMachineDeploymentClass {
+	f.bootstrapTemplate = tmpl
+	return f
+}
+
+func (f *FakeMachineDeploymentClass) Obj() *clusterv1.MachineDeploymentClass {
+	if f.infrastructureTemplate == nil {
+		f.infrastructureTemplate = builder.InfrastructureMachineTemplate(f.namespace, f.class).Build()
+	}
+	if f.bootstrapTemplate == nil {
+		f.bootstrapTemplate = builder.BootstrapTemplate(f.namespace, f.class).Build()
+	}
+
+	return builder.MachineDeploymentClass(f.class).
+		WithInfrastructureTemplate(f.infrastructureTemplate).
+		WithBootstrapTemplate(f.bootstrapTemplate).
+		Build()
 }

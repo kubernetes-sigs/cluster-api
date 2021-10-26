@@ -343,32 +343,6 @@ func TestClusterTopologyValidation(t *testing.T) {
 			},
 		},
 		{
-			name:      "should return error on create when both Topology and control plane ref are defined",
-			expectErr: true,
-			in: &Cluster{
-				Spec: ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{},
-					Topology: &Topology{
-						Class:   "foo",
-						Version: "v1.19.1",
-					},
-				},
-			},
-		},
-		{
-			name:      "should return error on create when both Topology and infrastructure ref are defined",
-			expectErr: true,
-			in: &Cluster{
-				Spec: ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
-					Topology: &Topology{
-						Class:   "foo",
-						Version: "v1.19.1",
-					},
-				},
-			},
-		},
-		{
 			name:      "should return error on update when Topology class is changed",
 			expectErr: true,
 			old: &Cluster{

@@ -26,8 +26,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -1318,6 +1320,289 @@ var objectGraphsTests = []struct {
 			},
 		},
 	},
+	{
+		name: "ClusterClass",
+		args: objectGraphTestArgs{
+			objs: test.NewFakeClusterClass("ns1", "clusterclass1").Objs(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "ClusterClass with control plane infrastructure template",
+		args: objectGraphTestArgs{
+			objs: func() []client.Object {
+				infrastructureMachineTemplate := builder.InfrastructureMachineTemplate("ns1", "inframachinetemplate1").Build()
+				return test.NewFakeClusterClass("ns1", "clusterclass1").
+					WithControlPlaneInfrastructureTemplate(infrastructureMachineTemplate).
+					Objs()
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/inframachinetemplate1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "ClusterClass with worker machine deployment class",
+		args: objectGraphTestArgs{
+			objs: func() []client.Object {
+				mdClass := test.NewFakeMachineDeploymentClass("ns1", "mdclass1")
+				return test.NewFakeClusterClass("ns1", "clusterclass1").
+					WithWorkerMachineDeploymentClasses([]*test.FakeMachineDeploymentClass{mdClass}).
+					Objs()
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/mdclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/mdclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "ClusterClass with 2 worker machine deployment classes with shared templates",
+		args: objectGraphTestArgs{
+			objs: func() []client.Object {
+				infraMachineTemplate := builder.InfrastructureMachineTemplate("ns1", "infamachinetemplate1").Build()
+				bootstrapTemplate := builder.BootstrapTemplate("ns1", "bootstraptemplate1").Build()
+				mdClass1 := test.NewFakeMachineDeploymentClass("ns1", "mdclass1").
+					WithInfrastructureMachineTemplate(infraMachineTemplate).
+					WithBootstrapTemplate(bootstrapTemplate)
+				mdClass2 := test.NewFakeMachineDeploymentClass("ns1", "mdclass2").
+					WithInfrastructureMachineTemplate(infraMachineTemplate).
+					WithBootstrapTemplate(bootstrapTemplate)
+				return test.NewFakeClusterClass("ns1", "clusterclass1").
+					WithWorkerMachineDeploymentClasses([]*test.FakeMachineDeploymentClass{mdClass1, mdClass2}).
+					Objs()
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "Two ClusterClasses",
+		args: objectGraphTestArgs{
+			objs: func() []client.Object {
+				objs := []client.Object{}
+				objs = append(objs, test.NewFakeClusterClass("ns1", "clusterclass1").Objs()...)
+				objs = append(objs, test.NewFakeClusterClass("ns1", "clusterclass2").Objs()...)
+				return objs
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass2": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+					},
+				},
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass2": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "Two ClusterClasses with shared templates",
+		args: objectGraphTestArgs{
+			objs: func() []client.Object {
+				objs := []client.Object{}
+
+				infraMachineTemplate1 := builder.InfrastructureMachineTemplate("ns1", "infamachinetemplate1").Build()
+				bootstrapTemplate1 := builder.BootstrapTemplate("ns1", "bootstraptemplate1").Build()
+
+				infraMachineTemplate2 := builder.InfrastructureMachineTemplate("ns1", "infamachinetemplate2").Build()
+				bootstrapTemplate2 := builder.BootstrapTemplate("ns1", "bootstraptemplate2").Build()
+
+				controlPlaneTemplate := builder.ControlPlaneTemplate("ns1", "controlplanetemplate1").Build()
+
+				// mdClass1 and mdClass2 share templates.
+				// mdClass3 does not share templates with any.
+				mdClass1 := test.NewFakeMachineDeploymentClass("ns1", "mdclass1").
+					WithInfrastructureMachineTemplate(infraMachineTemplate1).
+					WithBootstrapTemplate(bootstrapTemplate1)
+				mdClass2 := test.NewFakeMachineDeploymentClass("ns1", "mdclass2").
+					WithInfrastructureMachineTemplate(infraMachineTemplate1).
+					WithBootstrapTemplate(bootstrapTemplate1)
+				mdClass3 := test.NewFakeMachineDeploymentClass("ns1", "mdclass2").
+					WithInfrastructureMachineTemplate(infraMachineTemplate2).
+					WithBootstrapTemplate(bootstrapTemplate2)
+
+				// clusterclass1 and clusterclass2 share the same control plane template but have different
+				// infrastructure cluster templates.
+				// clusterclass1 and clusterclass2 share the templates defined in mdclass1.
+				// clusterclass1 and clusterclass2 do not share the templates in mdclass3.
+				objs = append(objs, test.NewFakeClusterClass("ns1", "clusterclass1").
+					WithControlPlaneTemplate(controlPlaneTemplate).
+					WithWorkerMachineDeploymentClasses([]*test.FakeMachineDeploymentClass{mdClass1, mdClass2}).
+					Objs()...)
+
+				objs = append(objs, test.NewFakeClusterClass("ns1", "clusterclass2").
+					WithControlPlaneTemplate(controlPlaneTemplate).
+					WithWorkerMachineDeploymentClasses([]*test.FakeMachineDeploymentClass{mdClass1, mdClass3}).
+					Objs()...)
+
+				// We need to deduplicate objects here as the clusterclasses share objects and
+				// setting up the test server panics if we try to create it with duplicate objects.
+				return deduplicateObjects(objs)
+
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass2": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+					},
+				},
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/controlplanetemplate1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+					},
+				},
+				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate2": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+					},
+				},
+				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate2": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+					},
+				},
+			},
+		},
+	},
 }
 
 func getDetachedObjectGraphWihObjs(objs []client.Object) (*objectGraph, error) {
@@ -1333,7 +1618,7 @@ func getDetachedObjectGraphWihObjs(objs []client.Object) (*objectGraph, error) {
 	// given that we are not relying on discovery while testing in "detached mode (without a fake client)" it is required to:
 	for _, node := range graph.getNodes() {
 		// enforce forceMoveHierarchy for Clusters, ClusterResourceSets, GenericClusterInfrastructureIdentity
-		if node.identity.Kind == "Cluster" || node.identity.Kind == "ClusterResourceSet" || node.identity.Kind == "GenericClusterInfrastructureIdentity" {
+		if node.identity.Kind == "Cluster" || node.identity.Kind == "ClusterClass" || node.identity.Kind == "ClusterResourceSet" || node.identity.Kind == "GenericClusterInfrastructureIdentity" {
 			node.forceMove = true
 			node.forceMoveHierarchy = true
 		}
@@ -2043,4 +2328,16 @@ func Test_objectGraph_setGlobalIdentityTenants(t *testing.T) {
 			}
 		})
 	}
+}
+
+func deduplicateObjects(objs []client.Object) []client.Object {
+	res := []client.Object{}
+	uniqueObjectKeys := sets.NewString()
+	for _, o := range objs {
+		if !uniqueObjectKeys.Has(string(o.GetUID())) {
+			res = append(res, o)
+			uniqueObjectKeys.Insert(string(o.GetUID()))
+		}
+	}
+	return res
 }

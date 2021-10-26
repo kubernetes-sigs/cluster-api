@@ -55,6 +55,12 @@ type ObjectTree struct {
 
 // NewObjectTree creates a new object tree with the given root and options.
 func NewObjectTree(root client.Object, options ObjectTreeOptions) *ObjectTree {
+	// If it is requested to show all the conditions for the root, add
+	// the ShowObjectConditionsAnnotation to signal this to the presentation layer.
+	if isObjDebug(root, options.ShowOtherConditions) {
+		addAnnotation(root, ShowObjectConditionsAnnotation, "True")
+	}
+
 	return &ObjectTree{
 		root:      root,
 		options:   options,

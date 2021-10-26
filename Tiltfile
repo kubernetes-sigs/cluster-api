@@ -285,13 +285,14 @@ def enable_provider(name, debug):
             yaml = str(kustomize_with_envsubst(context + "/config/default", True))
         k8s_yaml(blob(yaml))
 
-        k8s_resource(
-            workload = manager_name,
-            new_name = label.lower() + "_controller",
-            labels = [label, "ALL.controllers"],
-            port_forwards = port_forwards,
-            links = links,
-        )
+        if manager_name:
+            k8s_resource(
+                workload = manager_name,
+                new_name = label.lower() + "_controller",
+                labels = [label, "ALL.controllers"],
+                port_forwards = port_forwards,
+                links = links,
+            )
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.

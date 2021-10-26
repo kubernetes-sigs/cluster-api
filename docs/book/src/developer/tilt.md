@@ -293,7 +293,9 @@ A provider must supply a `tilt-provider.json` file describing how to build it. H
         "image": "gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller",
         "live_reload_deps": [
             "main.go", "go.mod", "go.sum", "api", "cmd", "controllers", "pkg"
-        ]
+        ],
+        "label": "CAPA",
+        "manager_name": "capa-controller-manager"
     }
 }
 ```

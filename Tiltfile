@@ -1,15 +1,21 @@
 # -*- mode: Python -*-
-
 # set defaults
+load("ext://local_output", "local_output")
+
+version_settings(True, ">=0.22.2")
 
 envsubst_cmd = "./hack/tools/bin/envsubst"
 kustomize_cmd = "./hack/tools/bin/kustomize"
+yq_cmd = "./hack/tools/bin/yq"
+os_name = local_output("go env GOOS")
+os_arch = local_output("go env GOARCH")
 
 settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
     "enable_providers": ["docker"],
     "kind_cluster_name": "kind",
+    "debug": {},
 }
 
 # global settings
@@ -138,9 +144,10 @@ tilt_helper_dockerfile_header = """
 # Tilt image
 FROM golang:1.16.8 as tilt-helper
 # Support live reloading with Tilt
+RUN go get github.com/go-delve/delve/cmd/dlv
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
     wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
-    chmod +x /start.sh && chmod +x /restart.sh
+    chmod +x /start.sh && chmod +x /restart.sh && chmod +x /go/bin/dlv
 """
 
 tilt_dockerfile_header = """
@@ -148,6 +155,7 @@ FROM gcr.io/distroless/base:debug as tilt
 WORKDIR /
 COPY --from=tilt-helper /start.sh .
 COPY --from=tilt-helper /restart.sh .
+COPY --from=tilt-helper /go/bin/dlv .
 COPY manager .
 """
 
@@ -156,12 +164,13 @@ COPY manager .
 # 1. Enables a local_resource go build of the provider's manager binary
 # 2. Configures a docker build for the provider, with live updating of the manager binary
 # 3. Runs kustomize for the provider's config/default and applies it
-def enable_provider(name):
+def enable_provider(name, debug):
     p = providers.get(name)
-
+    manager_name = p.get("manager_name")
     context = p.get("context")
     go_main = p.get("go_main", "main.go")
     label = p.get("label", name)
+    debug_port = int(debug.get("port", 0))
 
     # Prefix each live reload dependency with context. For example, for if the context is
     # test/infra/docker and main.go is listed as a dep, the result is test/infra/docker/main.go. This adjustment is
@@ -172,9 +181,40 @@ def enable_provider(name):
 
     # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
     # manager_build_path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/manager.
+    # TODO @randomvariable: Race detector mode only currently works on x86-64 Linux.
+    # Need to switch to building inside Docker when architecture is mismatched
+    race_detector_enabled = debug.get("race_detector", False)
+    if race_detector_enabled:
+        if os_name != "linux" or os_arch != "amd64":
+            fail("race_detector is only supported on Linux x86-64")
+        cgo_enabled = "1"
+        build_options = "-race"
+        ldflags = "-linkmode external -extldflags \"-static\""
+    else:
+        cgo_enabled = "0"
+        build_options = ""
+        ldflags = "-extldflags \"-static\""
+
+    if debug_port != 0:
+        # disable optimisations and include line numbers when debugging
+        gcflags = "all=-N -l"
+    else:
+        gcflags = ""
+
+    build_env = "CGO_ENABLED={cgo_enabled} GOOS=linux GOARCH=amd64".format(
+        cgo_enabled = cgo_enabled,
+    )
+    build_cmd = "{build_env} go build {build_options} -gcflags '{gcflags}' -ldflags '{ldflags}' -o .tiltbuild/manager {go_main}".format(
+        build_env = build_env,
+        build_options = build_options,
+        gcflags = gcflags,
+        go_main = go_main,
+        ldflags = ldflags,
+    )
+
     local_resource(
         label.lower() + "_binary",
-        cmd = "cd " + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager ' + go_main,
+        cmd = "cd " + context + ";mkdir -p .tiltbuild;" + build_cmd,
         deps = live_reload_deps,
         labels = [label, "ALL.binaries"],
     )
@@ -189,9 +229,31 @@ def enable_provider(name):
         additional_docker_build_commands,
     ])
 
+    port_forwards = []
+    links = []
+
+    if debug_port != 0:
+        # Add delve when debugging. Delve will always listen on the pod side on port 30000.
+        entrypoint = ["sh", "/start.sh", "/dlv", "--listen=:" + str(30000), "--accept-multiclient", "--api-version=2", "--headless=true", "exec", "--", "/manager"]
+        port_forwards.append(port_forward(debug_port, 30000))
+        if debug.get("continue", True):
+            entrypoint.insert(8, "--continue")
+    else:
+        entrypoint = ["sh", "/start.sh", "/manager"]
+
+    metrics_port = int(debug.get("metrics_port", 0))
+    profiler_port = int(debug.get("profiler_port", 0))
+    if metrics_port != 0:
+        port_forwards.append(port_forward(metrics_port, 8080))
+        links.append(link("http://localhost:" + str(metrics_port) + "/metrics", "metrics"))
+
+    if profiler_port != 0:
+        port_forwards.append(port_forward(profiler_port, 6060))
+        entrypoint.extend(["--profiler-address", ":6060"])
+        links.append(link("http://localhost:" + str(profiler_port) + "/debug/pprof", "profiler"))
+
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
     # build into the container.
-    entrypoint = ["sh", "/start.sh", "/manager"]
     provider_args = extra_args.get(name)
     if provider_args:
         entrypoint.extend(provider_args)
@@ -217,16 +279,19 @@ def enable_provider(name):
         os.environ.update(substitutions)
 
         # Apply the kustomized yaml for this provider
-        yaml = str(kustomize_with_envsubst(context + "/config/default"))
+        if debug_port == 0:
+            yaml = str(kustomize_with_envsubst(context + "/config/default", False))
+        else:
+            yaml = str(kustomize_with_envsubst(context + "/config/default", True))
         k8s_yaml(blob(yaml))
 
-        manager_name = p.get("manager_name")
-        if manager_name:
-            k8s_resource(
-                workload = manager_name,
-                new_name = label.lower() + "_controller",
-                labels = [label, "ALL.controllers"],
-            )
+        k8s_resource(
+            workload = manager_name,
+            new_name = label.lower() + "_controller",
+            labels = [label, "ALL.controllers"],
+            port_forwards = port_forwards,
+            links = links,
+        )
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.
@@ -241,10 +306,24 @@ def enable_providers():
     user_enable_providers = settings.get("enable_providers", [])
     union_enable_providers = {k: "" for k in user_enable_providers + always_enable_providers}.keys()
     for name in union_enable_providers:
-        enable_provider(name)
+        enable_provider(name, settings.get("debug").get(name, {}))
 
-def kustomize_with_envsubst(path):
-    return str(local("{} build {} | {}".format(kustomize_cmd, path, envsubst_cmd), quiet = True))
+def kustomize_with_envsubst(path, enable_debug = False):
+    # we need to ditch the readiness and liveness probes when debugging, otherwise K8s will restart the pod whenever execution
+    # has paused.
+    if enable_debug:
+        yq_cmd_line = "| {} eval 'del(.. | select(has\"livenessProbe\")).livenessProbe | del(.. | select(has\"readinessProbe\")).readinessProbe' -".format(yq_cmd)
+    else:
+        yq_cmd_line = ""
+    return str(local("{} build {} | {} {}".format(kustomize_cmd, path, envsubst_cmd, yq_cmd_line), quiet = True))
+
+def ensure_yq():
+    if not os.path.exists(yq_cmd):
+        local("make {}".format(yq_cmd))
+
+def ensure_kustomize():
+    if not os.path.exists(kustomize_cmd):
+        local("make {}".format(kustomize_cmd))
 
 ##############################
 # Actual work happens here
@@ -258,4 +337,6 @@ load("ext://cert_manager", "deploy_cert_manager")
 if settings.get("deploy_cert_manager"):
     deploy_cert_manager(version = "v1.5.3")
 
+ensure_yq()
+ensure_kustomize()
 enable_providers()

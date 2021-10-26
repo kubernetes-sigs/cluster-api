@@ -4,6 +4,11 @@
       "Name": "cert_manager",
       "ExtensionRegistry": "https://github.com/tilt-dev/tilt-extensions",
       "TimeFetched": "2021-05-26T11:19:57.411132-06:00"
+    },
+    {
+      "Name": "local_output",
+      "ExtensionRegistry": "https://github.com/tilt-dev/tilt-extensions",
+      "TimeFetched": "2021-10-25T15:14:03.060899611+01:00"
     }
   ]
 }

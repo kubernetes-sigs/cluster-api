@@ -61,6 +61,8 @@ CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 GO_APIDIFF_BIN := $(BIN_DIR)/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
 ENVSUBST_BIN := $(BIN_DIR)/envsubst
+YQ_BIN := $(BIN_DIR)/yq
+YQ :=  $(TOOLS_DIR)/$(YQ_BIN)
 ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -217,6 +219,9 @@ $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 
 $(ENVSUBST): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/v2/cmd/envsubst
+
+$(YQ): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(YQ_BIN) github.com/mikefarah/yq/v4
 
 $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
 	hack/ensure-kustomize.sh

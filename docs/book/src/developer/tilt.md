@@ -79,17 +79,6 @@ for more details.
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
 provider's yaml.
 
-{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP"}}
-{{#tab AWS}}
-
-For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
-
-```json
-"kustomize_substitutions": {
-  "AWS_B64ENCODED_CREDENTIALS": "your credentials here"
-}
-```
-
 **debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.
 
 Supported settings:
@@ -153,6 +142,17 @@ Supported settings:
   With the above example, you can configure [a Go Remote run/debug
   configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
   pointing at port 30000.
+
+{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP"}}
+{{#tab AWS}}
+
+For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
+
+```json
+"kustomize_substitutions": {
+  "AWS_B64ENCODED_CREDENTIALS": "your credentials here"
+}
+```
 
 {{#/tab }}
 {{#tab AZURE}}

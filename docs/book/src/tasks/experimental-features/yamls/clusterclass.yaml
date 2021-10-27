@@ -46,6 +46,9 @@ kind: DockerClusterTemplate
 metadata:
   name: clusterclass-infrastructure
   namespace: default
+spec:
+  template:
+    spec: {}
 ---
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
@@ -101,7 +104,7 @@ metadata:
   namespace: default
 spec:
   template:
-    spec: { }
+    spec: {}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

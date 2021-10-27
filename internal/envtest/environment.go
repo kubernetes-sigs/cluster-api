@@ -216,7 +216,7 @@ func new(uncachedObjs ...client.Object) *Environment {
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
 	clusterv1.SetMinNodeStartupTimeout(metav1.Duration{Duration: 1 * time.Millisecond})
 
-	if err := (&clusterv1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
 	if err := (&webhooks.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {

@@ -375,8 +375,9 @@ func (i *InfrastructureMachineTemplateBuilder) Build() *unstructured.Unstructure
 
 // BootstrapTemplateBuilder holds the variables needed to build a generic BootstrapTemplate.
 type BootstrapTemplateBuilder struct {
-	namespace string
-	name      string
+	namespace  string
+	name       string
+	specFields map[string]interface{}
 }
 
 // BootstrapTemplate creates a BootstrapTemplateBuilder with the given name and namespace.
@@ -387,6 +388,12 @@ func BootstrapTemplate(namespace, name string) *BootstrapTemplateBuilder {
 	}
 }
 
+// WithSpecFields will add fields of any type to the object spec. It takes an argument, fields, which is of the form path: object.
+func (b *BootstrapTemplateBuilder) WithSpecFields(fields map[string]interface{}) *BootstrapTemplateBuilder {
+	b.specFields = fields
+	return b
+}
+
 // Build creates a new Unstructured object with the information passed to the BootstrapTemplateBuilder.
 func (b *BootstrapTemplateBuilder) Build() *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
@@ -394,6 +401,7 @@ func (b *BootstrapTemplateBuilder) Build() *unstructured.Unstructured {
 	obj.SetKind(GenericBootstrapConfigTemplateKind)
 	obj.SetNamespace(b.namespace)
 	obj.SetName(b.name)
+	setSpecFields(obj, b.specFields)
 
 	// Initialize the spec.template.spec to make the object valid in reconciliation.
 	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})

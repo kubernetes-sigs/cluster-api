@@ -294,7 +294,8 @@ A provider must supply a `tilt-provider.json` file describing how to build it. H
         "live_reload_deps": [
             "main.go", "go.mod", "go.sum", "api", "cmd", "controllers", "pkg"
         ]
-    }
+    },
+    "label": "CAPA"
 }
 ```
 
@@ -331,8 +332,6 @@ Set to `false` if your provider does not have a ./config folder or you do not wa
 **label** (String, default=provider name): The label to be used to group provider components in the tilt UI
 in tilt version >= v0.22.2 (see https://blog.tilt.dev/2021/08/09/resource-grouping.html); as a convention,
 provider abbreviation should be used (CAPD, KCP etc.).
-
-**manager_name** (String): If provided, it will allow tilt to move the provider controller under the above label.
 
 ## Customizing Tilt
 

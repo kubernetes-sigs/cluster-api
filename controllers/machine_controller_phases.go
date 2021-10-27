@@ -293,7 +293,7 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 
 	// Get and set Status.Addresses from the infrastructure provider.
 	err = util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses")
-	if err != nil && err != util.ErrUnstructuredFieldNotFound {
+	if err != nil && err != capierrors.ClusterFieldNotFound("field not found") {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
@@ -301,7 +301,7 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	var failureDomain string
 	err = util.UnstructuredUnmarshalField(infraConfig, &failureDomain, "spec", "failureDomain")
 	switch {
-	case err == util.ErrUnstructuredFieldNotFound: // no-op
+	case err == capierrors.ClusterFieldNotFound("field not found"): // no-op
 	case err != nil:
 		return ctrl.Result{}, errors.Wrapf(err, "failed to failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	default:

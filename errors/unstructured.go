@@ -20,14 +20,18 @@ import (
 	"fmt"
 )
 
-type UnStructuredClusterError struct {
+type UnStructuredError struct {
 	Reason  UnstructuredFieldError
 	Message string
 }
 
+func (e *UnStructuredError) Error() string {
+	return e.Message
+}
+
 // ClusterFieldNotFound creates a new error when cluster is not found
-func ClusterFieldNotFound(format string, args ...interface{}) *UnStructuredClusterError {
-	return &UnStructuredClusterError{
+func ClusterFieldNotFound(format string, args ...interface{}) *UnStructuredError {
+	return &UnStructuredError{
 		Reason:  ErrUnstructuredFieldNotFound,
 		Message: fmt.Sprintf(format, args...),
 	}

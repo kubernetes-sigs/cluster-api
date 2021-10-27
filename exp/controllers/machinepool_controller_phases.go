@@ -284,7 +284,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 	// Get and set Status.Replicas from the infrastructure provider.
 	err = util.UnstructuredUnmarshalField(infraConfig, &mp.Status.Replicas, "status", "replicas")
 	if err != nil {
-		if err != util.ErrUnstructuredFieldNotFound {
+		if err != capierrors.ClusterFieldNotFound("field not found") {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 		}
 	} else if mp.Status.Replicas == 0 {

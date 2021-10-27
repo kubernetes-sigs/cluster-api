@@ -39,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8sversion "k8s.io/apimachinery/pkg/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -147,7 +148,7 @@ func IsNodeReady(node *corev1.Node) bool {
 // GetClusterFromMetadata returns the Cluster object (if present) using the object metadata.
 func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
 	if obj.Labels[clusterv1.ClusterLabelName] == "" {
-		return nil, errors.WithStack(ErrNoCluster)
+		return nil, errors.WithStack(capierrors.ClusterNotFound("no %q label present", clusterv1.ClusterLabelName))
 	}
 	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.ClusterLabelName])
 }
@@ -380,7 +381,7 @@ func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, f
 		return errors.Wrapf(err, "failed to retrieve field %q from %q", strings.Join(fields, "."), obj.GroupVersionKind())
 	}
 	if !found || value == nil {
-		return ErrUnstructuredFieldNotFound
+		return capierrors.ClusterFieldNotFound("field not found")
 	}
 	valueBytes, err := json.Marshal(value)
 	if err != nil {

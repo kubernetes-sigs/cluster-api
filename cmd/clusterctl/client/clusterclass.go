@@ -48,7 +48,9 @@ func addClusterClassIfMissing(template Template, clusterClassClient repository.C
 		return nil, err
 	}
 
-	mergedTemplate, err := repository.MergeTemplates(template, clusterClassesTemplate)
+	// We intentionally render the ClusterClass before the Cluster resource, as the Cluster
+	// is depending on the ClusterClass.
+	mergedTemplate, err := repository.MergeTemplates(clusterClassesTemplate, template)
 	if err != nil {
 		return nil, err
 	}

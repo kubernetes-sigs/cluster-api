@@ -120,12 +120,12 @@ The following providers are currently defined in the script:
 More providers can be added by editing the `clusterctl-settings.json` in your local copy of Cluster API;
 please note that each `provider_repo` should have its own `clusterctl-settings.json` describing how to build the provider assets, e.g.
 
-```yaml
+```json
 {
   "name": "infrastructure-aws",
   "config": {
     "componentsFile": "infrastructure-components.yaml",
-    "nextVersion": "v0.5.0",
+    "nextVersion": "v0.5.0"
   }
 }
 ```

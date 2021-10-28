@@ -281,7 +281,8 @@ def enable_provider(name, debug):
             yaml = str(kustomize_with_envsubst(context + "/config/default", True))
         k8s_yaml(blob(yaml))
 
-        manager_name = find_manager(context + "/config/default")
+        manager_name = find_manager(yaml)
+        print("manager: " + manager_name)
 
         k8s_resource(
             workload = manager_name,
@@ -291,14 +292,12 @@ def enable_provider(name, debug):
             links = links,
         )
 
-def find_manager(path):
-    return local_output(
-        '{kustomize_cmd} build {path} | {yq_cmd} eval \'select(."kind"=="Deployment").metadata.name\' -'.format(
-            kustomize_cmd = kustomize_cmd,
-            path = path,
-            yq_cmd = yq_cmd,
-        ),
-    )
+def find_manager(yaml):
+    manifests = decode_yaml_stream(yaml)
+    for m in manifests:
+        if m["kind"] == "Deployment":
+            return m["metadata"]["name"]
+    return ""
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.

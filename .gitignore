@@ -69,6 +69,9 @@ clusterctl-settings.json
 # test results
 _artifacts
 
-#release artifacts
+# release artifacts
 out
 _releasenotes
+
+# Helm
+.helm

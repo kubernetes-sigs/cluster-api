@@ -1,5 +1,6 @@
 # -*- mode: Python -*-
 # set defaults
+load("ext://cert_manager", "deploy_cert_manager")
 load("ext://local_output", "local_output")
 
 version_settings(True, ">=0.22.2")
@@ -332,18 +333,28 @@ def ensure_kustomize():
     if not os.path.exists(kustomize_cmd):
         local("make {}".format(kustomize_cmd))
 
+def deploy_observability():
+    k8s_yaml(blob(str(local("{} build {}".format(kustomize_cmd, "./hack/observability/"), quiet = True))))
+
+    k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"])
+    k8s_resource(workload = "loki", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
+    k8s_resource(workload = "grafana", port_forwards = "3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
+
 ##############################
 # Actual work happens here
 ##############################
+
+ensure_yq()
+ensure_kustomize()
+
 include_user_tilt_files()
 
 load_provider_tiltfiles()
 
-load("ext://cert_manager", "deploy_cert_manager")
-
 if settings.get("deploy_cert_manager"):
     deploy_cert_manager(version = "v1.5.3")
 
-ensure_yq()
-ensure_kustomize()
+if settings.get("deploy_observability"):
+    deploy_observability()
+
 enable_providers()

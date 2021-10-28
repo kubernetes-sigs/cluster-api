@@ -79,17 +79,6 @@ for more details.
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
 provider's yaml.
 
-{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP"}}
-{{#tab AWS}}
-
-For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
-
-```json
-"kustomize_substitutions": {
-  "AWS_B64ENCODED_CREDENTIALS": "your credentials here"
-}
-```
-
 **debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.
 
 Supported settings:
@@ -153,6 +142,17 @@ Supported settings:
   With the above example, you can configure [a Go Remote run/debug
   configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
   pointing at port 30000.
+
+{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP"}}
+{{#tab AWS}}
+
+For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
+
+```json
+"kustomize_substitutions": {
+  "AWS_B64ENCODED_CREDENTIALS": "your credentials here"
+}
+```
 
 {{#/tab }}
 {{#tab AZURE}}
@@ -294,7 +294,8 @@ A provider must supply a `tilt-provider.json` file describing how to build it. H
         "live_reload_deps": [
             "main.go", "go.mod", "go.sum", "api", "cmd", "controllers", "pkg"
         ]
-    }
+    },
+    "label": "CAPA"
 }
 ```
 
@@ -331,8 +332,6 @@ Set to `false` if your provider does not have a ./config folder or you do not wa
 **label** (String, default=provider name): The label to be used to group provider components in the tilt UI
 in tilt version >= v0.22.2 (see https://blog.tilt.dev/2021/08/09/resource-grouping.html); as a convention,
 provider abbreviation should be used (CAPD, KCP etc.).
-
-**manager_name** (String): If provided, it will allow tilt to move the provider controller under the above label.
 
 ## Customizing Tilt
 

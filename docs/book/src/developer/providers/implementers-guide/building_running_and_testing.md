@@ -20,7 +20,7 @@ Cluster API uses [cert-manager] to manage the certificates it needs for its webh
 Before you apply Cluster API's yaml, you should [install `cert-manager`][cm-install]
 
 [cert-manager]: https://github.com/jetstack/cert-manager
-[cm-install]: https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html
+[cm-install]: https://cert-manager.io/docs/installation/
 
 ```
 kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/<version>/cert-manager.yaml

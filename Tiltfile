@@ -52,7 +52,6 @@ providers = {
             "feature",
         ],
         "label": "CAPI",
-        "manager_name": "capi-controller-manager",
     },
     "kubeadm-bootstrap": {
         "context": "bootstrap/kubeadm",
@@ -66,7 +65,6 @@ providers = {
             "../../go.sum",
         ],
         "label": "CABPK",
-        "manager_name": "capi-kubeadm-bootstrap-controller-manager",
     },
     "kubeadm-control-plane": {
         "context": "controlplane/kubeadm",
@@ -80,7 +78,6 @@ providers = {
             "../../go.sum",
         ],
         "label": "KCP",
-        "manager_name": "capi-kubeadm-control-plane-controller-manager",
     },
     "docker": {
         "context": "test/infrastructure/docker",
@@ -166,7 +163,6 @@ COPY manager .
 # 3. Runs kustomize for the provider's config/default and applies it
 def enable_provider(name, debug):
     p = providers.get(name)
-    manager_name = p.get("manager_name")
     context = p.get("context")
     go_main = p.get("go_main", "main.go")
     label = p.get("label", name)
@@ -285,6 +281,8 @@ def enable_provider(name, debug):
             yaml = str(kustomize_with_envsubst(context + "/config/default", True))
         k8s_yaml(blob(yaml))
 
+        manager_name = find_manager(context + "/config/default")
+
         k8s_resource(
             workload = manager_name,
             new_name = label.lower() + "_controller",
@@ -292,6 +290,15 @@ def enable_provider(name, debug):
             port_forwards = port_forwards,
             links = links,
         )
+
+def find_manager(path):
+    return local_output(
+        '{kustomize_cmd} build {path} | {yq_cmd} eval \'select(."kind"=="Deployment").metadata.name\' -'.format(
+            kustomize_cmd = kustomize_cmd,
+            path = path,
+            yq_cmd = yq_cmd,
+        ),
+    )
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.

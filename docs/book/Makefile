@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Directories.
-ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+ROOT_DIR:=$(realpath $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/../..)
 TOOLS_DIR := $(realpath ../../hack/tools)
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
@@ -42,14 +42,22 @@ MDBOOK_LINKCHECK := $(TOOLS_BIN_DIR)/mdbook-linkcheck
 $(MDBOOK_LINKCHECK):
 	$(CRATE_INSTALL) --git Michael-F-Bryan/mdbook-linkcheck --tag v0.7.0 --to $(TOOLS_BIN_DIR) --force
 
+OPENAPIV3_COMPONENT_SCHEMA_GEN := $(TOOLS_BIN_DIR)/openapiv3-component-schema-gen
+$(OPENAPIV3_COMPONENT_SCHEMA_GEN):
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/openapiv3-component-schema-gen ./openapiv3-component-schema-gen
+
+.PHONY: src/reference/crds.yaml
+src/reference/crds.yaml: $(OPENAPIV3_COMPONENT_SCHEMA_GEN)
+	$(OPENAPIV3_COMPONENT_SCHEMA_GEN) --input-dirs $(ROOT_DIR)/config/crd/bases,$(ROOT_DIR)/bootstrap/kubeadm/config/crd/bases,$(ROOT_DIR)/controlplane/kubeadm/config/crd/bases > $@
+
 .PHONY: serve
-serve: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK)
+serve: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK) src/reference/crds.yaml
 	$(MDBOOK) serve
 
 .PHONY: build
-build: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK)
+build: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK) src/reference/crds.yaml
 	$(MDBOOK) build
 
 .PHONY: verify
-verify: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK)
+verify: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK) src/reference/crds.yaml
 	$(MDBOOK) build

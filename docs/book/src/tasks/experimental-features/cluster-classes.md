@@ -189,6 +189,11 @@ Delete management cluster
 kind delete clusters capi-test
 ```
 
+## Next steps
+
+To see what else is made possible by ClusterClasses see the [ClusterClass operations guide].
+
+
 <!-- links -->
 [quick start guide]: ../../user/quick-start.md
 [bootstrap cluster]: ../../reference/glossary.md#bootstrap-cluster
@@ -202,3 +207,4 @@ kind delete clusters capi-test
 [provider]:../../reference/providers.md
 [provider components]: ../../reference/glossary.md#provider-components
 [workload cluster]: ../../reference/glossary.md#workload-cluster
+[ClusterClass operations guide]: ./cluster-class-operations.md

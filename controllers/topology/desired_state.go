@@ -18,7 +18,9 @@ package topology
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -86,7 +88,29 @@ func (r *ClusterReconciler) computeDesiredState(ctx context.Context, s *scope.Sc
 		return nil, errors.Wrap(err, "failed to apply patches")
 	}
 
+	// FIXME(just-for-local-hacking)
+	if os.Getenv("CAPI_HACK") != "" {
+		output := fmt.Sprintf("[%s,%s,%s,%s,%s,%s]",
+			mustMarshal(desiredState.InfrastructureCluster.Object["spec"]),
+			mustMarshal(desiredState.ControlPlane.Object.Object["spec"]),
+			mustMarshal(desiredState.ControlPlane.InfrastructureMachineTemplate.Object["spec"]),
+			mustMarshal(desiredState.MachineDeployments["default-worker-topo"].Object.Spec),
+			mustMarshal(desiredState.MachineDeployments["default-worker-topo"].BootstrapTemplate.Object["spec"]),
+			mustMarshal(desiredState.MachineDeployments["default-worker-topo"].InfrastructureMachineTemplate.Object["spec"]),
+		)
+		fmt.Println(output)
+		return nil, fmt.Errorf("just hacking around locally")
+	}
+
 	return desiredState, nil
+}
+
+func mustMarshal(obj interface{}) string {
+	out, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		panic(errors.Wrapf(err, "error marshalling"))
+	}
+	return string(out)
 }
 
 // computeInfrastructureCluster computes the desired state for the InfrastructureCluster object starting from the

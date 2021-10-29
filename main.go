@@ -23,6 +23,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path"
 	"time"
 
 	// +kubebuilder:scaffold:imports
@@ -51,6 +52,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -224,6 +226,23 @@ func main() {
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
 	setupReconcilers(ctx, mgr)
+	// FIXME(just-for-local-hacking)
+	if _, err := os.Stat(webhookCertDir); err != nil {
+		klog.Infof("Cert dir does not exist, generating certificates")
+		cert := secret.Certificate{}
+		if err := cert.Generate(); err != nil {
+			panic(fmt.Errorf("problem running manager: %v", err))
+		}
+		if err := os.MkdirAll(webhookCertDir, 0750); err != nil {
+			panic(fmt.Errorf("problem running manager: %v", err))
+		}
+		if err := os.WriteFile(path.Join(webhookCertDir, "tls.crt"), cert.KeyPair.Cert, 0600); err != nil {
+			panic(fmt.Errorf("problem running manager: %v", err))
+		}
+		if err := os.WriteFile(path.Join(webhookCertDir, "tls.key"), cert.KeyPair.Key, 0600); err != nil {
+			panic(fmt.Errorf("problem running manager: %v", err))
+		}
+	}
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder

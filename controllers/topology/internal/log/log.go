@@ -54,6 +54,9 @@ type Logger interface {
 	// WithMachineDeployment adds to the logger information about the MachineDeployment object being processed.
 	WithMachineDeployment(md *clusterv1.MachineDeployment) Logger
 
+	// WithValues adds key-value pairs of context to a logger.
+	WithValues(keysAndValues ...interface{}) Logger
+
 	// V returns a logger value for a specific verbosity level, relative to
 	// this logger.
 	V(level int) Logger
@@ -102,6 +105,12 @@ func (l *topologyReconcileLogger) WithMachineDeployment(md *clusterv1.MachineDep
 		"machineDeployment name", md.GetName(),
 		"machineDeployment topologyName", topologyName,
 	)
+	return l
+}
+
+// WithValues adds key-value pairs of context to a logger.
+func (l *topologyReconcileLogger) WithValues(keysAndValues ...interface{}) Logger {
+	l.Logger = l.Logger.WithValues(keysAndValues...)
 	return l
 }
 

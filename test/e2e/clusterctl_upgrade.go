@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -385,7 +384,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 }
 
 func downloadToTmpFile(url string) string {
-	tmpFile, err := ioutil.TempFile("", "clusterctl")
+	tmpFile, err := os.CreateTemp("", "clusterctl")
 	Expect(err).ToNot(HaveOccurred(), "failed to get temporary file")
 	defer tmpFile.Close()
 

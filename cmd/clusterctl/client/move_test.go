@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -97,7 +96,7 @@ func Test_clusterctlClient_Move(t *testing.T) {
 }
 
 func Test_clusterctlClient_Backup(t *testing.T) {
-	dir, err := ioutil.TempDir("/tmp", "cluster-api")
+	dir, err := os.MkdirTemp("/tmp", "cluster-api")
 	if err != nil {
 		t.Error(err)
 	}
@@ -160,7 +159,7 @@ func Test_clusterctlClient_Backup(t *testing.T) {
 }
 
 func Test_clusterctlClient_Restore(t *testing.T) {
-	dir, err := ioutil.TempDir("/tmp", "cluster-api")
+	dir, err := os.MkdirTemp("/tmp", "cluster-api")
 	if err != nil {
 		t.Error(err)
 	}

@@ -43,11 +43,11 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func BootstrapFuzzer(obj *clusterv1.Bootstrap, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func BootstrapFuzzer(in *clusterv1.Bootstrap, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
 
 	// Bootstrap.Data has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
-	obj.Data = nil
+	in.Data = nil
 }
 
 func ObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {

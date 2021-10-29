@@ -132,7 +132,6 @@ func TestUnmarshalData(t *testing.T) {
 	})
 
 	t.Run("should clean the annotation on successful unmarshal", func(t *testing.T) {
-
 		src := &unstructured.Unstructured{}
 		src.SetGroupVersionKind(oldMachineGVK)
 		src.SetName("test-1")

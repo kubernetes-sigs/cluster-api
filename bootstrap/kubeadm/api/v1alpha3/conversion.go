@@ -138,7 +138,7 @@ func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta1_KubeadmConfigTemplateList_To_v1alpha3_KubeadmConfigTemplateList(src, dst, nil)
 }
 
-func Convert_v1alpha3_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *KubeadmConfigStatus, out *v1beta1.KubeadmConfigStatus, s apiconversion.Scope) error { //nolint
+func Convert_v1alpha3_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *KubeadmConfigStatus, out *v1beta1.KubeadmConfigStatus, s apiconversion.Scope) error {
 	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4 because its content has been moved to the bootstrap data secret, value will be lost during conversion.
 	return autoConvert_v1alpha3_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in, out, s)
 }

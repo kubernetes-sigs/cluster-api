@@ -16,5 +16,5 @@ limitations under the License.
 
 package v1beta1
 
-func (*DockerMachinePool) Hub()             {}
-func (*DockerMachinePoolList) Hub()         {}
+func (*DockerMachinePool) Hub()     {}
+func (*DockerMachinePoolList) Hub() {}

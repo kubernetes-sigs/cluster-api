@@ -18,8 +18,10 @@ package contract
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -144,6 +146,22 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got).To(Equal(metadata))
+	})
+
+	t.Run("Manages spec.machineTemplate.nodeDrainTimeout", func(t *testing.T) {
+		g := NewWithT(t)
+
+		duration := metav1.Duration{Duration: 2*time.Minute + 5*time.Second}
+
+		g.Expect(ControlPlane().MachineTemplate().NodeDrainTimeout().Path()).To(Equal(Path{"spec", "machineTemplate", "nodeDrainTimeout"}))
+
+		err := ControlPlane().MachineTemplate().NodeDrainTimeout().Set(obj, duration)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().NodeDrainTimeout().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(duration))
 	})
 }
 

@@ -196,3 +196,10 @@ func (c *ControlPlaneMachineTemplate) Metadata() *Metadata {
 		path: Path{"spec", "machineTemplate", "metadata"},
 	}
 }
+
+// NodeDrainTimeout provides access to the nodeDrainTimeout of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) NodeDrainTimeout() *Duration {
+	return &Duration{
+		path: Path{"spec", "machineTemplate", "nodeDrainTimeout"},
+	}
+}

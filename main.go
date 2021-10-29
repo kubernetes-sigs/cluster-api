@@ -72,6 +72,7 @@ var (
 	watchFilterValue              string
 	profilerAddress               string
 	clusterTopologyConcurrency    int
+	clusterClassConcurrency       int
 	clusterConcurrency            int
 	machineConcurrency            int
 	machineSetConcurrency         int
@@ -134,6 +135,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&clusterTopologyConcurrency, "clustertopology-concurrency", 10,
 		"Number of clusters to process simultaneously")
+
+	fs.IntVar(&clusterClassConcurrency, "clusterclass-concurrency", 10,
+		"Number of cluster classes to process simultaneously")
 
 	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
 		"Number of clusters to process simultaneously")
@@ -296,6 +300,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			WatchFilterValue:          watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
+			os.Exit(1)
+		}
+
+		if err := (&topology.ClusterClassReconciler{
+			Client:                    mgr.GetClient(),
+			UnstructuredCachingClient: unstructuredCachingClient,
+			WatchFilterValue:          watchFilterValue,
+		}).SetupWithManager(ctx, mgr, concurrency(clusterClassConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterClass")
 			os.Exit(1)
 		}
 

@@ -20,11 +20,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -44,21 +42,7 @@ func (r *ClusterReconciler) getBlueprint(ctx context.Context, cluster *clusterv1
 		return nil, errors.Wrapf(err, "failed to retrieve ClusterClass/%s", cluster.Spec.Topology.Class)
 	}
 
-	// We use the patchHelper to patch potential changes to the ObjectReferences in ClusterClass.
-	patchHelper, err := patch.NewHelper(blueprint.ClusterClass, r.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := patchHelper.Patch(ctx, blueprint.ClusterClass); err != nil {
-			reterr = kerrors.NewAggregate([]error{
-				reterr,
-				errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: blueprint.ClusterClass})},
-			)
-		}
-	}()
-
+	var err error
 	// Get ClusterClass.spec.infrastructure.
 	blueprint.InfrastructureClusterTemplate, err = r.getReference(ctx, blueprint.ClusterClass.Spec.Infrastructure.Ref)
 	if err != nil {

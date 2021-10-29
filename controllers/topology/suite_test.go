@@ -73,6 +73,12 @@ func TestMain(m *testing.M) {
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
 			panic(fmt.Sprintf("unable to create topology cluster reconciler: %v", err))
 		}
+		if err := (&ClusterClassReconciler{
+			Client:                    mgr.GetClient(),
+			UnstructuredCachingClient: unstructuredCachingClient,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
+			panic(fmt.Sprintf("unable to create clusterclass reconciler: %v", err))
+		}
 	}
 	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
 	SetDefaultEventuallyTimeout(30 * time.Second)

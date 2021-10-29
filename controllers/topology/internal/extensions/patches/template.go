@@ -18,7 +18,6 @@ package patches
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -95,7 +94,7 @@ func getTemplateAsUnstructured(req *api.GenerateRequest, templateRef api.Templat
 
 	// If a patch doesn't apply to any object, this is a misconfiguration.
 	if template == nil {
-		return nil, errors.Errorf("failed to get template %s", templateRefString(templateRef))
+		return nil, errors.Errorf("failed to get template %s", templateRef)
 	}
 
 	return templateToUnstructured(template)
@@ -118,18 +117,6 @@ func templateRefsAreEqual(a, b api.TemplateRef) bool {
 		a.TemplateType == b.TemplateType &&
 		a.MachineDeploymentRef.TopologyName == b.MachineDeploymentRef.TopologyName &&
 		a.MachineDeploymentRef.Class == b.MachineDeploymentRef.Class
-}
-
-// templateRefString returns a string representing the TemplateRef.
-func templateRefString(t api.TemplateRef) string {
-	ret := fmt.Sprintf("%s %s/%s", t.TemplateType, t.APIVersion, t.Kind)
-	if t.MachineDeploymentRef.TopologyName != "" {
-		ret = fmt.Sprintf("%s, MachineDeployment topology %s", ret, t.MachineDeploymentRef.TopologyName)
-	}
-	if t.MachineDeploymentRef.Class != "" {
-		ret = fmt.Sprintf("%s, MachineDeployment class %s", ret, t.MachineDeploymentRef.Class)
-	}
-	return ret
 }
 
 // templateToUnstructured converts a GenerateRequestTemplate into an Unstructured object.

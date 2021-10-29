@@ -25,6 +25,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches/api"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches/inline"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches/variables"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
@@ -233,11 +234,9 @@ func lookupMDTopology(topology *clusterv1.Topology, mdTopologyName string) (*clu
 // NOTE: Currently only inline JSON patches are supported; in the future we will add
 // external patches as well.
 func createPatchGenerator(patch *clusterv1.ClusterClassPatch) (api.Generator, error) {
-	// Return a JSONPatchGenerator if there are PatchDefinitions in the patch.
+	// Return a jsonPatchGenerator if there are PatchDefinitions in the patch.
 	if len(patch.Definitions) > 0 {
-		// TODO(sbueringer): will be implemented in a follow-up PR
-		// return inline.NewJSONPatchGenerator(patch), nil
-		return nil, nil
+		return inline.New(patch), nil
 	}
 
 	return nil, errors.Errorf("failed to create patch generator for patch %q", patch.Name)
@@ -249,14 +248,14 @@ func applyPatchesToRequest(ctx context.Context, req *api.GenerateRequest, resp *
 	log := tlog.LoggerFrom(ctx)
 
 	for _, patch := range resp.Items {
-		log = log.WithValues("templateRef", templateRefString(patch.TemplateRef))
+		log = log.WithValues("templateRef", patch.TemplateRef)
 
 		// Get the template the patch should be applied to.
 		template := getTemplate(req, patch.TemplateRef)
 
 		// If a patch doesn't apply to any template, this is a misconfiguration.
 		if template == nil {
-			return errors.Errorf("generated patch is targeted at the template with ID %q that does not exists", templateRefString(patch.TemplateRef))
+			return errors.Errorf("generated patch is targeted at the template with ID %q that does not exists", patch.TemplateRef)
 		}
 
 		// Use the patch to create a patched copy of the template.
@@ -269,20 +268,20 @@ func applyPatchesToRequest(ctx context.Context, req *api.GenerateRequest, resp *
 			jsonPatch, err := jsonpatch.DecodePatch(patch.Patch.Raw)
 			if err != nil {
 				return errors.Wrapf(err, "failed to apply patch to template %s: error decoding json patch (RFC6902): %s",
-					templateRefString(template.TemplateRef), string(patch.Patch.Raw))
+					template.TemplateRef, string(patch.Patch.Raw))
 			}
 
 			patchedTemplate, err = jsonPatch.Apply(template.Template.Raw)
 			if err != nil {
 				return errors.Wrapf(err, "failed to apply patch to template %s: error applying json patch (RFC6902): %s",
-					templateRefString(template.TemplateRef), string(patch.Patch.Raw))
+					template.TemplateRef, string(patch.Patch.Raw))
 			}
 		case api.JSONMergePatchType:
 			log.V(5).Infof("Accumulating JSON merge patch", "patch", string(patch.Patch.Raw))
 			patchedTemplate, err = jsonpatch.MergePatch(template.Template.Raw, patch.Patch.Raw)
 			if err != nil {
 				return errors.Wrapf(err, "failed to apply patch to template %s: error applying json merge patch (RFC7386): %s",
-					templateRefString(template.TemplateRef), string(patch.Patch.Raw))
+					template.TemplateRef, string(patch.Patch.Raw))
 			}
 		}
 
@@ -290,7 +289,7 @@ func applyPatchesToRequest(ctx context.Context, req *api.GenerateRequest, resp *
 		// to ensure that we only pick up changes to the spec.
 		if err := patchTemplateSpec(&template.Template, patchedTemplate); err != nil {
 			return errors.Wrapf(err, "failed to apply patch to template %s",
-				templateRefString(template.TemplateRef))
+				template.TemplateRef)
 		}
 	}
 	return nil

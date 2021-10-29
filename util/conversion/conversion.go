@@ -45,6 +45,8 @@ import (
 )
 
 const (
+	// DataAnnotation is the annotation that conversion webhooks
+	// use to retain the data in case of down-conversion from the hub.
 	DataAnnotation = "cluster.x-k8s.io/conversion-data"
 )
 
@@ -164,11 +166,13 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer
 	}, funcs...)
 	return fuzzer.FuzzerFor(
 		fuzzer.MergeFuzzerFuncs(funcs...),
-		rand.NewSource(rand.Int63()),
+		rand.NewSource(rand.Int63()), //nolint:gosec
 		runtimeserializer.NewCodecFactory(scheme),
 	)
 }
 
+// FuzzTestFuncInput contains input parameters
+// for the FuzzTestFunc function.
 type FuzzTestFuncInput struct {
 	Scheme *runtime.Scheme
 
@@ -190,6 +194,7 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 	}
 
 	return func(t *testing.T) {
+		t.Helper()
 		t.Run("spoke-hub-spoke", func(t *testing.T) {
 			g := gomega.NewWithT(t)
 			fuzzer := GetFuzzer(input.Scheme, input.FuzzerFuncs...)

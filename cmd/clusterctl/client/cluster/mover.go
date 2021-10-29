@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -142,7 +141,7 @@ func (o *objectMover) filesToObjs(dir string) ([]unstructured.Unstructured, erro
 	log := logf.Log
 	log.Info(fmt.Sprintf("Restoring files from %s", dir))
 
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +150,7 @@ func (o *objectMover) filesToObjs(dir string) ([]unstructured.Unstructured, erro
 	for i := range files {
 		path := filepath.Clean(filepath.Join(dir, files[i].Name()))
 
-		byObj, err := ioutil.ReadFile(path)
+		byObj, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}
@@ -823,7 +822,7 @@ func (o *objectMover) backupTargetObject(nodeToCreate *node, directory string) e
 		}
 	}
 
-	err = ioutil.WriteFile(objectFile, byObj, 0600)
+	err = os.WriteFile(objectFile, byObj, 0600)
 	if err != nil {
 		return err
 	}

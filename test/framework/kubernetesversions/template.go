@@ -22,7 +22,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -91,7 +90,7 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 
 	kustomizedTemplate := path.Join(templateDir, "cluster-template-conformance-ci-artifacts.yaml")
 
-	if err := ioutil.WriteFile(path.Join(overlayDir, "kustomization.yaml"), []byte(kustomizationYAMLBytes), 0o600); err != nil {
+	if err := os.WriteFile(path.Join(overlayDir, "kustomization.yaml"), []byte(kustomizationYAMLBytes), 0o600); err != nil {
 		return "", err
 	}
 

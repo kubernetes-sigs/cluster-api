@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -549,7 +548,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			dir, err := ioutil.TempDir("/tmp", "cluster-api")
+			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
 				t.Error(err)
 			}
@@ -618,7 +617,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 			g := NewWithT(t)
 
 			// temporary directory
-			dir, err := ioutil.TempDir("/tmp", "cluster-api")
+			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
@@ -643,7 +642,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 
 			// Write go string slice to directory
 			for _, file := range tt.files {
-				tempFile, err := ioutil.TempFile(dir, "obj")
+				tempFile, err := os.CreateTemp(dir, "obj")
 				g.Expect(err).NotTo(HaveOccurred())
 
 				_, err = tempFile.Write([]byte(file))
@@ -744,7 +743,7 @@ func Test_objectMover_backup(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			dir, err := ioutil.TempDir("/tmp", "cluster-api")
+			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
 				t.Error(err)
 			}
@@ -778,7 +777,7 @@ func Test_objectMover_backup(t *testing.T) {
 				g.Expect(err).NotTo(HaveOccurred())
 
 				// objects are stored in the temporary directory with the expected filename
-				files, err := ioutil.ReadDir(dir)
+				files, err := os.ReadDir(dir)
 				g.Expect(err).NotTo(HaveOccurred())
 
 				expectedFilename := node.getFilename()
@@ -805,7 +804,7 @@ func Test_objectMover_filesToObjs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			dir, err := ioutil.TempDir("/tmp", "cluster-api")
+			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
 				t.Error(err)
 			}
@@ -865,7 +864,7 @@ func Test_objectMover_restore(t *testing.T) {
 			g := NewWithT(t)
 
 			// temporary directory
-			dir, err := ioutil.TempDir("/tmp", "cluster-api")
+			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
@@ -887,7 +886,7 @@ func Test_objectMover_restore(t *testing.T) {
 
 			// Write go string slice to directory
 			for _, file := range tt.files {
-				tempFile, err := ioutil.TempFile(dir, "obj")
+				tempFile, err := os.CreateTemp(dir, "obj")
 				g.Expect(err).NotTo(HaveOccurred())
 
 				_, err = tempFile.Write([]byte(file))

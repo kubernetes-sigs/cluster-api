@@ -22,10 +22,10 @@ package tools
 import (
 	_ "github.com/drone/envsubst/v2/cmd/envsubst"
 	_ "github.com/joelanford/go-apidiff"
+	_ "github.com/mikefarah/yq/v4"
 	_ "github.com/onsi/ginkgo/ginkgo"
 	_ "gotest.tools/gotestsum"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
 	_ "sigs.k8s.io/controller-runtime/tools/setup-envtest"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-	_ "github.com/mikefarah/yq/v4"
 )

@@ -1,3 +1,4 @@
+//go:build tools
 // +build tools
 
 /*
@@ -31,10 +32,13 @@ import (
 	"sigs.k8s.io/kubebuilder/docs/book/utils/plugin"
 )
 
-// Embed.
+// Embed adds support to embed github release artifact links.
 type Embed struct{}
 
-func (_ Embed) SupportsOutput(_ string) bool { return true }
+// SupportsOutput checks if the given plugin supports the given output format.
+func (Embed) SupportsOutput(_ string) bool { return true }
+
+// Process modifies the book in the input, which gets returned as the result of the plugin.
 func (l Embed) Process(input *plugin.Input) error {
 	return plugin.EachCommand(&input.Book, "embed-github", func(chapter *plugin.BookChapter, args string) (string, error) {
 		tags := reflect.StructTag(strings.TrimSpace(args))

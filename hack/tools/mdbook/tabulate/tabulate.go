@@ -1,3 +1,4 @@
+//go:build tools
 // +build tools
 
 /*
@@ -28,10 +29,13 @@ import (
 	"sigs.k8s.io/kubebuilder/docs/book/utils/plugin"
 )
 
-// Tabulate.
+// Tabulate adds support for switchable tabs in mdbook.
 type Tabulate struct{}
 
-func (_ Tabulate) SupportsOutput(_ string) bool { return true }
+// SupportsOutput checks if the given plugin supports the given output format.
+func (Tabulate) SupportsOutput(_ string) bool { return true }
+
+// Process modifies the book in the input, which gets returned as the result of the plugin.
 func (l Tabulate) Process(input *plugin.Input) error {
 	if err := plugin.EachCommand(&input.Book, "tabs", func(chapter *plugin.BookChapter, args string) (string, error) {
 		var bld strings.Builder
@@ -42,14 +46,14 @@ func (l Tabulate) Process(input *plugin.Input) error {
 		bld.WriteString(groupName)
 		bld.WriteString(`" class="tabset">`)
 		for i, tabName := range strings.Split(tags.Get("tabs"), ",") {
-			groupTabId := fmt.Sprintf("%s-%s", groupName, tabName)
+			groupTabID := fmt.Sprintf("%s-%s", groupName, tabName)
 			checked := ""
 			if i == 0 {
 				checked = "checked"
 			}
 
-			bld.WriteString(fmt.Sprintf(`<input type="radio" name="%s" id="%s" aria-controls="%s" %s>`, groupName, groupTabId, groupTabId, checked))
-			bld.WriteString(fmt.Sprintf(`<label for="%s">%s</label>`, groupTabId, tabName))
+			bld.WriteString(fmt.Sprintf(`<input type="radio" name="%s" id="%s" aria-controls="%s" %s>`, groupName, groupTabID, groupTabID, checked))
+			bld.WriteString(fmt.Sprintf(`<label for="%s">%s</label>`, groupTabID, tabName))
 		}
 		bld.WriteString(`<div class="tab-panels">`)
 

@@ -149,9 +149,17 @@ issues:
     - stylecheck
     text: "ST1016: methods on the same type should have the same receiver name"
     path: .*(api|types)\/.*\/conversion.*\.go$
+  # hack/tools
+  - linters:
+    - typecheck
+    text: import (".+") is a program, not an importable package
+    path: ^tools\.go$
 
 run:
   timeout: 10m
+  build-tags:
+  - tools
+  - e2e
   skip-files:
   - "zz_generated.*\\.go$"
   skip-dirs:

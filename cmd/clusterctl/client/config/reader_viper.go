@@ -89,7 +89,7 @@ func (v *viperReader) Init(path string) error {
 		case url.Scheme == "https" || url.Scheme == "http":
 			configPath := filepath.Join(homedir.HomeDir(), ConfigFolder)
 			if len(v.configPaths) > 0 {
-				configPath = filepath.Join(v.configPaths[0])
+				configPath = v.configPaths[0]
 			}
 			if err := os.MkdirAll(configPath, os.ModePerm); err != nil {
 				return err

@@ -571,7 +571,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 				}
 
 				path := filepath.Join(dir, expectedFilename)
-				fileContents, err := os.ReadFile(path)
+				fileContents, err := os.ReadFile(path) //nolint:gosec
 				if err != nil {
 					g.Expect(err).NotTo(HaveOccurred())
 					return

@@ -1,3 +1,4 @@
+//go:build tools
 // +build tools
 
 /*
@@ -43,7 +44,10 @@ import (
 // By default pre-releases won't be included unless a `prereleases` parameter is set to `true`.
 type ReleaseLink struct{}
 
-func (_ ReleaseLink) SupportsOutput(_ string) bool { return true }
+// SupportsOutput checks if the given plugin supports the given output format.
+func (ReleaseLink) SupportsOutput(_ string) bool { return true }
+
+// Process modifies the book in the input, which gets returned as the result of the plugin.
 func (l ReleaseLink) Process(input *plugin.Input) error {
 	return plugin.EachCommand(&input.Book, "releaselink", func(chapter *plugin.BookChapter, args string) (string, error) {
 		tags := reflect.StructTag(strings.TrimSpace(args))

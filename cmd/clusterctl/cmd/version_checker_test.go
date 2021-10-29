@@ -280,7 +280,7 @@ func TestVersionChecker_WriteStateFile(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	// ensure that the state file has been created
 	g.Expect(tmpVersionFile).Should(BeARegularFile())
-	fb, err := os.ReadFile(tmpVersionFile)
+	fb, err := os.ReadFile(tmpVersionFile) //nolint:gosec
 	g.Expect(err).ToNot(HaveOccurred())
 	var actualVersionState VersionState
 	g.Expect(yaml.Unmarshal(fb, &actualVersionState)).To(Succeed())

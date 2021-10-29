@@ -59,7 +59,7 @@ type CreateRepositoryInput struct {
 // NOTE: this transformation is specifically designed for replacing "data: ${envSubstVar}".
 func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformation(manifestPath, envSubstVar string) {
 	By(fmt.Sprintf("Reading the ClusterResourceSet manifest %s", manifestPath))
-	manifestData, err := os.ReadFile(manifestPath)
+	manifestData, err := os.ReadFile(manifestPath) //nolint:gosec
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the ClusterResourceSet manifest file")
 	Expect(manifestData).ToNot(BeEmpty(), "ClusterResourceSet manifest file should not be empty")
 

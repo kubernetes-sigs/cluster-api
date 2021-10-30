@@ -26,7 +26,7 @@ is recommended to keep it separated from any application workload.
 It is a common practice to create a temporary, local bootstrap cluster which is then used to provision
 a target [management cluster] on the selected [infrastructure provider].
 
-Choose one of the options below:
+**Choose one of the options below:**
 
 1. **Existing Management Cluster**
 
@@ -35,6 +35,7 @@ Choose one of the options below:
    ```bash
    export KUBECONFIG=<...>
    ```
+**OR**
 
 2. **Kind**
 

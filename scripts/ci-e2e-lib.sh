@@ -18,13 +18,14 @@
 capi:buildDockerImages () {
   # Configure provider images generation;
   # please ensure the generated image name matches image names used in the E2E_CONF_FILE
+  ARCH="$(go env GOARCH)"
   export REGISTRY=gcr.io/k8s-staging-cluster-api
   export TAG=dev
-  export ARCH=amd64
+  export ARCH
   export PULL_POLICY=IfNotPresent
 
   ## Build all Cluster API provider images, if missing
-  if [[ "$(docker images -q $REGISTRY/cluster-api-controller-amd64:$TAG 2> /dev/null)" == "" ]]; then
+  if [[ "$(docker images -q "$REGISTRY/cluster-api-controller-$ARCH:$TAG" 2> /dev/null)" == "" ]]; then
     echo "+ Building CAPI images"
     make docker-build
   else
@@ -32,7 +33,7 @@ capi:buildDockerImages () {
   fi
 
   ## Build CAPD provider images, if missing
-  if [[ "$(docker images -q $REGISTRY/capd-manager-amd64:$TAG 2> /dev/null)" == "" ]]; then
+  if [[ "$(docker images -q "$REGISTRY/capd-manager-$ARCH:$TAG" 2> /dev/null)" == "" ]]; then
     echo "+ Building CAPD images"
     make -C test/infrastructure/docker docker-build
   else

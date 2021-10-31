@@ -22,18 +22,20 @@ set -x
 
 GOPATH_BIN="$(go env GOPATH)/bin/"
 MINIMUM_KIND_VERSION=v0.11.0
+goarch="$(go env GOARCH)"
+goos="$(go env GOOS)"
 
 # Ensure the kind tool exists and is a viable version, or installs it
 verify_kind_version() {
 
   # If kind is not available on the path, get it
   if ! [ -x "$(command -v kind)" ]; then
-    if [[ "${OSTYPE}" == "linux-gnu" ]]; then
+    if [ "$goos" == "linux" ] || [ "$goos" == "darwin" ]; then
       echo 'kind not found, installing'
       if ! [ -d "${GOPATH_BIN}" ]; then
         mkdir -p "${GOPATH_BIN}"
       fi
-      curl -sLo "${GOPATH_BIN}/kind" https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-linux-amd64
+      curl -sLo "${GOPATH_BIN}/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}"
       chmod +x "${GOPATH_BIN}/kind"
     else
       echo "Missing required binary in path: kind"

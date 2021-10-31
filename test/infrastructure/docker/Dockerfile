@@ -25,7 +25,7 @@ ENV GOPROXY=$goproxy
 # Gets additional CAPD dependencies
 WORKDIR /tmp
 
-RUN curl -LO https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl && \
+RUN curl -LO https://dl.k8s.io/release/v1.22.0/bin/linux/${ARCH}/kubectl && \
     chmod +x ./kubectl && \
     mv ./kubectl /usr/bin/kubectl
 
@@ -55,7 +55,7 @@ WORKDIR /workspace/test/infrastructure/docker
 # Build the CAPD manager using the compiler cache folder
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -a -o /workspace/manager main.go
 
 # NOTE: CAPD can't use non-root because docker requires access to the docker socket
 FROM gcr.io/distroless/static:latest

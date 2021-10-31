@@ -186,7 +186,7 @@ func ResourceNotPausedAndHasFilterLabel(logger logr.Logger, labelValue string) p
 func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
 	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
-	if annotations.HasPausedAnnotation(obj) {
+	if annotations.HasPaused(obj) {
 		log.V(4).Info("Resource is paused, will not attempt to map resource")
 		return false
 	}

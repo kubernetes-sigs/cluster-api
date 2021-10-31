@@ -80,7 +80,7 @@ func (r *ClusterClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// Return early if the ClusterClass is paused.
-	if annotations.HasPausedAnnotation(clusterClass) {
+	if annotations.HasPaused(clusterClass) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
@@ -172,7 +172,7 @@ func (r *ClusterClassReconciler) reconcileExternal(ctx context.Context, clusterC
 	}
 
 	// If external ref is paused, return early.
-	if annotations.HasPausedAnnotation(obj) {
+	if annotations.HasPaused(obj) {
 		log.V(3).Info("External object referenced is paused", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
 		return nil
 	}

@@ -45,9 +45,9 @@ type DescribeClusterOptions struct {
 	// or it has the same Status, Severity and Reason of the parent's object ready condition (it is an echo)
 	DisableNoEcho bool
 
-	// DisableGrouping disable grouping machines objects in case the ready condition
-	// has the same Status, Severity and Reason
-	DisableGrouping bool
+	// Grouping groups machines objects in case the ready conditions
+	// have the same Status, Severity and Reason.
+	Grouping bool
 }
 
 // DescribeCluster returns the object tree representing the status of a Cluster API cluster.
@@ -83,6 +83,6 @@ func (c *clusterctlClient) DescribeCluster(options DescribeClusterOptions) (*tre
 		ShowOtherConditions: options.ShowOtherConditions,
 		ShowMachineSets:     options.ShowMachineSets,
 		DisableNoEcho:       options.DisableNoEcho,
-		DisableGrouping:     options.DisableGrouping,
+		Grouping:            options.Grouping,
 	})
 }

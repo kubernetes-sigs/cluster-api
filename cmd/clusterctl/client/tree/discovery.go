@@ -39,9 +39,9 @@ type DiscoverOptions struct {
 	// or it has the same Status, Severity and Reason of the parent's object ready condition (it is an echo)
 	DisableNoEcho bool
 
-	// DisableGrouping disable grouping machines objects in case the ready condition
-	// has the same Status, Severity and Reason
-	DisableGrouping bool
+	// Grouping groups machine objects in case the ready conditions
+	// have the same Status, Severity and Reason.
+	Grouping bool
 }
 
 func (d DiscoverOptions) toObjectTreeOptions() ObjectTreeOptions {

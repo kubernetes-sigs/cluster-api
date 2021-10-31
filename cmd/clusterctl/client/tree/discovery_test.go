@@ -42,7 +42,9 @@ func Test_Discovery(t *testing.T) {
 		{
 			name: "Discovery with default discovery settings",
 			args: args{
-				discoverOptions: DiscoverOptions{},
+				discoverOptions: DiscoverOptions{
+					Grouping: true,
+				},
 				objs: test.NewFakeCluster("ns1", "cluster1").
 					WithControlPlane(
 						test.NewFakeControlPlane("cp").
@@ -110,7 +112,7 @@ func Test_Discovery(t *testing.T) {
 			name: "Discovery with grouping disabled",
 			args: args{
 				discoverOptions: DiscoverOptions{
-					DisableGrouping: true,
+					Grouping: false,
 				},
 				objs: test.NewFakeCluster("ns1", "cluster1").
 					WithControlPlane(
@@ -182,8 +184,8 @@ func Test_Discovery(t *testing.T) {
 			name: "Discovery with grouping and no-echo disabled",
 			args: args{
 				discoverOptions: DiscoverOptions{
-					DisableGrouping: true,
-					DisableNoEcho:   true,
+					Grouping:      false,
+					DisableNoEcho: true,
 				},
 				objs: test.NewFakeCluster("ns1", "cluster1").
 					WithControlPlane(

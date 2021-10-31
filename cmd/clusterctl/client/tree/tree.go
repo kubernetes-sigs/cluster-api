@@ -43,9 +43,9 @@ type ObjectTreeOptions struct {
 	// same Status, Severity and Reason of the parent's object ready condition (it is an echo)
 	DisableNoEcho bool
 
-	// DisableGrouping disables grouping sibling objects in case the ready condition
-	// has the same Status, Severity and Reason
-	DisableGrouping bool
+	// Grouping groups sibling object in case the ready conditions
+	// have the same Status, Severity and Reason
+	Grouping bool
 }
 
 // ObjectTree defines an object tree representing the status of a Cluster API cluster.
@@ -140,7 +140,7 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	// If it is requested that the child of this node should be grouped in case the ready condition
 	// has the same Status, Severity and Reason, add the GroupingObjectAnnotation to signal
 	// this to the presentation layer.
-	if addOpts.GroupingObject && !od.options.DisableGrouping {
+	if addOpts.GroupingObject && od.options.Grouping {
 		addAnnotation(obj, GroupingObjectAnnotation, "True")
 	}
 

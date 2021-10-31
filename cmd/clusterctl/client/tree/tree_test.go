@@ -440,9 +440,9 @@ func Test_Add_setsGroupingObjectAnnotation(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "should add the annotation if requested to",
+			name: "should add the annotation if requested to and grouping is enabled",
 			args: args{
-				treeOptions: ObjectTreeOptions{},
+				treeOptions: ObjectTreeOptions{Grouping: true},
 				addOptions:  []AddObjectOption{GroupingObject(true)},
 			},
 			want: true,
@@ -450,7 +450,7 @@ func Test_Add_setsGroupingObjectAnnotation(t *testing.T) {
 		{
 			name: "should not add the annotation if requested to, but grouping is disabled",
 			args: args{
-				treeOptions: ObjectTreeOptions{DisableGrouping: true},
+				treeOptions: ObjectTreeOptions{Grouping: false},
 				addOptions:  []AddObjectOption{GroupingObject(true)},
 			},
 			want: false,

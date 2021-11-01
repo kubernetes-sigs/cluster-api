@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -50,7 +51,7 @@ func (i *Int64) Get(obj *unstructured.Unstructured) (*int64, error) {
 	return &value, nil
 }
 
-// Set set the int64 value in the path.
+// Set sets the int64 value in the path.
 func (i *Int64) Set(obj *unstructured.Unstructured, value int64) error {
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, i.path...); err != nil {
 		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.path, "."), obj.GroupVersionKind())
@@ -80,10 +81,51 @@ func (s *String) Get(obj *unstructured.Unstructured) (*string, error) {
 	return &value, nil
 }
 
-// Set set the string value in the path.
+// Set sets the string value in the path.
 func (s *String) Set(obj *unstructured.Unstructured, value string) error {
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, s.path...); err != nil {
 		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(s.path, "."), obj.GroupVersionKind())
+	}
+	return nil
+}
+
+// Duration represents an accessor to a metav1.Duration path value.
+type Duration struct {
+	path Path
+}
+
+// Path returns the path to the metav1.Duration value.
+func (i *Duration) Path() Path {
+	return i.path
+}
+
+// Get gets the metav1.Duration value.
+func (i *Duration) Get(obj *unstructured.Unstructured) (*metav1.Duration, error) {
+	durationString, ok, err := unstructured.NestedString(obj.UnstructuredContent(), i.path...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(i.path, "."))
+	}
+	if !ok {
+		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(i.path, "."))
+	}
+
+	d := &metav1.Duration{}
+	if err := d.UnmarshalJSON([]byte(durationString)); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal duration %s from object", "."+strings.Join(i.path, "."))
+	}
+
+	return d, nil
+}
+
+// Set sets the metav1.Duration value in the path.
+func (i *Duration) Set(obj *unstructured.Unstructured, value metav1.Duration) error {
+	durationString, err := value.MarshalJSON()
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal duration %s", value.Duration.String())
+	}
+
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), string(durationString), i.path...); err != nil {
+		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.path, "."), obj.GroupVersionKind())
 	}
 	return nil
 }

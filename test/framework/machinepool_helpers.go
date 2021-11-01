@@ -258,7 +258,6 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 		} else {
 			versions[i] = node.Status.NodeInfo.KubeletVersion
 		}
-		log.Logf("Node %s version is %s", instance.Name, versions[i])
 	}
 
 	return versions

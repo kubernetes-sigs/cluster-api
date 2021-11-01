@@ -64,6 +64,7 @@ type ClusterctlUpgradeSpecInput struct {
 	// provider contract to use to initialise the secondary management cluster, e.g. `v1alpha3`
 	InitWithProvidersContract string
 	SkipCleanup               bool
+	PreInit                   func(managementClusterProxy framework.ClusterProxy)
 	PreUpgrade                func(managementClusterProxy framework.ClusterProxy)
 	PostUpgrade               func(managementClusterProxy framework.ClusterProxy)
 	MgmtFlavor                string
@@ -204,6 +205,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		}
 		if input.InitWithProvidersContract != "" {
 			contract = input.InitWithProvidersContract
+		}
+
+		if input.PreInit != nil {
+			By("Running Pre-init steps against the management cluster")
+			input.PreInit(managementClusterProxy)
 		}
 
 		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{

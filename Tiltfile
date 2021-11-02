@@ -100,7 +100,6 @@ providers = {
 COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 """,
         "label": "CAPD",
-        "manager_name": "capd-controller-manager",
     },
 }
 

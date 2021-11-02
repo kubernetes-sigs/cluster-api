@@ -60,8 +60,8 @@ $(KUSTOMIZE): # Build kustomize from tools folder.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 IMAGE_NAME ?= capd-manager
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
-ARCH ?= amd64
-ALL_ARCH = amd64 arm arm64
+ARCH ?= $(shell go env GOARCH)
+ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api.appspot.com

@@ -93,9 +93,9 @@ providers = {
             "exp",
             "third_party",
         ],
-        "additional_docker_helper_commands": """
-RUN wget -qO- https://dl.k8s.io/v1.21.2/kubernetes-client-linux-amd64.tar.gz | tar xvz
-""",
+        "additional_docker_helper_commands": "RUN wget -qO- https://dl.k8s.io/v1.21.2/kubernetes-client-linux-{arch}.tar.gz | tar xvz".format(
+            arch = os_arch,
+        ),
         "additional_docker_build_commands": """
 COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 """,
@@ -197,8 +197,9 @@ def enable_provider(name, debug):
     else:
         gcflags = ""
 
-    build_env = "CGO_ENABLED={cgo_enabled} GOOS=linux GOARCH=amd64".format(
+    build_env = "CGO_ENABLED={cgo_enabled} GOOS=linux GOARCH={arch}".format(
         cgo_enabled = cgo_enabled,
+        arch = os_arch,
     )
     build_cmd = "{build_env} go build {build_options} -gcflags '{gcflags}' -ldflags '{ldflags}' -o .tiltbuild/manager {go_main}".format(
         build_env = build_env,

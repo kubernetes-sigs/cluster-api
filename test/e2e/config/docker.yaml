@@ -9,13 +9,13 @@
 
 images:
 # Use local dev images built source tree;
-- name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:dev
+- name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-{ARCH}:dev
   loadBehavior: tryLoad
-- name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:dev
+- name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-{ARCH}:dev
   loadBehavior: tryLoad
-- name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:dev
+- name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-{ARCH}:dev
   loadBehavior: tryLoad
-- name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:dev
+- name: gcr.io/k8s-staging-cluster-api/capd-manager-{ARCH}:dev
   loadBehavior: tryLoad
 - name: quay.io/jetstack/cert-manager-cainjector:v1.5.3
   loadBehavior: tryLoad

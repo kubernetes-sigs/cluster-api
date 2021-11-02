@@ -311,14 +311,14 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	bootstrapTemplate := builder.BootstrapTemplate(ns.Name, "bootstraptemplate").Build()
 
 	// 2) ClusterClass definitions including definitions of MachineDeploymentClasses used inside the ClusterClass.
-	machineDeploymentClass1 := builder.MachineDeploymentClass(ns.Name, "md1").
+	machineDeploymentClass1 := builder.MachineDeploymentClass().
 		WithClass(workerClassName1).
 		WithInfrastructureTemplate(infrastructureMachineTemplate).
 		WithBootstrapTemplate(bootstrapTemplate).
 		WithLabels(map[string]string{"foo": "bar"}).
 		WithAnnotations(map[string]string{"foo": "bar"}).
 		Build()
-	machineDeploymentClass2 := builder.MachineDeploymentClass(ns.Name, "md2").
+	machineDeploymentClass2 := builder.MachineDeploymentClass().
 		WithClass(workerClassName2).
 		WithInfrastructureTemplate(infrastructureMachineTemplate).
 		WithBootstrapTemplate(bootstrapTemplate).

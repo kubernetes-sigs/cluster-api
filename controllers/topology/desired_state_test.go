@@ -669,7 +669,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	labels := map[string]string{"fizz": "buzz", "foo": "bar"}
 	annotations := map[string]string{"annotation-1": "annotation-1-val"}
 
-	md1 := builder.MachineDeploymentClass(metav1.NamespaceDefault, "class1").
+	md1 := builder.MachineDeploymentClass().
 		WithClass("linux-worker").
 		WithLabels(labels).
 		WithAnnotations(annotations).

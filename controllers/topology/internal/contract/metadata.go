@@ -17,8 +17,6 @@ limitations under the License.
 package contract
 
 import (
-	"strings"
-
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -42,7 +40,7 @@ func (m *Metadata) Get(obj *unstructured.Unstructured) (*clusterv1.ObjectMeta, e
 		return nil, errors.Wrap(err, "failed to retrieve control plane metadata.labels")
 	}
 	if !ok {
-		return nil, errors.Errorf("%s not found", "."+strings.Join(labelsPath, "."))
+		labelsValue = map[string]string{}
 	}
 
 	annotationsPath := append(m.path, "annotations")
@@ -51,7 +49,7 @@ func (m *Metadata) Get(obj *unstructured.Unstructured) (*clusterv1.ObjectMeta, e
 		return nil, errors.Wrap(err, "failed to retrieve control plane metadata.annotations")
 	}
 	if !ok {
-		return nil, errors.Errorf("%s not found", "."+strings.Join(annotationsPath, "."))
+		annotationsValue = map[string]string{}
 	}
 
 	return &clusterv1.ObjectMeta{
@@ -61,15 +59,24 @@ func (m *Metadata) Get(obj *unstructured.Unstructured) (*clusterv1.ObjectMeta, e
 }
 
 // Set sets the metadata value.
+// Note: We are blanking out empty label annotations, thus avoiding triggering infinite reconcile
+// given that at json level label: {} or annotation: {} is different from no field, which is the
+// corresponding value stored in etcd given that those fields are defined as omitempty.
 func (m *Metadata) Set(obj *unstructured.Unstructured, metadata *clusterv1.ObjectMeta) error {
 	labelsPath := append(m.path, "labels")
-	if err := unstructured.SetNestedStringMap(obj.UnstructuredContent(), metadata.Labels, labelsPath...); err != nil {
-		return errors.Wrap(err, "failed to set control plane metadata.labels")
+	unstructured.RemoveNestedField(obj.UnstructuredContent(), labelsPath...)
+	if len(metadata.Labels) > 0 {
+		if err := unstructured.SetNestedStringMap(obj.UnstructuredContent(), metadata.Labels, labelsPath...); err != nil {
+			return errors.Wrap(err, "failed to set control plane metadata.labels")
+		}
 	}
 
 	annotationsPath := append(m.path, "annotations")
-	if err := unstructured.SetNestedStringMap(obj.UnstructuredContent(), metadata.Annotations, annotationsPath...); err != nil {
-		return errors.Wrap(err, "failed to set control plane metadata.annotations")
+	unstructured.RemoveNestedField(obj.UnstructuredContent(), annotationsPath...)
+	if len(metadata.Annotations) > 0 {
+		if err := unstructured.SetNestedStringMap(obj.UnstructuredContent(), metadata.Annotations, annotationsPath...); err != nil {
+			return errors.Wrap(err, "failed to set control plane metadata.annotations")
+		}
 	}
 	return nil
 }

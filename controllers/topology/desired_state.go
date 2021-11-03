@@ -162,6 +162,9 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 		clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
 
 		machineLabels := mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
+		if machineLabels == nil {
+			machineLabels = map[string]string{}
+		}
 		machineLabels[clusterv1.ClusterLabelName] = cluster.Name
 		machineLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
@@ -401,7 +404,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
 	desiredMachineDeploymentObj.SetLabels(labels)
 
-	// Set the select with the subset of labels identifying controlled machines.
+	// Set the selector with the subset of labels identifying controlled machines.
 	// NOTE: this prevents the web hook to add cluster.x-k8s.io/deployment-name label, that is
 	// redundant for managed MachineDeployments given that we already have topology.cluster.x-k8s.io/deployment-name.
 	desiredMachineDeploymentObj.Spec.Selector.MatchLabels = map[string]string{}
@@ -412,6 +415,9 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	// Also set the labels in .spec.template.labels so that they are propagated to
 	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
 	// Note: the labels in MachineSet are used to properly cleanup templates when the MachineSet is deleted.
+	if desiredMachineDeploymentObj.Spec.Template.Labels == nil {
+		desiredMachineDeploymentObj.Spec.Template.Labels = map[string]string{}
+	}
 	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
 	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
@@ -617,6 +623,13 @@ func mergeMap(a, b map[string]string) map[string]string {
 	}
 	for k, v := range a {
 		m[k] = v
+	}
+
+	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile
+	// given that at json level label: {} or annotation: {} is different from no field, which is the
+	// corresponding value stored in etcd given that those fields are defined as omitempty.
+	if len(m) == 0 {
+		return nil
 	}
 	return m
 }

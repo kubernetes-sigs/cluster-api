@@ -1325,3 +1325,28 @@ func duplicateMachineDeploymentsState(s scope.MachineDeploymentsStateMap) scope.
 	}
 	return n
 }
+
+func TestMergeMap(t *testing.T) {
+	t.Run("Merge maps", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m := mergeMap(
+			map[string]string{
+				"a": "a",
+				"b": "b",
+			}, map[string]string{
+				"a": "ax",
+				"c": "c",
+			},
+		)
+		g.Expect(m).To(HaveKeyWithValue("a", "a"))
+		g.Expect(m).To(HaveKeyWithValue("b", "b"))
+		g.Expect(m).To(HaveKeyWithValue("c", "c"))
+	})
+	t.Run("Nils empty maps", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m := mergeMap(map[string]string{}, map[string]string{})
+		g.Expect(m).To(BeNil())
+	})
+}

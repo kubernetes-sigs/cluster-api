@@ -35,7 +35,7 @@ providers:
     contract: v1alpha3
     replacements:
     - old: "--leader-elect"
-      new: "--leader-elect=false"
+      new: "--leader-elect=true"
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
@@ -46,7 +46,7 @@ providers:
     contract: v1alpha4
     replacements:
       - old: "--leader-elect"
-        new: "--leader-elect=false"
+        new: "--leader-elect=true"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -55,7 +55,7 @@ providers:
     value: ../../../config/default
     replacements:
     - old: "--leader-elect"
-      new: "--leader-elect=false"
+      new: "--leader-elect=true"
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
@@ -70,7 +70,7 @@ providers:
     contract: v1alpha3
     replacements:
       - old: "--leader-elect"
-        new: "--leader-elect=false"
+        new: "--leader-elect=true"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -81,7 +81,7 @@ providers:
     contract: v1alpha4
     replacements:
       - old: "--leader-elect"
-        new: "--leader-elect=false"
+        new: "--leader-elect=true"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -90,7 +90,7 @@ providers:
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: "--leader-elect"
-      new: "--leader-elect=false"
+      new: "--leader-elect=true"
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
@@ -105,7 +105,7 @@ providers:
     contract: v1alpha3
     replacements:
       - old: "--leader-elect"
-        new: "--leader-elect=false"
+        new: "--leader-elect=true"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -116,7 +116,7 @@ providers:
     contract: v1alpha4
     replacements:
       - old: "--leader-elect"
-        new: "--leader-elect=false"
+        new: "--leader-elect=true"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -125,7 +125,7 @@ providers:
     value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: "--leader-elect"
-      new: "--leader-elect=false"
+      new: "--leader-elect=true"
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:
@@ -140,7 +140,7 @@ providers:
     contract: v1alpha3
     replacements:
       - old: "--leader-elect"
-        new: "--leader-elect=false"
+        new: "--leader-elect=true"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -152,7 +152,7 @@ providers:
     contract: v1alpha4
     replacements:
       - old: "--leader-elect"
-        new: "--leader-elect=false"
+        new: "--leader-elect=true"
       - old: --metrics-addr=127.0.0.1:8080
         new: --metrics-addr=:8080
     files:
@@ -162,7 +162,7 @@ providers:
     value: ../../../test/infrastructure/docker/config/default
     replacements:
     - old: "--leader-elect"
-      new: "--leader-elect=false"
+      new: "--leader-elect=true"
     - old: --metrics-bind-addr=localhost:8080
       new: --metrics-bind-addr=:8080
     files:

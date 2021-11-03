@@ -422,3 +422,190 @@ func TestNewHelper(t *testing.T) {
 		})
 	}
 }
+
+func Test_filterPatchMap(t *testing.T) {
+	tests := []struct {
+		name     string
+		patchMap map[string]interface{}
+		paths    []contract.Path
+		want     map[string]interface{}
+	}{
+		{
+			name: "Allow values",
+			patchMap: map[string]interface{}{
+				"foo": "123",
+				"bar": 123,
+				"baz": map[string]interface{}{
+					"foo": "123",
+					"bar": 123,
+				},
+			},
+			paths: []contract.Path{
+				[]string{"foo"},
+				[]string{"baz", "foo"},
+			},
+			want: map[string]interface{}{
+				"foo": "123",
+				"baz": map[string]interface{}{
+					"foo": "123",
+				},
+			},
+		},
+		{
+			name: "Allow maps",
+			patchMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"foo": "123",
+					"bar": 123,
+				},
+				"bar": map[string]interface{}{
+					"foo": "123",
+					"bar": 123,
+				},
+				"baz": map[string]interface{}{
+					"foo": map[string]interface{}{
+						"foo": "123",
+						"bar": 123,
+					},
+					"bar": map[string]interface{}{
+						"foo": "123",
+						"bar": 123,
+					},
+				},
+			},
+			paths: []contract.Path{
+				[]string{"foo"},
+				[]string{"baz", "foo"},
+			},
+			want: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"foo": "123",
+					"bar": 123,
+				},
+				"baz": map[string]interface{}{
+					"foo": map[string]interface{}{
+						"foo": "123",
+						"bar": 123,
+					},
+				},
+			},
+		},
+		{
+			name: "Cleanup empty maps",
+			patchMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123",
+					"baz": map[string]interface{}{
+						"bar": "123",
+					},
+				},
+			},
+			paths: []contract.Path{},
+			want:  map[string]interface{}{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			filterPatchMap(tt.patchMap, tt.paths)
+
+			g.Expect(tt.patchMap).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_removePath(t *testing.T) {
+	tests := []struct {
+		name     string
+		patchMap map[string]interface{}
+		path     contract.Path
+		want     map[string]interface{}
+	}{
+		{
+			name: "Remove value",
+			patchMap: map[string]interface{}{
+				"foo": "123",
+			},
+			path: contract.Path([]string{"foo"}),
+			want: map[string]interface{}{},
+		},
+		{
+			name: "Remove map",
+			patchMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123",
+				},
+			},
+			path: contract.Path([]string{"foo"}),
+			want: map[string]interface{}{},
+		},
+		{
+			name: "Remove nested value",
+			patchMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123",
+					"baz": "123",
+				},
+			},
+			path: contract.Path([]string{"foo", "bar"}),
+			want: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"baz": "123",
+				},
+			},
+		},
+		{
+			name: "Remove nested map",
+			patchMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": map[string]interface{}{
+						"baz": "123",
+					},
+					"baz": "123",
+				},
+			},
+			path: contract.Path([]string{"foo", "bar"}),
+			want: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"baz": "123",
+				},
+			},
+		},
+		{
+			name: "Ignore partial match",
+			patchMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123",
+				},
+			},
+			path: contract.Path([]string{"foo", "bar", "baz"}),
+			want: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123",
+				},
+			},
+		},
+		{
+			name: "Cleanup empty maps",
+			patchMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"baz": map[string]interface{}{
+						"bar": "123",
+					},
+				},
+			},
+			path: contract.Path([]string{"foo", "baz", "bar"}),
+			want: map[string]interface{}{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			removePath(tt.patchMap, tt.path)
+
+			g.Expect(tt.patchMap).To(Equal(tt.want))
+		})
+	}
+}

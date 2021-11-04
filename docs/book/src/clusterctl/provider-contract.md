@@ -16,6 +16,10 @@ Additionally, the provider repository SHOULD contain the following files:
 
 * Workload cluster templates
 
+Optionally, the provider repository can include the following files:
+
+* ClusterClass definitions
+
 <aside class="note">
 
 <h1> Pre-defined list of providers </h1>
@@ -199,11 +203,14 @@ providers.
 An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl generate cluster`.
 This is single YAML with _all_ the objects required to create a new workload cluster.
 
+With ClusterClass enabled it is possible to have cluster templates with managed topologies. Cluster templates with managed 
+topologies require only the cluster object in the template and a corresponding ClusterClass definition.
+
 The following rules apply:
 
 #### Naming conventions
 
-Cluster templates MUST be stored in the same folder as the component YAML and follow this naming convention:
+Cluster templates MUST be stored in the same location as the component YAML and follow this naming convention:
 1. The default cluster template should be named `cluster-template.yaml`.
 2. Additional cluster template should be named `cluster-template-{flavor}.yaml`. e.g `cluster-template-prod.yaml`
 
@@ -240,6 +247,47 @@ Templates writers should use the common variables to ensure consistency across p
 
 Additionally, the value of the command argument to `clusterctl generate cluster <cluster-name>` (`<cluster-name>` in this case), will
 be applied to every occurrence of the `${ CLUSTER_NAME }` variable.
+
+### ClusterClass definitions
+
+An infrastructure provider could publish a **ClusterClass definition** file to be used by `clusterctl generate cluster` that will be used along
+with the workload cluster templates.
+This is a single YAML with _all_ the objects required that make up the ClusterClass.
+
+The following rules apply:
+
+#### Naming conventions
+
+ClusterClass definitions MUST be stored in the same location as the component YAML and follow this naming convention:
+1. The ClusterClass definition should be named `clusterclass-{ClusterClass-name}.yaml`, e.g `clusterclass-prod.yaml`.
+
+`{ClusterClass-name}` is the name of the ClusterClass that is referenced from the Cluster.spec.topology.class field 
+in the Cluster template; Cluster template files using a ClusterClass are usually simpler because they are no longer 
+required to have all the templates.
+
+Each provider should create user facing documentation with the list of available ClusterClass definitions.
+
+#### Target namespace
+
+The ClusterClass definition YAML MUST assume the target namespace already exists.
+
+The references in the ClusterClass definition should NOT specify a namespace.
+
+It is recommended that none of the objects in the ClusterClass YAML should specify a namespace.
+
+Even if technically possible, it is strongly recommended that none of the objects in the ClusterClass definitions are shared across multiple definitions; 
+this helps in preventing changing an object inadvertently impacting many ClusterClasses, and consequently, all the Clusters using those ClusterClasses.
+
+#### Variables
+
+Currently the ClusterClass definitions SHOULD NOT have any environment variables in them.
+
+ClusterClass definitions files should not use variable substitution, given that ClusterClass and managed topologies provide an alternative model for variable definition. 
+
+#### Note
+
+A ClusterClass definition is automatically included in the output of  `clusterctl generate cluster` if the cluster template uses a managed topology 
+and a ClusterClass with the same name does not already exists in the Cluster.
 
 ## OwnerReferences chain
 

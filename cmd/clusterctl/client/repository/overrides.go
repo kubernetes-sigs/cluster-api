@@ -85,7 +85,7 @@ func getLocalOverride(info *newOverrideInput) ([]byte, error) {
 	// it the local override exists, use it
 	_, err := os.Stat(overridePath)
 	if err == nil {
-		content, err := os.ReadFile(overridePath)
+		content, err := os.ReadFile(overridePath) //nolint:gosec
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read local override for %s", overridePath)
 		}

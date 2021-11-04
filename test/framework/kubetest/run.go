@@ -201,7 +201,7 @@ func (c kubetestConfig) toFlags() []string {
 
 func parseKubetestConfig(kubetestConfigFile string) (kubetestConfig, error) {
 	conf := make(kubetestConfig)
-	data, err := os.ReadFile(kubetestConfigFile)
+	data, err := os.ReadFile(kubetestConfigFile) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("unable to read kubetest config file %s: %w", kubetestConfigFile, err)
 	}

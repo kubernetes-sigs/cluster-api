@@ -1,3 +1,4 @@
+//go:build tools
 // +build tools
 
 /*
@@ -86,7 +87,7 @@ func firstCommit() string {
 
 func run() int {
 	lastTag := lastTag()
-	cmd := exec.Command("git", "rev-list", lastTag+"..HEAD", "--merges", "--pretty=format:%B")
+	cmd := exec.Command("git", "rev-list", lastTag+"..HEAD", "--merges", "--pretty=format:%B") //nolint:gosec
 
 	merges := map[string][]string{
 		features:      {},
@@ -156,7 +157,7 @@ func run() int {
 			continue
 		}
 		body = fmt.Sprintf("- %s", body)
-		fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
+		_, _ = fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
 		if key == documentation {
 			merges[key] = append(merges[key], prNumber)
 			continue
@@ -187,7 +188,6 @@ func run() int {
 			}
 			fmt.Println()
 		}
-
 	}
 
 	fmt.Println("")

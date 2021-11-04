@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -31,6 +32,21 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters", fun
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
+		}
+	})
+
+})
+
+var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass", func() {
+
+	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
+		return SelfHostedSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                "topology",
 		}
 	})
 

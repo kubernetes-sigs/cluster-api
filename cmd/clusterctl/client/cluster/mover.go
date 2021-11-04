@@ -129,6 +129,9 @@ func (o *objectMover) Restore(toCluster Client, directory string) error {
 	// by a naming convention (without any explicit OwnerReference).
 	objectGraph.setSoftOwnership()
 
+	// Completes the graph by setting for each node the list of tenants the node belongs to.
+	objectGraph.setTenants()
+
 	// Check whether nodes are not included in GVK considered for restore.
 	objectGraph.checkVirtualNode()
 

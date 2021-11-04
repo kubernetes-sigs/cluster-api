@@ -902,8 +902,12 @@ func Test_objectMover_restore(t *testing.T) {
 				g.Expect(graph.addRestoredObj(&objs[i])).NotTo(HaveOccurred())
 			}
 
-			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			// restore works on the target cluster which does not yet have objs to discover
+			// instead set the owners and tenants correctly on object graph like how ObjectMover.Restore does
+			// https://github.com/kubernetes-sigs/cluster-api/blob/main/cmd/clusterctl/client/cluster/mover.go#L129-L132
+			graph.setSoftOwnership()
+			graph.setTenants()
+			graph.checkVirtualNode()
 
 			err = mover.restore(graph, toProxy)
 			if tt.wantErr {

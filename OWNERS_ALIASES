@@ -66,6 +66,7 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-test-reviewers:
+  - randomvariable
   cluster-api-test-maintainers:
 
   # -----------------------------------------------------------

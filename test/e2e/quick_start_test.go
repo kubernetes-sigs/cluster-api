@@ -36,7 +36,8 @@ var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", fun
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass", func() {
+// FIXME(just-for-local-hacking): to avoid having to trigger full-e2e-main manually with every push
+var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Blocking]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:             e2eConfig,

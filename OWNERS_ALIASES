@@ -68,6 +68,7 @@ aliases:
   cluster-api-test-reviewers:
   - randomvariable
   cluster-api-test-maintainers:
+  - sbueringer
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test/framework

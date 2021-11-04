@@ -45,6 +45,10 @@ func TestGetCurrentState(t *testing.T) {
 	// InfrastructureCluster objects.
 	infraCluster := builder.InfrastructureCluster(metav1.NamespaceDefault, "infraOne").
 		Build()
+	infraCluster.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
+
+	infraClusterNotTopologyOwned := builder.InfrastructureCluster(metav1.NamespaceDefault, "infraOne").
+		Build()
 
 	// ControlPlane and ControlPlaneInfrastructureMachineTemplate objects.
 	controlPlaneInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfraTemplate").
@@ -54,8 +58,13 @@ func TestGetCurrentState(t *testing.T) {
 		Build()
 	controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
 		Build()
+	controlPlane.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
 	controlPlaneWithInfra := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
 		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
+		Build()
+	controlPlaneWithInfra.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
+
+	controlPlaneNotTopologyOwned := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
 		Build()
 
 	// ClusterClass  objects.
@@ -112,6 +121,26 @@ func TestGetCurrentState(t *testing.T) {
 				Build(),
 			objects: []client.Object{
 				// InfrastructureCluster is missing!
+			},
+			wantErr: true, // this test fails as partial reconcile is undefined.
+		},
+		{
+			name: "Fails if the Cluster references an InfrastructureCluster that is not topology owned",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithInfrastructureCluster(infraClusterNotTopologyOwned).
+				Build(),
+			objects: []client.Object{
+				infraClusterNotTopologyOwned,
+			},
+			wantErr: true, // this test fails as partial reconcile is undefined.
+		},
+		{
+			name: "Fails if the Cluster references an Control Plane that is not topology owned",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithControlPlane(controlPlaneNotTopologyOwned).
+				Build(),
+			objects: []client.Object{
+				controlPlaneNotTopologyOwned,
 			},
 			wantErr: true, // this test fails as partial reconcile is undefined.
 		},

@@ -179,30 +179,7 @@ func (c *Cluster) validateTopology(old *Cluster) field.ErrorList {
 		}
 	}
 
-	switch old {
-	case nil: // On create
-		// c.Spec.InfrastructureRef and c.Spec.ControlPlaneRef could not be set
-		if c.Spec.InfrastructureRef != nil {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					field.NewPath("spec", "infrastructureRef"),
-					c.Spec.InfrastructureRef,
-					"cannot be set when a Topology is defined",
-				),
-			)
-		}
-		if c.Spec.ControlPlaneRef != nil {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					field.NewPath("spec", "controlPlaneRef"),
-					c.Spec.ControlPlaneRef,
-					"cannot be set when a Topology is defined",
-				),
-			)
-		}
-	default: // On update
+	if old != nil { // On update
 		// Class could not be mutated.
 		if c.Spec.Topology.Class != old.Spec.Topology.Class {
 			allErrs = append(

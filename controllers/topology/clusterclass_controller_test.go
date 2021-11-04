@@ -62,13 +62,11 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 	infraClusterTemplate := builder.InfrastructureClusterTemplate(ns.Name, "infraclustertemplate").Build()
 
 	// MachineDeploymentClasses that will be part of the ClusterClass.
-	machineDeploymentClass1 := builder.MachineDeploymentClass(ns.Name, workerClassName1).
-		WithClass(workerClassName1).
+	machineDeploymentClass1 := builder.MachineDeploymentClass(workerClassName1).
 		WithBootstrapTemplate(bootstrapTemplate).
 		WithInfrastructureTemplate(infraMachineTemplateWorker).
 		Build()
-	machineDeploymentClass2 := builder.MachineDeploymentClass(ns.Name, workerClassName2).
-		WithClass(workerClassName2).
+	machineDeploymentClass2 := builder.MachineDeploymentClass(workerClassName2).
 		WithBootstrapTemplate(bootstrapTemplate).
 		WithInfrastructureTemplate(infraMachineTemplateWorker).
 		Build()

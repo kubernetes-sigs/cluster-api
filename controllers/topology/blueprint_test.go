@@ -55,8 +55,7 @@ func TestGetBlueprint(t *testing.T) {
 		Build()
 	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "workerbootstraptemplate1").
 		Build()
-	machineDeployment := builder.MachineDeploymentClass(metav1.NamespaceDefault, "machinedeployment1").
-		WithClass("workerclass1").
+	machineDeployment := builder.MachineDeploymentClass("workerclass1").
 		WithLabels(map[string]string{"foo": "bar"}).
 		WithAnnotations(map[string]string{"a": "b"}).
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).

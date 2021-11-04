@@ -51,6 +51,7 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-controlplane-provider-kubeadm-maintainers:
+  - randomvariable
   cluster-api-controlplane-provider-kubeadm-reviewers:
 
   # -----------------------------------------------------------

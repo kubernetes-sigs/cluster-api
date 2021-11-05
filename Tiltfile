@@ -4,12 +4,6 @@ load("ext://local_output", "local_output")
 
 version_settings(True, ">=0.22.2")
 
-envsubst_cmd = "./hack/tools/bin/envsubst"
-kustomize_cmd = "./hack/tools/bin/kustomize"
-yq_cmd = "./hack/tools/bin/yq"
-os_name = local_output("go env GOOS")
-os_arch = local_output("go env GOARCH")
-
 settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
@@ -24,10 +18,16 @@ settings.update(read_json(
     default = {},
 ))
 
+allow_k8s_contexts(settings.get("allowed_contexts"))
+
+envsubst_cmd = "./hack/tools/bin/envsubst"
+kustomize_cmd = "./hack/tools/bin/kustomize"
+yq_cmd = "./hack/tools/bin/yq"
+os_name = local_output("go env GOOS")
+os_arch = local_output("go env GOARCH")
+
 if settings.get("trigger_mode") == "manual":
     trigger_mode(TRIGGER_MODE_MANUAL)
-
-allow_k8s_contexts(settings.get("allowed_contexts"))
 
 default_registry(settings.get("default_registry"))
 

@@ -383,7 +383,7 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	}
 
 	for _, obj := range initObjs {
-		if err := env.Create(ctx, obj); err != nil {
+		if err := env.CreateAndWait(ctx, obj); err != nil {
 			return cleanup, err
 		}
 	}

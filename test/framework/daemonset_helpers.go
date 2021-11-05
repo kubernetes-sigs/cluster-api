@@ -21,10 +21,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	containerutil "sigs.k8s.io/cluster-api/util/container"
-
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

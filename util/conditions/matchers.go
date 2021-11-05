@@ -21,7 +21,6 @@ import (
 
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 

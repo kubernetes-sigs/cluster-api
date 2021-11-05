@@ -46,6 +46,8 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.KubeadmConfigSpec.JoinConfiguration.Patches = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Patches
 	}
 
+	dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
+
 	return nil
 }
 
@@ -92,6 +94,11 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	if restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration != nil {
 		dst.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.Patches = restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.Patches
+	}
+	if dst.Spec.Template.Spec.MachineTemplate == nil {
+		dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
+	} else if restored.Spec.Template.Spec.MachineTemplate != nil {
+		dst.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout
 	}
 
 	return nil
@@ -174,4 +181,9 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_Kubeadm
 	}
 
 	return nil
+}
+
+func Convert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in *controlplanev1.KubeadmControlPlaneMachineTemplate, out *KubeadmControlPlaneMachineTemplate, s apiconversion.Scope) error {
+	// .NodeDrainTimeout was added in v1beta1.
+	return autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in, out, s)
 }

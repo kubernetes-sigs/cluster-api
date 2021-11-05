@@ -131,13 +131,33 @@ func (dst *ClusterClassList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Machine)
 
-	return Convert_v1alpha4_Machine_To_v1beta1_Machine(src, dst, nil)
+	if err := Convert_v1alpha4_Machine_To_v1beta1_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.Machine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.NodeDeletionTimeout = restored.Spec.NodeDeletionTimeout
+	return nil
 }
 
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Machine)
 
-	return Convert_v1beta1_Machine_To_v1alpha4_Machine(src, dst, nil)
+	if err := Convert_v1beta1_Machine_To_v1alpha4_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
@@ -155,13 +175,29 @@ func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSet)
 
-	return Convert_v1alpha4_MachineSet_To_v1beta1_MachineSet(src, dst, nil)
+	if err := Convert_v1alpha4_MachineSet_To_v1beta1_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.MachineSet{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
+	return nil
 }
 
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineSet)
 
-	return Convert_v1beta1_MachineSet_To_v1alpha4_MachineSet(src, dst, nil)
+	if err := Convert_v1beta1_MachineSet_To_v1alpha4_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {
@@ -179,13 +215,29 @@ func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineDeployment)
 
-	return Convert_v1alpha4_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil)
+	if err := Convert_v1alpha4_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.MachineDeployment{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
+	return nil
 }
 
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineDeployment)
 
-	return Convert_v1beta1_MachineDeployment_To_v1alpha4_MachineDeployment(src, dst, nil)
+	if err := Convert_v1beta1_MachineDeployment_To_v1alpha4_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
@@ -232,6 +284,11 @@ func Convert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, 
 func Convert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *clusterv1.ClusterClassSpec, out *ClusterClassSpec, s apiconversion.Scope) error {
 	// spec.{variables,patches} has been added with v1beta1.
 	return autoConvert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in, out, s)
+}
+
+func Convert_v1beta1_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
+	// spec.nodeDeletionTimeout has been added with v1beta1.
+	return autoConvert_v1beta1_MachineSpec_To_v1alpha4_MachineSpec(in, out, s)
 }
 
 func Convert_v1beta1_Topology_To_v1alpha4_Topology(in *clusterv1.Topology, out *Topology, s apiconversion.Scope) error {

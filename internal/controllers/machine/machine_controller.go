@@ -86,12 +86,20 @@ type Reconciler struct {
 	controller      controller.Controller
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
+
+	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
+	// during a single reconciliation.
+	nodeDeletionRetryTimeout time.Duration
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToMachines, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
+	}
+
+	if r.nodeDeletionRetryTimeout.Nanoseconds() == 0 {
+		r.nodeDeletionRetryTimeout = 10 * time.Second
 	}
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
@@ -380,16 +388,22 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		log.Info("Deleting node", "node", m.Status.NodeRef.Name)
 
 		var deleteNodeErr error
-		waitErr := wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
+		waitErr := wait.PollImmediate(2*time.Second, r.nodeDeletionRetryTimeout, func() (bool, error) {
 			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(errors.Cause(deleteNodeErr)) {
 				return false, nil
 			}
 			return true, nil
 		})
 		if waitErr != nil {
-			log.Error(deleteNodeErr, "Timed out deleting node, moving on", "node", m.Status.NodeRef.Name)
+			log.Error(deleteNodeErr, "Timed out deleting node", "node", m.Status.NodeRef.Name)
 			conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, "")
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
+
+			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
+			if m.Spec.NodeDeletionTimeout == nil || m.Spec.NodeDeletionTimeout.Nanoseconds() == 0 || m.DeletionTimestamp.Add(m.Spec.NodeDeletionTimeout.Duration).After(time.Now()) {
+				return ctrl.Result{}, deleteNodeErr
+			}
+			log.Info("Node deletion timeout expired, continuing without Node deletion.")
 		}
 	}
 

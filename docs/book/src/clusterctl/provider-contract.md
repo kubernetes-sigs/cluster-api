@@ -185,6 +185,7 @@ providers.
 |CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm        |
 |CACPN         | cluster.x-k8s.io/provider=control-plane-nested        |
 |CAPA          | cluster.x-k8s.io/provider=infrastructure-aws           |
+|CAPB          | cluster.x-k8s.io/provider=infrastructure-byoh          |
 |CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere       |
 |CAPD          | cluster.x-k8s.io/provider=infrastructure-docker        |
 |CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3        |

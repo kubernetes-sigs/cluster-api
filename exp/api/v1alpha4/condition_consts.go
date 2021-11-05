@@ -18,7 +18,7 @@ package v1alpha4
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
-// Conditions and condition Reasons for the MachinePool object
+// Conditions and condition Reasons for the MachinePool object.
 
 const (
 	// ReplicasReadyCondition reports an aggregate of current status of the replicas controlled by the MachinePool.

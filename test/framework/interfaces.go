@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Interfaces to scope down client.Client
+// Interfaces to scope down client.Client.
 
 // Getter can get resources.
 type Getter interface {

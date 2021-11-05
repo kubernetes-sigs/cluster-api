@@ -52,7 +52,7 @@ const (
 
 // ANCHOR_END: CommonConditions
 
-// Conditions and condition Reasons for the Cluster object
+// Conditions and condition Reasons for the Cluster object.
 
 const (
 	// ControlPlaneReadyCondition reports the ready condition from the control plane object defined for this cluster.
@@ -74,7 +74,7 @@ const (
 	WaitingForControlPlaneAvailableReason = "WaitingForControlPlaneAvailable"
 )
 
-// Conditions and condition Reasons for the Machine object
+// Conditions and condition Reasons for the Machine object.
 
 const (
 	// BootstrapReadyCondition reports a summary of current status of the bootstrap object defined for this machine.
@@ -173,7 +173,7 @@ const (
 	NodeConditionsFailedReason = "NodeConditionsFailed"
 )
 
-// Conditions and condition Reasons for the MachineHealthCheck object
+// Conditions and condition Reasons for the MachineHealthCheck object.
 
 const (
 	// RemediationAllowedCondition is set on MachineHealthChecks to show the status of whether the MachineHealthCheck is

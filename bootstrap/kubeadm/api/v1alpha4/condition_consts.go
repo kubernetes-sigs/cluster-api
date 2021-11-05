@@ -18,7 +18,7 @@ package v1alpha4
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
-// Conditions and condition Reasons for the KubeadmConfig object
+// Conditions and condition Reasons for the KubeadmConfig object.
 
 const (
 	// DataSecretAvailableCondition documents the status of the bootstrap secret generation process.

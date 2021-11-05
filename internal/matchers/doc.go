@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package matchers contains the functionality to match two Kubernetes runtime.Objects
+// Package matchers contains the functionality to match two Kubernetes runtime.Objects.
 package matchers

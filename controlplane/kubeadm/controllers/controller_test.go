@@ -1361,7 +1361,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 	})
 }
 
-// test utils
+// test utils.
 
 func newFakeClient(initObjs ...client.Object) client.Client {
 	return &fakeClient{

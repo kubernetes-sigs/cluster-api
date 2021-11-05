@@ -1682,7 +1682,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 	}
 }
 
-// test utils
+// test utils.
 
 // newCluster return a CAPI cluster object.
 func newCluster(name, namespace string) *clusterv1.Cluster {

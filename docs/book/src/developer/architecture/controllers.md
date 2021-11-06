@@ -14,6 +14,8 @@ Documentation for the CAPI controllers can be found at:
   - [MachineDeployment](./controllers/machine-deployment.md)
   - [MachineHealthCheck](./controllers/machine-health-check.md)
   - [MachinePool](./controllers/machine-pool.md)
+ - ClusterClass
+  - [Cluster Topology](./controllers/cluster-topology.md)
 
 
 <!-- links -->

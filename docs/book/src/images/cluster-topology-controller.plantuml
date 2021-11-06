@@ -1,0 +1,31 @@
+@startuml
+
+start
+:new ""Cluster"" object;
+if (Check for the presence of the ""spec.topology.class"" field) then (yes)
+    if (Check if ""Cluster"" has ""Infrastructure"" reference) then (yes)
+    else (no)
+        :Create a new infraCluster object using the ""ClusterClass"" template;
+    endif
+
+    if (Check if ""Cluster"" has ""ControlPlane"" reference) then (yes)
+    else (no)
+        :Create a new ""ControlPlane"" object using the ""ClusterClass"" template;
+    endif
+    :Update ""InfrasCluster"" and ""ControlPlane"" reference in ""Cluster"";
+
+    if (Check if each  ""MachineDeployment"" in ""Cluster"" exists) then (no)
+        :Create a new ""MachineDeployment"";
+    else (yes)
+        if (Check if the ""MachineDeployment"" matches
+        a ""ClusterClass"" workers template) then (no)
+            :Delete the ""MachineDeployment"";
+        else (yes)
+            :Update the ""MachineDeployment"";
+        endif
+    endif
+else (no)
+endif
+stop
+
+@enduml

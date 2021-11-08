@@ -101,6 +101,89 @@ func TestNewHelper(t *testing.T) {
 			wantPatch:          []byte("{\"metadata\":{\"labels\":{\"foo\":\"bar\"}}}"),
 		},
 		{
+			name: "Field (metadata.label) preserve instance specific values when path is not authoritative",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"a": "a",
+							"b": "b-changed",
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							// a missing
+							"b": "b",
+							"c": "c",
+						},
+					},
+				},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: false,
+			wantPatch:          []byte("{\"metadata\":{\"labels\":{\"b\":\"b\",\"c\":\"c\"}}}"),
+		},
+		{
+			name: "Field (metadata.label) align to modified when path is authoritative",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"a": "a",
+							"b": "b-changed",
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							// a missing
+							"b": "b",
+							"c": "c",
+						},
+					},
+				},
+			},
+			options:            []HelperOption{AuthoritativePaths{contract.Path{"metadata", "labels"}}},
+			wantHasChanges:     true,
+			wantHasSpecChanges: false,
+			wantPatch:          []byte("{\"metadata\":{\"labels\":{\"a\":null,\"b\":\"b\",\"c\":\"c\"}}}"),
+		},
+		{
+			name: "IgnorePaths supersede AuthoritativePaths",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"a": "a",
+							"b": "b-changed",
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							// a missing
+							"b": "b",
+							"c": "c",
+						},
+					},
+				},
+			},
+			options:            []HelperOption{AuthoritativePaths{contract.Path{"metadata", "labels"}}, IgnorePaths{contract.Path{"metadata", "labels"}}},
+			wantHasChanges:     false,
+			wantHasSpecChanges: false,
+			wantPatch:          []byte("{}"),
+		},
+		{
 			name: "Nested field both in original and in modified, no-op when equal",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
@@ -183,6 +266,35 @@ func TestNewHelper(t *testing.T) {
 			wantHasChanges:     true,
 			wantHasSpecChanges: true,
 			wantPatch:          []byte("{\"spec\":{\"map\":{\"A\":\"A\",\"C\":\"C\"}}}"),
+		},
+		{
+			name: "Value of type map, enforces entries from modified if the path is authoritative",
+			original: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"map": map[string]string{
+							"A": "A-changed",
+							"B": "B",
+							// C missing
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"map": map[string]string{
+							"A": "A",
+							// B missing
+							"C": "C",
+						},
+					},
+				},
+			},
+			options:            []HelperOption{AuthoritativePaths{contract.Path{"spec", "map"}}},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte("{\"spec\":{\"map\":{\"A\":\"A\",\"B\":null,\"C\":\"C\"}}}"),
 		},
 		{
 			name: "Value of type Array or Slice, align to modified",
@@ -423,7 +535,7 @@ func TestNewHelper(t *testing.T) {
 	}
 }
 
-func Test_filterPatchMap(t *testing.T) {
+func Test_filterPaths(t *testing.T) {
 	tests := []struct {
 		name     string
 		patchMap map[string]interface{}
@@ -508,7 +620,7 @@ func Test_filterPatchMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			filterPatchMap(tt.patchMap, tt.paths)
+			filterPaths(tt.patchMap, tt.paths)
 
 			g.Expect(tt.patchMap).To(Equal(tt.want))
 		})
@@ -606,6 +718,123 @@ func Test_removePath(t *testing.T) {
 			removePath(tt.patchMap, tt.path)
 
 			g.Expect(tt.patchMap).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_enforcePath(t *testing.T) {
+	tests := []struct {
+		name       string
+		simpleMap  map[string]interface{}
+		twoWaysMap map[string]interface{}
+		path       contract.Path
+		want       map[string]interface{}
+	}{
+		{
+			name: "Keep value not enforced",
+			simpleMap: map[string]interface{}{
+				"foo": nil,
+			},
+			twoWaysMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123",
+				},
+			},
+			want: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123",
+				},
+			},
+			// no enforcing path
+		},
+		{
+			name: "Enforce value",
+			simpleMap: map[string]interface{}{
+				"foo": nil,
+			},
+			twoWaysMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123", // value enforced, it should be overridden.
+				},
+			},
+			path: contract.Path([]string{"foo"}),
+			want: map[string]interface{}{
+				"foo": nil,
+			},
+		},
+		{
+			name: "Enforce nested value",
+			simpleMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": nil,
+				},
+			},
+			twoWaysMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "123", // value enforced, it should be overridden.
+					"baz": "345", // value not enforced, it should be preserved.
+				},
+			},
+			path: contract.Path([]string{"foo", "bar"}),
+			want: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": nil,
+					"baz": "345",
+				},
+			},
+		},
+		{
+			name: "Enforce nested value",
+			simpleMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": nil,
+				},
+			},
+			twoWaysMap: map[string]interface{}{
+				"foo": map[string]interface{}{ // value enforced, it should be overridden.
+					"bar": "123",
+					"baz": "345",
+				},
+			},
+			path: contract.Path([]string{"foo"}),
+			want: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": nil,
+				},
+			},
+		},
+		{
+			name: "Enforce nested value rebuilding struct if missing",
+			simpleMap: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": nil,
+				},
+			},
+			twoWaysMap: map[string]interface{}{}, // foo enforced, it should be rebuilt/overridden.
+			path:       contract.Path([]string{"foo"}),
+			want: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": nil,
+				},
+			},
+		},
+		{
+			name: "Ignore partial match",
+			simpleMap: map[string]interface{}{
+				"foo": "a",
+			},
+			twoWaysMap: map[string]interface{}{},
+			path:       contract.Path([]string{"foo", "bar", "baz"}),
+			want:       map[string]interface{}{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			enforcePath(tt.simpleMap, tt.twoWaysMap, tt.path)
+
+			g.Expect(tt.twoWaysMap).To(Equal(tt.want))
 		})
 	}
 }

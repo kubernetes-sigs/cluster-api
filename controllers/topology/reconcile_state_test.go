@@ -248,7 +248,10 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 	// ControlPlane object with a new label.
 	controlPlaneWithInstanceSpecificChanges := controlPlane1.DeepCopy()
 	controlPlaneWithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
-	// ControlPlane object with the same name as controlPlane1 but a different InfrastructureMachineTemplate
+	// ControlPlane object with instance specific machine template labels.
+	controlPlaneWithInstanceSpecificMachineTemplateLabels := controlPlane1.DeepCopy()
+	err = contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlaneWithInstanceSpecificMachineTemplateLabels, &clusterv1.ObjectMeta{Labels: map[string]string{"foo": "bar"}})
+	g.Expect(err).ToNot(HaveOccurred())
 
 	tests := []struct {
 		name    string
@@ -303,6 +306,14 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			current: &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificChanges.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			want:    &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificChanges.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			wantErr: false,
+		},
+		{
+			name:    "Enforce machineTemplate.metadata",
+			class:   ccWithoutControlPlaneInfrastructure,
+			current: &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificMachineTemplateLabels.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:    &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			wantErr: false,
 		},
 	}
@@ -526,6 +537,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		})
 	}
 }
+
 func TestReconcileMachineDeployments(t *testing.T) {
 	g := NewWithT(t)
 
@@ -600,6 +612,12 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	bootstrapTemplate8UpdateWithChanges := bootstrapTemplate3.DeepCopy()
 	g.Expect(unstructured.SetNestedField(bootstrapTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
 	md8UpdateWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8UpdateWithChanges, bootstrapTemplate8UpdateWithChanges)
+
+	infrastructureMachineTemplate9m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-9m").Build()
+	bootstrapTemplate9m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-9m").Build()
+	md9 := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
+	md9WithInstanceSpecificTemplateMetadata := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
+	md9WithInstanceSpecificTemplateMetadata.Object.Spec.Template.ObjectMeta.Labels = map[string]string{"foo": "bar"}
 
 	tests := []struct {
 		name                                      string
@@ -691,6 +709,13 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			wantInfrastructureMachineTemplateRotation: map[string]bool{"md-8-update": true},
 			wantBootstrapTemplateRotation:             map[string]bool{"md-8-update": true},
 			wantErr:                                   false,
+		},
+		{
+			name:    "Enforce template metadata",
+			current: []*scope.MachineDeploymentState{md9WithInstanceSpecificTemplateMetadata},
+			desired: []*scope.MachineDeploymentState{md9},
+			want:    []*scope.MachineDeploymentState{md9},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

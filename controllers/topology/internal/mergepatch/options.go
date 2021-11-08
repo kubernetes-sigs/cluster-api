@@ -26,7 +26,9 @@ type HelperOption interface {
 
 // HelperOptions contains options for Helper.
 type HelperOptions struct {
-	ignorePaths []contract.Path
+	allowedPaths       []contract.Path
+	ignorePaths        []contract.Path
+	authoritativePaths []contract.Path
 }
 
 // ApplyOptions applies the given patch options on these options,
@@ -44,4 +46,14 @@ type IgnorePaths []contract.Path
 // ApplyToHelper applies this configuration to the given helper options.
 func (i IgnorePaths) ApplyToHelper(opts *HelperOptions) {
 	opts.ignorePaths = i
+}
+
+// AuthoritativePaths instruct the Helper to enforce changes for paths when computing a patch
+// (instead of using two way merge that preserves values from existing objects).
+// NOTE: AuthoritativePaths will be superseded by IgnorePaths in case a path exists in both.
+type AuthoritativePaths []contract.Path
+
+// ApplyToHelper applies this configuration to the given helper options.
+func (i AuthoritativePaths) ApplyToHelper(opts *HelperOptions) {
+	opts.authoritativePaths = i
 }

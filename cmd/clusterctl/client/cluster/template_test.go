@@ -25,9 +25,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	. "github.com/onsi/gomega"
-
 	"github.com/google/go-github/v33/github"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"

@@ -20,7 +20,6 @@ import (
 	"os"
 
 	. "github.com/onsi/gomega"
-
 	"sigs.k8s.io/yaml"
 )
 

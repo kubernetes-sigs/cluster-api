@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	// +kubebuilder:scaffold:imports
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
@@ -37,7 +38,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	// +kubebuilder:scaffold:imports
 )
 
 const (

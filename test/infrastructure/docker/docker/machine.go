@@ -29,16 +29,15 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
-	"sigs.k8s.io/kind/pkg/cluster/constants"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/cloudinit"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	clusterapicontainer "sigs.k8s.io/cluster-api/util/container"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
+	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
 const (

@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 

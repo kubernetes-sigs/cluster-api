@@ -21,7 +21,6 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo"
-
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 

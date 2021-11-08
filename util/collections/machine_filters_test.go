@@ -20,16 +20,14 @@ import (
 	"testing"
 	"time"
 
-	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/cluster-api/util/conditions"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func falseFilter(_ *clusterv1.Machine) bool {

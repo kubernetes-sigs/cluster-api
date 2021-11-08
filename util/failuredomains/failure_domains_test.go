@@ -19,13 +19,10 @@ package failuredomains
 import (
 	"testing"
 
-	"sigs.k8s.io/cluster-api/util/collections"
-
 	. "github.com/onsi/gomega"
-
 	"k8s.io/utils/pointer"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/collections"
 )
 
 func TestNewFailureDomainPicker(t *testing.T) {

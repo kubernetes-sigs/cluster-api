@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	corev1 "k8s.io/api/core/v1"

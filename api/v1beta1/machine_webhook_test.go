@@ -20,11 +20,10 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestMachineDefault(t *testing.T) {

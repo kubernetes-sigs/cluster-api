@@ -22,6 +22,7 @@ import (
 	"os"
 	"testing"
 
+	// +kubebuilder:scaffold:imports
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -30,7 +31,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	// +kubebuilder:scaffold:imports
 )
 
 var (

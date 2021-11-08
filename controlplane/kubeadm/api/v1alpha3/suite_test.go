@@ -20,11 +20,11 @@ import (
 	"os"
 	"testing"
 
+	// +kubebuilder:scaffold:imports
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	// +kubebuilder:scaffold:imports
 )
 
 var (

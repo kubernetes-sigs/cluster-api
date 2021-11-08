@@ -103,7 +103,10 @@ metadata:
   name: quick-start-docker-worker-machinetemplate
 spec:
   template:
-    spec: {}
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
@@ -114,6 +117,7 @@ spec:
     spec:
       joinConfiguration:
         nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
           kubeletExtraArgs:
             # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
             # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726

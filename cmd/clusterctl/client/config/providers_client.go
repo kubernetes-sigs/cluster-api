@@ -35,6 +35,7 @@ const (
 const (
 	AWSProviderName       = "aws"
 	AzureProviderName     = "azure"
+	BYOHProviderName      = "byoh"
 	DockerProviderName    = "docker"
 	DOProviderName        = "digitalocean"
 	GCPProviderName       = "gcp"
@@ -45,7 +46,6 @@ const (
 	SideroProviderName    = "sidero"
 	VSphereProviderName   = "vsphere"
 	MAASProviderName      = "maas"
-	BYOHProviderName      = "byoh"
 )
 
 // Bootstrap providers.

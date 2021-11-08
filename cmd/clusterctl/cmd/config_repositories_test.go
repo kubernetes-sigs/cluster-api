@@ -170,6 +170,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/
 - File: infrastructure-components.yaml
+  Name: byoh
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/
+- File: infrastructure-components.yaml
   Name: digitalocean
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/releases/latest/
@@ -213,8 +217,4 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: vsphere
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/
-- File: infrastructure-components.yaml
-  Name: byoh
-  ProviderType: InfrastructureProvider
-  URL: https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/
 `

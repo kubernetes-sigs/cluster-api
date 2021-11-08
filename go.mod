@@ -41,3 +41,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.10.3-0.20211011182302-43ea648ec318
 	sigs.k8s.io/yaml v1.3.0
 )
+
+replace github.com/evanphx/json-patch/v5 => github.com/sbueringer/json-patch v5.6.1-0.20211108121231-34851406de32+incompatible

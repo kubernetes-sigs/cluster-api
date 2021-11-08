@@ -35,6 +35,7 @@ const (
 const (
 	AWSProviderName       = "aws"
 	AzureProviderName     = "azure"
+	BYOHProviderName      = "byoh"
 	DockerProviderName    = "docker"
 	DOProviderName        = "digitalocean"
 	GCPProviderName       = "gcp"
@@ -167,6 +168,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         MAASProviderName,
 			url:          "https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         BYOHProviderName,
+			url:          "https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

@@ -18,7 +18,7 @@ package v1alpha3
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
-// Conditions and condition Reasons for the DockerMachine object
+// Conditions and condition Reasons for the DockerMachine object.
 
 const (
 	// ContainerProvisionedCondition documents the status of the provisioning of the container
@@ -62,7 +62,7 @@ const (
 	BootstrapFailedReason = "BootstrapFailed"
 )
 
-// Conditions and condition Reasons for the DockerCluster object
+// Conditions and condition Reasons for the DockerCluster object.
 
 const (
 	// LoadBalancerAvailableCondition documents the availability of the container that implements the cluster load balancer.

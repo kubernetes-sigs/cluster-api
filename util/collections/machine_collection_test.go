@@ -141,7 +141,7 @@ func TestMachinesLowestVersion(t *testing.T) {
 	}
 }
 
-/* Helper functions to build machine objects for tests */
+/* Helper functions to build machine objects for tests. */
 
 type machineOpt func(*clusterv1.Machine)
 

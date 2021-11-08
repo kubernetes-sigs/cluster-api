@@ -86,7 +86,7 @@ var AlarmTypeName = map[AlarmType]string{
 	AlarmCorrupt: "CORRUPT",
 }
 
-// Adapted from kubeadm
+// Adapted from kubeadm.
 
 // Member struct defines an etcd member; it is used to avoid spreading
 // github.com/coreos/etcd dependencies.

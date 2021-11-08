@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package index provides indexes for the api
+// Package index provides indexes for the api.
 package index
 
 import (

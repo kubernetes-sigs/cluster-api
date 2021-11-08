@@ -100,7 +100,15 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.
 
 	// Create or update the ControlPlaneObject for the ControlPlaneState.
 	ctx, _ = tlog.LoggerFrom(ctx).WithObject(s.Desired.ControlPlane.Object).Into(ctx)
-	if err := r.reconcileReferencedObject(ctx, s.Current.ControlPlane.Object, s.Desired.ControlPlane.Object); err != nil {
+	if err := r.reconcileReferencedObject(ctx, s.Current.ControlPlane.Object, s.Desired.ControlPlane.Object, mergepatch.AuthoritativePaths{
+		// Note: we want to be authoritative WRT machine's metadata labels and annotations.
+		// This has the nice benefit that it greatly simplify the UX around ControlPlaneClass.Metadata and
+		// ControlPlaneTopology.Metadata, given that changes are reflected into generated objects without
+		// accounting for instance specific changes like we do for other maps into spec.
+		// Note: nested metadata have only labels and annotations, so it is possible to override the entire
+		// parent struct.
+		contract.ControlPlane().MachineTemplate().Metadata().Path(),
+	}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: s.Desired.ControlPlane.Object})
 	}
 
@@ -217,7 +225,15 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 
 	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
 	log = log.WithObject(desiredMD.Object)
-	patchHelper, err := mergepatch.NewHelper(currentMD.Object, desiredMD.Object, r.Client)
+	patchHelper, err := mergepatch.NewHelper(currentMD.Object, desiredMD.Object, r.Client, mergepatch.AuthoritativePaths{
+		// Note: we want to be authoritative WRT machine's metadata labels and annotations.
+		// This has the nice benefit that it greatly simplify the UX around MachineDeploymentClass.Metadata and
+		// MachineDeploymentTopology.Metadata, given that changes are reflected into generated objects without
+		// accounting for instance specific changes like we do for other maps into spec.
+		// Note: nested metadata have only labels and annotations, so it is possible to override the entire
+		// parent struct.
+		{"spec", "template", "metadata"},
+	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: currentMD.Object})
 	}

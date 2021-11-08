@@ -19,10 +19,10 @@ package locking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/go-logr/logr"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +32,8 @@ import (
 )
 
 const semaphoreInformationKey = "lock-information"
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // ControlPlaneInitMutex uses a ConfigMap to synchronize cluster initialization.
 type ControlPlaneInitMutex struct {

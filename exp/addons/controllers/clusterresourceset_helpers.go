@@ -21,10 +21,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"unicode"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 var jsonListPrefix = []byte("[")
 
 // isJSONList returns whether the data is in JSON list format.

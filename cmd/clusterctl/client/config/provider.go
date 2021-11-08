@@ -17,11 +17,13 @@ limitations under the License.
 package config
 
 import (
-	"encoding/json"
 	"path/filepath"
 
+	jsoniter "github.com/json-iterator/go"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Provider defines a provider configuration.
 type Provider interface {

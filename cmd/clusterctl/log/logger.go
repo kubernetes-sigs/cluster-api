@@ -17,13 +17,15 @@ limitations under the License.
 package log
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/go-logr/logr"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // logEntry defines the information that can be used for composing a log line.
 type logEntry struct {

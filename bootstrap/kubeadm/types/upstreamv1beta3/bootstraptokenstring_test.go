@@ -17,12 +17,14 @@ limitations under the License.
 package upstreamv1beta3
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func TestMarshalJSON(t *testing.T) {
 	var tests = []struct {
@@ -71,7 +73,12 @@ func TestUnmarshalJSON(t *testing.T) {
 			err := json.Unmarshal([]byte(rt.input), newbts)
 			if (err != nil) != rt.expectedError {
 				t.Errorf("failed BootstrapTokenString.UnmarshalJSON:\n\texpected error: %t\n\t  actual error: %v", rt.expectedError, err)
-			} else if !reflect.DeepEqual(rt.bts, newbts) {
+			}
+			if err != nil {
+				return
+			}
+
+			if !reflect.DeepEqual(rt.bts, newbts) {
 				t.Errorf(
 					"failed BootstrapTokenString.UnmarshalJSON:\n\texpected: %v\n\t  actual: %v",
 					rt.bts,

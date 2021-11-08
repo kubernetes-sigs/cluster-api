@@ -18,13 +18,15 @@ limitations under the License.
 package logger
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-logr/logr"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Provides a logr.Logger to use during e2e tests.
 

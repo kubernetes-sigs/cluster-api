@@ -19,7 +19,6 @@ package util
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -28,6 +27,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/gobuffalo/flect"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -50,6 +50,8 @@ const (
 	// CharSet defines the alphanumeric set for random string generation.
 	CharSet = "0123456789abcdefghijklmnopqrstuvwxyz"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var (
 	rnd = rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec

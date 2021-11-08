@@ -17,9 +17,9 @@ limitations under the License.
 package internal
 
 import (
-	"encoding/json"
 	"reflect"
 
+	jsoniter "github.com/json-iterator/go"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // MatchesMachineSpec returns a filter to find all machines that matches with KCP config and do not require any rollout.
 // Kubernetes version, infrastructure template, and KubeadmConfig field need to be equivalent.

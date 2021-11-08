@@ -18,15 +18,17 @@ package matchers
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"reflect"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/onsi/gomega/format"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // This code is adappted from the mergePatch code at controllers/topology/internal/mergepatch pkg.
 

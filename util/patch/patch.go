@@ -18,10 +18,10 @@ package patch
 
 import (
 	"context"
-	"encoding/json"
 	"reflect"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -34,6 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Helper is a utility for ensuring the proper patching of objects.
 type Helper struct {

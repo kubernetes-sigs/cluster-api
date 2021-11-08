@@ -18,7 +18,6 @@ package locking
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"

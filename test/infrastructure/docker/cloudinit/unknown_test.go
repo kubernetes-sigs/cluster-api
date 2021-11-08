@@ -34,12 +34,24 @@ func TestUnknown_Run(t *testing.T) {
 }
 
 func TestUnknown_Unmarshal(t *testing.T) {
-	g := NewWithT(t)
+	t.Run("decodes an slice of strings", func(t *testing.T) {
+		g := NewWithT(t)
 
-	u := &unknown{}
-	expected := []string{"test 1", "test 2", "test 3"}
-	input := `["test 1", "test 2", "test 3"]`
+		u := &unknown{}
+		expected := []string{"test 1", "test 2", "test 3"}
+		input := `["test 1", "test 2", "test 3"]`
 
-	g.Expect(u.Unmarshal([]byte(input))).To(Succeed())
-	g.Expect(u.lines).To(Equal(expected))
+		g.Expect(u.Unmarshal([]byte(input))).To(Succeed())
+		g.Expect(u.lines).To(Equal(expected))
+	})
+	t.Run("decodes a string", func(t *testing.T) {
+		g := NewWithT(t)
+
+		u := &unknown{}
+		expected := []string{"test 1"}
+		input := `"test 1"`
+
+		g.Expect(u.Unmarshal([]byte(input))).To(Succeed())
+		g.Expect(u.lines).To(Equal(expected))
+	})
 }

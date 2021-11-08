@@ -18,12 +18,12 @@ package framework
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 
+	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -36,6 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // GetCAPIResourcesInput is the input for GetCAPIResources.
 type GetCAPIResourcesInput struct {

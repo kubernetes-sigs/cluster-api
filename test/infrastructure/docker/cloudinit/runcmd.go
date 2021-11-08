@@ -17,12 +17,14 @@ limitations under the License.
 package cloudinit
 
 import (
-	"encoding/json"
 	"strings"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Cmd defines a shell command.
 type Cmd struct {
@@ -38,11 +40,7 @@ type Cmd struct {
 func (c *Cmd) UnmarshalJSON(data []byte) error {
 	// First, try to decode the input as a list
 	var s1 []string
-	if err := json.Unmarshal(data, &s1); err != nil {
-		if _, ok := err.(*json.UnmarshalTypeError); !ok {
-			return errors.WithStack(err)
-		}
-	} else {
+	if err := json.Unmarshal(data, &s1); err == nil {
 		c.Cmd = s1[0]
 		c.Args = s1[1:]
 		return nil

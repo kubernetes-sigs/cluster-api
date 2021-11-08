@@ -19,15 +19,17 @@ package mergepatch
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var allowedPaths = []contract.Path{
 	{"metadata", "labels"},

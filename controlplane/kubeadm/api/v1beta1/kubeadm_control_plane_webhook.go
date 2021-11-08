@@ -17,13 +17,13 @@ limitations under the License.
 package v1beta1
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/blang/semver"
 	"github.com/coredns/corefile-migration/migration"
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +34,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func (in *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).

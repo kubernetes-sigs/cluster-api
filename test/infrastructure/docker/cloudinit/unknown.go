@@ -17,8 +17,6 @@ limitations under the License.
 package cloudinit
 
 import (
-	"encoding/json"
-
 	"github.com/pkg/errors"
 )
 
@@ -35,11 +33,7 @@ func newUnknown(module string) action {
 func (u *unknown) Unmarshal(data []byte) error {
 	// try unmarshalling to a slice of strings
 	var s1 []string
-	if err := json.Unmarshal(data, &s1); err != nil {
-		if _, ok := err.(*json.UnmarshalTypeError); !ok {
-			return errors.WithStack(err)
-		}
-	} else {
+	if err := json.Unmarshal(data, &s1); err == nil {
 		u.lines = s1
 		return nil
 	}

@@ -17,13 +17,15 @@ limitations under the License.
 package upstreamv1beta2
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func TestMarshalJSON(t *testing.T) {
 	var tests = []struct {
@@ -68,9 +70,9 @@ func TestUnmarshalJSON(t *testing.T) {
 			err := json.Unmarshal([]byte(rt.input), newbts)
 			if rt.expectedError {
 				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				return
 			}
+			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(newbts).To(Equal(rt.bts))
 		})
 	}

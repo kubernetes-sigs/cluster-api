@@ -23,7 +23,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/coredns/corefile-migration/migration"
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"

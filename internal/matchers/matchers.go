@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"reflect"
 
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/onsi/gomega/format"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"

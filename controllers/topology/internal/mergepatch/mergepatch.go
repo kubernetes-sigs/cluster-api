@@ -21,7 +21,7 @@ import (
 	"context"
 	"encoding/json"
 
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"

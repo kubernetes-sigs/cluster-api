@@ -9,7 +9,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210615175204-7bf45dbf5372
-	github.com/evanphx/json-patch v4.11.0+incompatible
+	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/color v1.13.0
 	github.com/go-logr/logr v0.4.0
 	github.com/gobuffalo/flect v0.2.3

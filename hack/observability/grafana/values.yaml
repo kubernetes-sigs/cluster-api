@@ -1,0 +1,24 @@
+# Configuration for grafana chart, see https://github.com/grafana/helm-charts/tree/main/charts/grafana
+
+grafana.ini:
+  # Disable the grafana login form.
+  auth:
+    disable_login_form: true
+  # Enable anonymous user, and set them as part of the default org.
+  auth.anonymous:
+    enabled: true
+    org_name: Main Org.
+    org_role: Admin
+
+# Adds loki as a datasource.
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Loki
+      type: loki
+      url: http://loki:3100
+
+# Disable grafana test framework
+testFramework:
+  enabled: false

@@ -31,6 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+// Deprecated: This file, including all public and private methods, will be removed in a future release.
+// The Cluster webhook validation implementation and API can now be found in the webhooks package.
+
 // SetupWebhookWithManager sets up Cluster webhooks.
 // Deprecated: This method is going to be removed in a next release.
 // Note: We're not using this method anymore and are using webhooks.Cluster.SetupWebhookWithManager instead.
@@ -47,6 +50,7 @@ var _ webhook.Validator = &Cluster{}
 
 // Default satisfies the defaulting webhook interface.
 // Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.Cluster.Default instead.
 func (c *Cluster) Default() {
 	if c.Spec.InfrastructureRef != nil && len(c.Spec.InfrastructureRef.Namespace) == 0 {
 		c.Spec.InfrastructureRef.Namespace = c.Namespace
@@ -67,12 +71,14 @@ func (c *Cluster) Default() {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 // Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.Cluster.ValidateCreate instead.
 func (c *Cluster) ValidateCreate() error {
 	return c.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 // Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.Cluster.ValidateUpdate instead.
 func (c *Cluster) ValidateUpdate(old runtime.Object) error {
 	oldCluster, ok := old.(*Cluster)
 	if !ok {
@@ -83,6 +89,7 @@ func (c *Cluster) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 // Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.Cluster.ValidateDelete instead.
 func (c *Cluster) ValidateDelete() error {
 	return nil
 }

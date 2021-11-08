@@ -31,6 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+// Deprecated: This file, including all public and private methods, will be removed in a future release.
+// The ClusterClass webhook validation implementation and API can now be found in the webhooks package.
+
 // SetupWebhookWithManager sets up ClusterClass webhooks.
 // Deprecated: This method is going to be removed in a next release.
 // Note: We're not using this method anymore and are using webhooks.ClusterClass.SetupWebhookWithManager instead.
@@ -47,6 +50,7 @@ var _ webhook.Defaulter = &ClusterClass{}
 
 // Default satisfies the defaulting webhook interface.
 // Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.ClusterClass.Default instead.
 func (in *ClusterClass) Default() {
 	// Default all namespaces in the references to the object namespace.
 	defaultNamespace(in.Spec.Infrastructure.Ref, in.Namespace)
@@ -70,12 +74,14 @@ func defaultNamespace(ref *corev1.ObjectReference, namespace string) {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 // Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.ClusterClass.ValidateCreate instead.
 func (in *ClusterClass) ValidateCreate() error {
 	return in.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 // Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.ClusterClass.ValidateUpdate instead.
 func (in *ClusterClass) ValidateUpdate(old runtime.Object) error {
 	oldClusterClass, ok := old.(*ClusterClass)
 	if !ok {
@@ -86,6 +92,7 @@ func (in *ClusterClass) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 // Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.ClusterClass.ValidateDelete instead.
 func (in *ClusterClass) ValidateDelete() error {
 	return nil
 }

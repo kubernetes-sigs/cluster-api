@@ -25,11 +25,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/storage/names"
-	"sigs.k8s.io/cluster-api/controllers/topology/internal/check"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/mergepatch"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
+	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

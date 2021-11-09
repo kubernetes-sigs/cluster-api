@@ -151,18 +151,9 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl
 		return ctrl.Result{}, errors.Wrap(err, "error reading current state of the Cluster topology")
 	}
 
-	// Watch Infrastructure and ControlPlane CRs when they exist.
-	if s.Current.InfrastructureCluster != nil {
-		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.InfrastructureCluster,
-			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "error watching Infrastructure CR")
-		}
-	}
-	if s.Current.ControlPlane.Object != nil {
-		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.ControlPlane.Object,
-			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "error watching ControlPlane CR")
-		}
+	// Setup watches for InfrastructureCluster and ControlPlane CRs when they exist.
+	if err := r.setupDynamicWatches(ctx, s); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "error creating dynamic watch")
 	}
 
 	// Computes the desired state of the Cluster and store it in the request scope.
@@ -177,6 +168,23 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// setupDynamicWatches create watches for InfrastructureCluster and ControlPlane CRs when they exist.
+func (r *ClusterReconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) error {
+	if s.Current.InfrastructureCluster != nil {
+		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.InfrastructureCluster,
+			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
+			return errors.Wrap(err, "error watching Infrastructure CR")
+		}
+	}
+	if s.Current.ControlPlane.Object != nil {
+		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.ControlPlane.Object,
+			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
+			return errors.Wrap(err, "error watching ControlPlane CR")
+		}
+	}
+	return nil
 }
 
 // clusterClassToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation

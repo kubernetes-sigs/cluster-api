@@ -26,6 +26,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -58,6 +59,9 @@ type ClusterReconciler struct {
 	UnstructuredCachingClient client.Client
 
 	externalTracker external.ObjectTracker
+
+	// patchEngine is used to apply patches during computeDesiredState.
+	patchEngine patches.Engine
 }
 
 func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -83,6 +87,8 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
 	}
+	r.patchEngine = patches.NewEngine()
+
 	return nil
 }
 

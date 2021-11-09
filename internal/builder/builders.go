@@ -545,6 +545,8 @@ type ControlPlaneBuilder struct {
 	namespace                     string
 	name                          string
 	infrastructureMachineTemplate *unstructured.Unstructured
+	replicas                      *int64
+	version                       *string
 	specFields                    map[string]interface{}
 	statusFields                  map[string]interface{}
 }
@@ -560,6 +562,18 @@ func ControlPlane(namespace, name string) *ControlPlaneBuilder {
 // WithInfrastructureMachineTemplate adds the given unstructured object to the ControlPlaneBuilder as its InfrastructureMachineTemplate.
 func (f *ControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured) *ControlPlaneBuilder {
 	f.infrastructureMachineTemplate = t
+	return f
+}
+
+// WithReplicas sets the number of replicas for the ControlPlaneBuilder.
+func (f *ControlPlaneBuilder) WithReplicas(replicas int64) *ControlPlaneBuilder {
+	f.replicas = &replicas
+	return f
+}
+
+// WithVersion adds the passed version to the ControlPlaneBuilder.
+func (f *ControlPlaneBuilder) WithVersion(version string) *ControlPlaneBuilder {
+	f.version = &version
 	return f
 }
 
@@ -600,12 +614,23 @@ func (f *ControlPlaneBuilder) Build() *unstructured.Unstructured {
 	setSpecFields(obj, f.specFields)
 	setStatusFields(obj, f.statusFields)
 
+	// TODO(killianmuldoon): Update to use the internal/contract package, when it is importable from here
 	if f.infrastructureMachineTemplate != nil {
-		// TODO(killianmuldoon): Update to use the internal/contract package
 		if err := setNestedRef(obj, f.infrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef"); err != nil {
 			panic(err)
 		}
 	}
+	if f.replicas != nil {
+		if err := unstructured.SetNestedField(obj.UnstructuredContent(), *f.replicas, "spec", "replicas"); err != nil {
+			panic(err)
+		}
+	}
+	if f.version != nil {
+		if err := unstructured.SetNestedField(obj.UnstructuredContent(), *f.version, "spec", "version"); err != nil {
+			panic(err)
+		}
+	}
+
 	return obj
 }
 

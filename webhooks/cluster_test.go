@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -264,9 +265,13 @@ func TestClusterTopologyValidation(t *testing.T) {
 					WithClass("foo").
 					WithVersion("v1.19.1").
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("aa").Build()).
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("aa").Build()).
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("bb").
+							Build()).
 					Build()).
 				Build(),
 		},
@@ -278,25 +283,13 @@ func TestClusterTopologyValidation(t *testing.T) {
 					WithClass("foo").
 					WithVersion("v1.19.1").
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("aa").Build()).
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("bb").Build()).
-					Build()).
-				Build(),
-		},
-		{
-			name:      "should return error on update when Topology class is changed",
-			expectErr: true,
-			old: builder.Cluster("fooboo", "cluster1").
-				WithTopology(builder.ClusterTopology().
-					WithClass("foo").
-					WithVersion("v1.19.1").
-					Build()).
-				Build(),
-			in: builder.Cluster("fooboo", "cluster1").
-				WithTopology(builder.ClusterTopology().
-					WithClass("bar").
-					WithVersion("v1.19.1").
+						builder.MachineDeploymentTopology("workers2").
+							WithClass("bb").
+							Build()).
 					Build()).
 				Build(),
 		},
@@ -308,9 +301,13 @@ func TestClusterTopologyValidation(t *testing.T) {
 					WithClass("foo").
 					WithVersion("v1.19.1").
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("aa").Build()).
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("bb").Build()).
+						builder.MachineDeploymentTopology("workers2").
+							WithClass("bb").
+							Build()).
 					Build()).
 				Build(),
 			in: builder.Cluster("fooboo", "cluster1").
@@ -318,9 +315,13 @@ func TestClusterTopologyValidation(t *testing.T) {
 					WithClass("foo").
 					WithVersion("v1.19.2").
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("aa").Build()).
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("bb").Build()).
+						builder.MachineDeploymentTopology("workers2").
+							WithClass("bb").
+							Build()).
 					Build()).
 				Build(),
 		},
@@ -329,10 +330,15 @@ func TestClusterTopologyValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-
+			class := builder.ClusterClass("fooboo", "foo").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("bb").Build(),
+					*builder.MachineDeploymentClass("aa").Build(),
+				).
+				Build()
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
-				WithObjects(builder.ClusterClass("fooboo", "foo").Build()).
+				WithObjects(class).
 				WithScheme(fakeScheme).
 				Build()
 
@@ -409,4 +415,509 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestClusterTopologyValidationForTopologyClassChange cases where cluster.spec.topology.class is altered.
+func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	g := NewWithT(t)
+
+	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+		WithTopology(
+			builder.ClusterTopology().
+				WithClass("class1").
+				WithVersion("v1.22.2").
+				WithControlPlaneReplicas(3).
+				Build()).
+		Build()
+
+	ref := &corev1.ObjectReference{
+		APIVersion: "group.test.io/foo",
+		Kind:       "barTemplate",
+		Name:       "baz",
+		Namespace:  "default",
+	}
+	compatibleNameChangeRef := &corev1.ObjectReference{
+		APIVersion: "group.test.io/foo",
+		Kind:       "barTemplate",
+		Name:       "differentbaz",
+		Namespace:  "default",
+	}
+	compatibleAPIVersionChangeRef := &corev1.ObjectReference{
+		APIVersion: "group.test.io/foo2",
+		Kind:       "barTemplate",
+		Name:       "differentbaz",
+		Namespace:  "default",
+	}
+	incompatibleKindRef := &corev1.ObjectReference{
+		APIVersion: "group.test.io/foo",
+		Kind:       "another-barTemplate",
+		Name:       "another-baz",
+		Namespace:  "default",
+	}
+	incompatibleAPIGroupRef := &corev1.ObjectReference{
+		APIVersion: "group.nottest.io/foo",
+		Kind:       "barTemplate",
+		Name:       "another-baz",
+		Namespace:  "default",
+	}
+
+	tests := []struct {
+		name        string
+		cluster     *clusterv1.Cluster
+		firstClass  *clusterv1.ClusterClass
+		secondClass *clusterv1.ClusterClass
+		wantErr     bool
+	}{
+		// InfrastructureCluster changes.
+		{
+			name: "Accept cluster.topology.class change with a compatible infrastructureCluster Kind ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(compatibleNameChangeRef)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Accept cluster.topology.class change with a compatible infrastructureCluster APIVersion ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(compatibleAPIVersionChangeRef)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			wantErr: false,
+		},
+
+		{
+			name: "Reject cluster.topology.class change with an incompatible infrastructureCluster Kind ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(incompatibleKindRef)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject cluster.topology.class change with an incompatible infrastructureCluster APIGroup ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(incompatibleAPIGroupRef)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			wantErr: true,
+		},
+
+		// ControlPlane changes.
+		{
+			name: "Accept cluster.topology.class change with a compatible controlPlaneTemplate ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(compatibleNameChangeRef)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Accept cluster.topology.class change with a compatible controlPlaneTemplate ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(compatibleAPIVersionChangeRef)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			wantErr: false,
+		},
+
+		{
+			name: "Reject cluster.topology.class change with an incompatible controlPlane Kind ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(incompatibleKindRef)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject cluster.topology.class change with an incompatible controlPlane APIVersion ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(incompatibleAPIGroupRef)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(compatibleNameChangeRef)).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Accept cluster.topology.class change with a compatible controlPlane.MachineInfrastructure ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(compatibleNameChangeRef)).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Accept cluster.topology.class change with a compatible controlPlane.MachineInfrastructure ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(compatibleAPIVersionChangeRef)).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Reject cluster.topology.class change with an incompatible controlPlane.MachineInfrastructure Kind ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(incompatibleKindRef)).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject cluster.topology.class change with an incompatible controlPlane.MachineInfrastructure APIVersion ref change",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(incompatibleAPIGroupRef)).
+				Build(),
+			wantErr: true,
+		},
+
+		// MachineDeploymentClass changes
+		{
+			name: "Accept cluster.topology.class change with a compatible MachineDeploymentClass InfrastructureTemplate",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(compatibleNameChangeRef)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Accept cluster.topology.class change with an incompatible MachineDeploymentClass BootstrapTemplate",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(compatibleNameChangeRef)).
+						WithBootstrapTemplate(refToUnstructured(incompatibleKindRef)).
+						Build(),
+				).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Reject cluster.topology.class change with a deleted MachineDeploymentClass",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Accept cluster.topology.class change with an added MachineDeploymentClass",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Reject cluster.topology.class change with an incompatible Kind change to MachineDeploymentClass InfrastructureTemplate",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(incompatibleKindRef)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject cluster.topology.class change with an incompatible APIGroup change to MachineDeploymentClass InfrastructureTemplate",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(incompatibleAPIGroupRef)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(tt.firstClass, tt.secondClass).
+				WithScheme(fakeScheme).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
+			c := &Cluster{Client: fakeClient}
+
+			// Create and updated cluster which uses the name of the second class from the test definition in its '.spec.topology.'
+			secondCluster := cluster.DeepCopy()
+			secondCluster.Spec.Topology.Class = tt.secondClass.Name
+
+			// Checks the return error.
+			if tt.wantErr {
+				g.Expect(c.ValidateUpdate(ctx, cluster, secondCluster)).NotTo(Succeed())
+			} else {
+				g.Expect(c.ValidateUpdate(ctx, cluster, secondCluster)).To(Succeed())
+			}
+		})
+	}
+}
+
+// TestMovingBetweenManagedAndUnmanaged cluster tests cases where a clusterClass is added or removed during a cluster update.
+func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	ref := &corev1.ObjectReference{
+		APIVersion: "group.test.io/foo",
+		Kind:       "barTemplate",
+		Name:       "baz",
+		Namespace:  "default",
+	}
+
+	g := NewWithT(t)
+
+	tests := []struct {
+		name            string
+		cluster         *clusterv1.Cluster
+		clusterClass    *clusterv1.ClusterClass
+		updatedTopology *clusterv1.Topology
+		wantErr         bool
+	}{
+		{
+			name: "Reject cluster moving from Unmanaged to Managed i.e. adding the spec.topology.class field on update",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				Build(),
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			updatedTopology: builder.ClusterTopology().
+				WithClass("class1").
+				WithVersion("v1.22.2").
+				WithControlPlaneReplicas(3).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject cluster moving from Managed to Unmanaged i.e. removing the spec.topology.class field on update",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("class1").
+					WithVersion("v1.22.2").
+					WithControlPlaneReplicas(3).
+					Build()).
+				Build(),
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			updatedTopology: nil,
+			wantErr:         true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(tt.clusterClass, tt.cluster).
+				WithScheme(fakeScheme).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
+			c := &Cluster{Client: fakeClient}
+
+			// Create and updated cluster which uses the name of the second class from the test definition in its '.spec.topology.'
+			updatedCluster := tt.cluster.DeepCopy()
+			updatedCluster.Spec.Topology = tt.updatedTopology
+
+			// Checks the return error.
+			if tt.wantErr {
+				g.Expect(c.ValidateUpdate(ctx, tt.cluster, updatedCluster)).NotTo(Succeed())
+			} else {
+				g.Expect(c.ValidateUpdate(ctx, tt.cluster, updatedCluster)).To(Succeed())
+			}
+		})
+	}
+}
+
+func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
+	gvk := ref.GetObjectKind().GroupVersionKind()
+	output := &unstructured.Unstructured{}
+	output.SetKind(gvk.Kind)
+	output.SetAPIVersion(gvk.GroupVersion().String())
+	output.SetName(ref.Name)
+	output.SetNamespace(ref.Namespace)
+	return output
 }

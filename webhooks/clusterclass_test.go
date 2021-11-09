@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -772,8 +771,7 @@ func TestClusterClassValidation(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(ref)).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
+					refToUnstructured(ref)).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
@@ -788,8 +786,7 @@ func TestClusterClassValidation(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(incompatibleRef)).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
+					refToUnstructured(compatibleRef)).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
@@ -806,8 +803,7 @@ func TestClusterClassValidation(t *testing.T) {
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
 				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
+					refToUnstructured(ref)).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(ref)).
 				WithWorkerMachineDeploymentClasses(
@@ -822,8 +818,7 @@ func TestClusterClassValidation(t *testing.T) {
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
 				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
+					refToUnstructured(compatibleRef)).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(incompatibleRef)).
 				WithWorkerMachineDeploymentClasses(
@@ -1055,14 +1050,4 @@ func TestClusterClassValidation(t *testing.T) {
 			}
 		})
 	}
-}
-
-func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
-	gvk := ref.GetObjectKind().GroupVersionKind()
-	output := &unstructured.Unstructured{}
-	output.SetKind(gvk.Kind)
-	output.SetAPIVersion(gvk.GroupVersion().String())
-	output.SetName(ref.Name)
-	output.SetNamespace(ref.Namespace)
-	return output
 }

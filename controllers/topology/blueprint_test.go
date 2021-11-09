@@ -248,15 +248,16 @@ func TestGetBlueprint(t *testing.T) {
 			g := NewWithT(t)
 
 			// Set up a cluster using the ClusterClass, if any.
-			cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
-			if tt.clusterClass != nil {
-				cluster.Spec.Topology = &clusterv1.Topology{
-					Class: tt.clusterClass.Name,
-				}
-			} else {
-				cluster.Spec.Topology = &clusterv1.Topology{
-					Class: "foo",
-				}
+			cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						Build()).
+				Build()
+
+			// If no clusterClass is defined in the test case fill in a dummy value "foo".
+			if tt.clusterClass == nil {
+				cluster.Spec.Topology.Class = "foo"
 			}
 
 			// Sets up the fakeClient for the test case.

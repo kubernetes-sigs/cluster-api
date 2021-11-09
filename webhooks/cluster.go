@@ -24,10 +24,10 @@ import (
 	"github.com/blang/semver"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -132,8 +132,17 @@ func (webhook *Cluster) validate(ctx context.Context, old, new *clusterv1.Cluste
 
 	// Validate the managed topology, if defined.
 	if new.Spec.Topology != nil {
-		if topologyErrs := webhook.validateTopology(ctx, old, new); len(topologyErrs) > 0 {
-			allErrs = append(allErrs, topologyErrs...)
+		allErrs = append(allErrs, webhook.validateTopology(ctx, old, new)...)
+	}
+
+	// On update.
+	if old != nil {
+		// Error if the update moves the cluster from Managed to Unmanaged i.e. the managed topology is removed on update.
+		if old.Spec.Topology != nil && new.Spec.Topology == nil {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath("spec", "topology"),
+				fmt.Sprintf("can not be removed for cluster %v", new.Name),
+			))
 		}
 	}
 
@@ -182,34 +191,32 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 		)
 	}
 
-	// MachineDeployment names must be unique.
-	if new.Spec.Topology.Workers != nil {
-		names := sets.String{}
-		for _, md := range new.Spec.Topology.Workers.MachineDeployments {
-			if names.Has(md.Name) {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "topology", "workers", "machineDeployments"),
-						md,
-						fmt.Sprintf("MachineDeployment names should be unique. MachineDeployment with name %q is defined more than once.", md.Name),
-					),
-				)
-			}
-			names.Insert(md.Name)
-		}
+	// clusterClass must exist.
+	clusterClass := &clusterv1.ClusterClass{}
+	// Check to see if the ClusterClass referenced in the Cluster currently exists.
+	if err := webhook.Client.Get(ctx, client.ObjectKey{Namespace: new.Namespace, Name: new.Spec.Topology.Class}, clusterClass); err != nil {
+		allErrs = append(
+			allErrs, field.Invalid(
+				field.NewPath("spec", "topology", "class"),
+				new.Name,
+				"ClusterClass could not be found"))
+		return allErrs
 	}
 
+	allErrs = append(allErrs, check.MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(new, clusterClass)...)
+
 	if old != nil { // On update
-		// Class could not be mutated.
-		if new.Spec.Topology.Class != old.Spec.Topology.Class {
+		// Topology or Class can not be added on update.
+		if old.Spec.Topology == nil || len(old.Spec.Topology.Class) == 0 {
 			allErrs = append(
 				allErrs,
-				field.Invalid(
+				field.Forbidden(
 					field.NewPath("spec", "topology", "class"),
-					new.Spec.Topology.Class,
-					"class cannot be changed",
+					fmt.Sprintf("clusterClass can not be added to cluster %v on update", new.Name),
 				),
 			)
+			// return early here if there is no class to compare.
+			return allErrs
 		}
 
 		// Version could only be increased.
@@ -246,14 +253,22 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 				),
 			)
 		}
-	}
-	// Check to see if the ClusterClass referenced in the Cluster currently exists.
-	if err := webhook.Client.Get(ctx, client.ObjectKey{Namespace: new.Namespace, Name: new.Spec.Topology.Class}, &clusterv1.ClusterClass{}); err != nil {
-		allErrs = append(
-			allErrs, field.Invalid(
-				field.NewPath("spec", "topology", "class"),
-				new.Spec.Topology.Class,
-				"ClusterClass could not be found"))
+
+		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
+		if old.Spec.Topology.Class != new.Spec.Topology.Class {
+			oldClusterClass := &clusterv1.ClusterClass{}
+
+			// Check to see if the ClusterClass referenced in the old version of the Cluster exists.
+			if err := webhook.Client.Get(ctx, client.ObjectKey{Namespace: old.Namespace, Name: old.Spec.Topology.Class}, oldClusterClass); err != nil {
+				allErrs = append(
+					allErrs, field.Forbidden(
+						field.NewPath("spec", "topology", "class"),
+						fmt.Sprintf("old ClusterClass %v could not be found, changes to ClusterClass %v can not be validated for cluster %v",
+							old.Spec.Topology.Class, new.Spec.Topology.Class, new.Name)))
+				return allErrs
+			}
+			allErrs = append(allErrs, check.ClusterClassesAreCompatible(oldClusterClass, clusterClass)...)
+		}
 	}
 	return allErrs
 }

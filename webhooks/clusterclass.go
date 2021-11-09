@@ -23,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -116,120 +115,16 @@ func (webhook *ClusterClass) validate(old, new *clusterv1.ClusterClass) error {
 	var allErrs field.ErrorList
 
 	// Ensure all references are valid.
-	allErrs = append(allErrs, webhook.validateAllRefs(new)...)
+	allErrs = append(allErrs, check.ClusterClassReferencesAreValid(new)...)
 
 	// Ensure all MachineDeployment classes are unique.
-	allErrs = append(allErrs, webhook.validateUniqueClasses(new.Spec.Workers, field.NewPath("spec", "workers"))...)
+	allErrs = append(allErrs, check.MachineDeploymentClassesAreUnique(new)...)
 
 	// Ensure spec changes are compatible.
-	allErrs = append(allErrs, webhook.validateCompatibleSpecChanges(old, new)...)
+	allErrs = append(allErrs, check.ClusterClassesAreCompatible(old, new)...)
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), new.Name, allErrs)
 	}
 	return nil
-}
-
-func (webhook *ClusterClass) validateAllRefs(clusterClass *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList
-
-	allErrs = append(allErrs, check.LocalObjectTemplateIsValid(&clusterClass.Spec.Infrastructure, clusterClass.Namespace, field.NewPath("spec", "infrastructure"))...)
-	allErrs = append(allErrs, check.LocalObjectTemplateIsValid(&clusterClass.Spec.ControlPlane.LocalObjectTemplate, clusterClass.Namespace, field.NewPath("spec", "controlPlane"))...)
-	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
-		allErrs = append(allErrs, check.LocalObjectTemplateIsValid(clusterClass.Spec.ControlPlane.MachineInfrastructure, clusterClass.Namespace, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
-	}
-
-	for i, class := range clusterClass.Spec.Workers.MachineDeployments {
-		allErrs = append(allErrs, check.LocalObjectTemplateIsValid(&class.Template.Bootstrap, clusterClass.Namespace, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "bootstrap"))...)
-		allErrs = append(allErrs, check.LocalObjectTemplateIsValid(&class.Template.Infrastructure, clusterClass.Namespace, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"))...)
-	}
-
-	return allErrs
-}
-
-func (webhook *ClusterClass) validateCompatibleSpecChanges(old, new *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList
-
-	// new case of create, no changes to verify
-	// return early.
-	if old == nil {
-		return nil
-	}
-
-	// Validate changes to MachineDeployments.
-	allErrs = append(allErrs, webhook.validateMachineDeploymentsCompatibleChanges(old, new)...)
-
-	// Validate InfrastructureClusterTemplate changes new a compatible way.
-	allErrs = append(allErrs, check.LocalObjectTemplatesAreCompatible(old.Spec.Infrastructure, new.Spec.Infrastructure)...)
-
-	// Validate control plane changes new a compatible way.
-	allErrs = append(allErrs, check.LocalObjectTemplatesAreCompatible(old.Spec.ControlPlane.LocalObjectTemplate, new.Spec.ControlPlane.LocalObjectTemplate)...)
-
-	if new.Spec.ControlPlane.MachineInfrastructure != nil && old.Spec.ControlPlane.MachineInfrastructure != nil {
-		allErrs = append(allErrs, check.LocalObjectTemplatesAreCompatible(*old.Spec.ControlPlane.MachineInfrastructure, *new.Spec.ControlPlane.MachineInfrastructure)...)
-	}
-
-	return allErrs
-}
-
-func (webhook *ClusterClass) validateMachineDeploymentsCompatibleChanges(old, new *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList
-
-	// Ensure no MachineDeployment class was removed.
-	classes := webhook.classNamesFromWorkerClass(new.Spec.Workers)
-	for _, oldClass := range old.Spec.Workers.MachineDeployments {
-		if !classes.Has(oldClass.Class) {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "workers", "machineDeployments"),
-					new.Spec.Workers.MachineDeployments,
-					fmt.Sprintf("The %q MachineDeployment class can't be removed.", oldClass.Class),
-				),
-			)
-		}
-	}
-
-	// Ensure previous MachineDeployment class was modified new a compatible way.
-	for _, class := range new.Spec.Workers.MachineDeployments {
-		for _, oldClass := range old.Spec.Workers.MachineDeployments {
-			if class.Class == oldClass.Class {
-				// NOTE: class.Template.Metadata and class.Template.Bootstrap are allowed to change;
-				// class.Template.Bootstrap are ensured syntactically correct by validateAllRefs.
-
-				// Validates class.Template.Infrastructure template changes new a compatible way
-				allErrs = append(allErrs, check.LocalObjectTemplatesAreCompatible(oldClass.Template.Infrastructure, class.Template.Infrastructure)...)
-			}
-		}
-	}
-
-	return allErrs
-}
-
-// classNames returns the set of MachineDeployment class names.
-func (webhook *ClusterClass) classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.String {
-	classes := sets.NewString()
-	for _, class := range w.MachineDeployments {
-		classes.Insert(class.Class)
-	}
-	return classes
-}
-
-func (webhook *ClusterClass) validateUniqueClasses(w clusterv1.WorkersClass, pathPrefix *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-
-	classes := sets.NewString()
-	for i, class := range w.MachineDeployments {
-		if classes.Has(class.Class) {
-			allErrs = append(allErrs,
-				field.Invalid(
-					pathPrefix.Child("machineDeployments").Index(i).Child("class"),
-					class.Class,
-					fmt.Sprintf("MachineDeployment class should be unique. MachineDeployment with class %q is defined more than once.", class.Class),
-				),
-			)
-		}
-		classes.Insert(class.Class)
-	}
-
-	return allErrs
 }

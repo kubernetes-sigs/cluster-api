@@ -18,6 +18,7 @@ import (
 type controllerProxy struct {
 	ctrlClient client.Client
 	ctrlConfig *rest.Config
+	ignoreRBAC bool
 }
 
 var _ cluster.Proxy = &controllerProxy{}
@@ -69,15 +70,6 @@ func (k *controllerProxy) ListResources(labels map[string]string, namespaces ...
 			},
 		},
 		{
-			GroupVersion: "rbac.authorization.k8s.io/v1",
-			APIResources: []metav1.APIResource{
-				{Kind: "ClusterRoleBinding"},
-				{Kind: "ClusterRole"},
-				{Kind: "RoleBinding", Namespaced: true},
-				{Kind: "Role", Namespaced: true},
-			},
-		},
-		{
 			GroupVersion: "admissionregistration.k8s.io/v1",
 			APIResources: []metav1.APIResource{
 				{Kind: "ValidatingWebhookConfiguration", Namespaced: true},
@@ -92,6 +84,17 @@ func (k *controllerProxy) ListResources(labels map[string]string, namespaces ...
 				{Kind: "Issuer", Namespaced: true},
 			},
 		},
+	}
+	if !k.ignoreRBAC {
+		resourceList = append(resourceList, &metav1.APIResourceList{
+			GroupVersion: "rbac.authorization.k8s.io/v1",
+			APIResources: []metav1.APIResource{
+				{Kind: "ClusterRoleBinding"},
+				{Kind: "ClusterRole"},
+				{Kind: "RoleBinding", Namespaced: true},
+				{Kind: "Role", Namespaced: true},
+			},
+		})
 	}
 
 	var ret []unstructured.Unstructured

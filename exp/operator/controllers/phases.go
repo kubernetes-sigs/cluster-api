@@ -39,6 +39,7 @@ type reconciler struct {
 	ctrlClient           client.Client
 	ctrlConfig           *rest.Config
 	certManagerInstaller SingletonInstaller
+	deleteRBACOnUpgrade  bool
 
 	repo               repository.Repository
 	contract           string
@@ -74,12 +75,13 @@ func ifErrorWrapPhaseError(err error, reason string, ctype clusterv1.ConditionTy
 	}
 }
 
-func newReconcilePhases(c client.Client, config *rest.Config, certManagerInstaller SingletonInstaller) *reconciler {
+func newReconcilePhases(c client.Client, config *rest.Config, certManagerInstaller SingletonInstaller, deleteRBACOnUpgrade bool) *reconciler {
 	return &reconciler{
 		ctrlClient:           c,
 		ctrlConfig:           config,
 		certManagerInstaller: certManagerInstaller,
 		clusterctlProvider:   &clusterctlv1.Provider{},
+		deleteRBACOnUpgrade:  deleteRBACOnUpgrade,
 	}
 }
 
@@ -157,6 +159,7 @@ func (s *reconciler) newClusterClient() cluster.Client {
 	return cluster.New(cluster.Kubeconfig{}, s.configClient, cluster.InjectProxy(&controllerProxy{
 		ctrlClient: s.ctrlClient,
 		ctrlConfig: s.ctrlConfig,
+		ignoreRBAC: !s.deleteRBACOnUpgrade,
 	}))
 }
 

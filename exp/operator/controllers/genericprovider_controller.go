@@ -47,6 +47,7 @@ type GenericProviderReconciler struct {
 	Client               client.Client
 	Config               *rest.Config
 	CertManagerInstaller SingletonInstaller
+	DeleteRBACOnUpgrade  bool
 }
 
 // to prevent privilege escalation errors like: "is attempting to grant RBAC permissions not currently held"
@@ -129,7 +130,7 @@ func (r *GenericProviderReconciler) reconcile(ctx context.Context, provider gene
 		"Generation", provider.GetGeneration(),
 		"ObservedGeneration", provider.GetStatus().ObservedGeneration)
 
-	reconciler := newReconcilePhases(r.Client, r.Config, r.CertManagerInstaller)
+	reconciler := newReconcilePhases(r.Client, r.Config, r.CertManagerInstaller, r.DeleteRBACOnUpgrade)
 	phases := []reconcilePhaseFn{
 		func(ctx context.Context, provider genericprovider.GenericProvider) (reconcile.Result, error) {
 			return preflightChecks(ctx, reconciler.ctrlClient, provider, genericProviderList)
@@ -163,7 +164,7 @@ func (r *GenericProviderReconciler) reconcileDelete(ctx context.Context, provide
 	log := ctrl.LoggerFrom(ctx)
 	log.V(2).Info("deleting provider resources")
 
-	reconciler := newReconcilePhases(r.Client, r.Config, r.CertManagerInstaller)
+	reconciler := newReconcilePhases(r.Client, r.Config, r.CertManagerInstaller, r.DeleteRBACOnUpgrade)
 	phases := []reconcilePhaseFn{
 		reconciler.delete,
 	}

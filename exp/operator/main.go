@@ -64,6 +64,7 @@ var (
 	webhookPort                 int
 	webhookCertDir              string
 	healthAddr                  string
+	deleteRBACOnUpgrade         bool
 )
 
 func init() {
@@ -114,6 +115,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
+
+	fs.BoolVar(&deleteRBACOnUpgrade, "delete-rbac-on-upgrade", true,
+		"delete the rbac roles and bindings on upgrade.")
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -190,6 +194,7 @@ func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.Singlet
 		Client:               mgr.GetClient(),
 		Config:               mgr.GetConfig(),
 		CertManagerInstaller: certManagerInstaller,
+		DeleteRBACOnUpgrade:  deleteRBACOnUpgrade,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CoreProvider")
 		os.Exit(1)
@@ -201,6 +206,7 @@ func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.Singlet
 		Client:               mgr.GetClient(),
 		Config:               mgr.GetConfig(),
 		CertManagerInstaller: certManagerInstaller,
+		DeleteRBACOnUpgrade:  deleteRBACOnUpgrade,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "InfrastructureProvider")
 		os.Exit(1)
@@ -212,6 +218,7 @@ func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.Singlet
 		Client:               mgr.GetClient(),
 		Config:               mgr.GetConfig(),
 		CertManagerInstaller: certManagerInstaller,
+		DeleteRBACOnUpgrade:  deleteRBACOnUpgrade,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BootstrapProvider")
 		os.Exit(1)
@@ -223,6 +230,7 @@ func setupReconcilers(mgr ctrl.Manager, certManagerInstaller controllers.Singlet
 		Client:               mgr.GetClient(),
 		Config:               mgr.GetConfig(),
 		CertManagerInstaller: certManagerInstaller,
+		DeleteRBACOnUpgrade:  deleteRBACOnUpgrade,
 	}).SetupWithManager(mgr, concurrency(concurrencyNumber)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ControlPlaneProvider")
 		os.Exit(1)

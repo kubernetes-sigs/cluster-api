@@ -23,11 +23,13 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
+	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -158,6 +160,29 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl
 	s.Blueprint, err = r.getBlueprint(ctx, s.Current.Cluster)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reading the ClusterClass")
+	}
+
+	// FIXME: validation test - this is not necessarily intended to stay here
+	clusterClass := s.Blueprint.ClusterClass
+	cluster := s.Current.Cluster
+
+	// Validate variableSpecs.
+	// FIXME: probably only keep ValidateClusterVariables
+	allErrs := variables.ValidateClusterClassVariables(clusterClass.Spec.Variables, field.NewPath("spec", "variables"))
+	if len(allErrs) > 0 {
+		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
+	}
+
+	// Default variables.
+	_, allErrs = variables.DefaultClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Spec.Variables, field.NewPath("spec", "topology", "variables"))
+	if len(allErrs) > 0 {
+		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
+	}
+
+	// Validate variables.
+	allErrs = variables.ValidateClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Spec.Variables, field.NewPath("spec", "topology", "variables"))
+	if len(allErrs) > 0 {
+		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
 	}
 
 	// Gets the current state of the Cluster and store it in the request scope.

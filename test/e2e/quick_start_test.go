@@ -36,7 +36,7 @@ var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", fun
 	})
 })
 
-// FIXME(just-for-local-hacking): to avoid having to trigger full-e2e-main manually with every push
+// FIXME(just-for-local-hacking): to avoid having to trigger full-e2e-main manually with every push.
 var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Blocking]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{

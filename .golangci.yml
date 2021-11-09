@@ -185,4 +185,6 @@ run:
   - "zz_generated.*\\.go$"
   skip-dirs:
   - third_party
+  # Don't care about this code at the moment
+  - internal/playground
   allow-parallel-runners: true

@@ -25,6 +25,9 @@ import (
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestClusterDefaultNamespaces(t *testing.T) {
@@ -65,7 +68,16 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 			},
 		},
 	}
-	webhook := &Cluster{}
+
+	// Sets up the fakeClient for the test case. This is required because the test uses a Managed Topology.
+	fakeClient := fake.NewClientBuilder().
+		WithObjects(builder.ClusterClass("fooboo", "foo").Build()).
+		WithScheme(fakeScheme).
+		Build()
+
+	// Create the webhook and add the fakeClient as its client.
+	webhook := &Cluster{Client: fakeClient}
+
 	t.Run("for Cluster", customDefaultValidateTest(ctx, c, webhook))
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 
@@ -155,8 +167,11 @@ func TestClusterValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			webhook := Cluster{}
-			err := webhook.validate(tt.old, tt.in)
+
+			// Create the webhook.
+			webhook := &Cluster{}
+
+			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -181,6 +196,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error when topology does not have class",
 			expectErr: true,
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{},
 				},
@@ -190,6 +208,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error when topology does not have valid version",
 			expectErr: true,
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -202,6 +223,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error when downgrading topology version - major",
 			expectErr: true,
 			old: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -210,6 +234,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 				},
 			},
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -222,6 +249,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error when downgrading topology version - minor",
 			expectErr: true,
 			old: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -230,6 +260,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 				},
 			},
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -242,6 +275,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error when downgrading topology version - patch",
 			expectErr: true,
 			old: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -250,6 +286,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 				},
 			},
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -262,6 +301,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error when downgrading topology version - pre-release",
 			expectErr: true,
 			old: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -270,6 +312,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 				},
 			},
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -282,6 +327,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error when downgrading topology version - build tag",
 			expectErr: true,
 			old: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -290,6 +338,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 				},
 			},
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -302,6 +353,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error when duplicated MachineDeployments names exists in a Topology",
 			expectErr: true,
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -324,6 +378,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should pass when MachineDeployments names in a Topology are unique",
 			expectErr: false,
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
@@ -346,6 +403,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error on update when Topology class is changed",
 			expectErr: true,
 			old: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},
 					Topology: &clusterv1.Topology{
@@ -355,6 +415,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 				},
 			},
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},
 					Topology: &clusterv1.Topology{
@@ -368,6 +431,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should return error on update when Topology version is downgraded",
 			expectErr: true,
 			old: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},
 					Topology: &clusterv1.Topology{
@@ -377,6 +443,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 				},
 			},
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},
 					Topology: &clusterv1.Topology{
@@ -390,8 +459,13 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should update",
 			expectErr: false,
 			old: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &corev1.ObjectReference{
+						Namespace: "fooboo",
+					},
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
 						Version: "v1.19.1",
@@ -409,8 +483,13 @@ func TestClusterTopologyValidation(t *testing.T) {
 				},
 			},
 			in: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "fooboo",
+				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &corev1.ObjectReference{
+						Namespace: "fooboo",
+					},
 					Topology: &clusterv1.Topology{
 						Class:   "foo",
 						Version: "v1.19.2",
@@ -433,12 +512,83 @@ func TestClusterTopologyValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			webhook := Cluster{}
-			err := webhook.validate(tt.old, tt.in)
+
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(builder.ClusterClass("fooboo", "foo").Build()).
+				WithScheme(fakeScheme).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
+			webhook := &Cluster{Client: fakeClient}
+
+			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
+			}
+		})
+	}
+}
+
+// TestClusterTopologyValidationWithClient tests the additional cases introduced in new validation in the webhook package.
+func TestClusterTopologyValidationWithClient(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	g := NewWithT(t)
+
+	tests := []struct {
+		name    string
+		cluster *clusterv1.Cluster
+		class   *clusterv1.ClusterClass
+		objects []client.Object
+		wantErr bool
+	}{
+		{
+			name: "Accept a cluster with an existing clusterclass named in cluster.spec.topology.class",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Reject a cluster which has a non-existent clusterclass named in cluster.spec.topology.class",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("wrongName").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				Build(),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(tt.class).
+				WithScheme(fakeScheme).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
+			c := &Cluster{Client: fakeClient}
+
+			// Checks the return error.
+			if tt.wantErr {
+				g.Expect(c.ValidateCreate(ctx, tt.cluster)).NotTo(Succeed())
+			} else {
+				g.Expect(c.ValidateCreate(ctx, tt.cluster)).To(Succeed())
 			}
 		})
 	}

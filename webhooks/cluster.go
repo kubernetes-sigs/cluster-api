@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
@@ -46,7 +47,9 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-cluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusters,versions=v1beta1,name=default.cluster.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // Cluster implements a validating and defaulting webhook for Cluster.
-type Cluster struct{}
+type Cluster struct {
+	Client client.Reader
+}
 
 var _ webhook.CustomDefaulter = &Cluster{}
 var _ webhook.CustomValidator = &Cluster{}
@@ -77,16 +80,16 @@ func (webhook *Cluster) Default(_ context.Context, obj runtime.Object) error {
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateCreate(_ context.Context, obj runtime.Object) error {
+func (webhook *Cluster) ValidateCreate(ctx context.Context, obj runtime.Object) error {
 	cluster, ok := obj.(*clusterv1.Cluster)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
 	}
-	return webhook.validate(nil, cluster)
+	return webhook.validate(ctx, nil, cluster)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) error {
+func (webhook *Cluster) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
 	newCluster, ok := newObj.(*clusterv1.Cluster)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", newObj))
@@ -95,7 +98,7 @@ func (webhook *Cluster) ValidateUpdate(_ context.Context, oldObj, newObj runtime
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", oldObj))
 	}
-	return webhook.validate(oldCluster, newCluster)
+	return webhook.validate(ctx, oldCluster, newCluster)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
@@ -103,7 +106,7 @@ func (webhook *Cluster) ValidateDelete(_ context.Context, obj runtime.Object) er
 	return nil
 }
 
-func (webhook *Cluster) validate(old, new *clusterv1.Cluster) error {
+func (webhook *Cluster) validate(ctx context.Context, old, new *clusterv1.Cluster) error {
 	var allErrs field.ErrorList
 	if new.Spec.InfrastructureRef != nil && new.Spec.InfrastructureRef.Namespace != new.Namespace {
 		allErrs = append(
@@ -129,7 +132,7 @@ func (webhook *Cluster) validate(old, new *clusterv1.Cluster) error {
 
 	// Validate the managed topology, if defined.
 	if new.Spec.Topology != nil {
-		if topologyErrs := webhook.validateTopology(old, new); len(topologyErrs) > 0 {
+		if topologyErrs := webhook.validateTopology(ctx, old, new); len(topologyErrs) > 0 {
 			allErrs = append(allErrs, topologyErrs...)
 		}
 	}
@@ -137,10 +140,11 @@ func (webhook *Cluster) validate(old, new *clusterv1.Cluster) error {
 	if len(allErrs) == 0 {
 		return nil
 	}
+
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), new.Name, allErrs)
 }
 
-func (webhook *Cluster) validateTopology(old, new *clusterv1.Cluster) field.ErrorList {
+func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv1.Cluster) field.ErrorList {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent the usage of Cluster.Topology in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
@@ -243,6 +247,13 @@ func (webhook *Cluster) validateTopology(old, new *clusterv1.Cluster) field.Erro
 			)
 		}
 	}
-
+	// Check to see if the ClusterClass referenced in the Cluster currently exists.
+	if err := webhook.Client.Get(ctx, client.ObjectKey{Namespace: new.Namespace, Name: new.Spec.Topology.Class}, &clusterv1.ClusterClass{}); err != nil {
+		allErrs = append(
+			allErrs, field.Invalid(
+				field.NewPath("spec", "topology", "class"),
+				new.Name,
+				"ClusterClass could not be found"))
+	}
 	return allErrs
 }

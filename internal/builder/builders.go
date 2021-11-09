@@ -100,6 +100,7 @@ type ClusterTopologyBuilder struct {
 	workers              *clusterv1.WorkersTopology
 	version              string
 	controlPlaneReplicas int32
+	variables            []clusterv1.ClusterVariable
 }
 
 // ClusterTopology returns a ClusterTopologyBuilder.
@@ -133,6 +134,12 @@ func (c *ClusterTopologyBuilder) WithMachineDeployment(mdc clusterv1.MachineDepl
 	return c
 }
 
+// WithVariables adds the passed variables to the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithVariables(vars []clusterv1.ClusterVariable) *ClusterTopologyBuilder {
+	c.variables = vars
+	return c
+}
+
 // Build returns a testable cluster Topology object with any values passed to the builder.
 func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 	return &clusterv1.Topology{
@@ -142,6 +149,7 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 		ControlPlane: clusterv1.ControlPlaneTopology{
 			Replicas: &c.controlPlaneReplicas,
 		},
+		Variables: c.variables,
 	}
 }
 
@@ -189,6 +197,7 @@ type ClusterClassBuilder struct {
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
+	variables                                 []clusterv1.ClusterClassVariable
 }
 
 // ClusterClass returns a ClusterClassBuilder with the given name and namespace.
@@ -226,6 +235,12 @@ func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *u
 	return c
 }
 
+// WithVariables adds the Variables the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithVariables(vars []clusterv1.ClusterClassVariable) *ClusterClassBuilder {
+	c.variables = vars
+	return c
+}
+
 // WithWorkerMachineDeploymentClasses adds the variables and objects needed to create MachineDeploymentTemplates for a ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithWorkerMachineDeploymentClasses(mdcs ...clusterv1.MachineDeploymentClass) *ClusterClassBuilder {
 	if c.machineDeploymentClasses == nil {
@@ -246,7 +261,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Name:      c.name,
 			Namespace: c.namespace,
 		},
-		Spec: clusterv1.ClusterClassSpec{},
+		Spec: clusterv1.ClusterClassSpec{
+			Variables: c.variables,
+		},
 	}
 	if c.infrastructureClusterTemplate != nil {
 		obj.Spec.Infrastructure = clusterv1.LocalObjectTemplate{
@@ -266,6 +283,7 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Ref: objToRef(c.controlPlaneInfrastructureMachineTemplate),
 		}
 	}
+
 	obj.Spec.Workers.MachineDeployments = c.machineDeploymentClasses
 	return obj
 }

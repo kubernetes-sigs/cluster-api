@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -49,6 +50,147 @@ func TestClusterDefaultNamespaces(t *testing.T) {
 
 	g.Expect(c.Spec.InfrastructureRef.Namespace).To(Equal(c.Namespace))
 	g.Expect(c.Spec.ControlPlaneRef.Namespace).To(Equal(c.Namespace))
+}
+
+// TestClusterDefaultVariables cases where cluster.spec.topology.class is altered.
+func TestClusterDefaultVariables(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	tests := []struct {
+		name             string
+		clusterVariables []clusterv1.ClusterVariable
+		expect           []clusterv1.ClusterVariable
+		clusterclass     *clusterv1.ClusterClass
+	}{
+		{
+			name: "default a single variable to its correct values",
+			clusterclass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithVariables([]clusterv1.ClusterClassVariable{
+					{
+						Name:     "location",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "string",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+							},
+						},
+					},
+				}).
+				Build(),
+			clusterVariables: []clusterv1.ClusterVariable{},
+			expect: []clusterv1.ClusterVariable{
+				{
+					Name: "location",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"us-east"`),
+					},
+				},
+			},
+		},
+		{
+			name: "don't change a variable if it is already set",
+			clusterclass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithVariables([]clusterv1.ClusterClassVariable{
+					{
+						Name:     "location",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "string",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+							},
+						},
+					},
+				}).
+				Build(),
+			clusterVariables: []clusterv1.ClusterVariable{
+				{
+					Name: "location",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"A different location"`),
+					},
+				},
+			},
+			expect: []clusterv1.ClusterVariable{
+				{
+					Name: "location",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"A different location"`),
+					},
+				},
+			},
+		},
+		{
+			name: "default many variables to their correct values",
+			clusterclass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithVariables([]clusterv1.ClusterClassVariable{
+					{
+						Name:     "location",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "string",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+							},
+						},
+					},
+					{
+						Name:     "count",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "number",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
+							},
+						},
+					},
+				}).
+				Build(),
+			clusterVariables: []clusterv1.ClusterVariable{},
+			expect: []clusterv1.ClusterVariable{
+				{
+					Name: "location",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"us-east"`),
+					},
+				},
+				{
+					Name: "count",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`0.1`),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithTopology(
+				builder.ClusterTopology().
+					WithClass("class1").
+					WithVersion("v1.22.2").
+					WithVariables(tt.clusterVariables).
+					Build()).
+			Build()
+		fakeClient := fake.NewClientBuilder().
+			WithObjects(tt.clusterclass).
+			WithScheme(fakeScheme).
+			Build()
+		// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
+		webhook := &Cluster{Client: fakeClient}
+
+		t.Run(tt.name, func(t *testing.T) {
+			// Test if defaulting works in combination with validation.
+			customDefaultValidateTest(ctx, cluster, webhook)(t)
+			// Test defaulting.
+			t.Run("default", func(t *testing.T) {
+				g := NewWithT(t)
+				g.Expect(webhook.Default(ctx, cluster)).To(Succeed())
+				g.Expect(cluster.Spec.Topology.Variables).To(ConsistOf(tt.expect))
+			})
+		})
+	}
 }
 
 func TestClusterDefaultTopologyVersion(t *testing.T) {

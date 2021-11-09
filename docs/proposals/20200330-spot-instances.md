@@ -23,6 +23,8 @@ superseded-by:
 
 <!--ts-->
    * [Add support for Spot Instances](#add-support-for-spot-instances)
+        * [Termination handler](#termination-handler)
+        * [Termination handler security](#termination-handler-security)
       * [Table of contents](#table-of-contents)
       * [Glossary](#glossary)
       * [Summary](#summary)
@@ -495,6 +497,17 @@ Azure Spot VMs support two types of eviction policy:
 
 - Delete: This deletes the VM and all associated disks and networking when the node is preempted.
   This is *only* supported on Scale Sets backed by Spot VMs.
+
+
+#### Running the termination handler
+The Termination Pod will be part of a DaemonSet, that can be deployed using [ClusterResourceSet](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20200220-cluster-resource-set.md). The DaemonSet will select Nodes which are labelled as spot instances to ensure the Termination Pod only runs on instances that require termination handlers.
+
+The spot label will be added to the Node by the machine controller as described [here](#interruptible-label), provided they support spot instances and the instance is a spot instance. 
+#### Termination handler security
+The metadata services that are hosted by the cloud providers are only accessible from the hosts themselves, so the pod will need to run within the host network.
+
+To restrict the possible effects of the termination handler, it should re-use the Kubelet credentials which pass through the [NodeRestriction](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction) admission controller. This limits the termination handler to only be able to modify the Node on which it is running. Eg, it would not be able to set the conditions on a different Node.
+
 
 ## Implementation History
 

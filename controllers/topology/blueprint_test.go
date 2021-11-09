@@ -182,7 +182,7 @@ func TestGetBlueprint(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentClasses(mds).
+				WithWorkerMachineDeploymentClasses(mds...).
 				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
@@ -194,7 +194,7 @@ func TestGetBlueprint(t *testing.T) {
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplate).
-					WithWorkerMachineDeploymentClasses(mds).
+					WithWorkerMachineDeploymentClasses(mds...).
 					Build(),
 				InfrastructureClusterTemplate: infraClusterTemplate,
 				ControlPlane: &scope.ControlPlaneBlueprint{
@@ -217,7 +217,7 @@ func TestGetBlueprint(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentClasses(mds).
+				WithWorkerMachineDeploymentClasses(mds...).
 				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
@@ -232,7 +232,7 @@ func TestGetBlueprint(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
-				WithWorkerMachineDeploymentClasses(mds).
+				WithWorkerMachineDeploymentClasses(mds...).
 				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,

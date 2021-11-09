@@ -466,7 +466,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		WithInfrastructureClusterTemplate(infrastructureClusterTemplate).
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
-		WithWorkerMachineDeploymentClasses([]clusterv1.MachineDeploymentClass{*mdClass1}).
+		WithWorkerMachineDeploymentClasses(*mdClass1).
 		Build()
 
 	cluster := &clusterv1.Cluster{

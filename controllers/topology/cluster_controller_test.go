@@ -325,7 +325,7 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 		WithInfrastructureClusterTemplate(infrastructureClusterTemplate).
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).
-		WithWorkerMachineDeploymentClasses([]clusterv1.MachineDeploymentClass{*machineDeploymentClass1, *machineDeploymentClass2}).
+		WithWorkerMachineDeploymentClasses(*machineDeploymentClass1, *machineDeploymentClass2).
 		Build()
 
 	// 3) Two Clusters including a Cluster Topology objects and the MachineDeploymentTopology objects used in the

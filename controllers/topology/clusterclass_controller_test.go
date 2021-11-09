@@ -76,7 +76,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 		WithInfrastructureClusterTemplate(infraClusterTemplate).
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneInfrastructureMachineTemplate(infraMachineTemplateControlPlane).
-		WithWorkerMachineDeploymentClasses([]clusterv1.MachineDeploymentClass{*machineDeploymentClass1, *machineDeploymentClass2}).
+		WithWorkerMachineDeploymentClasses(*machineDeploymentClass1, *machineDeploymentClass2).
 		Build()
 
 	// Create the set of initObjects from the objects above to add to the API server when the test environment starts.

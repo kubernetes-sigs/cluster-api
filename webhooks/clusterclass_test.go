@@ -22,10 +22,12 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/builder"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -44,34 +46,24 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
 
 	namespace := "default"
-	ref := &corev1.ObjectReference{
-		APIVersion: "foo",
-		Kind:       "barTemplate",
-		Name:       "baz",
-	}
-	in := &clusterv1.ClusterClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
-		Spec: clusterv1.ClusterClassSpec{
-			Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-			ControlPlane: clusterv1.ControlPlaneClass{
-				LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: ref},
-				MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: ref},
-			},
-			Workers: clusterv1.WorkersClass{
-				MachineDeployments: []clusterv1.MachineDeploymentClass{
-					{
-						Class: "aa",
-						Template: clusterv1.MachineDeploymentClassTemplate{
-							Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-							Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-						},
-					},
-				},
-			},
-		},
-	}
+
+	in := builder.ClusterClass(namespace, "class1").
+		WithInfrastructureClusterTemplate(
+			builder.InfrastructureClusterTemplate("", "infra1").Build()).
+		WithControlPlaneTemplate(
+			builder.ControlPlaneTemplate("", "cp1").
+				Build()).
+		WithControlPlaneInfrastructureMachineTemplate(
+			builder.InfrastructureMachineTemplate("", "cpInfra1").
+				Build()).
+		WithWorkerMachineDeploymentClasses(
+			*builder.MachineDeploymentClass("aa").
+				WithInfrastructureTemplate(
+					builder.InfrastructureMachineTemplate("", "infra1").Build()).
+				WithBootstrapTemplate(
+					builder.BootstrapTemplate("", "bootstrap1").Build()).
+				Build()).
+		Build()
 
 	webhook := &ClusterClass{}
 	t.Run("for ClusterClass", customDefaultValidateTest(ctx, in, webhook))
@@ -92,12 +84,6 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 func TestClusterClassValidationFeatureGated(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 
-	ref := &corev1.ObjectReference{
-		APIVersion: "foo",
-		Kind:       "barTemplate",
-		Name:       "baz",
-		Namespace:  "default",
-	}
 	tests := []struct {
 		name      string
 		in        *clusterv1.ClusterClass
@@ -106,77 +92,61 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 	}{
 		{
 			name: "creation should fail if feature flag is disabled, no matter the ClusterClass is valid(or not)",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate("", "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate("", "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate("", "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate("", "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate("", "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
 			name: "update should fail if feature flag is disabled, no matter the ClusterClass is valid(or not)",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate("", "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate("", "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate("", "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate("", "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate("", "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate("", "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate("", "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate("", "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate("", "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate("", "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 	}
@@ -205,12 +175,6 @@ func TestClusterClassValidation(t *testing.T) {
 		Name:       "baz",
 		Namespace:  "default",
 	}
-	refInAnotherNamespace := &corev1.ObjectReference{
-		APIVersion: "group.test.io/foo",
-		Kind:       "barTemplate",
-		Name:       "baz",
-		Namespace:  "another-namespace",
-	}
 	refBadTemplate := &corev1.ObjectReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "bar",
@@ -222,11 +186,6 @@ func TestClusterClassValidation(t *testing.T) {
 		Kind:       "barTemplate",
 		Name:       "baz",
 		Namespace:  "default",
-	}
-	refEmptyName := &corev1.ObjectReference{
-		APIVersion: "group.test.io/foo",
-		Namespace:  "default",
-		Kind:       "barTemplate",
 	}
 	incompatibleRef := &corev1.ObjectReference{
 		APIVersion: "group.test.io/foo",
@@ -254,612 +213,402 @@ func TestClusterClassValidation(t *testing.T) {
 
 		{
 			name: "create pass",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-							{
-								Class: "bb",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: false,
 		},
 
 		// empty name in ref tests
 		{
-			name: "create fail infrastructure has empty name",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: refEmptyName},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail infrastructureCluster has empty name",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "create fail control plane class has empty name",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: refEmptyName},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail controlPlane class has empty name",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "").
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "create fail control plane class machineinfrastructure has empty name",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: ref},
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: refEmptyName},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail control plane class machineInfrastructure has empty name",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "").
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "create fail machine deployment bootstrap has empty name",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: refEmptyName},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail machineDeployment Bootstrap has empty name",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "create fail machine deployment infrastructure has empty name",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: refEmptyName},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail machineDeployment Infrastructure has empty name",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 
 		// inconsistent namespace in ref tests
 		{
-			name: "create fail if infrastructure has inconsistent namespace",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: refInAnotherNamespace},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if InfrastructureCluster has inconsistent namespace",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate("WrongNamespace", "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "create fail if control plane has inconsistent namespace",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: refInAnotherNamespace},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if controlPlane has inconsistent namespace",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate("WrongNamespace", "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "create fail if control plane class machineinfrastructure has inconsistent namespace",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: ref},
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: refInAnotherNamespace},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if controlPlane machineInfrastructure has inconsistent namespace",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate("WrongNamespace", "cpInfra1").
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "create fail if machine deployment / bootstrap has inconsistent namespace",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: refInAnotherNamespace},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if machineDeployment / bootstrap has inconsistent namespace",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate("WrongNamespace", "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "create fail if machine deployment / infrastructure has inconsistent namespace",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: refInAnotherNamespace},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if machineDeployment / infrastructure has inconsistent namespace",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate("WrongNamespace", "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 
 		// bad template in ref tests
 		{
-			name: "create fail if bad template in control plane",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: refBadTemplate},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if bad template in InfrastructureCluster",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					refToUnstructured(refBadTemplate)).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 		{
-			name: "create fail if bad template in control plane class machineinfrastructure",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: ref},
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: refBadTemplate},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if bad template in controlPlane machineInfrastructure",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(refBadTemplate)).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 		{
-			name: "create fail if bad template in infrastructure",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: refBadTemplate},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if bad template in ControlPlane",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(refBadTemplate)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 		{
-			name: "create fail if bad template in machine deployment bootstrap",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: refBadTemplate},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if bad template in machineDeployment Bootstrap",
+
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							refToUnstructured(refBadTemplate)).
+						Build()).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 		{
-			name: "create fail if bad template in machine deployment infrastructure",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: refBadTemplate},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if bad template in machineDeployment Infrastructure",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(refBadTemplate)).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 
 		// bad apiVersion in ref tests
 		{
-			name: "create fail if bad apiVersion in control plane",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: refBadAPIVersion},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail with a bad APIVersion for template in InfrastructureCluster",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					refToUnstructured(refBadAPIVersion)).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 		{
-			name: "create fail if bad apiVersion in control plane class machineinfrastructure",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: ref},
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: refBadAPIVersion},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail with a bad APIVersion for template in controlPlane machineInfrastructure",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(refBadAPIVersion)).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 		{
-			name: "create fail if bad apiVersion in infrastructure",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: refBadAPIVersion},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail with a bad APIVersion for template in ControlPlane",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(refBadAPIVersion)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 		{
-			name: "create fail if bad apiVersion in machine deployment bootstrap",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: refBadAPIVersion},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail with a bad APIVersion for template in machineDeployment Bootstrap",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							refToUnstructured(refBadAPIVersion)).
+						Build()).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 		{
-			name: "create fail if bad apiVersion in machine deployment infrastructure",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: refBadAPIVersion},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail with a bad APIVersion for template in machineDeployment Infrastructure",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(refBadAPIVersion)).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			old:       nil,
 			expectErr: true,
 		},
 
 		// create test
 		{
-			name: "create fail if duplicated DeploymentClasses",
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "create fail if duplicated machineDeploymentClasses",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).Build(),
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 
@@ -869,577 +618,428 @@ func TestClusterClassValidation(t *testing.T) {
 
 		{
 			name: "update pass in case of no changes",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: false,
 		},
 		{
-			name: "update pass if infrastructure changes in a compatible way",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: compatibleRef},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "update pass if infrastructureCluster changes in a compatible way",
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					refToUnstructured(ref)).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					refToUnstructured(compatibleRef)).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: false,
 		},
 		{
-			name: "update fails if infrastructure changes in an incompatible way",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: incompatibleRef},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "update fails if infrastructureCluster changes in an incompatible way",
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					refToUnstructured(ref)).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					refToUnstructured(incompatibleRef)).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
 			name: "update pass if controlPlane changes in a compatible way",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: ref},
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						Metadata: clusterv1.ObjectMeta{
-							Labels:      map[string]string{"foo": "bar"},
-							Annotations: map[string]string{"foo": "bar"},
-						},
-						LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: compatibleRef},
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: compatibleRef},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(compatibleRef)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(compatibleRef)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: false,
 		},
 		{
-			name: "update fails if controlPlane changes in an incompatible way (control plane template)",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: incompatibleRef},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "update fails if controlPlane changes in an incompatible way (controlPlane template)",
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(incompatibleRef)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
-			name: "update fails if controlPlane changes in an incompatible way (control plane infrastructure machine template)",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: ref},
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate:   clusterv1.LocalObjectTemplate{Ref: ref},
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{Ref: incompatibleRef},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "update fails if controlPlane changes in an incompatible way (controlPlane infrastructureMachineTemplate)",
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(ref)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(incompatibleRef)).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
 			name: "update pass if a machine deployment changes in a compatible way",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata: clusterv1.ObjectMeta{
-										Labels:      map[string]string{"foo": "bar"},
-										Annotations: map[string]string{"foo": "bar"},
-									},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: incompatibleRef}, // NOTE: this should be tolerated
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: compatibleRef},
-								},
-							},
-						},
-					},
-				},
-			},
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(ref)).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(compatibleRef)).
+						WithBootstrapTemplate(
+							refToUnstructured(incompatibleRef)).
+						Build()).
+				Build(),
 			expectErr: false,
 		},
 		{
 			name: "update fails a machine deployment changes in an incompatible way",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Metadata:       clusterv1.ObjectMeta{},
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: incompatibleRef},
-								},
-							},
-						},
-					},
-				},
-			},
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(ref)).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(incompatibleRef)).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
 			name: "update pass if a machine deployment class gets added",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-							{
-								Class: "bb",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
+					*builder.MachineDeploymentClass("BB").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: false,
 		},
 		{
 			name: "update fails if a duplicated deployment class gets added",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).Build(),
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 		{
 			name: "update fails if a machine deployment class gets removed",
-			old: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-							{
-								Class: "bb",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
-			in: &clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-				},
-				Spec: clusterv1.ClusterClassSpec{
-					Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{Ref: ref},
-					},
-					Workers: clusterv1.WorkersClass{
-						MachineDeployments: []clusterv1.MachineDeploymentClass{
-							{
-								Class: "aa",
-								Template: clusterv1.MachineDeploymentClassTemplate{
-									Bootstrap:      clusterv1.LocalObjectTemplate{Ref: ref},
-									Infrastructure: clusterv1.LocalObjectTemplate{Ref: ref},
-								},
-							},
-						},
-					},
-				},
-			},
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).Build(),
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
 			expectErr: true,
 		},
 	}
@@ -1455,4 +1055,14 @@ func TestClusterClassValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
+	gvk := ref.GetObjectKind().GroupVersionKind()
+	output := &unstructured.Unstructured{}
+	output.SetKind(gvk.Kind)
+	output.SetAPIVersion(gvk.GroupVersion().String())
+	output.SetName(ref.Name)
+	output.SetNamespace(ref.Namespace)
+	return output
 }

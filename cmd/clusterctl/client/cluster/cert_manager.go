@@ -21,11 +21,11 @@ import (
 	_ "embed"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/version"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	utilresource "sigs.k8s.io/cluster-api/util/resource"
+	"sigs.k8s.io/cluster-api/util/version"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
@@ -300,6 +301,12 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 		return "", "", false, err
 	}
 
+	desiredVersion := config.Version()
+	desiredSemVersion, err := semver.ParseTolerant(desiredVersion)
+	if err != nil {
+		return "", "", false, errors.Wrapf(err, "failed to parse config version [%s] for cert-manager component", desiredVersion)
+	}
+
 	needUpgrade := false
 	currentVersion := ""
 	for i := range objs {
@@ -322,19 +329,15 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 			}
 		}
 
-		objSemVersion, err := version.ParseSemantic(objVersion)
+		objSemVersion, err := semver.ParseTolerant(objVersion)
 		if err != nil {
 			return "", "", false, errors.Wrapf(err, "failed to parse version for cert-manager component %s/%s", obj.GetKind(), obj.GetName())
 		}
 
-		c, err := objSemVersion.Compare(config.Version())
-		if err != nil {
-			return "", "", false, errors.Wrapf(err, "failed to compare target version for cert-manager component %s/%s", obj.GetKind(), obj.GetName())
-		}
-
+		c := version.Compare(objSemVersion, desiredSemVersion, version.WithBuildTags())
 		switch {
-		case c < 0:
-			// if version < current, then upgrade
+		case c < 0 || c == 2:
+			// if version < current or same version and different non numeric build metadata, then upgrade
 			currentVersion = objVersion
 			needUpgrade = true
 		case c >= 0:
@@ -346,7 +349,7 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 			break
 		}
 	}
-	return currentVersion, config.Version(), needUpgrade, nil
+	return currentVersion, desiredVersion, needUpgrade, nil
 }
 
 func (cm *certManagerClient) getWaitTimeout() time.Duration {

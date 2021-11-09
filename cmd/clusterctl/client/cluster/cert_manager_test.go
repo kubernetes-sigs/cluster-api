@@ -208,6 +208,7 @@ func Test_shouldUpgrade(t *testing.T) {
 	}
 	tests := []struct {
 		name            string
+		configVersion   string
 		args            args
 		wantFromVersion string
 		wantToVersion   string
@@ -246,6 +247,111 @@ func Test_shouldUpgrade(t *testing.T) {
 			wantFromVersion: config.CertManagerDefaultVersion,
 			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            false,
+			wantErr:         false,
+		},
+		{
+			name:          "Version is equal but current version has no build metadata, should upgrade",
+			configVersion: "v1.5.3+h4fd4",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantFromVersion: "v1.5.3",
+			wantToVersion:   "v1.5.3+h4fd4",
+			want:            true,
+			wantErr:         false,
+		},
+		{
+			name:          "Version is equal but different build metadata with hash, should upgrade",
+			configVersion: "v1.5.3+h4fd4",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3+h4fd5",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantFromVersion: "v1.5.3+h4fd5",
+			wantToVersion:   "v1.5.3+h4fd4",
+			want:            true,
+			wantErr:         false,
+		},
+		{
+			name:          "Version is equal and same build metadata with hash, should not upgrade",
+			configVersion: "v1.5.3+h4fd5",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3+h4fd5",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantFromVersion: "v1.5.3+h4fd5",
+			wantToVersion:   "v1.5.3+h4fd5",
+			want:            false,
+			wantErr:         false,
+		},
+		{
+			name:          "Version is equal but older numbered build metadata, should not upgrade",
+			configVersion: "v1.5.3+build.1",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3+build.2",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantFromVersion: "v1.5.3+build.2",
+			wantToVersion:   "v1.5.3+build.1",
+			want:            false,
+			wantErr:         false,
+		},
+		{
+			name:          "Version is equal but newer numbered build metadata, should upgrade",
+			configVersion: "v1.5.3+build.3",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3+build.2",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantFromVersion: "v1.5.3+build.2",
+			wantToVersion:   "v1.5.3+build.3",
+			want:            true,
 			wantErr:         false,
 		},
 		{
@@ -314,7 +420,7 @@ func Test_shouldUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			proxy := test.NewFakeProxy()
-			fakeConfigClient := newFakeConfig()
+			fakeConfigClient := newFakeConfig().WithCertManager("", tt.configVersion, "")
 			pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
 				return nil
 			}

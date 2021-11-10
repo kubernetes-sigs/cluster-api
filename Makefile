@@ -238,6 +238,7 @@ controller-gen: $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
 conversion-gen: $(CONVERSION_GEN) ## Build a local copy of conversion-gen.
 conversion-verifier: $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
 gotestsum: $(GOTESTSUM) ## Build a local copy of gotestsum.
+yq: $(YQ)  ## Build a local copy of yq.
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework

@@ -328,9 +328,13 @@ def ensure_yq():
     if not os.path.exists(yq_cmd):
         local("make {}".format(yq_cmd))
 
+def ensure_envsubst():
+    if not os.path.exists(envsubst_cmd):
+        local("make {}".format(os.path.abspath(envsubst_cmd)))
+
 def ensure_kustomize():
     if not os.path.exists(kustomize_cmd):
-        local("make {}".format(kustomize_cmd))
+        local("make {}".format(os.path.abspath(kustomize_cmd)))
 
 def deploy_observability():
     k8s_yaml(blob(str(local("{} build {}".format(kustomize_cmd, "./hack/observability/"), quiet = True))))
@@ -344,6 +348,7 @@ def deploy_observability():
 ##############################
 
 ensure_yq()
+ensure_envsubst()
 ensure_kustomize()
 
 include_user_tilt_files()

@@ -56,6 +56,7 @@
         - [v1alpha2 to v1alpha3](./developer/providers/v1alpha2-to-v1alpha3.md)
         - [v1alpha3 to v1alpha4](./developer/providers/v1alpha3-to-v1alpha4.md)
         - [v1alpha4 to v1beta1](./developer/providers/v1alpha4-to-v1beta1.md)
+        - [v1.0 to v1.1](./developer/providers/v1.0-to-v1.1.md)
         - [Cluster Infrastructure](./developer/providers/cluster-infrastructure.md)
         - [Machine Infrastructure](./developer/providers/machine-infrastructure.md)
         - [Bootstrap](./developer/providers/bootstrap.md)

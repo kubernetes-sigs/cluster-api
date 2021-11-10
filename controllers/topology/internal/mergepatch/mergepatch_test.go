@@ -724,15 +724,15 @@ func Test_removePath(t *testing.T) {
 
 func Test_enforcePath(t *testing.T) {
 	tests := []struct {
-		name       string
-		simpleMap  map[string]interface{}
-		twoWaysMap map[string]interface{}
-		path       contract.Path
-		want       map[string]interface{}
+		name             string
+		authoritativeMap map[string]interface{}
+		twoWaysMap       map[string]interface{}
+		path             contract.Path
+		want             map[string]interface{}
 	}{
 		{
 			name: "Keep value not enforced",
-			simpleMap: map[string]interface{}{
+			authoritativeMap: map[string]interface{}{
 				"foo": nil,
 			},
 			twoWaysMap: map[string]interface{}{
@@ -749,7 +749,7 @@ func Test_enforcePath(t *testing.T) {
 		},
 		{
 			name: "Enforce value",
-			simpleMap: map[string]interface{}{
+			authoritativeMap: map[string]interface{}{
 				"foo": nil,
 			},
 			twoWaysMap: map[string]interface{}{
@@ -764,7 +764,7 @@ func Test_enforcePath(t *testing.T) {
 		},
 		{
 			name: "Enforce nested value",
-			simpleMap: map[string]interface{}{
+			authoritativeMap: map[string]interface{}{
 				"foo": map[string]interface{}{
 					"bar": nil,
 				},
@@ -785,7 +785,7 @@ func Test_enforcePath(t *testing.T) {
 		},
 		{
 			name: "Enforce nested value",
-			simpleMap: map[string]interface{}{
+			authoritativeMap: map[string]interface{}{
 				"foo": map[string]interface{}{
 					"bar": nil,
 				},
@@ -805,7 +805,7 @@ func Test_enforcePath(t *testing.T) {
 		},
 		{
 			name: "Enforce nested value rebuilding struct if missing",
-			simpleMap: map[string]interface{}{
+			authoritativeMap: map[string]interface{}{
 				"foo": map[string]interface{}{
 					"bar": nil,
 				},
@@ -820,19 +820,149 @@ func Test_enforcePath(t *testing.T) {
 		},
 		{
 			name: "Ignore partial match",
-			simpleMap: map[string]interface{}{
+			authoritativeMap: map[string]interface{}{
 				"foo": "a",
 			},
 			twoWaysMap: map[string]interface{}{},
 			path:       contract.Path([]string{"foo", "bar", "baz"}),
 			want:       map[string]interface{}{},
 		},
+
+		{
+			name: "authoritative has no changes, twoWays has no changes, no changes",
+			authoritativeMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"spec": nil,
+					},
+				},
+			},
+			twoWaysMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"spec": nil,
+					},
+				},
+			},
+			path: contract.Path([]string{"spec", "template", "metadata"}),
+			want: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"spec": nil,
+					},
+				},
+			},
+		},
+		{
+			name: "authoritative has no changes, twoWays has no changes, no changes",
+			authoritativeMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{},
+				},
+			},
+			twoWaysMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{},
+				},
+			},
+			path: contract.Path([]string{"spec", "template", "metadata"}),
+			want: map[string]interface{}{},
+		},
+		{
+			name: "authoritative has changes, twoWays has no changes, authoritative apply",
+			authoritativeMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+			twoWaysMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{},
+				},
+			},
+			path: contract.Path([]string{"spec", "template", "metadata"}),
+			want: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "authoritative has changes, twoWays has changes, authoritative apply",
+			authoritativeMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+			twoWaysMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
+								"foo": "baz",
+							},
+						},
+					},
+				},
+			},
+			path: contract.Path([]string{"spec", "template", "metadata"}),
+			want: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "authoritative has no changes, twoWays has changes, twoWays changes blanked out",
+			authoritativeMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{},
+				},
+			},
+			twoWaysMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
+								"foo": "baz",
+							},
+						},
+					},
+				},
+			},
+			path: contract.Path([]string{"spec", "template", "metadata"}),
+			want: map[string]interface{}{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			enforcePath(tt.simpleMap, tt.twoWaysMap, tt.path)
+			enforcePath(tt.authoritativeMap, tt.twoWaysMap, tt.path)
 
 			g.Expect(tt.twoWaysMap).To(Equal(tt.want))
 		})

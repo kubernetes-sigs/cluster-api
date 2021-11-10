@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -154,17 +155,21 @@ type WaitForControlPlaneToBeReadyInput struct {
 // WaitForControlPlaneToBeReady will wait for a control plane to be ready.
 func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...interface{}) {
 	By("Waiting for the control plane to be ready")
-	Eventually(func() (bool, error) {
-		controlplane := &controlplanev1.KubeadmControlPlane{}
+	controlplane := &controlplanev1.KubeadmControlPlane{}
+	Eventually(func() (controlplanev1.KubeadmControlPlane, error) {
 		key := client.ObjectKey{
 			Namespace: input.ControlPlane.GetNamespace(),
 			Name:      input.ControlPlane.GetName(),
 		}
 		if err := input.Getter.Get(ctx, key, controlplane); err != nil {
-			return false, err
+			return *controlplane, errors.Wrapf(err, "failed to get KCP")
 		}
-		return controlplane.Status.Ready, nil
-	}, intervals...).Should(BeTrue())
+		return *controlplane, nil
+	}, intervals...).Should(MatchFields(IgnoreExtras, Fields{
+		"Status": MatchFields(IgnoreExtras, Fields{
+			"Ready": BeTrue(),
+		}),
+	}), PrettyPrint(controlplane)+"\n")
 }
 
 // AssertControlPlaneFailureDomainsInput is the input for AssertControlPlaneFailureDomains.

@@ -420,6 +420,122 @@ var moveTests = []struct {
 		},
 	},
 	{
+		name: "Cluster with ClusterClass",
+		fields: moveTestsFields{
+			objs: func() []client.Object {
+				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
+				objs = append(objs, test.NewFakeCluster("ns1", "foo").WithTopologyClass("class1").Objs()...)
+				return deduplicateObjects(objs)
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+			},
+			{ // group 2
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo",
+			},
+			{ // group 3
+				"/v1, Kind=Secret, ns1/foo-ca",
+				"/v1, Kind=Secret, ns1/foo-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo",
+			},
+		},
+		wantErr: false,
+	},
+	{
+		name: "Two Clusters with two ClusterClasses",
+		fields: moveTestsFields{
+			objs: func() []client.Object {
+				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
+				objs = append(objs, test.NewFakeClusterClass("ns1", "class2").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "foo1").WithTopologyClass("class1").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "foo2").WithTopologyClass("class2").Objs()...)
+				return deduplicateObjects(objs)
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class2",
+			},
+			{ // group 2
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo1",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class2",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class2",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo2",
+			},
+			{ // group 3
+				"/v1, Kind=Secret, ns1/foo1-ca",
+				"/v1, Kind=Secret, ns1/foo1-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo1",
+				"/v1, Kind=Secret, ns1/foo2-ca",
+				"/v1, Kind=Secret, ns1/foo2-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo2",
+			},
+		},
+		wantErr: false,
+	},
+	{
+		name: "Two Clusters sharing one ClusterClass",
+		fields: moveTestsFields{
+			objs: func() []client.Object {
+				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
+				objs = append(objs, test.NewFakeCluster("ns1", "foo1").WithTopologyClass("class1").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "foo2").WithTopologyClass("class1").Objs()...)
+				return deduplicateObjects(objs)
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+			},
+			{ // group 2
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo1",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo2",
+			},
+			{ // group 3
+				"/v1, Kind=Secret, ns1/foo1-ca",
+				"/v1, Kind=Secret, ns1/foo1-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo1",
+				"/v1, Kind=Secret, ns1/foo2-ca",
+				"/v1, Kind=Secret, ns1/foo2-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo2",
+			},
+		},
+		wantErr: false,
+	},
+	{
+		name: "Cluster with unused ClusterClass",
+		fields: moveTestsFields{
+			objs: func() []client.Object {
+				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
+				objs = append(objs, test.NewFakeCluster("ns1", "foo1").Objs()...)
+				return deduplicateObjects(objs)
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo1",
+			},
+			{ // group 2
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1",
+				"/v1, Kind=Secret, ns1/foo1-ca",
+				"/v1, Kind=Secret, ns1/foo1-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo1",
+			},
+		},
+		wantErr: false,
+	},
+	{
 		// NOTE: External objects are CRD types installed by clusterctl, but not directly related with the CAPI hierarchy of objects. e.g. IPAM claims.
 		name: "Namespaced External Objects with force move label",
 		fields: moveTestsFields{

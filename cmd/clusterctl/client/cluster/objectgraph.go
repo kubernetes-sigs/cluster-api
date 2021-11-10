@@ -35,6 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const clusterTopologyNameKey = "cluster.spec.topology.class"
+
 type empty struct{}
 
 type ownerReferenceAttributes struct {
@@ -46,10 +48,10 @@ type ownerReferenceAttributes struct {
 type node struct {
 	identity corev1.ObjectReference
 
-	// owners contains the list of nodes that are owned by the current node.
+	// owners contains the list of nodes that own the current node.
 	owners map[*node]ownerReferenceAttributes
 
-	// softOwners contains the list of nodes that are soft-owned by the current node.
+	// softOwners contains the list of nodes that soft-own the current node.
 	// E.g. secrets are soft-owned by a cluster via a naming convention, but without an explicit OwnerReference.
 	softOwners map[*node]empty
 
@@ -82,6 +84,11 @@ type node struct {
 	// restoreObject holds the object that is referenced when creating a node during restore from file.
 	// the object can then be referenced latter when restoring objects to a target management cluster
 	restoreObject *unstructured.Unstructured
+
+	// additionalInfo captures any additional information about the object the node represents.
+	// E.g. for the cluster object we capture information to see if the cluster uses a manged topology
+	// and the cluster class used.
+	additionalInfo map[string]interface{}
 }
 
 type discoveryTypeInfo struct {
@@ -118,6 +125,29 @@ func (n *node) getFilename() string {
 	return n.identity.Kind + "_" + n.identity.Namespace + "_" + n.identity.Name + ".yaml"
 }
 
+func (n *node) identityStr() string {
+	return fmt.Sprintf("Kind=%s, Name=%s, Namespace=%s", n.identity.Kind, n.identity.Name, n.identity.Namespace)
+}
+
+func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) error {
+	// If the node is a cluster check it see if it is uses a managed topology.
+	// In case, it uses a managed topology capture the name of the cluster class in use.
+	if n.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("Cluster").GroupKind() {
+		cluster := &clusterv1.Cluster{}
+		if err := localScheme.Convert(obj, cluster, nil); err != nil {
+			return errors.Wrapf(err, "failed to convert object %s to Cluster", n.identityStr())
+		}
+		if cluster.Spec.Topology != nil {
+			if n.additionalInfo == nil {
+				n.additionalInfo = map[string]interface{}{}
+			}
+			n.additionalInfo[clusterTopologyNameKey] = cluster.Spec.Topology.Class
+		}
+	}
+
+	return nil
+}
+
 // objectGraph manages the Kubernetes object graph that is generated during the discovery phase for the move operation.
 type objectGraph struct {
 	proxy             Proxy
@@ -136,12 +166,16 @@ func newObjectGraph(proxy Proxy, providerInventory InventoryClient) *objectGraph
 
 // addObj adds a Kubernetes object to the object graph that is generated during the move discovery phase.
 // During add, OwnerReferences are processed in order to create the dependency graph.
-func (o *objectGraph) addObj(obj *unstructured.Unstructured) {
+func (o *objectGraph) addObj(obj *unstructured.Unstructured) error {
 	// Adds the node to the Graph.
-	newNode := o.objToNode(obj)
+	newNode, err := o.objToNode(obj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create node for object (Kind=%s, Name=%s)", obj.GetKind(), obj.GetName())
+	}
 
 	// Process OwnerReferences; if the owner object does not exists yet, create a virtual node as a placeholder for it.
 	o.processOwnerReferences(obj, newNode)
+	return nil
 }
 
 // addRestoredObj adds a Kubernetes object to the object graph from file that is generated during a restore
@@ -149,7 +183,9 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) {
 // During add, OwnerReferences are processed in order to create the dependency graph.
 func (o *objectGraph) addRestoredObj(obj *unstructured.Unstructured) error {
 	// Add object to graph
-	o.objToNode(obj)
+	if _, err := o.objToNode(obj); err != nil {
+		return errors.Wrapf(err, "failed to create node for object (Kind=%s, Name=%s)", obj.GetKind(), obj.GetName())
+	}
 
 	// Check to ensure node has been added to graph
 	node, found := o.uidToNode[obj.GetUID()]
@@ -205,17 +241,16 @@ func (o *objectGraph) ownerToVirtualNode(owner metav1.OwnerReference) *node {
 // objToNode creates a node for the Kubernetes object received in input.
 // If the node corresponding to the Kubernetes object already exists as a virtual node detected when processing OwnerReferences,
 // the node is marked as Observed.
-func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
+func (o *objectGraph) objToNode(obj *unstructured.Unstructured) (*node, error) {
 	existingNode, found := o.uidToNode[obj.GetUID()]
 	if found {
 		existingNode.markObserved()
 
-		// In order to compensate the lack of labels when adding a virtual node,
-		// it is required to re-compute the forceMove and forceMoveHierarchy field when the real node is processed.
-		// Without this, there is the risk that those fields could report false negatives depending on the discovery order.
-		o.objMetaToNode(obj, existingNode)
+		if err := o.objInfoToNode(obj, existingNode); err != nil {
+			return nil, errors.Wrapf(err, "failed to add object info to node for object %s", existingNode.identityStr())
+		}
 
-		return existingNode
+		return existingNode, nil
 	}
 
 	newNode := &node{
@@ -226,15 +261,26 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 			Name:       obj.GetName(),
 			Namespace:  obj.GetNamespace(),
 		},
-		owners:     make(map[*node]ownerReferenceAttributes),
-		softOwners: make(map[*node]empty),
-		tenant:     make(map[*node]empty),
-		virtual:    false,
+		owners:         make(map[*node]ownerReferenceAttributes),
+		softOwners:     make(map[*node]empty),
+		tenant:         make(map[*node]empty),
+		virtual:        false,
+		additionalInfo: make(map[string]interface{}),
 	}
-	o.objMetaToNode(obj, newNode)
+	if err := o.objInfoToNode(obj, newNode); err != nil {
+		return nil, errors.Wrapf(err, "failed to add object info to node for object %s", existingNode.identityStr())
+	}
 
 	o.uidToNode[newNode.identity.UID] = newNode
-	return newNode
+	return newNode, nil
+}
+
+func (o *objectGraph) objInfoToNode(obj *unstructured.Unstructured, n *node) error {
+	o.objMetaToNode(obj, n)
+	if err := n.captureAdditionalInformation(obj); err != nil {
+		return errors.Wrapf(err, "failed to capture additional information of object %s", n.identityStr())
+	}
+	return nil
 }
 
 func (o *objectGraph) objMetaToNode(obj *unstructured.Unstructured, n *node) {
@@ -283,7 +329,7 @@ func (o *objectGraph) getDiscoveryTypes() error {
 
 			// If a CRD is labeled with force move-hierarchy, keep track of this so all the objects of this kind could be moved
 			// together with their descendants identified via the owner chain.
-			// NOTE: Cluster and ClusterResourceSet are automatically considered as force move-hierarchy.
+			// NOTE: Cluster, ClusterClass and ClusterResourceSet are automatically considered as force move-hierarchy.
 			forceMoveHierarchy := false
 			if crd.Spec.Group == clusterv1.GroupVersion.Group && crd.Spec.Names.Kind == "Cluster" {
 				forceMoveHierarchy = true
@@ -399,7 +445,9 @@ func (o *objectGraph) Discovery(namespace string) error {
 		log.V(5).Info(typeMeta.Kind, "Count", len(objList.Items))
 		for i := range objList.Items {
 			obj := objList.Items[i]
-			o.addObj(&obj)
+			if err := o.addObj(&obj); err != nil {
+				return errors.Wrapf(err, "failed to add obj (Kind=%s, Name=%s) to graph", obj.GetKind(), obj.GetName())
+			}
 		}
 	}
 
@@ -442,6 +490,17 @@ func (o *objectGraph) getClusters() []*node {
 		}
 	}
 	return clusters
+}
+
+// getClusterClasses returns the list of ClusterClasses existing in the object graph.
+func (o *objectGraph) getClusterClasses() []*node {
+	clusterClasses := []*node{}
+	for _, node := range o.uidToNode {
+		if node.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind() {
+			clusterClasses = append(clusterClasses, node)
+		}
+	}
+	return clusterClasses
 }
 
 // getClusters returns the list of Secrets existing in the object graph.
@@ -520,6 +579,20 @@ func (o *objectGraph) setSoftOwnership() {
 		for _, cluster := range clusters {
 			if secretClusterName == cluster.identity.Name && secret.identity.Namespace == cluster.identity.Namespace {
 				secret.addSoftOwner(cluster)
+			}
+		}
+	}
+
+	clusterClasses := o.getClusterClasses()
+	// Cluster that uses a ClusterClass are soft owned by that ClusterClass.
+	for _, clusterClass := range clusterClasses {
+		for _, cluster := range clusters {
+			// if the cluster uses a managed topoloy and uses the clusterclass
+			// set the clusterclass as a soft owner of the cluster.
+			if className, ok := cluster.additionalInfo[clusterTopologyNameKey]; ok {
+				if className == clusterClass.identity.Name && clusterClass.identity.Namespace == cluster.identity.Namespace {
+					cluster.addSoftOwner(clusterClass)
+				}
 			}
 		}
 	}

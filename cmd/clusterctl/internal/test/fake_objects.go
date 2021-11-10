@@ -49,6 +49,7 @@ type FakeCluster struct {
 	machines              []*FakeMachine
 	withCloudConfigSecret bool
 	withCredentialSecret  bool
+	topologyClass         *string
 }
 
 // NewFakeCluster return a FakeCluster that can generate a cluster object, all its own ancillary objects:
@@ -99,6 +100,11 @@ func (f *FakeCluster) WithMachines(fakeMachine ...*FakeMachine) *FakeCluster {
 	return f
 }
 
+func (f *FakeCluster) WithTopologyClass(class string) *FakeCluster {
+	f.topologyClass = &class
+	return f
+}
+
 func (f *FakeCluster) Objs() []client.Object {
 	clusterInfrastructure := &fakeinfrastructure.GenericInfrastructureCluster{
 		TypeMeta: metav1.TypeMeta{
@@ -131,6 +137,10 @@ func (f *FakeCluster) Objs() []client.Object {
 				Namespace:  clusterInfrastructure.Namespace,
 			},
 		},
+	}
+
+	if f.topologyClass != nil {
+		cluster.Spec.Topology = &clusterv1.Topology{Class: *f.topologyClass}
 	}
 
 	// Ensure the cluster gets a UID to be used by dependant objects for creating OwnerReferences.

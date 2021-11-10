@@ -246,7 +246,16 @@ func enforcePath(authoritative, twoWay map[string]interface{}, path contract.Pat
 		return
 	case 1:
 		// If we are at the end of a path, enforce the value.
-		twoWay[path[0]] = authoritative[path[0]]
+
+		// If there is an authoritative change for the value, apply it.
+		if authoritativeChange, authoritativeHasChange := authoritative[path[0]]; authoritativeHasChange {
+			twoWay[path[0]] = authoritativeChange
+			return
+		}
+
+		// Else, if there is no authoritative change but there is a twoWays change for the value, blank it out.
+		delete(twoWay, path[0])
+
 	default:
 		// If in the middle of a path, go into the nested map,
 		nestedSimpleMap, ok := authoritative[path[0]].(map[string]interface{})

@@ -38,6 +38,9 @@ type Scope struct {
 // New returns a new Scope with only the cluster; while processing a request in the topology/ClusterReconciler controller
 // additional information will be added about the Cluster blueprint, current state and desired state.
 func New(cluster *clusterv1.Cluster) *Scope {
+	// enforce TypeMeta values in the Cluster object so we can assume it is always set during reconciliation.
+	cluster.APIVersion = clusterv1.GroupVersion.String()
+	cluster.Kind = "Cluster"
 	return &Scope{
 		Blueprint: &ClusterBlueprint{},
 		Current: &ClusterState{

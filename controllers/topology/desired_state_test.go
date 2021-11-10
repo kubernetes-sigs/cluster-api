@@ -90,6 +90,9 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 			currentRef:  nil,
 			obj:         obj,
 		})
+
+		// Ensure no ownership is added to generated InfrastructureCluster.
+		g.Expect(obj.GetOwnerReferences()).To(HaveLen(0))
 	})
 	t.Run("If there is already a reference to the infrastructureCluster, it preserves the reference name", func(t *testing.T) {
 		g := NewWithT(t)
@@ -174,6 +177,11 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			currentRef:  nil,
 			obj:         obj,
 		})
+
+		// Ensure Cluster ownership is added to generated InfrastructureCluster.
+		g.Expect(obj.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(obj.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
+		g.Expect(obj.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
 	})
 	t.Run("If there is already a reference to the infrastructureMachineTemplate, it preserves the reference name", func(t *testing.T) {
 		g := NewWithT(t)
@@ -270,6 +278,9 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
+
+		// Ensure no ownership is added to generated ControlPlane.
+		g.Expect(obj.GetOwnerReferences()).To(HaveLen(0))
 	})
 	t.Run("Skips setting replicas if required", func(t *testing.T) {
 		g := NewWithT(t)
@@ -727,7 +738,18 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(actual.BootstrapTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+
+		// Ensure Cluster ownership is added to generated BootstrapTemplate.
+		g.Expect(actual.BootstrapTemplate.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(actual.BootstrapTemplate.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
+		g.Expect(actual.BootstrapTemplate.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
+
 		g.Expect(actual.InfrastructureMachineTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+
+		// Ensure Cluster ownership is added to generated InfrastructureMachineTemplate.
+		g.Expect(actual.InfrastructureMachineTemplate.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(actual.InfrastructureMachineTemplate.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
+		g.Expect(actual.InfrastructureMachineTemplate.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
 
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))

@@ -23,8 +23,10 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/storage/names"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/mergepatch"
@@ -40,6 +42,13 @@ import (
 func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	log := tlog.LoggerFrom(ctx)
 	log.Infof("Reconciling state for topology owned objects")
+
+	// Reconcile the Cluster shim, a temporary object used a mean to collect
+	// objects/templates that can be orphaned in case of errors during the
+	// remaining part of the reconcile process.
+	if err := r.reconcileClusterShim(ctx, s); err != nil {
+		return err
+	}
 
 	// Reconcile desired state of the InfrastructureCluster object.
 	if err := r.reconcileInfrastructureCluster(ctx, s); err != nil {
@@ -58,6 +67,90 @@ func (r *ClusterReconciler) reconcileState(ctx context.Context, s *scope.Scope) 
 
 	// Reconcile desired state of the MachineDeployment objects.
 	return r.reconcileMachineDeployments(ctx, s)
+}
+
+// Reconcile the Cluster shim, a temporary object used a mean to collect objects/templates
+// that might be orphaned in case of errors during the remaining part of the reconcile process.
+func (r *ClusterReconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) error {
+	shim := clusterShim(s.Current.Cluster)
+
+	// If we are going to create the InfrastructureCluster or the ControlPlane object, then
+	// add a temporary cluster-shim object and use it as an additional owner.
+	// This will ensure the objects will be garbage collected in case of errors in between
+	// creating InfrastructureCluster/ControlPlane objects and updating the Cluster with the
+	// references to above objects.
+	if s.Current.InfrastructureCluster == nil || s.Current.ControlPlane.Object == nil {
+		if err := r.Client.Create(ctx, shim); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return errors.Wrap(err, "failed to create the cluster shim object")
+			}
+			if err := r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim); err != nil {
+				return errors.Wrapf(err, "failed to read the cluster shim object")
+			}
+		}
+		// Enforce type meta back given that it gets blanked out by Get.
+		shim.Kind = "Secret"
+		shim.APIVersion = corev1.SchemeGroupVersion.String()
+
+		// Add the shim as a temporary owner for the InfrastructureCluster.
+		ownerRefs := s.Desired.InfrastructureCluster.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(shim))
+		s.Desired.InfrastructureCluster.SetOwnerReferences(ownerRefs)
+
+		// Add the shim as a temporary owner for the ControlPlane.
+		ownerRefs = s.Desired.ControlPlane.Object.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(shim))
+		s.Desired.ControlPlane.Object.SetOwnerReferences(ownerRefs)
+	}
+
+	// If the InfrastructureCluster and the ControlPlane objects have been already created
+	// in previous reconciliation, check if they have already been reconciled by the ClusterController
+	// by verifying the ownerReference for the Cluster is present.
+	//
+	// When the Cluster and the shim object are both owners,
+	// it's safe for us to remove the shim and garbage collect any potential orphaned resource.
+	if s.Current.InfrastructureCluster != nil && s.Current.ControlPlane.Object != nil {
+		clusterOwnsAll := hasOwnerReferenceFrom(s.Current.InfrastructureCluster, s.Current.Cluster) &&
+			hasOwnerReferenceFrom(s.Current.ControlPlane.Object, s.Current.Cluster)
+		shimOwnsAtLeastOne := hasOwnerReferenceFrom(s.Current.InfrastructureCluster, shim) ||
+			hasOwnerReferenceFrom(s.Current.ControlPlane.Object, shim)
+
+		if clusterOwnsAll && shimOwnsAtLeastOne {
+			if err := r.Client.Delete(ctx, shim); err != nil {
+				if !apierrors.IsNotFound(err) {
+					return errors.Wrapf(err, "failed to delete the cluster shim object")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func clusterShim(c *clusterv1.Cluster) *corev1.Secret {
+	shim := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-shim", c.Name),
+			Namespace: c.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*ownerReferenceTo(c),
+			},
+		},
+		Type: clusterv1.ClusterSecretType,
+	}
+	return shim
+}
+
+func hasOwnerReferenceFrom(obj, owner client.Object) bool {
+	for _, o := range obj.GetOwnerReferences() {
+		if o.Kind == owner.GetObjectKind().GroupVersionKind().Kind && o.Name == owner.GetName() {
+			return true
+		}
+	}
+	return false
 }
 
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.

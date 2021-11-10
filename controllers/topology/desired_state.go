@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -102,6 +103,8 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 		cluster:               cluster,
 		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
 		currentObjectRef:      currentRef,
+		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
+		// of the infrastructure cluster starts no matter of the object being actually referenced by the Cluster itself.
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to generate the InfrastructureCluster object from the %s", template.GetKind())
@@ -132,6 +135,10 @@ func computeControlPlaneInfrastructureMachineTemplate(_ context.Context, s *scop
 		cluster:               cluster,
 		namePrefix:            controlPlaneInfrastructureMachineTemplateNamePrefix(cluster.Name),
 		currentObjectRef:      currentRef,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and updating the Cluster object
+		// with the reference to the ControlPlane object using this template.
+		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
 	return controlPlaneInfrastructureMachineTemplate, nil
 }
@@ -150,6 +157,8 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 		cluster:               cluster,
 		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
 		currentObjectRef:      currentRef,
+		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
+		// of the ControlPlane starts no matter of the object being actually referenced by the Cluster itself.
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to generate the ControlPlane object from the %s", template.GetKind())
@@ -326,6 +335,10 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		cluster:               s.Current.Cluster,
 		namePrefix:            bootstrapTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
 		currentObjectRef:      currentBootstrapTemplateRef,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachineDeployment object
+		// with the reference to the ControlPlane object using this template.
+		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
 
 	bootstrapTemplateLabels := desiredMachineDeployment.BootstrapTemplate.GetLabels()
@@ -347,6 +360,10 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		cluster:               s.Current.Cluster,
 		namePrefix:            infrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
 		currentObjectRef:      currentInfraMachineTemplateRef,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachineDeployment object
+		// with the reference to the ControlPlane object using this template.
+		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
 
 	infraMachineTemplateLabels := desiredMachineDeployment.InfrastructureMachineTemplate.GetLabels()
@@ -535,6 +552,8 @@ type templateToInput struct {
 	cluster               *clusterv1.Cluster
 	namePrefix            string
 	currentObjectRef      *corev1.ObjectReference
+	// OwnerRef is an optional OwnerReference to attach to the cloned object.
+	ownerRef *metav1.OwnerReference
 }
 
 // templateToObject generates an object from a template, taking care
@@ -556,6 +575,7 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 		Namespace:   in.cluster.Namespace,
 		Labels:      labels,
 		ClusterName: in.cluster.Name,
+		OwnerRef:    in.ownerRef,
 	})
 	if err != nil {
 		return nil, err
@@ -610,6 +630,11 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	delete(annotations, corev1.LastAppliedConfigAnnotation)
 	template.SetAnnotations(annotations)
 
+	// Set the owner reference.
+	if in.ownerRef != nil {
+		template.SetOwnerReferences([]metav1.OwnerReference{*in.ownerRef})
+	}
+
 	// Ensure the generated template gets a meaningful name.
 	// NOTE: In case there is already an object ref to this template, it is required to re-use the same name
 	// in order to simplify compare at later stages of the reconcile process.
@@ -639,4 +664,13 @@ func mergeMap(a, b map[string]string) map[string]string {
 		return nil
 	}
 	return m
+}
+
+func ownerReferenceTo(obj client.Object) *metav1.OwnerReference {
+	return &metav1.OwnerReference{
+		Kind:       obj.GetObjectKind().GroupVersionKind().Kind,
+		Name:       obj.GetName(),
+		UID:        obj.GetUID(),
+		APIVersion: obj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+	}
 }

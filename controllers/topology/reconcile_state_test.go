@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -32,6 +33,185 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+func TestReconcileShim(t *testing.T) {
+	infrastructureCluster := builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
+	controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
+	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+	cluster1Shim := clusterShim(cluster1)
+
+	t.Run("Shim gets created when InfrastructureCluster and ControlPlane object have to be created", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a scope with a cluster and InfrastructureCluster yet to be created.
+		s := scope.New(cluster1)
+		s.Desired = &scope.ClusterState{
+			InfrastructureCluster: infrastructureCluster.DeepCopy(),
+			ControlPlane: &scope.ControlPlaneState{
+				Object: controlPlane.DeepCopy(),
+			},
+		}
+
+		// Set up an empty fake client.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			Build()
+
+		// Run reconcileClusterShim.
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+		err := r.reconcileClusterShim(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Check cluster shim exists.
+		shim := cluster1Shim.DeepCopy()
+		err = r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Check shim is assigned as owner for InfrastructureCluster and ControlPlane objects.
+		g.Expect(s.Desired.InfrastructureCluster.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(s.Desired.InfrastructureCluster.GetOwnerReferences()[0].Name).To(Equal(shim.Name))
+		g.Expect(s.Desired.ControlPlane.Object.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(s.Desired.ControlPlane.Object.GetOwnerReferences()[0].Name).To(Equal(shim.Name))
+	})
+	t.Run("Shim creation is re-entrant", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a scope with a cluster and InfrastructureCluster yet to be created.
+		s := scope.New(cluster1)
+		s.Desired = &scope.ClusterState{
+			InfrastructureCluster: infrastructureCluster.DeepCopy(),
+			ControlPlane: &scope.ControlPlaneState{
+				Object: controlPlane.DeepCopy(),
+			},
+		}
+
+		// Set up a fake client with an already existing shim.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(cluster1Shim.DeepCopy()).
+			Build()
+
+		// Run reconcileClusterShim.
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+		err := r.reconcileClusterShim(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Check cluster shim exists.
+		shim := cluster1Shim.DeepCopy()
+		err = r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Check shim is assigned as owner for InfrastructureCluster and ControlPlane objects.
+		g.Expect(s.Desired.InfrastructureCluster.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(s.Desired.InfrastructureCluster.GetOwnerReferences()[0].Name).To(Equal(shim.Name))
+		g.Expect(s.Desired.ControlPlane.Object.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(s.Desired.ControlPlane.Object.GetOwnerReferences()[0].Name).To(Equal(shim.Name))
+	})
+	t.Run("Shim is not deleted if InfrastructureCluster and ControlPlane object are waiting to be reconciled", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a scope with a cluster and InfrastructureCluster created but not yet reconciled.
+		s := scope.New(cluster1)
+		s.Current.InfrastructureCluster = infrastructureCluster.DeepCopy()
+		s.Current.ControlPlane = &scope.ControlPlaneState{
+			Object: controlPlane.DeepCopy(),
+		}
+
+		// Add the shim as a temporary owner for the InfrastructureCluster and ControlPlane.
+		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim))
+		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
+		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim))
+		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
+
+		// Set up a fake client with an already existing shim.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(cluster1Shim.DeepCopy()).
+			Build()
+
+		// Run reconcileClusterShim.
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+		err := r.reconcileClusterShim(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Check cluster shim exists.
+		shim := cluster1Shim.DeepCopy()
+		err = r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim)
+		g.Expect(err).ToNot(HaveOccurred())
+	})
+	t.Run("Shim gets deleted when InfrastructureCluster and ControlPlane object have been reconciled", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a scope with a cluster and InfrastructureCluster created and reconciled.
+		s := scope.New(cluster1)
+		s.Current.InfrastructureCluster = infrastructureCluster.DeepCopy()
+		s.Current.ControlPlane = &scope.ControlPlaneState{
+			Object: controlPlane.DeepCopy(),
+		}
+
+		// Add the shim as a temporary owner for the InfrastructureCluster and ControlPlane.
+		// Add the cluster as a final owner for the InfrastructureCluster and ControlPlane (reconciled).
+		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim))
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1))
+		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
+		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim))
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1))
+		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
+
+		// Set up a fake client with an already existing shim.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(cluster1Shim.DeepCopy()).
+			Build()
+
+		// Run reconcileClusterShim.
+		r := ClusterReconciler{
+			Client: fakeClient,
+		}
+		err := r.reconcileClusterShim(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Check cluster shim exists.
+		shim := cluster1Shim.DeepCopy()
+		err = r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+	t.Run("No op if InfrastructureCluster and ControlPlane object have been reconciled and shim is gone", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a scope with a cluster and InfrastructureCluster created and reconciled.
+		s := scope.New(cluster1)
+		s.Current.InfrastructureCluster = infrastructureCluster.DeepCopy()
+		s.Current.ControlPlane = &scope.ControlPlaneState{
+			Object: controlPlane.DeepCopy(),
+		}
+
+		// Add the cluster as a final owner for the InfrastructureCluster and ControlPlane (reconciled).
+		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1))
+		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
+		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1))
+		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
+
+		// Run reconcileClusterShim using a nil client, so an error will be triggered if any operation is attempted
+		r := ClusterReconciler{
+			Client: nil,
+		}
+		err := r.reconcileClusterShim(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+	})
+}
 
 func TestReconcileCluster(t *testing.T) {
 	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").
@@ -183,7 +363,7 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 				WithObjects(fakeObjs...).
 				Build()
 
-			s := scope.New(nil)
+			s := scope.New(&clusterv1.Cluster{})
 			s.Current.InfrastructureCluster = tt.current
 
 			s.Desired = &scope.ClusterState{InfrastructureCluster: tt.desired}

@@ -571,11 +571,11 @@ Note: Builtin variables are defined in [Builtin variables](#builtin-variables) b
 #### Builtin variables
 
 It’s also possible to use so-called builtin variables in addition to user-defined variables. The following builtin variables are available:
-- `builtin.cluster.{name,namespace,labels,annotations}`
+- `builtin.cluster.{name,namespace}`
 - `builtin.cluster.topology.{version,class}`
-- `builtin.controlPlane.{labels,annotations,replicas,version}`
+- `builtin.controlPlane.{replicas,version}`
     - **Note**: these variables are only available when patching control plane or control plane machine templates.
-- `builtin.machineDeployment.{labels,annotations,replicas,version,class,name,topologyName}`
+- `builtin.machineDeployment.{replicas,version,class,name,topologyName}`
     - **Note**: these variables are only available when patching MachineDeployment templates and contain the values 
       of the current `MachineDeploymentTopology`.
 

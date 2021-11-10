@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -2590,7 +2591,7 @@ func TestPatchTargets(t *testing.T) {
 	r := &MachineHealthCheckReconciler{
 		Client:   cl,
 		recorder: record.NewFakeRecorder(32),
-		Tracker:  remote.NewTestClusterCacheTracker(log.NullLogger{}, cl, scheme.Scheme, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
+		Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
 	}
 
 	// To make the patch fail, create patchHelper with a different client.
@@ -2615,10 +2616,10 @@ func TestPatchTargets(t *testing.T) {
 	}
 
 	// Target with wrong patch helper will fail but the other one will be patched.
-	g.Expect(len(r.patchUnhealthyTargets(context.TODO(), log.NullLogger{}, []healthCheckTarget{target1, target3}, defaultCluster, mhc))).To(BeNumerically(">", 0))
+	g.Expect(len(r.patchUnhealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, defaultCluster, mhc))).To(BeNumerically(">", 0))
 	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).NotTo(HaveOccurred())
 	g.Expect(conditions.Get(machine2, clusterv1.MachineOwnerRemediatedCondition).Status).To(Equal(corev1.ConditionFalse))
 
 	// Target with wrong patch helper will fail but the other one will be patched.
-	g.Expect(len(r.patchHealthyTargets(context.TODO(), log.NullLogger{}, []healthCheckTarget{target1, target3}, mhc))).To(BeNumerically(">", 0))
+	g.Expect(len(r.patchHealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, mhc))).To(BeNumerically(">", 0))
 }

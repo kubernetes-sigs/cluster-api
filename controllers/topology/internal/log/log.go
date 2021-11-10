@@ -37,7 +37,10 @@ import (
 func LoggerFrom(ctx context.Context) Logger {
 	log := ctrl.LoggerFrom(ctx)
 	return &topologyReconcileLogger{
-		Logger: log,
+		// We use call depth 1 so the logger prints the log line of the caller of the log func (e.g. Infof)
+		// not of the log func.
+		// NOTE: We do this once here, so that we don't have to do this on every log call.
+		Logger: log.WithCallDepth(1),
 	}
 }
 
@@ -128,12 +131,6 @@ func (l *topologyReconcileLogger) V(level int) Logger {
 // Infof logs to the INFO log.
 // Arguments are handled in the manner of fmt.Printf.
 func (l *topologyReconcileLogger) Infof(msg string, a ...interface{}) {
-	// If the logger implements CallDepthLogger, let's use WithCallDepth
-	// so the logger prints the log line of the caller not of the current line.
-	if logger, ok := l.Logger.(logr.CallDepthLogger); ok {
-		logger.WithCallDepth(1).Info(fmt.Sprintf(msg, a...))
-		return
-	}
 	l.Logger.Info(fmt.Sprintf(msg, a...))
 }
 

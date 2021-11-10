@@ -107,7 +107,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 	tracker, err := remote.NewClusterCacheTracker(
 		env.Manager,
 		remote.ClusterCacheTrackerOptions{
-			Log:     log.Log,
+			Log:     &log.Log,
 			Indexes: remote.DefaultIndexes,
 		},
 	)

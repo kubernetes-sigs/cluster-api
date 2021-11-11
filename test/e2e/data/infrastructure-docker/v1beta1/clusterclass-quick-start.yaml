@@ -38,6 +38,19 @@ spec:
     schema:
       openAPIV3Schema:
         type: string
+        default: "k8s.gcr.io"
+  - name: etcdImageTag
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: coreDNSImageTag
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
   patches:
   - name: imageRepository
     definitions:
@@ -51,6 +64,33 @@ spec:
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/imageRepository"
         valueFrom:
           variable: imageRepository
+  - name: etcdImageTag
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/etcd"
+        valueFrom:
+          template: |
+            local:
+              imageTag: {{ .etcdImageTag }}
+  - name: coreDNSImageTag
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/dns"
+        valueFrom:
+          template: |
+            imageTag: {{ .coreDNSImageTag }}
   - name: customImage
     definitions:
     - selector:

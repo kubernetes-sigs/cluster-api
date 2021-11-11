@@ -24,7 +24,6 @@ import (
 )
 
 var _ = Describe("When testing Cluster API working on self-hosted clusters", func() {
-
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
 			E2EConfig:             e2eConfig,
@@ -34,11 +33,9 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters", fun
 			SkipCleanup:           skipCleanup,
 		}
 	})
-
 })
 
 var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass", func() {
-
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
 			E2EConfig:             e2eConfig,
@@ -49,5 +46,4 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 			Flavor:                "topology",
 		}
 	})
-
 })

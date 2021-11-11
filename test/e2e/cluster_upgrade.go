@@ -47,6 +47,10 @@ type ClusterUpgradeConformanceSpecInput struct {
 
 // ClusterUpgradeConformanceSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
 // Upgrading a cluster refers to upgrading the control-plane and worker nodes (managed by MD and machine pools).
+// NOTE: This test only works with a KubeadmControlPlane.
+// NOTE: This test works with Clusters with and without ClusterClass.
+// When using ClusterClass the ClusterClass must have the variables "etcdImageTag" and "coreDNSImageTag" of type string.
+// Those variables should have corresponding patches which set the etcd and CoreDNS tags in KCP.
 func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() ClusterUpgradeConformanceSpecInput) {
 	const (
 		kubetestConfigurationVariable = "KUBETEST_CONFIGURATION"
@@ -110,28 +114,47 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			WaitForMachinePools:          input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		}, clusterResources)
 
-		By("Upgrading the kubernetes control-plane")
-		framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{
-			ClusterProxy:                input.BootstrapClusterProxy,
-			Cluster:                     clusterResources.Cluster,
-			ControlPlane:                clusterResources.ControlPlane,
-			EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
-			DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
-			KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-		})
+		if clusterResources.Cluster.Spec.Topology != nil {
+			// Cluster is using ClusterClass, upgrade via topology.
+			By("Upgrading the Cluster topology")
+			framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
+				ClusterProxy:                input.BootstrapClusterProxy,
+				Cluster:                     clusterResources.Cluster,
+				ControlPlane:                clusterResources.ControlPlane,
+				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
+				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+				MachineDeployments:          clusterResources.MachineDeployments,
+				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			})
+		} else {
+			// Cluster is not using ClusterClass, upgrade via individual resources.
+			By("Upgrading the Kubernetes control-plane")
+			framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{
+				ClusterProxy:                input.BootstrapClusterProxy,
+				Cluster:                     clusterResources.Cluster,
+				ControlPlane:                clusterResources.ControlPlane,
+				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
+				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			})
 
-		By("Upgrading the machine deployment")
-		framework.UpgradeMachineDeploymentsAndWait(ctx, framework.UpgradeMachineDeploymentsAndWaitInput{
-			ClusterProxy:                input.BootstrapClusterProxy,
-			Cluster:                     clusterResources.Cluster,
-			UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			MachineDeployments:          clusterResources.MachineDeployments,
-			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-		})
+			By("Upgrading the machine deployment")
+			framework.UpgradeMachineDeploymentsAndWait(ctx, framework.UpgradeMachineDeploymentsAndWaitInput{
+				ClusterProxy:                input.BootstrapClusterProxy,
+				Cluster:                     clusterResources.Cluster,
+				UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				MachineDeployments:          clusterResources.MachineDeployments,
+				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			})
+		}
 
 		// Only attempt to upgrade MachinePools if they were provided in the template,
 		// also adjust the expected workerMachineCount if we have MachinePools

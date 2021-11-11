@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/storage/names"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
@@ -176,7 +177,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, s *scope.
 			ref:                  cpInfraRef,
 			current:              s.Current.ControlPlane.InfrastructureMachineTemplate,
 			desired:              s.Desired.ControlPlane.InfrastructureMachineTemplate,
-			compatibilityChecker: check.ReferencedObjectsAreCompatible,
+			compatibilityChecker: check.ObjectsAreCompatible,
 			templateNamePrefix:   controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name),
 		},
 		)
@@ -300,7 +301,7 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 		current:              currentMD.InfrastructureMachineTemplate,
 		desired:              desiredMD.InfrastructureMachineTemplate,
 		templateNamePrefix:   infrastructureMachineTemplateNamePrefix(clusterName, mdTopologyName),
-		compatibilityChecker: check.ReferencedObjectsAreCompatible,
+		compatibilityChecker: check.ObjectsAreCompatible,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
 	}
@@ -397,8 +398,8 @@ func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, curre
 	}
 
 	// Check if the current and desired referenced object are compatible.
-	if err := check.ReferencedObjectsAreStrictlyCompatible(current, desired); err != nil {
-		return err
+	if allErrs := check.ObjectsAreStrictlyCompatible(current, desired); len(allErrs) > 0 {
+		return allErrs.ToAggregate()
 	}
 
 	// Check differences between current and desired state, and eventually patch the current object.
@@ -423,7 +424,7 @@ type reconcileReferencedTemplateInput struct {
 	current              *unstructured.Unstructured
 	desired              *unstructured.Unstructured
 	templateNamePrefix   string
-	compatibilityChecker func(current, desired client.Object) error
+	compatibilityChecker func(current, desired client.Object) field.ErrorList
 }
 
 // reconcileReferencedTemplate reconciles the desired state of a referenced Template.
@@ -451,8 +452,8 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 	}
 
 	// Check if the current and desired referenced object are compatible.
-	if err := in.compatibilityChecker(in.current, in.desired); err != nil {
-		return err
+	if allErrs := in.compatibilityChecker(in.current, in.desired); len(allErrs) > 0 {
+		return allErrs.ToAggregate()
 	}
 
 	// Check differences between current and desired objects, and if there are changes eventually start the template rotation.

@@ -19,6 +19,7 @@ package external
 import (
 	"testing"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +32,7 @@ import (
 )
 
 var (
-	logger = log.NullLogger{}
+	logger = logr.New(log.NullLogSink{})
 )
 
 type fakeController struct {

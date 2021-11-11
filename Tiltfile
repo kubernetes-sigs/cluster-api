@@ -139,7 +139,7 @@ def load_provider_tiltfiles():
 
 tilt_helper_dockerfile_header = """
 # Tilt image
-FROM golang:1.16.9 as tilt-helper
+FROM golang:1.17.3 as tilt-helper
 # Support live reloading with Tilt
 RUN go get github.com/go-delve/delve/cmd/dlv
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \

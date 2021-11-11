@@ -1,10 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.7.1-0.20211110210727-ab52f76cc7d1
   creationTimestamp: null
   name: clusterresourcesets.addons.cluster.x-k8s.io
 spec:

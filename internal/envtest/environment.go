@@ -161,17 +161,17 @@ func new(uncachedObjs ...client.Object) *Environment {
 			filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 		},
-		CRDs: []apiextensionsv1.CustomResourceDefinition{
-			*builder.GenericBootstrapConfigCRD.DeepCopy(),
-			*builder.GenericBootstrapConfigTemplateCRD.DeepCopy(),
-			*builder.GenericControlPlaneCRD.DeepCopy(),
-			*builder.GenericControlPlaneTemplateCRD.DeepCopy(),
-			*builder.GenericInfrastructureMachineCRD.DeepCopy(),
-			*builder.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
-			*builder.GenericInfrastructureClusterCRD.DeepCopy(),
-			*builder.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
-			*builder.GenericRemediationCRD.DeepCopy(),
-			*builder.GenericRemediationTemplateCRD.DeepCopy(),
+		CRDs: []*apiextensionsv1.CustomResourceDefinition{
+			builder.GenericBootstrapConfigCRD.DeepCopy(),
+			builder.GenericBootstrapConfigTemplateCRD.DeepCopy(),
+			builder.GenericControlPlaneCRD.DeepCopy(),
+			builder.GenericControlPlaneTemplateCRD.DeepCopy(),
+			builder.GenericInfrastructureMachineCRD.DeepCopy(),
+			builder.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
+			builder.GenericInfrastructureClusterCRD.DeepCopy(),
+			builder.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
+			builder.GenericRemediationCRD.DeepCopy(),
+			builder.GenericRemediationTemplateCRD.DeepCopy(),
 		},
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.

@@ -39,8 +39,8 @@ const (
 )
 
 func initWebhookInstallOptions() envtest.WebhookInstallOptions {
-	validatingWebhooks := []admissionv1.ValidatingWebhookConfiguration{}
-	mutatingWebhooks := []admissionv1.MutatingWebhookConfiguration{}
+	validatingWebhooks := []*admissionv1.ValidatingWebhookConfiguration{}
+	mutatingWebhooks := []*admissionv1.MutatingWebhookConfiguration{}
 
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
@@ -86,7 +86,7 @@ func initWebhookInstallOptions() envtest.WebhookInstallOptions {
 
 // Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
-func appendWebhookConfiguration(mutatingWebhooks []admissionv1.MutatingWebhookConfiguration, validatingWebhooks []admissionv1.ValidatingWebhookConfiguration, configyamlFile []byte, tag string) ([]admissionv1.MutatingWebhookConfiguration, []admissionv1.ValidatingWebhookConfiguration, error) {
+func appendWebhookConfiguration(mutatingWebhooks []*admissionv1.MutatingWebhookConfiguration, validatingWebhooks []*admissionv1.ValidatingWebhookConfiguration, configyamlFile []byte, tag string) ([]*admissionv1.MutatingWebhookConfiguration, []*admissionv1.ValidatingWebhookConfiguration, error) {
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
 		klog.Fatalf("failed to parse yaml")
@@ -104,7 +104,7 @@ func appendWebhookConfiguration(mutatingWebhooks []admissionv1.MutatingWebhookCo
 					klog.Fatalf("failed to convert MutatingWebhookConfiguration %s", o.GetName())
 				}
 
-				mutatingWebhooks = append(mutatingWebhooks, *webhook)
+				mutatingWebhooks = append(mutatingWebhooks, webhook)
 			}
 		}
 		if o.GetKind() == validatingWebhookKind {
@@ -117,7 +117,7 @@ func appendWebhookConfiguration(mutatingWebhooks []admissionv1.MutatingWebhookCo
 					klog.Fatalf("failed to convert ValidatingWebhookConfiguration %s", o.GetName())
 				}
 
-				validatingWebhooks = append(validatingWebhooks, *webhook)
+				validatingWebhooks = append(validatingWebhooks, webhook)
 			}
 		}
 	}

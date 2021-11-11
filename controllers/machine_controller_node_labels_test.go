@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,7 +115,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 
 	r := &MachineReconciler{
 		Client:   env.Client,
-		Tracker:  remote.NewTestClusterCacheTracker(log.NullLogger{}, env.Client, scheme.Scheme, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), env.Client, scheme.Scheme, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		recorder: record.NewFakeRecorder(32),
 	}
 

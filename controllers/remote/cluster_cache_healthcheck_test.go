@@ -72,8 +72,9 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			k8sClient = mgr.GetClient()
 
 			t.Log("Setting up a ClusterCacheTracker")
+			log := klogr.New()
 			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{
-				Log:     klogr.New(),
+				Log:     &log,
 				Indexes: DefaultIndexes,
 			})
 			g.Expect(err).NotTo(HaveOccurred())

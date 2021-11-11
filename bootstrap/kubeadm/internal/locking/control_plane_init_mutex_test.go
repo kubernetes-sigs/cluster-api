@@ -219,7 +219,7 @@ func TestInfoLines_Lock(t *testing.T) {
 		InfoLog: make([]line, 0),
 	}
 	l := &ControlPlaneInitMutex{
-		log:    logtester,
+		log:    logr.New(logtester),
 		client: c,
 	}
 
@@ -288,7 +288,14 @@ type line struct {
 	data map[string]interface{}
 }
 
-func (l *logtests) Info(msg string, keysAndValues ...interface{}) {
+func (l *logtests) Init(info logr.RuntimeInfo) {
+}
+
+func (l *logtests) Enabled(level int) bool {
+	return true
+}
+
+func (l *logtests) Info(level int, msg string, keysAndValues ...interface{}) {
 	data := make(map[string]interface{})
 	for i := 0; i < len(keysAndValues); i += 2 {
 		data[keysAndValues[i].(string)] = keysAndValues[i+1]
@@ -298,6 +305,10 @@ func (l *logtests) Info(msg string, keysAndValues ...interface{}) {
 		data: data,
 	})
 }
-func (l *logtests) WithValues(keysAndValues ...interface{}) logr.Logger {
+func (l *logtests) WithValues(keysAndValues ...interface{}) logr.LogSink {
+	return l
+}
+
+func (l *logtests) WithName(name string) logr.LogSink {
 	return l
 }

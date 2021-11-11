@@ -39,6 +39,7 @@ const (
 	DockerProviderName    = "docker"
 	DOProviderName        = "digitalocean"
 	GCPProviderName       = "gcp"
+	IBMCloudProviderName  = "ibmcloud"
 	Metal3ProviderName    = "metal3"
 	NestedProviderName    = "nested"
 	OpenStackProviderName = "openstack"
@@ -173,6 +174,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         BYOHProviderName,
 			url:          "https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         IBMCloudProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

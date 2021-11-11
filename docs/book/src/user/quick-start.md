@@ -557,6 +557,10 @@ A full configuration reference can be found in [configuration.md](https://github
 {{#/tab }}
 {{#tab Metal3}}
 
+**Note**: If you are running CAPM3 release prior to v0.5.0, make sure to export the following
+environment variables. However, you don't need them to be exported if you use
+CAPM3 release v0.5.0 or higher.
+
 ```bash
 # The URL of the kernel to deploy.
 export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"

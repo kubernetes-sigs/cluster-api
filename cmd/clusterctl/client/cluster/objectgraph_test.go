@@ -465,7 +465,9 @@ func TestObjectGraph_addObj(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			graph := newObjectGraph(nil, nil)
 			for _, o := range tt.args.objs {
-				graph.addObj(o)
+				if err := graph.addObj(o); err != nil {
+					panic(fmt.Sprintf("failed when adding object to graph: %v", o))
+				}
 			}
 
 			assertGraph(t, graph, tt.want)
@@ -1612,7 +1614,9 @@ func getDetachedObjectGraphWihObjs(objs []client.Object) (*objectGraph, error) {
 		if err := test.FakeScheme.Convert(o, u, nil); err != nil {
 			return nil, errors.Wrap(err, "failed to convert object in unstructured")
 		}
-		graph.addObj(u)
+		if err := graph.addObj(u); err != nil {
+			return nil, err
+		}
 	}
 
 	// given that we are not relying on discovery while testing in "detached mode (without a fake client)" it is required to:

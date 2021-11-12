@@ -150,7 +150,7 @@ type Environment struct {
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
 func new(uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
-	_, filename, _, _ := goruntime.Caller(0) //nolint
+	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..")
 
 	// Create the test environment.

@@ -70,6 +70,10 @@ linters-settings:
       # Controller Runtime
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
+  nolintlint:
+    allow-unused: false
+    allow-leading-space: false
+    require-specific: true
   staticcheck:
     go: "1.17"
   stylecheck:
@@ -165,6 +169,12 @@ issues:
     - typecheck
     text: import (".+") is a program, not an importable package
     path: ^tools\.go$
+  # Ignore ifshort false positive
+  # TODO(sbueringer) false positive: https://github.com/esimonov/ifshort/issues/23
+  - linters:
+    - ifshort
+    text:  "variable 'isDeleteNodeAllowed' is only used in the if-statement.*"
+    path: ^controllers/machine_controller\.go$
 
 run:
   timeout: 10m

@@ -239,7 +239,7 @@ func JoinYaml(yamls ...[]byte) []byte {
 	var yamlSeparator = []byte("---")
 
 	var cr = []byte("\n")
-	var b [][]byte //nolint
+	var b [][]byte //nolint:prealloc
 	for _, y := range yamls {
 		if !bytes.HasPrefix(y, cr) {
 			y = append(cr, y...)
@@ -259,7 +259,7 @@ func JoinYaml(yamls ...[]byte) []byte {
 
 // FromUnstructured takes a list of Unstructured objects and converts it into a YAML.
 func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
-	var ret [][]byte //nolint
+	var ret [][]byte //nolint:prealloc
 	for _, o := range objs {
 		content, err := yaml.Marshal(o.UnstructuredContent())
 		if err != nil {

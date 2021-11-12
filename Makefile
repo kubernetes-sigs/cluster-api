@@ -367,7 +367,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE)
 		paths=./controllers/... \
 		paths=./webhooks/... \
 		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/controllers/... \
+		paths=./$(EXP_DIR)/internal/controllers/... \
 		paths=./$(EXP_DIR)/addons/api/... \
 		paths=./$(EXP_DIR)/addons/internal/controllers/... \
 		crd:crdVersions=v1 \

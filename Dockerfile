@@ -51,7 +51,7 @@ ARG ldflags
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
-    go build -ldflags "${ldflags} -extldflags '-static'" \
+    go build -trimpath -ldflags "${ldflags} -extldflags '-static'" \
     -o manager ${package}
 
 # Production image

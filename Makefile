@@ -200,28 +200,28 @@ clusterctl: ## Build clusterctl binary
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod # Build setup-envtest from tools folder.
-	cd $(TOOLS_DIR); go build -trimpath -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -trimpath -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
 $(GOTESTSUM): $(TOOLS_DIR)/go.mod # Build gotestsum from tools folder.
-	cd $(TOOLS_DIR); go build -trimpath -tags=tools -o $(BIN_DIR)/gotestsum gotest.tools/gotestsum
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/gotestsum gotest.tools/gotestsum
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -trimpath -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
 $(CONVERSION_VERIFIER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-verifier sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
 
 $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -trimpath -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
 
 $(ENVSUBST): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -trimpath -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/v2/cmd/envsubst
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/v2/cmd/envsubst
 
 $(YQ): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -trimpath -tags=tools -o $(YQ_BIN) github.com/mikefarah/yq/v4
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(YQ_BIN) github.com/mikefarah/yq/v4
 
 $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
 	hack/ensure-kustomize.sh
@@ -587,10 +587,11 @@ release-manifests-dev: ## Builds the development manifests and copies them in th
 	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
 
 release-binaries: ## Builds the binaries to publish with a release
-	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=arm64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterctl GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterctl GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-linux-amd64 BUILD_PATH=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-linux-arm64 BUILD_PATH=./cmd/clusterctl GOOS=linux GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-darwin-amd64 BUILD_PATH=./cmd/clusterctl GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-darwin-arm64 BUILD_PATH=./cmd/clusterctl GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-windows-amd64.exe BUILD_PATH=./cmd/clusterctl GOOS=windows GOARCH=amd64 $(MAKE) release-binary
 
 release-binary: $(RELEASE_DIR)
 	docker run \
@@ -601,8 +602,8 @@ release-binary: $(RELEASE_DIR)
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GO_VERSION) \
-		go build -a -ldflags "$(LDFLAGS) -extldflags '-static'" \
-		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
+		go build -a -trimpath -ldflags "$(LDFLAGS) -extldflags '-static'" \
+		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY)) $(BUILD_PATH)
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.

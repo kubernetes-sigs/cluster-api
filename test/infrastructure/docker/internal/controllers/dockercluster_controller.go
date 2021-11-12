@@ -20,7 +20,6 @@ package controllers
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -41,7 +40,6 @@ import (
 // DockerClusterReconciler reconciles a DockerCluster object.
 type DockerClusterReconciler struct {
 	client.Client
-	Log logr.Logger
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockerclusters,verbs=get;list;watch;create;update;patch;delete
@@ -187,11 +185,11 @@ func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerClu
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Build(r)
 	if err != nil {
 		return err
@@ -199,6 +197,6 @@ func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager, options con
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerCluster"))),
-		predicates.ClusterUnpaused(r.Log),
+		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 	)
 }

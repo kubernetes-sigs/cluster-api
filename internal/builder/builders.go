@@ -31,6 +31,7 @@ import (
 type ClusterBuilder struct {
 	namespace             string
 	name                  string
+	labels                map[string]string
 	topology              *clusterv1.Topology
 	infrastructureCluster *unstructured.Unstructured
 	controlPlane          *unstructured.Unstructured
@@ -42,6 +43,12 @@ func Cluster(namespace, name string) *ClusterBuilder {
 		namespace: namespace,
 		name:      name,
 	}
+}
+
+// WithLabels sets the labels for the ClusterBuilder.
+func (c *ClusterBuilder) WithLabels(labels map[string]string) *ClusterBuilder {
+	c.labels = labels
+	return c
 }
 
 // WithInfrastructureCluster adds the passed InfrastructureCluster to the ClusterBuilder.
@@ -72,6 +79,7 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.name,
 			Namespace: c.namespace,
+			Labels:    c.labels,
 		},
 		Spec: clusterv1.ClusterSpec{
 			Topology: c.topology,
@@ -314,14 +322,10 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 		},
 	}
 	if m.bootstrapTemplate != nil {
-		obj.Template.Bootstrap = clusterv1.LocalObjectTemplate{
-			Ref: objToRef(m.bootstrapTemplate),
-		}
+		obj.Template.Bootstrap.Ref = objToRef(m.bootstrapTemplate)
 	}
 	if m.infrastructureMachineTemplate != nil {
-		obj.Template.Infrastructure = clusterv1.LocalObjectTemplate{
-			Ref: objToRef(m.infrastructureMachineTemplate),
-		}
+		obj.Template.Infrastructure.Ref = objToRef(m.infrastructureMachineTemplate)
 	}
 	return obj
 }

@@ -219,7 +219,7 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
 	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {

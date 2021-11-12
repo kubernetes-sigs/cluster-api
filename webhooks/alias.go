@@ -35,9 +35,13 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // ClusterClass implements a validation and defaulting webhook for ClusterClass.
-type ClusterClass struct{}
+type ClusterClass struct {
+	Client client.Reader
+}
 
 // SetupWebhookWithManager sets up ClusterClass webhooks.
 func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.ClusterClass{}).SetupWebhookWithManager(mgr)
+	return (&webhooks.ClusterClass{
+		Client: webhook.Client,
+	}).SetupWebhookWithManager(mgr)
 }

@@ -195,6 +195,10 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 		if externalMachine.Exists() {
 			conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
+			// Setting machine address is required after move, because status.Address field is not retained during move.
+			if err := setMachineAddress(ctx, dockerMachine, externalMachine); err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to set the machine address")
+			}
 		} else {
 			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerDeletedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Container %s does not exists anymore", externalMachine.Name()))
 		}
@@ -291,26 +295,9 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	// Update the BootstrapExecSucceededCondition condition
 	conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
 
-	// set address in machine status
-	machineAddress, err := externalMachine.Address(ctx)
-	if err != nil {
-		log.Error(err, "failed to get the machine address")
+	if err := setMachineAddress(ctx, dockerMachine, externalMachine); err != nil {
+		log.Error(err, "failed to set the machine address")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	dockerMachine.Status.Addresses = []clusterv1.MachineAddress{
-		{
-			Type:    clusterv1.MachineHostName,
-			Address: externalMachine.ContainerName(),
-		},
-		{
-			Type:    clusterv1.MachineInternalIP,
-			Address: machineAddress,
-		},
-		{
-			Type:    clusterv1.MachineExternalIP,
-			Address: machineAddress,
-		},
 	}
 
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.
@@ -443,4 +430,28 @@ func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine 
 	}
 
 	return base64.StdEncoding.EncodeToString(value), nil
+}
+
+// setMachineAddress gets the address from the container corresponding to a docker node and sets it on the Machine object.
+func setMachineAddress(ctx context.Context, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine) error {
+	machineAddress, err := externalMachine.Address(ctx)
+	if err != nil {
+		return err
+	}
+
+	dockerMachine.Status.Addresses = []clusterv1.MachineAddress{
+		{
+			Type:    clusterv1.MachineHostName,
+			Address: externalMachine.ContainerName(),
+		},
+		{
+			Type:    clusterv1.MachineInternalIP,
+			Address: machineAddress,
+		},
+		{
+			Type:    clusterv1.MachineExternalIP,
+			Address: machineAddress,
+		},
+	}
+	return nil
 }

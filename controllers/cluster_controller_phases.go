@@ -188,10 +188,12 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	}
 
 	// Get and parse Status.FailureDomains from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Status.FailureDomains, "status", "failureDomains"); err != nil && err != util.ErrUnstructuredFieldNotFound {
+	failureDomains := clusterv1.FailureDomains{}
+	if err := util.UnstructuredUnmarshalField(infraConfig, &failureDomains, "status", "failureDomains"); err != nil && err != util.ErrUnstructuredFieldNotFound {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Status.FailureDomains from infrastructure provider for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
+	cluster.Status.FailureDomains = failureDomains
 
 	return ctrl.Result{}, nil
 }

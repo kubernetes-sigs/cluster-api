@@ -30,6 +30,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// GetClusterClassByNameInput is the input for GetClusterClassByName.
+type GetClusterClassByNameInput struct {
+	Getter    Getter
+	Name      string
+	Namespace string
+}
+
+// GetClusterClassByName returns a ClusterClass object given his name and namespace.
+func GetClusterClassByName(ctx context.Context, input GetClusterClassByNameInput) *clusterv1.ClusterClass {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for GetClusterClassByName")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling GetClusterClassByName")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling GetClusterClassByName")
+	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling GetClusterClassByName")
+
+	clusterClass := &clusterv1.ClusterClass{}
+	key := client.ObjectKey{
+		Namespace: input.Namespace,
+		Name:      input.Name,
+	}
+	Expect(input.Getter.Get(ctx, key, clusterClass)).To(Succeed(), "Failed to get ClusterClass object %s/%s", input.Namespace, input.Name)
+	return clusterClass
+}
+
 // UpgradeClusterTopologyAndWaitForUpgradeInput is the input type for UpgradeClusterTopologyAndWaitForUpgrade.
 type UpgradeClusterTopologyAndWaitForUpgradeInput struct {
 	ClusterProxy                ClusterProxy

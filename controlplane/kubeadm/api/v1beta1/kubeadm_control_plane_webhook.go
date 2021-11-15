@@ -140,10 +140,10 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, "machineTemplate", "metadata", "*"},
 		{spec, "machineTemplate", "infrastructureRef", "apiVersion"},
 		{spec, "machineTemplate", "infrastructureRef", "name"},
+		{spec, "machineTemplate", "nodeDrainTimeout"},
 		{spec, "replicas"},
 		{spec, "version"},
 		{spec, "rolloutAfter"},
-		{spec, "nodeDrainTimeout"},
 		{spec, "rolloutStrategy", "*"},
 	}
 

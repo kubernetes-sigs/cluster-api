@@ -688,7 +688,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		Build()
 	mcds := []clusterv1.MachineDeploymentClass{*md1}
 	fakeClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
-		WithWorkerMachineDeploymentClasses(mcds).
+		WithWorkerMachineDeploymentClasses(mcds...).
 		Build()
 
 	version := "v1.21.2"

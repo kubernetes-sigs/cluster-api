@@ -1458,7 +1458,7 @@ func (f *FakeClusterClass) Objs() []client.Object {
 			objMap[fakeMDClass.bootstrapTemplate] = true
 			objMap[fakeMDClass.infrastructureTemplate] = true
 		}
-		clusterClassBuilder.WithWorkerMachineDeploymentClasses(mdClasses)
+		clusterClassBuilder.WithWorkerMachineDeploymentClasses(mdClasses...)
 	}
 
 	clusterClass := clusterClassBuilder.Build()

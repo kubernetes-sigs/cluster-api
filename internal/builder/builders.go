@@ -219,7 +219,7 @@ func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *u
 }
 
 // WithWorkerMachineDeploymentClasses adds the variables and objects needed to create MachineDeploymentTemplates for a ClusterClassBuilder.
-func (c *ClusterClassBuilder) WithWorkerMachineDeploymentClasses(mdcs []clusterv1.MachineDeploymentClass) *ClusterClassBuilder {
+func (c *ClusterClassBuilder) WithWorkerMachineDeploymentClasses(mdcs ...clusterv1.MachineDeploymentClass) *ClusterClassBuilder {
 	if c.machineDeploymentClasses == nil {
 		c.machineDeploymentClasses = make([]clusterv1.MachineDeploymentClass, 0)
 	}

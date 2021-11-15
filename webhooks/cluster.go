@@ -252,7 +252,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 		allErrs = append(
 			allErrs, field.Invalid(
 				field.NewPath("spec", "topology", "class"),
-				new.Name,
+				new.Spec.Topology.Class,
 				"ClusterClass could not be found"))
 	}
 	return allErrs

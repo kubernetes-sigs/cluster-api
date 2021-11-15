@@ -179,15 +179,15 @@ kind-cluster: ## Create a new kind cluster designed for testing with Tilt
 
 .PHONY: manager-core
 manager-core: ## Build core manager binary
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api
 
 .PHONY: manager-kubeadm-bootstrap
 manager-kubeadm-bootstrap: ## Build kubeadm bootstrap manager
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kubeadm-bootstrap-manager sigs.k8s.io/cluster-api/bootstrap/kubeadm
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kubeadm-bootstrap-manager sigs.k8s.io/cluster-api/bootstrap/kubeadm
 
 .PHONY: manager-kubeadm-control-plane
 manager-kubeadm-control-plane: ## Build kubeadm control plane manager
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kubeadm-control-plane-manager sigs.k8s.io/cluster-api/controlplane/kubeadm
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kubeadm-control-plane-manager sigs.k8s.io/cluster-api/controlplane/kubeadm
 
 .PHONY: managers
 managers: ## Build all managers
@@ -197,7 +197,7 @@ managers: ## Build all managers
 
 .PHONY: clusterctl
 clusterctl: ## Build clusterctl binary
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod # Build setup-envtest from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
@@ -587,10 +587,11 @@ release-manifests-dev: ## Builds the development manifests and copies them in th
 	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
 
 release-binaries: ## Builds the binaries to publish with a release
-	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=arm64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterctl GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterctl GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-linux-amd64 BUILD_PATH=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-linux-arm64 BUILD_PATH=./cmd/clusterctl GOOS=linux GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-darwin-amd64 BUILD_PATH=./cmd/clusterctl GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-darwin-arm64 BUILD_PATH=./cmd/clusterctl GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-windows-amd64.exe BUILD_PATH=./cmd/clusterctl GOOS=windows GOARCH=amd64 $(MAKE) release-binary
 
 release-binary: $(RELEASE_DIR)
 	docker run \
@@ -601,8 +602,8 @@ release-binary: $(RELEASE_DIR)
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GO_VERSION) \
-		go build -a -ldflags "$(LDFLAGS) -extldflags '-static'" \
-		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
+		go build -a -trimpath -ldflags "$(LDFLAGS) -extldflags '-static'" \
+		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY)) $(BUILD_PATH)
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.

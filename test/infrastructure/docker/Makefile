@@ -103,7 +103,7 @@ test-junit: $(GOTESTSUM) ## Run tests with verbose setting and generate a junit 
 
 .PHONY: manager
 manager: ## Build manager binary
-	go build -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api/test/infrastructure/docker
+	go build -trimpath -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api/test/infrastructure/docker
 
 $(CONTROLLER_GEN):
 	$(MAKE) -C $(ROOT) controller-gen

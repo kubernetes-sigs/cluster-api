@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	infrav1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
@@ -164,17 +165,26 @@ func setupChecks(mgr ctrl.Manager) {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+	// Set our runtime client into the context for later use
+	runtimeClient, err := container.NewDockerClient()
+	if err != nil {
+		setupLog.Error(err, "unable to establish container runtime connection", "controller", "reconciler")
+		os.Exit(1)
+	}
+
 	if err := (&controllers.DockerMachineReconciler{
-		Client: mgr.GetClient(),
+		Client:           mgr.GetClient(),
+		ContainerRuntime: runtimeClient,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
+		setupLog.Error(err, "unable to create controller", "controller", "DockerMachine")
 		os.Exit(1)
 	}
 
 	if err := (&controllers.DockerClusterReconciler{
-		Client: mgr.GetClient(),
+		Client:           mgr.GetClient(),
+		ContainerRuntime: runtimeClient,
 	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DockerCluster")
 		os.Exit(1)

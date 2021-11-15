@@ -18,10 +18,14 @@ package container
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
+
+// providerKey is the key type for accessing the runtime provider in passed contexts.
+type providerKey struct{}
 
 // Runtime defines the interface for interacting with a container runtime.
 type Runtime interface {
@@ -127,4 +131,19 @@ type Container struct {
 	Image string
 	// Status is the status of the container
 	Status string
+}
+
+// RuntimeFrom is used to extract the container runtime client from a
+// context. If there is no runtime present, it will return nil.
+func RuntimeFrom(ctx context.Context) (Runtime, error) {
+	if provider, ok := ctx.Value(providerKey{}).(Runtime); ok {
+		return provider, nil
+	}
+	return nil, fmt.Errorf("no container runtime client set for context")
+}
+
+// RuntimeInto is used to store the container runtime client into a
+// context.
+func RuntimeInto(ctx context.Context, runtime Runtime) context.Context {
+	return context.WithValue(ctx, providerKey{}, runtime)
 }

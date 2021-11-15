@@ -48,10 +48,21 @@ func machineContainerName(cluster, machine string) string {
 
 func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error {
 	containerName := machineContainerName(m.Spec.ClusterName, m.Name)
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return err
+	}
+	ctx = container.RuntimeInto(ctx, containerRuntime)
 	return k.collectLogsFromNode(ctx, outputPath, containerName)
 }
 
 func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, managementClusterClient client.Client, m *expv1.MachinePool, outputPath string) error {
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return err
+	}
+	ctx = container.RuntimeInto(ctx, containerRuntime)
+
 	var errs []error
 	for _, instance := range m.Status.NodeRefs {
 		containerName := machineContainerName(m.Spec.ClusterName, instance.Name)
@@ -60,11 +71,12 @@ func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, managemen
 			errs = append(errs, err)
 		}
 	}
+
 	return kerrors.NewAggregate(errs)
 }
 
 func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath string, containerName string) error {
-	containerRuntime, err := container.NewDockerClient()
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Failed to collect logs from node")
 	}

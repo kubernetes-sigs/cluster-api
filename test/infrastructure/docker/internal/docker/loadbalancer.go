@@ -46,7 +46,7 @@ type LoadBalancer struct {
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
-func NewLoadBalancer(cluster *clusterv1.Cluster, dockerCluster *infrav1.DockerCluster) (*LoadBalancer, error) {
+func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DockerCluster) (*LoadBalancer, error) {
 	if cluster.Name == "" {
 		return nil, errors.New("create load balancer: cluster name is empty")
 	}
@@ -58,7 +58,7 @@ func NewLoadBalancer(cluster *clusterv1.Cluster, dockerCluster *infrav1.DockerCl
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, cluster.Name)
 	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ExternalLoadBalancerNodeRoleValue)
 
-	container, err := getContainer(filters)
+	container, err := getContainer(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, s.name)
 	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ControlPlaneNodeRoleValue)
 
-	controlPlaneNodes, err := listContainers(filters)
+	controlPlaneNodes, err := listContainers(ctx, filters)
 	if err != nil {
 		return errors.WithStack(err)
 	}

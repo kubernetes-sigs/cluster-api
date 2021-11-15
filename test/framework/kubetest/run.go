@@ -177,6 +177,7 @@ func Run(ctx context.Context, input RunInput) error {
 	if err != nil {
 		return errors.Wrap(err, "Unable to run conformance tests")
 	}
+	ctx = container.RuntimeInto(ctx, containerRuntime)
 
 	err = containerRuntime.RunContainer(ctx, &container.RunContainerInput{
 		Image:           input.ConformanceImage,

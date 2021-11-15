@@ -45,8 +45,8 @@ func machineFromContainerName(cluster, containerName string) string {
 }
 
 // listContainers returns the list of docker containers matching filters.
-func listContainers(filters container.FilterBuilder) ([]*types.Node, error) {
-	n, err := List(filters)
+func listContainers(ctx context.Context, filters container.FilterBuilder) ([]*types.Node, error) {
+	n, err := List(ctx, filters)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list containers")
 	}
@@ -54,8 +54,8 @@ func listContainers(filters container.FilterBuilder) ([]*types.Node, error) {
 }
 
 // getContainer returns the docker container matching filters.
-func getContainer(filters container.FilterBuilder) (*types.Node, error) {
-	n, err := listContainers(filters)
+func getContainer(ctx context.Context, filters container.FilterBuilder) (*types.Node, error) {
+	n, err := listContainers(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -73,17 +73,16 @@ func getContainer(filters container.FilterBuilder) (*types.Node, error) {
 // List returns the list of container IDs for the kind "nodes", optionally
 // filtered by docker ps filters
 // https://docs.docker.com/engine/reference/commandline/ps/#filtering
-func List(filters container.FilterBuilder) ([]*types.Node, error) {
+func List(ctx context.Context, filters container.FilterBuilder) ([]*types.Node, error) {
 	res := []*types.Node{}
-	visit := func(cluster string, node *types.Node) {
+	visit := func(ctx context.Context, cluster string, node *types.Node) {
 		res = append(res, node)
 	}
-	return res, list(visit, filters)
+	return res, list(ctx, visit, filters)
 }
 
-func list(visit func(string, *types.Node), filters container.FilterBuilder) error {
-	ctx := context.TODO()
-	containerRuntime, err := container.NewDockerClient()
+func list(ctx context.Context, visit func(context.Context, string, *types.Node), filters container.FilterBuilder) error {
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to container runtime")
 	}
@@ -101,7 +100,7 @@ func list(visit func(string, *types.Node), filters container.FilterBuilder) erro
 		cluster := clusterLabelKey
 		image := cntr.Image
 		status := cntr.Status
-		visit(cluster, types.NewNode(name, image, "undetermined").WithStatus(status))
+		visit(ctx, cluster, types.NewNode(name, image, "undetermined").WithStatus(status))
 	}
 
 	return nil

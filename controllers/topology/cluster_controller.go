@@ -79,6 +79,7 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx))).
 		Build(r)
 
 	if err != nil {
@@ -108,12 +109,6 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		}
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
-	}
-
-	// Return early, if the Cluster does not use a managed topology.
-	// NOTE: This should be removed as soon as we start to support Clusters moving from managed <-> unmanaged.
-	if cluster.Spec.Topology == nil {
-		return ctrl.Result{}, nil
 	}
 
 	// Return early if the Cluster is paused.

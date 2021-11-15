@@ -74,6 +74,8 @@ This proposal provides a solution that leverages a declarative API and an
 operator to empower admins to handle the lifecycle of providers within the
 management cluster.
 
+The operator is developed in a separate repository [TBD] and will have its own release cycle.
+
 ## Motivation
 
 In its current form clusterctl is designed to provide a simple user experience
@@ -113,6 +115,8 @@ management cluster based on a declarative API.
 
 ### Non-Goals/Future Work
 
+- `clusterctl` related changes will be implemented after core operator functionality
+  is complete. For example, deprecating `Provider` type and migrating to new ones.
 - `clusterctl` will not be deprecated or replaced with another CLI.
 - Implement an operator driven version of `clusterctl move`.
 - Manage cert-manager using the operator.
@@ -145,7 +149,8 @@ The `clusterctl` CLI will provide a similar UX to the users whilst leveraging
 the operator for the functions it can. As stated in the Goals/Non-Goals, the
 move operation will not be driven by the operator but rather remain within the
 CLI for now. However, this is an implementation detail and will not affect the
-users.
+users. The move operation and all other `clusterctl` refactoring will be
+done after core operator functionality is implemented.
 
 #### Existing API Types Changes
 
@@ -754,36 +759,40 @@ will look like.
 
 ##### Operator Installation
 
-- `clusterctl init` will install the operator and its corresponding CRDs as a
-  pre-requisite if the operator doesn’t already exist. Please note that this
+- During the first phase of implementation `clusterctl` won't provide support
+  for managing the operator, so the admin will have to install it manually using 
+  `kubectl apply` (or similar solutions), the operator yaml that will be published in the
+  operator subproject release artifacts.
+- In future `clusterctl init` will install the operator and its corresponding CRDs 
+  as a pre-requisite if the operator doesn’t already exist. Please note that this
   command will consider image overrides defined in the local clusterctl config
   file.
-- If the admin does not want to use clusterctl to install the operator, it is
-  possible to `kubectl apply` the operator yaml that will be published in the
-  cluster-api release artifacts.
 
 ##### Operator Upgrade
-
-- The admin can use `clusterctl upgrade operator` to upgrade the operator
-  components. Please note that this command will consider image overrides
-  defined in the local clusterctl config file. Other commands such as
-  `clusterctl upgrade apply` will also allow to upgrade the operator.
+- During the first phase of implementation `clusterctl` operations will not be 
+  supported and admin will have to install the operator manually, or in case if
+  the admin doesn’t want to use clusterctl, they can use `kubectl apply`(or similar solutions) 
+  with the latest version of the operator yaml that will be published in the
+  operator subproject release artifacts.
+- The transition between manually managed operator and clusterctl managed
+  operator will be documented later as we progress with the implementation.
+- In future the admin will be able to use `clusterctl upgrade operator` to 
+  upgrade the operator components. Please note that this command will consider 
+  image overrides defined in the local clusterctl config file. Other commands 
+  such as `clusterctl upgrade apply` will also allow to upgrade the operator.
 - `clusterctl upgrade plan` will identify when the operator can be upgraded by
   checking the cluster-api release artifacts.
-- If the admin doesn’t want to use clusterctl, they can use kubectl apply with
-  the latest version of the operator yaml that will be published in the
-  cluster-api release artifacts.
 - clusterctl will require a matching operator version. In the future, when
   clusterctl move to beta/GA, we will reconsider supporting version skew
   between clusterctl and the operator.
 
 ##### Operator Delete
-
-- clusterctl will delete the operator as part of the `clusterctl delete --all`
-  command.
-- If the admin doesn’t want to use clusterctl, they can use kubectl delete.
-  However, it’s the admin’s responsibility to verify that there are no
-  providers running in the management cluster.
+- During the first phase of implementation `clusterctl` operations will not be 
+  supported and admin will have to delete the operator manually using `kubectl delete`
+  (or similar solutions). However, it’s the admin’s responsibility to verify that there 
+  are no providers running in the management cluster.
+- In future the clusterctl will delete the operator as part of 
+  the `clusterctl delete --all` command.
 
 #### Air gapped environment
 

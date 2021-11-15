@@ -75,7 +75,7 @@ func (f *MemoryReader) Set(key, value string) {
 func (f *MemoryReader) UnmarshalKey(key string, rawval interface{}) error {
 	data, err := f.Get(key)
 	if err != nil {
-		return nil // nolint:nilerr // We expect to not error if the key is not present
+		return nil //nolint:nilerr // We expect to not error if the key is not present
 	}
 	return yaml.Unmarshal([]byte(data), rawval)
 }

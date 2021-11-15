@@ -430,7 +430,7 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 		obj := o.(client.Object)
 		acc, err := meta.Accessor(obj)
 		if err != nil {
-			return nil // nolint:nilerr // We don't want to exit the EachListItem loop, just continue
+			return nil //nolint:nilerr // We don't want to exit the EachListItem loop, just continue
 		}
 
 		if util.IsOwnedByObject(acc, cluster) {

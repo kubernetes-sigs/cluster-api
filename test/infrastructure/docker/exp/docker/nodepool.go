@@ -282,7 +282,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		if err != nil {
 			// Requeue if there is an error, as this is likely momentary load balancer
 			// state changes during control plane provisioning.
-			return ctrl.Result{Requeue: true}, nil // nolint:nilerr
+			return ctrl.Result{Requeue: true}, nil //nolint:nilerr
 		}
 
 		machineStatus.Addresses = []clusterv1.MachineAddress{
@@ -308,7 +308,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		// state changes during control plane provisioning.
 		if err := externalMachine.SetNodeProviderID(ctx); err != nil {
 			log.V(4).Info("transient error setting the provider id")
-			return ctrl.Result{Requeue: true}, nil // nolint:nilerr
+			return ctrl.Result{Requeue: true}, nil //nolint:nilerr
 		}
 		// Set ProviderID so the Cluster API Machine Controller can pull it
 		providerID := externalMachine.ProviderID()

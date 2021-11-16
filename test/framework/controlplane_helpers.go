@@ -285,6 +285,7 @@ type UpgradeControlPlaneAndWaitForUpgradeInput struct {
 	DNSImageTag                 string
 	WaitForMachinesToBeUpgraded []interface{}
 	WaitForDNSUpgrade           []interface{}
+	WaitForKubeProxyUpgrade     []interface{}
 	WaitForEtcdUpgrade          []interface{}
 }
 
@@ -340,13 +341,13 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	WaitForKubeProxyUpgrade(ctx, WaitForKubeProxyUpgradeInput{
 		Getter:            workloadClient,
 		KubernetesVersion: input.KubernetesUpgradeVersion,
-	}, input.WaitForDNSUpgrade...)
+	}, input.WaitForKubeProxyUpgrade...)
 
 	log.Logf("Waiting for CoreDNS to have the upgraded image tag")
 	WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
 		Getter:     workloadClient,
 		DNSVersion: input.DNSImageTag,
-	})
+	}, input.WaitForDNSUpgrade...)
 
 	log.Logf("Waiting for etcd to have the upgraded image tag")
 	lblSelector, err := labels.Parse("component=etcd")

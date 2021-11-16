@@ -12,6 +12,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - bootstrap.cluster.x-k8s.io
   - controlplane.cluster.x-k8s.io

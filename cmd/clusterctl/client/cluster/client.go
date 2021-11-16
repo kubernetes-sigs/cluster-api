@@ -233,7 +233,12 @@ type Proxy interface {
 	// NewClient returns a new controller runtime Client object for working on the management cluster
 	NewClient() (client.Client, error)
 
-	// ListResources returns all the Kubernetes objects with the given labels existing the listed namespaces.
+	// ListResources lists namespaced and cluster-wide resources for a component matching the labels.
+	// Namespaced resources are only listed in the given namespaces.
+	// Please note that we are not returning resources for the component's CRD (e.g. we are not returning
+	// Certificates for cert-manager, Clusters for CAPI, AWSCluster for CAPA and so on).
+	// This is done to avoid errors when listing resources of providers which have already been
+	// deleted/scaled down to 0 replicas/with malfunctioning webhooks.
 	ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error)
 
 	// GetContexts returns the list of contexts in kubeconfig which begin with prefix.

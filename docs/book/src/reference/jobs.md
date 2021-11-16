@@ -44,7 +44,9 @@ Prow Periodics:
 * [periodic-cluster-api-test-main] `./scripts/ci-test.sh`
 * [periodic-cluster-api-e2e-main] `./scripts/ci-e2e.sh`
   * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]`
-* [periodic-cluster-api-e2e-v1alpha3-v1beta1-main] `./scripts/ci-e2e.sh`
+* [periodic-cluster-api-e2e-upgrade-v0-3-to-main] `./scripts/ci-e2e.sh`
+  * GINKGO_FOCUS: `[clusterctl-Upgrade]`
+* [periodic-cluster-api-e2e-upgrade-v1-0-to-main] `./scripts/ci-e2e.sh`
   * GINKGO_FOCUS: `[clusterctl-Upgrade]`
 * [periodic-cluster-api-e2e-mink8s-main] `./scripts/ci-e2e.sh`
   * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]`
@@ -79,7 +81,8 @@ GitHub (On Release) Workflows:
 [periodic-cluster-api-verify-book-links-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-verify-book-links-main
 [periodic-cluster-api-test-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-test-main
 [periodic-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main
-[periodic-cluster-api-e2e-v1alpha3-v1beta1-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-v1alpha3-v1beta1-upgrade-main
+[periodic-cluster-api-e2e-upgrade-v0-3-to-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-upgrade-v0-3-to-main
+[periodic-cluster-api-e2e-upgrade-v1-0-to-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-upgrade-v1-0-to-main
 [periodic-cluster-api-e2e-mink8s-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-mink8s-main
 [periodic-cluster-api-e2e-workload-upgrade-1-18-1-19-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-18-1-19
 [periodic-cluster-api-e2e-workload-upgrade-1-19-1-20-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-19-1-20

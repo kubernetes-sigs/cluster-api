@@ -431,7 +431,11 @@ func paths(path []string, diff map[string]interface{}) [][]string {
 	for key, m := range diff {
 		nested, ok := m.(map[string]interface{})
 		if !ok {
-			allPaths = append(allPaths, append(path, key))
+			// We have to use a copy of path, because otherwise the slice we append to
+			// allPaths would be overwritten in another iteration.
+			tmp := make([]string, len(path))
+			copy(tmp, path)
+			allPaths = append(allPaths, append(tmp, key))
 			continue
 		}
 		allPaths = append(allPaths, paths(append(path, key), nested)...)

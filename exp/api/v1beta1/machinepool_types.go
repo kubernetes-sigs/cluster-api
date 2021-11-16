@@ -60,6 +60,13 @@ type MachinePoolSpec struct {
 	// FailureDomains is the list of failure domains this MachinePool should be attached to.
 	// +optional
 	FailureDomains []string `json:"failureDomains,omitempty"`
+
+	// Whether the Replicas value is externally managed. This is useful when
+	// the infrastructure is a managed machine pool, or if the cluster-autoscaler is scaling
+	// the underlying cloud infrastructure directly outside of cluster-api. Set this to true
+	// if you wish the replica count to be managed outside of cluster-api. Defaults to false.
+	// +optional
+	ExternallyManagedReplicaCount *bool `json:"externallyManagedReplicaCount,omitempty"`
 }
 
 // ANCHOR_END: MachinePoolSpec

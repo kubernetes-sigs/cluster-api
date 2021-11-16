@@ -17,21 +17,46 @@ limitations under the License.
 package v1alpha4
 
 import (
+	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*expv1.MachinePool)
 
-	return Convert_v1alpha4_MachinePool_To_v1beta1_MachinePool(src, dst, nil)
+	if err := Convert_v1alpha4_MachinePool_To_v1beta1_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &expv1.MachinePool{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.ExternallyManagedReplicaCount != nil {
+		dst.Spec.ExternallyManagedReplicaCount = restored.Spec.ExternallyManagedReplicaCount
+	}
+
+	return nil
 }
 
 func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*expv1.MachinePool)
 
-	return Convert_v1beta1_MachinePool_To_v1alpha4_MachinePool(src, dst, nil)
+	if err := Convert_v1beta1_MachinePool_To_v1alpha4_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *MachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
@@ -44,4 +69,8 @@ func (dst *MachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*expv1.MachinePoolList)
 
 	return Convert_v1beta1_MachinePoolList_To_v1alpha4_MachinePoolList(src, dst, nil)
+}
+
+func Convert_v1beta1_MachinePoolSpec_To_v1alpha4_MachinePoolSpec(in *expv1.MachinePoolSpec, out *MachinePoolSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta1_MachinePoolSpec_To_v1alpha4_MachinePoolSpec(in, out, s)
 }

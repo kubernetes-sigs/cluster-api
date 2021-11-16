@@ -1045,6 +1045,23 @@ func TestPaths(t *testing.T) {
 			diff:     map[string]interface{}{},
 			expected: [][]string{},
 		},
+		{
+			name: "long recursive check with two keys",
+			diff: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"kubeadmConfigSpec": map[string]interface{}{
+						"clusterConfiguration": map[string]interface{}{
+							"version": "v2.0.1",
+							"abc":     "d",
+						},
+					},
+				},
+			},
+			expected: [][]string{
+				{"spec", "kubeadmConfigSpec", "clusterConfiguration", "version"},
+				{"spec", "kubeadmConfigSpec", "clusterConfiguration", "abc"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

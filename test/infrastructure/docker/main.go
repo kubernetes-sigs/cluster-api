@@ -20,6 +20,7 @@ import (
 	"context"
 	"flag"
 	"math/rand"
+	"net/http"
 	"os"
 	"time"
 
@@ -55,6 +56,7 @@ var (
 	// flags.
 	metricsBindAddr      string
 	enableLeaderElection bool
+	profilerAddress      string
 	syncPeriod           time.Duration
 	concurrency          int
 	healthAddr           string
@@ -84,6 +86,8 @@ func initFlags(fs *pflag.FlagSet) {
 		"The number of docker machines to process simultaneously")
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+	fs.StringVar(&profilerAddress, "profiler-address", "",
+		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
@@ -105,6 +109,13 @@ func main() {
 	pflag.Parse()
 
 	ctrl.SetLogger(klogr.New())
+
+	if profilerAddress != "" {
+		klog.Infof("Profiler listening for requests at %s", profilerAddress)
+		go func() {
+			klog.Info(http.ListenAndServe(profilerAddress, nil))
+		}()
+	}
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-docker-controller-manager")

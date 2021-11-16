@@ -18,39 +18,168 @@ limitations under the License.
 package check
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ReferencedObjectsAreStrictlyCompatible checks if two referenced objects are strictly compatible, meaning that
+// ObjectsAreStrictlyCompatible checks if two referenced objects are strictly compatible, meaning that
 // they are compatible and the name of the objects do not change.
-func ReferencedObjectsAreStrictlyCompatible(current, desired client.Object) error {
+func ObjectsAreStrictlyCompatible(current, desired client.Object) field.ErrorList {
+	var allErrs field.ErrorList
 	if current.GetName() != desired.GetName() {
-		return errors.Errorf("invalid operation: it is not possible to change the name of %s/%s from %s to %s",
-			current.GetObjectKind().GroupVersionKind(), current.GetName(), current.GetName(), desired.GetName())
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("metadata", "name"),
+			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v", current.GetName(), desired.GetName(), current.GetObjectKind().GroupVersionKind().GroupKind().String(), current.GetName()),
+		))
 	}
-	return ReferencedObjectsAreCompatible(current, desired)
+	allErrs = append(allErrs, ObjectsAreCompatible(current, desired)...)
+	return allErrs
 }
 
-// ReferencedObjectsAreCompatible checks if two referenced objects are compatible, meaning that
+// ObjectsAreCompatible checks if two referenced objects are compatible, meaning that
 // they are of the same GroupKind and in the same namespace.
-func ReferencedObjectsAreCompatible(current, desired client.Object) error {
+func ObjectsAreCompatible(current, desired client.Object) field.ErrorList {
+	var allErrs field.ErrorList
+
 	currentGK := current.GetObjectKind().GroupVersionKind().GroupKind()
 	desiredGK := desired.GetObjectKind().GroupVersionKind().GroupKind()
-
-	if currentGK.String() != desiredGK.String() {
-		return errors.Errorf("invalid operation: it is not possible to change the GroupKind of %s/%s from %s to %s",
-			current.GetObjectKind().GroupVersionKind(), current.GetName(), currentGK, desiredGK)
+	if currentGK.Group != desiredGK.Group {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("metadata", "apiVersion"),
+			fmt.Sprintf("group cannot be changed from %v to %v to prevent incompatible changes in %v/%v", currentGK.Group, desiredGK.Group, currentGK.String(), current.GetName()),
+		))
 	}
-	return ObjectsAreInTheSameNamespace(current, desired)
+	if currentGK.Kind != desiredGK.Kind {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("metadata", "kind"),
+			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v", currentGK.Kind, desiredGK.Kind, currentGK.String(), current.GetName()),
+		))
+	}
+	allErrs = append(allErrs, ObjectsAreInTheSameNamespace(current, desired)...)
+	return allErrs
 }
 
 // ObjectsAreInTheSameNamespace checks if two referenced objects are in the same namespace.
-func ObjectsAreInTheSameNamespace(current, desired client.Object) error {
+func ObjectsAreInTheSameNamespace(current, desired client.Object) field.ErrorList {
+	var allErrs field.ErrorList
+
 	// NOTE: this should never happen (webhooks prevent it), but checking for extra safety.
 	if current.GetNamespace() != desired.GetNamespace() {
-		return errors.Errorf("invalid operation: it is not possible to change the namespace of %s/%s from %s to %s",
-			current.GetObjectKind().GroupVersionKind(), current.GetName(), current.GetNamespace(), desired.GetNamespace())
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("metadata", "namespace"),
+			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v", current.GetNamespace(), desired.GetNamespace(), current.GetObjectKind().GroupVersionKind().GroupKind().String(), current.GetName()),
+		))
 	}
-	return nil
+	return allErrs
+}
+
+// LocalObjectTemplatesAreCompatible checks if two referenced objects are compatible, meaning that
+// they are of the same GroupKind and in the same namespace.
+func LocalObjectTemplatesAreCompatible(current, desired clusterv1.LocalObjectTemplate) field.ErrorList {
+	var allErrs field.ErrorList
+
+	currentGK := current.Ref.GetObjectKind().GroupVersionKind().GroupKind()
+	desiredGK := desired.Ref.GetObjectKind().GroupVersionKind().GroupKind()
+
+	if currentGK.Group != desiredGK.Group {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("metadata", "apiVersion"),
+			fmt.Sprintf("group cannot be changed from %v to %v to prevent incompatible changes in %v/%v", currentGK.Group, desiredGK.Group, currentGK.String(), current.Ref.Name),
+		))
+	}
+	if currentGK.Kind != desiredGK.Kind {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("metadata", "kind"),
+			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v", currentGK.Kind, desiredGK.Kind, currentGK.String(), current.Ref.Name),
+		))
+	}
+	allErrs = append(allErrs, LocalObjectTemplatesAreInSameNamespace(current, desired)...)
+	return allErrs
+}
+
+// LocalObjectTemplatesAreInSameNamespace checks if two referenced objects are in the same namespace.
+func LocalObjectTemplatesAreInSameNamespace(current, desired clusterv1.LocalObjectTemplate) field.ErrorList {
+	var allErrs field.ErrorList
+	if current.Ref.Namespace != desired.Ref.Namespace {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("metadata", "namespace"),
+			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v", current.Ref.Namespace, desired.Ref.Namespace, current.Ref.GetObjectKind().GroupVersionKind().GroupKind().String(), current.Ref.Name),
+		))
+	}
+	return allErrs
+}
+
+// LocalObjectTemplateIsValid ensures the template is in the correct namespace, has no nil references, and has a valid Kind and GroupVersion.
+func LocalObjectTemplateIsValid(in *clusterv1.LocalObjectTemplate, namespace string, pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// check if ref is not nil.
+	if in.Ref == nil {
+		return field.ErrorList{field.Invalid(
+			pathPrefix.Child("ref"),
+			"nil",
+			"cannot be nil",
+		)}
+	}
+
+	// check if a name is provided
+	if in.Ref.Name == "" {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "name"),
+				in.Ref.Name,
+				"cannot be empty",
+			),
+		)
+	}
+
+	// validate if namespace matches the provided namespace
+	if namespace != "" && in.Ref.Namespace != namespace {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "namespace"),
+				in.Ref.Namespace,
+				fmt.Sprintf("must be '%s'", namespace),
+			),
+		)
+	}
+
+	// check if kind is a template
+	if len(in.Ref.Kind) <= len(clusterv1.TemplateSuffix) || !strings.HasSuffix(in.Ref.Kind, clusterv1.TemplateSuffix) {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "kind"),
+				in.Ref.Kind,
+				fmt.Sprintf("kind must be of form '<name>%s'", clusterv1.TemplateSuffix),
+			),
+		)
+	}
+
+	// check if apiVersion is valid
+	gv, err := schema.ParseGroupVersion(in.Ref.APIVersion)
+	if err != nil {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "apiVersion"),
+				in.Ref.APIVersion,
+				fmt.Sprintf("must be a valid apiVersion: %v", err),
+			),
+		)
+	}
+	if err == nil && gv.Empty() {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("ref", "apiVersion"),
+				in.Ref.APIVersion,
+				"value cannot be empty",
+			),
+		)
+	}
+	return allErrs
 }

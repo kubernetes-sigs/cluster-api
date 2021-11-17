@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +44,6 @@ import (
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object.
 type DockerMachinePoolReconciler struct {
 	Client client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
@@ -124,7 +122,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *DockerMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToDockerMachinePools, err := util.ClusterToObjectsMapper(mgr.GetClient(), &infrav1exp.DockerMachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -133,11 +131,11 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1exp.DockerMachinePool{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&source.Kind{Type: &clusterv1exp.MachinePool{}},
 			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(
-				infrav1exp.GroupVersion.WithKind("DockerMachinePool"), r.Log)),
+				infrav1exp.GroupVersion.WithKind("DockerMachinePool"), ctrl.LoggerFrom(ctx))),
 		).
 		Build(r)
 	if err != nil {
@@ -146,7 +144,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
-		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 	)
 }
 

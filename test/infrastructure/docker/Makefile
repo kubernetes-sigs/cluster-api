@@ -147,7 +147,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/controllers/... \
+		paths=./$(EXP_DIR)/internal/controllers/... \
 		paths=./internal/controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \

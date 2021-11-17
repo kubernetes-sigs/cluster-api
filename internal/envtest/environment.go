@@ -100,7 +100,7 @@ func Run(ctx context.Context, input RunInput) int {
 	}
 
 	// Bootstrapping test environment
-	env := new(input.ManagerUncachedObjs...)
+	env := newEnvironment(input.ManagerUncachedObjs...)
 
 	if input.SetupIndexes != nil {
 		input.SetupIndexes(ctx, env.Manager)
@@ -144,11 +144,11 @@ type Environment struct {
 	cancelManager context.CancelFunc
 }
 
-// new creates a new environment spinning up a local api-server.
+// newEnvironment creates a new environment spinning up a local api-server.
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func new(uncachedObjs ...client.Object) *Environment {
+func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..")

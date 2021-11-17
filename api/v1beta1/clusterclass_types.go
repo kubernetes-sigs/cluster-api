@@ -213,6 +213,14 @@ type ClusterClassPatch struct {
 	// Name of the patch.
 	Name string `json:"name"`
 
+	// EnabledIf is a Go template to be used to calculate if a patch should be enabled.
+	// It can reference variables defined in .spec.variables and builtin variables.
+	// The patch will be enabled if the template evaluates to `true`, otherwise it will
+	// be disabled.
+	// If EnabledIf is not set, the patch will be enabled per default.
+	// +optional
+	EnabledIf *string `json:"enabledIf,omitempty"`
+
 	// Definitions define the patches inline.
 	// Note: Patches will be applied in the order of the array.
 	Definitions []PatchDefinition `json:"definitions"`

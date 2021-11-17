@@ -75,6 +75,16 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *api.GenerateReques
 			continue
 		}
 
+		enabled, err := patchIsEnabled(j.patch.EnabledIf, variables)
+		if err != nil {
+			errs = append(errs, errors.Wrapf(err, "failed to calculate if patch %s is enabled for template %s", j.patch.Name, template.TemplateRef))
+			continue
+		}
+		if !enabled {
+			// Continue if patch is not enabled.
+			continue
+		}
+
 		// Loop over all PatchDefinitions.
 		for _, patch := range matchingPatches {
 			// Generate JSON patches.
@@ -130,6 +140,22 @@ func templateMatchesSelector(templateRef *api.TemplateRef, selector clusterv1.Pa
 		// Return false if the TargetType is unknown.
 		return false
 	}
+}
+
+func patchIsEnabled(enabledIf *string, variables map[string]apiextensionsv1.JSON) (bool, error) {
+	// If enabledIf is not set, patch is enabled.
+	if enabledIf == nil {
+		return true, nil
+	}
+
+	// Rendered template.
+	value, err := renderValueTemplate(*enabledIf, variables)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to calculate value for enabledIf")
+	}
+
+	// Patch is enabled if the rendered template value is `true`.
+	return bytes.Equal(value.Raw, []byte(`true`)), nil
 }
 
 // jsonPatchRFC6902 is used to render the generated JSONPatches.

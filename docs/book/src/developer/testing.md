@@ -139,7 +139,7 @@ Add the launch.json file in the .vscode folder in your repo:
             "mode": "test",
             "program": "${workspaceRoot}/test/e2e/e2e_suite_test.go",
             "env": {
-                "ARTIFACTS":"${workspaceRoot}/_artifacts",
+                "ARTIFACTS":"${workspaceRoot}/_artifacts"
             },
             "args": [
                 "-e2e.config=${workspaceRoot}/test/e2e/config/docker.yaml",

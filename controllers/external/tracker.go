@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -37,7 +38,7 @@ type ObjectTracker struct {
 }
 
 // Watch uses the controller to issue a Watch only if the object hasn't been seen before.
-func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handler.EventHandler) error {
+func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handler.EventHandler, p ...predicate.Predicate) error {
 	// Consider this a no-op if the controller isn't present.
 	if o.Controller == nil {
 		return nil
@@ -56,7 +57,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handl
 	err := o.Controller.Watch(
 		&source.Kind{Type: u},
 		handler,
-		predicates.ResourceNotPaused(log),
+		append(p, predicates.ResourceNotPaused(log))...,
 	)
 	if err != nil {
 		o.m.Delete(key)

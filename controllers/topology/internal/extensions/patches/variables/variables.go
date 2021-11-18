@@ -19,80 +19,89 @@ package variables
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 )
 
 const (
-	// Builtin is the prefix of all builtin variables.
-	// NOTE: this prefix acts as a "namespace" preventing name collision between
-	// user defined variable and builtin variables.
-	Builtin = "builtin"
+	// BuiltinsName is the name of the builtin variable.
+	// NOTE: User-defined variables are not allowed to start with "builtin".
+	BuiltinsName = "builtin"
 )
 
-var (
-	// Builtin Cluster variables.
+// Builtins represents builtin variables exposed through patches.
+type Builtins struct {
+	Cluster           *ClusterBuiltins           `json:"cluster,omitempty"`
+	ControlPlane      *ControlPlaneBuiltins      `json:"controlPlane,omitempty"`
+	MachineDeployment *MachineDeploymentBuiltins `json:"machineDeployment,omitempty"`
+}
 
-	// BuiltinClusterName is the name of the cluster.
-	BuiltinClusterName = builtinVariable("cluster.name")
+// ClusterBuiltins represents builtin cluster variables.
+type ClusterBuiltins struct {
+	// Name is the name of the cluster.
+	Name string `json:"name,omitempty"`
 
-	// BuiltinClusterNamespace is the namespace of the cluster.
-	BuiltinClusterNamespace = builtinVariable("cluster.namespace")
+	// Namespace is the namespace of the cluster.
+	Namespace string `json:"namespace,omitempty"`
 
-	// BuiltinClusterTopologyVersion is the Kubernetes version of the Cluster.
+	// Topology represents the cluster topology variables.
+	Topology *ClusterTopologyBuiltins `json:"topology,omitempty"`
+}
+
+// ClusterTopologyBuiltins represents builtin cluster topology variables.
+type ClusterTopologyBuiltins struct {
+	// Version is the Kubernetes version of the Cluster.
 	// NOTE: Please note that this version might temporarily differ from the version
 	// of the ControlPlane or workers while an upgrade process is being orchestrated.
-	BuiltinClusterTopologyVersion = builtinVariable("cluster.topology.version")
+	Version string `json:"version,omitempty"`
 
-	// BuiltinClusterTopologyClass is the name of the ClusterClass of the Cluster.
-	BuiltinClusterTopologyClass = builtinVariable("cluster.topology.class")
+	// Class is the name of the ClusterClass of the Cluster.
+	Class string `json:"class,omitempty"`
+}
 
-	// Builtin ControlPlane variables.
-	// NOTE: These variables are only set for templates belonging to the ControlPlane object.
-
-	// BuiltinControlPlaneReplicas is the value of the replicas field of the ControlPlane object.
-	BuiltinControlPlaneReplicas = builtinVariable("controlPlane.replicas")
-
-	// BuiltinControlPlaneVersion is the Kubernetes version of the ControlPlane object.
+// ControlPlaneBuiltins represents builtin ControlPlane variables.
+// NOTE: These variables are only set for templates belonging to the ControlPlane object.
+type ControlPlaneBuiltins struct {
+	// Version is the Kubernetes version of the ControlPlane object.
 	// NOTE: Please note that this version is the version we are currently reconciling towards.
 	// It can differ from the current version of the ControlPlane while an upgrade process is
 	// being orchestrated.
-	BuiltinControlPlaneVersion = builtinVariable("controlPlane.version")
+	Version string `json:"version,omitempty"`
 
-	// Builtin MachineDeployment variables.
-	// NOTE: These variables are only set for templates belonging to a MachineDeployment.
+	// Replicas is the value of the replicas field of the ControlPlane object.
+	Replicas *int64 `json:"replicas,omitempty"`
+}
 
-	// BuiltinMachineDeploymentReplicas is the value of the replicas field of the MachineDeployment,
-	// to which the current template belongs to.
-	BuiltinMachineDeploymentReplicas = builtinVariable("machineDeployment.replicas")
-
-	// BuiltinMachineDeploymentVersion is the Kubernetes version of the MachineDeployment,
+// MachineDeploymentBuiltins represents builtin MachineDeployment variables.
+// NOTE: These variables are only set for templates belonging to a MachineDeployment.
+type MachineDeploymentBuiltins struct {
+	// Version is the Kubernetes version of the MachineDeployment,
 	// to which the current template belongs to.
 	// NOTE: Please note that this version is the version we are currently reconciling towards.
 	// It can differ from the current version of the MachineDeployment machines while an upgrade process is
 	// being orchestrated.
-	BuiltinMachineDeploymentVersion = builtinVariable("machineDeployment.version")
+	Version string `json:"version,omitempty"`
 
-	// BuiltinMachineDeploymentClass is the class name of the MachineDeployment,
+	// Class is the class name of the MachineDeployment,
 	// to which the current template belongs to.
-	BuiltinMachineDeploymentClass = builtinVariable("machineDeployment.class")
+	Class string `json:"class,omitempty"`
 
-	// BuiltinMachineDeploymentName is the name of the MachineDeployment,
+	// Name is the name of the MachineDeployment,
 	// to which the current template belongs to.
-	BuiltinMachineDeploymentName = builtinVariable("machineDeployment.name")
+	Name string `json:"name,omitempty"`
 
-	// BuiltinMachineDeploymentTopologyName is the topology name of the MachineDeployment,
+	// TopologyName is the topology name of the MachineDeployment,
 	// to which the current template belongs to.
-	BuiltinMachineDeploymentTopologyName = builtinVariable("machineDeployment.topologyName")
-)
+	TopologyName string `json:"topologyName,omitempty"`
 
-func builtinVariable(name string) string {
-	return fmt.Sprintf("%s.%s", Builtin, name)
+	// Replicas is the value of the replicas field of the MachineDeployment,
+	// to which the current template belongs to.
+	Replicas *int64 `json:"replicas,omitempty"`
 }
 
 // VariableMap is a name/value map of variables.
@@ -109,17 +118,20 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster) (Va
 		variables[variable.Name] = variable.Value
 	}
 
+	// Construct builtin variable.
+	builtin := Builtins{
+		Cluster: &ClusterBuiltins{
+			Name:      cluster.Name,
+			Namespace: cluster.Namespace,
+			Topology: &ClusterTopologyBuiltins{
+				Version: cluster.Spec.Topology.Version,
+				Class:   cluster.Spec.Topology.Class,
+			},
+		},
+	}
+
 	// Add builtin variables derived from the cluster object.
-	if err := setVariable(variables, BuiltinClusterName, cluster.Name); err != nil {
-		return nil, err
-	}
-	if err := setVariable(variables, BuiltinClusterNamespace, cluster.Namespace); err != nil {
-		return nil, err
-	}
-	if err := setVariable(variables, BuiltinClusterTopologyVersion, cluster.Spec.Topology.Version); err != nil {
-		return nil, err
-	}
-	if err := setVariable(variables, BuiltinClusterTopologyClass, cluster.Spec.Topology.Class); err != nil {
+	if err := setVariable(variables, BuiltinsName, builtin); err != nil {
 		return nil, err
 	}
 
@@ -130,6 +142,11 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster) (Va
 func ControlPlane(controlPlaneTopology *clusterv1.ControlPlaneTopology, controlPlane *unstructured.Unstructured) (VariableMap, error) {
 	variables := VariableMap{}
 
+	// Construct builtin variable.
+	builtin := Builtins{
+		ControlPlane: &ControlPlaneBuiltins{},
+	}
+
 	// If it is required to manage the number of replicas for the ControlPlane, set the corresponding variable.
 	// NOTE: If the Cluster.spec.topology.controlPlane.replicas field is nil, the topology reconciler won't set
 	// the replicas field on the ControlPlane. This happens either when the ControlPlane provider does
@@ -139,16 +156,16 @@ func ControlPlane(controlPlaneTopology *clusterv1.ControlPlaneTopology, controlP
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get spec.replicas from the ControlPlane")
 		}
-		if err := setVariable(variables, BuiltinControlPlaneReplicas, *replicas); err != nil {
-			return nil, err
-		}
+		builtin.ControlPlane.Replicas = replicas
 	}
 
 	version, err := contract.ControlPlane().Version().Get(controlPlane)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get spec.version from the ControlPlane")
 	}
-	if err := setVariable(variables, BuiltinControlPlaneVersion, version); err != nil {
+	builtin.ControlPlane.Version = *version
+
+	if err := setVariable(variables, BuiltinsName, builtin); err != nil {
 		return nil, err
 	}
 
@@ -159,21 +176,20 @@ func ControlPlane(controlPlaneTopology *clusterv1.ControlPlaneTopology, controlP
 func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clusterv1.MachineDeployment) (VariableMap, error) {
 	variables := VariableMap{}
 
+	// Construct builtin variable.
+	builtin := Builtins{
+		MachineDeployment: &MachineDeploymentBuiltins{
+			Version:      *md.Spec.Template.Spec.Version,
+			Class:        mdTopology.Class,
+			Name:         md.Name,
+			TopologyName: mdTopology.Name,
+		},
+	}
 	if md.Spec.Replicas != nil {
-		if err := setVariable(variables, BuiltinMachineDeploymentReplicas, *md.Spec.Replicas); err != nil {
-			return nil, err
-		}
+		builtin.MachineDeployment.Replicas = pointer.Int64(int64(*md.Spec.Replicas))
 	}
-	if err := setVariable(variables, BuiltinMachineDeploymentVersion, *md.Spec.Template.Spec.Version); err != nil {
-		return nil, err
-	}
-	if err := setVariable(variables, BuiltinMachineDeploymentClass, mdTopology.Class); err != nil {
-		return nil, err
-	}
-	if err := setVariable(variables, BuiltinMachineDeploymentName, md.Name); err != nil {
-		return nil, err
-	}
-	if err := setVariable(variables, BuiltinMachineDeploymentTopologyName, mdTopology.Name); err != nil {
+
+	if err := setVariable(variables, BuiltinsName, builtin); err != nil {
 		return nil, err
 	}
 

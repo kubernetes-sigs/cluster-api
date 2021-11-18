@@ -23,6 +23,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -75,6 +76,17 @@ type TemplateRef struct {
 	// MachineDeployment specifies the MachineDeployment in which the template is used.
 	// This field is only set if the template is used in the context of a MachineDeployment.
 	MachineDeploymentRef MachineDeploymentRef
+}
+
+func (t *TemplateRef) String() string {
+	ret := fmt.Sprintf("%s %s/%s", t.TemplateType, t.APIVersion, t.Kind)
+	if t.MachineDeploymentRef.TopologyName != "" {
+		ret = fmt.Sprintf("%s, MachineDeployment topology %s", ret, t.MachineDeploymentRef.TopologyName)
+	}
+	if t.MachineDeploymentRef.Class != "" {
+		ret = fmt.Sprintf("%s, MachineDeployment class %s", ret, t.MachineDeploymentRef.Class)
+	}
+	return ret
 }
 
 // MachineDeploymentRef specifies the MachineDeployment in which the template is used.

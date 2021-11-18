@@ -50,7 +50,7 @@ func TestGlobal(t *testing.T) {
 					{
 						// This is blocked by a webhook, but let's make sure we overwrite
 						// the user-defined variable with the builtin variable anyway.
-						Name:  "builtin.cluster.name",
+						Name:  "builtin",
 						Value: toJSON("8"),
 					},
 				},
@@ -68,12 +68,9 @@ func TestGlobal(t *testing.T) {
 				},
 			},
 			want: VariableMap{
-				"location":                    toJSON("\"us-central\""),
-				"cpu":                         toJSON("8"),
-				BuiltinClusterName:            toJSON("\"cluster1\""),
-				BuiltinClusterNamespace:       toJSON("\"default\""),
-				BuiltinClusterTopologyVersion: toJSON("\"v1.21.1\""),
-				BuiltinClusterTopologyClass:   toJSON("\"clusterClass1\""),
+				"location":   toJSON("\"us-central\""),
+				"cpu":        toJSON("8"),
+				BuiltinsName: toJSON("{\"cluster\":{\"name\":\"cluster1\",\"namespace\":\"default\",\"topology\":{\"version\":\"v1.21.1\",\"class\":\"clusterClass1\"}}}"),
 			},
 		},
 	}
@@ -105,8 +102,7 @@ func TestControlPlane(t *testing.T) {
 				WithVersion("v1.21.1").
 				Build(),
 			want: VariableMap{
-				BuiltinControlPlaneReplicas: toJSON("3"),
-				BuiltinControlPlaneVersion:  toJSON("\"v1.21.1\""),
+				BuiltinsName: toJSON("{\"controlPlane\":{\"version\":\"v1.21.1\",\"replicas\":3}}"),
 			},
 		},
 		{
@@ -116,7 +112,7 @@ func TestControlPlane(t *testing.T) {
 				WithVersion("v1.21.1").
 				Build(),
 			want: VariableMap{
-				BuiltinControlPlaneVersion: toJSON("\"v1.21.1\""),
+				BuiltinsName: toJSON("{\"controlPlane\":{\"version\":\"v1.21.1\"}}"),
 			},
 		},
 	}
@@ -150,11 +146,7 @@ func TestMachineDeployment(t *testing.T) {
 				WithVersion("v1.21.1").
 				Build(),
 			want: VariableMap{
-				BuiltinMachineDeploymentReplicas:     toJSON("3"),
-				BuiltinMachineDeploymentVersion:      toJSON("\"v1.21.1\""),
-				BuiltinMachineDeploymentClass:        toJSON("\"md-class\""),
-				BuiltinMachineDeploymentName:         toJSON("\"md1\""),
-				BuiltinMachineDeploymentTopologyName: toJSON("\"md-topology\""),
+				BuiltinsName: toJSON("{\"machineDeployment\":{\"version\":\"v1.21.1\",\"class\":\"md-class\",\"name\":\"md1\",\"topologyName\":\"md-topology\",\"replicas\":3}}"),
 			},
 		},
 		{
@@ -167,10 +159,7 @@ func TestMachineDeployment(t *testing.T) {
 				WithVersion("v1.21.1").
 				Build(),
 			want: VariableMap{
-				BuiltinMachineDeploymentVersion:      toJSON("\"v1.21.1\""),
-				BuiltinMachineDeploymentClass:        toJSON("\"md-class\""),
-				BuiltinMachineDeploymentName:         toJSON("\"md1\""),
-				BuiltinMachineDeploymentTopologyName: toJSON("\"md-topology\""),
+				BuiltinsName: toJSON("{\"machineDeployment\":{\"version\":\"v1.21.1\",\"class\":\"md-class\",\"name\":\"md1\",\"topologyName\":\"md-topology\"}}"),
 			},
 		},
 	}

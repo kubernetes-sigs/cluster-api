@@ -23,3 +23,6 @@ spec:
       - class: "default-worker"
         name: "md-0"
         replicas: ${WORKER_MACHINE_COUNT}
+    variables:
+    - name: imageRepository
+      value: k8s.gcr.io

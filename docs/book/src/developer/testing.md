@@ -63,7 +63,7 @@ The following guidelines should be followed when developing E2E tests:
 - Use the [Cluster API test framework].
 - Define test spec reflecting real user workflow, e.g. [Cluster API quick start].
 - Unless you are testing provider specific features, ensure your test can run with
-  different infrastructure providers (see [Writing Portable Tests](#writing-portable-e2e-tests)).
+  different infrastructure providers (see [Writing Portable Tests](./e2e.md#writing-portable-e2e-tests)).
 
 See [e2e development] for more information on developing e2e tests for CAPI and external providers.
 

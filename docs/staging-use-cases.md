@@ -146,15 +146,12 @@ This is a living document that serves as a reference and a staging area for use 
 - 🔭 As an operator, given I have a management cluster and a workload cluster, I want to monitor the cleanup of created by my workload cluster.
 
 - 🔭 As an operator, given I have a management cluster and a workload cluster, I want to ensure the etcd database in my workload cluster is backed up.
-Multitenancy Management
-- 🔭 As an operator, given I have a management cluster and a workload cluster, I want to setup roles, role bindings, users, and usage quotas on my workload cluster.
 
 ### Adoption
 - 🔭 As an operator, given I have created a Kubernetes-conformant cluster without ClusterAPI, I want to use ClusterAPI to manage it. In order to do so, I need to know the requirements for adopting/importing this cluster in terms of required CRD’s and operators (e.g Machine and Cluster objects).
 
 ### Multitenancy Management
 - 🔭 As an operator, given I have a management cluster and a workload cluster, I want to setup roles, role bindings, users, and usage quotas on my workload cluster.
-
 
 ### Disaster Recovery
 - 🔭As an operator, I want to be able to recover from the complete loss of all the control plane replicas of a workload cluster. This excludes etcd.

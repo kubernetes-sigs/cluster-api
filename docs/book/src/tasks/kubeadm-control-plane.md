@@ -38,5 +38,4 @@ Cluster API Machines:
   for additional details.
 
 <!-- links -->
-[adoption]: upgrading-cluster-api-versions.md#adopting-existing-machines-into-kubeadmcontrolplane-management
 [upgrades]: upgrading-clusters.md#how-to-upgrade-the-kubernetes-control-plane-version

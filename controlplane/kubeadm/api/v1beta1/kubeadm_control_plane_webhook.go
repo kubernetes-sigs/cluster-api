@@ -236,7 +236,7 @@ func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string
 				allErrs,
 				field.Forbidden(
 					pathPrefix.Child("replicas"),
-					"cannot be an even number when using managed etcd",
+					"cannot be an even number when etcd is stacked",
 				),
 			)
 		}

@@ -500,6 +500,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			APIReader:                 fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -591,6 +592,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			APIReader:                 fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -670,6 +672,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			APIReader:                 fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -722,6 +725,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		recorder := record.NewFakeRecorder(32)
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			APIReader:                 fakeClient,
 			recorder:                  recorder,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
@@ -854,8 +858,9 @@ kubernetesVersion: metav1.16.1`,
 	)
 	expectedLabels := map[string]string{clusterv1.ClusterLabelName: "foo"}
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:    fakeClient,
+		APIReader: fakeClient,
+		recorder:  record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
 			Workload: fakeWorkloadCluster{

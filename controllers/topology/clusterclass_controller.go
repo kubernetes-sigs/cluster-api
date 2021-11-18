@@ -44,7 +44,8 @@ import (
 
 // ClusterClassReconciler reconciles the ClusterClass object.
 type ClusterClassReconciler struct {
-	Client client.Client
+	Client    client.Client
+	APIReader client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -154,7 +155,7 @@ func (r *ClusterClassReconciler) reconcile(ctx context.Context, clusterClass *cl
 func (r *ClusterClassReconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference, setOwnerRef bool) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
 		return errors.Wrapf(err, "failed to update reference API contract of %s", tlog.KRef{Ref: ref})
 	}
 

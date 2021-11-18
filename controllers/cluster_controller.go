@@ -63,7 +63,8 @@ const (
 
 // ClusterReconciler reconciles a Cluster object.
 type ClusterReconciler struct {
-	Client client.Client
+	Client    client.Client
+	APIReader client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

@@ -541,14 +541,16 @@ func TestMachineOwnerReference(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			c := fake.NewClientBuilder().WithObjects(
+				testCluster,
+				machineInvalidCluster,
+				machineValidCluster,
+				machineValidMachine,
+				machineValidControlled,
+			).Build()
 			mr := &MachineReconciler{
-				Client: fake.NewClientBuilder().WithObjects(
-					testCluster,
-					machineInvalidCluster,
-					machineValidCluster,
-					machineValidMachine,
-					machineValidControlled,
-				).Build(),
+				Client:    c,
+				APIReader: c,
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}

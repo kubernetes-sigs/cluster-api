@@ -75,6 +75,7 @@ func TestMain(m *testing.M) {
 		}
 		if err := (&ClusterClassReconciler{
 			Client:                    mgr.GetClient(),
+			APIReader:                 mgr.GetAPIReader(),
 			UnstructuredCachingClient: unstructuredCachingClient,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
 			panic(fmt.Sprintf("unable to create clusterclass reconciler: %v", err))

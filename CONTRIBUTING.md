@@ -24,7 +24,7 @@
       - [CRD additionalPrinterColumns](#crd-additionalprintercolumns)
     - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
     - [Issue and Pull Request Management](#issue-and-pull-request-management)
-    - [Subareas of interest](#subareas-of-interest)
+    - [Contributors ladder](#contributors-ladder)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -75,7 +75,7 @@ These guarantees extend to all code exposed in our Go Module, including
 Types and functions not in public APIs are not considered part of the guarantee.
 The test module, clusterctl, and experiments do not provide any backward compatible guarantees.
 
-#### Backporting
+#### Backporting a patch
 
 We only accept backports of critical bugs, security issues, or bugs without easy workarounds, any
 backport MUST not be breaking for either API or behavioral changes.

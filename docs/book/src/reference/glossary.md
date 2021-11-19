@@ -181,7 +181,7 @@ The pivot process is also used for deleting a management cluster and could also 
 
 ### Provider
 
-See [Infrastructure Provider](#user-content-infrastructure-provider)
+See [Infrastructure Provider](#infrastructure-provider)
 
 ### Provider components
 
@@ -206,7 +206,7 @@ is running as a static pod.
 
 ### Server
 
-The infrastructure that backs a [Machine Resource](#user-content-machine), typically either a cloud instance, virtual machine, or physical host.
+The infrastructure that backs a [Machine Resource](#machine), typically either a cloud instance, virtual machine, or physical host.
 
 # W
 ---

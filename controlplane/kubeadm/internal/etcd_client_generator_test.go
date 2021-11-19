@@ -19,17 +19,14 @@ package internal
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
-
+	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
-
 	"k8s.io/client-go/rest"
-
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdfake "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
 )
@@ -44,9 +41,7 @@ func TestNewEtcdClientGenerator(t *testing.T) {
 	g.Expect(subject.createClient).To(Not(BeNil()))
 }
 
-func TestForNodes(t *testing.T) {
-	g := NewWithT(t)
-
+func TestFirstAvailableNode(t *testing.T) {
 	tests := []struct {
 		name  string
 		nodes []string
@@ -64,7 +59,13 @@ func TestForNodes(t *testing.T) {
 			expectedClient: etcd.Client{Endpoint: "etcd-node-1"},
 		},
 		{
-			name:  "Returns error",
+			name:        "Fails when called with an empty node list",
+			nodes:       nil,
+			cc:          nil,
+			expectedErr: "invalid argument: forLeader can't be called with an empty list of nodes",
+		},
+		{
+			name:  "Returns error from client",
 			nodes: []string{"node-1", "node-2"},
 			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				return nil, errors.New("something went wrong")
@@ -72,7 +73,7 @@ func TestForNodes(t *testing.T) {
 			expectedErr: "could not establish a connection to any etcd node: something went wrong",
 		},
 		{
-			name:  "Returns client when nodes are down but atleast one node is up",
+			name:  "Returns client when some of the nodes are down but at least one node is up",
 			nodes: []string{"node-down-1", "node-down-2", "node-up"},
 			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				if strings.Contains(endpoints[0], "node-down") {
@@ -86,23 +87,24 @@ func TestForNodes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12})
-		subject.createClient = tt.cc
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12})
+			subject.createClient = tt.cc
 
-		client, err := subject.forFirstAvailableNode(ctx, tt.nodes)
+			client, err := subject.forFirstAvailableNode(ctx, tt.nodes)
 
-		if tt.expectedErr != "" {
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(err.Error()).Should(Equal(tt.expectedErr))
-		} else {
-			g.Expect(*client).Should(Equal(tt.expectedClient))
-		}
+			if tt.expectedErr != "" {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).Should(Equal(tt.expectedErr))
+			} else {
+				g.Expect(*client).Should(Equal(tt.expectedClient))
+			}
+		})
 	}
 }
 
 func TestForLeader(t *testing.T) {
-	g := NewWithT(t)
-
 	tests := []struct {
 		name  string
 		nodes []string
@@ -140,7 +142,6 @@ func TestForLeader(t *testing.T) {
 					AlarmResponse: &clientv3.AlarmResponse{},
 				}},
 		},
-
 		{
 			name:  "Returns client for leader even when one or more nodes are down",
 			nodes: []string{"node-down-1", "node-down-2", "node-leader"},
@@ -172,6 +173,31 @@ func TestForLeader(t *testing.T) {
 				}},
 		},
 		{
+			name:        "Fails when called with an empty node list",
+			nodes:       nil,
+			cc:          nil,
+			expectedErr: "invalid argument: forLeader can't be called with an empty list of nodes",
+		},
+		{
+			name:  "Returns error when the leader does not have a corresponding node",
+			nodes: []string{"node-1"},
+			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+				return &etcd.Client{
+					Endpoint: endpoints[0],
+					LeaderID: 1729,
+					EtcdClient: &etcdfake.FakeEtcdClient{
+						MemberListResponse: &clientv3.MemberListResponse{
+							Members: []*etcdserverpb.Member{
+								{ID: 1234, Name: "node-1"},
+								{ID: 1729, Name: "node-leader"},
+							},
+						},
+						AlarmResponse: &clientv3.AlarmResponse{},
+					}}, nil
+			},
+			expectedErr: "etcd leader is reported as 6c1 with name \"node-leader\", but we couldn't find a corresponding Node in the cluster",
+		},
+		{
 			name:  "Returns error when all nodes are down",
 			nodes: []string{"node-down-1", "node-down-2", "node-down-3"},
 			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
@@ -182,16 +208,20 @@ func TestForLeader(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12})
-		subject.createClient = tt.cc
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 
-		client, err := subject.forLeader(ctx, tt.nodes)
+			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12})
+			subject.createClient = tt.cc
 
-		if tt.expectedErr != "" {
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(err.Error()).Should(Equal(tt.expectedErr))
-		} else {
-			g.Expect(*client).Should(Equal(tt.expectedClient))
-		}
+			client, err := subject.forLeader(ctx, tt.nodes)
+
+			if tt.expectedErr != "" {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).Should(Equal(tt.expectedErr))
+			} else {
+				g.Expect(*client).Should(Equal(tt.expectedClient))
+			}
+		})
 	}
 }

@@ -1,5 +1,16 @@
 ---
 title: Cluster API Scope and Objectives
+authors:
+  - "@vincepri"
+  - "@ncdc"
+  - "@detiber"
+reviewers:
+  - "@timothysc"
+  - "@justinsb"
+creation-date: 2019-04-08
+last-updated: 2019-04-08
+---
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
@@ -18,19 +29,10 @@ title: Cluster API Scope and Objectives
       - [Organization](#organization)
       - [Validation](#validation)
       - [Extension](#extension)
+      
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-authors:
-  - "@vincepri"
-  - "@ncdc"
-  - "@detiber"
-reviewers:
-  - "@timothysc"
-  - "@justinsb"
-creation-date: 2019-04-08
-last-updated: 2019-04-08
----
 
 # Cluster API Scope and Objectives
 

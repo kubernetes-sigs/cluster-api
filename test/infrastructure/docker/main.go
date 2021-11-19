@@ -182,8 +182,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&expcontrollers.DockerMachinePoolReconciler{
 			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("DockerMachinePool"),
-		}).SetupWithManager(mgr, controller.Options{
+		}).SetupWithManager(ctx, mgr, controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "DockerMachinePool")

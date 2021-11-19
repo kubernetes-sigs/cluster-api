@@ -209,13 +209,16 @@ func Test_DefaultClusterVariables(t *testing.T) {
 func Test_DefaultClusterVariable(t *testing.T) {
 	tests := []struct {
 		name                 string
-		clusterClassVariable *clusterv1.ClusterClassVariable
 		clusterVariable      *clusterv1.ClusterVariable
+		clusterClassVariable *clusterv1.ClusterClassVariable
 		want                 *clusterv1.ClusterVariable
 		wantErr              bool
 	}{
 		{
 			name: "Default integer",
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
 				Required: true,
@@ -226,7 +229,6 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
-			clusterVariable: &clusterv1.ClusterVariable{Name: "cpu"},
 			want: &clusterv1.ClusterVariable{
 				Name: "cpu",
 				Value: apiextensionsv1.JSON{
@@ -236,6 +238,9 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default string",
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "location",
+			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
 				Required: true,
@@ -246,7 +251,6 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
-			clusterVariable: &clusterv1.ClusterVariable{Name: "location"},
 			want: &clusterv1.ClusterVariable{
 				Name: "location",
 				Value: apiextensionsv1.JSON{
@@ -294,16 +298,46 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Default object",
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+			},
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "object",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+							"url": {
+								Type: "string",
+							},
+							"noProxy": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":false}`),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			clusterVariable := &clusterv1.ClusterVariable{
-				Name: tt.clusterClassVariable.Name,
-			}
-			errList := defaultClusterVariable(clusterVariable, tt.clusterClassVariable,
-				field.NewPath("spec", "topology", "variables"))
+			errList := defaultClusterVariable(tt.clusterVariable, tt.clusterClassVariable,
+				field.NewPath("spec", "topology", "variables").Index(0))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())
@@ -311,7 +345,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			}
 			g.Expect(errList).To(BeEmpty())
 
-			g.Expect(clusterVariable).To(Equal(tt.want))
+			g.Expect(tt.clusterVariable).To(Equal(tt.want))
 		})
 	}
 }

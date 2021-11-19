@@ -95,14 +95,14 @@ func validateClusterClassVariableName(variableName string, fldPath *field.Path) 
 	return allErrs
 }
 
-var validVariableTypes = sets.NewString("string", "number", "integer", "boolean")
+var validVariableTypes = sets.NewString("object", "string", "number", "integer", "boolean")
 
 // validateSchema validates the schema.
-func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldPath *field.Path) field.ErrorList {
+func validateSchema(schema *clusterv1.JSONSchemaProps, parentName string, fldPath *field.Path) field.ErrorList {
 	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema)
 	if err != nil {
 		return field.ErrorList{field.Invalid(fldPath, schema,
-			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", variableName, err))}
+			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", parentName, err))}
 	}
 
 	// Validate that type is one of the validVariableTypes.
@@ -113,6 +113,14 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldP
 		return field.ErrorList{field.Forbidden(fldPath.Child("type"), "type cannot be set to null, use nullable as an alternative")}
 	case !validVariableTypes.Has(apiExtensionsSchema.Type):
 		return field.ErrorList{field.NotSupported(fldPath.Child("type"), apiExtensionsSchema.Type, validVariableTypes.List())}
+	}
+
+	allErrs := field.ErrorList{}
+	if len(schema.Properties) != 0 {
+		for propertyName, propertySchema := range schema.Properties {
+			p := propertySchema
+			allErrs = append(allErrs, validateSchema(&p, propertyName, fldPath.Child("properties").Key(propertyName))...)
+		}
 	}
 
 	// Validate structural schema.
@@ -130,29 +138,29 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldP
 	// Get the structural schema for the variable.
 	ss, err := structuralschema.NewStructural(wrappedSchema)
 	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath.Child("schema"), "", err.Error())}
+		return append(allErrs, field.Invalid(fldPath.Child("schema"), "", err.Error()))
 	}
 
 	// Validate the schema.
 	if validationErrors := structuralschema.ValidateStructural(fldPath.Child("schema"), ss); len(validationErrors) > 0 {
-		return validationErrors
+		return append(allErrs, validationErrors...)
 	}
 
 	// Validate defaults in the structural schema.
 	validationErrors, err := structuraldefaulting.ValidateDefaults(fldPath.Child("schema"), ss, true, true)
 	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath.Child("schema"), "", err.Error())}
+		return append(allErrs, field.Invalid(fldPath.Child("schema"), "", err.Error()))
 	}
 	if len(validationErrors) > 0 {
-		return validationErrors
+		return append(allErrs, validationErrors...)
 	}
 
 	// If the structural schema is valid, ensure a schema validator can be constructed.
 	if _, _, err := validation.NewSchemaValidator(&apiextensions.CustomResourceValidation{
 		OpenAPIV3Schema: apiExtensionsSchema,
 	}); err != nil {
-		return field.ErrorList{field.Invalid(fldPath, "", fmt.Sprintf("failed to build validator: %v", err))}
+		return append(allErrs, field.Invalid(fldPath, "", fmt.Sprintf("failed to build validator: %v", err)))
 	}
 
-	return nil
+	return allErrs
 }

@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"text/template"
 
@@ -211,8 +210,8 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 
 // getVariableValue returns a variable from the variables map.
 func getVariableValue(variables map[string]apiextensionsv1.JSON, variableName string) (*apiextensionsv1.JSON, error) {
-	// If the variable is a user-defined variable or the top-level "builtin" variable, just do a simple lookup.
-	if !strings.HasPrefix(variableName, fmt.Sprintf("%s.", patchvariables.BuiltinsName)) {
+	// If the variable is a top-level variable, just do a simple lookup.
+	if !strings.Contains(variableName, ".") {
 		value, ok := variables[variableName]
 		if !ok {
 			return nil, errors.Errorf("variable %q does not exist", variableName)
@@ -220,30 +219,30 @@ func getVariableValue(variables map[string]apiextensionsv1.JSON, variableName st
 		return &value, nil
 	}
 
-	// If the variable is a "builtin.<relativeVariableName>" variable, we inspect the builtin variable object.
+	// If the variable is a nested variable we inspect the variable object.
 
-	// Get the builtin variable object.
-	builtinsValue, ok := variables[patchvariables.BuiltinsName]
+	// Get the variable object.
+	value, ok := variables[strings.Split(variableName, ".")[0]]
 	if !ok {
-		return nil, errors.Errorf("variable %q does not exist", patchvariables.BuiltinsName)
-	}
-
-	// Parse the builtin variable object.
-	builtins, err := fastjson.ParseBytes(builtinsValue.Raw)
-	if err != nil {
-		return nil, errors.Errorf("cannot parse variable %q", patchvariables.BuiltinsName)
-	}
-
-	// Split the variable name and exclude the first part ("builtins.")
-	relativePath := strings.Split(variableName, ".")[1:]
-
-	// Return if the builtin variable does not exist.
-	if !builtins.Exists(relativePath...) {
 		return nil, errors.Errorf("variable %q does not exist", variableName)
 	}
 
-	// Get the builtin variable from the builtin variable object.
-	variableValue := builtins.Get(relativePath...)
+	// Parse the variable object.
+	variable, err := fastjson.ParseBytes(value.Raw)
+	if err != nil {
+		return nil, errors.Errorf("cannot parse variable %q", variableName)
+	}
+
+	// Split the variable name and exclude the first part ("<variableName>.")
+	relativePath := strings.Split(variableName, ".")[1:]
+
+	// Return if the variable does not exist.
+	if !variable.Exists(relativePath...) {
+		return nil, errors.Errorf("variable %q does not exist", variableName)
+	}
+
+	// Get the variable from the variable object.
+	variableValue := variable.Get(relativePath...)
 
 	// Return the marshalled value of the variable.
 	return &apiextensionsv1.JSON{

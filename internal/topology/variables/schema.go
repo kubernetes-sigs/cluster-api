@@ -37,6 +37,20 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*
 		Pattern:          schema.Pattern,
 		ExclusiveMaximum: schema.ExclusiveMaximum,
 		ExclusiveMinimum: schema.ExclusiveMinimum,
+		Required:         schema.Required,
+	}
+
+	if len(schema.Properties) > 0 {
+		props.Properties = map[string]apiextensions.JSONSchemaProps{}
+
+		for propertyName, propertySchema := range schema.Properties {
+			p := propertySchema
+			upstreamPropertySchema, err := convertToAPIExtensionsJSONSchemaProps(&p)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to convert schema of field %q", propertyName)
+			}
+			props.Properties[propertyName] = *upstreamPropertySchema
+		}
 	}
 
 	if schema.Default != nil {

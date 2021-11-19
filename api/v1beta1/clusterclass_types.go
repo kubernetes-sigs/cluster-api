@@ -158,8 +158,22 @@ type VariableSchema struct {
 // which are not supported in CAPI have been removed.
 type JSONSchemaProps struct {
 	// Type is the type of the variable.
-	// Valid values are: string, integer, number or boolean.
+	// Valid values are: object, string, integer, number or boolean.
 	Type string `json:"type"`
+
+	// Properties specifies fields of an object.
+	// NOTE: Can only be set if type is object.
+	Properties map[string]JSONSchemaProps `json:"properties,omitempty"`
+
+	// Required specifies which fields of an object are required.
+	Required []string `json:"required,omitempty"`
+
+	// FIXME: TBD if we want to support Dictionaries (https://swagger.io/docs/specification/data-models/dictionaries/)
+	// Dictionary is map[string]<type>, whereas AdditionalProperties describes the <type>
+	// * AdditionalProperties = true => value can be anything
+	// * AdditionalProperties.type = string => value can be string
+	// * AdditionalProperties.type can be any of our supported types
+	// AdditionalProperties *JSONSchemaPropsOrBool     `json:"additionalProperties,omitempty"`
 
 	// Nullable specifies if the variable can be set to null.
 	// +optional

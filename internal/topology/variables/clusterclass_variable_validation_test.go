@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -247,6 +248,55 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Valid object schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type:    "boolean",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+							},
+							"url": {
+								Type: "string",
+							},
+							"noProxy": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Invalid object schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type:    "boolean",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+							},
+							"url": {
+								Type: "string",
+							},
+							"noProxy": {
+								Type: "invalidType",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -254,7 +304,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			g := NewWithT(t)
 
 			errList := validateClusterClassVariable(tt.clusterClassVariable,
-				field.NewPath("spec", "variables"))
+				field.NewPath("spec", "variables").Index(0))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())

@@ -386,6 +386,115 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Valid object",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":false}`),
+				},
+			},
+		},
+		{
+			name: "Invalid object",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":"not-a-bool"}`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid object",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`"not-a-object"`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Valid object",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testObject",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"requiredProperty": {
+								Type: "boolean",
+							},
+							"boolProperty": {
+								Type: "boolean",
+							},
+							"integerProperty": {
+								Type:    "integer",
+								Minimum: pointer.Int64(1),
+							},
+							"enumProperty": {
+								Type: "string",
+								Enum: []apiextensionsv1.JSON{
+									{Raw: []byte(`"enumValue1"`)},
+									{Raw: []byte(`"enumValue2"`)},
+								},
+							},
+						},
+						Required: []string{"requiredProperty"},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testObject",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"requiredProperty":false,"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

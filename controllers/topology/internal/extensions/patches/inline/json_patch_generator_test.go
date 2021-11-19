@@ -677,6 +677,104 @@ func TestCalculateValue(t *testing.T) {
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"value"`)},
 		},
+		// Objects (just playing around for now)
+		{
+			name: "Should return .valueFrom.variable if set: whole object",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"requiredProperty":false,"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"requiredProperty":false,"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested bool property",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.boolProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested integer property",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.integerProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested string property",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.enumProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"enumValue2"`)},
+		},
+		// Deeper nested Objects (just playing around for now)
+		{
+			name: "Should return .valueFrom.variable if set: nested object property top-level",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested object property firstLevel",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.firstLevel"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"secondLevel":{"leaf":"value"}}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested object property secondLevel",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.firstLevel.secondLevel"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"leaf":"value"}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested object property leaf",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.firstLevel.secondLevel.leaf"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"value"`)},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -734,6 +832,25 @@ func TestRenderValueTemplate(t *testing.T) {
 				"booleanVariable": {Raw: []byte("true")},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+		},
+		// Default variables via template
+		{
+			name:     "Should render depending on variable existence: variable is set",
+			template: `{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}`,
+			variables: map[string]apiextensionsv1.JSON{
+				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				"vnetName":                  {Raw: []byte(`"custom-network"`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"custom-network"`)},
+		},
+		{
+			name:     "Should render depending on variable existence: variable is not set",
+			template: `{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}`,
+			variables: map[string]apiextensionsv1.JSON{
+				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				"vnetName":                  {Raw: []byte(`""`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"cluster1-vnet"`)},
 		},
 		// YAML
 		{
@@ -838,6 +955,84 @@ owner: root:root
 	"owner":"root:root"
 }`),
 			},
+		},
+		// Object types
+		{
+			name:     "Should render a object property top-level",
+			template: `{{ .variableObject }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[firstLevel:map[secondLevel:map[leaf:value]]]"`)}, // Not ideal but go templating
+		},
+		{
+			name:     "Should render a object property firstLevel",
+			template: `{{ .variableObject.firstLevel }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[secondLevel:map[leaf:value]]"`)}, // Not ideal but go templating
+		},
+		{
+			name:     "Should render a object property secondLevel",
+			template: `{{ .variableObject.firstLevel.secondLevel }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[leaf:value]"`)}, // Not ideal but go templating
+		},
+		{
+			name:     "Should render a object property leaf",
+			template: `{{ .variableObject.firstLevel.secondLevel.leaf }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"value"`)},
+		},
+		{
+			name: "Should render a object with range",
+			template: `
+{
+{{ range $key, $value := .variableObject }}
+ "{{$key}}": "{{$value}}",
+{{end}}
+}
+`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"key1":"value1","key2":"value2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"key1":"value1","key2":"value2"}`)},
+		},
+		// Arrays (Not implemented in the ClusterClass type)
+		{
+			name:     "Should render a array property",
+			template: `{{ .variableArray }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["string1","string2","string3"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`["string1 string2 string3"]`)}, // Not ideal but go templating
+		},
+		{
+			name: "Should render a array property with range",
+			template: `
+{
+{{ range .variableArray }}
+ "{{.}}": "value",
+{{end}}
+}
+`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["string1","string2","string3"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"string1":"value","string2":"value","string3":"value"}`)},
+		},
+		{
+			name:     "Should render a array property: array element",
+			template: `{{ index .variableArray 1 }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["string1","string2","string3"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"string2"`)},
 		},
 	}
 

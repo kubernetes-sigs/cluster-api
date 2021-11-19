@@ -37,29 +37,34 @@ func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clust
 	clusterVariablesMap := getClusterVariablesMap(clusterVariables)
 	clusterClassVariablesMap := getClusterClassVariablesMap(clusterClassVariables)
 
+	// FIXME: Make sure defaulting behavior is consistent with CRDs, i.e.:
+	// * create variable if it doesn't exist
+	// * default nested fields if their parent fields exist
 	// Loop through variables in the ClusterClass and default variables if:
-	// * the variable does not exist in the Cluster.
 	// * the schema has a default value in the ClusterClass.
 	defaultedClusterVariables := []clusterv1.ClusterVariable{}
 
 	for variableName, clusterClassVariable := range clusterClassVariablesMap {
-		// Don't default if the variable already exists, use
-		// the variable from the Cluster instead.
-		if clusterVariable, ok := clusterVariablesMap[variableName]; ok {
-			defaultedClusterVariables = append(defaultedClusterVariables, *clusterVariable)
-			continue
-		}
-
 		// Don't default if there is no default value in the schema.
 		// NOTE: In this case the variable won't be added to the Cluster.
 		if clusterClassVariable.Schema.OpenAPIV3Schema.Default == nil {
 			continue
 		}
 
-		// Create a new clusterVariable and default it.
-		clusterVariable := &clusterv1.ClusterVariable{
-			Name: variableName,
+		var clusterVariable *clusterv1.ClusterVariable
+
+		// Use the variable from the Cluster.
+		if v, ok := clusterVariablesMap[variableName]; ok {
+			clusterVariable = v
 		}
+
+		if clusterVariable == nil {
+			// Create a new clusterVariable.
+			clusterVariable = &clusterv1.ClusterVariable{
+				Name: variableName,
+			}
+		}
+
 		if errs := defaultClusterVariable(clusterVariable, clusterClassVariable, fldPath); len(errs) > 0 {
 			allErrs = append(allErrs, errs...)
 			continue

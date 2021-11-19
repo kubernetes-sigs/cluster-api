@@ -60,6 +60,10 @@ E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 GO_APIDIFF_BIN := $(BIN_DIR)/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
+YQ_BIN := $(BIN_DIR)/yq
+YQ :=  $(TOOLS_DIR)/$(YQ_BIN)
+KPROMO_BIN := $(BIN_DIR)/kpromo
+KPROMO :=  $(TOOLS_DIR)/$(KPROMO_BIN)
 ENVSUBST_BIN := $(BIN_DIR)/envsubst
 ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
 
@@ -210,6 +214,12 @@ $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 $(ENVSUBST): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/v2/cmd/envsubst
 
+$(YQ): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(YQ_BIN) github.com/mikefarah/yq/v4
+
+$(KPROMO): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(KPROMO_BIN) sigs.k8s.io/promo-tools/v3/cmd/kpromo
+
 $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
 	hack/ensure-kustomize.sh
 
@@ -224,6 +234,8 @@ setup-envtest: $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
 controller-gen: $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
 conversion-gen: $(CONVERSION_GEN) ## Build a local copy of conversion-gen.
 gotestsum: $(GOTESTSUM) ## Build a local copy of gotestsum.
+yq: $(YQ)  ## Build a local copy of yq.
+kpromo: $(KPROMO)  ## Build a local copy of kpromo.
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework
@@ -491,6 +503,8 @@ PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out
 RELEASE_NOTES_DIR := _releasenotes
+USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4)
+IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh)
 
 $(RELEASE_DIR):
 	mkdir -p $(RELEASE_DIR)/
@@ -596,6 +610,10 @@ release-alias-tag: ## Adds the tag to the last build tag.
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
+
+.PHONY: promote-images
+promote-images: $(KPROMO)
+	$(KPROMO) pr --project cluster-api --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK)
 
 ## --------------------------------------
 ## Cleanup / Verification

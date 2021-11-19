@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -67,7 +68,10 @@ type ClusterReconciler struct {
 
 func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.Cluster{}).
+		For(&clusterv1.Cluster{}, builder.WithPredicates(
+			// Only reconcile Cluster with topology.
+			predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx)),
+		)).
 		Named("topology/cluster").
 		Watches(
 			&source.Kind{Type: &clusterv1.ClusterClass{}},
@@ -76,10 +80,11 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Watches(
 			&source.Kind{Type: &clusterv1.MachineDeployment{}},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
+			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned.
+			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		WithEventFilter(predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx))).
 		Build(r)
 
 	if err != nil {
@@ -109,6 +114,14 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		}
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
+	}
+
+	// Return early, if the Cluster does not use a managed topology.
+	// NOTE: We're already filtering events, but this is a safeguard for cases like e.g. when
+	// there are MachineDeployments which have the topology owned label, but the corresponding
+	// cluster is not topology owned.
+	if cluster.Spec.Topology == nil {
+		return ctrl.Result{}, nil
 	}
 
 	// Return early if the Cluster is paused.
@@ -176,13 +189,17 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl
 func (r *ClusterReconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) error {
 	if s.Current.InfrastructureCluster != nil {
 		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.InfrastructureCluster,
-			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
+			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}},
+			// Only trigger Cluster reconciliation if the InfrastructureCluster is topology owned.
+			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))); err != nil {
 			return errors.Wrap(err, "error watching Infrastructure CR")
 		}
 	}
 	if s.Current.ControlPlane.Object != nil {
 		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.ControlPlane.Object,
-			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
+			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}},
+			// Only trigger Cluster reconciliation if the ControlPlane is topology owned.
+			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))); err != nil {
 			return errors.Wrap(err, "error watching ControlPlane CR")
 		}
 	}

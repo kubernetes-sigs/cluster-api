@@ -18,6 +18,8 @@ limitations under the License.
 package predicates
 
 import (
+	"fmt"
+
 	"github.com/go-logr/logr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +36,7 @@ func ClusterCreateInfraReady(logger logr.Logger) predicate.Funcs {
 
 			c, ok := e.Object.(*clusterv1.Cluster)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", e.Object.GetObjectKind().GroupVersionKind().String())
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.Object))
 				return false
 			}
 			log = log.WithValues("namespace", c.Namespace, "cluster", c.Name)
@@ -63,7 +65,7 @@ func ClusterCreateNotPaused(logger logr.Logger) predicate.Funcs {
 
 			c, ok := e.Object.(*clusterv1.Cluster)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", e.Object.GetObjectKind().GroupVersionKind().String())
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.Object))
 				return false
 			}
 			log = log.WithValues("namespace", c.Namespace, "cluster", c.Name)
@@ -92,7 +94,7 @@ func ClusterUpdateInfraReady(logger logr.Logger) predicate.Funcs {
 
 			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", e.ObjectOld.GetObjectKind().GroupVersionKind().String())
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
 				return false
 			}
 			log = log.WithValues("namespace", oldCluster.Namespace, "cluster", oldCluster.Name)
@@ -122,7 +124,7 @@ func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
 
 			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", e.ObjectOld.GetObjectKind().GroupVersionKind().String())
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
 				return false
 			}
 			log = log.WithValues("namespace", oldCluster.Namespace, "cluster", oldCluster.Name)
@@ -212,7 +214,7 @@ func ClusterHasTopology(logger logr.Logger) predicate.Funcs {
 func processIfTopologyManaged(logger logr.Logger, object client.Object) bool {
 	cluster, ok := object.(*clusterv1.Cluster)
 	if !ok {
-		logger.V(4).Info("Expected Cluster", "type", object.GetObjectKind().GroupVersionKind().String())
+		logger.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", object))
 		return false
 	}
 

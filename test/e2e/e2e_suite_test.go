@@ -50,6 +50,10 @@ var (
 	// artifactFolder is the folder to store e2e test artifacts.
 	artifactFolder string
 
+	// clusterctlConfig is the file which tests will use as a clusterctl config.
+	// If it is not set, a local clusterctl repository (including a clusterctl config) will be created automatically.
+	clusterctlConfig string
+
 	// alsoLogToFile enables additional logging to the 'ginkgo-log.txt' file in the artifact folder.
 	// These logs also contain timestamps.
 	alsoLogToFile bool
@@ -82,6 +86,7 @@ func init() {
 	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
 	flag.BoolVar(&alsoLogToFile, "e2e.also-log-to-file", true, "if true, ginkgo logs are additionally written to the `ginkgo-log.txt` file in the artifacts folder (including timestamps)")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
+	flag.StringVar(&clusterctlConfig, "e2e.clusterctl-config", "", "file which tests will use as a clusterctl config. If it is not set, a local clusterctl repository (including a clusterctl config) will be created automatically.")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 }
 
@@ -117,8 +122,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Byf("Loading the e2e test configuration from %q", configPath)
 	e2eConfig = loadE2EConfig(configPath)
 
-	Byf("Creating a clusterctl local repository into %q", artifactFolder)
-	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
+	if clusterctlConfig == "" {
+		Byf("Creating a clusterctl local repository into %q", artifactFolder)
+		clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
+	} else {
+		Byf("Using existing clusterctl config %q", clusterctlConfig)
+		clusterctlConfigPath = clusterctlConfig
+	}
 
 	By("Setting up the bootstrap cluster")
 	bootstrapClusterProvider, bootstrapClusterProxy = setupBootstrapCluster(e2eConfig, scheme, useExistingCluster)

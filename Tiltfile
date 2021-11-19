@@ -104,6 +104,21 @@ COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
     },
 }
 
+providersTemplate = """
+apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3
+kind: Provider
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: {}
+    clusterctl.cluster.x-k8s.io: ""
+    clusterctl.cluster.x-k8s.io/core: inventory
+  name: {}
+  namespace: {}
+providerName: {}
+type: {}
+version: v1.1.99
+"""
+
 # Reads a provider's tilt-provider.json file and merges it into the providers map.
 # A list of dictionaries is also supported by enclosing it in brackets []
 # An example file looks like this:
@@ -280,25 +295,60 @@ def enable_provider(name, debug):
             yaml = str(kustomize_with_envsubst(context + "/config/default", False))
         else:
             yaml = str(kustomize_with_envsubst(context + "/config/default", True))
-        k8s_yaml(blob(yaml))
 
-        manager_name = find_manager(yaml)
+        manifests = decode_yaml_stream(yaml)
+
+        manager_name = find_manager(manifests)
         print("manager: " + manager_name)
+
+        # Append Provider CR.
+        provider_yaml, provider_object_name = get_provider(manifests)
+        yaml += "\n---\n" + provider_yaml
+
+        k8s_yaml(blob(yaml))
 
         k8s_resource(
             workload = manager_name,
+            objects = [provider_object_name],
             new_name = label.lower() + "_controller",
             labels = [label, "ALL.controllers"],
             port_forwards = port_forwards,
             links = links,
+            resource_deps = ["provider_crd"],
         )
 
-def find_manager(yaml):
-    manifests = decode_yaml_stream(yaml)
+def find_manager(manifests):
     for m in manifests:
         if m["kind"] == "Deployment":
             return m["metadata"]["name"]
     return ""
+
+# This code reimplements cmd/clusterctl/client/repository/components.InventoryObject
+# It takes all required information from the Namespace resource.
+def get_provider(manifests):
+    for m in manifests:
+        if m["kind"] == "Namespace":
+            target_namespace = m["metadata"]["name"]
+            manifest_label = m["metadata"]["labels"]["cluster.x-k8s.io/provider"]
+
+    # Calculate provider type and name from manifest_label.
+    # Examples for manifest labels: "cluster-api", "infrastructure-docker",
+    # "bootstrap-kubeadm", "control-plane-kubeadm"
+    # type is based on the prefix.
+    # name is the manifest label without the provider type prefix.
+    type = "CoreProvider"
+    name = manifest_label
+    if manifest_label.startswith("infrastructure"):
+        type = "InfrastructureProvider"
+        name = manifest_label[len("infrastructure-"):]
+    if manifest_label.startswith("bootstrap"):
+        type = "BootstrapProvider"
+        name = manifest_label[len("bootstrap-"):]
+    if manifest_label.startswith("control-plane"):
+        type = "ControlPlaneProvider"
+        name = manifest_label[len("control-plane-"):]
+
+    return providersTemplate.format(manifest_label, manifest_label, target_namespace, name, type), "{}:Provider:{}".format(manifest_label, target_namespace)
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.
@@ -336,6 +386,14 @@ def ensure_kustomize():
     if not os.path.exists(kustomize_cmd):
         local("make {}".format(os.path.abspath(kustomize_cmd)))
 
+def deploy_provider_crds():
+    k8s_yaml(blob(str(local("{} build {}".format(kustomize_cmd, "./cmd/clusterctl/config/crd/"), quiet = True))))
+
+    k8s_resource(
+        objects = ["providers.clusterctl.cluster.x-k8s.io:CustomResourceDefinition:default"],
+        new_name = "provider_crd",
+    )
+
 def deploy_observability():
     k8s_yaml(blob(str(local("{} build {}".format(kustomize_cmd, "./hack/observability/"), quiet = True))))
 
@@ -354,6 +412,8 @@ ensure_kustomize()
 include_user_tilt_files()
 
 load_provider_tiltfiles()
+
+deploy_provider_crds()
 
 if settings.get("deploy_cert_manager"):
     deploy_cert_manager(version = "v1.5.3")

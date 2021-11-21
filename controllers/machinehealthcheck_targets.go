@@ -302,7 +302,6 @@ func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckT
 		}
 
 		if t.Machine.DeletionTimestamp.IsZero() && t.Node != nil {
-			conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
 			healthy = append(healthy, t)
 		}
 	}

@@ -333,6 +333,10 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 func (r *MachineHealthCheckReconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger, healthy []healthCheckTarget, m *clusterv1.MachineHealthCheck) []error {
 	errList := []error{}
 	for _, t := range healthy {
+		// machine always in healthy status
+		if conditions.IsTrue(t.Machine, clusterv1.MachineHealthCheckSuccededCondition) {
+			continue
+		}
 		if m.Spec.RemediationTemplate != nil {
 			// Get remediation request object
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
@@ -351,7 +355,8 @@ func (r *MachineHealthCheckReconciler) patchHealthyTargets(ctx context.Context, 
 				}
 			}
 		}
-
+		// mark machine in healthy status after delete externalRemediation object
+		conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
 		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
 			logger.Error(err, "failed to patch healthy machine status for machine", "machine", t.Machine.GetName())
 			errList = append(errList, errors.Wrapf(err, "failed to patch healthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))

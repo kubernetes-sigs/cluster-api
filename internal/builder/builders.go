@@ -304,21 +304,26 @@ func (m *MachineDeploymentClassBuilder) WithAnnotations(annotations map[string]s
 
 // Build creates a full MachineDeploymentClass object with the variables passed to the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClass {
-	return &clusterv1.MachineDeploymentClass{
+	obj := &clusterv1.MachineDeploymentClass{
 		Class: m.class,
 		Template: clusterv1.MachineDeploymentClassTemplate{
 			Metadata: clusterv1.ObjectMeta{
 				Labels:      m.labels,
 				Annotations: m.annotations,
 			},
-			Bootstrap: clusterv1.LocalObjectTemplate{
-				Ref: objToRef(m.bootstrapTemplate),
-			},
-			Infrastructure: clusterv1.LocalObjectTemplate{
-				Ref: objToRef(m.infrastructureMachineTemplate),
-			},
 		},
 	}
+	if m.bootstrapTemplate != nil {
+		obj.Template.Bootstrap = clusterv1.LocalObjectTemplate{
+			Ref: objToRef(m.bootstrapTemplate),
+		}
+	}
+	if m.infrastructureMachineTemplate != nil {
+		obj.Template.Infrastructure = clusterv1.LocalObjectTemplate{
+			Ref: objToRef(m.infrastructureMachineTemplate),
+		}
+	}
+	return obj
 }
 
 // InfrastructureMachineTemplateBuilder holds the variables and objects needed to build an InfrastructureMachineTemplate.

@@ -47,6 +47,7 @@ type SelfHostedSpecInput struct {
 }
 
 // SelfHostedSpec implements a test that verifies Cluster API creating a cluster, pivoting to a self-hosted cluster.
+// NOTE: This test works with Clusters with and without ClusterClass.
 func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput) {
 	var (
 		specName         = "self-hosted"

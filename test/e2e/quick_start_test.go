@@ -25,7 +25,6 @@ import (
 )
 
 var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
-
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:             e2eConfig,
@@ -35,11 +34,9 @@ var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", fun
 			SkipCleanup:           skipCleanup,
 		}
 	})
-
 })
 
 var _ = Describe("When following the Cluster API quick-start with ClusterClass", func() {
-
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:             e2eConfig,
@@ -50,5 +47,4 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass",
 			Flavor:                pointer.String("topology"),
 		}
 	})
-
 })

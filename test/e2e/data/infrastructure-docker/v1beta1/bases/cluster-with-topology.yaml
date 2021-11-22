@@ -26,3 +26,9 @@ spec:
     variables:
     - name: imageRepository
       value: k8s.gcr.io
+    - name: etcdImageTag
+      # We set an empty value to use the default tag kubeadm init is using.
+      value: ""
+    - name: coreDNSImageTag
+      # We set an empty value to use the default tag kubeadm init is using.
+      value: ""

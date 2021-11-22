@@ -24,7 +24,6 @@ import (
 )
 
 var _ = Describe("When testing MachineDeployment rolling upgrades", func() {
-
 	MachineDeploymentRolloutSpec(ctx, func() MachineDeploymentRolloutSpecInput {
 		return MachineDeploymentRolloutSpecInput{
 			E2EConfig:             e2eConfig,
@@ -34,5 +33,4 @@ var _ = Describe("When testing MachineDeployment rolling upgrades", func() {
 			SkipCleanup:           skipCleanup,
 		}
 	})
-
 })

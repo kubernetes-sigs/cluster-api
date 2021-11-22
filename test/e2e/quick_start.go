@@ -48,6 +48,7 @@ type QuickStartSpecInput struct {
 // QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
 // creating a workload cluster.
 // This test is meant to provide a first, fast signal to detect regression; it is recommended to use it as a PR blocker test.
+// NOTE: This test works with Clusters with and without ClusterClass.
 func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput) {
 	var (
 		specName         = "quick-start"

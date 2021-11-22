@@ -21,10 +21,10 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("When upgrading a workload cluster and testing K8S conformance [Conformance] [K8s-Upgrade]", func() {
-
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:             e2eConfig,
@@ -34,5 +34,20 @@ var _ = Describe("When upgrading a workload cluster and testing K8S conformance 
 			SkipCleanup:           skipCleanup,
 		}
 	})
+})
 
+var _ = Describe("When upgrading a workload cluster using ClusterClass", func() {
+	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
+		return ClusterUpgradeConformanceSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                pointer.String("topology"),
+			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
+			// the conformance tests are skipped.
+			SkipConformanceTests: true,
+		}
+	})
 })

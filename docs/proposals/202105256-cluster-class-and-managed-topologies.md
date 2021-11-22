@@ -14,9 +14,8 @@ reviewers:
   - "@schrej"
   - "@randomvariable"
 creation-date: 2021-05-26
+replaces: https://docs.google.com/document/d/1lwxgBK3Q7zmNkOSFqzTGmrSys_vinkwubwgoyqSRAbI
 status: provisional
-replaces:
-  - [Proposal Google Doc](https://docs.google.com/document/d/1lwxgBK3Q7zmNkOSFqzTGmrSys_vinkwubwgoyqSRAbI/edit#)
 ---
 
 # ClusterClass and Managed Topologies
@@ -28,7 +27,7 @@ replaces:
   - [Glossary](#glossary)
       - [ClusterClass](#clusterclass)
       - [Topology](#topology)
-      - [Worker class](#worker-class)
+      - [Worker class](#workerclass)
   - [Summary](#summary)
   - [Motivation](#motivation)
       - [Goals](#goals)
@@ -38,9 +37,12 @@ replaces:
         - [Story 1 - Use ClusterClass to easily stamp clusters](#story-1---use-clusterclass-to-easily-stamp-clusters)
         - [Story 2 - Easier UX for kubernetes version upgrades](#story-2---easier-ux-for-kubernetes-version-upgrades)
         - [Story 3 - Easier UX for scaling workers nodes](#story-3---easier-ux-for-scaling-workers-nodes)
-        - [Story 4 - Ability to customize individual clusters](#story-4---ability-to-customize-individual-clusters)
-        - [Story 5 - Provide powerful and flexible options to define ClusterClass customizations](#story-5---provide-powerful-and-flexible-options-to-define-clusterclass-customizations)
-      - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+        - [Story 4 - Ability to customize individual clusters](#story-4---use-clusterclass-to-easily-modify-clusters-in-bulk)
+        - [Story 5 - Provide powerful and flexible options to define ClusterClass customizations](#story-5---ability-to-define-clusterclass-customizations)
+        - [Story 6 - Ability to customize individual Clusters via variables](#story-6---ability-to-customize-individual-clusters-via-variables)
+        - [Story 7 - Ability to mutate variables](#story-7---ability-to-mutate-variables)
+
+        - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
         - [New API types](#new-api-types)
             - [ClusterClass](#clusterclass-1)
         - [Modification to existing API Types](#modification-to-existing-api-types)
@@ -58,7 +60,7 @@ replaces:
             - [Create a new Cluster with patches](#create-a-new-cluster-with-patches)
         - [Provider implementation](#provider-implementation)
         - [Conventions for template types implementation](#conventions-for-template-types-implementation)
-        - [Notes on template <-> object reconciliation](#notesontemplate<->objectreconciliation)
+        - [Notes on template <-> object reconciliation](#notes-on-template---object-reconciliation)
       - [Risks and Mitigations](#risks-and-mitigations)
   - [Alternatives](#alternatives)
   - [Upgrade Strategy](#upgrade-strategy)

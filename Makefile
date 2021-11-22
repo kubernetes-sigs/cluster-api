@@ -365,7 +365,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE)
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
-		paths=./webhooks/... \
+		paths=./internal/webhooks/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/controllers/... \
 		paths=./$(EXP_DIR)/addons/api/... \

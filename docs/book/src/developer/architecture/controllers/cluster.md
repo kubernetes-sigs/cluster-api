@@ -4,9 +4,10 @@
 
 The Cluster controller's main responsibilities are:
 
-* Setting an OwnerReference on the infrastructure object referenced in `Cluster.Spec.InfrastructureRef`.
+* Setting an OwnerReference on the infrastructure object referenced in `Cluster.spec.infrastructureRef`.
+* Setting an OwnerReference on the control plane object referenced in `Cluster.spec.controlPlaneRef`.
 * Cleanup of all owned objects so that nothing is dangling after deletion.
-* Keeping the Cluster's status in sync with the infrastructure Cluster's status.
+* Keeping the Cluster's status in sync with the infrastructureCluster's status.
 * Creating a kubeconfig secret for [workload clusters](../../../reference/glossary.md#workload-cluster).
 
 ## Contracts
@@ -18,6 +19,12 @@ run a Kubernetes cluster. As an example, the AWS infrastructure provider, specif
 provision a VPC, some security groups, an ELB, a bastion instance and some other components all with AWS best practices
 baked in. Once that infrastructure is provisioned and ready to be used the AWSMachine reconciler takes over and
 provisions EC2 instances that will become a Kubernetes cluster through some bootstrap mechanism.
+
+The cluster controller will set an OwnerReference on the infrastructureCluster. This controller should normally take no action during reconciliation until it sees the OwnerReference.
+
+An infrastructureCluster controller is expected to eventually have its `spec.controlPlaneEndpoint` set by the user/controller.
+
+The Cluster controller bubbles up `spec.controlPlaneEndpoint` and `status.ready` into `status.infrastructureReady` from the infrastructureCluster.
 
 #### Required `status` fields
 

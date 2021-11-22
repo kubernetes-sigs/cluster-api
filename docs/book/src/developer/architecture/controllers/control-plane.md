@@ -39,6 +39,12 @@ Kubernetes control plane consisting of the following services:
 
 ### Relationship to other Cluster API types
 
+The Cluster controller will set an OwnerReference on the Control Plane. The Control Plane controller should normally take no action during reconciliation until it sees the ownerReference.
+
+A Control Plane controller implementation should exit reconciliation until it sees `cluster.spec.controlPlaneEndpoint` populated.
+
+The Cluster controller bubbles up `status.ready` into `status.controlPlaneReady`  and `status.initialized` into a `controlPlaneInitialized` condition from the Control Plane CR.
+
 The `ImplementationControlPlane` *must* rely on the existence of
 `status.controlplaneEndpoint` in its parent [Cluster](./cluster.md) object.
 

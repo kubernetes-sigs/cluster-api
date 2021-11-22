@@ -331,6 +331,42 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Default array",
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testVariable",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`[{"url":"123"},{"url":"456"}]`),
+				},
+			},
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testVariable",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type:    "boolean",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+								},
+								"url": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "testVariable",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`[{"enabled":false,"url":"123"},{"enabled":false,"url":"456"}]`),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

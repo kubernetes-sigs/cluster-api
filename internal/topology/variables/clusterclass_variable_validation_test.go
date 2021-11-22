@@ -297,6 +297,22 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Valid array schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "arrayVariable",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Items: &clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

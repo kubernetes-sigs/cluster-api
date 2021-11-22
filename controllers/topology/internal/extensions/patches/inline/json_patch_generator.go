@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -208,6 +209,11 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 	return value, nil
 }
 
+const (
+	leftArrayDelim  = "["
+	rightArrayDelim = "]"
+)
+
 // getVariableValue returns a variable from the variables map.
 func getVariableValue(variables map[string]apiextensionsv1.JSON, variableName string) (*apiextensionsv1.JSON, error) {
 	// If the variable is a top-level variable, just do a simple lookup.
@@ -236,17 +242,56 @@ func getVariableValue(variables map[string]apiextensionsv1.JSON, variableName st
 	// Split the variable name and exclude the first part ("<variableName>.")
 	relativePath := strings.Split(variableName, ".")[1:]
 
-	// Return if the variable does not exist.
-	if !variable.Exists(relativePath...) {
-		return nil, errors.Errorf("variable %q does not exist", variableName)
-	}
+	for _, pathSegment := range relativePath {
+		if (strings.Contains(pathSegment, leftArrayDelim) && !strings.Contains(pathSegment, rightArrayDelim)) ||
+			(!strings.Contains(pathSegment, leftArrayDelim) && strings.Contains(pathSegment, rightArrayDelim)) {
+			return nil, errors.Errorf("variable name %q has invalid syntax", variableName)
+		}
 
-	// Get the variable from the variable object.
-	variableValue := variable.Get(relativePath...)
+		// TODO: move this into a separate func + more unit tests
+		arrayIndex := -1
+		if strings.Contains(pathSegment, leftArrayDelim) && strings.Contains(pathSegment, rightArrayDelim) {
+			arrayIndexStr := pathSegment[strings.Index(pathSegment, leftArrayDelim)+1 : strings.Index(pathSegment, rightArrayDelim)]
+			index, err := strconv.Atoi(arrayIndexStr)
+			if err != nil {
+				return nil, errors.Wrapf(err, "variable name %q has invalid syntax: failed to parse array index", variableName)
+			}
+			if index < 0 {
+				return nil, errors.Wrapf(err, "variable name %q has invalid syntax: invalid array index %d", variableName, index)
+			}
+
+			arrayIndex = index
+			pathSegment = pathSegment[:strings.Index(pathSegment, leftArrayDelim)] //nolint:gocritic // We already check above that pathSegment contains leftArrayDelim
+		}
+
+		// Return if the variable does not exist.
+		if !variable.Exists(pathSegment) {
+			return nil, errors.Errorf("variable %q does not exist", variableName)
+		}
+
+		// Get the variable from the variable object.
+		if arrayIndex == -1 {
+			// arrayIndex not set.
+			variable = variable.Get(pathSegment)
+			continue
+		}
+
+		// arrayIndex is set.
+		arr, err := variable.Get(pathSegment).Array()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to calculate variable %q", variableName)
+		}
+
+		if len(arr) < arrayIndex+1 {
+			return nil, errors.Errorf("failed to calculate variable: array does not have index %d", arrayIndex)
+		}
+
+		variable = arr[arrayIndex]
+	}
 
 	// Return the marshalled value of the variable.
 	return &apiextensionsv1.JSON{
-		Raw: variableValue.MarshalTo([]byte{}),
+		Raw: variable.MarshalTo([]byte{}),
 	}, nil
 }
 

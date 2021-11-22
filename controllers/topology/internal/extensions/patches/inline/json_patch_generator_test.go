@@ -775,6 +775,51 @@ func TestCalculateValue(t *testing.T) {
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"value"`)},
 		},
+		// Array
+		{
+			name: "Should return .valueFrom.variable if set: array",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["abc","def"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`["abc","def"]`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested array",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":["abc","def"]}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`["abc","def"]`)},
+		},
+		{
+			// FIXME: has to be implemented explicitly. TODOs:
+			// * Pick a JSONPath "standard", links:
+			//     * https://tools.ietf.org/id/draft-goessner-dispatch-jsonpath-00.html (https://goessner.net/articles/JsonPath/)
+			//     * https://kubernetes.io/docs/reference/kubectl/jsonpath/
+			// * Supported subset: child operators '.', '[i]'
+			// * Either implement it manually or search for a lib (take a look at k/k)
+			//     * https://github.com/kubernetes/kubernetes/blob/5c3de9f1de913d1251ce2183991a845edc01d123/staging/src/k8s.io/client-go/util/jsonpath/jsonpath.go
+			//  * Add more unit tests
+			name: "Should return .valueFrom.variable if set: nested array element",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel[1].secondLevel"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"},{"secondLevel":"secondElement"}]}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"secondElement"`)},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1003,7 +1048,7 @@ owner: root:root
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`{"key1":"value1","key2":"value2"}`)},
 		},
-		// Arrays (Not implemented in the ClusterClass type)
+		// Arrays
 		{
 			name:     "Should render a array property",
 			template: `{{ .variableArray }}`,
@@ -1033,6 +1078,32 @@ owner: root:root
 				"variableArray": {Raw: []byte(`["string1","string2","string3"]`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"string2"`)},
+		},
+		{
+			name:     "Should render a array property: array object element field",
+			template: `{{ (index .variableArray 1).propertyA }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`[{"propertyA":"A0","propertyB":"B0"},{"propertyA":"A1","propertyB":"B1"}]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"A1"`)},
+		},
+		// Pick up config for a specific MD Class
+		{
+			name:     "Should render a object property with a lookup based on a builtin variable",
+			template: `{{ (index .mdConfig .builtin.machineDeployment.class).config }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"mdConfig": {Raw: []byte(`{
+"mdClass1":{
+	"config":"configValue1"
+},
+"mdClass2":{
+	"config":"configValue2"
+}
+}`)},
+				// Schema must either support complex objects with predefined keys/mdClasses or maps with additionalProperties.
+				patchvariables.BuiltinsName: {Raw: []byte(`{"machineDeployment":{"version":"v1.21.1","class":"mdClass2","name":"md1","topologyName":"md-topology","replicas":3}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"configValue2"`)},
 		},
 	}
 

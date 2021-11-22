@@ -53,6 +53,16 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*
 		}
 	}
 
+	if schema.Items != nil {
+		upstreamSchema, err := convertToAPIExtensionsJSONSchemaProps(schema.Items)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to convert schema of items")
+		}
+		props.Items = &apiextensions.JSONSchemaPropsOrArray{
+			Schema: upstreamSchema,
+		}
+	}
+
 	if schema.Default != nil {
 		var v apiextensions.JSON
 		err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Default, &v, nil)

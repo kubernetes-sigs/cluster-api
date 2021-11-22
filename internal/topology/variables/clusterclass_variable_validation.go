@@ -71,7 +71,7 @@ func validateClusterClassVariable(variable *clusterv1.ClusterClassVariable, fldP
 	allErrs = append(allErrs, validateClusterClassVariableName(variable.Name, fldPath.Child("name"))...)
 
 	// Validate schema.
-	allErrs = append(allErrs, validateSchema(&variable.Schema.OpenAPIV3Schema, variable.Name, fldPath.Child("schema", "openAPIV3Schema"))...)
+	allErrs = append(allErrs, validateSchema(&variable.Schema.OpenAPIV3Schema, fldPath.Child("schema", "openAPIV3Schema"))...)
 
 	return allErrs
 }
@@ -98,11 +98,11 @@ func validateClusterClassVariableName(variableName string, fldPath *field.Path) 
 var validVariableTypes = sets.NewString("object", "string", "number", "integer", "boolean")
 
 // validateSchema validates the schema.
-func validateSchema(schema *clusterv1.JSONSchemaProps, parentName string, fldPath *field.Path) field.ErrorList {
+func validateSchema(schema *clusterv1.JSONSchemaProps, fldPath *field.Path) field.ErrorList {
 	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema)
 	if err != nil {
 		return field.ErrorList{field.Invalid(fldPath, schema,
-			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", parentName, err))}
+			fmt.Sprintf("invalid schema in ClusterClass: error to convert schema %v", err))}
 	}
 
 	// Validate that type is one of the validVariableTypes.
@@ -119,8 +119,12 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, parentName string, fldPat
 	if len(schema.Properties) != 0 {
 		for propertyName, propertySchema := range schema.Properties {
 			p := propertySchema
-			allErrs = append(allErrs, validateSchema(&p, propertyName, fldPath.Child("properties").Key(propertyName))...)
+			allErrs = append(allErrs, validateSchema(&p, fldPath.Child("properties").Key(propertyName))...)
 		}
+	}
+
+	if schema.Items != nil {
+		allErrs = append(allErrs, validateSchema(schema.Items, fldPath.Child("items"))...)
 	}
 
 	// Validate structural schema.

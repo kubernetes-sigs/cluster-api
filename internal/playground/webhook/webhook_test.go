@@ -170,6 +170,23 @@ func TestWebhook(t *testing.T) {
 				"value": "us-east"
 			}]`,
 		},
+		{
+			name: "empty string", // is not being defaulted becase "" is set
+			variableClasses: `[{
+				"name": "location",
+				"required": true,
+				"schema": {
+					"openAPIV3Schema": {
+						"type": "string",
+						"default": "abc"
+					}
+				}
+			}]`,
+			variableTopologies: `[{
+				"name": "location",
+				"value": ""
+			}]`,
+		},
 		//{ //{ FIXME: objets are not supported anymore
 		//	name: "object",
 		//	variableClasses: `[{

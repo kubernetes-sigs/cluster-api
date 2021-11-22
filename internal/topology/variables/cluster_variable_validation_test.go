@@ -495,6 +495,57 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Valid array",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							Enum: []apiextensionsv1.JSON{
+								{Raw: []byte(`"enumValue1"`)},
+								{Raw: []byte(`"enumValue2"`)},
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["enumValue1","enumValue2"]`),
+				},
+			},
+		},
+		{
+			name: "Invalid array",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							Enum: []apiextensionsv1.JSON{
+								{Raw: []byte(`"enumValue1"`)},
+								{Raw: []byte(`"enumValue2"`)},
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["enumValue1","enumValueInvalid"]`),
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

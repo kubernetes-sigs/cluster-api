@@ -61,7 +61,8 @@ func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clust
 		if clusterVariable == nil {
 			// Create a new clusterVariable.
 			clusterVariable = &clusterv1.ClusterVariable{
-				Name: variableName,
+				Name:  variableName,
+				Value: apiextensionsv1.JSON{Raw: []byte(``)},
 			}
 		}
 
@@ -100,6 +101,13 @@ func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterC
 		},
 	}
 	var value interface{}
+	if len(clusterVariable.Value.Raw) > 0 {
+		if err := json.Unmarshal(clusterVariable.Value.Raw, &value); err != nil {
+			return field.ErrorList{field.Invalid(fldPath, "",
+				fmt.Sprintf("could not unmarshal variable value %q: %v", string(clusterVariable.Value.Raw), err))}
+		}
+	}
+
 	wrappedVariable := map[string]interface{}{
 		clusterVariable.Name: value,
 	}

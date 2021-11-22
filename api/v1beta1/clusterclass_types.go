@@ -175,6 +175,14 @@ type JSONSchemaProps struct {
 	// * AdditionalProperties.type can be any of our supported types
 	// AdditionalProperties *JSONSchemaPropsOrBool     `json:"additionalProperties,omitempty"`
 
+	// Items specifies fields of an array.
+	Items *JSONSchemaProps `json:"items,omitempty"`
+
+	// FIXME: additional validation for arrays
+	// MaxItems             *int64                     `json:"maxItems,omitempty" protobuf:"bytes,16,opt,name=maxItems"`
+	// MinItems             *int64                     `json:"minItems,omitempty" protobuf:"bytes,17,opt,name=minItems"`
+	// UniqueItems          bool                       `json:"uniqueItems,omitempty" protobuf:"bytes,18,opt,name=uniqueItems"`
+
 	// Nullable specifies if the variable can be set to null.
 	// +optional
 	Nullable bool `json:"nullable,omitempty"`

@@ -216,16 +216,8 @@ func setupWebhooks(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
 		os.Exit(1)
 	}
-	if err := (&kubeadmbootstrapv1.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigList")
-		os.Exit(1)
-	}
 	if err := (&kubeadmbootstrapv1.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
-		os.Exit(1)
-	}
-	if err := (&kubeadmbootstrapv1.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplateList")
 		os.Exit(1)
 	}
 }

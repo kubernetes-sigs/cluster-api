@@ -26,9 +26,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	v1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	"sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/envtest"
-	"sigs.k8s.io/cluster-api/internal/envtest/webhooks"
+	"sigs.k8s.io/cluster-api/internal/envtest/setup"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -73,10 +73,10 @@ func TestMain(m *testing.M) {
 		ManagerUncachedObjs: []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
-			&v1alpha4.ClusterResourceSetBinding{},
+			&v1beta1.ClusterResourceSetBinding{},
 		},
 		SetupIndexes:     setupIndexes,
-		SetupWebhooks:    webhooks.SetupAllWebhooksWithManager,
+		SetupWebhooks:    setup.AllWebhooksWithManager,
 		SetupReconcilers: setupReconcilers,
 	}))
 }

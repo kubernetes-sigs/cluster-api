@@ -25,7 +25,7 @@ import (
 	// +kubebuilder:scaffold:imports
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/internal/envtest"
-	"sigs.k8s.io/cluster-api/internal/envtest/webhooks"
+	"sigs.k8s.io/cluster-api/internal/envtest/setup"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
@@ -57,7 +57,7 @@ func TestMain(m *testing.M) {
 		M:                m,
 		SetupEnv:         func(e *envtest.Environment) { env = e },
 		SetupIndexes:     setupIndexes,
-		SetupWebhooks:    webhooks.SetupAllWebhooksWithManager,
+		SetupWebhooks:    setup.AllWebhooksWithManager,
 		SetupReconcilers: setupReconcilers,
 	}))
 }

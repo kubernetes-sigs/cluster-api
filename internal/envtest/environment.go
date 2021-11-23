@@ -68,6 +68,9 @@ func init() {
 	klog.SetOutput(ginkgo.GinkgoWriter)
 
 	// Calculate the scheme.
+	// FIXME(tbd): if we want to enable envtests in those packages too we
+	// have to move those schema registrations to the setup package too
+	// TBD if we want that (for our current case it's enough to enable envtests for webhooks/)
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
@@ -106,7 +109,7 @@ func Run(ctx context.Context, input RunInput) int {
 		input.SetupIndexes(ctx, env.Manager)
 	}
 	if input.SetupWebhooks != nil {
-		input.SetupWebhooks(ctx, env.Manager)
+		input.SetupWebhooks(env.Manager)
 	}
 	if input.SetupReconcilers != nil {
 		input.SetupReconcilers(ctx, env.Manager)
@@ -215,9 +218,6 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err != nil {
 		klog.Fatalf("Failed to start testenv manager: %v", err)
 	}
-
-	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
-	clusterv1.SetMinNodeStartupTimeout(metav1.Duration{Duration: 1 * time.Millisecond})
 
 	return &Environment{
 		Manager: mgr,

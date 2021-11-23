@@ -24,7 +24,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cluster-api/internal/envtest"
-	"sigs.k8s.io/cluster-api/internal/envtest/webhooks"
+	"sigs.k8s.io/cluster-api/internal/envtest/setup"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -39,6 +39,6 @@ func TestMain(m *testing.M) {
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M:             m,
 		SetupEnv:      func(e *envtest.Environment) { env = e },
-		SetupWebhooks: webhooks.SetupKCPWebhooksWithManager,
+		SetupWebhooks: setup.AllWebhooksWithManager,
 	}))
 }

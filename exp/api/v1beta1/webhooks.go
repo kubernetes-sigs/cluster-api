@@ -17,11 +17,14 @@ limitations under the License.
 package v1beta1
 
 import (
+	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *KubeadmConfigList) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
+// SetupWebhooksWithManager sets up all webhooks of the current package.
+func SetupWebhooksWithManager(mgr ctrl.Manager) error {
+	if err := (&MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		return errors.Wrapf(err, "failed to create Machine webhook")
+	}
+	return nil
 }

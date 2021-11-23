@@ -17,14 +17,15 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	// +kubebuilder:scaffold:imports
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/envtest"
-	"sigs.k8s.io/cluster-api/internal/envtest/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -37,8 +38,12 @@ func TestMain(m *testing.M) {
 	utilruntime.Must(AddToScheme(scheme.Scheme))
 
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:             m,
-		SetupEnv:      func(e *envtest.Environment) { env = e },
-		SetupWebhooks: webhooks.SetupCoreWebhooksWithManager,
+		M:        m,
+		SetupEnv: func(e *envtest.Environment) { env = e },
+		SetupWebhooks: func(mgr ctrl.Manager) {
+			if err := expv1.SetupWebhooksWithManager(mgr); err != nil {
+				panic(fmt.Sprintf("Failed to set up webhooks: %v", err))
+			}
+		},
 	}))
 }

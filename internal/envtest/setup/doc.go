@@ -14,26 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package internal
-
-import (
-	"os"
-	"testing"
-
-	"sigs.k8s.io/cluster-api/internal/envtest"
-	"sigs.k8s.io/cluster-api/internal/envtest/setup"
-	ctrl "sigs.k8s.io/controller-runtime"
-)
-
-var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
-)
-
-func TestMain(m *testing.M) {
-	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:             m,
-		SetupEnv:      func(e *envtest.Environment) { env = e },
-		SetupWebhooks: setup.AllWebhooksWithManager,
-	}))
-}
+// Package setup contains helper to set up for envtest.
+// FIXME: add something about circular dependencies.
+package setup

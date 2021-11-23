@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,26 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package internal
+package v1beta1
 
 import (
-	"os"
-	"testing"
-
-	"sigs.k8s.io/cluster-api/internal/envtest"
-	"sigs.k8s.io/cluster-api/internal/envtest/setup"
+	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
-)
-
-func TestMain(m *testing.M) {
-	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:             m,
-		SetupEnv:      func(e *envtest.Environment) { env = e },
-		SetupWebhooks: setup.AllWebhooksWithManager,
-	}))
+// SetupWebhooksWithManager sets up all webhooks of the current package.
+func SetupWebhooksWithManager(mgr ctrl.Manager) error {
+	if err := (&ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+		return errors.Wrapf(err, "failed to create Machine webhook")
+	}
+	return nil
 }

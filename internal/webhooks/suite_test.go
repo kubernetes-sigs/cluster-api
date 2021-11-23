@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package webhooks
 
 import (
 	"fmt"
@@ -22,9 +22,6 @@ import (
 	"testing"
 
 	// +kubebuilder:scaffold:imports
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -34,14 +31,13 @@ var (
 	ctx = ctrl.SetupSignalHandler()
 )
 
+// FIXME(sbueringer): just part of this PR to prove that it works.
 func TestMain(m *testing.M) {
-	utilruntime.Must(AddToScheme(scheme.Scheme))
-
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M:        m,
 		SetupEnv: func(e *envtest.Environment) { env = e },
 		SetupWebhooks: func(mgr ctrl.Manager) {
-			if err := addonsv1.SetupWebhooksWithManager(mgr); err != nil {
+			if err := SetupWebhooksWithManager(mgr); err != nil {
 				panic(fmt.Sprintf("Failed to set up webhooks: %v", err))
 			}
 		},

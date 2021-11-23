@@ -197,6 +197,7 @@ type ControlPlaneWaiters struct {
 
 // ApplyClusterTemplateAndWaitResult is the output type for ApplyClusterTemplateAndWait.
 type ApplyClusterTemplateAndWaitResult struct {
+	ClusterClass       *clusterv1.ClusterClass
 	Cluster            *clusterv1.Cluster
 	ControlPlane       *controlplanev1.KubeadmControlPlane
 	MachineDeployments []*clusterv1.MachineDeployment
@@ -276,6 +277,14 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		Namespace: input.ConfigCluster.Namespace,
 		Name:      input.ConfigCluster.ClusterName,
 	}, input.WaitForClusterIntervals...)
+
+	if result.Cluster.Spec.Topology != nil {
+		result.ClusterClass = framework.GetClusterClassByName(ctx, framework.GetClusterClassByNameInput{
+			Getter:    input.ClusterProxy.GetClient(),
+			Namespace: input.ConfigCluster.Namespace,
+			Name:      result.Cluster.Spec.Topology.Class,
+		})
+	}
 
 	log.Logf("Waiting for control plane to be initialized")
 	input.WaitForControlPlaneInitialized(ctx, input, result)

@@ -30,6 +30,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/internal/envtest"
+	"sigs.k8s.io/cluster-api/internal/envtest/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -87,6 +88,7 @@ func TestMain(m *testing.M) {
 		ManagerUncachedObjs: []client.Object{},
 		SetupEnv:            func(e *envtest.Environment) { env = e },
 		SetupIndexes:        setupIndexes,
+		SetupWebhooks:       webhooks.SetupAllWebhooksWithManager,
 		SetupReconcilers:    setupReconcilers,
 	}))
 }

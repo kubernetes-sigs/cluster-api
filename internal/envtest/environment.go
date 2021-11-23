@@ -51,7 +51,6 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -84,7 +83,7 @@ type RunInput struct {
 	M                   *testing.M
 	ManagerUncachedObjs []client.Object
 	SetupIndexes        func(ctx context.Context, mgr ctrl.Manager)
-	SetupWebhooks       func(ctx context.Context, mgr ctrl.Manager)
+	SetupWebhooks       func(mgr ctrl.Manager)
 	SetupReconcilers    func(ctx context.Context, mgr ctrl.Manager)
 	SetupEnv            func(e *Environment)
 }
@@ -219,46 +218,6 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
 	clusterv1.SetMinNodeStartupTimeout(metav1.Duration{Duration: 1 * time.Millisecond})
-
-	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&webhooks.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&clusterv1.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&clusterv1.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&clusterv1.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&bootstrapv1.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&bootstrapv1.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&bootstrapv1.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&kcpv1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&addonv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook for crs: %+v", err)
-	}
-	if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook for machinepool: %+v", err)
-	}
 
 	return &Environment{
 		Manager: mgr,

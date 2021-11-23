@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	v1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/envtest"
+	"sigs.k8s.io/cluster-api/internal/envtest/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -75,6 +76,7 @@ func TestMain(m *testing.M) {
 			&v1alpha4.ClusterResourceSetBinding{},
 		},
 		SetupIndexes:     setupIndexes,
+		SetupWebhooks:    webhooks.SetupAllWebhooksWithManager,
 		SetupReconcilers: setupReconcilers,
 	}))
 }

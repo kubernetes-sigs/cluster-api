@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"sigs.k8s.io/cluster-api/internal/envtest"
+	"sigs.k8s.io/cluster-api/internal/envtest/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -31,7 +32,8 @@ var (
 
 func TestMain(m *testing.M) {
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:        m,
-		SetupEnv: func(e *envtest.Environment) { env = e },
+		M:             m,
+		SetupEnv:      func(e *envtest.Environment) { env = e },
+		SetupWebhooks: webhooks.SetupAllWebhooksWithManager,
 	}))
 }

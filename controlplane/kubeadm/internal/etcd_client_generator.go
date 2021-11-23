@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
@@ -57,6 +58,12 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config) *Etc
 
 // forFirstAvailableNode takes a list of nodes and returns a client for the first one that connects.
 func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
+	// This is an additional safeguard for avoiding this func to return nil, nil.
+	if len(nodeNames) == 0 {
+		return nil, errors.New("invalid argument: forLeader can't be called with an empty list of nodes")
+	}
+
+	// Loop through the existing control plane nodes.
 	var errs []error
 	for _, name := range nodeNames {
 		endpoints := []string{staticPodName("etcd", name)}
@@ -72,26 +79,58 @@ func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNam
 
 // forLeader takes a list of nodes and returns a client to the leader node.
 func (c *EtcdClientGenerator) forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
-	var errs []error
+	// This is an additional safeguard for avoiding this func to return nil, nil.
+	if len(nodeNames) == 0 {
+		return nil, errors.New("invalid argument: forLeader can't be called with an empty list of nodes")
+	}
 
+	nodes := sets.NewString()
+	for _, n := range nodeNames {
+		nodes.Insert(n)
+	}
+
+	// Loop through the existing control plane nodes.
+	var errs []error
 	for _, nodeName := range nodeNames {
+		// Get a temporary client to the etcd instance hosted on the node.
 		client, err := c.forFirstAvailableNode(ctx, []string{nodeName})
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
 		defer client.Close()
+
+		// Get the list of members.
 		members, err := client.Members(ctx)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
+
+		// Get the leader member.
+		var leaderMember *etcd.Member
 		for _, member := range members {
-			if member.Name == nodeName && member.ID == client.LeaderID {
-				return c.forFirstAvailableNode(ctx, []string{nodeName})
+			if member.ID == client.LeaderID {
+				leaderMember = member
+				break
 			}
 		}
-	}
 
+		// If we found the leader, and it is one of the nodes,
+		// get a connection to the etcd leader via the node hosting it.
+		if leaderMember != nil {
+			if !nodes.Has(leaderMember.Name) {
+				return nil, errors.Errorf("etcd leader is reported as %x with name %q, but we couldn't find a corresponding Node in the cluster", leaderMember.ID, leaderMember.Name)
+			}
+			return c.forFirstAvailableNode(ctx, []string{leaderMember.Name})
+		}
+
+		// If it is not possible to get a connection to the leader via existing nodes,
+		// it means that the control plane is an invalid state, with an etcd member - the current leader -
+		// without a corresponding node.
+		// TODO: In future we can eventually try to automatically remediate this condition by moving the leader
+		//  to another member with a corresponding node.
+		return nil, errors.Errorf("etcd leader is reported as %x, but we couldn't find any matching member", client.LeaderID)
+	}
 	return nil, errors.Wrap(kerrors.NewAggregate(errs), "could not establish a connection to the etcd leader")
 }

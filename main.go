@@ -401,33 +401,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
-	// is going to prevent creating or updating new objects in case the feature flag is disabled.
-	if err := (&webhooks.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterClass")
-		os.Exit(1)
+	if err := webhooks.SetupWebhooksWithManager(mgr); err != nil {
+		setupLog.Error(err, "failed to setup webhooks")
 	}
 
-	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
-	// is going to prevent usage of Cluster.Topology in case the feature flag is disabled.
-	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
-		os.Exit(1)
-	}
-
-	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
-		os.Exit(1)
-	}
-
-	if err := (&clusterv1.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
-		os.Exit(1)
-	}
-
-	if err := (&clusterv1.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
-		os.Exit(1)
+	if err := clusterv1.SetupWebhooksWithManager(mgr); err != nil {
+		setupLog.Error(err, "failed to setup webhooks")
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
@@ -444,10 +423,6 @@ func setupWebhooks(mgr ctrl.Manager) {
 		}
 	}
 
-	if err := (&clusterv1.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineHealthCheck")
-		os.Exit(1)
-	}
 }
 
 func concurrency(c int) controller.Options {

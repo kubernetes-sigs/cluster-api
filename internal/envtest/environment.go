@@ -84,6 +84,7 @@ type RunInput struct {
 	M                   *testing.M
 	ManagerUncachedObjs []client.Object
 	SetupIndexes        func(ctx context.Context, mgr ctrl.Manager)
+	SetupWebhooks       func(ctx context.Context, mgr ctrl.Manager)
 	SetupReconcilers    func(ctx context.Context, mgr ctrl.Manager)
 	SetupEnv            func(e *Environment)
 }
@@ -104,6 +105,9 @@ func Run(ctx context.Context, input RunInput) int {
 
 	if input.SetupIndexes != nil {
 		input.SetupIndexes(ctx, env.Manager)
+	}
+	if input.SetupWebhooks != nil {
+		input.SetupWebhooks(ctx, env.Manager)
 	}
 	if input.SetupReconcilers != nil {
 		input.SetupReconcilers(ctx, env.Manager)

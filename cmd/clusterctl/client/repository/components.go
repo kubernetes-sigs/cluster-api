@@ -57,7 +57,7 @@ const (
 // 3. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
 // 4. Adds labels to all the components in order to allow easy identification of the provider objects.
 type Components interface {
-	// configuration of the provider the provider components belongs to.
+	// Provider holds configuration of the provider the provider components belong to.
 	config.Provider
 
 	// Version of the provider.

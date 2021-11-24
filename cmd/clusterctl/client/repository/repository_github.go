@@ -80,7 +80,7 @@ func (g *gitHubRepository) DefaultVersion() string {
 	return g.defaultVersion
 }
 
-// GetVersion returns the list of versions that are available in a provider repository.
+// GetVersions returns the list of versions that are available in a provider repository.
 func (g *gitHubRepository) GetVersions() ([]string, error) {
 	versions, err := g.getVersions()
 	if err != nil {

@@ -327,6 +327,10 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 		// Note: nested metadata have only labels and annotations, so it is possible to override the entire
 		// parent struct.
 		{"spec", "template", "metadata"},
+		// Note: we want to be authoritative for the selector too, because if the selector and metadata.labels
+		// change, the metadata.labels might not match the selector anymore, if we don't delete outdated labels
+		// from the selector.
+		{"spec", "selector"},
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: currentMD.Object})

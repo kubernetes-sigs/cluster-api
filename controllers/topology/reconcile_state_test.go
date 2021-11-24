@@ -796,8 +796,11 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	infrastructureMachineTemplate9m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-9m").Build()
 	bootstrapTemplate9m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-9m").Build()
 	md9 := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
-	md9WithInstanceSpecificTemplateMetadata := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
-	md9WithInstanceSpecificTemplateMetadata.Object.Spec.Template.ObjectMeta.Labels = map[string]string{"foo": "bar"}
+	md9.Object.Spec.Template.ObjectMeta.Labels = map[string]string{clusterv1.ClusterLabelName: "cluster-name"}
+	md9.Object.Spec.Selector.MatchLabels = map[string]string{clusterv1.ClusterLabelName: "cluster-name"}
+	md9WithInstanceSpecificTemplateMetadataAndSelector := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
+	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Template.ObjectMeta.Labels = map[string]string{"foo": "bar"}
+	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Selector.MatchLabels = map[string]string{"foo": "bar"}
 
 	tests := []struct {
 		name                                      string
@@ -892,7 +895,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 		},
 		{
 			name:    "Enforce template metadata",
-			current: []*scope.MachineDeploymentState{md9WithInstanceSpecificTemplateMetadata},
+			current: []*scope.MachineDeploymentState{md9WithInstanceSpecificTemplateMetadataAndSelector},
 			desired: []*scope.MachineDeploymentState{md9},
 			want:    []*scope.MachineDeploymentState{md9},
 			wantErr: false,

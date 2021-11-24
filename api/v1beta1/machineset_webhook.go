@@ -104,8 +104,8 @@ func (m *MachineSet) validate(old *MachineSet) error {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "template", "labels"),
-				m.Spec.Template.Labels,
+				field.NewPath("spec", "template", "metadata", "labels"),
+				m.Spec.Template.ObjectMeta.Labels,
 				fmt.Sprintf("must match spec.selector %q", selector.String()),
 			),
 		)

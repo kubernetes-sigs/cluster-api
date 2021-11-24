@@ -28,6 +28,8 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/builder"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var (
@@ -64,7 +66,12 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 				Build()).
 		Build()
 
-	webhook := &ClusterClass{}
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(fakeScheme).
+		Build()
+
+	// Create the webhook and add the fakeClient as its client.
+	webhook := &ClusterClass{Client: fakeClient}
 	t.Run("for ClusterClass", customDefaultValidateTest(ctx, in, webhook))
 
 	g := NewWithT(t)
@@ -155,9 +162,9 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 			g := NewWithT(t)
 			webhook := &ClusterClass{}
 			if tt.expectErr {
-				g.Expect(webhook.validate(tt.old, tt.in)).NotTo(Succeed())
+				g.Expect(webhook.validate(ctx, tt.old, tt.in)).NotTo(Succeed())
 			} else {
-				g.Expect(webhook.validate(tt.old, tt.in)).To(Succeed())
+				g.Expect(webhook.validate(ctx, tt.old, tt.in)).To(Succeed())
 			}
 		})
 	}
@@ -994,23 +1001,70 @@ func TestClusterClassValidation(t *testing.T) {
 				Build(),
 			expectErr: true,
 		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				Build()
+
+			webhook := &ClusterClass{Client: fakeClient}
+
+			// Create the webhook and add the fakeClient as its client.
+			if tt.expectErr {
+				g.Expect(webhook.validate(ctx, tt.old, tt.in)).NotTo(Succeed())
+			} else {
+				g.Expect(webhook.validate(ctx, tt.old, tt.in)).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
+	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	tests := []struct {
+		name            string
+		oldClusterClass *clusterv1.ClusterClass
+		newClusterClass *clusterv1.ClusterClass
+		clusters        []client.Object
+		expectErr       bool
+	}{
 		{
-			name: "update fails if a machine deployment class gets removed",
-			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+			name: "error if a MachineDeploymentClass in use gets removed",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+									WithClass("bb").
+									Build(),
+							).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
 							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
 						WithBootstrapTemplate(
-							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).Build(),
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
 							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -1018,14 +1072,11 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						Build()).
 				Build(),
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1037,16 +1088,355 @@ func TestClusterClassValidation(t *testing.T) {
 				Build(),
 			expectErr: true,
 		},
+		{
+			name: "error if many MachineDeploymentClasses, used in multiple Clusters using the modified ClusterClass, are removed",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+									WithClass("bb").
+									Build(),
+							).
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers2").
+									WithClass("aa").
+									Build(),
+							).
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+									WithClass("aa").
+									Build(),
+							).
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers2").
+									WithClass("aa").
+									Build(),
+							).
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster3").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+									WithClass("bb").
+									Build(),
+							).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "pass if a similar MachineDeploymentClass is deleted when it is only used in Clusters not belonging to the ClusterClass",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+									WithClass("bb").
+									Build(),
+							).
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class2").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+
+									// A MachineDeploymentClass with the same name is in ClusterClass "class1" but
+									// this cluster is based on ClusterClass "class2" and does not impact deletion.
+									WithClass("aa").
+									Build(),
+							).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "pass if a MachineDeploymentClass not in use gets removed",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+									WithClass("bb").
+									Build(),
+							).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			webhook := &ClusterClass{}
+
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(tt.clusters...).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client.
+			webhook := &ClusterClass{Client: fakeClient}
+
 			if tt.expectErr {
-				g.Expect(webhook.validate(tt.old, tt.in)).NotTo(Succeed())
+				g.Expect(webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)).NotTo(Succeed())
 			} else {
-				g.Expect(webhook.validate(tt.old, tt.in)).To(Succeed())
+				g.Expect(webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestClusterClass_ValidateDelete(t *testing.T) {
+	class := builder.ClusterClass(metav1.NamespaceDefault, "class1").Build()
+
+	tests := []struct {
+		name      string
+		clusters  []client.Object
+		expectErr bool
+	}{
+		{
+			name: "allow deletion if a cluster exists but does not reference the ClusterClass for deletion",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class2").
+							Build()).
+					Build(),
+			},
+			expectErr: false,
+		},
+		{
+			name: "error if cluster exists with a reference to the ClusterClass for deletion",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							Build()).
+					Build(),
+			},
+			expectErr: true,
+		},
+		{
+			name: "error if multiple clusters exist and at least one references to the ClusterClass for deletion",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class2").
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster3").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class3").
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster4").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class4").
+							Build()).
+					Build(),
+			},
+			expectErr: true,
+		},
+		{
+			name: "allow deletion if multiple clusters exist and none of them references to the ClusterClass for deletion",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class5").
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class2").
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster3").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class3").
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster4").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class4").
+							Build()).
+					Build(),
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(tt.clusters...).
+				WithScheme(fakeScheme).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client.
+			webhook := &ClusterClass{Client: fakeClient}
+
+			if tt.expectErr {
+				g.Expect(webhook.ValidateDelete(ctx, class)).NotTo(Succeed())
+			} else {
+				g.Expect(webhook.ValidateDelete(ctx, class)).To(Succeed())
 			}
 		})
 	}

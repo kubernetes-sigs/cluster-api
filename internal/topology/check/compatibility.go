@@ -226,20 +226,6 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 func MachineDeploymentClassesAreCompatible(current, desired *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	// Ensure no MachineDeployment class was removed.
-	classes := classNamesFromWorkerClass(desired.Spec.Workers)
-	for i, oldClass := range current.Spec.Workers.MachineDeployments {
-		if !classes.Has(oldClass.Class) {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "workers", "machineDeployments").Index(i),
-					desired.Spec.Workers.MachineDeployments,
-					fmt.Sprintf("The %q MachineDeployment class can't be removed.", oldClass.Class),
-				),
-			)
-		}
-	}
-
 	// Ensure previous MachineDeployment class was modified in a compatible way.
 	for _, class := range desired.Spec.Workers.MachineDeployments {
 		for i, oldClass := range current.Spec.Workers.MachineDeployments {

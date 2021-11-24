@@ -519,7 +519,7 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "error if machineDeploymentClass is removed from ClusterClass",
+			name: "pass if machineDeploymentClass is removed from ClusterClass",
 			current: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -555,7 +555,7 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 						WithBootstrapTemplate(
 							refToUnstructured(incompatibleRef)).Build()).
 				Build(),
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -630,7 +630,7 @@ func TestMachineDeploymentClassesAreCompatible(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "error if machineDeploymentClass is removed from ClusterClass",
+			name: "pass if machineDeploymentClass is removed from ClusterClass",
 			current: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -666,7 +666,7 @@ func TestMachineDeploymentClassesAreCompatible(t *testing.T) {
 						WithBootstrapTemplate(
 							refToUnstructured(incompatibleRef)).Build()).
 				Build(),
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "error if machineDeploymentClass has multiple incompatible references",

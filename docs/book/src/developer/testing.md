@@ -160,8 +160,21 @@ Execute the run configuration with `Debug`.
 
 <h1>Tips</h1>
 
-If you want to debug CAPI controller during e2e tests, just scale down the controller in the local kind cluster
-and run it via the IDE.
+The e2e tests create a new management cluster with kind on each run. To avoid this and speed up the test execution the tests can 
+also be run against a management cluster created by [tilt](./tilt.md):
+```bash
+# Create a kind cluster
+./hack/kind-install-for-capd.sh
+# Set up the management cluster via tilt
+tilt up 
+```
+Now you can start the e2e test via IDE as described above but with the additional `-e2e.use-existing-cluster=true` flag.
+
+**Note**: This can also be used to debug controllers during e2e tests as described in [Developing Cluster API with Tilt](./tilt.md#wiring-up-debuggers).
+
+The e2e tests also create a local clusterctl repository. After it has been created on a first test execution this step can also be 
+skipped by setting `-e2e.cluster-config=<ARTIFACTS>/repository/clusterctl-config.yaml`. This also works with a clusterctl repository created 
+via [Create the local repository](http://localhost:3000/clusterctl/developers.html#create-the-local-repository).
 
 </aside>
 

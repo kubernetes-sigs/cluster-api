@@ -983,6 +983,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 			Name:      "workerpool-join-cfg",
 		},
 	}
+	timeJustBeforeRotate := time.Now()
 	result, err = k.Reconcile(ctx, request)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
@@ -997,7 +998,12 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		if bytes.Equal(item.Data[bootstrapapi.BootstrapTokenExpirationKey], tokenExpires[0]) {
 			foundOld = true
 		} else {
-			g.Expect(string(item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(Equal(time.Now().UTC().Add(k.TokenTTL).Format(time.RFC3339)))
+			// To validate the expiration time is between just before the token rotate TTL and now TTL
+			expirationTime, err := time.Parse(time.RFC3339, string(item.Data[bootstrapapi.BootstrapTokenExpirationKey]))
+			g.Expect(err).NotTo(HaveOccurred())
+			timeJustBeforeRotateTTL := timeJustBeforeRotate.UTC().Add(k.TokenTTL).Truncate(time.Second)
+			timeNowTTL := time.Now().UTC().Add(k.TokenTTL).Truncate(time.Second)
+			g.Expect(expirationTime.Sub(timeJustBeforeRotateTTL) >= 0 && expirationTime.Sub(timeNowTTL) <= 0).To(BeTrue())
 			foundNew = true
 		}
 	}

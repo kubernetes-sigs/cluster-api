@@ -244,7 +244,7 @@ func assertHasOwnerReference(obj client.Object, ownerRef metav1.OwnerReference) 
 		}
 	}
 	if !found {
-		return fmt.Errorf("Object %s does not have OwnerReference %s", tlog.KObj{Obj: obj}, &ownerRef)
+		return fmt.Errorf("object %s does not have OwnerReference %s", tlog.KObj{Obj: obj}, &ownerRef)
 	}
 	return nil
 }

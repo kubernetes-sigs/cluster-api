@@ -198,6 +198,7 @@ type ClusterClassBuilder struct {
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	variables                                 []clusterv1.ClusterClassVariable
+	patches                                   []clusterv1.ClusterClassPatch
 }
 
 // ClusterClass returns a ClusterClassBuilder with the given name and namespace.
@@ -235,9 +236,15 @@ func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *u
 	return c
 }
 
-// WithVariables adds the Variables the ClusterClassBuilder.
+// WithVariables adds the Variables to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithVariables(vars []clusterv1.ClusterClassVariable) *ClusterClassBuilder {
 	c.variables = vars
+	return c
+}
+
+// WithPatches adds the patches to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithPatches(patches []clusterv1.ClusterClassPatch) *ClusterClassBuilder {
+	c.patches = patches
 	return c
 }
 
@@ -263,6 +270,7 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		},
 		Spec: clusterv1.ClusterClassSpec{
 			Variables: c.variables,
+			Patches:   c.patches,
 		},
 	}
 	if c.infrastructureClusterTemplate != nil {

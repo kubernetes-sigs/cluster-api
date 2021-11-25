@@ -620,7 +620,7 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
     - jsonPatches:
       - `op`: one of: `add`, `replace` or `remove`
       - `path`:
-        - must be a valid JSON pointer (RFC 6901) and start with `/spec/`
+        - must be a valid JSON pointer starting with `/spec/`
         - only the indexes `0` (prepend) and `-` (append) in combination with the `add` operation are allowed (append and prepend 
           are the only allowed array modifications).
         - the JSON pointer is not verified against the target CRD as that would require parsing the template CRD, which is impractical in a webhook.

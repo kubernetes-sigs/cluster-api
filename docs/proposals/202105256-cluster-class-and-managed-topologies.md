@@ -611,7 +611,7 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - all the reference must be in the same namespace of `metadata.Namespace`
   - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
   - `ClusterClassVariable`:
-    - names must be unique, not empty and not equal to `builtin`
+    - names must be unique, not empty, not equal to `builtin` and should not contain dots
     - schemas must be valid
   - `ClusterClassPatch`:
     - names must be unique and not empty
@@ -640,7 +640,7 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - `spec.workers.machineDeployments` supports adding new deployment classes.
   - changes should be compliant with the compatibility rules defined in this doc.
   - `ClusterClassVariable`:
-    - names must be unique, not empty and not equal to `builtin`
+    - names must be unique, not empty, not equal to `builtin` and should not contain dots
     - schemas must be valid
     - schemas are mutable
       - The current assumption is that we validate schema changes against existing clusters and block in case the changes are 

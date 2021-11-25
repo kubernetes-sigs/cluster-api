@@ -29,6 +29,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
+	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -155,6 +156,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, old, new *clusterv1.C
 		// Ensure no MachineDeploymentClass currently in use has been removed from the ClusterClass.
 		allErrs = append(allErrs, webhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, old, new)...)
 	}
+	// Validate variables.
+	allErrs = append(allErrs, variables.ValidateClusterClassVariables(new.Spec.Variables, field.NewPath("spec", "variables"))...)
+
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), new.Name, allErrs)
 	}

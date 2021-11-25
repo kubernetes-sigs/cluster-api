@@ -144,7 +144,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	return aliasComponents, nil
 }
 
-// Init returns the list of images required for init.
+// InitImages returns the list of images required for init.
 func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	// gets access to the management cluster
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})

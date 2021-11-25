@@ -51,7 +51,7 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 	}
 }
 
-// Get returns the components from a repository.
+// Raw returns the components from a repository.
 func (f *componentsClient) Raw(options ComponentsOptions) ([]byte, error) {
 	return f.getRawBytes(&options)
 }

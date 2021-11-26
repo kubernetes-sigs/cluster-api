@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"k8s.io/utils/pointer"
 )
 
 func TestFlatten(t *testing.T) {
@@ -100,6 +101,43 @@ func TestFlatten(t *testing.T) {
 				Values: tt.args.kvList,
 			})
 			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestLoggerEnabled(t *testing.T) {
+	tests := []struct {
+		name      string
+		threshold *int
+		level     int
+		want      bool
+	}{
+		{
+			name:      "Return true when level is set below the threshold",
+			threshold: pointer.Int(5),
+			level:     1,
+			want:      true,
+		},
+		{
+			name:  "Return true when no threshold set",
+			level: 7,
+			want:  true,
+		},
+		{
+			name:      "Return false when level is set above the threshold",
+			threshold: pointer.Int(5),
+			level:     7,
+			want:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := &logger{
+				threshold: tt.threshold,
+			}
+			g := NewWithT(t)
+			got := l.Enabled(tt.level)
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}

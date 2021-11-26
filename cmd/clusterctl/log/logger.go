@@ -75,7 +75,7 @@ func (l *logger) Enabled(level int) bool {
 	if l.threshold == nil {
 		return true
 	}
-	return l.level <= *l.threshold
+	return level <= *l.threshold
 }
 
 // Info logs a non-error message with the given key/value pairs as context.

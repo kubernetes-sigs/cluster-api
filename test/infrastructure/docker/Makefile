@@ -48,10 +48,20 @@ ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api
 endif
 
 # Binaries.
-CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
-CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
-GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/gotestsum)
-KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
+CONTROLLER_GEN_BIN := controller-gen
+CONTROLLER_GEN_VER := $(shell grep "^CONTROLLER_GEN_VER" $(ROOT)/Makefile | awk '{print $$NF}')
+CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
+CONVERSION_GEN_BIN := conversion-gen
+CONVERSION_GEN_VER := $(shell grep "^CONVERSION_GEN_VER" $(ROOT)/Makefile | awk '{print $$NF}')
+# We are intentionally using the binary without version suffix, to avoid the version
+# in generated files.
+CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_GEN_BIN))
+GOTESTSUM_BIN := gotestsum
+GOTESTSUM_VER := $(shell grep "^GOTESTSUM_VER" $(ROOT)/Makefile | awk '{print $$NF}')
+GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE_VER := $(shell grep "^KUSTOMIZE_VER" $(ROOT)/Makefile | awk '{print $$NF}')
+KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
 	$(MAKE) -C $(ROOT) kustomize

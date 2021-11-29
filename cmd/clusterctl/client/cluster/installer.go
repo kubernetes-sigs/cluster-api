@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -260,7 +261,14 @@ func simulateInstall(providerList *clusterctlv1.ProviderList, components reposit
 
 	existingInstances := providerList.FilterByProviderNameAndType(provider.ProviderName, provider.GetProviderType())
 	if len(existingInstances) > 0 {
-		return providerList, errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.ManifestLabel(), provider.Namespace)
+		namespaces := func() string {
+			var namespaces []string
+			for _, provider := range existingInstances {
+				namespaces = append(namespaces, provider.Namespace)
+			}
+			return strings.Join(namespaces, ", ")
+		}()
+		return providerList, errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.ManifestLabel(), namespaces)
 	}
 
 	providerList.Items = append(providerList.Items, provider)
